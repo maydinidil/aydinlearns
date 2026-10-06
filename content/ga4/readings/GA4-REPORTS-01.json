@@ -1,0 +1,32 @@
+{
+  "concept_id": "GA4-REPORTS-01",
+  "section": "ga4",
+  "version": 1,
+  "title": "Standard reports",
+  "reading_md": "## What it is\n\nStandard reports are GA4's ready-made, aggregated reports.\n\n- **User acquisition** groups users by their first-user channel, source or medium: how users were first acquired.\n- **Traffic acquisition** groups by session-scoped dimensions: where each session came from.\n- **Others:** Pages and screens, Landing page (the page each session started on), Events, Key events, Monetization, Tech, Demographics (subject to thresholds) and Realtime (the last 30 minutes).\n\nYou customise a report with comparisons, filters and secondary dimensions. Editors and Administrators change the left-hand navigation through the report Library. Dashboards arrived on 9 September 2026 (New in 2026).\n\n**Channels.** The default channel group sorts traffic into 19 rule-based channels, such as Organic Search, Paid Search, Email and Referral. It cannot be edited. Announced on 13 May 2026, it includes **AI Assistant**: a visit referred by a recognised AI assistant, such as ChatGPT or Gemini, gets medium \"ai-assistant\" (New in 2026). Channel dimensions come in three scopes: First user default channel group (user), Session default channel group (session, paid and organic last click) and Default channel group (event, using the property's attribution model).\n\n**Custom channel groups** are copies of the default group with your own rules, made in Admin > Data display > Channel groups (Editor role or above). A standard property can have 2 and a 360 property 5, on top of the predefined group. Setting one as the **primary channel group** makes it your default in reports.\n\n**Tagging.** UTM parameters on your links fill the source, medium and campaign dimensions. GA4 reports `utm_source`, `utm_medium`, `utm_campaign`, `utm_term`, `utm_content` and `utm_source_platform`, but not `utm_creative_format` or `utm_marketing_tactic`. Google Ads auto-tagging adds a click ID (GCLID) and is the recommended method for Google Ads. When auto-tagging and UTMs are both present, the auto-tagged values win.\n\n## What the exam asks\n\n- Which report answers a business question. Decide user scope or session scope first.\n- Which channel a visit lands in, and which channel dimension a question needs.\n- How to change the channel labels that reports use.\n- Why traffic shows as Unassigned, or with the wrong source and medium.\n\n## Common confusions\n\n- User acquisition is not Traffic acquisition: first acquisition against every session.\n- Realtime is not DebugView. Realtime summarises all users; DebugView streams the events of devices in debug mode.\n- The default channel group cannot be edited. Copy it into a custom group and set that as primary.\n- Google AI Overviews and AI Mode count as Organic Search, not AI Assistant. AI visits that pass no referrer land in Direct (Unverified).\n- UTMs do not override auto-tagging, and GA4 has no override option.\n- UTM values are case sensitive, so `Email` and `email` become separate rows in source and medium reports. A medium that matches no channel rule lands in Unassigned.\n- Unassigned is not \"(other)\". Unassigned means no rule matched; \"(other)\" groups rare rows because of cardinality limits.\n\n## In Skillshop\n\nCourse \"Google Analytics Certification (2026)\", module \"Manage GA Data and Learn to Read Reports\": the acquisition, pages, landing page and Realtime reports, and customising reports (Unverified).",
+  "source_ids": [
+    "06:GA4-REPORTS-01",
+    "06:GA4-DEBUG-01",
+    "06:QS-01",
+    "06:GA4-CH-13",
+    "06:GA4-CH-16",
+    "10:GA4-ATTRIB-20",
+    "10:GA4-ATTRIB-21",
+    "10:GA4-ATTRIB-22",
+    "10:§4",
+    "10:COR-07",
+    "10:COR-08",
+    "10:COR-09",
+    "10:COR-10",
+    "ERRATA:E-113",
+    "ERRATA:E-114",
+    "ERRATA:E-117",
+    "ERRATA:E-121",
+    "06:§2.1",
+    "10:§7",
+    "ERRATA:E-116",
+    "ERRATA:E-122"
+  ],
+  "verified": true,
+  "as_of": "2026-10-05"
+}

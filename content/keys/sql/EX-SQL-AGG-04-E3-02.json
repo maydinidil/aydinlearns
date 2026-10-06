@@ -1,0 +1,41 @@
+{
+  "item_id": "EX-SQL-AGG-04-E3-02",
+  "item_version": 1,
+  "reference_sql": "SELECT channel,\n       order_week,\n       COUNT(DISTINCT order_id) AS n_orders,\n       SUM(net_revenue_eur) AS revenue_eur,\n       SUM(CASE WHEN parent_category = 'Accessories' THEN net_revenue_eur ELSE 0 END) AS accessories_revenue_eur,\n       SUM(CASE WHEN units >= 2 THEN 1 ELSE 0 END) AS multi_unit_lines\nFROM sales\nWHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-03-31'\nGROUP BY channel, order_week\nORDER BY channel, order_week",
+  "alternatives": [
+    "SELECT channel, order_week, COUNT(DISTINCT order_id) AS n_orders, SUM(net_revenue_eur) AS revenue_eur, COALESCE(SUM(CASE WHEN parent_category = 'Accessories' THEN net_revenue_eur END), 0) AS accessories_revenue_eur, COUNT(CASE WHEN units >= 2 THEN 1 END) AS multi_unit_lines FROM sales WHERE order_date >= DATE '2025-01-01' AND order_date <= DATE '2025-03-31' GROUP BY channel, order_week ORDER BY channel ASC, order_week ASC",
+    "SELECT channel, order_week, COUNT(DISTINCT order_id) AS n_orders, SUM(net_revenue_eur) AS revenue_eur, COALESCE(SUM(net_revenue_eur) FILTER (WHERE parent_category = 'Accessories'), 0) AS accessories_revenue_eur, COUNT(*) FILTER (WHERE units >= 2) AS multi_unit_lines FROM sales WHERE order_date BETWEEN '2025-01-01' AND '2025-03-31' GROUP BY 1, 2 ORDER BY 1, 2"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-06",
+      "sql": "SELECT channel, order_week, COUNT(DISTINCT order_id) AS n_orders, SUM(net_revenue_eur) AS revenue_eur, SUM(CASE WHEN parent_category = 'Accessories' THEN net_revenue_eur ELSE 0 END) AS accessories_revenue_eur, SUM(CASE WHEN units >= 2 THEN 1 ELSE 0 END) AS multi_unit_lines FROM sales WHERE order_week BETWEEN DATE '2025-01-01' AND DATE '2025-03-31' GROUP BY channel, order_week ORDER BY channel, order_week"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-04",
+      "sql": "SELECT channel, order_week, COUNT(order_id) AS n_orders, SUM(net_revenue_eur) AS revenue_eur, SUM(CASE WHEN parent_category = 'Accessories' THEN net_revenue_eur ELSE 0 END) AS accessories_revenue_eur, SUM(CASE WHEN units >= 2 THEN 1 ELSE 0 END) AS multi_unit_lines FROM sales WHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-03-31' GROUP BY channel, order_week ORDER BY channel, order_week"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-17",
+      "sql": "SELECT channel, order_week, COUNT(DISTINCT order_id) AS n_orders, SUM(net_revenue_eur) AS revenue_eur, SUM(CASE WHEN parent_category = 'Accessories' THEN net_revenue_eur END) AS accessories_revenue_eur, SUM(CASE WHEN units >= 2 THEN 1 ELSE 0 END) AS multi_unit_lines FROM sales WHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-03-31' GROUP BY channel, order_week ORDER BY channel, order_week"
+    },
+    {
+      "id": "PW4",
+      "error_id": "ERR-LOG-18",
+      "sql": "SELECT channel, order_week, COUNT(DISTINCT order_id) AS n_orders, SUM(net_revenue_eur) AS revenue_eur, SUM(CASE WHEN parent_category = 'Accessories' THEN net_revenue_eur ELSE 0 END) AS accessories_revenue_eur, SUM(CASE WHEN units >= 2 THEN 1 ELSE 0 END) AS multi_unit_lines FROM sales WHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-03-31' GROUP BY channel, order_week ORDER BY order_week, channel"
+    }
+  ],
+  "hint3_partial": "SELECT channel,\n       order_week,\n       COUNT(DISTINCT order_id) AS n_orders,\n       SUM(net_revenue_eur) AS revenue_eur,\n       SUM(CASE WHEN ___ THEN ___ ELSE 0 END) AS accessories_revenue_eur,\n       SUM(CASE WHEN ___ THEN ___ ELSE 0 END) AS multi_unit_lines\nFROM sales\nWHERE order_date BETWEEN ___ AND ___\nGROUP BY ___\nORDER BY ___",
+  "solver": {
+    "prompt_hash": "857b4356e8300a3e",
+    "schema_version": "cebf75df442f",
+    "dataset_version": "506a9858f862fdfb",
+    "grader_version": "1b.3",
+    "query": "SELECT channel, order_week, COUNT(DISTINCT order_id) AS n_orders, SUM(net_revenue_eur) AS revenue_eur, COALESCE(SUM(net_revenue_eur) FILTER (WHERE parent_category = 'Accessories'), 0) AS accessories_revenue_eur, COUNT(*) FILTER (WHERE units >= 2) AS multi_unit_lines FROM sales WHERE order_date BETWEEN '2025-01-01' AND '2025-03-31' GROUP BY channel, order_week ORDER BY channel ASC, order_week ASC\n",
+    "at": "2026-10-04T10:06:50.055Z"
+  }
+}

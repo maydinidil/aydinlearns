@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-AGG-01-E1-42",
+  "item_version": 1,
+  "correct_oid": "o66842ee",
+  "explanation": "COUNT(*) counts rows, so it gives 5 for stores 1 to 5. COUNT(close_date) counts only the rows where close_date has a value, and all five sample stores are open, with close_date missing, so it gives 0. A count is never missing: when nothing is counted, it is 0.",
+  "solver": {
+    "prompt_hash": "a08bdf86df1a4e66",
+    "grader_version": "choice.1",
+    "chosen": "o66842ee",
+    "typed": null,
+    "at": "2026-10-06T09:08:14.807Z"
+  }
+}

@@ -1,0 +1,84 @@
+{
+  "id": "EX-SQL-BASICS-01-E2-42",
+  "version": 1,
+  "kind": "choose_query",
+  "tags": [
+    "sql",
+    "LVL-01",
+    "choose_query",
+    "select",
+    "categories",
+    "punctuation"
+  ],
+  "level": 1,
+  "source_ids": [
+    "01:SQL-BASICS-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-BASICS-01",
+  "concept_ids": [
+    "SQL-BASICS-01"
+  ],
+  "template_id": "T-BASICS-01-choose-commas-and-quotes",
+  "template_params": {
+    "table": "categories"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_basics",
+  "prompt": "Which query lists category_name and then parent_category for every category, one row per category, with no other columns?",
+  "output_contract": null,
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [],
+  "subgoals": [],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 90000,
+  "why_this_works": "",
+  "options": [
+    {
+      "oid": "o93befb0",
+      "text": "SELECT category_name parent_category\nFROM categories",
+      "misconception_id": "ERR-SYN-04"
+    },
+    {
+      "oid": "o63dd04e",
+      "text": "SELECT category_name, parent_category\nFROM categories",
+      "misconception_id": null
+    },
+    {
+      "oid": "o6c98bbe",
+      "text": "SELECT 'category_name', parent_category\nFROM categories",
+      "misconception_id": "ERR-SYN-04"
+    },
+    {
+      "oid": "ofbae7e4",
+      "text": "SELECT parent_category, category_name\nFROM categories",
+      "misconception_id": "ERR-OUT-01"
+    }
+  ]
+}

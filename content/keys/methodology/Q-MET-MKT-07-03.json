@@ -1,0 +1,13 @@
+{
+  "item_id": "Q-MET-MKT-07-03",
+  "item_version": 1,
+  "value": 75,
+  "explanation": "Only sessions that reached every earlier step count, so the 50 buy-now sessions are left out of the purchase step: 100 x 450 / 600 = 75.0%. Counting them gives 100 x 500 / 600 = 83.3%, a purchase step that holds sessions which never began checkout.",
+  "solver": {
+    "prompt_hash": "cb1b7cc0a538d3cb",
+    "grader_version": "choice.1",
+    "chosen": null,
+    "typed": "75.0",
+    "at": "2026-10-05T22:54:47.979Z"
+  }
+}

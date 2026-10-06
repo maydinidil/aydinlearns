@@ -1,0 +1,142 @@
+{
+  "id": "EX-SQL-AGG-04-E2-03",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-02",
+    "conditional-aggregation",
+    "sum-if",
+    "pivot",
+    "sales",
+    "dates",
+    "else-zero"
+  ],
+  "level": 2,
+  "source_ids": [
+    "01:SQL-AGG-04"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-AGG-04",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CASE-01",
+    "SQL-AGG-04"
+  ],
+  "template_id": "T-AGG-04-month-pivot",
+  "template_params": {
+    "table": "sales",
+    "group": "store_code",
+    "split": "order_month",
+    "measure": "net_revenue_eur",
+    "period": "2025-Q1"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_agg",
+  "prompt": "For each store, what was the net revenue in January, February and March 2025, side by side? Use the sales table and its order_month column, the first day of the month an order was placed in. Count only order lines with an order_date from 2025-01-01 to 2025-03-31, both days included; the webshop, WEB-01, counts as a store. Return four columns, in this order: store_code, jan_revenue_eur, feb_revenue_eur and mar_revenue_eur, the sum of net_revenue_eur in each of those months. Lines with a missing net_revenue_eur add nothing, and a month in which a store has no net revenue shows 0, not a missing value. Return one row per store_code that has at least one order line in those three months. Do not round. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "store_code",
+        "type_class": "text"
+      },
+      {
+        "name": "jan_revenue_eur",
+        "type_class": "numeric"
+      },
+      {
+        "name": "feb_revenue_eur",
+        "type_class": "numeric"
+      },
+      {
+        "name": "mar_revenue_eur",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per store_code"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "store_code",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "jan_revenue_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "feb_revenue_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "mar_revenue_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "store_code"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the three monthly revenue columns, one per month.",
+    "Each month is a SUM with a CASE that passes on net_revenue_eur when order_month is that month's first day and 0 otherwise. ELSE 0 keeps a quiet month at 0, and the store alone decides the grouping."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 335,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 336,
+      "to": 346,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 347,
+      "to": 411,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 412,
+      "to": 431,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "Grouping by store gives one row per store, and one CASE per month moves each month's revenue into its own column, with ELSE 0 so a month without sales shows 0 instead of a missing value."
+}

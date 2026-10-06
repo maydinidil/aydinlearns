@@ -1,0 +1,116 @@
+{
+  "id": "EX-SQL-FILTER-02-E1-06",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-01",
+    "like",
+    "categories"
+  ],
+  "level": 1,
+  "source_ids": [
+    "01:SQL-FILTER-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-02",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-FILTER-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02"
+  ],
+  "template_id": "T-FILTER-02-like-ends",
+  "template_params": {
+    "table": "categories",
+    "case_blind": 1
+  },
+  "sub_skill": "like",
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_filter",
+  "prompt": "The audio team wants every speaker category. Category names were entered by hand, so the word can appear as Speakers or speakers. From the categories table, return three columns, in this order: category_id, category_name, parent_category. Keep only the categories whose category_name ends with speakers, in any letter case. Every category has a category_name. Return one row per category. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "category_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "category_name",
+        "type_class": "text"
+      },
+      {
+        "name": "parent_category",
+        "type_class": "text"
+      }
+    ],
+    "grain": "one row per category"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "category_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "category_name",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "parent_category",
+        "type_class": "text",
+        "precision": "exact"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "category_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the row filter. Keep a category when its name ends with speakers, whatever the letter case.",
+    "Match category_name against a text pattern with the operator that ignores letter case. The name must end with speakers, so think about which side may hold other text."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 50,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 51,
+      "to": 66,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 67,
+      "to": 104,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 75000,
+  "why_this_works": "ILIKE ignores case, and a % only at the start means the name must end with speakers."
+}

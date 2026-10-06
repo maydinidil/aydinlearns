@@ -1,0 +1,86 @@
+{
+  "id": "EX-SQL-AGG-04-E2-42",
+  "version": 1,
+  "kind": "choose_query",
+  "tags": [
+    "sql",
+    "LVL-02",
+    "choose_query",
+    "conditional_aggregation",
+    "case",
+    "sum",
+    "sales"
+  ],
+  "level": 2,
+  "source_ids": [
+    "01:SQL-AGG-04"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-AGG-04",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-AGG-04"
+  ],
+  "template_id": "T-AGG-04-choose-side-by-side-sums",
+  "template_params": {
+    "table": "sales"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_agg",
+  "prompt": "For each country_code, how much net revenue came from web lines and how much from store lines, side by side? Use the sales table, where channel is 'web' or 'store'. Return country_code, web_revenue_eur and store_revenue_eur, one row per country. Any row order is fine. Which query returns it?",
+  "output_contract": null,
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [],
+  "subgoals": [],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 90000,
+  "why_this_works": "",
+  "options": [
+    {
+      "oid": "o8dc0ef2",
+      "text": "SELECT country_code,\n       SUM(CASE WHEN channel = 'web' THEN net_revenue_eur ELSE 0 END) AS web_revenue_eur,\n       SUM(net_revenue_eur) AS store_revenue_eur\nFROM sales\nGROUP BY country_code",
+      "misconception_id": "ERR-LOG-00"
+    },
+    {
+      "oid": "o650b5ff",
+      "text": "SELECT country_code, channel, SUM(net_revenue_eur) AS revenue_eur\nFROM sales\nGROUP BY country_code, channel",
+      "misconception_id": "ERR-LOG-07"
+    },
+    {
+      "oid": "oed5b242",
+      "text": "SELECT country_code,\n       COUNT(CASE WHEN channel = 'web' THEN net_revenue_eur END) AS web_revenue_eur,\n       COUNT(CASE WHEN channel = 'store' THEN net_revenue_eur END) AS store_revenue_eur\nFROM sales\nGROUP BY country_code",
+      "misconception_id": "ERR-LOG-14"
+    },
+    {
+      "oid": "oea58471",
+      "text": "SELECT country_code,\n       SUM(CASE WHEN channel = 'web' THEN net_revenue_eur ELSE 0 END) AS web_revenue_eur,\n       SUM(CASE WHEN channel = 'store' THEN net_revenue_eur ELSE 0 END) AS store_revenue_eur\nFROM sales\nGROUP BY country_code",
+      "misconception_id": null
+    }
+  ]
+}

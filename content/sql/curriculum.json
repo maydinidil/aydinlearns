@@ -1,0 +1,526 @@
+{
+  "version": 1,
+  "source": "01",
+  "errata_applied": [
+    "OD-CTE-01",
+    "OD-DATE-01",
+    "E-149"
+  ],
+  "levels": [
+    {
+      "id": "LVL-01",
+      "number": 1,
+      "title": "Foundations: one table",
+      "ready_when": "Write a filtered, sorted query with calculated columns on one table, handle NULLs correctly, and explain why = NULL fails; 90% or more on a 10-question drill in 20 minutes."
+    },
+    {
+      "id": "LVL-02",
+      "number": 2,
+      "title": "Aggregation and segments",
+      "ready_when": "Produce a per-segment scorecard with GROUP BY, HAVING and CASE, computing ratios from sums rather than averaging ratios."
+    },
+    {
+      "id": "LVL-03",
+      "number": 3,
+      "title": "Joins, grain, CTEs and dates",
+      "ready_when": "Group by week or month with date_trunc, combine 3 or more tables, find unmatched records with an anti-join, and detect and fix a fan-out by aggregating in a named CTE step first, stating the grain of every intermediate result."
+    },
+    {
+      "id": "LVL-04",
+      "number": 4,
+      "title": "Multi-step logic, text and date arithmetic",
+      "ready_when": "Structure a 3 to 4 step analysis in chained CTEs and subqueries, clean messy text keys, compute date differences and intervals, and run a data-quality check before reporting."
+    },
+    {
+      "id": "LVL-05",
+      "number": 5,
+      "title": "Window functions",
+      "ready_when": "Solve ranking, latest-row, running total, moving average and period-change questions with windows, both with QUALIFY and a portable CTE, with deterministic tie-breakers."
+    },
+    {
+      "id": "LVL-06",
+      "number": 6,
+      "title": "Business patterns",
+      "ready_when": "Build top-N, dedup, YoY, date-spine, pivot, cohort, funnel, sessionisation, promo-uplift and MRR-bridge queries from a manager's question in under 30 minutes each."
+    },
+    {
+      "id": "LVL-07",
+      "number": 7,
+      "title": "Job-ready: BigQuery/GA4 and take-home craft",
+      "ready_when": "Translate DuckDB queries to BigQuery, query nested GA4-style data, and pass the job-ready benchmark in a timed mock screen plus a 2-hour mock take-home."
+    }
+  ],
+  "concepts": [
+    {
+      "id": "SQL-BASICS-01",
+      "level": 1,
+      "title": "Tables, rows and your first SELECT",
+      "prerequisites": [],
+      "est_minutes": 45,
+      "order": 0
+    },
+    {
+      "id": "SQL-BASICS-02",
+      "level": 1,
+      "title": "Calculated columns and aliases",
+      "prerequisites": [
+        "SQL-BASICS-01"
+      ],
+      "est_minutes": 45,
+      "order": 1
+    },
+    {
+      "id": "SQL-FILTER-01",
+      "level": 1,
+      "title": "WHERE with AND, OR, NOT",
+      "prerequisites": [
+        "SQL-BASICS-02"
+      ],
+      "est_minutes": 60,
+      "order": 2
+    },
+    {
+      "id": "SQL-FILTER-02",
+      "level": 1,
+      "title": "IN, BETWEEN, LIKE, ILIKE",
+      "prerequisites": [
+        "SQL-FILTER-01"
+      ],
+      "est_minutes": 45,
+      "order": 3
+    },
+    {
+      "id": "SQL-SORT-01",
+      "level": 1,
+      "title": "ORDER BY, LIMIT, DISTINCT",
+      "prerequisites": [
+        "SQL-BASICS-01"
+      ],
+      "est_minutes": 45,
+      "order": 4
+    },
+    {
+      "id": "SQL-NULL-01",
+      "level": 1,
+      "title": "NULL, IS NULL, COALESCE",
+      "prerequisites": [
+        "SQL-FILTER-01"
+      ],
+      "est_minutes": 60,
+      "order": 5
+    },
+    {
+      "id": "SQL-AGG-01",
+      "level": 2,
+      "title": "Aggregate functions",
+      "prerequisites": [
+        "SQL-NULL-01"
+      ],
+      "est_minutes": 60,
+      "order": 6
+    },
+    {
+      "id": "SQL-AGG-02",
+      "level": 2,
+      "title": "GROUP BY",
+      "prerequisites": [
+        "SQL-AGG-01"
+      ],
+      "est_minutes": 75,
+      "order": 7
+    },
+    {
+      "id": "SQL-AGG-03",
+      "level": 2,
+      "title": "HAVING",
+      "prerequisites": [
+        "SQL-AGG-02"
+      ],
+      "est_minutes": 45,
+      "order": 8
+    },
+    {
+      "id": "SQL-CASE-01",
+      "level": 2,
+      "title": "CASE WHEN for segments and flags",
+      "prerequisites": [
+        "SQL-FILTER-01"
+      ],
+      "est_minutes": 60,
+      "order": 9
+    },
+    {
+      "id": "SQL-AGG-04",
+      "level": 2,
+      "title": "Conditional aggregation",
+      "prerequisites": [
+        "SQL-AGG-02",
+        "SQL-CASE-01"
+      ],
+      "est_minutes": 60,
+      "order": 10
+    },
+    {
+      "id": "SQL-TYPE-01",
+      "level": 2,
+      "title": "Types, CAST, division and rounding",
+      "prerequisites": [
+        "SQL-BASICS-02"
+      ],
+      "est_minutes": 60,
+      "order": 11
+    },
+    {
+      "id": "SQL-DATE-01",
+      "level": 3,
+      "title": "Dates: types, parts, truncation",
+      "prerequisites": [
+        "SQL-AGG-02"
+      ],
+      "est_minutes": 75,
+      "order": 12
+    },
+    {
+      "id": "SQL-JOIN-01",
+      "level": 3,
+      "title": "INNER JOIN",
+      "prerequisites": [
+        "SQL-AGG-02"
+      ],
+      "est_minutes": 75,
+      "order": 13
+    },
+    {
+      "id": "SQL-JOIN-02",
+      "level": 3,
+      "title": "LEFT JOIN and anti-joins",
+      "prerequisites": [
+        "SQL-JOIN-01",
+        "SQL-NULL-01"
+      ],
+      "est_minutes": 75,
+      "order": 14
+    },
+    {
+      "id": "SQL-CTE-01",
+      "level": 3,
+      "title": "CTEs with WITH",
+      "prerequisites": [
+        "SQL-AGG-02"
+      ],
+      "est_minutes": 60,
+      "order": 15
+    },
+    {
+      "id": "SQL-JOIN-03",
+      "level": 3,
+      "title": "Grain and join fan-out",
+      "prerequisites": [
+        "SQL-JOIN-02",
+        "SQL-CTE-01"
+      ],
+      "est_minutes": 60,
+      "order": 16
+    },
+    {
+      "id": "SQL-JOIN-04",
+      "level": 3,
+      "title": "Multi-table joins and self-joins",
+      "prerequisites": [
+        "SQL-JOIN-03"
+      ],
+      "est_minutes": 60,
+      "order": 17
+    },
+    {
+      "id": "SQL-JOIN-05",
+      "level": 3,
+      "title": "FULL OUTER and CROSS JOIN",
+      "prerequisites": [
+        "SQL-JOIN-02"
+      ],
+      "est_minutes": 45,
+      "order": 18
+    },
+    {
+      "id": "SQL-SET-01",
+      "level": 3,
+      "title": "UNION ALL, UNION, EXCEPT, INTERSECT",
+      "prerequisites": [
+        "SQL-JOIN-01"
+      ],
+      "est_minutes": 45,
+      "order": 19
+    },
+    {
+      "id": "SQL-SUBQ-01",
+      "level": 4,
+      "title": "Subqueries in WHERE (IN, EXISTS, scalar)",
+      "prerequisites": [
+        "SQL-JOIN-02"
+      ],
+      "est_minutes": 60,
+      "order": 20
+    },
+    {
+      "id": "SQL-SUBQ-02",
+      "level": 4,
+      "title": "Derived tables (subquery in FROM)",
+      "prerequisites": [
+        "SQL-SUBQ-01",
+        "SQL-CTE-01"
+      ],
+      "est_minutes": 45,
+      "order": 21
+    },
+    {
+      "id": "SQL-STR-01",
+      "level": 4,
+      "title": "String functions",
+      "prerequisites": [
+        "SQL-BASICS-02"
+      ],
+      "est_minutes": 60,
+      "order": 22
+    },
+    {
+      "id": "SQL-DATE-02",
+      "level": 4,
+      "title": "Date arithmetic and differences",
+      "prerequisites": [
+        "SQL-DATE-01"
+      ],
+      "est_minutes": 60,
+      "order": 23
+    },
+    {
+      "id": "SQL-CLEAN-01",
+      "level": 4,
+      "title": "Data quality checks and safe maths",
+      "prerequisites": [
+        "SQL-CTE-01",
+        "SQL-TYPE-01"
+      ],
+      "est_minutes": 60,
+      "order": 24
+    },
+    {
+      "id": "SQL-WIN-01",
+      "level": 5,
+      "title": "Window basics: OVER and PARTITION BY",
+      "prerequisites": [
+        "SQL-CTE-01"
+      ],
+      "est_minutes": 75,
+      "order": 25
+    },
+    {
+      "id": "SQL-WIN-02",
+      "level": 5,
+      "title": "ROW_NUMBER, RANK, DENSE_RANK",
+      "prerequisites": [
+        "SQL-WIN-01"
+      ],
+      "est_minutes": 60,
+      "order": 26
+    },
+    {
+      "id": "SQL-WIN-03",
+      "level": 5,
+      "title": "LAG and LEAD",
+      "prerequisites": [
+        "SQL-WIN-01",
+        "SQL-DATE-01"
+      ],
+      "est_minutes": 60,
+      "order": 27
+    },
+    {
+      "id": "SQL-WIN-04",
+      "level": 5,
+      "title": "Running totals and frames",
+      "prerequisites": [
+        "SQL-WIN-01"
+      ],
+      "est_minutes": 75,
+      "order": 28
+    },
+    {
+      "id": "SQL-WIN-05",
+      "level": 5,
+      "title": "Moving averages",
+      "prerequisites": [
+        "SQL-WIN-04"
+      ],
+      "est_minutes": 45,
+      "order": 29
+    },
+    {
+      "id": "SQL-WIN-06",
+      "level": 5,
+      "title": "QUALIFY and filtering window results",
+      "prerequisites": [
+        "SQL-WIN-02"
+      ],
+      "est_minutes": 45,
+      "order": 30
+    },
+    {
+      "id": "SQL-WIN-07",
+      "level": 5,
+      "title": "NTILE, percentiles, FIRST_VALUE",
+      "prerequisites": [
+        "SQL-WIN-02"
+      ],
+      "est_minutes": 45,
+      "order": 31
+    },
+    {
+      "id": "SQL-PAT-01",
+      "level": 6,
+      "title": "Top-N per group",
+      "prerequisites": [
+        "SQL-WIN-06"
+      ],
+      "est_minutes": 45,
+      "order": 32
+    },
+    {
+      "id": "SQL-PAT-02",
+      "level": 6,
+      "title": "Deduplication and latest record per key",
+      "prerequisites": [
+        "SQL-WIN-06"
+      ],
+      "est_minutes": 60,
+      "order": 33
+    },
+    {
+      "id": "SQL-PAT-03",
+      "level": 6,
+      "title": "Period comparisons: WoW, MoM, YoY",
+      "prerequisites": [
+        "SQL-WIN-03",
+        "SQL-DATE-02"
+      ],
+      "est_minutes": 75,
+      "order": 34
+    },
+    {
+      "id": "SQL-PAT-04",
+      "level": 6,
+      "title": "Date spines and gap filling",
+      "prerequisites": [
+        "SQL-JOIN-05",
+        "SQL-DATE-02"
+      ],
+      "est_minutes": 75,
+      "order": 35
+    },
+    {
+      "id": "SQL-PAT-05",
+      "level": 6,
+      "title": "Pivoting long to wide",
+      "prerequisites": [
+        "SQL-AGG-04"
+      ],
+      "est_minutes": 60,
+      "order": 36
+    },
+    {
+      "id": "SQL-PAT-06",
+      "level": 6,
+      "title": "Cohort retention",
+      "prerequisites": [
+        "SQL-PAT-04",
+        "SQL-DATE-02"
+      ],
+      "est_minutes": 90,
+      "order": 37
+    },
+    {
+      "id": "SQL-PAT-07",
+      "level": 6,
+      "title": "Funnel conversion",
+      "prerequisites": [
+        "SQL-AGG-04",
+        "SQL-CTE-01"
+      ],
+      "est_minutes": 75,
+      "order": 38
+    },
+    {
+      "id": "SQL-PAT-08",
+      "level": 6,
+      "title": "Basic sessionisation",
+      "prerequisites": [
+        "SQL-WIN-03",
+        "SQL-WIN-04"
+      ],
+      "est_minutes": 90,
+      "order": 39
+    },
+    {
+      "id": "SQL-PAT-09",
+      "level": 6,
+      "title": "Promo uplift versus baseline",
+      "prerequisites": [
+        "SQL-PAT-03",
+        "SQL-JOIN-03"
+      ],
+      "est_minutes": 75,
+      "order": 40
+    },
+    {
+      "id": "SQL-PAT-10",
+      "level": 6,
+      "title": "SaaS MRR movements",
+      "prerequisites": [
+        "SQL-PAT-03",
+        "SQL-CASE-01"
+      ],
+      "est_minutes": 90,
+      "order": 41
+    },
+    {
+      "id": "SQL-BQ-01",
+      "level": 7,
+      "title": "BigQuery dialect and GA4 export data",
+      "prerequisites": [
+        "SQL-PAT-08"
+      ],
+      "est_minutes": 90,
+      "order": 42
+    },
+    {
+      "id": "SQL-CRAFT-01",
+      "level": 7,
+      "title": "Readable queries and sanity checks",
+      "prerequisites": [
+        "SQL-CTE-01"
+      ],
+      "est_minutes": 60,
+      "order": 43
+    },
+    {
+      "id": "SQL-CRAFT-02",
+      "level": 7,
+      "title": "Performance and cost basics",
+      "prerequisites": [
+        "SQL-BQ-01"
+      ],
+      "est_minutes": 45,
+      "order": 44
+    },
+    {
+      "id": "SQL-CRAFT-03",
+      "level": 7,
+      "title": "From business question to query plan",
+      "prerequisites": [
+        "SQL-PAT-07"
+      ],
+      "est_minutes": 60,
+      "order": 45
+    }
+  ]
+}

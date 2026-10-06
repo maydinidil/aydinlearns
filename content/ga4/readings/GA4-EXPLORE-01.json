@@ -1,0 +1,20 @@
+{
+  "concept_id": "GA4-EXPLORE-01",
+  "section": "ga4",
+  "version": 1,
+  "title": "Explorations",
+  "reading_md": "## What it is\n\nExplorations, in the Explore section, are ad hoc analyses built on event-level data. Because they read event-level data, they are limited by data retention. Each technique answers a different kind of question.\n\n- **Free form:** tables and charts.\n- **Funnel exploration:** steps, and the drop-off between them. In an open funnel, users can enter at any step. In a closed funnel, they must enter at step 1.\n- **Path exploration:** paths forward from a starting point, or backward from an end point.\n- **Segment overlap:** how up to 3 segments overlap.\n- **Cohort exploration:** users grouped by acquisition date, and their retention over time.\n- **User lifetime:** the lifetime value and behaviour of users.\n- **User explorer:** the event stream of individual users.\n\nSegments in an exploration can be user, session or event scoped.\n\nQuestions from Voltmarkt's webshop, matched to a technique:\n\n| Question | Technique |\n|---|---|\n| Which pages do visitors open after the TV category page? | Path exploration |\n| Of visitors who view a laptop, how many add one to the cart, and how many then buy? | Funnel exploration |\n| Do customers first acquired in Black Friday week keep coming back in later weeks? | Cohort exploration |\n| How many TV buyers also bought a soundbar, and how many of them came from paid search? | Segment overlap |\n\n## What the exam asks\n\n- Matching each technique to a question, as in the table above.\n- Open against closed funnels: can a user be counted when they start at a later step?\n- The scope of a segment: user, session or event.\n\n## Common confusions\n\n- An exploration segment is not an audience. A segment is for analysis only and can be applied to past data in an exploration. An audience is for activation, such as remarketing (see the lesson \"Audiences\").\n- Explorations are private until you share them, and they never change the underlying data.\n- Universal Analytics' Analysis Hub is now the Explore section.\n- A date range longer than event data retention returns no data for the extra days. Standard reports are not affected by retention.\n- The explorations sampling limit is 10 million events per query on a standard property and 1 billion on Analytics 360. Unsampled explorations are 360 only.\n- Data thresholds apply to explorations too, when they include demographic data.\n\n## In Skillshop\n\nCourse \"Google Analytics Certification (2026)\", module \"Dive Deeper into GA Data and Reports\": the part on explorations (Unverified).",
+  "source_ids": [
+    "06:GA4-EXPLORE-01",
+    "06:GA4-AUDIENCE-01",
+    "10:§2",
+    "10:§3",
+    "10:§6",
+    "06:§2.1",
+    "10:§7",
+    "ERRATA:E-116",
+    "ERRATA:E-122"
+  ],
+  "verified": true,
+  "as_of": "2026-10-05"
+}

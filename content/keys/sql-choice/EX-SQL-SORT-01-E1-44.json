@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-SORT-01-E1-44",
+  "item_version": 1,
+  "correct_oid": "o2e93442",
+  "explanation": "promotions has one row per promotion, and its key is promo_id, not promo_name. The sample rows already show the name January Clearance on promotions 1, 2 and 4, so the same name appears on several rows.",
+  "solver": {
+    "prompt_hash": "fc4660d38b5950f2",
+    "grader_version": "choice.1",
+    "chosen": "o2e93442",
+    "typed": null,
+    "at": "2026-10-06T09:08:14.857Z"
+  }
+}

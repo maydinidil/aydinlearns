@@ -1,0 +1,117 @@
+{
+  "id": "EX-SQL-FILTER-02-E1-32",
+  "version": 1,
+  "kind": "fix",
+  "tags": [
+    "sql",
+    "LVL-01",
+    "fix",
+    "between",
+    "products"
+  ],
+  "level": 1,
+  "source_ids": [
+    "01:SQL-FILTER-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-FILTER-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02"
+  ],
+  "template_id": "T-FILTER-02-fix-between-bounds",
+  "template_params": {
+    "table": "products",
+    "low": 100,
+    "high": 250
+  },
+  "sub_skill": "between",
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_filter",
+  "prompt": "The query in the editor has one mistake. Fix it so that it answers this question: which Echoline products cost Voltmarkt from 100 to 250 euros? From the products table, return three columns, in this order: product_id, product_name, unit_cost_eur. Keep only the products whose brand is Echoline and whose unit_cost_eur is from 100 to 250 euros, both ends included. Every product has a brand and a unit_cost_eur. Show unit_cost_eur exactly as stored, without rounding. Return one row per product. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "product_name",
+        "type_class": "text"
+      },
+      {
+        "name": "unit_cost_eur",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per product"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "product_name",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "unit_cost_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, check the range test in the row filter, and which end of the range comes first.",
+    "BETWEEN needs the low end first and the high end second. With the ends the other way round, no value can fall inside the range."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 46,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 47,
+      "to": 60,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 61,
+      "to": 123,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": "SELECT product_id, product_name, unit_cost_eur\nFROM products\nWHERE brand = 'Echoline' AND unit_cost_eur BETWEEN 250 AND 100",
+  "starter_error_id": "ERR-LOG-23",
+  "time_target_ms": 90000,
+  "why_this_works": "BETWEEN 100 AND 250 keeps the costs from 100 to 250, both ends included. With the high end first, no cost fits."
+}

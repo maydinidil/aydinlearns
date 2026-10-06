@@ -1,0 +1,36 @@
+{
+  "item_id": "EX-SQL-AGG-04-E2-04",
+  "item_version": 1,
+  "reference_sql": "SELECT country_code,\n       AVG(CASE WHEN channel = 'web' THEN net_revenue_eur END) AS avg_web_line_eur,\n       AVG(CASE WHEN channel = 'store' THEN net_revenue_eur END) AS avg_store_line_eur\nFROM sales\nGROUP BY country_code",
+  "alternatives": [
+    "SELECT country_code, AVG(net_revenue_eur) FILTER (WHERE channel = 'web') AS avg_web_line_eur, AVG(net_revenue_eur) FILTER (WHERE channel = 'store') AS avg_store_line_eur FROM sales GROUP BY country_code",
+    "SELECT country_code, SUM(CASE WHEN channel = 'web' THEN net_revenue_eur ELSE 0 END) / COUNT(CASE WHEN channel = 'web' THEN net_revenue_eur END) AS avg_web_line_eur, SUM(CASE WHEN channel = 'store' THEN net_revenue_eur ELSE 0 END) / COUNT(CASE WHEN channel = 'store' THEN net_revenue_eur END) AS avg_store_line_eur FROM sales GROUP BY 1"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-17",
+      "sql": "SELECT country_code, AVG(CASE WHEN channel = 'web' THEN net_revenue_eur ELSE 0 END) AS avg_web_line_eur, AVG(CASE WHEN channel = 'store' THEN net_revenue_eur ELSE 0 END) AS avg_store_line_eur FROM sales GROUP BY country_code"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-17",
+      "sql": "SELECT country_code, AVG(CASE WHEN channel = 'web' THEN COALESCE(net_revenue_eur, 0) END) AS avg_web_line_eur, AVG(CASE WHEN channel = 'store' THEN COALESCE(net_revenue_eur, 0) END) AS avg_store_line_eur FROM sales GROUP BY country_code"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-14",
+      "sql": "SELECT country_code, SUM(CASE WHEN channel = 'web' THEN net_revenue_eur END) AS avg_web_line_eur, SUM(CASE WHEN channel = 'store' THEN net_revenue_eur END) AS avg_store_line_eur FROM sales GROUP BY country_code"
+    }
+  ],
+  "hint3_partial": "SELECT country_code,\n       AVG(CASE WHEN channel = 'web' THEN ___ END) AS avg_web_line_eur,\n       AVG(CASE WHEN ___ THEN ___ END) AS avg_store_line_eur\nFROM sales\nGROUP BY country_code",
+  "solver": {
+    "prompt_hash": "490354c50504de79",
+    "schema_version": "cebf75df442f",
+    "dataset_version": "506a9858f862fdfb",
+    "grader_version": "1b.3",
+    "query": "SELECT country_code, AVG(net_revenue_eur) FILTER (WHERE channel = 'web') AS avg_web_line_eur, AVG(net_revenue_eur) FILTER (WHERE channel = 'store') AS avg_store_line_eur FROM sales GROUP BY country_code\n",
+    "at": "2026-10-04T10:06:49.043Z"
+  }
+}

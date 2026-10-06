@@ -1,0 +1,36 @@
+{
+  "item_id": "EX-SQL-TYPE-01-E3-03",
+  "item_version": 1,
+  "reference_sql": "SELECT parent_category,\n       ROUND(100.0 * SUM(net_revenue_eur - units * unit_cost_eur) / SUM(net_revenue_eur), 1) AS margin_pct\nFROM sales\nWHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\n  AND net_revenue_eur IS NOT NULL\n  AND units IS NOT NULL\n  AND unit_cost_eur IS NOT NULL\nGROUP BY parent_category\nHAVING 100.0 * SUM(net_revenue_eur - units * unit_cost_eur) / SUM(net_revenue_eur) >= 20",
+  "alternatives": [
+    "SELECT parent_category, ROUND(100.0 * (SUM(net_revenue_eur) - SUM(units * unit_cost_eur)) / SUM(net_revenue_eur), 1) AS margin_pct FROM sales WHERE order_date >= DATE '2025-01-01' AND order_date <= DATE '2025-12-31' AND net_revenue_eur IS NOT NULL AND units IS NOT NULL AND unit_cost_eur IS NOT NULL GROUP BY parent_category HAVING 100.0 * (SUM(net_revenue_eur) - SUM(units * unit_cost_eur)) / SUM(net_revenue_eur) >= 20",
+    "SELECT parent_category, ROUND(100.0 * SUM(net_revenue_eur - units * unit_cost_eur) / SUM(net_revenue_eur), 1) AS margin_pct FROM sales WHERE order_date BETWEEN '2025-01-01' AND '2025-12-31' AND NOT (net_revenue_eur IS NULL OR units IS NULL OR unit_cost_eur IS NULL) GROUP BY 1 HAVING SUM(net_revenue_eur - units * unit_cost_eur) * 5 >= SUM(net_revenue_eur)"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-15",
+      "sql": "SELECT parent_category, ROUND(100.0 * SUM(net_revenue_eur - units * unit_cost_eur) / SUM(net_revenue_eur), 1) AS margin_pct FROM sales WHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31' AND net_revenue_eur IS NOT NULL AND units IS NOT NULL AND unit_cost_eur IS NOT NULL GROUP BY parent_category HAVING 100.0 * SUM(net_revenue_eur - units * unit_cost_eur) / SUM(net_revenue_eur) > 20"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-21",
+      "sql": "SELECT parent_category, ROUND(SUM(net_revenue_eur - units * unit_cost_eur) / SUM(net_revenue_eur), 1) AS margin_pct FROM sales WHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31' AND net_revenue_eur IS NOT NULL AND units IS NOT NULL AND unit_cost_eur IS NOT NULL GROUP BY parent_category HAVING SUM(net_revenue_eur - units * unit_cost_eur) / SUM(net_revenue_eur) >= 0.2"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-02",
+      "sql": "SELECT parent_category, ROUND(100.0 * SUM(net_revenue_eur - units * unit_cost_eur) / SUM(net_revenue_eur), 1) AS margin_pct FROM sales WHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31' AND net_revenue_eur IS NOT NULL AND units IS NOT NULL AND unit_cost_eur IS NOT NULL AND 100.0 * (net_revenue_eur - units * unit_cost_eur) / net_revenue_eur >= 20 GROUP BY parent_category"
+    }
+  ],
+  "hint3_partial": "SELECT parent_category,\n       ROUND(100.0 * SUM(net_revenue_eur - units * unit_cost_eur) / SUM(net_revenue_eur), 1) AS margin_pct\nFROM sales\nWHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\n  AND net_revenue_eur IS NOT NULL\n  AND units IS NOT NULL\n  AND unit_cost_eur IS NOT NULL\nGROUP BY parent_category\nHAVING ___",
+  "solver": {
+    "prompt_hash": "fd7a5eef072b8438",
+    "schema_version": "cebf75df442f",
+    "dataset_version": "506a9858f862fdfb",
+    "grader_version": "1b.3",
+    "query": "SELECT parent_category, ROUND(100 * SUM(net_revenue_eur - units * unit_cost_eur) / SUM(net_revenue_eur), 1) AS margin_pct FROM sales WHERE order_date BETWEEN '2025-01-01' AND '2025-12-31' AND net_revenue_eur IS NOT NULL AND units IS NOT NULL AND unit_cost_eur IS NOT NULL GROUP BY parent_category HAVING 100 * SUM(net_revenue_eur - units * unit_cost_eur) / SUM(net_revenue_eur) >= 20\n",
+    "at": "2026-10-04T10:06:53.183Z"
+  }
+}

@@ -1,0 +1,116 @@
+{
+  "id": "EX-SQL-FILTER-02-E1-01",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-01",
+    "in_list",
+    "stores"
+  ],
+  "level": 1,
+  "source_ids": [
+    "01:SQL-FILTER-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-02",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pretest",
+  "target_concept_id": "SQL-FILTER-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02"
+  ],
+  "template_id": "T-FILTER-02-in-list-and",
+  "template_params": {
+    "table": "stores",
+    "list_size": 2
+  },
+  "sub_skill": "in_list",
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_filter",
+  "prompt": "The area manager for Belgium and Luxembourg wants a list of the standard stores in that area. From the stores table, return three columns, in this order: store_code, city, country_code. Keep only the stores whose country_code is BE or LU and whose store_type is standard. Every store has a country_code and a store_type, so there are no missing (NULL) values to handle. Return one row per store. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "store_code",
+        "type_class": "text"
+      },
+      {
+        "name": "city",
+        "type_class": "text"
+      },
+      {
+        "name": "country_code",
+        "type_class": "text"
+      }
+    ],
+    "grain": "one row per store"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "store_code",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "city",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "country_code",
+        "type_class": "text",
+        "precision": "exact"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "store_code"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the row filter. Keep a store when its country_code is one of two codes and its store_type is standard.",
+    "One list test in WHERE covers both country codes, and the store_type test joins it with AND. A list test needs no brackets, but an OR next to an AND does."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 37,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 38,
+      "to": 49,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 50,
+      "to": 114,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 90000,
+  "why_this_works": "IN tests country_code against both codes at once, and AND then keeps only the standard stores."
+}

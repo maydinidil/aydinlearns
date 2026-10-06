@@ -1,0 +1,17 @@
+{
+  "concept_id": "MET-PRICE-03",
+  "section": "methodology",
+  "version": 1,
+  "title": "Discount depth",
+  "reading_md": "**What it measures.** How much of the list value Voltmarkt gives away on the invoice: the real \"percent off list\" across everything sold, after line discounts.\n\n**Formula.**\n\nDiscount depth % = 100 × (1 - net revenue / list value)\n\n- List value = SUM(units × list price). Net revenue = SUM(units × net price).\n- On Voltmarkt's order lines that is 100 × SUM(`line_discount_eur`) / SUM(`quantity` × `unit_price_eur`), because `unit_price_eur` is the list price in effect and the line discount holds any promotion discount.\n- Lines sold at full price count too, at 0 discount.\n- Grain: product, promotion or category × period.\n\n**Worked example.** In October the TV category had a list value of €800,000 and line discounts of €64,000, so net revenue was €736,000.\n\n- Discount depth = 100 × (1 - 736,000 / 800,000) = 8.0%.\n- Dividing the discounts by net revenue, 64,000 / 736,000, gives 8.7%: that is not \"percent off list\".\n\nWeight by value, not by line. Take two order lines: a 65-inch TV listed at €1,800 with €90 off (5%), and earbuds listed at €200 with €60 off (30%). Discount depth = 100 × (90 + 60) / (1,800 + 200) = 7.5%. The average of the two line percentages, 17.5%, lets €200 of earbuds count as much as €1,800 of TV.\n\n**Discount depth or markdown %?** Discount depth covers every discount given at the till, measured against list value. Markdown % covers only permanent clearance price cuts, measured against the category's net sales. Report them separately.\n\n**Common mistakes.**\n\n- Averaging line discount percentages instead of weighting by value.\n- Confusing discount depth with markdown %.\n\n**What discount depth does not answer.**\n\n- Whether the discounts paid off in extra volume: that is promo uplift.\n- What is left after costs: that is gross margin.\n- How much of list is kept after rebates paid outside the invoice: that is price realisation.\n\n**How managers ask for it.** \"How deep were our discounts last quarter?\" \"What % off list are we really giving?\"",
+  "source_ids": [
+    "04:MET-PRICE-03",
+    "04:§2.1",
+    "ERRATA:E-009",
+    "ERRATA:E-100",
+    "ERRATA:E-101",
+    "ERRATA:E-103"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06"
+}

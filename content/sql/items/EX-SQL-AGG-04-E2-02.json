@@ -1,0 +1,128 @@
+{
+  "id": "EX-SQL-AGG-04-E2-02",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-02",
+    "conditional-aggregation",
+    "count-distinct-if",
+    "pivot",
+    "sales",
+    "orders"
+  ],
+  "level": 2,
+  "source_ids": [
+    "01:SQL-AGG-04"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "lesson",
+  "target_concept_id": "SQL-AGG-04",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CASE-01",
+    "SQL-AGG-04"
+  ],
+  "template_id": "T-AGG-04-count-distinct-if",
+  "template_params": {
+    "table": "sales",
+    "group": "country_code",
+    "split": "channel",
+    "counted": "order_id"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_agg",
+  "prompt": "For each country, how many different orders came through stores and how many through the web? Use the sales table, which has one row per order line, so an order with several lines appears on several rows. country_code is the country an order ships to, and channel is 'web' or 'store'. Return three columns, in this order: country_code, store_orders, the number of different order_id values on store lines, and web_orders, the number of different order_id values on web lines. Return one row per country_code. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "country_code",
+        "type_class": "text"
+      },
+      {
+        "name": "store_orders",
+        "type_class": "numeric"
+      },
+      {
+        "name": "web_orders",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per country_code"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "country_code",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "store_orders",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "web_orders",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "country_code"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the two order counts, each counting the different orders of one channel.",
+    "Inside COUNT(DISTINCT ...), a CASE can give order_id for a line of that channel and nothing for the rest. Leave out ELSE: a 0 would be counted as one more order."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 187,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 188,
+      "to": 198,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 199,
+      "to": 220,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": {
+    "stage1": 28,
+    "stage2": 28
+  },
+  "faded_shape": "SELECT country_code,\n       ",
+  "faded_suffix": "\nFROM sales\nGROUP BY country_code",
+  "starter_sql": null,
+  "time_target_ms": 150000,
+  "why_this_works": "The CASE passes on order_id only for lines of one channel and a missing value otherwise, and COUNT(DISTINCT ...) counts each order once, however many lines it has, skipping the missing values."
+}

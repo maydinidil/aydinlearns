@@ -1,0 +1,86 @@
+{
+  "id": "EX-SQL-SORT-01-E1-43",
+  "version": 1,
+  "kind": "choose_query",
+  "tags": [
+    "sql",
+    "LVL-01",
+    "choose_query",
+    "order_by",
+    "limit",
+    "tie_break",
+    "promotions"
+  ],
+  "level": 1,
+  "source_ids": [
+    "01:SQL-SORT-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-SORT-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-SORT-01"
+  ],
+  "template_id": "T-SORT-01-choose-top-n-tie-break",
+  "template_params": {
+    "table": "promotions"
+  },
+  "sub_skill": "order_by",
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_sort",
+  "prompt": "Which query returns the 3 promotions with the highest discount_pct, highest first? When promotions tie on discount_pct, the lower promo_id comes first. Return promo_id, promo_name and discount_pct.",
+  "output_contract": null,
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [],
+  "subgoals": [],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 60000,
+  "why_this_works": "",
+  "options": [
+    {
+      "oid": "o03c559c",
+      "text": "SELECT promo_id, promo_name, discount_pct\nFROM promotions\nORDER BY discount_pct DESC\nLIMIT 3",
+      "misconception_id": "ERR-LOG-16"
+    },
+    {
+      "oid": "oec4a2c2",
+      "text": "SELECT promo_id, promo_name, discount_pct\nFROM promotions\nORDER BY discount_pct\nLIMIT 3",
+      "misconception_id": "ERR-LOG-18"
+    },
+    {
+      "oid": "o17b0ce4",
+      "text": "SELECT promo_id, promo_name, discount_pct\nFROM promotions\nORDER BY discount_pct DESC, promo_id DESC\nLIMIT 3",
+      "misconception_id": "ERR-LOG-16"
+    },
+    {
+      "oid": "o8b6e12b",
+      "text": "SELECT promo_id, promo_name, discount_pct\nFROM promotions\nORDER BY discount_pct DESC, promo_id\nLIMIT 3",
+      "misconception_id": null
+    }
+  ]
+}

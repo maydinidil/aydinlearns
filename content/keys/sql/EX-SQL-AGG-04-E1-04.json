@@ -1,0 +1,36 @@
+{
+  "item_id": "EX-SQL-AGG-04-E1-04",
+  "item_version": 1,
+  "reference_sql": "SELECT store_code,\n       SUM(net_revenue_eur) AS revenue_eur,\n       SUM(CASE WHEN parent_category = 'Accessories' THEN net_revenue_eur ELSE 0 END) AS accessories_revenue_eur\nFROM sales\nGROUP BY store_code",
+  "alternatives": [
+    "SELECT store_code, SUM(net_revenue_eur) AS revenue_eur, COALESCE(SUM(CASE WHEN parent_category = 'Accessories' THEN net_revenue_eur END), 0) AS accessories_revenue_eur FROM sales GROUP BY store_code",
+    "SELECT store_code, SUM(net_revenue_eur) AS revenue_eur, COALESCE(SUM(net_revenue_eur) FILTER (WHERE parent_category = 'Accessories'), 0) AS accessories_revenue_eur FROM sales GROUP BY 1"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-17",
+      "sql": "SELECT store_code, SUM(net_revenue_eur) AS revenue_eur, SUM(CASE WHEN parent_category = 'Accessories' THEN net_revenue_eur END) AS accessories_revenue_eur FROM sales GROUP BY store_code"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-14",
+      "sql": "SELECT store_code, SUM(net_revenue_eur) AS revenue_eur, COUNT(CASE WHEN parent_category = 'Accessories' THEN net_revenue_eur END) AS accessories_revenue_eur FROM sales GROUP BY store_code"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-SYN-01",
+      "sql": "SELECT store_code, SUM(net_revenue_eur) AS revenue_eur, SUM(CASE WHEN parent_category = 'Accessories' THEN net_revenue_eur ELSE 0) AS accessories_revenue_eur FROM sales GROUP BY store_code"
+    }
+  ],
+  "hint3_partial": "SELECT store_code,\n       SUM(net_revenue_eur) AS revenue_eur,\n       SUM(CASE WHEN parent_category = ___ THEN ___ ELSE ___ END) AS accessories_revenue_eur\nFROM sales\nGROUP BY store_code",
+  "solver": {
+    "prompt_hash": "6cdb8711920a2580",
+    "schema_version": "cebf75df442f",
+    "dataset_version": "506a9858f862fdfb",
+    "grader_version": "1b.3",
+    "query": "SELECT store_code, SUM(net_revenue_eur) AS revenue_eur, COALESCE(SUM(net_revenue_eur) FILTER (WHERE parent_category = 'Accessories'), 0) AS accessories_revenue_eur FROM sales GROUP BY store_code\n",
+    "at": "2026-10-04T10:06:47.945Z"
+  }
+}

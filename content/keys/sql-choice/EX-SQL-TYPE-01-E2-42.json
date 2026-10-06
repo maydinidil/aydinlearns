@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-TYPE-01-E2-42",
+  "item_version": 1,
+  "correct_oid": "of3b05b8",
+  "explanation": "COUNT(units) counts only the lines that have a units value, as the question asks, and * 1.0 keeps the decimals before ROUND gives 2 of them. // drops the decimals before ROUND can keep any, and a CAST to INTEGER rounds to a whole number. COUNT(*) also counts lines with a missing units value, which makes the average too low.",
+  "solver": {
+    "prompt_hash": "5c9c41f2f3ee3dfc",
+    "grader_version": "choice.1",
+    "chosen": "of3b05b8",
+    "typed": null,
+    "at": "2026-10-06T09:08:14.863Z"
+  }
+}

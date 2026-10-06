@@ -1,0 +1,24 @@
+{
+  "concept_id": "GA4-AUDIENCE-01",
+  "section": "ga4",
+  "version": 1,
+  "title": "Audiences",
+  "reading_md": "## What it is\n\nAn audience is a group of users defined by dimensions, metrics and events, with a membership duration. Audiences are for activation:\n\n- **Remarketing.** Share an audience with a linked Google Ads account to show ads to its members. This needs the Google Ads link with personalized advertising enabled.\n- **Reports.** Use an audience in reports and comparisons.\n- **Audience triggers.** An audience can log an event whenever a user joins it, and you can mark that event as a key event.\n\n**Predictive audiences** are built on GA4's predictive metrics: purchase probability, churn probability and predicted revenue. They become available once the property meets the eligibility thresholds.\n\nAudiences start collecting members from the moment they are created. Some templates may look back at earlier data (Unverified).\n\nA standard property can have 100 audiences, and Analytics 360 allows 400. Creating audiences needs the Marketer role or above.\n\nA Voltmarkt example: an audience that includes users who triggered `add_to_cart` on a TV and excludes users who triggered `purchase`. Shared with the linked Google Ads account, it lets Voltmarkt show TV ads to shoppers who left without buying.\n\n## What the exam asks\n\n- Building a remarketing audience, such as cart abandoners: include the event that shows interest, and exclude the event that shows the goal was reached.\n- Predictive audiences, and the three predictive metrics.\n- Audience against segment: which one to use for a task.\n\n## Common confusions\n\n- A segment is for analysis only, inside an exploration, and works on past data. An audience is for activation and gathers members from its creation onwards.\n- Audiences cannot change historical reports.\n- Predictive metrics predict what a user will do: buy, churn, or spend. Metrics such as engagement rate describe what already happened.\n- In the EEA, remarketing also needs consent mode v2 signals (see the lesson \"Consent mode\").\n- Cross-device remarketing to signed-in Google users relies on Google signals (see the lesson \"Data retention and data thresholds\").\n\n## In Skillshop\n\nCourse \"Google Analytics Certification (2026)\", module \"Dive Deeper into GA Data and Reports\": the part on audiences (Unverified).",
+  "source_ids": [
+    "06:GA4-AUDIENCE-01",
+    "06:Q-GA4-63",
+    "06:GA4-ADMIN-02",
+    "06:GA4-PRIVACY-01",
+    "10:GA4-INTEG-21",
+    "10:GA4-PRIVACY-20",
+    "10:§6",
+    "ERRATA:E-032",
+    "ERRATA:E-118",
+    "06:§2.1",
+    "10:§7",
+    "ERRATA:E-116",
+    "ERRATA:E-122"
+  ],
+  "verified": false,
+  "as_of": "2026-10-05"
+}

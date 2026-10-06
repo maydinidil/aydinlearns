@@ -1,0 +1,112 @@
+{
+  "id": "EX-SQL-BASICS-02-E1-31",
+  "version": 1,
+  "kind": "fix",
+  "tags": [
+    "sql",
+    "LVL-01",
+    "fix",
+    "calculated-column",
+    "products",
+    "percent"
+  ],
+  "level": 1,
+  "source_ids": [
+    "01:SQL-BASICS-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-BASICS-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02"
+  ],
+  "template_id": "T-BASICS-02-fix-percent-scale",
+  "template_params": {
+    "table": "products",
+    "output": "rise_pct",
+    "rise_eur": 1.5
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_basics",
+  "prompt": "The query in the editor has one mistake. Fix it so that it answers this question: how big is a cost rise in percent? A supplier will raise the unit cost of every product by a flat 1.50 euros. For every product, return product_id, unit_cost_eur and rise_pct (the 1.50-euro rise as a percentage of today's unit cost, such as 5 for a 5% rise), in that order. Use exactly these column names and do not round. Every product has a unit_cost_eur above 0. One row per product, every product included. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "unit_cost_eur",
+        "type_class": "numeric"
+      },
+      {
+        "name": "rise_pct",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per product"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": true,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "unit_cost_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "rise_pct",
+        "type_class": "numeric",
+        "precision": "ratio"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the calculated column on the percentage scale. A rise of 1.50 euros on a 30-euro product is 5%, so rise_pct should be 5 there.",
+    "The query works out the rise as a share of the cost, a small number such as 0.05. A percentage is the same amount 100 times larger."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 72,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 73,
+      "to": 86,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": "SELECT product_id, unit_cost_eur, 1.50 / unit_cost_eur AS rise_pct\nFROM products",
+  "starter_error_id": "ERR-LOG-21",
+  "time_target_ms": 90000,
+  "why_this_works": "1.50 / unit_cost_eur is the rise as a share of the cost; multiplied by 100, it is the same amount as a percentage."
+}

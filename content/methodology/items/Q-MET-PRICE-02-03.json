@@ -1,0 +1,47 @@
+{
+  "id": "Q-MET-PRICE-02-03",
+  "version": 1,
+  "kind": "mcq",
+  "section": "methodology",
+  "concept_id": "MET-PRICE-02",
+  "stem": "An analyst reports Voltmarkt's ASP for TVs as the average of the net unit price on each order line. Why does this differ from ASP as Voltmarkt defines it?",
+  "options": [
+    {
+      "oid": "odeae50a",
+      "text": "Every line counts once whatever its quantity, so units are not weighted",
+      "misconception_id": null
+    },
+    {
+      "oid": "oa25f1ed",
+      "text": "Line discounts are left out, so the figure shows the list prices instead",
+      "misconception_id": null
+    },
+    {
+      "oid": "ofc62550",
+      "text": "It divides by the number of orders instead of the number of units",
+      "misconception_id": null
+    },
+    {
+      "oid": "ob637e5a",
+      "text": "It counts returned TVs twice, so it double counts some of the sales",
+      "misconception_id": null
+    }
+  ],
+  "typed": null,
+  "held_out": false,
+  "enemy_group": null,
+  "status": "active",
+  "verified": true,
+  "level": 1,
+  "tags": [
+    "methodology",
+    "T-MET-PRICE"
+  ],
+  "source_ids": [
+    "04:MET-PRICE-02",
+    "ERRATA:E-101"
+  ],
+  "as_of": "2026-10-04",
+  "review_after": null,
+  "supersedes": []
+}

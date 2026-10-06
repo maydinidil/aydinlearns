@@ -1,0 +1,36 @@
+{
+  "item_id": "EX-SQL-SORT-01-E2-31",
+  "item_version": 1,
+  "reference_sql": "SELECT DISTINCT promo_name\nFROM promotions\nWHERE start_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\nORDER BY promo_name",
+  "alternatives": [
+    "SELECT DISTINCT promo_name\nFROM promotions\nWHERE start_date >= DATE '2025-01-01' AND start_date <= DATE '2025-12-31'\nORDER BY promo_name ASC",
+    "SELECT DISTINCT promo_name\nFROM promotions\nWHERE start_date >= DATE '2025-01-01' AND start_date < DATE '2026-01-01'\nORDER BY 1"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "EX-SQL-SORT-01-E2-31-PW1",
+      "error_id": "ERR-LOG-08",
+      "sql": "SELECT promo_name\nFROM promotions\nWHERE start_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\nORDER BY promo_name"
+    },
+    {
+      "id": "EX-SQL-SORT-01-E2-31-PW2",
+      "error_id": "ERR-LOG-18",
+      "sql": "SELECT DISTINCT promo_name FROM promotions WHERE start_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31' ORDER BY promo_name DESC"
+    },
+    {
+      "id": "EX-SQL-SORT-01-E2-31-PW3",
+      "error_id": "ERR-OUT-01",
+      "sql": "SELECT DISTINCT promo_name, promo_type FROM promotions WHERE start_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31' ORDER BY promo_name"
+    }
+  ],
+  "hint3_partial": "SELECT ___ promo_name\nFROM promotions\nWHERE start_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\nORDER BY promo_name",
+  "solver": {
+    "prompt_hash": "8f0abee747a844ee",
+    "schema_version": "f0340f71a1f5",
+    "dataset_version": "506a9858f862fdfb",
+    "grader_version": "1b.3",
+    "query": "SELECT DISTINCT promo_name FROM promotions WHERE start_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31' ORDER BY promo_name ASC\n",
+    "at": "2026-10-04T14:33:18.538Z"
+  }
+}

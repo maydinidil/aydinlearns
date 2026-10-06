@@ -1,0 +1,128 @@
+{
+  "id": "EX-SQL-CASE-01-E2-01",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-02",
+    "case",
+    "bands",
+    "branch-order",
+    "is-null",
+    "sales"
+  ],
+  "level": 2,
+  "source_ids": [
+    "01:SQL-CASE-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "lesson",
+  "target_concept_id": "SQL-CASE-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-NULL-01",
+    "SQL-CASE-01"
+  ],
+  "template_id": "T-CASE-01-bands-missing",
+  "template_params": {
+    "table": "sales",
+    "tested": "net_revenue_eur",
+    "thresholds": "100, 500",
+    "output": "value_band"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_case",
+  "prompt": "Put each of the first 20 order lines in a value band. Use the sales table and keep the order lines with an order_line_id from 1 to 20, both included. Return three columns, in this order: order_line_id, net_revenue_eur and value_band. value_band is the text 'high' when net_revenue_eur is 500.00 or more, 'mid' when it is 100.00 or more but under 500.00, 'low' when it is under 100.00, and 'unknown' when net_revenue_eur is missing. Return one row per order line. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "order_line_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "net_revenue_eur",
+        "type_class": "numeric"
+      },
+      {
+        "name": "value_band",
+        "type_class": "text"
+      }
+    ],
+    "grain": "one row per order line"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "order_line_id",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "net_revenue_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "value_band",
+        "type_class": "text",
+        "precision": "exact"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "order_line_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the calculated column value_band, with one branch for each of the four labels.",
+    "CASE checks its WHEN branches from the top and stops at the first true one. Give the missing value its own IS NULL branch, and put the 500.00 test above the 100.00 test, or a big line is caught as mid."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 245,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 246,
+      "to": 256,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 257,
+      "to": 293,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": {
+    "stage1": 46,
+    "stage2": 46
+  },
+  "faded_shape": "SELECT order_line_id, net_revenue_eur,\n       ",
+  "faded_suffix": "\nFROM sales\nWHERE order_line_id BETWEEN 1 AND 20",
+  "starter_sql": null,
+  "time_target_ms": 150000,
+  "why_this_works": "The first true WHEN wins, so testing 500.00 before 100.00 keeps big lines out of mid, and the IS NULL branch stops a missing value from falling into low."
+}

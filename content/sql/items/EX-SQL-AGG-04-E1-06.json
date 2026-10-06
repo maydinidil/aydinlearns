@@ -1,0 +1,132 @@
+{
+  "id": "EX-SQL-AGG-04-E1-06",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-02",
+    "conditional-aggregation",
+    "count-if",
+    "stores",
+    "is-null"
+  ],
+  "level": 2,
+  "source_ids": [
+    "01:SQL-AGG-04"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-AGG-04",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CASE-01",
+    "SQL-AGG-04"
+  ],
+  "template_id": "T-AGG-04-count-if-dimension",
+  "template_params": {
+    "table": "stores",
+    "group": "country_code",
+    "conditions": "store_type = 'flagship'; close_date IS NULL"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_agg",
+  "prompt": "For each country, how many stores are there, how many are flagship stores, and how many are still open? Use the stores table; the webshop, WEB-01, counts as a store. Return four columns, in this order: country_code, n_stores, the number of stores, flagship_stores, the number of stores whose store_type is 'flagship', and open_stores, the number of stores with a missing close_date. Every store counts in n_stores. Return one row per country_code. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "country_code",
+        "type_class": "text"
+      },
+      {
+        "name": "n_stores",
+        "type_class": "numeric"
+      },
+      {
+        "name": "flagship_stores",
+        "type_class": "numeric"
+      },
+      {
+        "name": "open_stores",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per country_code"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "country_code",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "n_stores",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "flagship_stores",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "open_stores",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "country_code"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the two conditional counts, flagship_stores and open_stores, next to the plain count of stores.",
+    "Each conditional count is a SUM of a CASE that gives 1 when the store matches and 0 when it does not. A missing close_date is found with IS NULL, never with = NULL."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 207,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 208,
+      "to": 219,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 220,
+      "to": 241,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 100000,
+  "why_this_works": "Each CASE turns a matching store into a 1 and any other store into a 0, so one GROUP BY gives the total and both conditional counts, and IS NULL is the only test that finds a missing close_date."
+}

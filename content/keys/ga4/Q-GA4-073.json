@@ -1,0 +1,13 @@
+{
+  "item_id": "Q-GA4-073",
+  "item_version": 1,
+  "correct_oid": "obcc65ea",
+  "explanation": "Default channel group is event-scoped: it credits each key event with the reporting attribution model from the attribution settings, which is data-driven by default. Session default channel group and First user default channel group use paid and organic last click, and Session source / medium is session-scoped too, so none of them follow the model you choose.",
+  "solver": {
+    "prompt_hash": "3afb4a85f179e37d",
+    "grader_version": "choice.1",
+    "chosen": "obcc65ea",
+    "typed": null,
+    "at": "2026-10-05T22:54:47.946Z"
+  }
+}

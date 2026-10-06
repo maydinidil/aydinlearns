@@ -1,0 +1,120 @@
+{
+  "concept_id": "SQL-AGG-02",
+  "version": 1,
+  "reading_md": "## GROUP BY: one row for each group\n\nAn aggregate such as SUM or COUNT turns many rows into one number. Most questions want one number *for each* something: each store, each month, each channel. GROUP BY does this. It puts the rows that share a value in the grouping columns into one group, and every aggregate then runs once per group. The result has one row per group.\n\n`SELECT channel, SUM(net_revenue_eur) AS revenue_eur FROM sales GROUP BY channel` returns two rows, store and web, each with its own total.\n\n### The rule for the SELECT list\n\nEvery column in the SELECT list must either be listed in GROUP BY or sit inside an aggregate. A group of web lines holds many product names, so a query that returns product_name next to a channel total cannot say which name to show. DuckDB stops with the error \"column must appear in the GROUP BY clause or must be part of an aggregate function\". Either add the column to GROUP BY, which changes what one row stands for, or put it inside an aggregate.\n\n### Grain: find the \"for each\"\n\nThe grouping columns set the grain of the answer: what one row stands for. Find the \"for each\" or \"per\" in the question and group by exactly those columns.\n\n- \"For each country and channel\" needs both columns in GROUP BY: one row per pair.\n- An extra grouping column splits the groups. Adding store_code gives one row per store inside each channel.\n- A missing grouping column merges groups that should stay apart.\n\nGrouping by a column you do not return shows the same value on several rows, which look like duplicates. Check the row count: one row per thing the question names.\n\n### Counting at the right grain\n\nThe sales table has one row per order line, and one order can have several lines. `COUNT(*)` counts lines; `COUNT(DISTINCT order_id)` counts orders. Pick the one the question asks for.\n\n### Ratios per group\n\nFor a ratio such as the average price per unit, add up each part within the group, then divide: `SUM(net_revenue_eur) / SUM(units)`. An AVG of each line's own price weights a one-unit line the same as a ten-unit line, so it gives a different answer.\n\n### WHERE, GROUP BY, ORDER BY\n\nYou write SELECT, FROM, WHERE, GROUP BY, ORDER BY, LIMIT. The database runs FROM, then WHERE, which removes rows before any group is formed, then GROUP BY with the aggregates, then SELECT, ORDER BY and LIMIT last.\n\nGrouped rows come back in no promised order. When the question asks for an order, write ORDER BY. A top list sorts the groups by their total, adds a tie-break, and then cuts with LIMIT.\n\n### Missing values\n\nAggregates skip missing values (NULL), so a group's SUM ignores lines with no revenue, and is missing only when every line in the group is. Rows whose grouping column is missing form one group of their own.",
+  "syntax_md": "```sql\nSELECT group_column, AGGREGATE(value_column) AS metric_name   -- metrics\nFROM table_name                                               -- source and grain\nWHERE row_condition                                           -- row filter\nGROUP BY group_column                                         -- output grain\nORDER BY group_column;                                        -- sort and limit\n```\n\n- GROUP BY comes after WHERE and before ORDER BY.\n- Every SELECT column outside an aggregate is listed in GROUP BY.\n- `GROUP BY a, b` makes one group for each combination of a and b.\n- WHERE filters rows before grouping; ORDER BY sorts the groups after it.",
+  "dialect_note": "DuckDB and PostgreSQL let GROUP BY name a SELECT alias or a column position, as in GROUP BY 1; SQL Server accepts neither, so repeat the column or expression there. DuckDB also has GROUP BY ALL, which groups by every column outside an aggregate; only DuckDB has it, so this course's answers list the columns. SQLite, and MySQL with ONLY_FULL_GROUP_BY switched off, accept a column that is neither grouped nor aggregated and return a value from one arbitrary row of the group. DuckDB rejects it (checked on 1.5.6), and so does PostgreSQL unless the query groups by the table's primary key.",
+  "worked_examples": [
+    {
+      "title": "Net revenue for each channel",
+      "prompt": "What is the total net revenue of each channel? Return channel and revenue_eur, the sum of net_revenue_eur, one row per channel.",
+      "clauses": [
+        {
+          "text": "SELECT channel, SUM(net_revenue_eur) AS revenue_eur",
+          "subgoal": "metrics",
+          "why": "channel names each group and SUM adds up the revenue inside it; channel sits outside the aggregate, so it must be in GROUP BY."
+        },
+        {
+          "text": "FROM sales",
+          "subgoal": "source_grain",
+          "why": "sales has one row per order line, so each group is made of order lines."
+        },
+        {
+          "text": "GROUP BY channel",
+          "subgoal": "output_grain",
+          "why": "One output row per channel, the \"each channel\" in the question."
+        }
+      ]
+    },
+    {
+      "title": "Units for each parent category and channel in 2025",
+      "prompt": "How many units did each parent category sell in each channel in 2025, from 1 January to 31 December, both days included? Return parent_category, channel and units_sold, the sum of units, one row per parent category and channel, sorted by parent_category and then channel, both from A to Z.",
+      "clauses": [
+        {
+          "text": "SELECT parent_category, channel, SUM(units) AS units_sold",
+          "subgoal": "metrics",
+          "why": "Both grouping columns plus one aggregate; a column that is neither grouped nor aggregated would stop the query with an error."
+        },
+        {
+          "text": "FROM sales",
+          "subgoal": "source_grain",
+          "why": "sales has one row per order line, with the parent category and the channel on every line."
+        },
+        {
+          "text": "WHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'",
+          "subgoal": "row_filter",
+          "why": "WHERE drops the 2024 lines before any group is formed."
+        },
+        {
+          "text": "GROUP BY parent_category, channel",
+          "subgoal": "output_grain",
+          "why": "Two columns make one group per pair; leaving channel out would merge the channels, and adding store_code would split them."
+        },
+        {
+          "text": "ORDER BY parent_category, channel",
+          "subgoal": "sort_limit",
+          "why": "Grouped rows come back in no promised order, so the sort the question asks for is written out."
+        }
+      ]
+    }
+  ],
+  "pretest_item_ids": [
+    "EX-SQL-AGG-02-E1-01",
+    "EX-SQL-AGG-02-E1-02"
+  ],
+  "lesson_item_ids": [
+    "EX-SQL-AGG-02-E1-03",
+    "EX-SQL-AGG-02-E1-04",
+    "EX-SQL-AGG-02-E2-01",
+    "EX-SQL-AGG-02-E2-02"
+  ],
+  "retest_item_id": "EX-SQL-AGG-02-E1-05",
+  "pool_item_ids": [
+    "EX-SQL-AGG-02-E1-06",
+    "EX-SQL-AGG-02-E1-07",
+    "EX-SQL-AGG-02-E1-08",
+    "EX-SQL-AGG-02-E1-09",
+    "EX-SQL-AGG-02-E2-03",
+    "EX-SQL-AGG-02-E2-04",
+    "EX-SQL-AGG-02-E2-05",
+    "EX-SQL-AGG-02-E2-06",
+    "EX-SQL-AGG-02-E2-07",
+    "EX-SQL-AGG-02-E3-01",
+    "EX-SQL-AGG-02-E3-02",
+    "EX-SQL-AGG-02-E3-03",
+    "EX-SQL-AGG-02-E1-31",
+    "EX-SQL-AGG-02-E2-31",
+    "EX-SQL-AGG-02-E1-42",
+    "EX-SQL-AGG-02-E1-44",
+    "EX-SQL-AGG-02-E2-41",
+    "EX-SQL-AGG-02-E2-42",
+    "EX-SQL-AGG-02-E2-43"
+  ],
+  "source_ids": [
+    "01:SQL-AGG-02"
+  ],
+  "why_clause": {
+    "clause": "GROUP BY channel",
+    "stem": "Why does the query need GROUP BY channel?",
+    "options": [
+      {
+        "id": "a",
+        "text": "channel is outside SUM, and the question wants one row per channel."
+      },
+      {
+        "id": "b",
+        "text": "GROUP BY channel sorts the result so the channels come out in order."
+      },
+      {
+        "id": "c",
+        "text": "GROUP BY channel keeps only the channels that have some net revenue."
+      },
+      {
+        "id": "d",
+        "text": "GROUP BY channel removes the order lines that have a missing channel."
+      }
+    ],
+    "correct_id": "a",
+    "explanation": "GROUP BY splits the order lines into one group per channel, and SUM adds up the revenue inside each group. In DuckDB, every column outside an aggregate must be in GROUP BY. GROUP BY does not sort the rows: add ORDER BY when the order matters."
+  }
+}

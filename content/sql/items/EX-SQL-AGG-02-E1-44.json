@@ -1,0 +1,81 @@
+{
+  "id": "EX-SQL-AGG-02-E1-44",
+  "version": 1,
+  "kind": "is_unique",
+  "tags": [
+    "sql",
+    "LVL-02",
+    "is_unique",
+    "is_unique",
+    "sales",
+    "grain",
+    "primary_key"
+  ],
+  "level": 2,
+  "source_ids": [
+    "01:SQL-AGG-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-AGG-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-AGG-02"
+  ],
+  "template_id": "T-AGG-02-is-unique-line-key",
+  "template_params": {
+    "table": "sales",
+    "column": "order_line_id"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_agg",
+  "prompt": "In the sales table, is order_line_id unique: does each order_line_id value appear on only one row?",
+  "output_contract": null,
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [],
+  "subgoals": [],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 60000,
+  "why_this_works": "",
+  "options": [
+    {
+      "oid": "od6c7b82",
+      "text": "Yes",
+      "misconception_id": null
+    },
+    {
+      "oid": "o31b094d",
+      "text": "No",
+      "misconception_id": "ERR-LOG-07"
+    }
+  ],
+  "unique_check": {
+    "table": "sales",
+    "column": "order_line_id"
+  }
+}

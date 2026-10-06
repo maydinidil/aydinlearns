@@ -1,0 +1,37 @@
+{
+  "item_id": "EX-SQL-FILTER-01-E1-05",
+  "item_version": 1,
+  "reference_sql": "SELECT promo_code, promo_name, discount_pct\nFROM promotions\nWHERE promo_type = 'percent_off' AND discount_pct > 20",
+  "alternatives": [
+    "SELECT promo_code, promo_name, discount_pct\nFROM promotions\nWHERE discount_pct > 20 AND promo_type = 'percent_off'",
+    "SELECT promo_code, promo_name, discount_pct\nFROM promotions\nWHERE promo_type = 'percent_off' AND NOT discount_pct <= 20",
+    "SELECT promo_code, promo_name, discount_pct\nFROM promotions\nWHERE promo_type = 'percent_off' AND 20 < discount_pct"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "M1",
+      "error_id": "ERR-LOG-15",
+      "sql": "SELECT promo_code, promo_name, discount_pct\nFROM promotions\nWHERE promo_type = 'percent_off' AND discount_pct >= 20"
+    },
+    {
+      "id": "M2",
+      "error_id": "ERR-LOG-21",
+      "sql": "SELECT promo_code, promo_name, discount_pct\nFROM promotions\nWHERE promo_type = 'percent_off' AND discount_pct > 0.20"
+    },
+    {
+      "id": "M3",
+      "error_id": "ERR-SYN-07",
+      "sql": "SELECT promo_code, promo_name, discount_pct\nFROM promotions\nWHERE promo_type = \"percent_off\" AND discount_pct > 20"
+    }
+  ],
+  "hint3_partial": "SELECT promo_code, promo_name, discount_pct\nFROM promotions\nWHERE promo_type = 'percent_off' AND ...",
+  "solver": {
+    "prompt_hash": "c5a0a5c9ef487c98",
+    "schema_version": "f0340f71a1f5",
+    "dataset_version": "9639f8ae1f71c2ef",
+    "grader_version": "1a.2",
+    "query": "SELECT promo_code, promo_name, discount_pct FROM promotions WHERE promo_type = 'percent_off' AND discount_pct > 20\n",
+    "at": "2026-10-03T13:08:02.437Z"
+  }
+}

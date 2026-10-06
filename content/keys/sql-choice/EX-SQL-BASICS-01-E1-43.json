@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-BASICS-01-E1-43",
+  "item_version": 1,
+  "correct_oid": "o84ee0d4",
+  "explanation": "stores has one row per store, with its store_code and its city, so it answers the question directly. sales also names a store_code, but it has one row per order line, so each store appears many times, and it has no city column. calendar and products hold no stores at all.",
+  "solver": {
+    "prompt_hash": "9a20c04784b73f37",
+    "grader_version": "choice.1",
+    "chosen": "o84ee0d4",
+    "typed": null,
+    "at": "2026-10-06T09:08:14.827Z"
+  }
+}

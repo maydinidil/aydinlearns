@@ -1,0 +1,15 @@
+{
+  "concept_id": "MET-PRICE-01",
+  "section": "methodology",
+  "version": 1,
+  "title": "Price index vs competitors",
+  "reading_md": "**What it answers.** Where Voltmarkt's shelf price sits against its two national rivals for the same product in the same week. Typical questions: \"Are we more expensive than our rivals on our top TVs?\" and \"Where do we sit on price versus the market this week?\"\n\n**Formula (Voltmarkt's convention).**\n\nprice index = 100 x own shelf price / average competitor shelf price\n\n- Both sides are the same product in the same week.\n- Own shelf price is the list price in effect that week (`price_history`) less any active promotion discount (`promotions.discount_pct`, linked through `promotion_products`).\n- Competitor shelf price is the average of the rivals' observed prices for that product and week (`competitor_prices.price_eur`).\n- 100 is parity. Above 100 means Voltmarkt is more expensive; below 100 means cheaper.\n- To roll products up to a category, weight each product's index by Voltmarkt's own units sold.\n\nThis compares like with like: a shelf price against shelf prices. An index built on the net price customers actually paid after checkout discounts is a different metric, the net-price index, and is always labelled as such.\n\n**Worked example.** A soundbar has a list price of €299 and no promotion this week. The rivals show €279 and €289, an average of €284. Index = 100 x 299 / 284 = 105.3: Voltmarkt is about 5% more expensive.\n\nA pair of headphones lists at €200 with a 20% promotion running, so its own shelf price is €160. The rivals show €165 and €175, an average of €170. Index = 100 x 160 / 170 = 94.1: cheaper while the promotion runs.\n\nRoll-up, in another week: soundbars sit at 110 on 30 units sold and HDMI cables at 95 on 120 units. Weighted by units, (110 x 30 + 95 x 120) / 150 = 98.0, slightly cheaper than the market. The simple average of the two indices, 102.5, says the opposite, because the rarely bought soundbar counts as much as the cable.\n\n**Common mistakes.**\n- Mixing bases. Some tools divide the competitor price by their own, so above 100 means cheaper. Voltmarkt always divides its own price by the competitor average.\n- Averaging product indices without weighting by units.\n- Comparing different products: a 55-inch model against a rival's 65-inch, or a bundle against a single item.\n- Joining to competitor prices with an inner join, which silently drops every product and week without a rival observation, so the index covers fewer products than you think.\n- Using the net price paid instead of the shelf price.\n\n**What it does not answer.** Whether a price is profitable (gross margin), how volume responds to a price change (elasticity), or what customers paid after checkout discounts (the net-price index). An index says where the shelf price sits, not whether it should move.",
+  "source_ids": [
+    "04:MET-PRICE-01",
+    "ERRATA:E-100",
+    "ERRATA:E-010",
+    "ERRATA:E-101"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04"
+}

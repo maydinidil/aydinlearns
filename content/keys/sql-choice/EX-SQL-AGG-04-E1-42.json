@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-AGG-04-E1-42",
+  "item_version": 1,
+  "value": 4,
+  "explanation": "GROUP BY store_type makes one row for each of the four store types in the panel. FILTER only decides which rows the count adds up inside each group; it removes no group. A type with no Dutch store still gets its row, with nl_stores 0. So the result has 4 rows.",
+  "solver": {
+    "prompt_hash": "446871089aa507ba",
+    "grader_version": "choice.1",
+    "chosen": null,
+    "typed": "4",
+    "at": "2026-10-06T09:08:14.822Z"
+  }
+}

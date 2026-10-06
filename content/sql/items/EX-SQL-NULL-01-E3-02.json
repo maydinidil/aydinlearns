@@ -1,0 +1,116 @@
+{
+  "id": "EX-SQL-NULL-01-E3-02",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-01",
+    "is_null",
+    "open_ended_range",
+    "and_or_not"
+  ],
+  "level": 1,
+  "source_ids": [
+    "01:SQL-NULL-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-02",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-NULL-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-NULL-01",
+    "SQL-FILTER-01"
+  ],
+  "template_id": "T-NULL-01-open-ended-range",
+  "template_params": {
+    "table": "stores",
+    "null_column": "close_date, opened_on",
+    "on_date": "2025-01-01"
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_null",
+  "prompt": "Which stores were open on 1 January 2025? A store was open that day when its opened_on date is on or before 1 January 2025 and it had not closed yet: its close_date is missing (NULL) or later than 1 January 2025. A store with no opened_on date recorded (NULL) cannot be confirmed as open, so leave it out. Return three columns, in this order: store_code, opened_on, close_date. Return one row per store. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "store_code",
+        "type_class": "text"
+      },
+      {
+        "name": "opened_on",
+        "type_class": "temporal"
+      },
+      {
+        "name": "close_date",
+        "type_class": "temporal"
+      }
+    ],
+    "grain": "one row per store"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "store_code",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "opened_on",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "close_date",
+        "type_class": "temporal",
+        "precision": "exact"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the row filter. Keep the stores that had opened by 1 January 2025 and either have no close date or closed after that day.",
+    "The opening-date test joins with AND to a bracketed pair of close_date tests. Without the brackets, the second close_date test escapes the opening-date condition."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 40,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 41,
+      "to": 52,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 53,
+      "to": 148,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 210000,
+  "why_this_works": "A store with no close date never matches a date comparison, so close_date IS NULL keeps the stores that are still open, and the brackets keep the opening-date test on both branches."
+}

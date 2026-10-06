@@ -1,0 +1,112 @@
+{
+  "id": "EX-SQL-SORT-01-E2-31",
+  "version": 1,
+  "kind": "fix",
+  "tags": [
+    "sql",
+    "LVL-01",
+    "fix",
+    "distinct",
+    "promotions"
+  ],
+  "level": 1,
+  "source_ids": [
+    "01:SQL-SORT-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-SORT-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01"
+  ],
+  "template_id": "T-SORT-01-fix-missing-distinct",
+  "template_params": {
+    "table": "promotions",
+    "columns": 1,
+    "year": 2025
+  },
+  "sub_skill": "distinct",
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_sort",
+  "prompt": "The query in the editor has one mistake. Fix it so that it answers this question: which promotion names did Voltmarkt use for the promotions that started in 2025 (start_date from 1 January 2025 to 31 December 2025, both days included)? Return one column, promo_name, with exactly this name, listing each name once, sorted from A to Z. A missing promo_name counts as one value, and its row may come first or last.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "promo_name",
+        "type_class": "text"
+      }
+    ],
+    "grain": "one row per promotion name"
+  },
+  "rules": {
+    "order_matters": true,
+    "sort_keys": [
+      {
+        "column": "promo_name",
+        "desc": false
+      }
+    ],
+    "check_names": true,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "promo_name",
+        "type_class": "text",
+        "precision": "exact"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "promo_name"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, decide what one row stands for: the question wants each name once, not one row per promotion.",
+    "Some names appear more than once in the rows the query returns, because several promotions share a name. One keyword straight after SELECT keeps each name once."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 26,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 27,
+      "to": 42,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 43,
+      "to": 107,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 108,
+      "to": 127,
+      "subgoal": "sort_limit"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": "SELECT promo_name\nFROM promotions\nWHERE start_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\nORDER BY promo_name",
+  "starter_error_id": "ERR-LOG-08",
+  "time_target_ms": 120000,
+  "why_this_works": "DISTINCT keeps each promo_name once, so a name that several promotions share appears in one row."
+}

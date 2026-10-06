@@ -1,0 +1,42 @@
+{
+  "item_id": "EX-SQL-AGG-02-E1-04",
+  "item_version": 1,
+  "reference_sql": "SELECT country_code, COUNT(*) AS n_lines\nFROM sales\nGROUP BY country_code",
+  "alternatives": [
+    "SELECT country_code, COUNT(order_line_id) AS n_lines FROM sales GROUP BY country_code",
+    "SELECT country_code, COUNT(*) AS n_lines FROM sales GROUP BY 1",
+    "SELECT sales.country_code, COUNT(*) AS n_lines FROM sales GROUP BY sales.country_code"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-04",
+      "sql": "SELECT country_code, COUNT(units) AS n_lines FROM sales GROUP BY country_code"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-07",
+      "sql": "SELECT country_code, COUNT(*) AS n_lines FROM sales GROUP BY country_code, channel"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-SEM-01",
+      "sql": "SELECT country_code, COUNT(*) AS n_lines FROM sales GROUP BY store_code"
+    },
+    {
+      "id": "PW4",
+      "error_id": "ERR-LOG-04",
+      "sql": "SELECT country_code, COUNT(DISTINCT order_id) AS n_lines FROM sales GROUP BY country_code"
+    }
+  ],
+  "hint3_partial": "SELECT country_code, COUNT(*) AS n_lines\nFROM sales\nGROUP BY ___",
+  "solver": {
+    "prompt_hash": "5edab19eafd05d13",
+    "schema_version": "cebf75df442f",
+    "dataset_version": "506a9858f862fdfb",
+    "grader_version": "1b.3",
+    "query": "SELECT country_code, COUNT(*) AS n_lines FROM sales GROUP BY country_code\n",
+    "at": "2026-10-04T10:06:43.119Z"
+  }
+}

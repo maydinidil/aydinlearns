@@ -1,0 +1,15 @@
+{
+  "concept_id": "MET-MKT-10",
+  "section": "methodology",
+  "version": 1,
+  "title": "Linear attribution",
+  "reading_md": "**What it measures.** How revenue splits across channels when every touch in the path gets an equal share.\n\n**Formula.** For each order, count the touches in the lookback window: n. Each touch gets revenue / n. A channel's credit is the sum of its touches' shares, so a channel that appears twice in a path gets two shares. Grain: channel × period. As with every model, orders with no touch in the window go to an \"unattributed\" row.\n\n**Worked example.** An order of €600 had the path social → email → paid search → email.\n\n- n = 4, so each touch gets 600 / 4 = €150.\n- Email: 2 × €150 = €300. Social: €150. Paid search: €150.\n- Total: €600, the whole order.\n\n**Rounding.** An order of €100 with three touches gives each touch €33.333... Round each share to cents first, and the three shares add up to €99.99. Keep full precision while adding up, and round only the totals in the report. Then credit still adds up to revenue.\n\n**Common mistakes.**\n\n- Rounding each share before adding up, so credit no longer adds up to revenue.\n- Duplicate touches. When a tag fires twice, one click becomes two touches, and its channel gets two shares.\n- Thinking linear is fair because every touch gets the same. It is still a rule for sharing credit, not a measure of what each touch caused.\n\n**A note on tools.** Google Ads and GA4 no longer offer linear attribution, so Voltmarkt computes it from its own touch data.\n\n**How managers ask for it.** \"Can we split credit fairly?\" \"What if every touch counts equally?\"",
+  "source_ids": [
+    "04:MET-MKT-10",
+    "04:§2.1",
+    "ERRATA:E-097",
+    "ERRATA:E-100"
+  ],
+  "verified": true,
+  "as_of": "2026-10-05"
+}

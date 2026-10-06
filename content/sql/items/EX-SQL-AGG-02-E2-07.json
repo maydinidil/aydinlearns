@@ -1,0 +1,133 @@
+{
+  "id": "EX-SQL-AGG-02-E2-07",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-02",
+    "group_by",
+    "sum",
+    "top-n",
+    "limit",
+    "sales"
+  ],
+  "level": 2,
+  "source_ids": [
+    "01:SQL-AGG-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-AGG-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02"
+  ],
+  "template_id": "T-AGG-02-top-n-groups",
+  "template_params": {
+    "table": "sales",
+    "group_by": "store_code",
+    "metric": "units",
+    "n": 2
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_agg",
+  "prompt": "Which 2 stores sold the most units? Use the sales table. Return two columns, in this order: store_code and units_sold, the total units of that store. Sort by units_sold from highest to lowest; when stores tie on units_sold, sort them by store_code from A to Z. Return only the first 2 rows of that order. The webshop, WEB-01, counts as a store. Order lines with missing units add nothing to the total.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "store_code",
+        "type_class": "text"
+      },
+      {
+        "name": "units_sold",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per store"
+  },
+  "rules": {
+    "order_matters": true,
+    "sort_keys": [
+      {
+        "column": "units_sold",
+        "desc": true
+      },
+      {
+        "column": "store_code",
+        "desc": false
+      }
+    ],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "store_code",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "units_sold",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "store_code"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, decide what one row stands for: one row per store, with its units added up.",
+    "Sort the store totals from highest to lowest with store_code as the tie-break, then keep 2 rows."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 43,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 44,
+      "to": 54,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 55,
+      "to": 74,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 75,
+      "to": 111,
+      "subgoal": "sort_limit"
+    },
+    {
+      "from": 112,
+      "to": 119,
+      "subgoal": "sort_limit"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "GROUP BY store_code gives one total per store; sorting the totals with store_code as the tie-break and keeping 2 rows returns the top two."
+}

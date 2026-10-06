@@ -1,0 +1,37 @@
+{
+  "item_id": "EX-SQL-AGG-02-E1-05",
+  "item_version": 1,
+  "reference_sql": "SELECT channel, COUNT(*) AS n_lines, SUM(units) AS units_sold\nFROM sales\nGROUP BY channel",
+  "alternatives": [
+    "SELECT channel, COUNT(order_line_id) AS n_lines, SUM(units) AS units_sold FROM sales GROUP BY channel",
+    "SELECT channel, COUNT(*) AS n_lines, SUM(units) AS units_sold FROM sales GROUP BY 1",
+    "SELECT sales.channel, COUNT(*) AS n_lines, SUM(sales.units) AS units_sold FROM sales GROUP BY sales.channel"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-04",
+      "sql": "SELECT channel, COUNT(units) AS n_lines, SUM(units) AS units_sold FROM sales GROUP BY channel"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-07",
+      "sql": "SELECT channel, COUNT(*) AS n_lines, SUM(units) AS units_sold FROM sales GROUP BY channel, country_code"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-SEM-01",
+      "sql": "SELECT channel, COUNT(*) AS n_lines, SUM(units) AS units_sold FROM sales"
+    }
+  ],
+  "hint3_partial": "SELECT channel, COUNT(*) AS n_lines, SUM(units) AS units_sold\nFROM sales\nGROUP BY ___",
+  "solver": {
+    "prompt_hash": "a55cf67621792736",
+    "schema_version": "cebf75df442f",
+    "dataset_version": "506a9858f862fdfb",
+    "grader_version": "1b.3",
+    "query": "SELECT channel, COUNT(*) AS n_lines, SUM(units) AS units_sold FROM sales GROUP BY channel\n",
+    "at": "2026-10-04T10:06:43.245Z"
+  }
+}

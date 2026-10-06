@@ -1,0 +1,32 @@
+{
+  "item_id": "EX-SQL-SORT-01-E2-04",
+  "item_version": 2,
+  "reference_sql": "SELECT DISTINCT brand\nFROM products\nWHERE unit_cost_eur >= 1000\nORDER BY brand",
+  "alternatives": [
+    "SELECT DISTINCT brand FROM products WHERE 1000 <= unit_cost_eur ORDER BY brand ASC",
+    "SELECT DISTINCT brand FROM products WHERE NOT unit_cost_eur < 1000 ORDER BY 1",
+    "SELECT DISTINCT products.brand FROM products WHERE products.unit_cost_eur >= 1000.00 ORDER BY products.brand"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "EX-SQL-SORT-01-E2-04-PW1",
+      "error_id": "ERR-LOG-08",
+      "sql": "SELECT brand FROM products WHERE unit_cost_eur >= 1000 ORDER BY brand"
+    },
+    {
+      "id": "EX-SQL-SORT-01-E2-04-PW2",
+      "error_id": "ERR-LOG-18",
+      "sql": "SELECT DISTINCT brand FROM products WHERE unit_cost_eur >= 1000 ORDER BY brand DESC"
+    }
+  ],
+  "hint3_partial": "SELECT ___ brand\nFROM products\nWHERE unit_cost_eur >= ___\nORDER BY brand",
+  "solver": {
+    "prompt_hash": "cdf606d6a9c56d30",
+    "schema_version": "d77fe1c31a0e",
+    "dataset_version": "a3da93f63243c895",
+    "grader_version": "1b.3",
+    "query": "SELECT DISTINCT brand\nFROM products\nWHERE unit_cost_eur >= 1000\nORDER BY brand",
+    "at": "2026-10-05T16:09:18.715Z"
+  }
+}

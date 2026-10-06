@@ -1,0 +1,126 @@
+{
+  "concept_id": "SQL-AGG-04",
+  "version": 1,
+  "reading_md": "# Conditional aggregation: several measures in one pass\n\n\"Units per country, and how many of them sold on the web\" needs two totals from the same rows. **Conditional aggregation** puts a CASE inside an aggregate, so that aggregate only sees the rows you choose, and one GROUP BY returns several measures side by side.\n\n```sql\nSELECT country_code,\n       SUM(units) AS units_sold,\n       SUM(CASE WHEN channel = 'web' THEN units ELSE 0 END) AS web_units\nFROM sales\nGROUP BY country_code\n```\n\nThe CASE runs on every row. A web row hands its units to SUM; any other row hands it a 0.\n\n## Sum, count or average some rows\n\n- Sum: `SUM(CASE WHEN condition THEN value ELSE 0 END)`\n- Count: `SUM(CASE WHEN condition THEN 1 ELSE 0 END)`, or `COUNT(CASE WHEN condition THEN 1 END)`\n- Average: `AVG(CASE WHEN condition THEN value END)`, with no ELSE\n- Different values: `COUNT(DISTINCT CASE WHEN condition THEN order_id END)`\n\n## ELSE 0, or no ELSE?\n\nWithout ELSE, a row that fails the test gives NULL, a missing value, and aggregates skip missing values. That decides the ELSE:\n\n- **COUNT** counts every value that is not missing, and 0 is a value. `COUNT(CASE WHEN ... THEN 1 ELSE 0 END)` counts every row. With COUNT, leave ELSE out.\n- **AVG** divides by the number of values it sees, so ELSE 0 averages in rows that should not be there. With AVG, leave ELSE out.\n- **COUNT(DISTINCT ...)** with ELSE 0 counts the 0 as one more value. Leave ELSE out.\n- **SUM** gives the same total either way, except in a group where no row matches: then every value is missing, and SUM gives a missing value. ELSE 0 makes it 0.\n\n## Missing values in the condition\n\nA comparison with NULL is never true, so a row with missing units fails `units >= 2` and goes to ELSE. To count \"every other row\", test the main condition and let ELSE catch the rest. A second test such as `units < 2` drops the rows where units is missing.\n\n## Shares: divide the totals\n\nA share is a conditional total over the full total:\n\n```sql\nSUM(CASE WHEN channel = 'web' THEN net_revenue_eur ELSE 0 END) / SUM(net_revenue_eur)\n```\n\nDo not average a share worked out row by row: that gives a 5 euro cable the same weight as a 1,000 euro TV. Check the bottom of the fraction too: it must cover exactly the rows the question compares against.\n\n## The FILTER clause\n\nDuckDB and PostgreSQL also accept the condition after the aggregate: `COUNT(*) FILTER (WHERE channel = 'web')`. The CASE form works in every database.\n\n## How to write it\n\n1. Write the GROUP BY for what one row of the answer stands for.\n2. For each measure, pick the aggregate: SUM, COUNT, AVG or COUNT(DISTINCT ...).\n3. Put the condition in a CASE inside it, and pick the ELSE: 0 for SUM, none for the others.\n4. For a share, divide two totals.",
+  "syntax_md": "```sql\nSELECT group_column,                                                           -- what one row stands for\n       SUM(CASE WHEN condition THEN value ELSE 0 END) AS conditional_total,    -- metrics\n       COUNT(CASE WHEN condition THEN 1 END) AS conditional_count,             -- metrics\n       AVG(CASE WHEN condition THEN value END) AS conditional_average,         -- metrics\n       COUNT(DISTINCT CASE WHEN condition THEN id_column END) AS n_ids         -- metrics\nFROM table_name                                                                -- source and grain\nGROUP BY group_column;                                                         -- output grain\n```\n\n- The CASE runs on every row; the aggregate around it only uses what the CASE hands it.\n- SUM: ELSE 0, so a group with no matching row shows 0 instead of a missing value.\n- COUNT, AVG and COUNT(DISTINCT ...): no ELSE. A missing value is skipped; a 0 is counted.\n- A share divides two totals: `SUM(CASE WHEN condition THEN value ELSE 0 END) / SUM(value)`.\n- DuckDB and PostgreSQL only: `COUNT(*) FILTER (WHERE condition)`, `SUM(value) FILTER (WHERE condition)`.",
+  "dialect_note": "A CASE inside an aggregate is standard SQL and works in every major engine, so it is the portable choice. The FILTER clause, as in COUNT(*) FILTER (WHERE channel = 'web'), works in DuckDB, PostgreSQL and SQLite, but not in MySQL, SQL Server or BigQuery. DuckDB also runs it with the word WHERE left out (checked on 1.5.6); PostgreSQL does not, so always write FILTER (WHERE ...). Watch the division in a share of counts: in DuckDB, / always keeps the decimals, so SUM(CASE WHEN channel = 'web' THEN 1 ELSE 0 END) / COUNT(*) gives about 0.37 (checked on 1.5.6), but PostgreSQL and SQL Server divide a whole number by a whole number as whole numbers and give 0. Multiply by 1.0 first to be safe everywhere. In DuckDB, 0 divided by 0 gives NaN rather than a missing value (checked on 1.5.6), so a share whose bottom can be 0 needs care.",
+  "worked_examples": [
+    {
+      "title": "Deep discounts per promotion type",
+      "prompt": "For each promo_type, how many promotions are there, and how many of them give 30% or more off? Return promo_type, n_promotions and deep_promotions, one row per promo_type.",
+      "clauses": [
+        {
+          "text": "SELECT promo_type,",
+          "subgoal": "metrics",
+          "why": "The group column comes first, so each row says which type it describes."
+        },
+        {
+          "text": "       COUNT(*) AS n_promotions,",
+          "subgoal": "metrics",
+          "why": "COUNT(*) counts every promotion of the type."
+        },
+        {
+          "text": "       SUM(CASE WHEN discount_pct >= 30 THEN 1 ELSE 0 END) AS deep_promotions",
+          "subgoal": "metrics",
+          "why": "The CASE turns a deep promotion into 1 and any other into 0, so SUM counts the deep ones only."
+        },
+        {
+          "text": "FROM promotions",
+          "subgoal": "source_grain",
+          "why": "promotions has one row per promotion."
+        },
+        {
+          "text": "GROUP BY promo_type",
+          "subgoal": "output_grain",
+          "why": "One row per type; both counts are worked out inside each type, in the same pass."
+        }
+      ]
+    },
+    {
+      "title": "Web lines and their average value per category",
+      "prompt": "For each parent_category, how many web order lines are there, and what is the average net revenue of a web line? Lines with a missing net_revenue_eur are left out of the average. Return parent_category, web_lines and avg_web_line_eur, one row per parent_category.",
+      "clauses": [
+        {
+          "text": "SELECT parent_category,",
+          "subgoal": "metrics",
+          "why": "The group column comes first."
+        },
+        {
+          "text": "       COUNT(CASE WHEN channel = 'web' THEN 1 END) AS web_lines,",
+          "subgoal": "metrics",
+          "why": "No ELSE: a store line gives a missing value, which COUNT skips. With ELSE 0, COUNT would count every line."
+        },
+        {
+          "text": "       AVG(CASE WHEN channel = 'web' THEN net_revenue_eur END) AS avg_web_line_eur",
+          "subgoal": "metrics",
+          "why": "No ELSE again: a 0 for each store line would be averaged in and pull the average down."
+        },
+        {
+          "text": "FROM sales",
+          "subgoal": "source_grain",
+          "why": "sales has one row per order line."
+        },
+        {
+          "text": "GROUP BY parent_category",
+          "subgoal": "output_grain",
+          "why": "One row per category; each aggregate sees the category's lines, and its CASE picks the web ones."
+        }
+      ]
+    }
+  ],
+  "pretest_item_ids": [
+    "EX-SQL-AGG-04-E1-01",
+    "EX-SQL-AGG-04-E1-02"
+  ],
+  "lesson_item_ids": [
+    "EX-SQL-AGG-04-E1-03",
+    "EX-SQL-AGG-04-E1-04",
+    "EX-SQL-AGG-04-E2-01",
+    "EX-SQL-AGG-04-E2-02"
+  ],
+  "retest_item_id": "EX-SQL-AGG-04-E1-05",
+  "pool_item_ids": [
+    "EX-SQL-AGG-04-E1-06",
+    "EX-SQL-AGG-04-E1-07",
+    "EX-SQL-AGG-04-E1-08",
+    "EX-SQL-AGG-04-E2-03",
+    "EX-SQL-AGG-04-E2-04",
+    "EX-SQL-AGG-04-E2-05",
+    "EX-SQL-AGG-04-E2-06",
+    "EX-SQL-AGG-04-E2-07",
+    "EX-SQL-AGG-04-E2-08",
+    "EX-SQL-AGG-04-E3-01",
+    "EX-SQL-AGG-04-E3-02",
+    "EX-SQL-AGG-04-E3-03",
+    "EX-SQL-AGG-04-E1-42",
+    "EX-SQL-AGG-04-E2-41",
+    "EX-SQL-AGG-04-E2-42"
+  ],
+  "source_ids": [
+    "01:SQL-AGG-04"
+  ],
+  "why_clause": {
+    "clause": "SUM(CASE WHEN discount_pct >= 30 THEN 1 ELSE 0 END) AS deep_promotions",
+    "stem": "Why does SUM over this CASE count only the deep promotions?",
+    "options": [
+      {
+        "id": "a",
+        "text": "Deep ones become 1 and the rest 0, so SUM adds up the 1s."
+      },
+      {
+        "id": "b",
+        "text": "The CASE removes promotions under 30% before SUM runs."
+      },
+      {
+        "id": "c",
+        "text": "SUM adds up the discount_pct of the deep promotions."
+      },
+      {
+        "id": "d",
+        "text": "ELSE 0 makes the query return one row per discount level."
+      }
+    ],
+    "correct_id": "a",
+    "explanation": "The CASE turns each promotion into a number: 1 when discount_pct is 30 or more, 0 otherwise. SUM adds those numbers, so it counts the deep promotions, while COUNT(*) in the same query still counts every promotion of the type. No row is removed."
+  }
+}

@@ -1,0 +1,111 @@
+{
+  "id": "EX-SQL-SORT-01-E1-21",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "order-by",
+    "promotions"
+  ],
+  "level": 1,
+  "source_ids": [
+    "01:SQL-SORT-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-SORT-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-SORT-01"
+  ],
+  "template_id": "T-SORT-01-order-keys",
+  "template_params": {
+    "table": "promotions",
+    "keys": 2
+  },
+  "sub_skill": "order_by",
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_sort",
+  "prompt": "List every promotion's type and name. Return promo_type and promo_name, in that order, with exactly these column names. Sort the rows by promo_type from A to Z, and within each type by promo_name from A to Z. One row per promotion, every promotion included, so a name used by several promotions appears once for each of them. Rows with a missing promo_type may come first or last, and so may rows with a missing promo_name within their type.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "promo_type",
+        "type_class": "text"
+      },
+      {
+        "name": "promo_name",
+        "type_class": "text"
+      }
+    ],
+    "grain": "one row per promotion"
+  },
+  "rules": {
+    "order_matters": true,
+    "sort_keys": [
+      {
+        "column": "promo_type",
+        "desc": false
+      },
+      {
+        "column": "promo_name",
+        "desc": false
+      }
+    ],
+    "check_names": true,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "promo_type",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "promo_name",
+        "type_class": "text",
+        "precision": "exact"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the sort. Sort by the promotion type first, and by the name within each type.",
+    "ORDER BY comes last and lists both columns, separated by a comma, in the order the question gives. A to Z is the default direction."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 36,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 37,
+      "to": 52,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 53,
+      "to": 84,
+      "subgoal": "sort_limit"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 60000,
+  "why_this_works": "ORDER BY sorts by promo_type first and uses promo_name only within each type, and with no DISTINCT every promotion keeps its own row."
+}

@@ -1,0 +1,36 @@
+{
+  "item_id": "EX-SQL-AGG-04-E1-07",
+  "item_version": 1,
+  "reference_sql": "SELECT COUNT(*) AS n_lines,\n       SUM(CASE WHEN units IS NULL THEN 1 ELSE 0 END) AS lines_missing_units,\n       SUM(CASE WHEN net_revenue_eur IS NULL THEN 1 ELSE 0 END) AS lines_missing_revenue,\n       SUM(CASE WHEN unit_cost_eur IS NULL THEN 1 ELSE 0 END) AS lines_missing_cost\nFROM sales",
+  "alternatives": [
+    "SELECT COUNT(*) AS n_lines, COUNT(*) - COUNT(units) AS lines_missing_units, COUNT(*) - COUNT(net_revenue_eur) AS lines_missing_revenue, COUNT(*) - COUNT(unit_cost_eur) AS lines_missing_cost FROM sales",
+    "SELECT COUNT(*) AS n_lines, COUNT(CASE WHEN units IS NULL THEN 1 END) AS lines_missing_units, COUNT(CASE WHEN net_revenue_eur IS NULL THEN 1 END) AS lines_missing_revenue, COUNT(CASE WHEN unit_cost_eur IS NULL THEN 1 END) AS lines_missing_cost FROM sales"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-SEM-04",
+      "sql": "SELECT COUNT(*) AS n_lines, SUM(CASE WHEN units = NULL THEN 1 ELSE 0 END) AS lines_missing_units, SUM(CASE WHEN net_revenue_eur = NULL THEN 1 ELSE 0 END) AS lines_missing_revenue, SUM(CASE WHEN unit_cost_eur = NULL THEN 1 ELSE 0 END) AS lines_missing_cost FROM sales"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-04",
+      "sql": "SELECT COUNT(*) AS n_lines, COUNT(units) AS lines_missing_units, COUNT(net_revenue_eur) AS lines_missing_revenue, COUNT(unit_cost_eur) AS lines_missing_cost FROM sales"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-04",
+      "sql": "SELECT COUNT(*) AS n_lines, COUNT(CASE WHEN units IS NULL THEN 1 ELSE 0 END) AS lines_missing_units, COUNT(CASE WHEN net_revenue_eur IS NULL THEN 1 ELSE 0 END) AS lines_missing_revenue, COUNT(CASE WHEN unit_cost_eur IS NULL THEN 1 ELSE 0 END) AS lines_missing_cost FROM sales"
+    }
+  ],
+  "hint3_partial": "SELECT COUNT(*) AS n_lines,\n       SUM(CASE WHEN units ___ THEN 1 ELSE 0 END) AS lines_missing_units,\n       SUM(CASE WHEN ___ THEN 1 ELSE 0 END) AS lines_missing_revenue,\n       ___ AS lines_missing_cost\nFROM sales",
+  "solver": {
+    "prompt_hash": "7af6600c82e3fb40",
+    "schema_version": "cebf75df442f",
+    "dataset_version": "506a9858f862fdfb",
+    "grader_version": "1b.3",
+    "query": "SELECT COUNT(*) AS n_lines, COUNT(*) FILTER (WHERE units IS NULL) AS lines_missing_units, COUNT(*) FILTER (WHERE net_revenue_eur IS NULL) AS lines_missing_revenue, COUNT(*) FILTER (WHERE unit_cost_eur IS NULL) AS lines_missing_cost FROM sales\n",
+    "at": "2026-10-04T10:06:48.140Z"
+  }
+}

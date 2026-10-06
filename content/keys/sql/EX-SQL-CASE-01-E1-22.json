@@ -1,0 +1,41 @@
+{
+  "item_id": "EX-SQL-CASE-01-E1-22",
+  "item_version": 1,
+  "reference_sql": "SELECT promo_code, promo_type,\n       CASE WHEN promo_type IN ('percent_off', 'clearance') THEN 'price cut'\n            ELSE 'reward'\n       END AS promo_group\nFROM promotions",
+  "alternatives": [
+    "SELECT promo_code, promo_type, CASE WHEN promo_type IN ('loyalty', 'bundle') THEN 'reward' ELSE 'price cut' END AS promo_group FROM promotions",
+    "SELECT promo_code, promo_type, CASE WHEN promo_type = 'percent_off' OR promo_type = 'clearance' THEN 'price cut' WHEN promo_type = 'loyalty' OR promo_type = 'bundle' THEN 'reward' END AS promo_group FROM promotions"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-00",
+      "sql": "SELECT promo_code, promo_type, CASE WHEN promo_type IN ('percent_off', 'bundle') THEN 'price cut' ELSE 'reward' END AS promo_group FROM promotions"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-03",
+      "sql": "SELECT promo_code, promo_type, CASE WHEN promo_type IN ('percent_off', 'clearance') THEN 'price cut' WHEN promo_type = 'loyalty' THEN 'reward' END AS promo_group FROM promotions"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-SYN-01",
+      "sql": "SELECT promo_code, promo_type, CASE WHEN promo_type IN ('percent_off', 'clearance') THEN 'price cut' ELSE 'reward' AS promo_group FROM promotions"
+    },
+    {
+      "id": "PW4",
+      "error_id": "ERR-OUT-01",
+      "sql": "SELECT promo_code, CASE WHEN promo_type IN ('percent_off', 'clearance') THEN 'price cut' ELSE 'reward' END AS promo_group FROM promotions"
+    }
+  ],
+  "hint3_partial": "SELECT promo_code, promo_type,\n       CASE WHEN promo_type IN (___) THEN 'price cut'\n            ___\n       END AS promo_group\nFROM promotions",
+  "solver": {
+    "prompt_hash": "c72896e247c24262",
+    "schema_version": "f0340f71a1f5",
+    "dataset_version": "506a9858f862fdfb",
+    "grader_version": "1b.3",
+    "query": "SELECT promo_code, promo_type,\n       CASE WHEN promo_type IN ('percent_off', 'clearance') THEN 'price cut' WHEN promo_type IN ('loyalty', 'bundle') THEN 'reward' END AS promo_group\nFROM promotions\n",
+    "at": "2026-10-04T14:33:17.639Z"
+  }
+}

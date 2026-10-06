@@ -1,0 +1,32 @@
+{
+  "item_id": "EX-SQL-NULL-01-E1-06",
+  "item_version": 1,
+  "reference_sql": "SELECT product_id, product_name, brand\nFROM products\nWHERE category_raw = 'Earbuds' AND (brand = 'Sonora' OR brand = 'Echoline') AND sister_product_id IS NULL",
+  "alternatives": [
+    "SELECT product_id, product_name, brand\nFROM products\nWHERE category_raw = 'Earbuds' AND brand IN ('Sonora', 'Echoline') AND sister_product_id IS NULL",
+    "SELECT product_id, product_name, brand\nFROM products\nWHERE sister_product_id IS NULL AND (brand = 'Echoline' OR brand = 'Sonora') AND category_raw = 'Earbuds'",
+    "SELECT product_id, product_name, brand\nFROM products\nWHERE (category_raw = 'Earbuds' AND brand = 'Sonora' AND sister_product_id IS NULL) OR (category_raw = 'Earbuds' AND brand = 'Echoline' AND sister_product_id IS NULL)"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "M1",
+      "error_id": "ERR-SEM-04",
+      "sql": "SELECT product_id, product_name, brand\nFROM products\nWHERE category_raw = 'Earbuds' AND (brand = 'Sonora' OR brand = 'Echoline') AND sister_product_id = NULL"
+    },
+    {
+      "id": "M2",
+      "error_id": "ERR-LOG-13",
+      "sql": "SELECT product_id, product_name, brand\nFROM products\nWHERE category_raw = 'Earbuds' AND brand = 'Sonora' OR brand = 'Echoline' AND sister_product_id IS NULL"
+    }
+  ],
+  "hint3_partial": "SELECT product_id, product_name, brand\nFROM products\nWHERE category_raw = 'Earbuds' AND (brand = 'Sonora' OR brand = 'Echoline') AND sister_product_id ...",
+  "solver": {
+    "prompt_hash": "317ff14f6590c2d4",
+    "schema_version": "d77fe1c31a0e",
+    "dataset_version": "9639f8ae1f71c2ef",
+    "grader_version": "1a.2",
+    "query": "SELECT product_id, product_name, brand FROM products WHERE category_raw = 'Earbuds' AND brand IN ('Sonora', 'Echoline') AND sister_product_id IS NULL\n",
+    "at": "2026-10-03T13:08:02.909Z"
+  }
+}

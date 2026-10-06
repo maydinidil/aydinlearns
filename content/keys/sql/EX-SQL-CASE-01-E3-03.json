@@ -1,0 +1,41 @@
+{
+  "item_id": "EX-SQL-CASE-01-E3-03",
+  "item_version": 1,
+  "reference_sql": "SELECT parent_category,\n       CASE WHEN net_revenue_eur IS NULL OR units IS NULL THEN 'unknown'\n            WHEN net_revenue_eur / units < 50 THEN 'entry'\n            WHEN net_revenue_eur / units < 200 THEN 'mid'\n            ELSE 'premium'\n       END AS price_band,\n       COUNT(*) AS n_lines,\n       SUM(units) AS units_sold\nFROM sales\nGROUP BY parent_category, price_band",
+  "alternatives": [
+    "SELECT parent_category, CASE WHEN net_revenue_eur / units >= 200 THEN 'premium' WHEN net_revenue_eur / units >= 50 THEN 'mid' WHEN net_revenue_eur / units < 50 THEN 'entry' ELSE 'unknown' END AS price_band, COUNT(*) AS n_lines, SUM(units) AS units_sold FROM sales GROUP BY 1, 2",
+    "SELECT parent_category, CASE WHEN net_revenue_eur IS NULL OR units IS NULL THEN 'unknown' WHEN net_revenue_eur < 50 * units THEN 'entry' WHEN net_revenue_eur < 200 * units THEN 'mid' ELSE 'premium' END AS price_band, COUNT(*) AS n_lines, SUM(COALESCE(units, 0)) AS units_sold FROM sales GROUP BY parent_category, price_band"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-00",
+      "sql": "SELECT parent_category, CASE WHEN net_revenue_eur IS NULL OR units IS NULL THEN 'unknown' WHEN net_revenue_eur < 50 THEN 'entry' WHEN net_revenue_eur < 200 THEN 'mid' ELSE 'premium' END AS price_band, COUNT(*) AS n_lines, SUM(units) AS units_sold FROM sales GROUP BY parent_category, price_band"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-15",
+      "sql": "SELECT parent_category, CASE WHEN net_revenue_eur IS NULL OR units IS NULL THEN 'unknown' WHEN net_revenue_eur / units <= 50 THEN 'entry' WHEN net_revenue_eur / units <= 200 THEN 'mid' ELSE 'premium' END AS price_band, COUNT(*) AS n_lines, SUM(units) AS units_sold FROM sales GROUP BY parent_category, price_band"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-17",
+      "sql": "SELECT parent_category, CASE WHEN net_revenue_eur / units < 50 THEN 'entry' WHEN net_revenue_eur / units < 200 THEN 'mid' ELSE 'premium' END AS price_band, COUNT(*) AS n_lines, SUM(units) AS units_sold FROM sales GROUP BY parent_category, price_band"
+    },
+    {
+      "id": "PW4",
+      "error_id": "ERR-LOG-04",
+      "sql": "SELECT parent_category, CASE WHEN net_revenue_eur IS NULL OR units IS NULL THEN 'unknown' WHEN net_revenue_eur / units < 50 THEN 'entry' WHEN net_revenue_eur / units < 200 THEN 'mid' ELSE 'premium' END AS price_band, COUNT(units) AS n_lines, SUM(units) AS units_sold FROM sales GROUP BY parent_category, price_band"
+    }
+  ],
+  "hint3_partial": "SELECT parent_category,\n       CASE WHEN ___ THEN 'unknown'\n            WHEN net_revenue_eur / units < 50 THEN 'entry'\n            WHEN ___ THEN 'mid'\n            ELSE 'premium'\n       END AS price_band,\n       COUNT(*) AS n_lines,\n       SUM(units) AS units_sold\nFROM sales\nGROUP BY parent_category, ___",
+  "solver": {
+    "prompt_hash": "2ca7bd0c68fb6ff6",
+    "schema_version": "cebf75df442f",
+    "dataset_version": "506a9858f862fdfb",
+    "grader_version": "1b.3",
+    "query": "SELECT parent_category, CASE WHEN net_revenue_eur IS NULL OR units IS NULL THEN 'unknown' WHEN net_revenue_eur / units < 50.00 THEN 'entry' WHEN net_revenue_eur / units < 200.00 THEN 'mid' ELSE 'premium' END AS price_band, COUNT(*) AS n_lines, SUM(units) AS units_sold FROM sales GROUP BY 1, 2\n",
+    "at": "2026-10-04T10:06:51.444Z"
+  }
+}

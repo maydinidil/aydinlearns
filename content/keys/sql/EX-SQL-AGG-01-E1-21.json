@@ -1,0 +1,36 @@
+{
+  "item_id": "EX-SQL-AGG-01-E1-21",
+  "item_version": 1,
+  "reference_sql": "SELECT COUNT(*) AS n_lines\nFROM sales\nWHERE category_name = 'Memory Cards'",
+  "alternatives": [
+    "SELECT COUNT(order_line_id) AS n_lines FROM sales WHERE category_name = 'Memory Cards'",
+    "SELECT COUNT(1) AS n_lines FROM sales WHERE category_name IN ('Memory Cards')"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-04",
+      "sql": "SELECT COUNT(net_revenue_eur) AS n_lines FROM sales WHERE category_name = 'Memory Cards'"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-14",
+      "sql": "SELECT SUM(units) AS n_lines FROM sales WHERE category_name = 'Memory Cards'"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-SYN-07",
+      "sql": "SELECT COUNT(*) AS n_lines FROM sales WHERE category_name = \"Memory Cards\""
+    }
+  ],
+  "hint3_partial": "SELECT ___ AS n_lines\nFROM sales\nWHERE category_name = ___",
+  "solver": {
+    "prompt_hash": "352ad46c2ef8ecdf",
+    "schema_version": "cebf75df442f",
+    "dataset_version": "506a9858f862fdfb",
+    "grader_version": "1b.3",
+    "query": "SELECT COUNT(*) AS n_lines FROM sales WHERE category_name = 'Memory Cards'\n",
+    "at": "2026-10-04T14:33:15.565Z"
+  }
+}

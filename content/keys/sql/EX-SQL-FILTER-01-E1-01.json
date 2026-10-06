@@ -1,0 +1,32 @@
+{
+  "item_id": "EX-SQL-FILTER-01-E1-01",
+  "item_version": 1,
+  "reference_sql": "SELECT promo_code, promo_name, discount_pct\nFROM promotions\nWHERE discount_pct >= 20",
+  "alternatives": [
+    "SELECT promo_code, promo_name, discount_pct\nFROM promotions\nWHERE NOT discount_pct < 20",
+    "SELECT promo_code, promo_name, discount_pct\nFROM promotions\nWHERE 20 <= discount_pct",
+    "SELECT promo_code, promo_name, discount_pct\nFROM promotions\nWHERE discount_pct >= 20.00"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "M1",
+      "error_id": "ERR-LOG-15",
+      "sql": "SELECT promo_code, promo_name, discount_pct\nFROM promotions\nWHERE discount_pct > 20"
+    },
+    {
+      "id": "M2",
+      "error_id": "ERR-LOG-21",
+      "sql": "SELECT promo_code, promo_name, discount_pct\nFROM promotions\nWHERE discount_pct >= 0.20"
+    }
+  ],
+  "hint3_partial": "SELECT promo_code, promo_name, discount_pct\nFROM promotions\nWHERE discount_pct ...",
+  "solver": {
+    "prompt_hash": "0f80d9061add3ce8",
+    "schema_version": "f0340f71a1f5",
+    "dataset_version": "9639f8ae1f71c2ef",
+    "grader_version": "1a.2",
+    "query": "SELECT promo_code, promo_name, discount_pct FROM promotions WHERE discount_pct >= 20\n",
+    "at": "2026-10-03T13:08:02.382Z"
+  }
+}

@@ -1,0 +1,147 @@
+{
+  "id": "EX-SQL-SORT-01-E3-02",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "limit",
+    "top-n",
+    "tie-break",
+    "where",
+    "promotions"
+  ],
+  "level": 1,
+  "source_ids": [
+    "01:SQL-SORT-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-02",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-SORT-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-SORT-01"
+  ],
+  "template_id": "T-SORT-01-top-n",
+  "template_params": {
+    "table": "promotions",
+    "n": 2,
+    "direction": "desc",
+    "promo_type": "percent_off"
+  },
+  "sub_skill": "limit",
+  "difficulty": "E3",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_sort",
+  "prompt": "Among the promotions whose promo_type is 'percent_off', which 2 had the highest discount_pct? Return promo_code, promo_name, discount_pct and start_date, in that order, with exactly these column names, highest discount first. When promotions tie on discount_pct, the one with the earlier start_date comes first and wins the place. Return exactly 2 rows.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "promo_code",
+        "type_class": "text"
+      },
+      {
+        "name": "promo_name",
+        "type_class": "text"
+      },
+      {
+        "name": "discount_pct",
+        "type_class": "numeric"
+      },
+      {
+        "name": "start_date",
+        "type_class": "temporal"
+      }
+    ],
+    "grain": "one row per promotion"
+  },
+  "rules": {
+    "order_matters": true,
+    "sort_keys": [
+      {
+        "column": "discount_pct",
+        "desc": true
+      },
+      {
+        "column": "start_date",
+        "desc": false
+      }
+    ],
+    "check_names": true,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "promo_code",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "promo_name",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "discount_pct",
+        "type_class": "numeric",
+        "precision": "ratio"
+      },
+      {
+        "name": "start_date",
+        "type_class": "temporal",
+        "precision": "exact"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "promo_code"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the row filter, then the sort and the row limit. Keep the percent_off promotions, sort by discount with the tie-break, then keep 2 rows.",
+    "WHERE comes before ORDER BY, and LIMIT comes last. In ORDER BY, the discount comes first and the start date breaks ties, each in the direction the question gives."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 76,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 77,
+      "to": 92,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 93,
+      "to": 125,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 126,
+      "to": 164,
+      "subgoal": "sort_limit"
+    },
+    {
+      "from": 165,
+      "to": 172,
+      "subgoal": "sort_limit"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 210000,
+  "why_this_works": "WHERE keeps the percent_off promotions, DESC puts the highest discount first, the earlier start_date settles a tie, and LIMIT keeps 2 rows."
+}

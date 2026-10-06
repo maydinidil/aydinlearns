@@ -1,0 +1,32 @@
+{
+  "item_id": "EX-SQL-FILTER-01-E1-08",
+  "item_version": 1,
+  "reference_sql": "SELECT product_id, product_name, launch_date, unit_cost_eur\nFROM products\nWHERE launch_date >= '2025-01-01' AND unit_cost_eur >= 150",
+  "alternatives": [
+    "SELECT product_id, product_name, launch_date, unit_cost_eur\nFROM products\nWHERE unit_cost_eur >= 150 AND launch_date >= '2025-01-01'",
+    "SELECT product_id, product_name, launch_date, unit_cost_eur\nFROM products\nWHERE launch_date >= DATE '2025-01-01' AND unit_cost_eur >= 150",
+    "SELECT product_id, product_name, launch_date, unit_cost_eur\nFROM products\nWHERE launch_date >= '2025-01-01' AND launch_date <= '2025-12-31' AND unit_cost_eur >= 150"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "M1",
+      "error_id": "ERR-LOG-15",
+      "sql": "SELECT product_id, product_name, launch_date, unit_cost_eur\nFROM products\nWHERE launch_date > '2025-01-01' AND unit_cost_eur >= 150"
+    },
+    {
+      "id": "M2",
+      "error_id": "ERR-SYN-07",
+      "sql": "SELECT product_id, product_name, launch_date, unit_cost_eur\nFROM products\nWHERE launch_date >= \"2025-01-01\" AND unit_cost_eur >= 150"
+    }
+  ],
+  "hint3_partial": "SELECT product_id, product_name, launch_date, unit_cost_eur\nFROM products\nWHERE launch_date >= '2025-01-01' AND ...",
+  "solver": {
+    "prompt_hash": "c84060ab1ac75c07",
+    "schema_version": "d77fe1c31a0e",
+    "dataset_version": "9639f8ae1f71c2ef",
+    "grader_version": "1a.2",
+    "query": "SELECT product_id, product_name, launch_date, unit_cost_eur FROM products WHERE launch_date >= '2025-01-01' AND unit_cost_eur >= 150\n",
+    "at": "2026-10-03T13:08:02.479Z"
+  }
+}

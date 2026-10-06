@@ -1,0 +1,24 @@
+{
+  "concept_id": "GA4-EVENTS-03",
+  "section": "ga4",
+  "version": 1,
+  "title": "Key events (formerly conversions)",
+  "reading_md": "## What it is\n\nA key event is an event you mark as important to your business, such as a purchase, a lead or a sign-up. You mark an existing event in Admin > Data display > Events > Mark as key event, or create a key event from an event. Key events then appear as metrics across GA4's reports, including key event rates such as session key event rate.\n\nOn 21 March 2024 Google renamed GA4 \"conversions\" to key events. Since then, \"conversions\" means Google Ads conversions, which can be created from key events.\n\n- **Counting method.** Once per event, the default, counts every time the event happens. Once per session counts it at most once per session. Example: Voltmarkt's newsletter `sign_up` event fires again whenever the confirmation page is reloaded. Counting it once per session stops a reload from adding a second sign-up for the same visit.\n- **Limits.** A standard property can have 30 key events; Analytics 360 allows 50.\n- **Google Ads.** Google Ads bids on Google Ads conversions, not on GA4 key events directly. To use a key event there, link GA4 to Google Ads, then create or import a Google Ads conversion from the key event. Importing key events needs the Marketer role or above.\n\nIn 2026, conversion reporting lives in the Advertising section, for properties linked to Google Ads (New in 2026).\n\n## What the exam asks\n\n- How to mark an event as a key event.\n- Key event rate, and which metrics took the place of the old conversion rate.\n- How a key event reaches Google Ads.\n- The counting method, in a scenario where one action can repeat within a visit.\n\n## Common confusions\n\n- Universal Analytics goals do not exist in GA4, and neither do views. Key events do the job goals did.\n- The exam and the interface say \"key events\". GA4 guides that say \"conversions\" or \"conversion rate\" for this predate the 2024 rename.\n- A key event is not automatically a Google Ads conversion. It needs the Google Ads link and a conversion created or imported from it.\n- Marking key events needs the Marketer role or above; Analysts and Viewers cannot do it.\n- A key event also makes a session engaged on its own (see the lesson \"Users, sessions and engagement metrics\").\n\n## In Skillshop\n\nCourse \"Google Analytics Certification (2026)\", module \"Dive Deeper into GA Data and Reports\": the part on key events (Unverified).",
+  "source_ids": [
+    "06:GA4-EVENTS-03",
+    "06:Q-GA4-57",
+    "06:GA4-CH-06",
+    "06:GA4-CH-10",
+    "06:GA4-ADMIN-02",
+    "06:GA4-METRICS-01",
+    "10:GA4-INTEG-21",
+    "10:§6",
+    "ERRATA:E-121",
+    "06:§2.1",
+    "10:§7",
+    "ERRATA:E-116",
+    "ERRATA:E-122"
+  ],
+  "verified": true,
+  "as_of": "2026-10-05"
+}

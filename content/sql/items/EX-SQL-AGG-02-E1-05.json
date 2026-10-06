@@ -1,0 +1,120 @@
+{
+  "id": "EX-SQL-AGG-02-E1-05",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-02",
+    "group_by",
+    "count",
+    "sum",
+    "sales"
+  ],
+  "level": 2,
+  "source_ids": [
+    "01:SQL-AGG-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "retest",
+  "target_concept_id": "SQL-AGG-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02"
+  ],
+  "template_id": "T-AGG-02-two-metrics-per-group",
+  "template_params": {
+    "table": "sales",
+    "group_by": "channel",
+    "metrics": "count lines, sum units"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_agg",
+  "prompt": "For each sales channel, how many order lines are there and how many units were sold? Use the sales table. Return three columns, in this order: channel, n_lines, the number of order lines, and units_sold, the sum of units. Return one row per channel. Every order line counts in n_lines, including lines with missing units; lines with missing units add nothing to units_sold. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "channel",
+        "type_class": "text"
+      },
+      {
+        "name": "n_lines",
+        "type_class": "numeric"
+      },
+      {
+        "name": "units_sold",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per channel"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "channel",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "n_lines",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "units_sold",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "channel"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, decide what one row stands for: one row per channel, with both numbers worked out inside each channel.",
+    "Group the rows after FROM by the one column that is not inside COUNT or SUM."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 61,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 62,
+      "to": 72,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 73,
+      "to": 89,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "GROUP BY channel makes one group per channel; COUNT(*) counts every line in it and SUM(units) adds up the units that are recorded."
+}

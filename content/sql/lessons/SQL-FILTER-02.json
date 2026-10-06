@@ -1,0 +1,111 @@
+{
+  "concept_id": "SQL-FILTER-02",
+  "version": 1,
+  "reading_md": "## IN, BETWEEN, LIKE and ILIKE\n\nThese four operators are shortcuts for filters you could also write with `=`, `>=`, `<=`, AND and OR. They go in the WHERE clause like any other condition.\n\n### IN: one value from a list\n\n`country_code IN ('BE', 'LU')` keeps a row when the value equals any item in the list. It means `country_code = 'BE' OR country_code = 'LU'`, but it is shorter, and it stays safe when you add AND: `country_code IN ('BE', 'LU') AND store_type = 'standard'` needs no brackets, while the OR version does. Text values go in single quotes and must match exactly, case included: 'be' is not 'BE'. `NOT IN` keeps every row whose value is not in the list, including values you did not think of, such as a country added later.\n\n### BETWEEN: a range with both ends included\n\n`discount_pct BETWEEN 10 AND 20` means `discount_pct >= 10 AND discount_pct <= 20`, so 10 and 20 both count. Put the low end first: `BETWEEN 20 AND 10` matches nothing. When a question says \"over\" or \"under\", the end itself is left out, so use `>` or `<` instead.\n\nFor a DATE column, `launch_date BETWEEN DATE '2024-03-01' AND DATE '2024-03-31'` is all of March, because a DATE has no time of day. Check the last day of the month: 31 for March, 30 for April, 29 for February 2024. On a TIMESTAMP column, the end date means midnight at the start of that day, so the rest of the last day falls outside. There, use a half-open range, naming the column in both tests: `ts >= DATE '2024-03-01' AND ts < DATE '2024-04-01'` for a timestamp column ts.\n\n### LIKE: text patterns\n\nLIKE compares text with a pattern built from two wildcards:\n\n- `%` stands for any run of characters, including none;\n- `_` stands for exactly one character.\n\nSo `'%Pro%'` means \"contains Pro\", `'Pro%'` means \"starts with Pro\", `'%speakers'` means \"ends with speakers\", and `'BE-0_'` means BE-0 followed by one more character. Without a `%`, the pattern must match the whole value: `LIKE 'Pro'` only finds a name that is exactly Pro. `NOT LIKE` keeps the rows that do not match.\n\n### ILIKE: ignore letter case\n\nLIKE is case-sensitive: `'%Pro%'` finds Pro, but not PRO or pro. Names typed by hand often mix cases, so use ILIKE, which works like LIKE but ignores case: `product_name ILIKE '%pro%'` matches Pro, PRO and pro.\n\n### Combining them\n\nThese are ordinary conditions. Join them with AND, OR and NOT, and put brackets around an OR whenever it sits next to an AND.\n",
+  "syntax_md": "```sql\nSELECT column_a, column_b\nFROM table_name\nWHERE column_a IN ('x', 'y')\n  AND column_b BETWEEN low AND high\n  AND column_c LIKE 'Pattern%'\n  AND column_d ILIKE '%pattern%'\n```\n`%` is any run of characters (or none) and `_` is exactly one character. LIKE is case-sensitive; ILIKE ignores case. `NOT IN`, `NOT BETWEEN`, `NOT LIKE` and `NOT ILIKE` keep the rows that do not match.",
+  "dialect_note": "ILIKE works in DuckDB and PostgreSQL, but not every engine has it. Where it is missing, LOWER(column) LIKE '%pattern%' does the same job; LOWER comes in the text functions lesson. Engines also differ on plain LIKE: in DuckDB and PostgreSQL it always respects case, while in SQL Server and MySQL it usually ignores case, depending on the database's settings, and SQLite ignores case for plain English letters. BETWEEN and IN behave the same everywhere.",
+  "worked_examples": [
+    {
+      "title": "Loyalty and bundle promotions",
+      "prompt": "List the promotions whose promo_type is loyalty or bundle. Return promo_code, promo_type and discount_pct. One row per promotion.",
+      "clauses": [
+        {
+          "text": "SELECT promo_code, promo_type, discount_pct",
+          "subgoal": "metrics",
+          "why": "The three columns the question asks for, with the code naming each promotion."
+        },
+        {
+          "text": "FROM promotions",
+          "subgoal": "source_grain",
+          "why": "promotions has one row per promotion, the grain the question asks for."
+        },
+        {
+          "text": "WHERE promo_type IN ('loyalty', 'bundle')",
+          "subgoal": "row_filter",
+          "why": "IN keeps a row whose promo_type equals any value in the list, like two = tests joined by OR."
+        }
+      ]
+    },
+    {
+      "title": "Max products launched in 2025",
+      "prompt": "List the products launched in 2025 whose product_name contains max in any letter case. Return product_id, product_name and launch_date. One row per product.",
+      "clauses": [
+        {
+          "text": "SELECT product_id, product_name, launch_date",
+          "subgoal": "metrics",
+          "why": "The columns the question asks for: the ID and name say which product, and the launch date lets you check the filter by eye."
+        },
+        {
+          "text": "FROM products",
+          "subgoal": "source_grain",
+          "why": "products has one row per product."
+        },
+        {
+          "text": "WHERE launch_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'",
+          "subgoal": "row_filter",
+          "why": "BETWEEN includes both ends, and a DATE has no time of day, so 31 December counts in full."
+        },
+        {
+          "text": "AND product_name ILIKE '%max%'",
+          "subgoal": "row_filter",
+          "why": "ILIKE ignores letter case, and a % on each side lets max sit anywhere in the name."
+        }
+      ]
+    }
+  ],
+  "pretest_item_ids": [
+    "EX-SQL-FILTER-02-E1-01",
+    "EX-SQL-FILTER-02-E1-02"
+  ],
+  "lesson_item_ids": [
+    "EX-SQL-FILTER-02-E1-03",
+    "EX-SQL-FILTER-02-E1-04",
+    "EX-SQL-FILTER-02-E2-01",
+    "EX-SQL-FILTER-02-E2-02"
+  ],
+  "retest_item_id": "EX-SQL-FILTER-02-E1-05",
+  "pool_item_ids": [
+    "EX-SQL-FILTER-02-E1-06",
+    "EX-SQL-FILTER-02-E1-07",
+    "EX-SQL-FILTER-02-E1-08",
+    "EX-SQL-FILTER-02-E2-03",
+    "EX-SQL-FILTER-02-E2-04",
+    "EX-SQL-FILTER-02-E2-05",
+    "EX-SQL-FILTER-02-E3-01",
+    "EX-SQL-FILTER-02-E3-02",
+    "EX-SQL-FILTER-02-E3-03",
+    "EX-SQL-FILTER-02-E1-31",
+    "EX-SQL-FILTER-02-E1-32",
+    "EX-SQL-FILTER-02-E2-31",
+    "EX-SQL-FILTER-02-E1-42",
+    "EX-SQL-FILTER-02-E1-43",
+    "EX-SQL-FILTER-02-E2-41"
+  ],
+  "source_ids": [
+    "01:SQL-FILTER-02"
+  ],
+  "why_clause": {
+    "clause": "WHERE promo_type IN ('loyalty', 'bundle')",
+    "stem": "What does IN do in this WHERE clause?",
+    "options": [
+      {
+        "id": "a",
+        "text": "It keeps a row whose promo_type equals any value in the list."
+      },
+      {
+        "id": "b",
+        "text": "It keeps a row only when promo_type equals both values at once."
+      },
+      {
+        "id": "c",
+        "text": "It keeps a row whose promo_type contains loyalty or bundle."
+      },
+      {
+        "id": "d",
+        "text": "It sorts the rows so loyalty promotions come before bundles."
+      }
+    ],
+    "correct_id": "a",
+    "explanation": "IN tests one column against a list, and the row stays when the value equals any item in it. It works like promo_type = 'loyalty' OR promo_type = 'bundle'. It matches whole values, not parts of a text, and it does not sort anything."
+  }
+}

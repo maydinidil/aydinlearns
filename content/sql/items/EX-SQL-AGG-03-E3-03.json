@@ -1,0 +1,155 @@
+{
+  "id": "EX-SQL-AGG-03-E3-03",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-02",
+    "having",
+    "count-distinct",
+    "where",
+    "two-columns",
+    "month",
+    "order-by",
+    "sales"
+  ],
+  "level": 2,
+  "source_ids": [
+    "01:SQL-AGG-03"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-AGG-03",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-AGG-03"
+  ],
+  "template_id": "T-AGG-03-two-column-grain-where-having-sorted",
+  "template_params": {
+    "table": "sales",
+    "group_by": "store_code, order_month",
+    "row_filter": "order_date in 2025",
+    "aggregate": "count distinct order_id",
+    "comparison": "fewer than",
+    "threshold": 350
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_agg",
+  "prompt": "In 2025, which combinations of store and month had fewer than 350 orders? Use the sales table, which has one row per order line, so count each order_id once. Its order_month column holds the first day of the month the order was placed in. Count only lines dated from 1 January 2025 to 31 December 2025, both days included. Return three columns, in this order: store_code, order_month and n_orders, the number of different orders. Return one row per store and month, and only the pairs with fewer than 350 orders, sorted by store_code from A to Z and then by order_month from earliest to latest.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "store_code",
+        "type_class": "text"
+      },
+      {
+        "name": "order_month",
+        "type_class": "temporal"
+      },
+      {
+        "name": "n_orders",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per store and month"
+  },
+  "rules": {
+    "order_matters": true,
+    "sort_keys": [
+      {
+        "column": "store_code",
+        "desc": false
+      },
+      {
+        "column": "order_month",
+        "desc": false
+      }
+    ],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "store_code",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "order_month",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "n_orders",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "store_code",
+      "order_month"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, decide what one row stands for: one row per store and month, built only from the 2025 lines.",
+    "Group by both columns you return, test the count of different orders after grouping, and sort last."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 68,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 69,
+      "to": 79,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 80,
+      "to": 144,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 145,
+      "to": 177,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 178,
+      "to": 215,
+      "subgoal": "group_filter"
+    },
+    {
+      "from": 216,
+      "to": 248,
+      "subgoal": "sort_limit"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "WHERE keeps the 2025 lines, GROUP BY makes one group per store and month, HAVING keeps the quiet pairs, and ORDER BY sorts what is left."
+}

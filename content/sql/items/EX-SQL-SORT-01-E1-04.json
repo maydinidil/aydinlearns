@@ -1,0 +1,133 @@
+{
+  "id": "EX-SQL-SORT-01-E1-04",
+  "version": 2,
+  "kind": "write",
+  "tags": [
+    "limit",
+    "top-n",
+    "tie-break",
+    "products"
+  ],
+  "level": 1,
+  "source_ids": [
+    "01:SQL-SORT-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-02",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "lesson",
+  "target_concept_id": "SQL-SORT-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-SORT-01"
+  ],
+  "template_id": "T-SORT-01-top-n",
+  "template_params": {
+    "table": "products",
+    "n": 5,
+    "direction": "desc"
+  },
+  "sub_skill": "limit",
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_sort",
+  "prompt": "Which 5 products launched most recently? Return product_id, product_name and launch_date, in that order, with exactly these column names, newest launch first. Leave out products with a missing launch_date. When products share a launch_date, the lower product_id comes first, and it also decides which product takes the last place. Return exactly 5 rows.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "product_name",
+        "type_class": "text"
+      },
+      {
+        "name": "launch_date",
+        "type_class": "temporal"
+      }
+    ],
+    "grain": "one row per product"
+  },
+  "rules": {
+    "order_matters": true,
+    "sort_keys": [
+      {
+        "column": "launch_date",
+        "desc": true
+      },
+      {
+        "column": "product_id",
+        "desc": false
+      }
+    ],
+    "check_names": true,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "product_name",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "launch_date",
+        "type_class": "temporal",
+        "precision": "exact"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "product_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the sort and the row limit. Sort newest launch first with the tie-break, then cut the list to 5 rows.",
+    "ORDER BY comes first, with the date and then the tie-break, and LIMIT comes last. LIMIT only keeps the right rows when the ORDER BY before it is complete."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 58,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 59,
+      "to": 72,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 73,
+      "to": 110,
+      "subgoal": "sort_limit"
+    },
+    {
+      "from": 111,
+      "to": 118,
+      "subgoal": "sort_limit"
+    }
+  ],
+  "fading": {
+    "stage1": 111,
+    "stage2": 73
+  },
+  "faded_shape": "SELECT product_id,\n       product_name,\n       launch_date\nFROM products\nORDER BY launch_date DESC, product_id\n",
+  "starter_sql": null,
+  "time_target_ms": 90000,
+  "why_this_works": "DESC puts the latest launch_date first and product_id settles shared dates, so LIMIT 5 always keeps the same five products."
+}

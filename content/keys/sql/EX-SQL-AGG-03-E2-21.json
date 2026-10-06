@@ -1,0 +1,41 @@
+{
+  "item_id": "EX-SQL-AGG-03-E2-21",
+  "item_version": 1,
+  "reference_sql": "SELECT store_code, SUM(units) AS units_sold\nFROM sales\nWHERE order_date BETWEEN DATE '2024-12-01' AND DATE '2024-12-31'\nGROUP BY store_code\nHAVING SUM(units) > 1300",
+  "alternatives": [
+    "SELECT store_code, SUM(units) AS units_sold FROM sales WHERE order_date >= DATE '2024-12-01' AND order_date < DATE '2025-01-01' GROUP BY 1 HAVING SUM(units) > 1300",
+    "SELECT store_code, SUM(units) AS units_sold FROM sales WHERE order_date BETWEEN '2024-12-01' AND '2024-12-31' GROUP BY store_code HAVING 1300 < SUM(units)"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-SYN-05",
+      "sql": "SELECT store_code, SUM(units) AS units_sold FROM sales WHERE order_date BETWEEN DATE '2024-12-01' AND DATE '2024-12-31' AND SUM(units) > 1300 GROUP BY store_code"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-02",
+      "sql": "SELECT store_code, SUM(units) AS units_sold FROM sales WHERE order_date BETWEEN DATE '2024-12-01' AND DATE '2024-12-31' AND units > 1300 GROUP BY store_code"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-23",
+      "sql": "SELECT store_code, SUM(units) AS units_sold FROM sales WHERE order_date >= DATE '2024-12-01' AND order_date < DATE '2024-12-31' GROUP BY store_code HAVING SUM(units) > 1300"
+    },
+    {
+      "id": "PW4",
+      "error_id": "ERR-LOG-07",
+      "sql": "SELECT store_code, SUM(units) AS units_sold FROM sales WHERE order_date BETWEEN DATE '2024-12-01' AND DATE '2024-12-31' GROUP BY store_code, country_code HAVING SUM(units) > 1300"
+    }
+  ],
+  "hint3_partial": "SELECT store_code, SUM(units) AS units_sold\nFROM sales\nWHERE order_date BETWEEN ___\nGROUP BY store_code\nHAVING ___",
+  "solver": {
+    "prompt_hash": "35425776fd3c9ba6",
+    "schema_version": "cebf75df442f",
+    "dataset_version": "506a9858f862fdfb",
+    "grader_version": "1b.3",
+    "query": "SELECT store_code, SUM(units) AS units_sold\nFROM sales\nWHERE order_date BETWEEN DATE '2024-12-01' AND DATE '2024-12-31'\nGROUP BY store_code\nHAVING SUM(units) > 1300\n",
+    "at": "2026-10-04T14:33:16.555Z"
+  }
+}

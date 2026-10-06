@@ -1,0 +1,127 @@
+{
+  "id": "EX-SQL-NULL-01-E2-22",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-01",
+    "is_null",
+    "not_equal_with_null",
+    "and_or_not"
+  ],
+  "level": 1,
+  "source_ids": [
+    "01:SQL-NULL-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-NULL-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-NULL-01",
+    "SQL-FILTER-01"
+  ],
+  "template_id": "T-NULL-01-not-equal-or-null",
+  "template_params": {
+    "table": "stores",
+    "null_column": "country_code, store_type",
+    "excluded": "NL, outlet"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_null",
+  "prompt": "The regional team is reviewing the stores outside the Netherlands that are not outlets. List the stores whose country_code is not 'NL' and whose store_type is not 'outlet'. A store with no country_code recorded (NULL) is not known to be Dutch, and a store with no store_type recorded is not known to be an outlet, so include both. Return four columns, in this order: store_code, city, country_code, store_type. Return one row per store. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "store_code",
+        "type_class": "text"
+      },
+      {
+        "name": "city",
+        "type_class": "text"
+      },
+      {
+        "name": "country_code",
+        "type_class": "text"
+      },
+      {
+        "name": "store_type",
+        "type_class": "text"
+      }
+    ],
+    "grain": "one row per store"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "store_code",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "city",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "country_code",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "store_type",
+        "type_class": "text",
+        "precision": "exact"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "store_code"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the row filter. Keep a store that is not Dutch and not an outlet, counting a missing country or type as a match.",
+    "Each <> test is unknown on a missing value, so give each its own NULL test inside its own brackets, and join the two bracketed tests with AND."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 49,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 50,
+      "to": 61,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 62,
+      "to": 165,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 150000,
+  "why_this_works": "Each bracketed test pairs <> with IS NULL, so the stores with a missing country_code or store_type stay in, and AND requires both tests."
+}

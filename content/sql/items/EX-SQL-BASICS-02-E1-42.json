@@ -1,0 +1,70 @@
+{
+  "id": "EX-SQL-BASICS-02-E1-42",
+  "version": 1,
+  "kind": "predict_rows",
+  "tags": [
+    "sql",
+    "LVL-01",
+    "predict_rows",
+    "calculated_column",
+    "alias",
+    "promotions"
+  ],
+  "level": 1,
+  "source_ids": [
+    "01:SQL-BASICS-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-BASICS-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02"
+  ],
+  "template_id": "T-BASICS-02-predict-rows-alias",
+  "template_params": {
+    "table": "promotions"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_basics",
+  "prompt": "How many rows does this query return? Type the number. The tables panel gives each table's row count.",
+  "output_contract": null,
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [],
+  "subgoals": [],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 60000,
+  "why_this_works": "",
+  "shown_sql": "SELECT promo_name,\n       100 - discount_pct AS pct_paid\nFROM promotions",
+  "typed": {
+    "precision": "count",
+    "scale": "plain",
+    "decimals": 0,
+    "unit_label": "rows"
+  }
+}

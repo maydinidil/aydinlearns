@@ -1,0 +1,32 @@
+{
+  "item_id": "EX-SQL-NULL-01-E1-22",
+  "item_version": 1,
+  "reference_sql": "SELECT cal_date, weekday_name, iso_week\nFROM calendar\nWHERE cal_date >= DATE '2025-12-01' AND cal_date <= DATE '2025-12-31' AND (weekday_name = 'Friday' OR weekday_name = 'Saturday') AND event IS NULL",
+  "alternatives": [
+    "SELECT cal_date, weekday_name, iso_week\nFROM calendar\nWHERE event IS NULL AND (weekday_name = 'Saturday' OR weekday_name = 'Friday') AND cal_date >= '2025-12-01' AND cal_date < '2026-01-01'",
+    "SELECT cal_date, weekday_name, iso_week\nFROM calendar\nWHERE cal_date BETWEEN DATE '2025-12-01' AND DATE '2025-12-31' AND weekday_name IN ('Friday', 'Saturday') AND event IS NULL",
+    "SELECT cal_date, weekday_name, iso_week\nFROM calendar\nWHERE cal_date >= DATE '2025-12-01' AND cal_date <= DATE '2025-12-31' AND (weekday_name = 'Friday' OR weekday_name = 'Saturday') AND NOT event IS NOT NULL"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-SEM-04",
+      "sql": "SELECT cal_date, weekday_name, iso_week FROM calendar WHERE cal_date >= DATE '2025-12-01' AND cal_date <= DATE '2025-12-31' AND (weekday_name = 'Friday' OR weekday_name = 'Saturday') AND event = NULL"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-13",
+      "sql": "SELECT cal_date, weekday_name, iso_week FROM calendar WHERE cal_date >= DATE '2025-12-01' AND cal_date <= DATE '2025-12-31' AND weekday_name = 'Friday' OR weekday_name = 'Saturday' AND event IS NULL"
+    }
+  ],
+  "hint3_partial": "SELECT cal_date, weekday_name, iso_week\nFROM calendar\nWHERE cal_date >= DATE '2025-12-01' AND cal_date <= DATE '2025-12-31' AND (weekday_name = 'Friday' OR ...) AND event ...",
+  "solver": {
+    "prompt_hash": "1d1d0a98e69156fd",
+    "schema_version": "0d8e15555347",
+    "dataset_version": "506a9858f862fdfb",
+    "grader_version": "1b.3",
+    "query": "SELECT cal_date, weekday_name, iso_week FROM calendar WHERE cal_date BETWEEN DATE '2025-12-01' AND DATE '2025-12-31' AND weekday_name IN ('Friday', 'Saturday') AND event IS NULL\n",
+    "at": "2026-10-04T14:33:18.299Z"
+  }
+}

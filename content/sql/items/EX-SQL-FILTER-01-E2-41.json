@@ -1,0 +1,117 @@
+{
+  "id": "EX-SQL-FILTER-01-E2-41",
+  "version": 1,
+  "kind": "predict_result",
+  "tags": [
+    "sql",
+    "LVL-01",
+    "predict_result",
+    "where",
+    "and_or",
+    "precedence",
+    "stores"
+  ],
+  "level": 1,
+  "source_ids": [
+    "01:SQL-FILTER-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-FILTER-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01"
+  ],
+  "template_id": "T-FILTER-01-predict-result-and-before-or",
+  "template_params": {
+    "table": "stores"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_filter",
+  "prompt": "Which result does this query return? Use the sample rows of stores in the tables panel. Rows may be in any order.",
+  "output_contract": null,
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [],
+  "subgoals": [],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 90000,
+  "why_this_works": "",
+  "shown_sql": "SELECT store_id, city\nFROM stores\nWHERE store_id = 2\n   OR store_id = 3 AND store_type = 'flagship'",
+  "options": [
+    {
+      "oid": "oc411065",
+      "text": "Stores 2 and 3",
+      "misconception_id": "ERR-LOG-13",
+      "table": {
+        "columns": [
+          "store_id",
+          "city"
+        ],
+        "rows": [
+          [
+            2,
+            "Rotterdam"
+          ],
+          [
+            3,
+            "Den Haag"
+          ]
+        ]
+      }
+    },
+    {
+      "oid": "o2890511",
+      "text": "Only store 2",
+      "misconception_id": null,
+      "table": {
+        "columns": [
+          "store_id",
+          "city"
+        ],
+        "rows": [
+          [
+            2,
+            "Rotterdam"
+          ]
+        ]
+      }
+    },
+    {
+      "oid": "odb1826b",
+      "text": "No rows",
+      "misconception_id": "ERR-LOG-13",
+      "table": {
+        "columns": [
+          "store_id",
+          "city"
+        ],
+        "rows": []
+      }
+    }
+  ]
+}

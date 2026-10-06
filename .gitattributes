@@ -1,0 +1,3 @@
+# Extends the root .gitattributes. cmd.exe misreads batch files with LF-only line endings, so the
+# launcher keeps CRLF in the working tree.
+*.bat text eol=crlf

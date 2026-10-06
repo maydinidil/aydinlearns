@@ -1,0 +1,149 @@
+{
+  "id": "EX-SQL-TYPE-01-E3-21",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-02",
+    "type",
+    "scorecard",
+    "division",
+    "percent-scale",
+    "round",
+    "count-distinct",
+    "conditional-aggregation",
+    "group-by",
+    "sales",
+    "drill"
+  ],
+  "level": 2,
+  "source_ids": [
+    "01:SQL-TYPE-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-TYPE-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CASE-01",
+    "SQL-AGG-04",
+    "SQL-TYPE-01"
+  ],
+  "template_id": "T-TYPE-01-scorecard",
+  "template_params": {
+    "table": "sales",
+    "group_by": "country_code",
+    "from": "2025-10-01",
+    "to": "2025-12-31",
+    "output": "n_orders, units_per_order, bulk_revenue_pct"
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_type",
+  "prompt": "Build a scorecard of each ship-to country for the last quarter of 2025. Use the sales table, where country_code is the country an order ships to, and keep the order lines with an order_date from 2025-10-01 to 2025-12-31, both included. Return four columns, in this order: country_code; n_orders, the number of different orders (order_id); units_per_order, the total of units divided by n_orders, rounded to 2 decimals with ROUND(x, 2); and bulk_revenue_pct, 100 times the net_revenue_eur of the lines with units of 3 or more divided by all net_revenue_eur, rounded to 1 decimal with ROUND(x, 1), so 15 percent is 15.0. A missing units value adds nothing to the units total, and a line with missing units is not a bulk line. A missing net_revenue_eur adds nothing to either revenue total. Return one row per country_code. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "country_code",
+        "type_class": "text"
+      },
+      {
+        "name": "n_orders",
+        "type_class": "numeric"
+      },
+      {
+        "name": "units_per_order",
+        "type_class": "numeric"
+      },
+      {
+        "name": "bulk_revenue_pct",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per country_code"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "country_code",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "n_orders",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "units_per_order",
+        "type_class": "numeric",
+        "precision": "ratio",
+        "require_rounding": 2
+      },
+      {
+        "name": "bulk_revenue_pct",
+        "type_class": "numeric",
+        "precision": "ratio",
+        "require_rounding": 1
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "country_code"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, keep the last quarter's lines, decide what one row stands for, and write the three calculated columns.",
+    "Count each order once with DISTINCT. The units total and the order count are whole numbers, so give that division a decimal side first, multiply the revenue share by 100.0 for the percentage, and round each column only at the end."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 272,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 273,
+      "to": 283,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 284,
+      "to": 348,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 349,
+      "to": 370,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "COUNT(DISTINCT order_id) counts orders, each ratio gets a decimal side before it divides, and each column is rounded once at the end."
+}

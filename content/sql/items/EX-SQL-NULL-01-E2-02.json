@@ -1,0 +1,120 @@
+{
+  "id": "EX-SQL-NULL-01-E2-02",
+  "version": 2,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-01",
+    "is_null",
+    "not_equal_with_null",
+    "and_or_not",
+    "calendar"
+  ],
+  "level": 1,
+  "source_ids": [
+    "01:SQL-NULL-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-02",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "lesson",
+  "target_concept_id": "SQL-NULL-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-NULL-01",
+    "SQL-FILTER-01"
+  ],
+  "template_id": "T-NULL-01-not-equal-or-null",
+  "template_params": {
+    "table": "calendar",
+    "null_column": "event",
+    "excluded": "black_friday"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_null",
+  "prompt": "Marketing is planning a campaign that runs on every day of November 2025 except Black Friday, which has its own sale. From the calendar table, list the days in November 2025 (1 to 30 November) whose event is not 'black_friday'. A day with no event recorded (NULL) is not Black Friday, so include it. Return three columns, in this order: cal_date, weekday_name, event. Return one row per day. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "cal_date",
+        "type_class": "temporal"
+      },
+      {
+        "name": "weekday_name",
+        "type_class": "text"
+      },
+      {
+        "name": "event",
+        "type_class": "text"
+      }
+    ],
+    "grain": "one row per day"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "cal_date",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "weekday_name",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "event",
+        "type_class": "text",
+        "precision": "exact"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the row filter. Keep the November 2025 days whose event is anything other than 'black_friday', including the days with no event.",
+    "The November date range joins with AND to a bracketed pair of tests on event. On its own, a not-equal test is unknown for a day with no event, so those days would disappear."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 36,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 37,
+      "to": 50,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 51,
+      "to": 166,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": {
+    "stage1": 51,
+    "stage2": 37
+  },
+  "faded_shape": "SELECT cal_date, weekday_name, event\nFROM calendar\n",
+  "starter_sql": null,
+  "time_target_ms": 150000,
+  "why_this_works": "On a day with no event, event <> 'black_friday' is unknown rather than true, so the bracketed OR event IS NULL is what keeps the ordinary days."
+}

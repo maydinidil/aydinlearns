@@ -1,0 +1,107 @@
+{
+  "id": "EX-SQL-SORT-01-E1-31",
+  "version": 1,
+  "kind": "fix",
+  "tags": [
+    "sql",
+    "LVL-01",
+    "fix",
+    "distinct",
+    "products"
+  ],
+  "level": 1,
+  "source_ids": [
+    "01:SQL-SORT-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-SORT-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-SORT-01"
+  ],
+  "template_id": "T-SORT-01-fix-harmful-distinct",
+  "template_params": {
+    "table": "products",
+    "category_id": 16
+  },
+  "sub_skill": "distinct",
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_sort",
+  "prompt": "The query in the editor has one mistake. Fix it so that it answers this question: what does each earbuds product cost Voltmarkt? From the products table, list every product in category_id 16 (Earbuds). Return two columns, in this order: product_name, unit_cost_eur. Return one row per product: two different products with the same name and cost are two rows. A product with a missing unit_cost_eur counts too. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "product_name",
+        "type_class": "text"
+      },
+      {
+        "name": "unit_cost_eur",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per product"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "product_name",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "unit_cost_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, decide what one row stands for: the question wants one row per product, even when two products look the same.",
+    "DISTINCT keeps one row from each set of identical rows, so two different products with the same name and cost become one row. Ask whether this list needs that keyword at all."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 34,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 35,
+      "to": 48,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 49,
+      "to": 71,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": "SELECT DISTINCT product_name, unit_cost_eur\nFROM products\nWHERE category_id = 16",
+  "starter_error_id": "ERR-LOG-09",
+  "time_target_ms": 90000,
+  "why_this_works": "Without DISTINCT, SELECT returns one row for every product, so two products that share a name and a cost are both kept."
+}

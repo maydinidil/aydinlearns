@@ -1,0 +1,36 @@
+{
+  "item_id": "EX-SQL-AGG-04-E1-05",
+  "item_version": 1,
+  "reference_sql": "SELECT SUM(CASE WHEN country_code = 'NL' THEN net_revenue_eur ELSE 0 END) AS nl_revenue_eur,\n       SUM(CASE WHEN country_code = 'BE' THEN net_revenue_eur ELSE 0 END) AS be_revenue_eur,\n       SUM(CASE WHEN country_code = 'LU' THEN net_revenue_eur ELSE 0 END) AS lu_revenue_eur\nFROM sales\nWHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-03-31'",
+  "alternatives": [
+    "SELECT SUM(CASE WHEN country_code = 'NL' THEN net_revenue_eur END) AS nl_revenue_eur, SUM(CASE WHEN country_code = 'BE' THEN net_revenue_eur END) AS be_revenue_eur, SUM(CASE WHEN country_code = 'LU' THEN net_revenue_eur END) AS lu_revenue_eur FROM sales WHERE order_date >= DATE '2025-01-01' AND order_date <= DATE '2025-03-31'",
+    "SELECT SUM(net_revenue_eur) FILTER (WHERE country_code = 'NL') AS nl_revenue_eur, SUM(net_revenue_eur) FILTER (WHERE country_code = 'BE') AS be_revenue_eur, SUM(net_revenue_eur) FILTER (WHERE country_code = 'LU') AS lu_revenue_eur FROM sales WHERE order_date BETWEEN '2025-01-01' AND '2025-03-31'"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-06",
+      "sql": "SELECT SUM(CASE WHEN country_code = 'NL' THEN net_revenue_eur ELSE 0 END) AS nl_revenue_eur, SUM(CASE WHEN country_code = 'BE' THEN net_revenue_eur ELSE 0 END) AS be_revenue_eur, SUM(CASE WHEN country_code = 'LU' THEN net_revenue_eur ELSE 0 END) AS lu_revenue_eur FROM sales WHERE order_date > DATE '2025-01-01' AND order_date < DATE '2025-03-31'"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-14",
+      "sql": "SELECT AVG(CASE WHEN country_code = 'NL' THEN net_revenue_eur END) AS nl_revenue_eur, AVG(CASE WHEN country_code = 'BE' THEN net_revenue_eur END) AS be_revenue_eur, AVG(CASE WHEN country_code = 'LU' THEN net_revenue_eur END) AS lu_revenue_eur FROM sales WHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-03-31'"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-SYN-07",
+      "sql": "SELECT SUM(CASE WHEN country_code = \"NL\" THEN net_revenue_eur ELSE 0 END) AS nl_revenue_eur, SUM(CASE WHEN country_code = \"BE\" THEN net_revenue_eur ELSE 0 END) AS be_revenue_eur, SUM(CASE WHEN country_code = \"LU\" THEN net_revenue_eur ELSE 0 END) AS lu_revenue_eur FROM sales WHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-03-31'"
+    }
+  ],
+  "hint3_partial": "SELECT SUM(CASE WHEN country_code = 'NL' THEN ___ ELSE 0 END) AS nl_revenue_eur,\n       SUM(CASE WHEN country_code = ___ THEN ___ ELSE 0 END) AS be_revenue_eur,\n       ___ AS lu_revenue_eur\nFROM sales\nWHERE order_date BETWEEN ___ AND ___",
+  "solver": {
+    "prompt_hash": "cc030ed9502d53ad",
+    "schema_version": "cebf75df442f",
+    "dataset_version": "506a9858f862fdfb",
+    "grader_version": "1b.3",
+    "query": "SELECT SUM(net_revenue_eur) FILTER (WHERE country_code = 'NL') AS nl_revenue_eur, SUM(net_revenue_eur) FILTER (WHERE country_code = 'BE') AS be_revenue_eur, SUM(net_revenue_eur) FILTER (WHERE country_code = 'LU') AS lu_revenue_eur FROM sales WHERE order_date BETWEEN '2025-01-01' AND '2025-03-31'\n",
+    "at": "2026-10-04T10:06:47.987Z"
+  }
+}

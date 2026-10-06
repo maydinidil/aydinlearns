@@ -1,0 +1,105 @@
+{
+  "id": "EX-SQL-AGG-01-E1-32",
+  "version": 1,
+  "kind": "fix",
+  "tags": [
+    "sql",
+    "LVL-02",
+    "fix",
+    "aggregate",
+    "sum_avg",
+    "sales",
+    "date_range"
+  ],
+  "level": 2,
+  "source_ids": [
+    "01:SQL-AGG-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-AGG-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-AGG-01"
+  ],
+  "template_id": "T-AGG-01-fix-sum-not-count",
+  "template_params": {
+    "table": "sales",
+    "parent_category": "Accessories",
+    "from": "2025-01-01",
+    "to": "2025-03-31",
+    "output": "total_units"
+  },
+  "sub_skill": "sum_avg",
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_agg",
+  "prompt": "The query in the editor has one mistake. Fix it so that it answers this question: what was the total number of units sold in the Accessories parent category (parent_category 'Accessories') in the first quarter of 2025 (order_date from 1 January 2025 to 31 March 2025, both days included)? A line with a missing units value adds nothing to the total. Return one column, total_units. The result is a single row. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "total_units",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row in total"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "total_units",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, check which aggregate the SELECT list uses, and compare it with what the question wants: a total of units.",
+    "The function in the query counts the lines that have a units value, so a line that sold 4 units adds only 1. A total adds up the values themselves."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 32,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 33,
+      "to": 43,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 44,
+      "to": 144,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": "SELECT COUNT(units) AS total_units\nFROM sales\nWHERE parent_category = 'Accessories' AND order_date BETWEEN DATE '2025-01-01' AND DATE '2025-03-31'",
+  "starter_error_id": "ERR-LOG-14",
+  "time_target_ms": 90000,
+  "why_this_works": "SUM(units) adds up the units on every line; COUNT(units) only counts the lines that have a units value."
+}

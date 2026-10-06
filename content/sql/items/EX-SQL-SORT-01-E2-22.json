@@ -1,0 +1,124 @@
+{
+  "id": "EX-SQL-SORT-01-E2-22",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "distinct",
+    "order-by",
+    "in-list",
+    "products"
+  ],
+  "level": 1,
+  "source_ids": [
+    "01:SQL-SORT-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-SORT-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01"
+  ],
+  "template_id": "T-SORT-01-distinct-values",
+  "template_params": {
+    "table": "products",
+    "columns": 2,
+    "category_ids": "1,2,3"
+  },
+  "sub_skill": "distinct",
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_sort",
+  "prompt": "Which brands make TVs, and in which TV size categories? For the products in category 1 (TVs up to 43 inch), 2 (TVs 50-55 inch) or 3 (TVs 65 inch and up), return category_id and brand, in that order, with exactly these column names, listing each combination once. Sort by category_id from low to high, then by brand from A to Z. A missing brand counts as one value, and its row may come first or last within its category.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "category_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "brand",
+        "type_class": "text"
+      }
+    ],
+    "grain": "one row per category and brand combination"
+  },
+  "rules": {
+    "order_matters": true,
+    "sort_keys": [
+      {
+        "column": "category_id",
+        "desc": false
+      },
+      {
+        "column": "brand",
+        "desc": false
+      }
+    ],
+    "check_names": true,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "category_id",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "brand",
+        "type_class": "text",
+        "precision": "exact"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "category_id",
+      "brand"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, decide what one row stands for. The question wants one row per category and brand pair, not one row per product.",
+    "One keyword right after SELECT works on both columns together. Keep the three categories in WHERE, then sort by both columns in the order the question gives."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 41,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 42,
+      "to": 55,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 56,
+      "to": 86,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 87,
+      "to": 114,
+      "subgoal": "sort_limit"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 150000,
+  "why_this_works": "WHERE keeps the three TV categories, DISTINCT keeps each category and brand pair once, and ORDER BY sorts by category, then brand."
+}

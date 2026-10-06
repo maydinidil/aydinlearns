@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-BASICS-01-E2-43",
+  "item_version": 1,
+  "correct_oid": "ob1902bd",
+  "explanation": "calendar has one row per calendar day, and its is_weekend and weekday_name columns say whether a day falls on a weekend. sales has dates too, in order_date, but one row per order line and no weekend column, and a day with no orders would not appear at all. promotions and stores have dates, but none that say which weekday it is.",
+  "solver": {
+    "prompt_hash": "39ac08abe9b4bc4f",
+    "grader_version": "choice.1",
+    "chosen": "ob1902bd",
+    "typed": null,
+    "at": "2026-10-06T09:08:14.831Z"
+  }
+}

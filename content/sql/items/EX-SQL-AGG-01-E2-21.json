@@ -1,0 +1,106 @@
+{
+  "id": "EX-SQL-AGG-01-E2-21",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-02",
+    "aggregate",
+    "count_distinct",
+    "sales",
+    "count_distinct",
+    "date_range",
+    "drill"
+  ],
+  "level": 2,
+  "source_ids": [
+    "01:SQL-AGG-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-AGG-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-AGG-01"
+  ],
+  "template_id": "T-AGG-01-count-distinct-month",
+  "template_params": {
+    "table": "sales",
+    "filter": "category_name = 'Earbuds'",
+    "from": "2025-02-01",
+    "to": "2025-02-28",
+    "counted": "store_code",
+    "output": "n_stores"
+  },
+  "sub_skill": "count_distinct",
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_agg",
+  "prompt": "How many different stores sold at least one order line of earbuds (category_name 'Earbuds') in February 2025 (order_date from 1 February 2025 to 28 February 2025, both days included)? A store with several such lines counts once, and the webshop, WEB-01, counts as a store. Every line counts, including a line with a missing units or net_revenue_eur value. Return one column, n_stores. The result is a single row. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "n_stores",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row in total"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "n_stores",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the row filter: earbud lines dated in February 2025, with both the first and the last day kept.",
+    "Count each store_code once, however many lines it has. A range that stops before 28 February loses the sales of the last day."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 45,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 46,
+      "to": 56,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 57,
+      "to": 153,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 150000,
+  "why_this_works": "COUNT(DISTINCT store_code) counts each store once, and BETWEEN keeps both 1 and 28 February."
+}

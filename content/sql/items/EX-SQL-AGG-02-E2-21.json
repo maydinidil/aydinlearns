@@ -1,0 +1,130 @@
+{
+  "id": "EX-SQL-AGG-02-E2-21",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-02",
+    "group_by",
+    "count-distinct",
+    "where",
+    "sales",
+    "drill"
+  ],
+  "level": 2,
+  "source_ids": [
+    "01:SQL-AGG-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-AGG-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02"
+  ],
+  "template_id": "T-AGG-02-active-days-per-group",
+  "template_params": {
+    "table": "sales",
+    "group_by": "store_code",
+    "from": "2025-01-01",
+    "to": "2025-12-31",
+    "output": "n_days, n_lines"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_agg",
+  "prompt": "On how many different days did each store sell something in 2025, and how many order lines did it sell? Use the sales table and count only order lines dated from 1 January 2025 to 31 December 2025, both days included. Return three columns, in this order: store_code, n_days, the number of different order_date values, and n_lines, the number of order lines. Return one row per store_code; the webshop, WEB-01, counts as a store. Every order line counts, including lines with missing units or a missing net_revenue_eur. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "store_code",
+        "type_class": "text"
+      },
+      {
+        "name": "n_days",
+        "type_class": "numeric"
+      },
+      {
+        "name": "n_lines",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per store"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "store_code",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "n_days",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "n_lines",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "store_code"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, keep the 2025 lines, then decide what one row stands for: one row per store.",
+    "A day with ten lines is still one day, so one of the two counts takes each order_date only once. Keep both 1 January and 31 December in the range."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 76,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 77,
+      "to": 87,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 88,
+      "to": 152,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 153,
+      "to": 172,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 150000,
+  "why_this_works": "COUNT(DISTINCT order_date) counts each selling day once and COUNT(*) counts every line, inside one group per store."
+}

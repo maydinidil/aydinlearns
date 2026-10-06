@@ -1,0 +1,13 @@
+{
+  "item_id": "Q-MET-MKT-10-03",
+  "item_version": 1,
+  "correct_oid": "o135cffd",
+  "explanation": "100 / 3 is 33.333... euros. Rounding each share to cents before adding them up loses a cent, so credit no longer adds up to revenue. Keep full precision while adding up and round only the totals in the report. The unattributed row is for orders with no touch, not for rounding gaps.",
+  "solver": {
+    "prompt_hash": "5990a7973bd6bedf",
+    "grader_version": "choice.1",
+    "chosen": "o135cffd",
+    "typed": null,
+    "at": "2026-10-05T22:54:48.004Z"
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "source": "design §5, Days and look-alikes: the confusable-pairs registry, slice 1 (levels 1-2)",
+  "pairs": [
+    { "concepts": ["SQL-FILTER-01", "SQL-AGG-03"], "from_level": 2, "note": "WHERE vs HAVING" },
+    { "concepts": ["SQL-SORT-01", "SQL-AGG-02"], "from_level": 2, "note": "DISTINCT vs GROUP BY" },
+    { "concepts": ["SQL-FILTER-01", "SQL-CASE-01"], "from_level": 2, "note": "filtering rows vs labelling them" },
+    { "concepts": ["SQL-CASE-01", "SQL-AGG-04"], "from_level": 2, "note": "labelling rows vs counting them with a condition" }
+  ]
+}

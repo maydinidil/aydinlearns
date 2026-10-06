@@ -1,0 +1,37 @@
+{
+  "item_id": "EX-SQL-AGG-02-E2-03",
+  "item_version": 1,
+  "reference_sql": "SELECT store_code, COUNT(DISTINCT order_id) AS n_orders, COUNT(*) AS n_lines\nFROM sales\nGROUP BY store_code",
+  "alternatives": [
+    "SELECT store_code, COUNT(DISTINCT order_id) AS n_orders, COUNT(order_line_id) AS n_lines FROM sales GROUP BY store_code",
+    "SELECT store_code, COUNT(DISTINCT order_id) AS n_orders, COUNT(*) AS n_lines FROM sales GROUP BY 1",
+    "SELECT sales.store_code, COUNT(DISTINCT sales.order_id) AS n_orders, COUNT(*) AS n_lines FROM sales GROUP BY sales.store_code"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-04",
+      "sql": "SELECT store_code, COUNT(order_id) AS n_orders, COUNT(*) AS n_lines FROM sales GROUP BY store_code"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-07",
+      "sql": "SELECT store_code, COUNT(DISTINCT order_id) AS n_orders, COUNT(*) AS n_lines FROM sales GROUP BY store_code, country_code"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-SEM-01",
+      "sql": "SELECT store_code, COUNT(DISTINCT order_id) AS n_orders, COUNT(*) AS n_lines FROM sales GROUP BY order_id"
+    }
+  ],
+  "hint3_partial": "SELECT store_code, COUNT(___) AS n_orders, COUNT(*) AS n_lines\nFROM sales\nGROUP BY store_code",
+  "solver": {
+    "prompt_hash": "d57235de529dec1e",
+    "schema_version": "cebf75df442f",
+    "dataset_version": "506a9858f862fdfb",
+    "grader_version": "1b.3",
+    "query": "SELECT store_code, COUNT(DISTINCT order_id) AS n_orders, COUNT(*) AS n_lines FROM sales GROUP BY store_code\n",
+    "at": "2026-10-04T10:06:43.874Z"
+  }
+}

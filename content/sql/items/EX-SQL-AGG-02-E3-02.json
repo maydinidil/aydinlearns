@@ -1,0 +1,136 @@
+{
+  "id": "EX-SQL-AGG-02-E3-02",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-02",
+    "group_by",
+    "sum",
+    "margin",
+    "is-null",
+    "sales"
+  ],
+  "level": 2,
+  "source_ids": [
+    "01:SQL-AGG-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-AGG-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02"
+  ],
+  "template_id": "T-AGG-02-margin-per-group",
+  "template_params": {
+    "table": "sales",
+    "group_by": "parent_category"
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_agg",
+  "prompt": "What are the net revenue, the cost and the gross margin of each parent category? Use the sales table, where a line's cost is its units times its unit_cost_eur. Count only order lines that have net_revenue_eur, units and unit_cost_eur all recorded. Return four columns, in this order: parent_category, revenue_eur, the sum of net_revenue_eur, cost_eur, the sum of the line costs, and margin_eur, revenue_eur minus cost_eur. Return one row per parent_category. Do not round. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "parent_category",
+        "type_class": "text"
+      },
+      {
+        "name": "revenue_eur",
+        "type_class": "numeric"
+      },
+      {
+        "name": "cost_eur",
+        "type_class": "numeric"
+      },
+      {
+        "name": "margin_eur",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per parent category"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "parent_category",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "revenue_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "cost_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "margin_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "parent_category"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the row filter that keeps only lines with all three values recorded. Then decide what one row stands for: one row per parent category.",
+    "Each line's cost is a calculation inside SUM. The margin can reuse the two sums, subtracting one from the other."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 185,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 186,
+      "to": 196,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 197,
+      "to": 282,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 283,
+      "to": 307,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "Filtering out lines with a missing value first makes revenue and cost cover the same lines, and GROUP BY parent_category then gives one set of sums per category."
+}

@@ -1,0 +1,116 @@
+{
+  "id": "EX-SQL-FILTER-01-E1-03",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-01",
+    "where",
+    "and_or_not"
+  ],
+  "level": 1,
+  "source_ids": [
+    "01:SQL-FILTER-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-02",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "lesson",
+  "target_concept_id": "SQL-FILTER-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01"
+  ],
+  "template_id": "T-FILTER-01-one-comparison",
+  "template_params": {
+    "table": "stores",
+    "conditions": 1
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_filter",
+  "prompt": "Which stores have been open the longest? From the stores table, list the stores that opened before 1 January 2015. Return three columns, in this order: store_code, city, opened_on. Return one row per store; the webshop counts as a store. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "store_code",
+        "type_class": "text"
+      },
+      {
+        "name": "city",
+        "type_class": "text"
+      },
+      {
+        "name": "opened_on",
+        "type_class": "temporal"
+      }
+    ],
+    "grain": "one row per store"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "store_code",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "city",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "opened_on",
+        "type_class": "temporal",
+        "precision": "exact"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the row filter. Keep only the stores that opened before 1 January 2015.",
+    "The WHERE clause compares opened_on with a date written in single quotes as year-month-day. Decide whether \"before\" keeps 1 January 2015 itself."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 34,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 35,
+      "to": 46,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 47,
+      "to": 77,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": {
+    "stage1": 47,
+    "stage2": 35
+  },
+  "faded_shape": "SELECT store_code, city, opened_on\nFROM stores\n",
+  "starter_sql": null,
+  "time_target_ms": 90000,
+  "why_this_works": "WHERE keeps the stores whose opening date is earlier than 1 January 2015, and < leaves out the webshop, which opened on that exact day."
+}

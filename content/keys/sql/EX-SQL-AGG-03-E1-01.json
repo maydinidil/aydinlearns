@@ -1,0 +1,42 @@
+{
+  "item_id": "EX-SQL-AGG-03-E1-01",
+  "item_version": 1,
+  "reference_sql": "SELECT brand, COUNT(*) AS n_products\nFROM products\nGROUP BY brand\nHAVING COUNT(*) >= 60",
+  "alternatives": [
+    "SELECT brand, COUNT(product_id) AS n_products FROM products GROUP BY brand HAVING COUNT(product_id) >= 60",
+    "SELECT brand, COUNT(*) AS n_products FROM products GROUP BY brand HAVING COUNT(*) > 59",
+    "SELECT brand, COUNT(*) AS n_products FROM products GROUP BY 1 HAVING NOT COUNT(*) < 60"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-SYN-05",
+      "sql": "SELECT brand, COUNT(*) AS n_products FROM products WHERE COUNT(*) >= 60 GROUP BY brand"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-SYN-06",
+      "sql": "SELECT brand, COUNT(*) AS n_products FROM products WHERE n_products >= 60 GROUP BY brand"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-OUT-01",
+      "sql": "SELECT brand FROM products GROUP BY brand HAVING COUNT(*) >= 60"
+    },
+    {
+      "id": "PW4",
+      "error_id": "ERR-LOG-07",
+      "sql": "SELECT brand, COUNT(*) AS n_products FROM products GROUP BY brand, category_id HAVING COUNT(*) >= 60"
+    }
+  ],
+  "hint3_partial": "SELECT brand, COUNT(*) AS n_products\nFROM products\nGROUP BY brand\nHAVING ___ >= 60",
+  "solver": {
+    "prompt_hash": "a68be3bbfb7eb76b",
+    "schema_version": "d77fe1c31a0e",
+    "dataset_version": "506a9858f862fdfb",
+    "grader_version": "1b.3",
+    "query": "SELECT brand, COUNT(*) AS n_products FROM products GROUP BY brand HAVING COUNT(*) >= 60\n",
+    "at": "2026-10-04T10:06:45.036Z"
+  }
+}

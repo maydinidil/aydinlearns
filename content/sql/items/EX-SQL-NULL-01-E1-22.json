@@ -1,0 +1,118 @@
+{
+  "id": "EX-SQL-NULL-01-E1-22",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-01",
+    "is_null",
+    "and_or_not",
+    "calendar"
+  ],
+  "level": 1,
+  "source_ids": [
+    "01:SQL-NULL-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-NULL-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-NULL-01",
+    "SQL-FILTER-01"
+  ],
+  "template_id": "T-NULL-01-is-null-and-or",
+  "template_params": {
+    "table": "calendar",
+    "null_column": "event",
+    "test": "IS NULL"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_null",
+  "prompt": "Voltmarkt adds staff on busy days that have no retail event of their own. From the calendar table, list the days in December 2025 (1 to 31 December) that fall on a Friday or a Saturday (weekday_name 'Friday' or 'Saturday') and have no event. The event column is missing (NULL) on a day without an event. Return three columns, in this order: cal_date, weekday_name, iso_week. Return one row per day. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "cal_date",
+        "type_class": "temporal"
+      },
+      {
+        "name": "weekday_name",
+        "type_class": "text"
+      },
+      {
+        "name": "iso_week",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per day"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "cal_date",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "weekday_name",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "iso_week",
+        "type_class": "numeric",
+        "precision": "exact"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "cal_date"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the row filter. Keep the December 2025 Fridays and Saturdays that have no event.",
+    "Test the missing event with its own NULL test, not with = or <>. Put brackets around the two weekday names so the date range and the event test apply to both."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 39,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 40,
+      "to": 53,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 54,
+      "to": 200,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 110000,
+  "why_this_works": "IS NULL finds the days with no event, and the brackets keep the December range and the event test on both Fridays and Saturdays."
+}

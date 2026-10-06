@@ -1,0 +1,13 @@
+{
+  "concept_id": "MET-SAAS-04",
+  "section": "methodology",
+  "version": 1,
+  "title": "Logo churn rate",
+  "reading_md": "**Setting.** The examples use Business Care, a monthly subscription Voltmarkt sells to small offices for device support and replacements. A business is active in a month when it pays a fee above 0 for that month: one row per business per month, like a SaaS company's `mrr_monthly` table.\n\n**What it answers.** What share of the customers you had at the start of a month were gone by the end of it. It counts customers (\"logos\"), not euros. Typical questions: \"How many customers did we lose last month?\" and \"Is churn getting worse?\"\n\n**Formula.**\n\nlogo churn rate % = 100 x churned customers / customers active at the start of the month\n\n- Customers active at the start are the businesses active in the previous month.\n- Churned customers are those of them that are not active this month.\n- Businesses that subscribe during the month enter neither part. They join next month's starting base.\n- The grain is one month.\n\n**Worked example.** On 1 September, 800 businesses were active. During September 24 of them cancelled and 60 new businesses subscribed, so 836 were active at the end of the month. Logo churn = 100 x 24 / 800 = 3.0%.\n\nTwo tempting wrong versions: dividing by the 836 active at month end gives 2.9%, and dividing by 800 + 60 = 860 gives 2.8%. Both shrink churn because new sign-ups pad the denominator, so a fast-growing subscription can hide rising churn.\n\n**Is churn getting worse?** Compare the rate month by month, each on its own starting base, not the count of cancellations: 24 lost from 800 and 30 lost from 1,000 are the same 3.0%.\n\n**Common mistakes.**\n- Using the customers active at the end of the month as the denominator.\n- Adding new customers to the denominator.\n- Comparing counts of lost customers across months with different starting bases.\n\n**What it does not answer.** How much revenue left. A business on a €40 plan and one on a €4,000 plan count the same, so losing three large accounts can barely move logo churn while revenue drops sharply; gross MRR churn and net revenue retention measure the euros. It also does not say why customers left, or whether new customers stay (cohort retention).",
+  "source_ids": [
+    "04:MET-SAAS-04",
+    "ERRATA:E-100"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04"
+}

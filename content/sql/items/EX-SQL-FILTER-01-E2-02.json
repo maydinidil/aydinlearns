@@ -1,0 +1,125 @@
+{
+  "id": "EX-SQL-FILTER-01-E2-02",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-01",
+    "where",
+    "and_or_not"
+  ],
+  "level": 1,
+  "source_ids": [
+    "01:SQL-FILTER-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-02",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "lesson",
+  "target_concept_id": "SQL-FILTER-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01"
+  ],
+  "template_id": "T-FILTER-01-and-or-brackets",
+  "template_params": {
+    "table": "products",
+    "conditions": 3
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_filter",
+  "prompt": "The audio buyer is checking the dearer personal audio products. From the products table, list the products in category_id 15 (Headphones) or category_id 16 (Earbuds) that have a unit cost (unit_cost_eur) of at least 100 euro. Return four columns, in this order: product_id, product_name, category_id, unit_cost_eur. Return one row per product. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "product_name",
+        "type_class": "text"
+      },
+      {
+        "name": "category_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "unit_cost_eur",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per product"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "product_name",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "category_id",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "unit_cost_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the row filter. Keep only the headphones and the earbuds, and of those only the ones that cost 100 euro or more.",
+    "The WHERE clause mixes OR (the two categories) and AND (the cost). Put brackets where they keep the cost condition on both categories, and decide whether \"at least\" keeps 100."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 59,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 60,
+      "to": 73,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 74,
+      "to": 143,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": {
+    "stage1": 74,
+    "stage2": 60
+  },
+  "faded_shape": "SELECT product_id, product_name, category_id, unit_cost_eur\nFROM products\n",
+  "starter_sql": null,
+  "time_target_ms": 150000,
+  "why_this_works": "The brackets group the two categories, so the cost condition applies to headphones and earbuds alike, and >= keeps a product that costs exactly 100 euro."
+}

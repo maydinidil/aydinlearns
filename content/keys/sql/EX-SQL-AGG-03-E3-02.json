@@ -1,0 +1,46 @@
+{
+  "item_id": "EX-SQL-AGG-03-E3-02",
+  "item_version": 1,
+  "reference_sql": "SELECT product_id, product_name, SUM(net_revenue_eur) AS revenue_eur\nFROM sales\nGROUP BY product_id, product_name\nHAVING COUNT(DISTINCT store_code) < 15\nORDER BY revenue_eur DESC, product_id\nLIMIT 3",
+  "alternatives": [
+    "SELECT product_id, product_name, SUM(net_revenue_eur) AS revenue_eur FROM sales GROUP BY product_id, product_name HAVING COUNT(DISTINCT store_code) <= 14 ORDER BY SUM(net_revenue_eur) DESC, product_id ASC LIMIT 3",
+    "SELECT product_id, product_name, SUM(net_revenue_eur) AS revenue_eur FROM sales GROUP BY 1, 2 HAVING 15 > COUNT(DISTINCT store_code) ORDER BY 3 DESC, 1 LIMIT 3"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-16",
+      "sql": "SELECT product_id, product_name, SUM(net_revenue_eur) AS revenue_eur FROM sales GROUP BY product_id, product_name HAVING COUNT(DISTINCT store_code) < 15 ORDER BY revenue_eur DESC, product_id DESC LIMIT 3"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-04",
+      "sql": "SELECT product_id, product_name, SUM(net_revenue_eur) AS revenue_eur FROM sales GROUP BY product_id, product_name HAVING COUNT(store_code) < 15 ORDER BY revenue_eur DESC, product_id LIMIT 3"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-15",
+      "sql": "SELECT product_id, product_name, SUM(net_revenue_eur) AS revenue_eur FROM sales GROUP BY product_id, product_name HAVING COUNT(DISTINCT store_code) <= 15 ORDER BY revenue_eur DESC, product_id LIMIT 3"
+    },
+    {
+      "id": "PW4",
+      "error_id": "ERR-SEM-01",
+      "sql": "SELECT product_id, product_name, SUM(net_revenue_eur) AS revenue_eur FROM sales GROUP BY product_id HAVING COUNT(DISTINCT store_code) < 15 ORDER BY revenue_eur DESC, product_id LIMIT 3"
+    },
+    {
+      "id": "PW5",
+      "error_id": "ERR-SYN-05",
+      "sql": "SELECT product_id, product_name, SUM(net_revenue_eur) AS revenue_eur FROM sales WHERE COUNT(DISTINCT store_code) < 15 GROUP BY product_id, product_name ORDER BY revenue_eur DESC, product_id LIMIT 3"
+    }
+  ],
+  "hint3_partial": "SELECT product_id, product_name, SUM(net_revenue_eur) AS revenue_eur\nFROM sales\nGROUP BY product_id, product_name\nHAVING ___\nORDER BY ___\nLIMIT 3",
+  "solver": {
+    "prompt_hash": "2a7e55d8a057d32c",
+    "schema_version": "cebf75df442f",
+    "dataset_version": "506a9858f862fdfb",
+    "grader_version": "1b.3",
+    "query": "SELECT product_id, product_name, SUM(net_revenue_eur) AS revenue_eur FROM sales GROUP BY product_id, product_name HAVING COUNT(DISTINCT store_code) < 15 ORDER BY revenue_eur DESC, product_id ASC LIMIT 3\n",
+    "at": "2026-10-04T10:06:47.103Z"
+  }
+}

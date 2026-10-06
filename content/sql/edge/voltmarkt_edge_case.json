@@ -1,0 +1,16 @@
+{
+  "schema": "voltmarkt_edge_case",
+  "mirrors": "voltmarkt",
+  "family": "case",
+  "contains": [
+    "lines worth exactly 50.00, 100.00 and 500.00 euro, and lines just under each of them",
+    "a line of 4 cables that is worth exactly 50.00 euro",
+    "a line with a missing quantity and a line with a missing unit price, so their net revenue is missing",
+    "a product with no unit cost",
+    "two products that tie for third place by net revenue",
+    "two categories that tie for second place by number of lines",
+    "web orders shipping to the Netherlands, Belgium and Luxembourg",
+    "a store with no sales in some months, and a sale on that store's last open day",
+    "orders on the last day of a month, and on days whose ISO week starts in the previous month"
+  ]
+}

@@ -1,0 +1,123 @@
+{
+  "id": "EX-SQL-TYPE-01-E2-21",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-02",
+    "type",
+    "percent-scale",
+    "division",
+    "round",
+    "conditional-aggregation",
+    "group-by",
+    "sales",
+    "drill"
+  ],
+  "level": 2,
+  "source_ids": [
+    "01:SQL-TYPE-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-TYPE-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CASE-01",
+    "SQL-AGG-04",
+    "SQL-TYPE-01"
+  ],
+  "template_id": "T-TYPE-01-share-per-group",
+  "template_params": {
+    "table": "sales",
+    "group_by": "store_code",
+    "part": "lines with units of 3 or more",
+    "whole": "all lines",
+    "scale": "percent",
+    "decimals": 1,
+    "output": "bulk_line_pct"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_type",
+  "prompt": "What percentage of each store's order lines were for 3 or more units? Use the sales table; the webshop, WEB-01, counts as a store. Return two columns, in this order: store_code and bulk_line_pct, 100 times the number of lines with units of 3 or more divided by the number of all the store's lines, rounded to 1 decimal with ROUND(x, 1), so 15 percent is 15.0. Every order line counts in the total, including a line with missing units, and a line with missing units is not a bulk line. Return one row per store_code. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "store_code",
+        "type_class": "text"
+      },
+      {
+        "name": "bulk_line_pct",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per store_code"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "store_code",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "bulk_line_pct",
+        "type_class": "numeric",
+        "precision": "ratio",
+        "require_rounding": 1
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "store_code"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the calculated column bulk_line_pct: the bulk lines divided by all lines, on the percent scale.",
+    "Both counts are whole numbers, so give the division a decimal side first, for example by multiplying by 100.0, which also puts it on the percent scale. Three units already counts as bulk. Round at the very end."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 115,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 116,
+      "to": 126,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 127,
+      "to": 146,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 170000,
+  "why_this_works": "Multiplying by 100.0 first gives a decimal division on the percent scale, and ROUND around the whole expression rounds only the final percentage."
+}

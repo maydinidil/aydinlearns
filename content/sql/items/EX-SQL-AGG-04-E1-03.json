@@ -1,0 +1,127 @@
+{
+  "id": "EX-SQL-AGG-04-E1-03",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-02",
+    "conditional-aggregation",
+    "count-if",
+    "sales",
+    "missing-values"
+  ],
+  "level": 2,
+  "source_ids": [
+    "01:SQL-AGG-04"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "lesson",
+  "target_concept_id": "SQL-AGG-04",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CASE-01",
+    "SQL-AGG-04"
+  ],
+  "template_id": "T-AGG-04-count-if-group",
+  "template_params": {
+    "table": "sales",
+    "group": "country_code",
+    "condition": "units >= 2",
+    "output": "multi_unit_lines"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_agg",
+  "prompt": "How many order lines shipped to each country, and how many of them were for 2 or more units? Use the sales table, where country_code is the country an order ships to. Return three columns, in this order: country_code, n_lines, the number of order lines, and multi_unit_lines, the number of order lines with units of 2 or more. Every order line counts in n_lines, including lines with missing units; a line with missing units is not a multi-unit line. Return one row per country_code. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "country_code",
+        "type_class": "text"
+      },
+      {
+        "name": "n_lines",
+        "type_class": "numeric"
+      },
+      {
+        "name": "multi_unit_lines",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per country_code"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "country_code",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "n_lines",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "multi_unit_lines",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "country_code"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the calculated column multi_unit_lines, which counts only the lines of 2 or more units.",
+    "Wrap a CASE in SUM: 1 when units is 2 or more, 0 otherwise. A missing units value fails the test, so it lands on 0."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 119,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 120,
+      "to": 130,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 131,
+      "to": 152,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": {
+    "stage1": 56,
+    "stage2": 56
+  },
+  "faded_shape": "SELECT country_code,\n       COUNT(*) AS n_lines,\n       ",
+  "faded_suffix": "\nFROM sales\nGROUP BY country_code",
+  "starter_sql": null,
+  "time_target_ms": 100000,
+  "why_this_works": "COUNT(*) counts every line, and the CASE inside SUM adds 1 only for a line of 2 or more units, so both counts come from one pass over each country's lines."
+}

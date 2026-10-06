@@ -1,0 +1,107 @@
+{
+  "id": "EX-SQL-FILTER-02-E3-03",
+  "version": 2,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-01",
+    "like",
+    "products"
+  ],
+  "level": 1,
+  "source_ids": [
+    "01:SQL-FILTER-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-02",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-FILTER-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02"
+  ],
+  "template_id": "T-FILTER-02-not-like-underscore",
+  "template_params": {
+    "table": "products",
+    "chars": 3
+  },
+  "sub_skill": "like",
+  "difficulty": "E3",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_filter",
+  "prompt": "A data check on product names: most names end with a space and a three-character model number, as in Lumio Air 564. From the products table, return two columns, in this order: product_id, product_name. Keep only the products whose product_name breaks this rule, that is, whose fourth character from the end is not a space. The three characters after that space can be any characters, spaces included, and a name shorter than four characters breaks the rule too. Every product has a product_name. Return one row per product. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "product_name",
+        "type_class": "text"
+      }
+    ],
+    "grain": "one row per product"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "product_name",
+        "type_class": "text",
+        "precision": "exact"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "product_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the row filter. Keep a product when its name does not end with a space and exactly three characters.",
+    "Write the pattern for the names that follow the rule, then keep the names that do not match it. Each _ stands for exactly one character, and a pattern must match the whole name."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 31,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 32,
+      "to": 45,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 46,
+      "to": 81,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "Each _ matches exactly one character, so the pattern ends in a space and three characters, and NOT LIKE keeps the names that break it."
+}

@@ -1,0 +1,32 @@
+{
+  "item_id": "EX-SQL-NULL-01-E1-04",
+  "item_version": 1,
+  "reference_sql": "SELECT promo_code, promo_type, discount_pct\nFROM promotions\nWHERE (promo_type = 'clearance' OR promo_type = 'loyalty') AND COALESCE(discount_pct, 0) < 20",
+  "alternatives": [
+    "SELECT promo_code, promo_type, discount_pct\nFROM promotions\nWHERE promo_type IN ('clearance', 'loyalty') AND COALESCE(discount_pct, 0) < 20",
+    "SELECT promo_code, promo_type, discount_pct\nFROM promotions\nWHERE (promo_type = 'clearance' OR promo_type = 'loyalty') AND (discount_pct < 20 OR discount_pct IS NULL)",
+    "SELECT promo_code, promo_type, discount_pct\nFROM promotions\nWHERE COALESCE(discount_pct, 0) < 20 AND (promo_type = 'loyalty' OR promo_type = 'clearance')"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "M1",
+      "error_id": "ERR-LOG-17",
+      "sql": "SELECT promo_code, promo_type, discount_pct\nFROM promotions\nWHERE (promo_type = 'clearance' OR promo_type = 'loyalty') AND discount_pct < 20"
+    },
+    {
+      "id": "M2",
+      "error_id": "ERR-LOG-13",
+      "sql": "SELECT promo_code, promo_type, discount_pct\nFROM promotions\nWHERE promo_type = 'clearance' OR promo_type = 'loyalty' AND COALESCE(discount_pct, 0) < 20"
+    }
+  ],
+  "hint3_partial": "SELECT promo_code, promo_type, discount_pct\nFROM promotions\nWHERE (promo_type = 'clearance' OR promo_type = 'loyalty') AND COALESCE(...) < 20",
+  "solver": {
+    "prompt_hash": "822849e3baab28da",
+    "schema_version": "f0340f71a1f5",
+    "dataset_version": "9639f8ae1f71c2ef",
+    "grader_version": "1a.2",
+    "query": "SELECT promo_code, promo_type, discount_pct FROM promotions WHERE promo_type IN ('clearance', 'loyalty') AND COALESCE(discount_pct, 0) < 20\n",
+    "at": "2026-10-03T13:08:02.880Z"
+  }
+}

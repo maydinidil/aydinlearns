@@ -1,0 +1,37 @@
+{
+  "item_id": "EX-SQL-AGG-02-E1-01",
+  "item_version": 1,
+  "reference_sql": "SELECT store_code, SUM(net_revenue_eur) AS revenue_eur\nFROM sales\nGROUP BY store_code",
+  "alternatives": [
+    "SELECT store_code, SUM(net_revenue_eur) AS revenue_eur FROM sales GROUP BY 1",
+    "SELECT sales.store_code, SUM(sales.net_revenue_eur) AS revenue_eur FROM sales GROUP BY sales.store_code",
+    "SELECT store_code, SUM(COALESCE(net_revenue_eur, 0)) AS revenue_eur FROM sales GROUP BY store_code"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-SEM-01",
+      "sql": "SELECT store_code, SUM(net_revenue_eur) AS revenue_eur FROM sales"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-07",
+      "sql": "SELECT store_code, SUM(net_revenue_eur) AS revenue_eur FROM sales GROUP BY store_code, country_code"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-14",
+      "sql": "SELECT store_code, AVG(net_revenue_eur) AS revenue_eur FROM sales GROUP BY store_code"
+    }
+  ],
+  "hint3_partial": "SELECT store_code, SUM(net_revenue_eur) AS revenue_eur\nFROM sales\nGROUP BY ___",
+  "solver": {
+    "prompt_hash": "47372f2a558642f9",
+    "schema_version": "cebf75df442f",
+    "dataset_version": "506a9858f862fdfb",
+    "grader_version": "1b.3",
+    "query": "SELECT store_code, SUM(net_revenue_eur) AS revenue_eur FROM sales GROUP BY store_code\n",
+    "at": "2026-10-04T10:06:42.824Z"
+  }
+}

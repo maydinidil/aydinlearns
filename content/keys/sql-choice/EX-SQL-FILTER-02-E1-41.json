@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-FILTER-02-E1-41",
+  "item_version": 1,
+  "value": 3,
+  "explanation": "IN keeps a row whose store_id equals any value in the list. store_id is the key of stores, so each of 1, 3 and 5 matches exactly one store, and the sample rows show all three exist. So 3 rows come back.",
+  "solver": {
+    "prompt_hash": "22f8fd69b3d15fd0",
+    "grader_version": "choice.1",
+    "chosen": null,
+    "typed": "3",
+    "at": "2026-10-06T09:08:14.844Z"
+  }
+}

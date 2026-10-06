@@ -1,0 +1,37 @@
+{
+  "item_id": "EX-SQL-BASICS-01-E1-04",
+  "item_version": 1,
+  "reference_sql": "SELECT promo_code, discount_pct\nFROM promotions",
+  "alternatives": [
+    "SELECT promotions.promo_code, promotions.discount_pct\nFROM promotions",
+    "SELECT pr.promo_code, pr.discount_pct\nFROM promotions AS pr",
+    "SELECT \"promo_code\", \"discount_pct\"\nFROM \"promotions\""
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "M1",
+      "error_id": "ERR-SYN-02",
+      "sql": "SELECT promo_code, discount FROM promotions"
+    },
+    {
+      "id": "M2",
+      "error_id": "ERR-SYN-01",
+      "sql": "SELET promo_code, discount_pct FROM promotions"
+    },
+    {
+      "id": "M3",
+      "error_id": "ERR-OUT-01",
+      "sql": "SELECT promo_code FROM promotions"
+    }
+  ],
+  "hint3_partial": "SELECT promo_code, ...\nFROM promotions",
+  "solver": {
+    "prompt_hash": "8cbe66f2e3efab8d",
+    "schema_version": "f0340f71a1f5",
+    "dataset_version": "9639f8ae1f71c2ef",
+    "grader_version": "1a.2",
+    "query": "SELECT promo_code, discount_pct FROM promotions\n",
+    "at": "2026-10-03T13:08:01.916Z"
+  }
+}

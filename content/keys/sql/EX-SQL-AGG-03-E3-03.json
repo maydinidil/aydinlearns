@@ -1,0 +1,41 @@
+{
+  "item_id": "EX-SQL-AGG-03-E3-03",
+  "item_version": 1,
+  "reference_sql": "SELECT store_code, order_month, COUNT(DISTINCT order_id) AS n_orders\nFROM sales\nWHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\nGROUP BY store_code, order_month\nHAVING COUNT(DISTINCT order_id) < 350\nORDER BY store_code, order_month",
+  "alternatives": [
+    "SELECT store_code, order_month, COUNT(DISTINCT order_id) AS n_orders FROM sales WHERE order_date >= DATE '2025-01-01' AND order_date < DATE '2026-01-01' GROUP BY store_code, order_month HAVING COUNT(DISTINCT order_id) <= 349 ORDER BY store_code ASC, order_month ASC",
+    "SELECT store_code, order_month, COUNT(DISTINCT order_id) AS n_orders FROM sales WHERE order_month BETWEEN DATE '2025-01-01' AND DATE '2025-12-01' GROUP BY 1, 2 HAVING 350 > COUNT(DISTINCT order_id) ORDER BY 1, 2"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-04",
+      "sql": "SELECT store_code, order_month, COUNT(*) AS n_orders FROM sales WHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31' GROUP BY store_code, order_month HAVING COUNT(*) < 350 ORDER BY store_code, order_month"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-SEM-01",
+      "sql": "SELECT store_code, order_month, COUNT(DISTINCT order_id) AS n_orders FROM sales WHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31' GROUP BY store_code HAVING COUNT(DISTINCT order_id) < 350 ORDER BY store_code, order_month"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-18",
+      "sql": "SELECT store_code, order_month, COUNT(DISTINCT order_id) AS n_orders FROM sales WHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31' GROUP BY store_code, order_month HAVING COUNT(DISTINCT order_id) < 350 ORDER BY order_month, store_code"
+    },
+    {
+      "id": "PW4",
+      "error_id": "ERR-SYN-05",
+      "sql": "SELECT store_code, order_month, COUNT(DISTINCT order_id) AS n_orders FROM sales WHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31' AND COUNT(DISTINCT order_id) < 350 GROUP BY store_code, order_month ORDER BY store_code, order_month"
+    }
+  ],
+  "hint3_partial": "SELECT store_code, order_month, COUNT(DISTINCT order_id) AS n_orders\nFROM sales\nWHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\nGROUP BY ___\nHAVING ___\nORDER BY store_code, order_month",
+  "solver": {
+    "prompt_hash": "48964e435cb86de1",
+    "schema_version": "cebf75df442f",
+    "dataset_version": "506a9858f862fdfb",
+    "grader_version": "1b.3",
+    "query": "SELECT store_code, order_month, COUNT(DISTINCT order_id) AS n_orders FROM sales WHERE order_date >= '2025-01-01' AND order_date <= '2025-12-31' GROUP BY store_code, order_month HAVING COUNT(DISTINCT order_id) < 350 ORDER BY store_code ASC, order_month ASC\n",
+    "at": "2026-10-04T10:06:47.235Z"
+  }
+}

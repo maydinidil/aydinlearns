@@ -1,0 +1,100 @@
+{
+  "id": "EX-SQL-BASICS-01-E1-03",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-01",
+    "select_from"
+  ],
+  "level": 1,
+  "source_ids": [
+    "01:SQL-BASICS-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-02",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "lesson",
+  "target_concept_id": "SQL-BASICS-01",
+  "concept_ids": [
+    "SQL-BASICS-01"
+  ],
+  "template_id": "T-BASICS-01-select-columns",
+  "template_params": {
+    "table": "categories",
+    "columns": 2
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_basics",
+  "prompt": "Show the category tree. From the categories table, return two columns, in this order: category_name, parent_category. Return one row per category and keep every category. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "category_name",
+        "type_class": "text"
+      },
+      {
+        "name": "parent_category",
+        "type_class": "text"
+      }
+    ],
+    "grain": "one row per category"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "category_name",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "parent_category",
+        "type_class": "text",
+        "precision": "exact"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, choose the table. Find the table that has one row per category; it goes in the FROM clause.",
+    "Your FROM clause names the categories table, written in the plural exactly as the schema panel shows it."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 37,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 38,
+      "to": 53,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": {
+    "stage1": 38,
+    "stage2": 7
+  },
+  "faded_shape": "SELECT category_name, parent_category\n",
+  "starter_sql": null,
+  "time_target_ms": 75000,
+  "why_this_works": "SELECT names each category and the group above it, and FROM categories gives one row per category."
+}

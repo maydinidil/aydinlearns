@@ -1,0 +1,41 @@
+{
+  "item_id": "EX-SQL-AGG-03-E1-21",
+  "item_version": 1,
+  "reference_sql": "SELECT brand, AVG(unit_cost_eur) AS avg_unit_cost_eur\nFROM products\nGROUP BY brand\nHAVING AVG(unit_cost_eur) > 300",
+  "alternatives": [
+    "SELECT brand, AVG(unit_cost_eur) AS avg_unit_cost_eur FROM products GROUP BY 1 HAVING 300 < AVG(unit_cost_eur)",
+    "SELECT brand, AVG(unit_cost_eur) AS avg_unit_cost_eur FROM products GROUP BY brand HAVING SUM(unit_cost_eur) / COUNT(unit_cost_eur) > 300"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-SYN-05",
+      "sql": "SELECT brand, AVG(unit_cost_eur) AS avg_unit_cost_eur FROM products WHERE AVG(unit_cost_eur) > 300 GROUP BY brand"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-02",
+      "sql": "SELECT brand, AVG(unit_cost_eur) AS avg_unit_cost_eur FROM products WHERE unit_cost_eur > 300 GROUP BY brand"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-SYN-06",
+      "sql": "SELECT brand, AVG(unit_cost_eur) AS avg_unit_cost_eur FROM products WHERE avg_unit_cost_eur > 300 GROUP BY brand"
+    },
+    {
+      "id": "PW4",
+      "error_id": "ERR-LOG-14",
+      "sql": "SELECT brand, AVG(unit_cost_eur) AS avg_unit_cost_eur FROM products GROUP BY brand HAVING MAX(unit_cost_eur) > 300"
+    }
+  ],
+  "hint3_partial": "SELECT brand, AVG(unit_cost_eur) AS avg_unit_cost_eur\nFROM products\nGROUP BY brand\nHAVING ___ > 300",
+  "solver": {
+    "prompt_hash": "56af8a9c8be9eb14",
+    "schema_version": "d77fe1c31a0e",
+    "dataset_version": "506a9858f862fdfb",
+    "grader_version": "1b.3",
+    "query": "SELECT brand, AVG(unit_cost_eur) AS avg_unit_cost_eur\nFROM products\nGROUP BY brand\nHAVING AVG(unit_cost_eur) > 300\n",
+    "at": "2026-10-04T14:33:16.350Z"
+  }
+}

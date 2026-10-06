@@ -1,0 +1,36 @@
+{
+  "item_id": "EX-SQL-BASICS-01-E2-32",
+  "item_version": 1,
+  "reference_sql": "SELECT product_name, category_id, launch_date\nFROM products",
+  "alternatives": [
+    "SELECT products.product_name, products.category_id, products.launch_date\nFROM products",
+    "SELECT p.product_name, p.category_id, p.launch_date\nFROM products AS p"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "EX-SQL-BASICS-01-E2-32-PW1",
+      "error_id": "ERR-OUT-01",
+      "sql": "SELECT product_name category_id, launch_date\nFROM products"
+    },
+    {
+      "id": "EX-SQL-BASICS-01-E2-32-PW2",
+      "error_id": "ERR-SYN-02",
+      "sql": "SELECT product_name, category, launch_date FROM products"
+    },
+    {
+      "id": "EX-SQL-BASICS-01-E2-32-PW3",
+      "error_id": "ERR-SYN-01",
+      "sql": "SELECT product_name, category_id, launch_date FRMO products"
+    }
+  ],
+  "hint3_partial": "SELECT product_name___ category_id, launch_date\nFROM products",
+  "solver": {
+    "prompt_hash": "52f352857b8e1e3a",
+    "schema_version": "d77fe1c31a0e",
+    "dataset_version": "506a9858f862fdfb",
+    "grader_version": "1b.3",
+    "query": "SELECT product_name, category_id, launch_date FROM products\n",
+    "at": "2026-10-04T14:33:17.493Z"
+  }
+}

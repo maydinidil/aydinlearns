@@ -1,0 +1,13 @@
+{
+  "item_id": "Q-MET-SAAS-06-06",
+  "item_version": 1,
+  "correct_oid": "oaf6911c",
+  "explanation": "The cohort is every business with MRR above zero in the start month. This business was not paying in October 2025, so it never enters the cohort, and its return in 2026 counts neither as expansion nor as a cancellation. Treating it as part of the cohort because it was a customer earlier is the reactivation mistake the convention rules out.",
+  "solver": {
+    "prompt_hash": "766b42884a38d943",
+    "grader_version": "choice.1",
+    "chosen": "oaf6911c",
+    "typed": null,
+    "at": "2026-10-04T10:18:36.054Z"
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-AGG-01-E1-43",
+  "item_version": 1,
+  "correct_oid": "of33559e",
+  "explanation": "products has one row per product, so COUNT(*) on it counts products. sales also has product_id, but one row per order line, so COUNT(*) there counts lines, and a product that never sold is not in it at all. categories has one row per category and promotions one per promotion.",
+  "solver": {
+    "prompt_hash": "3b467f4b690cc7cf",
+    "grader_version": "choice.1",
+    "chosen": "of33559e",
+    "typed": null,
+    "at": "2026-10-06T09:08:14.808Z"
+  }
+}

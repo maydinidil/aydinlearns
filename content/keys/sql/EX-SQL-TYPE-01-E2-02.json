@@ -1,0 +1,31 @@
+{
+  "item_id": "EX-SQL-TYPE-01-E2-02",
+  "item_version": 1,
+  "reference_sql": "SELECT country_code,\n       ROUND(100.0 * SUM(units) FILTER (WHERE channel = 'web') / SUM(units), 1) AS web_units_pct\nFROM sales\nGROUP BY country_code",
+  "alternatives": [
+    "SELECT country_code, ROUND(SUM(CASE WHEN channel = 'web' THEN units ELSE 0 END) * 100.0 / SUM(units), 1) AS web_units_pct FROM sales GROUP BY country_code",
+    "SELECT country_code, ROUND(100 * CAST(SUM(CASE WHEN channel = 'web' THEN units END) AS DOUBLE) / SUM(units), 1) AS web_units_pct FROM sales GROUP BY 1"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-05",
+      "sql": "SELECT country_code, ROUND(100 * SUM(units) FILTER (WHERE channel = 'web') // SUM(units), 1) AS web_units_pct FROM sales GROUP BY country_code"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-21",
+      "sql": "SELECT country_code, ROUND(SUM(units) FILTER (WHERE channel = 'web') * 1.0 / SUM(units), 1) AS web_units_pct FROM sales GROUP BY country_code"
+    }
+  ],
+  "hint3_partial": "SELECT country_code,\n       ROUND(100.0 * SUM(units) FILTER (WHERE ___) / ___, 1) AS web_units_pct\nFROM sales\nGROUP BY country_code",
+  "solver": {
+    "prompt_hash": "f16cba35966bee68",
+    "schema_version": "cebf75df442f",
+    "dataset_version": "506a9858f862fdfb",
+    "grader_version": "1b.3",
+    "query": "SELECT country_code, ROUND(100.0 * SUM(units) FILTER (WHERE channel = 'web') / SUM(units), 1) AS web_units_pct FROM sales GROUP BY country_code\n",
+    "at": "2026-10-04T10:06:52.449Z"
+  }
+}

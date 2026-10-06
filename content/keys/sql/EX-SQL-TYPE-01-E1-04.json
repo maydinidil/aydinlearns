@@ -1,0 +1,36 @@
+{
+  "item_id": "EX-SQL-TYPE-01-E1-04",
+  "item_version": 1,
+  "reference_sql": "SELECT order_line_id, net_revenue_eur,\n       ROUND(100.0 * (net_revenue_eur - units * unit_cost_eur) / net_revenue_eur, 1) AS margin_pct\nFROM sales\nWHERE order_line_id BETWEEN 1 AND 20",
+  "alternatives": [
+    "SELECT order_line_id, net_revenue_eur, ROUND((net_revenue_eur - units * unit_cost_eur) * 100 / net_revenue_eur, 1) AS margin_pct FROM sales WHERE order_line_id >= 1 AND order_line_id <= 20",
+    "SELECT order_line_id, net_revenue_eur, ROUND(100 * (1 - units * unit_cost_eur / net_revenue_eur), 1) AS margin_pct FROM sales WHERE order_line_id BETWEEN 1 AND 20"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-21",
+      "sql": "SELECT order_line_id, net_revenue_eur, ROUND((net_revenue_eur - units * unit_cost_eur) / net_revenue_eur, 1) AS margin_pct FROM sales WHERE order_line_id BETWEEN 1 AND 20"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-19",
+      "sql": "SELECT order_line_id, net_revenue_eur, ROUND((net_revenue_eur - units * unit_cost_eur) / net_revenue_eur, 2) * 100 AS margin_pct FROM sales WHERE order_line_id BETWEEN 1 AND 20"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-OUT-02",
+      "sql": "SELECT order_line_id, net_revenue_eur, CAST(ROUND(100.0 * (net_revenue_eur - units * unit_cost_eur) / net_revenue_eur, 1) AS VARCHAR) || '%' AS margin_pct FROM sales WHERE order_line_id BETWEEN 1 AND 20"
+    }
+  ],
+  "hint3_partial": "SELECT order_line_id, net_revenue_eur,\n       ROUND(100.0 * (___) / net_revenue_eur, ___) AS margin_pct\nFROM sales\nWHERE order_line_id BETWEEN 1 AND 20",
+  "solver": {
+    "prompt_hash": "47fa77a6293578a5",
+    "schema_version": "cebf75df442f",
+    "dataset_version": "506a9858f862fdfb",
+    "grader_version": "1b.3",
+    "query": "SELECT order_line_id, net_revenue_eur, ROUND(100 * (net_revenue_eur - units * unit_cost_eur) / net_revenue_eur, 1) AS margin_pct FROM sales WHERE order_line_id BETWEEN 1 AND 20\n",
+    "at": "2026-10-04T10:06:51.778Z"
+  }
+}

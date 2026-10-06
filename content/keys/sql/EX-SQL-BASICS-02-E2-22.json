@@ -1,0 +1,37 @@
+{
+  "item_id": "EX-SQL-BASICS-02-E2-22",
+  "item_version": 1,
+  "reference_sql": "SELECT product_id,\n       unit_cost_eur,\n       unit_cost_eur / 0.6 AS price_eur\nFROM products",
+  "alternatives": [
+    "SELECT product_id,\n       unit_cost_eur,\n       unit_cost_eur / (1 - 0.40) AS price_eur\nFROM products",
+    "SELECT product_id,\n       unit_cost_eur,\n       unit_cost_eur * 100 / 60 AS price_eur\nFROM products",
+    "SELECT product_id,\n       unit_cost_eur,\n       unit_cost_eur / 60 * 100 AS price_eur\nFROM products"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-00",
+      "sql": "SELECT product_id, unit_cost_eur, unit_cost_eur * 1.40 AS price_eur FROM products"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-21",
+      "sql": "SELECT product_id, unit_cost_eur, unit_cost_eur / 60 AS price_eur FROM products"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-OUT-01",
+      "sql": "SELECT product_id, unit_cost_eur / 0.6 AS price_eur FROM products"
+    }
+  ],
+  "hint3_partial": "SELECT product_id,\n       unit_cost_eur,\n       unit_cost_eur ___ AS price_eur\nFROM products",
+  "solver": {
+    "prompt_hash": "7e9dde42335e983f",
+    "schema_version": "d77fe1c31a0e",
+    "dataset_version": "506a9858f862fdfb",
+    "grader_version": "1b.3",
+    "query": "SELECT product_id, unit_cost_eur, unit_cost_eur / 0.6 AS price_eur FROM products\n",
+    "at": "2026-10-04T14:33:17.592Z"
+  }
+}

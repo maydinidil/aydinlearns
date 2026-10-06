@@ -1,0 +1,100 @@
+{
+  "id": "EX-SQL-SORT-01-E1-22",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "distinct",
+    "stores"
+  ],
+  "level": 1,
+  "source_ids": [
+    "01:SQL-SORT-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-SORT-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-SORT-01"
+  ],
+  "template_id": "T-SORT-01-distinct-values",
+  "template_params": {
+    "table": "stores",
+    "columns": 1
+  },
+  "sub_skill": "distinct",
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_sort",
+  "prompt": "In which countries does Voltmarkt have stores? Return one column, country_code, with exactly this name, listing each country once, sorted from A to Z. The webshop counts as a store. A missing country_code counts as one value, and its row may come first or last.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "country_code",
+        "type_class": "text"
+      }
+    ],
+    "grain": "one row per country"
+  },
+  "rules": {
+    "order_matters": true,
+    "sort_keys": [
+      {
+        "column": "country_code",
+        "desc": false
+      }
+    ],
+    "check_names": true,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "country_code",
+        "type_class": "text",
+        "precision": "exact"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "country_code"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, decide what one row stands for. The question wants one row per country, not one row per store.",
+    "One keyword right after SELECT keeps each value once. ORDER BY then sorts the list, and A to Z is the default direction."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 28,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 29,
+      "to": 40,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 41,
+      "to": 62,
+      "subgoal": "sort_limit"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 60000,
+  "why_this_works": "DISTINCT keeps each country_code once, and ORDER BY sorts the codes from A to Z."
+}

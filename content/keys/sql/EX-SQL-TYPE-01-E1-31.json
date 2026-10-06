@@ -1,0 +1,36 @@
+{
+  "item_id": "EX-SQL-TYPE-01-E1-31",
+  "item_version": 1,
+  "reference_sql": "SELECT parent_category, ROUND(100.0 * SUM(CASE WHEN units >= 2 THEN 1 ELSE 0 END) / COUNT(*), 1) AS multi_unit_pct\nFROM sales\nWHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\nGROUP BY parent_category",
+  "alternatives": [
+    "SELECT parent_category, ROUND(COUNT(*) FILTER (WHERE units >= 2) * 100.0 / COUNT(*), 1) AS multi_unit_pct FROM sales WHERE order_date >= DATE '2025-01-01' AND order_date < DATE '2026-01-01' GROUP BY parent_category",
+    "SELECT parent_category, ROUND(CAST(COUNT(CASE WHEN units >= 2 THEN 1 END) AS DOUBLE) * 100 / COUNT(*), 1) AS multi_unit_pct FROM sales WHERE order_date BETWEEN '2025-01-01' AND '2025-12-31' GROUP BY 1"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "EX-SQL-TYPE-01-E1-31-PW1",
+      "error_id": "ERR-LOG-05",
+      "sql": "SELECT parent_category, ROUND(100 * SUM(CASE WHEN units >= 2 THEN 1 ELSE 0 END) // COUNT(*), 1) AS multi_unit_pct FROM sales WHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31' GROUP BY parent_category"
+    },
+    {
+      "id": "EX-SQL-TYPE-01-E1-31-PW2",
+      "error_id": "ERR-LOG-21",
+      "sql": "SELECT parent_category, ROUND(1.0 * SUM(CASE WHEN units >= 2 THEN 1 ELSE 0 END) / COUNT(*), 1) AS multi_unit_pct FROM sales WHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31' GROUP BY parent_category"
+    },
+    {
+      "id": "EX-SQL-TYPE-01-E1-31-PW3",
+      "error_id": "ERR-LOG-04",
+      "sql": "SELECT parent_category, ROUND(100.0 * SUM(CASE WHEN units >= 2 THEN 1 ELSE 0 END) / COUNT(units), 1) AS multi_unit_pct FROM sales WHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31' GROUP BY parent_category"
+    }
+  ],
+  "hint3_partial": "SELECT parent_category, ROUND(100.0 * SUM(CASE WHEN ___ THEN 1 ELSE 0 END) ___ COUNT(*), 1) AS multi_unit_pct\nFROM sales\nWHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\nGROUP BY parent_category",
+  "solver": {
+    "prompt_hash": "512922ad7ae850a3",
+    "schema_version": "cebf75df442f",
+    "dataset_version": "506a9858f862fdfb",
+    "grader_version": "1b.3",
+    "query": "SELECT parent_category, ROUND(100.0 * SUM(CASE WHEN units >= 2 THEN 1 ELSE 0 END) / COUNT(*), 1) AS multi_unit_pct\nFROM sales\nWHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\nGROUP BY parent_category\n",
+    "at": "2026-10-04T14:33:18.791Z"
+  }
+}

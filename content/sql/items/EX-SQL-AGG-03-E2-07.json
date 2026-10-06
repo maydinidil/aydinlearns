@@ -1,0 +1,119 @@
+{
+  "id": "EX-SQL-AGG-03-E2-07",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-02",
+    "having",
+    "max",
+    "count",
+    "promotions"
+  ],
+  "level": 2,
+  "source_ids": [
+    "01:SQL-AGG-03"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-AGG-03",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-AGG-03"
+  ],
+  "template_id": "T-AGG-03-max-threshold-count-all",
+  "template_params": {
+    "table": "promotions",
+    "group_by": "promo_type",
+    "aggregate": "max discount_pct",
+    "comparison": "at least",
+    "threshold": 40
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_agg",
+  "prompt": "Which promotion types have at least one promotion with a discount of 40 percent or more? Use the promotions table and its discount_pct column. Return two columns, in this order: promo_type and n_promotions, the number of all promotions of that type, whatever their discount. Return one row per promotion type, and only the types whose largest discount_pct is 40 or more. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "promo_type",
+        "type_class": "text"
+      },
+      {
+        "name": "n_promotions",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per promotion type"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "promo_type",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "n_promotions",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "promo_type"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the group filter: keep a type when its largest discount is 40 or more, without dropping any of its promotions from the count.",
+    "A test in WHERE would drop the smaller promotions before counting. Test the largest discount of each group after GROUP BY instead."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 43,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 44,
+      "to": 59,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 60,
+      "to": 79,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 80,
+      "to": 110,
+      "subgoal": "group_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "HAVING MAX(discount_pct) >= 40 keeps or drops whole promotion types, so COUNT(*) still counts every promotion of a type that is kept."
+}

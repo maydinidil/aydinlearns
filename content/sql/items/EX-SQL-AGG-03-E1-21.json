@@ -1,0 +1,119 @@
+{
+  "id": "EX-SQL-AGG-03-E1-21",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-02",
+    "having",
+    "avg",
+    "products",
+    "drill"
+  ],
+  "level": 2,
+  "source_ids": [
+    "01:SQL-AGG-03"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-AGG-03",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-AGG-03"
+  ],
+  "template_id": "T-AGG-03-avg-threshold",
+  "template_params": {
+    "table": "products",
+    "group_by": "brand",
+    "aggregate": "avg",
+    "comparison": "more than",
+    "threshold": 300
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_agg",
+  "prompt": "Which brands have an average unit cost above 300 euros? Use the products table, which has one row per product. Return two columns, in this order: brand and avg_unit_cost_eur, the average of unit_cost_eur over the brand's products. Return one row per brand, and only the brands whose average is above 300. A product with a missing unit_cost_eur is left out of the average. Do not round. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "brand",
+        "type_class": "text"
+      },
+      {
+        "name": "avg_unit_cost_eur",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per brand"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "brand",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "avg_unit_cost_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "brand"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the group filter: keep only the brands whose average unit cost is above 300.",
+    "The test is about each brand as a whole, not about single products, so it goes in its own clause after GROUP BY, using the same average you return."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 53,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 54,
+      "to": 67,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 68,
+      "to": 82,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 83,
+      "to": 114,
+      "subgoal": "group_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "HAVING tests each brand after its average is worked out, so only the brands whose average is above 300 are kept."
+}

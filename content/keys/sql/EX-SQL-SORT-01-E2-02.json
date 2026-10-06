@@ -1,0 +1,32 @@
+{
+  "item_id": "EX-SQL-SORT-01-E2-02",
+  "item_version": 1,
+  "reference_sql": "SELECT product_id,\n       product_name,\n       unit_cost_eur\nFROM products\nWHERE category_id = 3\nORDER BY unit_cost_eur, product_id\nLIMIT 2",
+  "alternatives": [
+    "SELECT product_id, product_name, unit_cost_eur FROM products WHERE category_id = 3 ORDER BY unit_cost_eur ASC, product_id ASC LIMIT 2",
+    "SELECT product_id, product_name, unit_cost_eur FROM products WHERE category_id = 3 ORDER BY 3, 1 LIMIT 2",
+    "SELECT product_id, product_name, unit_cost_eur FROM products WHERE 3 = category_id ORDER BY unit_cost_eur NULLS LAST, product_id LIMIT 2"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "EX-SQL-SORT-01-E2-02-PW1",
+      "error_id": "ERR-LOG-16",
+      "sql": "SELECT product_id, product_name, unit_cost_eur FROM products WHERE category_id = 3 ORDER BY unit_cost_eur LIMIT 2"
+    },
+    {
+      "id": "EX-SQL-SORT-01-E2-02-PW2",
+      "error_id": "ERR-LOG-16",
+      "sql": "SELECT product_id, product_name, unit_cost_eur FROM products WHERE category_id = 3 ORDER BY unit_cost_eur DESC, product_id LIMIT 2"
+    }
+  ],
+  "hint3_partial": "SELECT product_id,\n       product_name,\n       unit_cost_eur\nFROM products\nWHERE category_id = 3\nORDER BY ___, ___\nLIMIT 2",
+  "solver": {
+    "prompt_hash": "888f0d67082b12c0",
+    "schema_version": "d77fe1c31a0e",
+    "dataset_version": "9639f8ae1f71c2ef",
+    "grader_version": "1a.2",
+    "query": "SELECT product_id, product_name, unit_cost_eur FROM products WHERE category_id = 3 AND unit_cost_eur IS NOT NULL ORDER BY unit_cost_eur ASC, product_id ASC LIMIT 2\n",
+    "at": "2026-10-03T13:08:03.223Z"
+  }
+}

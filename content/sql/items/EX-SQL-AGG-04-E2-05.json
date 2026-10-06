@@ -1,0 +1,130 @@
+{
+  "id": "EX-SQL-AGG-04-E2-05",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-02",
+    "conditional-aggregation",
+    "sum-if",
+    "having",
+    "sales",
+    "group-filter"
+  ],
+  "level": 2,
+  "source_ids": [
+    "01:SQL-AGG-04"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-AGG-04",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-AGG-03",
+    "SQL-CASE-01",
+    "SQL-AGG-04"
+  ],
+  "template_id": "T-AGG-04-having-conditional",
+  "template_params": {
+    "table": "sales",
+    "group": "category_name",
+    "split": "channel",
+    "threshold": 0.6
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_agg",
+  "prompt": "Which categories make at least 60% as much net revenue on the web as in stores? Use the sales table and its category_name column; channel is 'web' or 'store'. Return three columns, in this order: category_name, web_revenue_eur, the sum of net_revenue_eur over the category's web lines, and store_revenue_eur, the sum of net_revenue_eur over its store lines. Lines with a missing net_revenue_eur add nothing. Return one row per category_name, and only the categories whose web_revenue_eur is at least 0.6 times their store_revenue_eur. Do not round. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "category_name",
+        "type_class": "text"
+      },
+      {
+        "name": "web_revenue_eur",
+        "type_class": "numeric"
+      },
+      {
+        "name": "store_revenue_eur",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per category_name"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "category_name",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "web_revenue_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "store_revenue_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "category_name"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the group filter that keeps a category only when its web revenue reaches 0.6 times its store revenue.",
+    "The condition compares two totals, so it goes in HAVING, after GROUP BY, and repeats the two conditional SUMs. WHERE runs on single lines, before any total exists."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 204,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 205,
+      "to": 215,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 216,
+      "to": 238,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 239,
+      "to": 382,
+      "subgoal": "group_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "HAVING filters after the groups are added up, so it can compare the web total with 0.6 times the store total; WHERE runs on single lines, before any total exists."
+}

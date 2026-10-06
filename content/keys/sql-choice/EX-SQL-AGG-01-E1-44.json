@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-AGG-01-E1-44",
+  "item_version": 1,
+  "correct_oid": "o0bb13d3",
+  "explanation": "sales has one row per order line, and its key is order_line_id. An order can have several lines: the sample rows show order 1 on three rows and order 2 on two. So order_id repeats, which is why counting orders needs COUNT(DISTINCT order_id).",
+  "solver": {
+    "prompt_hash": "7d155ce6a15cb760",
+    "grader_version": "choice.1",
+    "chosen": "o0bb13d3",
+    "typed": null,
+    "at": "2026-10-06T09:08:14.809Z"
+  }
+}

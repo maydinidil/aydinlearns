@@ -1,0 +1,116 @@
+{
+  "id": "EX-SQL-FILTER-02-E1-31",
+  "version": 1,
+  "kind": "fix",
+  "tags": [
+    "sql",
+    "LVL-01",
+    "fix",
+    "like",
+    "promotions"
+  ],
+  "level": 1,
+  "source_ids": [
+    "01:SQL-FILTER-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-FILTER-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02"
+  ],
+  "template_id": "T-FILTER-02-fix-like-wildcard",
+  "template_params": {
+    "table": "promotions",
+    "ends_with": "Bundle"
+  },
+  "sub_skill": "like",
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_filter",
+  "prompt": "The query in the editor has one mistake. Fix it so that it answers this question: which promotions are bundle campaigns by name? From the promotions table, return three columns, in this order: promo_code, promo_name, start_date. Keep only the promotions whose promo_name ends with the word Bundle, such as April Bundle. Every promotion has a promo_name. Return one row per promotion. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "promo_code",
+        "type_class": "text"
+      },
+      {
+        "name": "promo_name",
+        "type_class": "text"
+      },
+      {
+        "name": "start_date",
+        "type_class": "temporal"
+      }
+    ],
+    "grain": "one row per promotion"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "promo_code",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "promo_name",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "start_date",
+        "type_class": "temporal",
+        "precision": "exact"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, check the text pattern in the row filter against a name such as April Bundle.",
+    "LIKE compares the pattern with the whole value, so a pattern with no wildcard matches only a name that is exactly that text. Put a % where other text may come."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 41,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 42,
+      "to": 57,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 58,
+      "to": 89,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": "SELECT promo_code, promo_name, start_date\nFROM promotions\nWHERE promo_name LIKE 'Bundle'",
+  "starter_error_id": "ERR-LOG-22",
+  "time_target_ms": 90000,
+  "why_this_works": "The % stands for any text, so '%Bundle' matches every name that ends with Bundle; with no %, only a name that is exactly Bundle would match."
+}

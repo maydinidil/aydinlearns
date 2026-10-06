@@ -1,0 +1,24 @@
+{
+  "id": "g3-require-rounding",
+  "rule": "G3",
+  "setup_sql": [
+    "CREATE SCHEMA g",
+    "CREATE TABLE g.r AS SELECT 1 AS a, 3 AS b"
+  ],
+  "key_sql": "SELECT ROUND(a / b, 2) AS share FROM g.r",
+  "learner_sql": "SELECT a / b AS share FROM g.r",
+  "rules": {
+    "columns": [
+      {
+        "name": "share",
+        "type_class": "numeric",
+        "precision": "ratio",
+        "require_rounding": 2
+      }
+    ]
+  },
+  "expect": {
+    "pass": false,
+    "mismatched": 1
+  }
+}

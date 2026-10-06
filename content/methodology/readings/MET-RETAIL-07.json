@@ -1,0 +1,14 @@
+{
+  "concept_id": "MET-RETAIL-07",
+  "section": "methodology",
+  "version": 1,
+  "title": "Units per basket (UPT)",
+  "reading_md": "**What it measures.** How many items customers take home per purchase, on average. Retailers call it units per transaction (UPT) or units per basket.\n\n**Formula.**\n\nUPT = units sold / number of distinct transactions\n\nGrain: channel or store × period. One order line can hold several units, such as 3 HDMI cables, so add up the units and count orders, not lines. In Voltmarkt's `sales` view one row is one order line:\n\n```sql\nSELECT channel,\n  ROUND(SUM(units) / COUNT(DISTINCT order_id), 2) AS upt\nFROM sales\nGROUP BY channel;\n```\n\n**Worked example.** In one week the Rotterdam store had 1,000 transactions. They held 1,500 order lines and 2,100 units.\n\n- UPT = 2,100 / 1,000 = 2.10.\n- Lines per transaction is 1.50. Counting lines, or different products, instead of units understates UPT.\n\nTo combine stores, add up first. Rotterdam sold 2,100 units in 1,000 transactions; Gent sold 600 units in 500 transactions (UPT 1.20). Together: 2,700 / 1,500 = 1.80, not the 1.65 you get by averaging the two UPTs.\n\n**UPT and AOV.** AOV = UPT × average net revenue per unit sold. If UPT rises while AOV stays flat, customers took more items but each item brought in less, for example when cheap accessories join the basket.\n\n**Common mistakes.**\n\n- Counting different products (SKUs) or order lines instead of units.\n- Averaging store or day UPTs instead of dividing the totals.\n\n**What UPT does not answer.**\n\n- What a basket is worth: that is AOV.\n- What one unit sells for: that is ASP.\n- How many visitors buy at all: that is conversion rate.\n\n**How managers ask for it.** \"Are people buying more items per visit?\" \"Did the bundle offer lift UPT?\"",
+  "source_ids": [
+    "04:MET-RETAIL-07",
+    "04:MET-RETAIL-06",
+    "ERRATA:E-100"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06"
+}

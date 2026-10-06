@@ -1,0 +1,108 @@
+{
+  "id": "EX-SQL-SORT-01-E2-04",
+  "version": 2,
+  "kind": "write",
+  "tags": [
+    "distinct",
+    "where",
+    "products"
+  ],
+  "level": 1,
+  "source_ids": [
+    "01:SQL-SORT-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-02",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-SORT-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-SORT-01"
+  ],
+  "template_id": "T-SORT-01-distinct-values",
+  "template_params": {
+    "table": "products",
+    "columns": 1,
+    "min_cost_eur": 1000
+  },
+  "sub_skill": "distinct",
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_sort",
+  "prompt": "Which brands have at least one product with a unit_cost_eur of 1000 euros or more? Return one column, brand, with exactly this name, listing each brand once, sorted from A to Z. Leave out products with a missing unit_cost_eur. A missing brand counts as one value, and its row may come first or last.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "brand",
+        "type_class": "text"
+      }
+    ],
+    "grain": "one row per brand"
+  },
+  "rules": {
+    "order_matters": true,
+    "sort_keys": [
+      {
+        "column": "brand",
+        "desc": false
+      }
+    ],
+    "check_names": true,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "brand",
+        "type_class": "text",
+        "precision": "exact"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "brand"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, decide what one row stands for. Filter to the expensive products first, then reduce the rows to one per brand.",
+    "The cost test goes in WHERE, the keyword that keeps each brand once goes right after SELECT, and the A to Z order goes in an ORDER BY at the end."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 21,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 22,
+      "to": 35,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 36,
+      "to": 63,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 64,
+      "to": 78,
+      "subgoal": "sort_limit"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 150000,
+  "why_this_works": "WHERE keeps products costing 1000 euros or more, and DISTINCT turns their brands into a list with each brand once."
+}

@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-CASE-01-E1-42",
+  "item_version": 1,
+  "correct_oid": "o14ae6f3",
+  "explanation": "CASE labels every row: WHEN catches the web store, and ELSE gives every other store physical. Without ELSE, the other stores get a missing label. WHERE removes every store but the webshop instead of labelling them. The stored store_type is web, not webshop, so a test on 'webshop' never matches.",
+  "solver": {
+    "prompt_hash": "a48238980aa106ec",
+    "grader_version": "choice.1",
+    "chosen": "o14ae6f3",
+    "typed": null,
+    "at": "2026-10-06T09:08:14.838Z"
+  }
+}

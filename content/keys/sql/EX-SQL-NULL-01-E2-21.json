@@ -1,0 +1,37 @@
+{
+  "item_id": "EX-SQL-NULL-01-E2-21",
+  "item_version": 1,
+  "reference_sql": "SELECT product_id, product_name, category_raw, unit_cost_eur\nFROM products\nWHERE (category_raw <> 'Earbuds' OR category_raw IS NULL) AND unit_cost_eur < 50",
+  "alternatives": [
+    "SELECT product_id, product_name, category_raw, unit_cost_eur\nFROM products\nWHERE unit_cost_eur < 50 AND (category_raw IS NULL OR category_raw <> 'Earbuds')",
+    "SELECT product_id, product_name, category_raw, unit_cost_eur\nFROM products\nWHERE (category_raw <> 'Earbuds' AND unit_cost_eur < 50) OR (category_raw IS NULL AND unit_cost_eur < 50)",
+    "SELECT product_id, product_name, category_raw, unit_cost_eur\nFROM products\nWHERE (NOT category_raw = 'Earbuds' OR category_raw IS NULL) AND unit_cost_eur < 50"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-03",
+      "sql": "SELECT product_id, product_name, category_raw, unit_cost_eur FROM products WHERE category_raw <> 'Earbuds' AND unit_cost_eur < 50"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-17",
+      "sql": "SELECT product_id, product_name, category_raw, unit_cost_eur FROM products WHERE (category_raw <> 'Earbuds' OR category_raw IS NULL) AND COALESCE(unit_cost_eur, 0) < 50"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-13",
+      "sql": "SELECT product_id, product_name, category_raw, unit_cost_eur FROM products WHERE category_raw <> 'Earbuds' OR category_raw IS NULL AND unit_cost_eur < 50"
+    }
+  ],
+  "hint3_partial": "SELECT product_id, product_name, category_raw, unit_cost_eur\nFROM products\nWHERE (category_raw <> 'Earbuds' OR category_raw ...) AND unit_cost_eur < 50",
+  "solver": {
+    "prompt_hash": "6541b406370c5278",
+    "schema_version": "d77fe1c31a0e",
+    "dataset_version": "506a9858f862fdfb",
+    "grader_version": "1b.3",
+    "query": "SELECT product_id, product_name, category_raw, unit_cost_eur FROM products WHERE (category_raw IS NULL OR category_raw <> 'Earbuds') AND unit_cost_eur < 50\n",
+    "at": "2026-10-04T14:33:18.332Z"
+  }
+}

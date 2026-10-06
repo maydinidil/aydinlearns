@@ -1,0 +1,15 @@
+{
+  "concept_id": "MET-MKT-11",
+  "section": "methodology",
+  "version": 1,
+  "title": "Position-based attribution",
+  "reading_md": "**What it measures.** How revenue splits when the touch that opened the journey and the touch that closed it get most of the credit. It is also called U-shaped attribution.\n\n**Formula.** For each order, number the touches in the lookback window from 1 to n.\n\n| Touches in the path | Credit |\n|---|---|\n| 1 | The only touch gets 100% |\n| 2 | Each touch gets 50% |\n| 3 or more | First touch 40%, last touch 40%, each middle touch 20% / (n - 2) |\n\nA channel's credit is the sum of its touches' shares. Grain: channel × period. Orders with no touch in the window go to an \"unattributed\" row.\n\n**Worked example.** An order of €500 had the path social → email → display → paid search.\n\n- Social, the first touch: 40% = €200.\n- Paid search, the last touch: 40% = €200.\n- Email and display share 20% = €100, so €50 each.\n- Total: €500.\n\nA one-touch order of €80 gives that touch €80, and a two-touch order of €80 gives €40 to each touch.\n\n**Common mistakes.**\n\n- Using the 40% weights for paths of one or two touches. A one-touch path then gets only 40% of its revenue and a two-touch path 80%, so credit falls short of revenue.\n- Splitting the middle 20% by channel instead of by touch.\n- Treating 40/20/40 as measured. The weights are a convention someone chose, not an estimate of what each touch caused.\n\n**A note on tools.** Google Ads and GA4 no longer offer position-based attribution, so Voltmarkt computes it from its own touch data.\n\n**How managers ask for it.** \"Give credit to both the opener and the closer.\" \"Use a U-shaped model.\"",
+  "source_ids": [
+    "04:MET-MKT-11",
+    "04:§2.1",
+    "ERRATA:E-097",
+    "ERRATA:E-100"
+  ],
+  "verified": true,
+  "as_of": "2026-10-05"
+}

@@ -1,0 +1,32 @@
+{
+  "item_id": "EX-SQL-SORT-01-E3-01",
+  "item_version": 2,
+  "reference_sql": "SELECT DISTINCT promo_type,\n       discount_pct\nFROM promotions\nWHERE start_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\nORDER BY promo_type, discount_pct DESC",
+  "alternatives": [
+    "SELECT DISTINCT promo_type, discount_pct FROM promotions WHERE start_date >= DATE '2025-01-01' AND start_date < DATE '2026-01-01' ORDER BY promo_type, discount_pct DESC",
+    "SELECT DISTINCT promo_type, discount_pct FROM promotions WHERE start_date BETWEEN '2025-01-01' AND '2025-12-31' ORDER BY 1, 2 DESC",
+    "SELECT DISTINCT promo_type, discount_pct FROM promotions WHERE start_date >= DATE '2025-01-01' AND start_date <= DATE '2025-12-31' ORDER BY promo_type ASC, discount_pct DESC"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "EX-SQL-SORT-01-E3-01-PW1",
+      "error_id": "ERR-LOG-08",
+      "sql": "SELECT promo_type, discount_pct FROM promotions WHERE start_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31' ORDER BY promo_type, discount_pct DESC"
+    },
+    {
+      "id": "EX-SQL-SORT-01-E3-01-PW2",
+      "error_id": "ERR-LOG-18",
+      "sql": "SELECT DISTINCT promo_type, discount_pct FROM promotions WHERE start_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31' ORDER BY promo_type, discount_pct"
+    }
+  ],
+  "hint3_partial": "SELECT DISTINCT promo_type,\n       discount_pct\nFROM promotions\nWHERE start_date BETWEEN ___ AND ___\nORDER BY promo_type, discount_pct ___",
+  "solver": {
+    "prompt_hash": "3531aa48b564e303",
+    "schema_version": "f0340f71a1f5",
+    "dataset_version": "9639f8ae1f71c2ef",
+    "grader_version": "1b.1",
+    "query": "SELECT DISTINCT promo_type, discount_pct FROM promotions WHERE start_date >= DATE '2025-01-01' AND start_date <= DATE '2025-12-31' ORDER BY promo_type ASC, discount_pct DESC\n",
+    "at": "2026-10-03T20:33:06.790Z"
+  }
+}

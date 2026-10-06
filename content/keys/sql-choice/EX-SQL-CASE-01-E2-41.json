@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-CASE-01-E2-41",
+  "item_version": 1,
+  "correct_oid": "o79ff9f2",
+  "explanation": "CASE uses the first WHEN that is true. Every store opened in 2012 or later passes the first test, so stores 1, 2, 3 and 5 are all recent and the second WHEN is never reached. Store 4 opened in 2011, so no WHEN is true, and with no ELSE its band is missing. The row itself stays.",
+  "solver": {
+    "prompt_hash": "0ea686192acc3bcf",
+    "grader_version": "choice.1",
+    "chosen": "o79ff9f2",
+    "typed": null,
+    "at": "2026-10-06T09:08:14.838Z"
+  }
+}

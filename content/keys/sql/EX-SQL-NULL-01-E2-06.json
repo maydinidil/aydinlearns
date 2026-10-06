@@ -1,0 +1,32 @@
+{
+  "item_id": "EX-SQL-NULL-01-E2-06",
+  "item_version": 1,
+  "reference_sql": "SELECT product_id, product_name, brand, unit_cost_eur * 1.21 AS cost_incl_vat\nFROM products\nWHERE category_raw = 'Cables' AND (brand <> 'Volt Basics' OR brand IS NULL)",
+  "alternatives": [
+    "SELECT product_id, product_name, brand, 1.21 * unit_cost_eur AS cost_incl_vat\nFROM products\nWHERE (brand <> 'Volt Basics' OR brand IS NULL) AND category_raw = 'Cables'",
+    "SELECT product_id, product_name, brand, unit_cost_eur * 1.21 AS cost_incl_vat\nFROM products\nWHERE category_raw = 'Cables' AND (brand IS NULL OR NOT brand = 'Volt Basics')",
+    "SELECT product_id, product_name, brand, unit_cost_eur + unit_cost_eur * 0.21 AS cost_incl_vat\nFROM products\nWHERE (category_raw = 'Cables' AND brand <> 'Volt Basics') OR (category_raw = 'Cables' AND brand IS NULL)"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "M1",
+      "error_id": "ERR-LOG-03",
+      "sql": "SELECT product_id, product_name, brand, unit_cost_eur * 1.21 AS cost_incl_vat\nFROM products\nWHERE category_raw = 'Cables' AND brand <> 'Volt Basics'"
+    },
+    {
+      "id": "M2",
+      "error_id": "ERR-LOG-17",
+      "sql": "SELECT product_id, product_name, brand, COALESCE(unit_cost_eur, 0) * 1.21 AS cost_incl_vat\nFROM products\nWHERE category_raw = 'Cables' AND (brand <> 'Volt Basics' OR brand IS NULL)"
+    }
+  ],
+  "hint3_partial": "SELECT product_id, product_name, brand, unit_cost_eur * 1.21 AS cost_incl_vat\nFROM products\nWHERE category_raw = 'Cables' AND (brand <> 'Volt Basics' OR ...)",
+  "solver": {
+    "prompt_hash": "39b8dfde0d9b75e1",
+    "schema_version": "d77fe1c31a0e",
+    "dataset_version": "9639f8ae1f71c2ef",
+    "grader_version": "1a.2",
+    "query": "SELECT product_id, product_name, brand, unit_cost_eur * 1.21 AS cost_incl_vat FROM products WHERE category_raw = 'Cables' AND (brand <> 'Volt Basics' OR brand IS NULL)\n",
+    "at": "2026-10-03T13:08:02.994Z"
+  }
+}

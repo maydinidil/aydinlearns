@@ -1,0 +1,124 @@
+{
+  "id": "EX-SQL-AGG-04-E1-07",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-02",
+    "conditional-aggregation",
+    "count-if",
+    "sales",
+    "is-null",
+    "data-quality"
+  ],
+  "level": 2,
+  "source_ids": [
+    "01:SQL-AGG-04"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-AGG-04",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-CASE-01",
+    "SQL-AGG-04"
+  ],
+  "template_id": "T-AGG-04-missing-scorecard",
+  "template_params": {
+    "table": "sales",
+    "checked": "units, net_revenue_eur, unit_cost_eur"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_agg",
+  "prompt": "How many order lines have a gap in the data? Use the sales table. Return four columns, in this order: n_lines, the number of order lines, lines_missing_units, the number of lines with a missing units value, lines_missing_revenue, the number of lines with a missing net_revenue_eur, and lines_missing_cost, the number of lines with a missing unit_cost_eur. Every order line counts in n_lines. Return one row. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "n_lines",
+        "type_class": "numeric"
+      },
+      {
+        "name": "lines_missing_units",
+        "type_class": "numeric"
+      },
+      {
+        "name": "lines_missing_revenue",
+        "type_class": "numeric"
+      },
+      {
+        "name": "lines_missing_cost",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row in total"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "n_lines",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "lines_missing_units",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "lines_missing_revenue",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "lines_missing_cost",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the three counts of missing values next to the count of all lines.",
+    "For each column, SUM a CASE that gives 1 when the value IS NULL and 0 otherwise. A comparison with = NULL is never true."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 279,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 280,
+      "to": 290,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 100000,
+  "why_this_works": "IS NULL is the only test that is true for a missing value, and the CASE inside SUM turns each missing value into a 1, so one pass counts the gaps in three columns."
+}

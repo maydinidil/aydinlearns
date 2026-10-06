@@ -1,0 +1,131 @@
+{
+  "id": "EX-SQL-AGG-03-E2-06",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-02",
+    "having",
+    "min",
+    "date",
+    "order-by",
+    "sales"
+  ],
+  "level": 2,
+  "source_ids": [
+    "01:SQL-AGG-03"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-AGG-03",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-AGG-03"
+  ],
+  "template_id": "T-AGG-03-min-date-threshold-sorted",
+  "template_params": {
+    "table": "sales",
+    "group_by": "store_code",
+    "aggregate": "min order_date",
+    "comparison": "on or after",
+    "threshold": "2024-09-01"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_agg",
+  "prompt": "Which stores made their first sale on or after 1 September 2024? Use the sales table. Return two columns, in this order: store_code and first_sale_date, the earliest order_date of the store. Return one row per store, and only the stores whose earliest order_date is 1 September 2024 or later, sorted by first_sale_date from latest to earliest.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "store_code",
+        "type_class": "text"
+      },
+      {
+        "name": "first_sale_date",
+        "type_class": "temporal"
+      }
+    ],
+    "grain": "one row per store"
+  },
+  "rules": {
+    "order_matters": true,
+    "sort_keys": [
+      {
+        "column": "first_sale_date",
+        "desc": true
+      }
+    ],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "store_code",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "first_sale_date",
+        "type_class": "temporal",
+        "precision": "exact"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "store_code"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the group filter: keep only the stores whose earliest order date is 1 September 2024 or later.",
+    "A date test in WHERE would drop the older lines and change each store's earliest date. Test the earliest date of the group, after GROUP BY."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 53,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 54,
+      "to": 64,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 65,
+      "to": 84,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 85,
+      "to": 128,
+      "subgoal": "group_filter"
+    },
+    {
+      "from": 129,
+      "to": 158,
+      "subgoal": "sort_limit"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "HAVING tests each store's MIN(order_date) after grouping, so only stores that started selling from September 2024 stay; WHERE would only trim their lines."
+}

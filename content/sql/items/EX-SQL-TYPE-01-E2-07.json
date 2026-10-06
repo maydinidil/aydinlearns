@@ -1,0 +1,129 @@
+{
+  "id": "EX-SQL-TYPE-01-E2-07",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-02",
+    "type",
+    "integer-division",
+    "division",
+    "decimals",
+    "round",
+    "missing-values",
+    "group-by",
+    "sales"
+  ],
+  "level": 2,
+  "source_ids": [
+    "01:SQL-TYPE-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-TYPE-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01"
+  ],
+  "template_id": "T-TYPE-01-int-vs-decimal",
+  "template_params": {
+    "table": "sales",
+    "group_by": "store_code",
+    "top": "SUM(units)",
+    "bottom": "COUNT(*)",
+    "decimals": 2,
+    "output": "units_per_line, units_per_line_int"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_type",
+  "prompt": "Show how integer division changes units per order line for each store. Use the sales table and all its order lines. Return three columns, in this order: store_code; units_per_line, the total of units divided by the number of order lines with its decimals kept, rounded to 2 decimals with ROUND(x, 2); and units_per_line_int, the same division done as integer division, which drops everything after the decimal point (the way PostgreSQL divides two whole numbers, and DuckDB's // operator). Count every order line, including a line whose units value is missing: a missing units value adds nothing to the total. Return one row per store_code. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "store_code",
+        "type_class": "text"
+      },
+      {
+        "name": "units_per_line",
+        "type_class": "numeric"
+      },
+      {
+        "name": "units_per_line_int",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per store_code"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "store_code",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "units_per_line",
+        "type_class": "numeric",
+        "precision": "ratio",
+        "require_rounding": 2
+      },
+      {
+        "name": "units_per_line_int",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "store_code"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the two calculated columns: the same total divided by the same count, once keeping the decimals and once as integer division.",
+    "For units_per_line, make one side a decimal before you divide and round the result. For units_per_line_int, divide the two whole numbers with integer division, which cuts off the decimals without rounding."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 134,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 135,
+      "to": 145,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 146,
+      "to": 165,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "The 1.0 keeps the decimals in the first column, while integer division in the second cuts them off, which is what PostgreSQL does to two whole numbers."
+}

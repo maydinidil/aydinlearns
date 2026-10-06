@@ -1,0 +1,31 @@
+{
+  "item_id": "EX-SQL-TYPE-01-E1-07",
+  "item_version": 1,
+  "reference_sql": "SELECT channel,\n       ROUND(SUM(net_revenue_eur) / COUNT(DISTINCT order_id), 2) AS avg_order_value_eur\nFROM sales\nGROUP BY channel",
+  "alternatives": [
+    "SELECT channel, ROUND(SUM(net_revenue_eur) * 1.0 / COUNT(DISTINCT order_id), 2) AS avg_order_value_eur FROM sales GROUP BY channel",
+    "SELECT channel, ROUND(CAST(SUM(COALESCE(net_revenue_eur, 0)) AS DOUBLE) / COUNT(DISTINCT order_id), 2) AS avg_order_value_eur FROM sales GROUP BY 1"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-04",
+      "sql": "SELECT channel, ROUND(SUM(net_revenue_eur) / COUNT(order_id), 2) AS avg_order_value_eur FROM sales GROUP BY channel"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-05",
+      "sql": "SELECT channel, CAST(SUM(net_revenue_eur) / COUNT(DISTINCT order_id) AS INTEGER) AS avg_order_value_eur FROM sales GROUP BY channel"
+    }
+  ],
+  "hint3_partial": "SELECT channel,\n       ROUND(SUM(net_revenue_eur) / COUNT(___), 2) AS avg_order_value_eur\nFROM sales\nGROUP BY channel",
+  "solver": {
+    "prompt_hash": "8a1b49523ccb2abf",
+    "schema_version": "cebf75df442f",
+    "dataset_version": "506a9858f862fdfb",
+    "grader_version": "1b.3",
+    "query": "SELECT channel, ROUND(SUM(net_revenue_eur) / COUNT(DISTINCT order_id), 2) AS avg_order_value_eur FROM sales GROUP BY channel\n",
+    "at": "2026-10-04T10:06:52.112Z"
+  }
+}

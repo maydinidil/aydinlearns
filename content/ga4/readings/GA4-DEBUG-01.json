@@ -1,0 +1,21 @@
+{
+  "concept_id": "GA4-DEBUG-01",
+  "section": "ga4",
+  "version": 1,
+  "title": "DebugView and validation",
+  "reading_md": "## What it is\n\n**DebugView** (Admin > Data display > DebugView) shows a live stream of events and their parameters, device by device, from devices in debug mode. You use it to check that events and parameters are sent correctly before you rely on them.\n\nThere are three ways to turn on debug mode:\n\n- Google Tag Manager's Preview mode;\n- the `debug_mode` parameter;\n- the Google Analytics Debugger browser extension.\n\n**Realtime** is different. It summarises the activity of all users over the last 30 minutes. DebugView is for validating an implementation; Realtime is for monitoring activity.\n\nA Voltmarkt example: before the new `reserve_in_store` tag is published, a developer opens Tag Manager's Preview mode, reserves a product on the webshop, and checks in DebugView that the event arrives with its `store_id` parameter.\n\nThe **developer traffic filter** excludes debug-mode events from reports (see the lesson \"Data filters and internal traffic\"). DebugView still shows them (Unverified).\n\n## What the exam asks\n\nHow to confirm that an event and its parameters are sent correctly: turn on debug mode, then watch DebugView.\n\n## Common confusions\n\n- DebugView shows only traffic from devices in debug mode. When DebugView is empty but Realtime shows your events, check that debug mode is on for your own device.\n- Realtime is not DebugView. Realtime summarises all users; DebugView streams individual debug devices.\n- A parameter that shows up in DebugView still needs registering as a custom dimension before reports can use it (see the lesson \"Parameters, custom dimensions and metrics, user properties\").\n\n## In Skillshop\n\nCourse \"Google Analytics Certification (2026)\": privacy and administration topics are spread over the modules \"Get Started Using Google Analytics\" and \"Use GA with Other Tools and Data Sources\" (Unverified).",
+  "source_ids": [
+    "06:GA4-DEBUG-01",
+    "06:Q-GA4-67",
+    "06:GA4-ADMIN-01",
+    "06:GA4-EVENTS-02",
+    "ERRATA:E-118",
+    "06:§2.2",
+    "06:§2.1",
+    "10:§7",
+    "ERRATA:E-116",
+    "ERRATA:E-122"
+  ],
+  "verified": false,
+  "as_of": "2026-10-05"
+}

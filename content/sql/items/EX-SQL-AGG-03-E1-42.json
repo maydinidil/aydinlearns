@@ -1,0 +1,86 @@
+{
+  "id": "EX-SQL-AGG-03-E1-42",
+  "version": 1,
+  "kind": "choose_query",
+  "tags": [
+    "sql",
+    "LVL-02",
+    "choose_query",
+    "having",
+    "where",
+    "group_by",
+    "sales"
+  ],
+  "level": 2,
+  "source_ids": [
+    "01:SQL-AGG-03"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-AGG-03",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-AGG-03"
+  ],
+  "template_id": "T-AGG-03-choose-having-with-row-filter",
+  "template_params": {
+    "table": "sales"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_agg",
+  "prompt": "On 1 January 2024 (order_date 2024-01-01), which orders had 3 or more order lines? Use the sales table, which has one row per order line. Return order_id and n_lines, the number of lines of the order, one row per order. Any row order is fine. Which query returns it?",
+  "output_contract": null,
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [],
+  "subgoals": [],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 60000,
+  "why_this_works": "",
+  "options": [
+    {
+      "oid": "ob56dcc9",
+      "text": "SELECT order_id, COUNT(*) AS n_lines\nFROM sales\nWHERE order_date = DATE '2024-01-01'\nGROUP BY order_id\nHAVING COUNT(*) > 3",
+      "misconception_id": "ERR-LOG-15"
+    },
+    {
+      "oid": "o8d9fc72",
+      "text": "SELECT order_id, COUNT(*) AS n_lines\nFROM sales\nGROUP BY order_id\nHAVING COUNT(*) >= 3",
+      "misconception_id": "ERR-LOG-02"
+    },
+    {
+      "oid": "oc214c64",
+      "text": "SELECT order_id, COUNT(*) AS n_lines\nFROM sales\nWHERE order_date = DATE '2024-01-01'\nGROUP BY order_id\nHAVING COUNT(*) >= 3",
+      "misconception_id": null
+    },
+    {
+      "oid": "o540685f",
+      "text": "SELECT order_id, COUNT(*) AS n_lines\nFROM sales\nWHERE order_date = DATE '2024-01-01'\n  AND units >= 3\nGROUP BY order_id",
+      "misconception_id": "ERR-LOG-02"
+    }
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-FILTER-02-E2-41",
+  "item_version": 1,
+  "correct_oid": "o1b7d4da",
+  "explanation": "BETWEEN keeps both ends, so it covers 1 March to 31 March exactly, and start_date is a date with no time. > and < drop a promotion that starts on the first or the last day. BETWEEN with the later date first matches nothing, and an end of 1 April lets in a promotion that starts in April.",
+  "solver": {
+    "prompt_hash": "a359955ad14bfa27",
+    "grader_version": "choice.1",
+    "chosen": "o1b7d4da",
+    "typed": null,
+    "at": "2026-10-06T09:08:14.848Z"
+  }
+}

@@ -1,0 +1,83 @@
+{
+  "id": "EX-SQL-AGG-01-E1-43",
+  "version": 1,
+  "kind": "which_table",
+  "tags": [
+    "sql",
+    "LVL-02",
+    "which_table",
+    "which_table",
+    "products",
+    "grain"
+  ],
+  "level": 2,
+  "source_ids": [
+    "01:SQL-AGG-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-AGG-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-AGG-01"
+  ],
+  "template_id": "T-AGG-01-which-table-count-products",
+  "template_params": {},
+  "sub_skill": "count_rows",
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_agg",
+  "prompt": "You want to count how many products Voltmarkt has in its range, with COUNT(*) on a table that has one row per product. Which table do you count?",
+  "output_contract": null,
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [],
+  "subgoals": [],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 60000,
+  "why_this_works": "",
+  "options": [
+    {
+      "oid": "ob7e1348",
+      "text": "sales",
+      "misconception_id": "ERR-LOG-07"
+    },
+    {
+      "oid": "od3f7680",
+      "text": "categories",
+      "misconception_id": "ERR-LOG-07"
+    },
+    {
+      "oid": "of33559e",
+      "text": "products",
+      "misconception_id": null
+    },
+    {
+      "oid": "oe12fea6",
+      "text": "promotions",
+      "misconception_id": "ERR-LOG-07"
+    }
+  ]
+}

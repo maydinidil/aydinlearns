@@ -1,0 +1,28 @@
+{
+  "id": "g1-permuted",
+  "rule": "G1",
+  "setup_sql": [
+    "CREATE SCHEMA g",
+    "CREATE TABLE g.t AS SELECT * FROM (VALUES (1,'a',10.5),(2,'b',20.0)) v(id,name,amt)"
+  ],
+  "key_sql": "SELECT id, name FROM g.t",
+  "learner_sql": "SELECT name, id FROM g.t",
+  "rules": {
+    "columns": [
+      {
+        "name": "id",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "name",
+        "type_class": "text",
+        "precision": "exact"
+      }
+    ],
+    "check_names": false
+  },
+  "expect": {
+    "pass": true
+  }
+}

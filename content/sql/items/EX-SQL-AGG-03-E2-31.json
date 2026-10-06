@@ -1,0 +1,131 @@
+{
+  "id": "EX-SQL-AGG-03-E2-31",
+  "version": 1,
+  "kind": "fix",
+  "tags": [
+    "sql",
+    "LVL-02",
+    "fix",
+    "having",
+    "where-vs-having",
+    "avg",
+    "sales",
+    "date_range"
+  ],
+  "level": 2,
+  "source_ids": [
+    "01:SQL-AGG-03"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-AGG-03",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-AGG-03"
+  ],
+  "template_id": "T-AGG-03-fix-where-vs-having",
+  "template_params": {
+    "table": "sales",
+    "group_by": "store_code",
+    "aggregate": "avg",
+    "comparison": "more than",
+    "threshold": 200,
+    "from": "2025-01-01",
+    "to": "2025-12-31"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_agg",
+  "prompt": "The query in the editor has one mistake. Fix it so that it answers this question: which stores had an average net revenue per order line of more than 200 euros in 2025 (order_date from 1 January 2025 to 31 December 2025, both days included)? Use the sales table. Return two columns, in this order: store_code and avg_line_revenue_eur, the average of net_revenue_eur over all the store's 2025 lines. Lines with a missing net_revenue_eur are left out of the average. Return one row per store, and only the stores whose average is above 200; the webshop, WEB-01, counts as a store. Do not round. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "store_code",
+        "type_class": "text"
+      },
+      {
+        "name": "avg_line_revenue_eur",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per store"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "store_code",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "avg_line_revenue_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "store_code"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the group filter: the 200 euros is a test on each store's average, not on single lines.",
+    "The test in WHERE throws away every line of 200 euros or less before the average is taken, so every average comes out high. Test the average of each store after GROUP BY instead."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 63,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 64,
+      "to": 74,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 75,
+      "to": 139,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 140,
+      "to": 159,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 160,
+      "to": 193,
+      "subgoal": "group_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": "SELECT store_code, AVG(net_revenue_eur) AS avg_line_revenue_eur\nFROM sales\nWHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31' AND net_revenue_eur > 200\nGROUP BY store_code",
+  "starter_error_id": "ERR-LOG-02",
+  "time_target_ms": 150000,
+  "why_this_works": "HAVING keeps the stores whose average over all their lines is above 200; a WHERE on net_revenue_eur averages only the large lines."
+}

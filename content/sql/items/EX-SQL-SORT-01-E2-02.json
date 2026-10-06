@@ -1,0 +1,141 @@
+{
+  "id": "EX-SQL-SORT-01-E2-02",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "limit",
+    "top-n",
+    "tie-break",
+    "where",
+    "products"
+  ],
+  "level": 1,
+  "source_ids": [
+    "01:SQL-SORT-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-02",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "lesson",
+  "target_concept_id": "SQL-SORT-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-SORT-01"
+  ],
+  "template_id": "T-SORT-01-top-n",
+  "template_params": {
+    "table": "products",
+    "n": 2,
+    "direction": "asc",
+    "category_id": 3
+  },
+  "sub_skill": "limit",
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_sort",
+  "prompt": "Which 2 products in category 3 (TVs 65 inch and up) have the lowest unit cost? Return product_id, product_name and unit_cost_eur, in that order, with exactly these column names, cheapest first. When products tie on unit_cost_eur, the lower product_id comes first and wins the place. Products with no unit cost do not count. Return exactly 2 rows.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "product_name",
+        "type_class": "text"
+      },
+      {
+        "name": "unit_cost_eur",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per product"
+  },
+  "rules": {
+    "order_matters": true,
+    "sort_keys": [
+      {
+        "column": "unit_cost_eur",
+        "desc": false
+      },
+      {
+        "column": "product_id",
+        "desc": false
+      }
+    ],
+    "check_names": true,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "product_name",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "unit_cost_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "product_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the row filter, then the sort and the row limit. Keep only category 3, sort cheapest first with the tie-break, then keep 2 rows.",
+    "WHERE comes before ORDER BY, and LIMIT comes last. Cheapest first is the default direction, and the tie-break is a second sort key after a comma."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 60,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 61,
+      "to": 74,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 75,
+      "to": 96,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 97,
+      "to": 131,
+      "subgoal": "sort_limit"
+    },
+    {
+      "from": 132,
+      "to": 139,
+      "subgoal": "sort_limit"
+    }
+  ],
+  "fading": {
+    "stage1": 132,
+    "stage2": 97
+  },
+  "faded_shape": "SELECT product_id,\n       product_name,\n       unit_cost_eur\nFROM products\nWHERE category_id = 3\nORDER BY unit_cost_eur, product_id\n",
+  "starter_sql": null,
+  "time_target_ms": 150000,
+  "why_this_works": "WHERE keeps the 65-inch TVs, the sort puts the cheapest first with product_id deciding ties, and LIMIT 2 keeps the first two."
+}

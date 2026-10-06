@@ -1,0 +1,115 @@
+{
+  "id": "EX-SQL-NULL-01-E1-06",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-01",
+    "is_null",
+    "and_or_not"
+  ],
+  "level": 1,
+  "source_ids": [
+    "01:SQL-NULL-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-02",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-NULL-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-NULL-01",
+    "SQL-FILTER-01"
+  ],
+  "template_id": "T-NULL-01-is-null-and-or",
+  "template_params": {
+    "table": "products",
+    "null_column": "sister_product_id",
+    "test": "IS NULL"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_null",
+  "prompt": "List the earbuds (category_raw 'Earbuds') made by Sonora or Echoline that have no sister product. sister_product_id is missing (NULL) for a product without a sister. Return three columns, in this order: product_id, product_name, brand. Return one row per product. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "product_name",
+        "type_class": "text"
+      },
+      {
+        "name": "brand",
+        "type_class": "text"
+      }
+    ],
+    "grain": "one row per product"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "product_name",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "brand",
+        "type_class": "text",
+        "precision": "exact"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the row filter. Keep the Sonora and Echoline earbuds whose sister_product_id is missing.",
+    "The WHERE clause needs three conditions joined by AND, with the two brands bracketed because they are joined by OR. The sister test is the special test for a missing value, not a comparison with =."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 38,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 39,
+      "to": 52,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 53,
+      "to": 158,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 110000,
+  "why_this_works": "IS NULL keeps the earbuds with no sister, and the brackets keep both brands inside the earbuds category."
+}

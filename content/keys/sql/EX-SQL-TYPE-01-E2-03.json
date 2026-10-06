@@ -1,0 +1,31 @@
+{
+  "item_id": "EX-SQL-TYPE-01-E2-03",
+  "item_version": 1,
+  "reference_sql": "SELECT parent_category,\n       ROUND(SUM(net_revenue_eur - units * unit_cost_eur), 0) AS margin_eur\nFROM sales\nWHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\nGROUP BY parent_category",
+  "alternatives": [
+    "SELECT parent_category, ROUND(SUM(net_revenue_eur - unit_cost_eur * units)) AS margin_eur FROM sales WHERE order_date >= DATE '2025-01-01' AND order_date <= DATE '2025-12-31' GROUP BY parent_category",
+    "SELECT parent_category, ROUND(SUM(CASE WHEN net_revenue_eur IS NOT NULL AND units IS NOT NULL AND unit_cost_eur IS NOT NULL THEN net_revenue_eur - units * unit_cost_eur END), 0) AS margin_eur FROM sales WHERE order_date BETWEEN '2025-01-01' AND '2025-12-31' GROUP BY 1"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-19",
+      "sql": "SELECT parent_category, SUM(ROUND(net_revenue_eur - units * unit_cost_eur, 0)) AS margin_eur FROM sales WHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31' GROUP BY parent_category"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-17",
+      "sql": "SELECT parent_category, ROUND(SUM(net_revenue_eur) - SUM(units * unit_cost_eur), 0) AS margin_eur FROM sales WHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31' GROUP BY parent_category"
+    }
+  ],
+  "hint3_partial": "SELECT parent_category,\n       ROUND(SUM(___), 0) AS margin_eur\nFROM sales\nWHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\nGROUP BY parent_category",
+  "solver": {
+    "prompt_hash": "2a7606e7b2f689be",
+    "schema_version": "cebf75df442f",
+    "dataset_version": "506a9858f862fdfb",
+    "grader_version": "1b.3",
+    "query": "SELECT parent_category, ROUND(SUM(net_revenue_eur - units * unit_cost_eur), 0) AS margin_eur FROM sales WHERE order_date BETWEEN '2025-01-01' AND '2025-12-31' GROUP BY parent_category\n",
+    "at": "2026-10-04T10:06:52.511Z"
+  }
+}

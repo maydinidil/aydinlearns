@@ -1,0 +1,136 @@
+{
+  "id": "EX-SQL-TYPE-01-E3-03",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-02",
+    "type",
+    "percent-scale",
+    "round",
+    "having",
+    "boundary",
+    "missing-values",
+    "group-by",
+    "sales"
+  ],
+  "level": 2,
+  "source_ids": [
+    "01:SQL-TYPE-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-TYPE-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-AGG-03",
+    "SQL-TYPE-01"
+  ],
+  "template_id": "T-TYPE-01-having-ratio",
+  "template_params": {
+    "table": "sales",
+    "group_by": "parent_category",
+    "measure": "margin percent",
+    "threshold": 20,
+    "decimals": 1,
+    "from": "2025-01-01",
+    "to": "2025-12-31",
+    "output": "margin_pct"
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_type",
+  "prompt": "Which parent categories earned a margin of at least 20 percent on their complete 2025 order lines? Use the sales table and keep the order lines with an order_date from 2025-01-01 to 2025-12-31, both included, that have net_revenue_eur, units and unit_cost_eur all present. A line's margin is net_revenue_eur minus units times unit_cost_eur. Return two columns, in this order: parent_category and margin_pct, 100 times the sum of the line margins divided by the sum of net_revenue_eur, rounded to 1 decimal with ROUND(x, 1), so 15 percent is 15.0. Keep only the parent categories whose margin percentage, before rounding, is 20 or more. Return one row per parent_category. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "parent_category",
+        "type_class": "text"
+      },
+      {
+        "name": "margin_pct",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per parent_category"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "parent_category",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "margin_pct",
+        "type_class": "numeric",
+        "precision": "ratio",
+        "require_rounding": 1
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "parent_category"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, keep the complete 2025 lines, decide what one row stands for, write margin_pct, then write the group filter.",
+    "The 20 percent test is on a group total, so it belongs in HAVING, on the same percent scale as margin_pct and before rounding. \"At least 20\" includes 20 itself."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 130,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 131,
+      "to": 141,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 142,
+      "to": 296,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 297,
+      "to": 321,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 322,
+      "to": 410,
+      "subgoal": "group_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "HAVING tests each category's total margin on the percent scale before rounding, and >= keeps a category that lands exactly on 20 percent."
+}

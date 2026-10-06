@@ -1,0 +1,14 @@
+{
+  "concept_id": "MET-SAAS-10",
+  "section": "methodology",
+  "version": 2,
+  "title": "Customer lifetime value (LTV)",
+  "reading_md": "**Setting.** The examples use Business Care, the device-support subscription Voltmarkt sells to small offices.\n\n**What it estimates.** How much gross profit an average customer brings in over the whole time it stays subscribed. It is an estimate built from today's averages, not a measured figure.\n\n**Formula (Voltmarkt's convention).**\n\nLTV = ARPA × gross margin / monthly logo churn rate\n\n- ARPA: average MRR per active business this month.\n- Gross margin: the share of revenue left after the cost of serving the subscription, as a fraction.\n- Monthly logo churn rate: the average of the last 6 monthly rates, as a fraction. 1 / churn is the expected lifetime in months.\n- Grain: month, optionally by segment.\n\n**Worked example.** ARPA is €40 and gross margin is 60%. The last 6 monthly logo churn rates were 2.0%, 2.4%, 2.2%, 1.8%, 2.0% and 1.6%, an average of 2.0%.\n\n- LTV = 40 × 0.60 / 0.020 = €1,200. A business is expected to stay 1 / 0.02 = 50 months and to bring €24 of gross profit a month.\n- Leaving out gross margin gives 40 / 0.020 = €2,000, as if serving the business cost nothing.\n- Using only last month's 1.6% gives €1,500: one quiet month moves LTV a lot.\n\n**Small numbers, big swings.** Churn sits in the denominator, so a tiny churn rate gives a huge LTV. A month with 1 cancellation out of 800 businesses (0.125%) would put LTV at €19,200. That is why the rate is averaged over 6 months, and why an LTV built on churn near zero should not be trusted.\n\n**Common mistakes.**\n\n- Leaving out gross margin.\n- Using one month's churn, which swings a lot when few businesses cancel.\n- Trusting an LTV built on churn close to zero.\n\n**What LTV does not answer.**\n\n- What it costs to win a customer: that is CAC. \"Is our LTV to CAC healthy?\" compares the two.\n- How soon the acquisition cost comes back: that is CAC payback.\n- How revenue from existing customers develops: that is NRR.\n\n**How managers ask for it.** \"What is a customer worth?\" \"Is our LTV to CAC healthy?\"",
+  "source_ids": [
+    "04:MET-SAAS-10",
+    "04:§2.1",
+    "ERRATA:E-100"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06"
+}

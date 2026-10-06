@@ -1,0 +1,117 @@
+{
+  "id": "EX-SQL-NULL-01-E3-03",
+  "version": 2,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-01",
+    "coalesce",
+    "not_equal_with_null",
+    "and_or_not"
+  ],
+  "level": 1,
+  "source_ids": [
+    "01:SQL-NULL-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-02",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-NULL-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-NULL-01",
+    "SQL-FILTER-01"
+  ],
+  "template_id": "T-NULL-01-coalesce-and-not-equal",
+  "template_params": {
+    "table": "promotions",
+    "null_column": "promo_type, discount_pct",
+    "excluded": "percent_off",
+    "helper": "COALESCE"
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_null",
+  "prompt": "List the promotions whose promo_type is not 'percent_off' and that started in 2025 or later (start_date on or after 1 January 2025, with no upper limit). Leave out promotions with a missing start_date. A promotion with no promo_type recorded (NULL) is not known to be percent_off, so include it. Return three columns, in this order: promo_code, promo_type, discount_pct. A promotion with no discount_pct recorded gave no discount, so show 0 for it: use COALESCE(discount_pct, 0). Return one row per promotion. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "promo_code",
+        "type_class": "text"
+      },
+      {
+        "name": "promo_type",
+        "type_class": "text"
+      },
+      {
+        "name": "discount_pct",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per promotion"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "promo_code",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "promo_type",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "discount_pct",
+        "type_class": "numeric",
+        "precision": "ratio"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the row filter. Keep the 2025 promotions whose promo_type is anything other than 'percent_off', including a missing promo_type.",
+    "Pair the not-percent_off test with a second test on promo_type inside brackets, then add the start date with AND. In SELECT, show the discount through COALESCE so a missing discount reads 0."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 72,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 73,
+      "to": 88,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 89,
+      "to": 182,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "OR promo_type IS NULL keeps the promotion whose type is unknown, which <> alone would drop, and COALESCE shows the missing discount as 0."
+}

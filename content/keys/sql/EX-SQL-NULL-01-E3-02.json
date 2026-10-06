@@ -1,0 +1,32 @@
+{
+  "item_id": "EX-SQL-NULL-01-E3-02",
+  "item_version": 1,
+  "reference_sql": "SELECT store_code, opened_on, close_date\nFROM stores\nWHERE opened_on <= DATE '2025-01-01' AND (close_date IS NULL OR close_date > DATE '2025-01-01')",
+  "alternatives": [
+    "SELECT store_code, opened_on, close_date\nFROM stores\nWHERE (close_date > '2025-01-01' OR close_date IS NULL) AND opened_on <= '2025-01-01'",
+    "SELECT store_code, opened_on, close_date\nFROM stores\nWHERE (opened_on <= DATE '2025-01-01' AND close_date IS NULL) OR (opened_on <= DATE '2025-01-01' AND close_date > DATE '2025-01-01')",
+    "SELECT store_code, opened_on, close_date\nFROM stores\nWHERE opened_on < DATE '2025-01-02' AND (close_date IS NULL OR close_date >= DATE '2025-01-02')"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "M1",
+      "error_id": "ERR-LOG-03",
+      "sql": "SELECT store_code, opened_on, close_date\nFROM stores\nWHERE opened_on <= DATE '2025-01-01' AND close_date > DATE '2025-01-01'"
+    },
+    {
+      "id": "M2",
+      "error_id": "ERR-LOG-13",
+      "sql": "SELECT store_code, opened_on, close_date\nFROM stores\nWHERE opened_on <= DATE '2025-01-01' AND close_date IS NULL OR close_date > DATE '2025-01-01'"
+    }
+  ],
+  "hint3_partial": "SELECT store_code, opened_on, close_date\nFROM stores\nWHERE opened_on <= DATE '2025-01-01' AND (close_date IS NULL OR ...)",
+  "solver": {
+    "prompt_hash": "4a87afc822f124b4",
+    "schema_version": "9a8d01143702",
+    "dataset_version": "9639f8ae1f71c2ef",
+    "grader_version": "1a.2",
+    "query": "SELECT store_code, opened_on, close_date FROM stores WHERE opened_on <= '2025-01-01' AND (close_date IS NULL OR close_date > '2025-01-01')\n",
+    "at": "2026-10-03T13:08:03.020Z"
+  }
+}

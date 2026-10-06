@@ -1,0 +1,36 @@
+{
+  "item_id": "EX-SQL-AGG-01-E3-21",
+  "item_version": 1,
+  "reference_sql": "SELECT MIN(order_date) AS first_order_date,\n       MAX(order_date) AS last_order_date,\n       MAX(units) AS max_units,\n       MAX(net_revenue_eur) AS max_line_revenue_eur\nFROM sales\nWHERE store_code IN ('BE-01', 'LU-01')\n  AND order_date BETWEEN DATE '2025-01-01' AND DATE '2025-02-28'",
+  "alternatives": [
+    "SELECT MIN(order_date) AS first_order_date, MAX(order_date) AS last_order_date, MAX(units) AS max_units, MAX(net_revenue_eur) AS max_line_revenue_eur FROM sales WHERE (store_code = 'BE-01' OR store_code = 'LU-01') AND order_date >= DATE '2025-01-01' AND order_date < DATE '2025-03-01'",
+    "SELECT MIN(order_date) AS first_order_date, MAX(order_date) AS last_order_date, MAX(units) AS max_units, MAX(net_revenue_eur) AS max_line_revenue_eur FROM sales WHERE order_date BETWEEN '2025-01-01' AND '2025-02-28' AND store_code IN ('LU-01', 'BE-01')"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-13",
+      "sql": "SELECT MIN(order_date) AS first_order_date, MAX(order_date) AS last_order_date, MAX(units) AS max_units, MAX(net_revenue_eur) AS max_line_revenue_eur FROM sales WHERE store_code = 'BE-01' OR store_code = 'LU-01' AND order_date BETWEEN DATE '2025-01-01' AND DATE '2025-02-28'"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-06",
+      "sql": "SELECT MIN(order_date) AS first_order_date, MAX(order_date) AS last_order_date, MAX(units) AS max_units, MAX(net_revenue_eur) AS max_line_revenue_eur FROM sales WHERE store_code IN ('BE-01', 'LU-01') AND order_date >= DATE '2025-01-01' AND order_date < DATE '2025-02-28'"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-14",
+      "sql": "SELECT MIN(order_date) AS first_order_date, MAX(order_date) AS last_order_date, SUM(units) AS max_units, MAX(net_revenue_eur) AS max_line_revenue_eur FROM sales WHERE store_code IN ('BE-01', 'LU-01') AND order_date BETWEEN DATE '2025-01-01' AND DATE '2025-02-28'"
+    }
+  ],
+  "hint3_partial": "SELECT MIN(order_date) AS first_order_date,\n       ___ AS last_order_date,\n       ___ AS max_units,\n       ___ AS max_line_revenue_eur\nFROM sales\nWHERE store_code IN (___)\n  AND order_date BETWEEN ___",
+  "solver": {
+    "prompt_hash": "94e35f151e64044a",
+    "schema_version": "cebf75df442f",
+    "dataset_version": "506a9858f862fdfb",
+    "grader_version": "1b.3",
+    "query": "SELECT MIN(order_date) AS first_order_date, MAX(order_date) AS last_order_date, MAX(units) AS max_units, MAX(net_revenue_eur) AS max_line_revenue_eur FROM sales WHERE store_code IN ('BE-01', 'LU-01') AND order_date BETWEEN DATE '2025-01-01' AND DATE '2025-02-28'\n",
+    "at": "2026-10-04T14:33:15.924Z"
+  }
+}

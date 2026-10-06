@@ -1,0 +1,131 @@
+{
+  "id": "EX-SQL-AGG-01-E3-03",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-02",
+    "aggregate",
+    "count_column",
+    "sales",
+    "count_column",
+    "null",
+    "data_quality",
+    "date_range"
+  ],
+  "level": 2,
+  "source_ids": [
+    "01:SQL-AGG-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-AGG-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-AGG-01"
+  ],
+  "template_id": "T-AGG-01-missing-value-check",
+  "template_params": {
+    "table": "sales",
+    "from": "2025-01-01",
+    "to": "2025-12-31"
+  },
+  "sub_skill": "count_column",
+  "difficulty": "E3",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_agg",
+  "prompt": "Before reporting on 2025, check the order lines for gaps. For lines with an order_date from 1 January 2025 to 31 December 2025, both days included, return four columns, in this order: n_lines (all those lines), n_missing_units (lines whose units value is missing), n_missing_revenue (lines whose net_revenue_eur is missing) and n_missing_cost (lines whose unit_cost_eur is missing). Use exactly these column names. The result is a single row. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "n_lines",
+        "type_class": "numeric"
+      },
+      {
+        "name": "n_missing_units",
+        "type_class": "numeric"
+      },
+      {
+        "name": "n_missing_revenue",
+        "type_class": "numeric"
+      },
+      {
+        "name": "n_missing_cost",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row in total"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": true,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "n_lines",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "n_missing_units",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "n_missing_revenue",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "n_missing_cost",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the four counts. Each missing-value count is the number of lines minus the number of lines that do have that value.",
+    "One form of COUNT counts every row and another skips the missing values of its column; subtract one from the other for each column. A WHERE with IS NULL would apply to all four columns at once."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 198,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 199,
+      "to": 209,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 210,
+      "to": 274,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 210000,
+  "why_this_works": "COUNT(*) counts every line and COUNT(column) skips NULLs, so their difference is the number of missing values."
+}

@@ -1,0 +1,14 @@
+{
+  "schema": "voltmarkt_edge_filter",
+  "mirrors": "voltmarkt",
+  "family": "filter",
+  "contains": [
+    "a store in a country other than NL, BE and LU",
+    "flagship, standard and outlet stores spread over several countries",
+    "product, category and promotion names in upper, lower and mixed case",
+    "products that cost exactly 100.00 euro, and one cent above and below it",
+    "discounts of exactly 10.00 and 20.00 percent, and of 9.50 and 20.50 just outside them",
+    "store, product and promotion dates on the first or last day of a month or a year",
+    "five calendar days around the end of February 2025"
+  ]
+}

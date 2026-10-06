@@ -1,0 +1,143 @@
+{
+  "id": "EX-SQL-AGG-04-E2-06",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-02",
+    "conditional-aggregation",
+    "count-if",
+    "top-n",
+    "tie-break",
+    "sales"
+  ],
+  "level": 2,
+  "source_ids": [
+    "01:SQL-AGG-04"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-AGG-04",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CASE-01",
+    "SQL-AGG-04"
+  ],
+  "template_id": "T-AGG-04-top-n-conditional",
+  "template_params": {
+    "table": "sales",
+    "group": "store_code",
+    "condition": "units >= 2",
+    "period": "2025",
+    "n": 3
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_agg",
+  "prompt": "Which 3 stores sold the most multi-unit order lines in 2025? A multi-unit line is an order line with units of 2 or more; a line with missing units is not one. Use the sales table and count only order lines with an order_date from 2025-01-01 to 2025-12-31, both days included; the webshop, WEB-01, counts as a store. Return two columns, in this order: store_code and multi_unit_lines, the number of multi-unit lines. Sort by multi_unit_lines from high to low, then by store_code from A to Z, and return the first 3 rows.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "store_code",
+        "type_class": "text"
+      },
+      {
+        "name": "multi_unit_lines",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per store_code"
+  },
+  "rules": {
+    "order_matters": true,
+    "sort_keys": [
+      {
+        "column": "multi_unit_lines",
+        "desc": true
+      },
+      {
+        "column": "store_code",
+        "desc": false
+      }
+    ],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "store_code",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "multi_unit_lines",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "store_code"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the calculated column multi_unit_lines, which counts only the lines of 2 or more units.",
+    "Count with SUM of a CASE that gives 1 for units of 2 or more. Then sort on that count from high to low, add store_code from A to Z as the tie-break, and keep 3 rows."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 89,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 90,
+      "to": 100,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 101,
+      "to": 165,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 166,
+      "to": 185,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 186,
+      "to": 228,
+      "subgoal": "sort_limit"
+    },
+    {
+      "from": 229,
+      "to": 236,
+      "subgoal": "sort_limit"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "The CASE inside SUM counts only the multi-unit lines of each store, and sorting on that count with store_code as the tie-break picks the same top 3 on every run, even when two stores tie."
+}

@@ -1,0 +1,22 @@
+{
+  "id": "g13-alternative-key",
+  "rule": "G13",
+  "setup_sql": [
+    "CREATE SCHEMA g",
+    "CREATE TABLE g.c AS SELECT * FROM (VALUES (1),(2),(NULL)) v(x)"
+  ],
+  "key_sql": "SELECT COUNT(x) AS n FROM g.c",
+  "learner_sql": "SELECT COUNT(*) FILTER (WHERE x IS NOT NULL) AS n FROM g.c",
+  "rules": {
+    "columns": [
+      {
+        "name": "n",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ]
+  },
+  "expect": {
+    "pass": true
+  }
+}

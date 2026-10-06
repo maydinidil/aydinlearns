@@ -1,0 +1,113 @@
+{
+  "id": "EX-SQL-AGG-02-E1-03",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-02",
+    "group_by",
+    "sum",
+    "sales"
+  ],
+  "level": 2,
+  "source_ids": [
+    "01:SQL-AGG-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "lesson",
+  "target_concept_id": "SQL-AGG-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02"
+  ],
+  "template_id": "T-AGG-02-sum-per-group",
+  "template_params": {
+    "table": "sales",
+    "group_by": "parent_category",
+    "metric": "units"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_agg",
+  "prompt": "How many units were sold in each parent category? Use the sales table. Return two columns, in this order: parent_category and units_sold, the sum of units. Return one row per parent_category. Order lines with missing units add nothing to the total. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "parent_category",
+        "type_class": "text"
+      },
+      {
+        "name": "units_sold",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per parent category"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "parent_category",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "units_sold",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "parent_category"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, decide what one row stands for. Each parent category gets one row, so the units have to be added up per parent_category.",
+    "The clause you need starts with GROUP BY and names one column from the SELECT list."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 48,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 49,
+      "to": 59,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 60,
+      "to": 84,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": {
+    "stage1": 60,
+    "stage2": 49
+  },
+  "faded_shape": "SELECT parent_category, SUM(units) AS units_sold\nFROM sales\n",
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "GROUP BY parent_category turns the order lines into one group per parent category, and SUM(units) adds up the units in each."
+}

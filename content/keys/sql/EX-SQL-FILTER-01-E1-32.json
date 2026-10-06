@@ -1,0 +1,36 @@
+{
+  "item_id": "EX-SQL-FILTER-01-E1-32",
+  "item_version": 1,
+  "reference_sql": "SELECT promo_code, promo_name, start_date, discount_pct\nFROM promotions\nWHERE start_date >= DATE '2025-01-01' AND discount_pct >= 40",
+  "alternatives": [
+    "SELECT promo_code, promo_name, start_date, discount_pct\nFROM promotions\nWHERE discount_pct >= 40 AND start_date >= DATE '2025-01-01'",
+    "SELECT promo_code, promo_name, start_date, discount_pct\nFROM promotions\nWHERE NOT discount_pct < 40 AND start_date >= '2025-01-01'"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "EX-SQL-FILTER-01-E1-32-PW1",
+      "error_id": "ERR-LOG-15",
+      "sql": "SELECT promo_code, promo_name, start_date, discount_pct\nFROM promotions\nWHERE start_date >= DATE '2025-01-01' AND discount_pct > 40"
+    },
+    {
+      "id": "EX-SQL-FILTER-01-E1-32-PW2",
+      "error_id": "ERR-OUT-01",
+      "sql": "SELECT promo_code, start_date, discount_pct FROM promotions WHERE start_date >= DATE '2025-01-01' AND discount_pct >= 40"
+    },
+    {
+      "id": "EX-SQL-FILTER-01-E1-32-PW3",
+      "error_id": "ERR-SYN-07",
+      "sql": "SELECT promo_code, promo_name, start_date, discount_pct FROM promotions WHERE start_date >= \"2025-01-01\" AND discount_pct >= 40"
+    }
+  ],
+  "hint3_partial": "SELECT promo_code, promo_name, start_date, discount_pct\nFROM promotions\nWHERE start_date >= DATE '2025-01-01' AND discount_pct ___ 40",
+  "solver": {
+    "prompt_hash": "1f9f4040c7e17f14",
+    "schema_version": "f0340f71a1f5",
+    "dataset_version": "506a9858f862fdfb",
+    "grader_version": "1b.3",
+    "query": "SELECT promo_code, promo_name, start_date, discount_pct FROM promotions WHERE start_date >= DATE '2025-01-01' AND discount_pct >= 40\n",
+    "at": "2026-10-04T14:33:18.088Z"
+  }
+}

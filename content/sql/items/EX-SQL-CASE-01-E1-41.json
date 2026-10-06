@@ -1,0 +1,132 @@
+{
+  "id": "EX-SQL-CASE-01-E1-41",
+  "version": 1,
+  "kind": "predict_result",
+  "tags": [
+    "sql",
+    "LVL-02",
+    "predict_result",
+    "case",
+    "stores"
+  ],
+  "level": 2,
+  "source_ids": [
+    "01:SQL-CASE-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pretest",
+  "target_concept_id": "SQL-CASE-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-CASE-01"
+  ],
+  "template_id": "T-CASE-01-predict-result-case-else",
+  "template_params": {
+    "table": "stores"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_case",
+  "prompt": "Which result does this query return? Use the sample rows of stores in the tables panel. Rows may be in any order.",
+  "output_contract": null,
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [],
+  "subgoals": [],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 60000,
+  "why_this_works": "",
+  "shown_sql": "SELECT store_id,\n       CASE WHEN opened_on >= DATE '2014-01-01' THEN 'newer'\n            ELSE 'older'\n       END AS age_band\nFROM stores\nWHERE store_id <= 3",
+  "options": [
+    {
+      "oid": "o886bbcf",
+      "text": "Only store 3, labelled newer",
+      "misconception_id": "ERR-LOG-00",
+      "table": {
+        "columns": [
+          "store_id",
+          "age_band"
+        ],
+        "rows": [
+          [
+            3,
+            "newer"
+          ]
+        ]
+      }
+    },
+    {
+      "oid": "o3d4ca1a",
+      "text": "Stores 1 and 2 newer, store 3 older",
+      "misconception_id": "ERR-LOG-15",
+      "table": {
+        "columns": [
+          "store_id",
+          "age_band"
+        ],
+        "rows": [
+          [
+            1,
+            "newer"
+          ],
+          [
+            2,
+            "newer"
+          ],
+          [
+            3,
+            "older"
+          ]
+        ]
+      }
+    },
+    {
+      "oid": "o72aa80b",
+      "text": "Stores 1 and 2 older, store 3 newer",
+      "misconception_id": null,
+      "table": {
+        "columns": [
+          "store_id",
+          "age_band"
+        ],
+        "rows": [
+          [
+            1,
+            "older"
+          ],
+          [
+            2,
+            "older"
+          ],
+          [
+            3,
+            "newer"
+          ]
+        ]
+      }
+    }
+  ]
+}

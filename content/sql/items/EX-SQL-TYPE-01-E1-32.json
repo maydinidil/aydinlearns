@@ -1,0 +1,127 @@
+{
+  "id": "EX-SQL-TYPE-01-E1-32",
+  "version": 1,
+  "kind": "fix",
+  "tags": [
+    "sql",
+    "LVL-02",
+    "fix",
+    "type",
+    "output-type",
+    "round",
+    "aov",
+    "group-by",
+    "sales"
+  ],
+  "level": 2,
+  "source_ids": [
+    "01:SQL-TYPE-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-TYPE-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01"
+  ],
+  "template_id": "T-TYPE-01-fix-number-as-text",
+  "template_params": {
+    "table": "sales",
+    "group_by": "country_code",
+    "from": "2025-12-01",
+    "to": "2025-12-31",
+    "decimals": 2,
+    "output": "avg_order_value_eur"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_type",
+  "prompt": "The query in the editor has one mistake. Fix it so that it answers this question: what was the average order value in each country in December 2025? Use the sales table and keep the order lines with an order_date from 2025-12-01 to 2025-12-31, both included. Return two columns, in this order: country_code and avg_order_value_eur, a number: the total net_revenue_eur divided by the number of different orders (order_id), rounded to 2 decimals with ROUND(x, 2). A missing net_revenue_eur adds nothing to the total, and its order still counts. Return one row per country_code. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "country_code",
+        "type_class": "text"
+      },
+      {
+        "name": "avg_order_value_eur",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per country_code"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "country_code",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "avg_order_value_eur",
+        "type_class": "numeric",
+        "precision": "money",
+        "require_rounding": 2
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "country_code"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, look at the type of avg_order_value_eur: the values look right, but the question asks for a number.",
+    "A CAST to VARCHAR turns the rounded number into text, and text never equals a number. ROUND already gives the 2 decimals."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 101,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 102,
+      "to": 112,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 113,
+      "to": 177,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 178,
+      "to": 199,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": "SELECT country_code, CAST(ROUND(SUM(net_revenue_eur) / COUNT(DISTINCT order_id), 2) AS VARCHAR) AS avg_order_value_eur\nFROM sales\nWHERE order_date BETWEEN DATE '2025-12-01' AND DATE '2025-12-31'\nGROUP BY country_code",
+  "starter_error_id": "ERR-OUT-02",
+  "time_target_ms": 90000,
+  "why_this_works": "ROUND(..., 2) already returns a number with 2 decimals; casting it to VARCHAR made it text, which is another type."
+}

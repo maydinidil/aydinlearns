@@ -1,0 +1,36 @@
+{
+  "item_id": "EX-SQL-AGG-01-E2-07",
+  "item_version": 1,
+  "reference_sql": "SELECT COUNT(*) AS n_lines\nFROM sales\nWHERE order_date BETWEEN DATE '2025-02-01' AND DATE '2025-02-28'\n  AND units >= 2",
+  "alternatives": [
+    "SELECT COUNT(*) AS n_lines FROM sales WHERE order_date >= DATE '2025-02-01' AND order_date < DATE '2025-03-01' AND units > 1",
+    "SELECT COUNT(units) AS n_lines FROM sales WHERE units >= 2 AND order_date BETWEEN '2025-02-01' AND '2025-02-28'"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "EX-SQL-AGG-01-E2-07-PW1",
+      "error_id": "ERR-LOG-15",
+      "sql": "SELECT COUNT(*) AS n_lines FROM sales WHERE order_date BETWEEN DATE '2025-02-01' AND DATE '2025-02-28' AND units > 2"
+    },
+    {
+      "id": "EX-SQL-AGG-01-E2-07-PW2",
+      "error_id": "ERR-LOG-06",
+      "sql": "SELECT COUNT(*) AS n_lines FROM sales WHERE order_date >= DATE '2025-02-01' AND order_date < DATE '2025-02-28' AND units >= 2"
+    },
+    {
+      "id": "EX-SQL-AGG-01-E2-07-PW3",
+      "error_id": "ERR-LOG-04",
+      "sql": "SELECT COUNT(DISTINCT order_id) AS n_lines FROM sales WHERE order_date BETWEEN DATE '2025-02-01' AND DATE '2025-02-28' AND units >= 2"
+    }
+  ],
+  "hint3_partial": "SELECT COUNT(*) AS n_lines\nFROM sales\nWHERE order_date BETWEEN ___ AND ___\n  AND units ___",
+  "solver": {
+    "prompt_hash": "eb2490d1e1caa0b9",
+    "schema_version": "cebf75df442f",
+    "dataset_version": "506a9858f862fdfb",
+    "grader_version": "1b.3",
+    "query": "SELECT COUNT(*) AS n_lines FROM sales WHERE order_date >= '2025-02-01' AND order_date <= '2025-02-28' AND units >= 2\n",
+    "at": "2026-10-04T10:06:42.398Z"
+  }
+}

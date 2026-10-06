@@ -1,0 +1,41 @@
+{
+  "item_id": "EX-SQL-CASE-01-E2-07",
+  "item_version": 1,
+  "reference_sql": "SELECT month_start,\n       CASE WHEN event IS NOT NULL THEN 'event'\n            WHEN is_weekend THEN 'weekend'\n            ELSE 'normal'\n       END AS day_kind,\n       COUNT(*) AS n_days\nFROM calendar\nWHERE cal_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\nGROUP BY month_start, day_kind",
+  "alternatives": [
+    "SELECT month_start, CASE WHEN event IS NOT NULL THEN 'event' WHEN weekday_name IN ('Saturday', 'Sunday') THEN 'weekend' ELSE 'normal' END AS day_kind, COUNT(*) AS n_days FROM calendar WHERE cal_date >= DATE '2025-01-01' AND cal_date <= DATE '2025-12-31' GROUP BY 1, 2",
+    "SELECT month_start, CASE WHEN event IS NULL AND is_weekend THEN 'weekend' WHEN event IS NULL THEN 'normal' ELSE 'event' END AS day_kind, COUNT(*) AS n_days FROM calendar WHERE cal_date BETWEEN '2025-01-01' AND '2025-12-31' GROUP BY month_start, day_kind"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-00",
+      "sql": "SELECT month_start, CASE WHEN is_weekend THEN 'weekend' WHEN event IS NOT NULL THEN 'event' ELSE 'normal' END AS day_kind, COUNT(*) AS n_days FROM calendar WHERE cal_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31' GROUP BY month_start, day_kind"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-SEM-04",
+      "sql": "SELECT month_start, CASE WHEN event <> NULL THEN 'event' WHEN is_weekend THEN 'weekend' ELSE 'normal' END AS day_kind, COUNT(*) AS n_days FROM calendar WHERE cal_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31' GROUP BY month_start, day_kind"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-07",
+      "sql": "SELECT month_start, CASE WHEN event IS NOT NULL THEN 'event' WHEN is_weekend THEN 'weekend' ELSE 'normal' END AS day_kind, COUNT(*) AS n_days FROM calendar WHERE cal_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31' GROUP BY month_start, event, is_weekend"
+    },
+    {
+      "id": "PW4",
+      "error_id": "ERR-SEM-01",
+      "sql": "SELECT month_start, CASE WHEN event IS NOT NULL THEN 'event' WHEN is_weekend THEN 'weekend' ELSE 'normal' END AS day_kind, COUNT(*) AS n_days FROM calendar WHERE cal_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31' GROUP BY month_start"
+    }
+  ],
+  "hint3_partial": "SELECT month_start,\n       CASE WHEN event ___ THEN 'event'\n            WHEN is_weekend THEN 'weekend'\n            ELSE 'normal'\n       END AS day_kind,\n       COUNT(*) AS n_days\nFROM calendar\nWHERE cal_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\nGROUP BY ___",
+  "solver": {
+    "prompt_hash": "dd67c64713eab3e0",
+    "schema_version": "0d8e15555347",
+    "dataset_version": "506a9858f862fdfb",
+    "grader_version": "1b.3",
+    "query": "SELECT month_start, CASE WHEN event IS NOT NULL THEN 'event' WHEN is_weekend THEN 'weekend' ELSE 'normal' END AS day_kind, COUNT(*) AS n_days FROM calendar WHERE cal_date >= '2025-01-01' AND cal_date <= '2025-12-31' GROUP BY 1, 2\n",
+    "at": "2026-10-04T10:06:50.992Z"
+  }
+}

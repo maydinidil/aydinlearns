@@ -1,0 +1,113 @@
+{
+  "id": "EX-SQL-BASICS-02-E1-08",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "calculated-column",
+    "products"
+  ],
+  "level": 1,
+  "source_ids": [
+    "01:SQL-BASICS-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-02",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-BASICS-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02"
+  ],
+  "template_id": "T-BASICS-02-add",
+  "template_params": {
+    "table": "products",
+    "add_eur": "4.95"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_basics",
+  "prompt": "Shipping one unit from the central warehouse to a store costs a flat 4.95 euros. For every product, return sku, product_name and landed_cost_eur (the unit cost plus that shipping cost, in euros), in that order. Use exactly these column names. One row per product, every product included. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "sku",
+        "type_class": "text"
+      },
+      {
+        "name": "product_name",
+        "type_class": "text"
+      },
+      {
+        "name": "landed_cost_eur",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per product"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": true,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "sku",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "product_name",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "landed_cost_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "sku"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the calculated column. landed_cost_eur adds a fixed amount to each row's unit_cost_eur.",
+    "The new column goes after product_name, named with AS. The shipping cost is the same flat amount for every unit, not a percentage of the cost."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 32,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 40,
+      "to": 79,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 80,
+      "to": 93,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 60000,
+  "why_this_works": "Adding 4.95 to each row's unit cost gives its cost once it reaches the store."
+}

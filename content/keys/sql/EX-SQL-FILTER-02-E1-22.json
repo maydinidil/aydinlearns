@@ -1,0 +1,37 @@
+{
+  "item_id": "EX-SQL-FILTER-02-E1-22",
+  "item_version": 1,
+  "reference_sql": "SELECT cal_date, weekday_name, is_weekend\nFROM calendar\nWHERE cal_date BETWEEN DATE '2025-02-28' AND DATE '2025-03-02'",
+  "alternatives": [
+    "SELECT cal_date, weekday_name, is_weekend\nFROM calendar\nWHERE cal_date >= '2025-02-28' AND cal_date <= '2025-03-02'",
+    "SELECT cal_date, weekday_name, is_weekend\nFROM calendar\nWHERE cal_date >= DATE '2025-02-28' AND cal_date < DATE '2025-03-03'",
+    "SELECT cal_date, weekday_name, is_weekend\nFROM calendar\nWHERE cal_date BETWEEN '2025-02-28' AND '2025-03-02'"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-23",
+      "sql": "SELECT cal_date, weekday_name, is_weekend FROM calendar WHERE cal_date > DATE '2025-02-28' AND cal_date < DATE '2025-03-02'"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-06",
+      "sql": "SELECT cal_date, weekday_name, is_weekend FROM calendar WHERE cal_date >= DATE '2025-02-28' AND cal_date < DATE '2025-03-02'"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-23",
+      "sql": "SELECT cal_date, weekday_name, is_weekend FROM calendar WHERE cal_date BETWEEN DATE '2025-03-02' AND DATE '2025-02-28'"
+    }
+  ],
+  "hint3_partial": "SELECT cal_date, weekday_name, is_weekend\nFROM calendar\nWHERE cal_date BETWEEN DATE ___ AND DATE ___",
+  "solver": {
+    "prompt_hash": "bc21fc48e3cbc546",
+    "schema_version": "0d8e15555347",
+    "dataset_version": "506a9858f862fdfb",
+    "grader_version": "1b.3",
+    "query": "SELECT cal_date, weekday_name, is_weekend FROM calendar WHERE cal_date BETWEEN DATE '2025-02-28' AND DATE '2025-03-02'\n",
+    "at": "2026-10-04T14:33:18.181Z"
+  }
+}

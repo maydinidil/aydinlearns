@@ -1,0 +1,133 @@
+{
+  "id": "EX-SQL-AGG-04-E1-22",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-02",
+    "conditional-aggregation",
+    "sum-if",
+    "sales",
+    "dates",
+    "else-zero",
+    "drill"
+  ],
+  "level": 2,
+  "source_ids": [
+    "01:SQL-AGG-04"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-AGG-04",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CASE-01",
+    "SQL-AGG-04"
+  ],
+  "template_id": "T-AGG-04-sum-if-group",
+  "template_params": {
+    "table": "sales",
+    "group_by": "order_month",
+    "condition": "parent_category = 'Gaming'",
+    "from": "2025-01-01",
+    "to": "2025-03-31"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_agg",
+  "prompt": "For each month of the first quarter of 2025, what was the total net revenue, and how much of it came from Gaming? Use the sales table and its order_month column, the first day of the month the order was placed in. Count only order lines with an order_date from 2025-01-01 to 2025-03-31, both included. Return three columns, in this order: order_month, revenue_eur, the sum of net_revenue_eur, and gaming_revenue_eur, the sum of net_revenue_eur over the lines whose parent_category is 'Gaming'. Lines with a missing net_revenue_eur add nothing, and a month with no Gaming revenue shows 0, not a missing value. Return one row per order_month. Do not round. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "order_month",
+        "type_class": "temporal"
+      },
+      {
+        "name": "revenue_eur",
+        "type_class": "numeric"
+      },
+      {
+        "name": "gaming_revenue_eur",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per order_month"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "order_month",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "revenue_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "gaming_revenue_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "order_month"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the column gaming_revenue_eur: a sum of net revenue over only the Gaming lines of each month.",
+    "Put a CASE inside SUM that gives net_revenue_eur for a Gaming line and 0 for any other line, so a month with no Gaming lines adds up to 0."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 166,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 167,
+      "to": 177,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 178,
+      "to": 242,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 243,
+      "to": 263,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "The CASE passes on the net revenue of Gaming lines and 0 for the rest, so each month gets its Gaming total, and 0 when it has none."
+}

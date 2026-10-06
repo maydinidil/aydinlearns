@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-AGG-02-E2-42",
+  "item_version": 1,
+  "correct_oid": "o827a2ab",
+  "explanation": "One row per pair of channel and country_code means grouping by exactly those two columns, and a total of units is SUM(units). Grouping by channel alone loses the country. Adding store_code splits each pair into one row per store, and COUNT(units) counts lines instead of adding up their units.",
+  "solver": {
+    "prompt_hash": "f5928164fb2e1db6",
+    "grader_version": "choice.1",
+    "chosen": "o827a2ab",
+    "typed": null,
+    "at": "2026-10-06T09:08:14.815Z"
+  }
+}

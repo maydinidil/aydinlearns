@@ -1,0 +1,37 @@
+{
+  "item_id": "EX-SQL-BASICS-01-E1-22",
+  "item_version": 1,
+  "reference_sql": "SELECT sku, unit_cost_eur\nFROM products",
+  "alternatives": [
+    "SELECT products.sku, products.unit_cost_eur\nFROM products",
+    "SELECT p.sku, p.unit_cost_eur\nFROM products AS p",
+    "SELECT \"sku\", \"unit_cost_eur\"\nFROM \"products\""
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-SYN-02",
+      "sql": "SELECT sku, unit_cost FROM products"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-OUT-01",
+      "sql": "SELECT sku FROM products"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-SYN-01",
+      "sql": "SELECT sku, unit_cost_eur FORM products"
+    }
+  ],
+  "hint3_partial": "SELECT sku, ...\nFROM products",
+  "solver": {
+    "prompt_hash": "ffef5ac883d707e5",
+    "schema_version": "d77fe1c31a0e",
+    "dataset_version": "506a9858f862fdfb",
+    "grader_version": "1b.3",
+    "query": "SELECT sku, unit_cost_eur FROM products\n",
+    "at": "2026-10-04T14:33:17.404Z"
+  }
+}

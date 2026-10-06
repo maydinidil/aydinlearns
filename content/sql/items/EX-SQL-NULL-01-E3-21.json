@@ -1,0 +1,121 @@
+{
+  "id": "EX-SQL-NULL-01-E3-21",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-01",
+    "is_null",
+    "coalesce",
+    "open_ended_range",
+    "calculated-column"
+  ],
+  "level": 1,
+  "source_ids": [
+    "01:SQL-NULL-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-NULL-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-NULL-01",
+    "SQL-FILTER-01"
+  ],
+  "template_id": "T-NULL-01-overlap-coalesce",
+  "template_params": {
+    "table": "promotions",
+    "null_column": "end_date, discount_pct",
+    "window": "2025-01-10/2025-02-10",
+    "list_price_eur": 120
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_null",
+  "prompt": "Marketing is checking which promotions overlapped the January sales period, from 10 January 2025 to 10 February 2025. A promotion overlaps that period when its start_date is on or before 10 February 2025 and its end_date is on or after 10 January 2025. A promotion with no end_date recorded (NULL) has not ended, so it overlaps when its start_date is on or before 10 February 2025. A promotion with a missing start_date does not count. For each overlapping promotion, return three columns, in this order: promo_code, promo_name, saving_eur, where saving_eur is the euros a customer saves on a 120-euro item at the promotion's discount_pct (a percentage such as 25 for 25% off). A promotion with no discount_pct recorded gave no discount, so its saving_eur is 0. A promotion with no promo_name still counts. Do not round. Return one row per promotion. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "promo_code",
+        "type_class": "text"
+      },
+      {
+        "name": "promo_name",
+        "type_class": "text"
+      },
+      {
+        "name": "saving_eur",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per promotion"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "promo_code",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "promo_name",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "saving_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "promo_code"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the row filter. Keep a promotion that started by 10 February 2025 and had not ended before 10 January 2025, counting a missing end_date as not ended.",
+    "The start-date test joins with AND to a bracketed choice about end_date, which needs its own NULL test. In the saving, replace a missing discount with 0 before the arithmetic, or the result stays NULL."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 82,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 83,
+      "to": 98,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 99,
+      "to": 192,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "The bracketed end_date test keeps the open-ended promotion, and replacing a missing discount with 0 makes its saving 0 instead of NULL."
+}

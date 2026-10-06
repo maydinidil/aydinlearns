@@ -1,0 +1,124 @@
+{
+  "id": "EX-SQL-SORT-01-E3-01",
+  "version": 2,
+  "kind": "write",
+  "tags": [
+    "distinct",
+    "between",
+    "desc",
+    "promotions"
+  ],
+  "level": 1,
+  "source_ids": [
+    "01:SQL-SORT-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-02",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-SORT-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01"
+  ],
+  "template_id": "T-SORT-01-distinct-values",
+  "template_params": {
+    "table": "promotions",
+    "columns": 2,
+    "year": 2025
+  },
+  "sub_skill": "distinct",
+  "difficulty": "E3",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_sort",
+  "prompt": "Which combinations of promotion type and discount did Voltmarkt use in the promotions that started in 2025 (start_date from 2025-01-01 to 2025-12-31, both days included)? Leave out promotions with a missing start_date. Return promo_type and discount_pct, in that order, with exactly these column names, listing each combination once. Sort by promo_type from A to Z, then by discount_pct from highest to lowest. A missing promo_type or discount_pct counts as one value. Rows with a missing promo_type may come first or last, and so may rows with a missing discount_pct within their type.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "promo_type",
+        "type_class": "text"
+      },
+      {
+        "name": "discount_pct",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per promotion type and discount combination"
+  },
+  "rules": {
+    "order_matters": true,
+    "sort_keys": [
+      {
+        "column": "promo_type",
+        "desc": false
+      },
+      {
+        "column": "discount_pct",
+        "desc": true
+      }
+    ],
+    "check_names": true,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "promo_type",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "discount_pct",
+        "type_class": "numeric",
+        "precision": "ratio"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "promo_type",
+      "discount_pct"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the row filter, to keep the promotions that started in 2025. Then decide what one row stands for: one per combination of type and discount.",
+    "The date range goes in WHERE, with both days included. A keyword after SELECT keeps each combination once, and the ORDER BY needs a direction for the discount."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 47,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 48,
+      "to": 63,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 64,
+      "to": 128,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 129,
+      "to": 167,
+      "subgoal": "sort_limit"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 210000,
+  "why_this_works": "WHERE keeps 2025's promotions, DISTINCT keeps each type and discount pair once, and the sort shows each type's discounts from deepest down."
+}

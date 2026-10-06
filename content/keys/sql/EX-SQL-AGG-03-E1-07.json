@@ -1,0 +1,41 @@
+{
+  "item_id": "EX-SQL-AGG-03-E1-07",
+  "item_version": 1,
+  "reference_sql": "SELECT store_code, COUNT(DISTINCT order_month) AS n_months\nFROM sales\nGROUP BY store_code\nHAVING COUNT(DISTINCT order_month) < 24",
+  "alternatives": [
+    "SELECT store_code, COUNT(DISTINCT order_month) AS n_months FROM sales GROUP BY 1 HAVING COUNT(DISTINCT order_month) <= 23",
+    "SELECT store_code, COUNT(DISTINCT order_month) AS n_months FROM sales GROUP BY store_code HAVING NOT COUNT(DISTINCT order_month) >= 24"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-04",
+      "sql": "SELECT store_code, COUNT(order_month) AS n_months FROM sales GROUP BY store_code HAVING COUNT(order_month) < 24"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-15",
+      "sql": "SELECT store_code, COUNT(DISTINCT order_month) AS n_months FROM sales GROUP BY store_code HAVING COUNT(DISTINCT order_month) <= 24"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-SYN-05",
+      "sql": "SELECT store_code, COUNT(DISTINCT order_month) AS n_months FROM sales WHERE COUNT(DISTINCT order_month) < 24 GROUP BY store_code"
+    },
+    {
+      "id": "PW4",
+      "error_id": "ERR-SYN-06",
+      "sql": "SELECT store_code, COUNT(DISTINCT order_month) AS n_months FROM sales WHERE n_months < 24 GROUP BY store_code"
+    }
+  ],
+  "hint3_partial": "SELECT store_code, COUNT(DISTINCT order_month) AS n_months\nFROM sales\nGROUP BY store_code\nHAVING ___ < 24",
+  "solver": {
+    "prompt_hash": "8d8b16f669443d9e",
+    "schema_version": "cebf75df442f",
+    "dataset_version": "506a9858f862fdfb",
+    "grader_version": "1b.3",
+    "query": "SELECT store_code, COUNT(DISTINCT order_month) AS n_months FROM sales GROUP BY store_code HAVING COUNT(DISTINCT order_month) < 24\n",
+    "at": "2026-10-04T10:06:45.663Z"
+  }
+}

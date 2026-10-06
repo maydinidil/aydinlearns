@@ -1,0 +1,13 @@
+{
+  "item_id": "Q-MET-MKT-10-05",
+  "item_version": 1,
+  "correct_oid": "o28e92f6",
+  "explanation": "Linear divides each order by its number of touches. A duplicated email click adds a touch, so email takes an extra share and the other touches in that path get smaller shares. Each order is still shared out in full, so total credit does not change. Linear counts touches, so a channel with two touches gets two shares.",
+  "solver": {
+    "prompt_hash": "b95f7d838e7438e0",
+    "grader_version": "choice.1",
+    "chosen": "o28e92f6",
+    "typed": null,
+    "at": "2026-10-05T22:54:48.007Z"
+  }
+}

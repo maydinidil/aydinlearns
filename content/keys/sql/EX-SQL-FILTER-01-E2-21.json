@@ -1,0 +1,32 @@
+{
+  "item_id": "EX-SQL-FILTER-01-E2-21",
+  "item_version": 1,
+  "reference_sql": "SELECT product_id, product_name, brand, unit_cost_eur\nFROM products\nWHERE (brand = 'Joyforge' OR brand = 'Hivo') AND unit_cost_eur < 50",
+  "alternatives": [
+    "SELECT product_id, product_name, brand, unit_cost_eur\nFROM products\nWHERE unit_cost_eur < 50 AND (brand = 'Hivo' OR brand = 'Joyforge')",
+    "SELECT product_id, product_name, brand, unit_cost_eur\nFROM products\nWHERE (brand = 'Joyforge' AND unit_cost_eur < 50) OR (brand = 'Hivo' AND unit_cost_eur < 50)",
+    "SELECT product_id, product_name, brand, unit_cost_eur\nFROM products\nWHERE (brand = 'Joyforge' OR brand = 'Hivo') AND NOT unit_cost_eur >= 50"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-13",
+      "sql": "SELECT product_id, product_name, brand, unit_cost_eur FROM products WHERE brand = 'Joyforge' OR brand = 'Hivo' AND unit_cost_eur < 50"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-SYN-07",
+      "sql": "SELECT product_id, product_name, brand, unit_cost_eur FROM products WHERE (brand = \"Joyforge\" OR brand = 'Hivo') AND unit_cost_eur < 50"
+    }
+  ],
+  "hint3_partial": "SELECT product_id, product_name, brand, unit_cost_eur\nFROM products\nWHERE (brand = 'Joyforge' OR ...) AND ...",
+  "solver": {
+    "prompt_hash": "8411963768c3046c",
+    "schema_version": "d77fe1c31a0e",
+    "dataset_version": "506a9858f862fdfb",
+    "grader_version": "1b.3",
+    "query": "SELECT product_id, product_name, brand, unit_cost_eur FROM products WHERE brand IN ('Joyforge', 'Hivo') AND unit_cost_eur < 50\n",
+    "at": "2026-10-04T14:33:18.104Z"
+  }
+}

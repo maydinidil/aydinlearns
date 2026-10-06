@@ -1,0 +1,31 @@
+{
+  "item_id": "EX-SQL-TYPE-01-E1-01",
+  "item_version": 1,
+  "reference_sql": "SELECT country_code,\n       ROUND(SUM(units) * 1.0 / COUNT(*), 2) AS units_per_line\nFROM sales\nGROUP BY country_code",
+  "alternatives": [
+    "SELECT country_code, ROUND(CAST(SUM(units) AS DOUBLE) / COUNT(*), 2) AS units_per_line FROM sales GROUP BY country_code",
+    "SELECT country_code, ROUND(SUM(COALESCE(units, 0)) / CAST(COUNT(*) AS DOUBLE), 2) AS units_per_line FROM sales GROUP BY 1"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-05",
+      "sql": "SELECT country_code, ROUND(SUM(units) // COUNT(*), 2) AS units_per_line FROM sales GROUP BY country_code"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-17",
+      "sql": "SELECT country_code, ROUND(AVG(units), 2) AS units_per_line FROM sales GROUP BY country_code"
+    }
+  ],
+  "hint3_partial": "SELECT country_code,\n       ROUND(SUM(units) ___ / COUNT(*), 2) AS units_per_line\nFROM sales\nGROUP BY ___",
+  "solver": {
+    "prompt_hash": "a04cf8c1f0962883",
+    "schema_version": "cebf75df442f",
+    "dataset_version": "506a9858f862fdfb",
+    "grader_version": "1b.3",
+    "query": "SELECT country_code, ROUND(SUM(units) * 1.0 / COUNT(*), 2) AS units_per_line FROM sales GROUP BY country_code\n",
+    "at": "2026-10-04T10:06:51.562Z"
+  }
+}

@@ -1,0 +1,109 @@
+{
+  "id": "EX-SQL-BASICS-01-E2-32",
+  "version": 1,
+  "kind": "fix",
+  "tags": [
+    "sql",
+    "LVL-01",
+    "fix",
+    "select_from",
+    "products"
+  ],
+  "level": 1,
+  "source_ids": [
+    "01:SQL-BASICS-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-BASICS-01",
+  "concept_ids": [
+    "SQL-BASICS-01"
+  ],
+  "template_id": "T-BASICS-01-fix-missing-comma",
+  "template_params": {
+    "table": "products",
+    "columns": 3
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_basics",
+  "prompt": "The query in the editor has one mistake. Fix it so that it answers this question: which category does each product belong to, and when did it launch? From the products table, return three columns, in this order: product_name, category_id, launch_date. Return one row per product and keep every product. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "product_name",
+        "type_class": "text"
+      },
+      {
+        "name": "category_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "launch_date",
+        "type_class": "temporal"
+      }
+    ],
+    "grain": "one row per product"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "product_name",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "category_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "launch_date",
+        "type_class": "temporal",
+        "precision": "exact"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, count the columns the query returns and compare them with the three the question asks for.",
+    "Look at the headings of the result: the product names sit under the heading category_id. Two column names in the SELECT list need a separator between them; without it, the second name becomes a new name for the first column."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 45,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 46,
+      "to": 59,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": "SELECT product_name category_id, launch_date\nFROM products",
+  "starter_error_id": "ERR-OUT-01",
+  "time_target_ms": 120000,
+  "why_this_works": "A comma separates every two columns in the SELECT list. Without it, category_id became a new name for product_name, and one column was lost."
+}

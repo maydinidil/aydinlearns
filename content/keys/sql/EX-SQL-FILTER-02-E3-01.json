@@ -1,0 +1,36 @@
+{
+  "item_id": "EX-SQL-FILTER-02-E3-01",
+  "item_version": 1,
+  "reference_sql": "SELECT product_id, product_name, brand, unit_cost_eur\nFROM products\nWHERE brand IN ('Sonora', 'Basswell')\n  AND (unit_cost_eur < 100 OR unit_cost_eur > 500)",
+  "alternatives": [
+    "SELECT product_id, product_name, brand, unit_cost_eur\nFROM products\nWHERE (unit_cost_eur < 100 OR unit_cost_eur > 500)\n  AND brand IN ('Basswell', 'Sonora')",
+    "SELECT product_id, product_name, brand, unit_cost_eur\nFROM products\nWHERE brand IN ('Sonora', 'Basswell')\n  AND NOT unit_cost_eur BETWEEN 100 AND 500"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "EX-SQL-FILTER-02-E3-01-PW1",
+      "error_id": "ERR-LOG-13",
+      "sql": "SELECT product_id, product_name, brand, unit_cost_eur\nFROM products\nWHERE brand IN ('Sonora', 'Basswell')\n  AND unit_cost_eur < 100 OR unit_cost_eur > 500"
+    },
+    {
+      "id": "EX-SQL-FILTER-02-E3-01-PW2",
+      "error_id": "ERR-LOG-15",
+      "sql": "SELECT product_id, product_name, brand, unit_cost_eur\nFROM products\nWHERE brand IN ('Sonora', 'Basswell')\n  AND (unit_cost_eur <= 100 OR unit_cost_eur >= 500)"
+    },
+    {
+      "id": "EX-SQL-FILTER-02-E3-01-PW3",
+      "error_id": "ERR-LOG-00",
+      "sql": "SELECT product_id, product_name, brand, unit_cost_eur\nFROM products\nWHERE brand IN ('Sonora')\n  AND (unit_cost_eur < 100 OR unit_cost_eur > 500)"
+    }
+  ],
+  "hint3_partial": "SELECT product_id, product_name, brand, unit_cost_eur\nFROM products\nWHERE brand IN (___, ___)\n  AND (unit_cost_eur ___ 100 OR unit_cost_eur ___ 500)",
+  "solver": {
+    "prompt_hash": "3eb04e2d4a7c7081",
+    "schema_version": "d77fe1c31a0e",
+    "dataset_version": "9639f8ae1f71c2ef",
+    "grader_version": "1a.2",
+    "query": "SELECT product_id, product_name, brand, unit_cost_eur FROM products WHERE brand IN ('Sonora', 'Basswell') AND (unit_cost_eur < 100 OR unit_cost_eur > 500)\n",
+    "at": "2026-10-03T13:08:02.800Z"
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "concept_id": "MET-SAAS-11",
+  "section": "methodology",
+  "version": 2,
+  "title": "CAC payback period",
+  "reading_md": "**Setting.** The examples use Business Care, the device-support subscription Voltmarkt sells to small offices.\n\n**What it measures.** How many months of gross profit from newly won businesses it takes to earn back what was spent to win them.\n\n**Formula (Voltmarkt's convention).**\n\nCAC payback (months) = sales and marketing expense in the month / (new-business MRR in the month × gross margin)\n\n- New-business MRR: the MRR of businesses that subscribed for the first time that month. Upgrades, returning businesses and cancellations stay out.\n- Gross margin as a fraction, so the denominator is gross profit, not revenue.\n- Grain: month, or a cohort of businesses won in the same month.\n\n**Worked example.** In March 2026 Business Care's sales and marketing expense was €18,000. Businesses that subscribed in March brought €2,000 of new MRR, and cancellations removed €800. Gross margin is 60%.\n\n- CAC payback = 18,000 / (2,000 × 0.60) = 18,000 / 1,200 = 15.0 months.\n- Revenue payback, without gross margin, gives 18,000 / 2,000 = 9.0 months. That is too short, because part of each fee pays for the support itself.\n- Some companies divide by net new MRR (2,000 - 800 = 1,200), which gives 18,000 / (1,200 × 0.60) = 25.0 months and mixes in the churn of older businesses. Voltmarkt uses new-business MRR, and a report should always say which one it used.\n\nPer business the same idea reads CAC / (ARPA × gross margin). With 40 new businesses, CAC is €450 and their ARPA is €50: 450 / (50 × 0.60) = 15.0 months.\n\n**Common mistakes.**\n\n- Revenue payback instead of gross-margin payback.\n- Using net new MRR without saying so.\n\n**What CAC payback does not answer.**\n\n- What a customer is worth in total: that is LTV. A payback of 15 months is fine when businesses stay 50 months on average, and a problem when they stay 12.\n- When the cash arrives: a plan such as Business Care Year, paid a year in advance, brings cash in sooner than MRR suggests.\n\n**How managers ask for it.** \"How long until we earn back what we spent to get a customer?\" \"Is payback under 12 months?\"",
+  "source_ids": [
+    "04:MET-SAAS-11",
+    "04:§2.1",
+    "04:MET-MKT-05",
+    "ERRATA:E-100"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06"
+}

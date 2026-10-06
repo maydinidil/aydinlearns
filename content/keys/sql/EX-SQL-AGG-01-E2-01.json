@@ -1,0 +1,36 @@
+{
+  "item_id": "EX-SQL-AGG-01-E2-01",
+  "item_version": 1,
+  "reference_sql": "SELECT COUNT(*) AS n_products,\n       COUNT(sister_product_id) AS n_with_sister\nFROM products",
+  "alternatives": [
+    "SELECT COUNT(product_id) AS n_products, COUNT(sister_product_id) AS n_with_sister FROM products",
+    "SELECT COUNT(1) AS n_products, COUNT(sister_product_id) AS n_with_sister FROM products"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "EX-SQL-AGG-01-E2-01-PW1",
+      "error_id": "ERR-LOG-04",
+      "sql": "SELECT COUNT(*) AS n_products, COUNT(*) AS n_with_sister FROM products"
+    },
+    {
+      "id": "EX-SQL-AGG-01-E2-01-PW2",
+      "error_id": "ERR-LOG-04",
+      "sql": "SELECT COUNT(sister_product_id) AS n_products, COUNT(sister_product_id) AS n_with_sister FROM products"
+    },
+    {
+      "id": "EX-SQL-AGG-01-E2-01-PW3",
+      "error_id": "ERR-OUT-01",
+      "sql": "SELECT COUNT(sister_product_id) AS n_with_sister FROM products"
+    }
+  ],
+  "hint3_partial": "SELECT COUNT(___) AS n_products,\n       COUNT(___) AS n_with_sister\nFROM products",
+  "solver": {
+    "prompt_hash": "4b580cf9df428bf0",
+    "schema_version": "d77fe1c31a0e",
+    "dataset_version": "506a9858f862fdfb",
+    "grader_version": "1b.3",
+    "query": "SELECT COUNT(*) AS n_products, COUNT(sister_product_id) AS n_with_sister FROM products\n",
+    "at": "2026-10-04T10:06:41.870Z"
+  }
+}

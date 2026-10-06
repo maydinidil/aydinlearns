@@ -1,0 +1,128 @@
+{
+  "id": "EX-SQL-FILTER-02-E1-04",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-01",
+    "in_list",
+    "products"
+  ],
+  "level": 1,
+  "source_ids": [
+    "01:SQL-FILTER-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-02",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "lesson",
+  "target_concept_id": "SQL-FILTER-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02"
+  ],
+  "template_id": "T-FILTER-02-in-list-and",
+  "template_params": {
+    "table": "products",
+    "list_size": 3
+  },
+  "sub_skill": "in_list",
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_filter",
+  "prompt": "An audio buyer is planning a budget range. From the products table, return four columns, in this order: product_id, product_name, category_id, unit_cost_eur. Keep only the products in category 15 (Headphones), 16 (Earbuds) or 18 (Speakers) whose unit_cost_eur is under 100 euros. Every product has a category_id and a unit_cost_eur. Show unit_cost_eur exactly as stored, without rounding. Return one row per product. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "product_name",
+        "type_class": "text"
+      },
+      {
+        "name": "category_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "unit_cost_eur",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per product"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "product_name",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "category_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "unit_cost_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "product_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the row filter. Keep a product when its category_id is one of three IDs and its cost is under 100 euros.",
+    "A list test in WHERE covers the three categories, and the cost test joins it with AND. Decide whether \"under 100\" keeps a product at exactly 100."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 59,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 60,
+      "to": 73,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 74,
+      "to": 133,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": {
+    "stage1": 74,
+    "stage2": 60
+  },
+  "faded_shape": "SELECT product_id, product_name, category_id, unit_cost_eur\nFROM products\n",
+  "starter_sql": null,
+  "time_target_ms": 90000,
+  "why_this_works": "IN matches any of the three category IDs, and < 100 keeps only costs below 100 euros."
+}

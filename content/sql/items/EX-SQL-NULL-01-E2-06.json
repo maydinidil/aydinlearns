@@ -1,0 +1,126 @@
+{
+  "id": "EX-SQL-NULL-01-E2-06",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-01",
+    "not_equal_with_null",
+    "null_arithmetic",
+    "calculated-column"
+  ],
+  "level": 1,
+  "source_ids": [
+    "01:SQL-NULL-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-02",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-NULL-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-NULL-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01"
+  ],
+  "template_id": "T-NULL-01-null-stays-null",
+  "template_params": {
+    "table": "products",
+    "null_column": "brand, unit_cost_eur",
+    "excluded": "Volt Basics"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_null",
+  "prompt": "Buyers want the cables (category_raw 'Cables') that are not made by Volt Basics, with their cost including 21% VAT. A product with no brand recorded (NULL) is not known to be Volt Basics, so include it. Return four columns, in this order: product_id, product_name, brand, cost_incl_vat, where cost_incl_vat is unit_cost_eur * 1.21. A product with no unit_cost_eur recorded has an unknown cost: keep the product, and leave its cost_incl_vat as NULL rather than turning it into 0. Return one row per product. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "product_name",
+        "type_class": "text"
+      },
+      {
+        "name": "brand",
+        "type_class": "text"
+      },
+      {
+        "name": "cost_incl_vat",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per product"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "product_name",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "brand",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "cost_incl_vat",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the row filter. Keep the cables whose brand is anything other than 'Volt Basics', including a missing brand.",
+    "Pair the not-Volt-Basics test with a second test on brand inside brackets, then add the category with AND. In SELECT, leave the multiplication as it is: a missing cost then gives a missing result, which is what the question wants."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 77,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 78,
+      "to": 91,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 92,
+      "to": 167,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "brand <> 'Volt Basics' is unknown for a product with no brand, so OR brand IS NULL keeps it, and the VAT calculation leaves an unknown cost unknown."
+}

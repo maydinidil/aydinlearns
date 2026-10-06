@@ -1,0 +1,86 @@
+{
+  "id": "EX-SQL-AGG-04-E2-41",
+  "version": 1,
+  "kind": "choose_query",
+  "tags": [
+    "sql",
+    "LVL-02",
+    "choose_query",
+    "conditional_aggregation",
+    "case",
+    "count",
+    "sales"
+  ],
+  "level": 2,
+  "source_ids": [
+    "01:SQL-AGG-04"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-AGG-04",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-AGG-04"
+  ],
+  "template_id": "T-AGG-04-choose-count-with-case",
+  "template_params": {
+    "table": "sales"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_agg",
+  "prompt": "For each channel, how many order lines are there, and how many of them have 2 or more units? Use the sales table. Return channel, n_lines and multi_unit_lines, one row per channel. Any row order is fine. Which query returns it?",
+  "output_contract": null,
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [],
+  "subgoals": [],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 90000,
+  "why_this_works": "",
+  "options": [
+    {
+      "oid": "o31e139a",
+      "text": "SELECT channel,\n       COUNT(*) AS n_lines,\n       COUNT(CASE WHEN units >= 2 THEN 1 ELSE 0 END) AS multi_unit_lines\nFROM sales\nGROUP BY channel",
+      "misconception_id": "ERR-LOG-14"
+    },
+    {
+      "oid": "od16fc25",
+      "text": "SELECT channel,\n       COUNT(*) AS n_lines,\n       SUM(CASE WHEN units >= 2 THEN 1 ELSE 0 END) AS multi_unit_lines\nFROM sales\nGROUP BY channel",
+      "misconception_id": null
+    },
+    {
+      "oid": "o616ec51",
+      "text": "SELECT channel,\n       COUNT(*) AS n_lines,\n       COUNT(*) AS multi_unit_lines\nFROM sales\nWHERE units >= 2\nGROUP BY channel",
+      "misconception_id": "ERR-LOG-00"
+    },
+    {
+      "oid": "o1c6a645",
+      "text": "SELECT channel,\n       COUNT(*) AS n_lines,\n       SUM(CASE WHEN units >= 2 THEN units ELSE 0 END) AS multi_unit_lines\nFROM sales\nGROUP BY channel",
+      "misconception_id": "ERR-LOG-14"
+    }
+  ]
+}

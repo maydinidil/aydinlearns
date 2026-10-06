@@ -1,0 +1,13 @@
+{
+  "item_id": "Q-GA4-078",
+  "item_version": 1,
+  "correct_oid": "ob8b9d83",
+  "explanation": "Google Ads auto-tagging adds the gclid click identifier, and GA4 uses it to get the Google Ads campaign details without UTM parameters. dclid is the identifier Display & Video 360 adds, utm_source comes only from manual tagging, and _ga is the name of the Analytics cookie.",
+  "solver": {
+    "prompt_hash": "29a517d8713054b7",
+    "grader_version": "choice.1",
+    "chosen": "ob8b9d83",
+    "typed": null,
+    "at": "2026-10-05T22:54:47.952Z"
+  }
+}

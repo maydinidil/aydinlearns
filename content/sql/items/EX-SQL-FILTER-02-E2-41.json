@@ -1,0 +1,85 @@
+{
+  "id": "EX-SQL-FILTER-02-E2-41",
+  "version": 1,
+  "kind": "choose_query",
+  "tags": [
+    "sql",
+    "LVL-01",
+    "choose_query",
+    "between",
+    "dates",
+    "promotions"
+  ],
+  "level": 1,
+  "source_ids": [
+    "01:SQL-FILTER-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-FILTER-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-02"
+  ],
+  "template_id": "T-FILTER-02-choose-between-month",
+  "template_params": {
+    "table": "promotions"
+  },
+  "sub_skill": "between",
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_filter",
+  "prompt": "Which query lists the promotions that start in March 2025, from 1 March to 31 March with both days included? Return promo_code and start_date. Any row order is fine.",
+  "output_contract": null,
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [],
+  "subgoals": [],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 90000,
+  "why_this_works": "",
+  "options": [
+    {
+      "oid": "oc34a357",
+      "text": "SELECT promo_code, start_date\nFROM promotions\nWHERE start_date > DATE '2025-03-01'\n  AND start_date < DATE '2025-03-31'",
+      "misconception_id": "ERR-LOG-23"
+    },
+    {
+      "oid": "oc42ff3b",
+      "text": "SELECT promo_code, start_date\nFROM promotions\nWHERE start_date BETWEEN DATE '2025-03-31' AND DATE '2025-03-01'",
+      "misconception_id": "ERR-LOG-23"
+    },
+    {
+      "oid": "o7a9c05e",
+      "text": "SELECT promo_code, start_date\nFROM promotions\nWHERE start_date BETWEEN DATE '2025-03-01' AND DATE '2025-04-01'",
+      "misconception_id": "ERR-LOG-06"
+    },
+    {
+      "oid": "o1b7d4da",
+      "text": "SELECT promo_code, start_date\nFROM promotions\nWHERE start_date BETWEEN DATE '2025-03-01' AND DATE '2025-03-31'",
+      "misconception_id": null
+    }
+  ]
+}

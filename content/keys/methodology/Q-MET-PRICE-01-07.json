@@ -1,0 +1,13 @@
+{
+  "item_id": "Q-MET-PRICE-01-07",
+  "item_version": 1,
+  "correct_oid": "o456f7fe",
+  "explanation": "An inner join keeps only the product and week pairs that exist on both sides, so every pair without a rival observation disappears from the result without any warning, and the index describes fewer products than the category holds. Those pairs do not enter as 0: they are simply gone, which is why the analyst should count the products covered before reporting.",
+  "solver": {
+    "prompt_hash": "e67b748d8af110fb",
+    "grader_version": "choice.1",
+    "chosen": "o456f7fe",
+    "typed": null,
+    "at": "2026-10-04T10:18:36.002Z"
+  }
+}

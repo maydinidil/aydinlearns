@@ -1,0 +1,13 @@
+{
+  "item_id": "Q-GA4-007",
+  "item_version": 2,
+  "correct_oid": "oa95e7a4",
+  "explanation": "Custom parameters need to be registered as custom dimensions before they appear in reports. The author describes the article in each page_view, an event-level attribute, so the scope is event; a text value cannot be a custom metric, and user scope is for user properties.",
+  "solver": {
+    "prompt_hash": "a01763225a290035",
+    "grader_version": "choice.1",
+    "chosen": "oa95e7a4",
+    "typed": null,
+    "at": "2026-10-04T10:12:05.592Z"
+  }
+}

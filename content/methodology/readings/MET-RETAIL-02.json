@@ -1,0 +1,15 @@
+{
+  "concept_id": "MET-RETAIL-02",
+  "section": "methodology",
+  "version": 1,
+  "title": "Sell-through rate",
+  "reading_md": "**What it measures.** The share of the units received for a line that has sold, net of returns. Buyers use it during a season to spot lines that sell fast and lines that will need a markdown.\n\n**Formula.**\n\nSell-through % = 100 × (units sold - units returned) / units received\n\n- Units received: everything delivered for the line this season, so far.\n- Units sold minus units returned: a sale that came back is not a sale.\n- Grain: SKU (or line) × season to date.\n\n**Worked example.** For the autumn season Voltmarkt received 1,200 units of a new 55-inch TV. By mid-November 900 had sold, and 60 of those came back.\n\n- Sell-through = 100 × (900 - 60) / 1,200 = 70.0%.\n- Leaving the returns in gives 100 × 900 / 1,200 = 75.0%, which overstates how much of the stock has really gone.\n- If the returned TVs went back into stock, 360 are on hand now (1,200 - 900 + 60). Dividing sales by today's stock, 900 / 360, gives 250%, a meaningless number: stock on hand shrinks as the line sells.\n\n**Reading the number.** Compare sell-through with the time gone in the season. 40% after 10 weeks of a 12-week season points to a markdown. 95% after 2 weeks may mean too few units were bought, so sales will be lost once the line runs out.\n\n**Common mistakes.**\n\n- Dividing by stock on hand instead of units received.\n- Not subtracting returns.\n\n**What sell-through does not answer.**\n\n- Whether the line made money: that needs gross margin, after any markdown.\n- How many weeks the remaining stock will last at the current pace: that is stock cover.\n- Whether a line sold out because demand was strong or because too few units were bought.\n\n**How managers ask for it.** \"How is the autumn range selling through?\" \"Which lines will need markdown?\"",
+  "source_ids": [
+    "04:MET-RETAIL-02",
+    "04:§2.1",
+    "ERRATA:E-097",
+    "ERRATA:E-100"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06"
+}

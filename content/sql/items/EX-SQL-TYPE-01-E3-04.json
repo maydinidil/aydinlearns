@@ -1,0 +1,148 @@
+{
+  "id": "EX-SQL-TYPE-01-E3-04",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-02",
+    "type",
+    "scorecard",
+    "division",
+    "percent-scale",
+    "round",
+    "count-distinct",
+    "conditional-aggregation",
+    "date-type",
+    "group-by",
+    "sales"
+  ],
+  "level": 2,
+  "source_ids": [
+    "01:SQL-TYPE-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-TYPE-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-AGG-04",
+    "SQL-TYPE-01"
+  ],
+  "template_id": "T-TYPE-01-scorecard",
+  "template_params": {
+    "table": "sales",
+    "group_by": "order_month",
+    "from": "2025-10-01",
+    "to": "2025-12-31",
+    "output": "n_orders, units_per_order, web_units_pct"
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_type",
+  "prompt": "Build a monthly scorecard for the last quarter of 2025. Use the sales table and keep the order lines with an order_date from 2025-10-01 to 2025-12-31, both included. Return four columns, in this order: order_month, as the date it holds (the first day of the month); n_orders, the number of different orders (order_id); units_per_order, the total of units divided by n_orders, rounded to 2 decimals with ROUND(x, 2); and web_units_pct, 100 times the units on lines with channel 'web' divided by all units, rounded to 1 decimal with ROUND(x, 1), so 15 percent is 15.0. A missing units value adds nothing to any total. Return one row per order_month. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "order_month",
+        "type_class": "temporal"
+      },
+      {
+        "name": "n_orders",
+        "type_class": "numeric"
+      },
+      {
+        "name": "units_per_order",
+        "type_class": "numeric"
+      },
+      {
+        "name": "web_units_pct",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per order_month"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "order_month",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "n_orders",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "units_per_order",
+        "type_class": "numeric",
+        "precision": "ratio",
+        "require_rounding": 2
+      },
+      {
+        "name": "web_units_pct",
+        "type_class": "numeric",
+        "precision": "ratio",
+        "require_rounding": 1
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "order_month"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, keep the last quarter's lines, decide what one row stands for, and write the three calculated columns.",
+    "Count each order once with COUNT(DISTINCT ...). Each division has whole numbers on both sides, so give it a decimal side first, multiply by 100.0 for the percentage, and round each column only at the end. Keep order_month as a date."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 242,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 243,
+      "to": 253,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 254,
+      "to": 318,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 319,
+      "to": 339,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "Each ratio gets a decimal side before it divides and is rounded once, COUNT(DISTINCT order_id) counts orders rather than lines, and order_month stays a date."
+}

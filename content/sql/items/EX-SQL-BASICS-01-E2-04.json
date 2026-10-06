@@ -1,0 +1,108 @@
+{
+  "id": "EX-SQL-BASICS-01-E2-04",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-01",
+    "select_from"
+  ],
+  "level": 1,
+  "source_ids": [
+    "01:SQL-BASICS-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-02",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-BASICS-01",
+  "concept_ids": [
+    "SQL-BASICS-01"
+  ],
+  "template_id": "T-BASICS-01-select-columns",
+  "template_params": {
+    "table": "products",
+    "columns": 3
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_basics",
+  "prompt": "Some products have a sister product, a close variant of the same item. From the products table, return three columns, in this order: product_id, product_name, sister_product_id. Return one row per product and keep every product, including products with no sister product, whose sister_product_id is missing (NULL). Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "product_name",
+        "type_class": "text"
+      },
+      {
+        "name": "sister_product_id",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per product"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "product_name",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "sister_product_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "product_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, choose the table. The products table has one row per product; it goes in the FROM clause.",
+    "Your SELECT list names three columns, sister_product_id last. Selecting a column never removes rows, even when its value is missing."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 50,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 51,
+      "to": 64,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "SELECT names the three columns and FROM products keeps every product, including those with a missing sister_product_id."
+}

@@ -1,0 +1,36 @@
+{
+  "item_id": "EX-SQL-CASE-01-E2-05",
+  "item_version": 1,
+  "reference_sql": "SELECT promo_code, promo_type, discount_pct,\n       CASE WHEN promo_type = 'clearance' THEN 'clearance'\n            WHEN discount_pct >= 30 THEN 'deep'\n            ELSE 'standard'\n       END AS promo_class\nFROM promotions",
+  "alternatives": [
+    "SELECT promo_code, promo_type, discount_pct, CASE WHEN promo_type <> 'clearance' AND discount_pct >= 30 THEN 'deep' WHEN promo_type = 'clearance' THEN 'clearance' ELSE 'standard' END AS promo_class FROM promotions",
+    "SELECT promo_code, promo_type, discount_pct, CASE WHEN promo_type = 'clearance' THEN 'clearance' WHEN discount_pct < 30 THEN 'standard' ELSE 'deep' END AS promo_class FROM promotions"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-00",
+      "sql": "SELECT promo_code, promo_type, discount_pct, CASE WHEN discount_pct >= 30 THEN 'deep' WHEN promo_type = 'clearance' THEN 'clearance' ELSE 'standard' END AS promo_class FROM promotions"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-15",
+      "sql": "SELECT promo_code, promo_type, discount_pct, CASE WHEN promo_type = 'clearance' THEN 'clearance' WHEN discount_pct > 30 THEN 'deep' ELSE 'standard' END AS promo_class FROM promotions"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-03",
+      "sql": "SELECT promo_code, promo_type, discount_pct, CASE WHEN promo_type = 'clearance' THEN 'clearance' WHEN discount_pct >= 30 THEN 'deep' END AS promo_class FROM promotions"
+    }
+  ],
+  "hint3_partial": "SELECT promo_code, promo_type, discount_pct,\n       CASE WHEN ___ THEN 'clearance'\n            WHEN ___ THEN 'deep'\n            ELSE 'standard'\n       END AS promo_class\nFROM promotions",
+  "solver": {
+    "prompt_hash": "46e02c7692aeda00",
+    "schema_version": "f0340f71a1f5",
+    "dataset_version": "506a9858f862fdfb",
+    "grader_version": "1b.3",
+    "query": "SELECT promo_code, promo_type, discount_pct, CASE WHEN promo_type = 'clearance' THEN 'clearance' WHEN discount_pct >= 30 THEN 'deep' ELSE 'standard' END AS promo_class FROM promotions\n",
+    "at": "2026-10-04T10:06:50.951Z"
+  }
+}

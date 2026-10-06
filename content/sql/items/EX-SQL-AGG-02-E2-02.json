@@ -1,0 +1,136 @@
+{
+  "id": "EX-SQL-AGG-02-E2-02",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-02",
+    "group_by",
+    "sum",
+    "month",
+    "order-by",
+    "sales"
+  ],
+  "level": 2,
+  "source_ids": [
+    "01:SQL-AGG-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "lesson",
+  "target_concept_id": "SQL-AGG-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02"
+  ],
+  "template_id": "T-AGG-02-sum-per-month-sorted",
+  "template_params": {
+    "table": "sales",
+    "group_by": "order_month",
+    "metric": "units",
+    "from": "2025-01-01",
+    "to": "2025-03-31"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_agg",
+  "prompt": "How many units were sold in each month of the first quarter of 2025? Use the sales table and its order_month column, the first day of the month the order was placed in. Count order lines dated from 1 January 2025 to 31 March 2025, both days included. Return two columns, in this order: order_month and units_sold, the sum of units. Return one row per order_month, sorted by order_month from earliest to latest. Order lines with missing units add nothing to the total.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "order_month",
+        "type_class": "temporal"
+      },
+      {
+        "name": "units_sold",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per month"
+  },
+  "rules": {
+    "order_matters": true,
+    "sort_keys": [
+      {
+        "column": "order_month",
+        "desc": false
+      }
+    ],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "order_month",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "units_sold",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "order_month"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, decide what one row stands for: one row per month, with the units added up inside each order_month.",
+    "The grouping clause goes between WHERE and ORDER BY, and names the same column the sort uses."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 44,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 45,
+      "to": 55,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 56,
+      "to": 120,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 121,
+      "to": 141,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 142,
+      "to": 162,
+      "subgoal": "sort_limit"
+    }
+  ],
+  "fading": {
+    "stage1": 121,
+    "stage2": 121
+  },
+  "faded_shape": "SELECT order_month, SUM(units) AS units_sold\nFROM sales\nWHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-03-31'\n",
+  "faded_suffix": "\nORDER BY order_month",
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "WHERE keeps the first quarter's lines, GROUP BY order_month makes one group per month, and ORDER BY sorts the months, because grouping alone promises no order."
+}

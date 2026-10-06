@@ -1,0 +1,36 @@
+{
+  "item_id": "EX-SQL-AGG-02-E3-02",
+  "item_version": 1,
+  "reference_sql": "SELECT parent_category,\n       SUM(net_revenue_eur) AS revenue_eur,\n       SUM(units * unit_cost_eur) AS cost_eur,\n       SUM(net_revenue_eur) - SUM(units * unit_cost_eur) AS margin_eur\nFROM sales\nWHERE net_revenue_eur IS NOT NULL AND units IS NOT NULL AND unit_cost_eur IS NOT NULL\nGROUP BY parent_category",
+  "alternatives": [
+    "SELECT parent_category, SUM(net_revenue_eur) AS revenue_eur, SUM(units * unit_cost_eur) AS cost_eur, SUM(net_revenue_eur - units * unit_cost_eur) AS margin_eur FROM sales WHERE net_revenue_eur IS NOT NULL AND units IS NOT NULL AND unit_cost_eur IS NOT NULL GROUP BY parent_category",
+    "SELECT parent_category, SUM(net_revenue_eur) AS revenue_eur, SUM(unit_cost_eur * units) AS cost_eur, SUM(net_revenue_eur) - SUM(unit_cost_eur * units) AS margin_eur FROM sales WHERE net_revenue_eur IS NOT NULL AND unit_cost_eur IS NOT NULL AND units IS NOT NULL GROUP BY 1"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-17",
+      "sql": "SELECT parent_category, SUM(net_revenue_eur) AS revenue_eur, SUM(units * unit_cost_eur) AS cost_eur, SUM(net_revenue_eur) - SUM(units * unit_cost_eur) AS margin_eur FROM sales GROUP BY parent_category"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-07",
+      "sql": "SELECT parent_category, SUM(net_revenue_eur) AS revenue_eur, SUM(units * unit_cost_eur) AS cost_eur, SUM(net_revenue_eur) - SUM(units * unit_cost_eur) AS margin_eur FROM sales WHERE net_revenue_eur IS NOT NULL AND units IS NOT NULL AND unit_cost_eur IS NOT NULL GROUP BY parent_category, channel"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-SEM-01",
+      "sql": "SELECT parent_category, SUM(net_revenue_eur) AS revenue_eur, SUM(units * unit_cost_eur) AS cost_eur, SUM(net_revenue_eur) - SUM(units * unit_cost_eur) AS margin_eur FROM sales WHERE net_revenue_eur IS NOT NULL AND units IS NOT NULL AND unit_cost_eur IS NOT NULL GROUP BY category_name"
+    }
+  ],
+  "hint3_partial": "SELECT parent_category,\n       SUM(net_revenue_eur) AS revenue_eur,\n       SUM(___) AS cost_eur,\n       ___ AS margin_eur\nFROM sales\nWHERE net_revenue_eur IS NOT NULL AND ___\nGROUP BY parent_category",
+  "solver": {
+    "prompt_hash": "c4a507c1a9637ba8",
+    "schema_version": "cebf75df442f",
+    "dataset_version": "506a9858f862fdfb",
+    "grader_version": "1b.3",
+    "query": "SELECT parent_category, SUM(net_revenue_eur) AS revenue_eur, SUM(units * unit_cost_eur) AS cost_eur, SUM(net_revenue_eur) - SUM(units * unit_cost_eur) AS margin_eur FROM sales WHERE net_revenue_eur IS NOT NULL AND units IS NOT NULL AND unit_cost_eur IS NOT NULL GROUP BY parent_category\n",
+    "at": "2026-10-04T10:06:44.944Z"
+  }
+}

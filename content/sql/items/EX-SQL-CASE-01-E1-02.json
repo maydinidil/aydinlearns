@@ -1,0 +1,122 @@
+{
+  "id": "EX-SQL-CASE-01-E1-02",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-02",
+    "case",
+    "flag",
+    "threshold",
+    "sales"
+  ],
+  "level": 2,
+  "source_ids": [
+    "01:SQL-CASE-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pretest",
+  "target_concept_id": "SQL-CASE-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-CASE-01"
+  ],
+  "template_id": "T-CASE-01-flag-threshold",
+  "template_params": {
+    "table": "sales",
+    "tested": "net_revenue_eur",
+    "threshold": 50,
+    "output": "shipping"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_case",
+  "prompt": "Voltmarkt ships an order line for free when the line is worth 50.00 euro or more. Use the sales table and keep the order lines of orders 1 to 10 (order_id from 1 to 10, both included). Return three columns, in this order: order_line_id, net_revenue_eur and shipping. shipping is the text 'free' when net_revenue_eur is 50.00 or more, and 'paid' for every other line, including a line whose net_revenue_eur is missing. Return one row per order line. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "order_line_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "net_revenue_eur",
+        "type_class": "numeric"
+      },
+      {
+        "name": "shipping",
+        "type_class": "text"
+      }
+    ],
+    "grain": "one row per order line"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "order_line_id",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "net_revenue_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "shipping",
+        "type_class": "text",
+        "precision": "exact"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "order_line_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the calculated column shipping, which compares each line with 50.00 euro.",
+    "shipping is a CASE expression in the SELECT list. A line worth exactly 50.00 is free, so the test must keep 50 itself. ELSE catches every other line, a missing net revenue included, and every CASE closes with END."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 117,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 118,
+      "to": 128,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 129,
+      "to": 160,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 100000,
+  "why_this_works": "The >= test puts a line worth exactly 50.00 in the free branch, and ELSE gives every other line, a missing value included, the paid label."
+}

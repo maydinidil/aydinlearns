@@ -1,0 +1,41 @@
+{
+  "item_id": "EX-SQL-CASE-01-E3-21",
+  "item_version": 1,
+  "reference_sql": "SELECT CASE WHEN order_date <= DATE '2025-03-31' THEN 'Q1'\n            ELSE 'Q2'\n       END AS quarter,\n       channel,\n       COUNT(DISTINCT order_id) AS n_orders,\n       COUNT(*) AS n_lines,\n       SUM(net_revenue_eur) AS revenue_eur\nFROM sales\nWHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-06-30'\nGROUP BY quarter, channel\nORDER BY quarter, channel",
+  "alternatives": [
+    "SELECT CASE WHEN order_date < DATE '2025-04-01' THEN 'Q1' ELSE 'Q2' END AS quarter, channel, COUNT(DISTINCT order_id) AS n_orders, COUNT(*) AS n_lines, SUM(net_revenue_eur) AS revenue_eur FROM sales WHERE order_date >= DATE '2025-01-01' AND order_date < DATE '2025-07-01' GROUP BY 1, 2 ORDER BY 1, 2",
+    "SELECT CASE WHEN order_date BETWEEN '2025-01-01' AND '2025-03-31' THEN 'Q1' WHEN order_date BETWEEN '2025-04-01' AND '2025-06-30' THEN 'Q2' END AS quarter, channel, COUNT(DISTINCT order_id) AS n_orders, COUNT(order_line_id) AS n_lines, SUM(net_revenue_eur) AS revenue_eur FROM sales WHERE order_date BETWEEN '2025-01-01' AND '2025-06-30' GROUP BY channel, quarter ORDER BY quarter ASC, channel ASC"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-06",
+      "sql": "SELECT CASE WHEN order_date < DATE '2025-03-31' THEN 'Q1' ELSE 'Q2' END AS quarter, channel, COUNT(DISTINCT order_id) AS n_orders, COUNT(*) AS n_lines, SUM(net_revenue_eur) AS revenue_eur FROM sales WHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-06-30' GROUP BY quarter, channel ORDER BY quarter, channel"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-04",
+      "sql": "SELECT CASE WHEN order_date <= DATE '2025-03-31' THEN 'Q1' ELSE 'Q2' END AS quarter, channel, COUNT(order_id) AS n_orders, COUNT(*) AS n_lines, SUM(net_revenue_eur) AS revenue_eur FROM sales WHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-06-30' GROUP BY quarter, channel ORDER BY quarter, channel"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-SEM-01",
+      "sql": "SELECT CASE WHEN order_date <= DATE '2025-03-31' THEN 'Q1' ELSE 'Q2' END AS quarter, channel, COUNT(DISTINCT order_id) AS n_orders, COUNT(*) AS n_lines, SUM(net_revenue_eur) AS revenue_eur FROM sales WHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-06-30' GROUP BY quarter ORDER BY quarter, channel"
+    },
+    {
+      "id": "PW4",
+      "error_id": "ERR-LOG-18",
+      "sql": "SELECT CASE WHEN order_date <= DATE '2025-03-31' THEN 'Q1' ELSE 'Q2' END AS quarter, channel, COUNT(DISTINCT order_id) AS n_orders, COUNT(*) AS n_lines, SUM(net_revenue_eur) AS revenue_eur FROM sales WHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-06-30' GROUP BY quarter, channel ORDER BY channel, quarter"
+    }
+  ],
+  "hint3_partial": "SELECT CASE WHEN order_date <= ___ THEN 'Q1'\n            ELSE 'Q2'\n       END AS quarter,\n       channel,\n       COUNT(___) AS n_orders,\n       COUNT(*) AS n_lines,\n       SUM(net_revenue_eur) AS revenue_eur\nFROM sales\nWHERE order_date BETWEEN ___\nGROUP BY ___\nORDER BY ___",
+  "solver": {
+    "prompt_hash": "aca02638895f8929",
+    "schema_version": "cebf75df442f",
+    "dataset_version": "506a9858f862fdfb",
+    "grader_version": "1b.3",
+    "query": "SELECT CASE WHEN order_date BETWEEN DATE '2025-01-01' AND DATE '2025-03-31' THEN 'Q1' ELSE 'Q2' END AS quarter,\n       channel, COUNT(DISTINCT order_id) AS n_orders, COUNT(*) AS n_lines, SUM(net_revenue_eur) AS revenue_eur\nFROM sales\nWHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-06-30'\nGROUP BY 1, channel\nORDER BY quarter ASC, channel ASC\n",
+    "at": "2026-10-04T14:33:18.026Z"
+  }
+}

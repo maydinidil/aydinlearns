@@ -1,0 +1,41 @@
+{
+  "item_id": "EX-SQL-AGG-03-E1-06",
+  "item_version": 1,
+  "reference_sql": "SELECT parent_category, AVG(net_revenue_eur) AS avg_line_revenue_eur\nFROM sales\nGROUP BY parent_category\nHAVING AVG(net_revenue_eur) > 300",
+  "alternatives": [
+    "SELECT parent_category, AVG(net_revenue_eur) AS avg_line_revenue_eur FROM sales GROUP BY 1 HAVING 300 < AVG(net_revenue_eur)",
+    "SELECT parent_category, SUM(net_revenue_eur) / COUNT(net_revenue_eur) AS avg_line_revenue_eur FROM sales GROUP BY parent_category HAVING SUM(net_revenue_eur) / COUNT(net_revenue_eur) > 300"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-14",
+      "sql": "SELECT parent_category, AVG(net_revenue_eur) AS avg_line_revenue_eur FROM sales GROUP BY parent_category HAVING MAX(net_revenue_eur) > 300"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-02",
+      "sql": "SELECT parent_category, AVG(net_revenue_eur) AS avg_line_revenue_eur FROM sales WHERE net_revenue_eur > 300 GROUP BY parent_category"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-SYN-06",
+      "sql": "SELECT parent_category, AVG(net_revenue_eur) AS avg_line_revenue_eur FROM sales WHERE avg_line_revenue_eur > 300 GROUP BY parent_category"
+    },
+    {
+      "id": "PW4",
+      "error_id": "ERR-OUT-01",
+      "sql": "SELECT parent_category FROM sales GROUP BY parent_category HAVING AVG(net_revenue_eur) > 300"
+    }
+  ],
+  "hint3_partial": "SELECT parent_category, AVG(net_revenue_eur) AS avg_line_revenue_eur\nFROM sales\nGROUP BY parent_category\nHAVING ___ > 300",
+  "solver": {
+    "prompt_hash": "0106a80732f8621d",
+    "schema_version": "cebf75df442f",
+    "dataset_version": "506a9858f862fdfb",
+    "grader_version": "1b.3",
+    "query": "SELECT parent_category, AVG(net_revenue_eur) AS avg_line_revenue_eur FROM sales GROUP BY parent_category HAVING AVG(net_revenue_eur) > 300\n",
+    "at": "2026-10-04T10:06:45.527Z"
+  }
+}

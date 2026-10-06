@@ -1,0 +1,133 @@
+{
+  "id": "EX-SQL-TYPE-01-E1-31",
+  "version": 1,
+  "kind": "fix",
+  "tags": [
+    "sql",
+    "LVL-02",
+    "fix",
+    "type",
+    "integer-division",
+    "percentage",
+    "round",
+    "conditional-aggregation",
+    "group-by",
+    "sales"
+  ],
+  "level": 2,
+  "source_ids": [
+    "01:SQL-TYPE-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-TYPE-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CASE-01",
+    "SQL-AGG-04",
+    "SQL-TYPE-01"
+  ],
+  "template_id": "T-TYPE-01-fix-integer-division",
+  "template_params": {
+    "table": "sales",
+    "group_by": "parent_category",
+    "part": "lines with units of 2 or more",
+    "whole": "lines",
+    "scale": "percent",
+    "decimals": 1,
+    "from": "2025-01-01",
+    "to": "2025-12-31",
+    "output": "multi_unit_pct"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_type",
+  "prompt": "The query in the editor has one mistake. Fix it so that it answers this question: what percentage of each parent category's 2025 order lines sold 2 or more units? Use the sales table and keep the order lines with an order_date from 2025-01-01 to 2025-12-31, both included. Return two columns, in this order: parent_category and multi_unit_pct, 100 times the number of lines with units of 2 or more divided by the number of all lines, rounded to 1 decimal with ROUND(x, 1), so 15 percent is 15.0. A line with a missing units value counts as a line, but not as a line with 2 or more units. Return one row per parent_category. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "parent_category",
+        "type_class": "text"
+      },
+      {
+        "name": "multi_unit_pct",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per parent_category"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "parent_category",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "multi_unit_pct",
+        "type_class": "numeric",
+        "precision": "ratio",
+        "require_rounding": 1
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "parent_category"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, look at the calculated column multi_unit_pct: its values are whole numbers, but the question wants 1 decimal.",
+    "Check the division operator. In DuckDB, // divides and drops everything after the decimal point, the way PostgreSQL divides two whole numbers."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 114,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 115,
+      "to": 125,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 126,
+      "to": 190,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 191,
+      "to": 215,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": "SELECT parent_category, ROUND(100 * SUM(CASE WHEN units >= 2 THEN 1 ELSE 0 END) // COUNT(*), 1) AS multi_unit_pct\nFROM sales\nWHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\nGROUP BY parent_category",
+  "starter_error_id": "ERR-LOG-05",
+  "time_target_ms": 90000,
+  "why_this_works": "Dividing with / after 100.0 keeps the decimals; // dropped them before ROUND could keep one."
+}

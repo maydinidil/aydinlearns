@@ -1,0 +1,37 @@
+{
+  "item_id": "EX-SQL-BASICS-01-E2-05",
+  "item_version": 1,
+  "reference_sql": "SELECT cal_date, iso_year, iso_week, week_start\nFROM calendar",
+  "alternatives": [
+    "SELECT calendar.cal_date, calendar.iso_year, calendar.iso_week, calendar.week_start\nFROM calendar",
+    "SELECT c.cal_date, c.iso_year, c.iso_week, c.week_start\nFROM calendar AS c",
+    "SELECT \"cal_date\", \"iso_year\", \"iso_week\", \"week_start\"\nFROM \"calendar\""
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "M1",
+      "error_id": "ERR-SYN-02",
+      "sql": "SELECT cal_date, iso_year, week_number, week_start FROM calendar"
+    },
+    {
+      "id": "M2",
+      "error_id": "ERR-OUT-01",
+      "sql": "SELECT cal_date, iso_year, iso_week FROM calendar"
+    },
+    {
+      "id": "M3",
+      "error_id": "ERR-SYN-01",
+      "sql": "SELCT cal_date, iso_year, iso_week, week_start FROM calendar"
+    }
+  ],
+  "hint3_partial": "SELECT cal_date, ...\nFROM calendar",
+  "solver": {
+    "prompt_hash": "a0b025bc6d218158",
+    "schema_version": "0d8e15555347",
+    "dataset_version": "9639f8ae1f71c2ef",
+    "grader_version": "1a.2",
+    "query": "SELECT cal_date, iso_year, iso_week, week_start FROM calendar\n",
+    "at": "2026-10-03T13:08:02.070Z"
+  }
+}

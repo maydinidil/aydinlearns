@@ -1,0 +1,27 @@
+{
+  "id": "null-matches-null",
+  "rule": "NULL",
+  "setup_sql": [
+    "CREATE SCHEMA g",
+    "CREATE TABLE g.z AS SELECT * FROM (VALUES (NULL, 1),(2, NULL)) v(a,b)"
+  ],
+  "key_sql": "SELECT a, b FROM g.z",
+  "learner_sql": "SELECT a, b FROM g.z ORDER BY a NULLS FIRST",
+  "rules": {
+    "columns": [
+      {
+        "name": "a",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "b",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ]
+  },
+  "expect": {
+    "pass": true
+  }
+}

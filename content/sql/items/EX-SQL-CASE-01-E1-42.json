@@ -1,0 +1,85 @@
+{
+  "id": "EX-SQL-CASE-01-E1-42",
+  "version": 1,
+  "kind": "choose_query",
+  "tags": [
+    "sql",
+    "LVL-02",
+    "choose_query",
+    "case",
+    "else",
+    "stores"
+  ],
+  "level": 2,
+  "source_ids": [
+    "01:SQL-CASE-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-CASE-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-CASE-01"
+  ],
+  "template_id": "T-CASE-01-choose-case-flag",
+  "template_params": {
+    "table": "stores"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_case",
+  "prompt": "Label every store: store_kind is 'webshop' when store_type is 'web' and 'physical' for every other store. Return store_code and store_kind, one row per store. Any row order is fine. Which query returns it?",
+  "output_contract": null,
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [],
+  "subgoals": [],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 60000,
+  "why_this_works": "",
+  "options": [
+    {
+      "oid": "ob0ae994",
+      "text": "SELECT store_code,\n       CASE WHEN store_type = 'web' THEN 'webshop' END AS store_kind\nFROM stores",
+      "misconception_id": "ERR-LOG-00"
+    },
+    {
+      "oid": "o8b5b103",
+      "text": "SELECT store_code, 'webshop' AS store_kind\nFROM stores\nWHERE store_type = 'web'",
+      "misconception_id": "ERR-LOG-00"
+    },
+    {
+      "oid": "o8117985",
+      "text": "SELECT store_code,\n       CASE WHEN store_type = 'webshop' THEN 'webshop' ELSE 'physical' END AS store_kind\nFROM stores",
+      "misconception_id": "ERR-LOG-00"
+    },
+    {
+      "oid": "o14ae6f3",
+      "text": "SELECT store_code,\n       CASE WHEN store_type = 'web' THEN 'webshop' ELSE 'physical' END AS store_kind\nFROM stores",
+      "misconception_id": null
+    }
+  ]
+}

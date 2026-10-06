@@ -1,0 +1,15 @@
+{
+  "concept_id": "MET-SAAS-07",
+  "section": "methodology",
+  "version": 2,
+  "title": "Gross revenue retention (GRR)",
+  "reading_md": "**Setting.** The examples use Business Care, the device-support subscription Voltmarkt sells to small offices. Each business has a monthly recurring amount, its MRR.\n\n**What it answers.** How much of last year's revenue from existing customers you still keep, with upgrades left out. Upgrades cannot offset cancellations and downgrades, so GRR shows the leak on its own.\n\n**Formula (cohort method, 12 months).**\n\nGRR % = 100 × SUM(the lower of each business's end MRR and start MRR) / SUM(start MRR)\n\n- The cohort is every business with MRR above 0 in the start month. New and returning businesses never enter it.\n- Each business counts at its end-month MRR, but never above its start MRR: an upgrade counts at the start amount, a downgrade at the new lower amount, a cancellation at 0.\n- So GRR is never above 100%. A GRR above 100% is a bug.\n- Grain: the 12-month window, optionally by segment.\n\n**Worked example.** On 1 September 2025, 400 businesses paid €20,000 of MRR. By 1 September 2026, 30 of them, paying €1,200 in total, had cancelled; others had downgraded by €400 in total, and others had upgraded by €3,200.\n\n- GRR = 100 × (20,000 - 1,200 - 400) / 20,000 = 92.0%.\n- NRR, which counts the upgrades, = 100 × (20,000 - 1,200 - 400 + 3,200) / 20,000 = 108.0%.\n\nThe 16-point gap between them is the upgrades: 3,200 / 20,000. Report both: an NRR above 100% can hide a GRR that is falling.\n\n**Common mistakes.**\n\n- Letting upgrades offset cancellations and downgrades.\n- Capping the total instead of each business. One business's upgrade must not fill another's cancellation.\n- Putting new or returning businesses into the cohort.\n\n**What GRR does not answer.**\n\n- How many businesses left: that is logo churn.\n- How much the cohort grew with upgrades: that is NRR.\n- How fast new business comes in: that is new-business MRR.\n\n**How managers ask for it.** \"Without upsell, how much do we keep?\" \"What's GRR for the Business Care Year plan?\"",
+  "source_ids": [
+    "04:MET-SAAS-07",
+    "04:MET-SAAS-06",
+    "04:§2.1",
+    "ERRATA:E-100"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06"
+}

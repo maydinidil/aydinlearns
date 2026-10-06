@@ -1,0 +1,41 @@
+{
+  "item_id": "EX-SQL-TYPE-01-E1-22",
+  "item_version": 1,
+  "reference_sql": "SELECT country_code, ROUND(AVG(net_revenue_eur), 2) AS avg_line_revenue_eur\nFROM sales\nGROUP BY country_code",
+  "alternatives": [
+    "SELECT country_code, ROUND(SUM(net_revenue_eur) / COUNT(net_revenue_eur), 2) AS avg_line_revenue_eur FROM sales GROUP BY 1",
+    "SELECT country_code, ROUND(AVG(net_revenue_eur), 2) AS avg_line_revenue_eur FROM sales WHERE net_revenue_eur IS NOT NULL GROUP BY country_code"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-17",
+      "sql": "SELECT country_code, ROUND(SUM(net_revenue_eur) / COUNT(*), 2) AS avg_line_revenue_eur FROM sales GROUP BY country_code"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-19",
+      "sql": "SELECT country_code, ROUND(AVG(ROUND(net_revenue_eur, 0)), 2) AS avg_line_revenue_eur FROM sales GROUP BY country_code"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-05",
+      "sql": "SELECT country_code, CAST(AVG(net_revenue_eur) AS INTEGER) AS avg_line_revenue_eur FROM sales GROUP BY country_code"
+    },
+    {
+      "id": "PW4",
+      "error_id": "ERR-OUT-02",
+      "sql": "SELECT country_code, CAST(ROUND(AVG(net_revenue_eur), 2) AS VARCHAR) AS avg_line_revenue_eur FROM sales GROUP BY country_code"
+    }
+  ],
+  "hint3_partial": "SELECT country_code, ROUND(___, 2) AS avg_line_revenue_eur\nFROM sales\nGROUP BY ___",
+  "solver": {
+    "prompt_hash": "b9aec633b2123aad",
+    "schema_version": "cebf75df442f",
+    "dataset_version": "506a9858f862fdfb",
+    "grader_version": "1b.3",
+    "query": "SELECT country_code, ROUND(AVG(net_revenue_eur), 2) AS avg_line_revenue_eur\nFROM sales\nGROUP BY country_code\n",
+    "at": "2026-10-04T14:33:18.730Z"
+  }
+}

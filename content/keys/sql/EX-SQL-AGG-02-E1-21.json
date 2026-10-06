@@ -1,0 +1,41 @@
+{
+  "item_id": "EX-SQL-AGG-02-E1-21",
+  "item_version": 1,
+  "reference_sql": "SELECT product_id, product_name, SUM(units) AS units_sold\nFROM sales\nWHERE parent_category = 'Gaming'\nGROUP BY product_id, product_name",
+  "alternatives": [
+    "SELECT product_id, product_name, SUM(units) AS units_sold FROM sales WHERE parent_category = 'Gaming' GROUP BY 1, 2",
+    "SELECT sales.product_id, sales.product_name, SUM(sales.units) AS units_sold FROM sales WHERE sales.parent_category IN ('Gaming') GROUP BY sales.product_name, sales.product_id"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-SEM-01",
+      "sql": "SELECT product_id, product_name, SUM(units) AS units_sold FROM sales WHERE parent_category = 'Gaming' GROUP BY product_id"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-14",
+      "sql": "SELECT product_id, product_name, COUNT(units) AS units_sold FROM sales WHERE parent_category = 'Gaming' GROUP BY product_id, product_name"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-07",
+      "sql": "SELECT product_id, product_name, SUM(units) AS units_sold FROM sales WHERE parent_category = 'Gaming' GROUP BY product_id, product_name, channel"
+    },
+    {
+      "id": "PW4",
+      "error_id": "ERR-SYN-07",
+      "sql": "SELECT product_id, product_name, SUM(units) AS units_sold FROM sales WHERE parent_category = \"Gaming\" GROUP BY product_id, product_name"
+    }
+  ],
+  "hint3_partial": "SELECT product_id, product_name, ___ AS units_sold\nFROM sales\nWHERE parent_category = 'Gaming'\nGROUP BY ___",
+  "solver": {
+    "prompt_hash": "89aeacaa07404383",
+    "schema_version": "cebf75df442f",
+    "dataset_version": "506a9858f862fdfb",
+    "grader_version": "1b.3",
+    "query": "SELECT product_id, product_name, SUM(units) AS units_sold FROM sales WHERE parent_category = 'Gaming' GROUP BY product_id, product_name\n",
+    "at": "2026-10-04T14:33:16.042Z"
+  }
+}

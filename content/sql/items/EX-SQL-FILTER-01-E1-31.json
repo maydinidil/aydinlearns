@@ -1,0 +1,106 @@
+{
+  "id": "EX-SQL-FILTER-01-E1-31",
+  "version": 1,
+  "kind": "fix",
+  "tags": [
+    "sql",
+    "LVL-01",
+    "fix",
+    "where",
+    "categories"
+  ],
+  "level": 1,
+  "source_ids": [
+    "01:SQL-FILTER-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-FILTER-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01"
+  ],
+  "template_id": "T-FILTER-01-fix-double-quotes",
+  "template_params": {
+    "table": "categories",
+    "conditions": 1
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_filter",
+  "prompt": "The query in the editor has one mistake. Fix it so that it answers this question: which categories sit under the Gaming parent category? From the categories table, list the categories whose parent_category is 'Gaming'. Return two columns, in this order: category_id, category_name. Return one row per category. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "category_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "category_name",
+        "type_class": "text"
+      }
+    ],
+    "grain": "one row per category"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "category_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "category_name",
+        "type_class": "text",
+        "precision": "exact"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, read the error message: the engine looked for a column named after the text you wanted to match.",
+    "In SQL, double quotes mark a column or table name, and only single quotes mark a piece of text. Look at the quotes around the value in the row filter."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 33,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 34,
+      "to": 49,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 50,
+      "to": 82,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": "SELECT category_id, category_name\nFROM categories\nWHERE parent_category = \"Gaming\"",
+  "starter_error_id": "ERR-SYN-07",
+  "time_target_ms": 90000,
+  "why_this_works": "In single quotes, Gaming is a piece of text to compare with. In double quotes it is read as a column name, and there is no such column."
+}

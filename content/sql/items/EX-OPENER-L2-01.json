@@ -1,0 +1,163 @@
+{
+  "id": "EX-OPENER-L2-01",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-02",
+    "opener",
+    "scorecard",
+    "group_by",
+    "having",
+    "conditional-aggregation",
+    "round",
+    "sales"
+  ],
+  "level": 2,
+  "source_ids": [
+    "01:SQL-TYPE-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "opener",
+  "target_concept_id": "SQL-TYPE-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-AGG-03",
+    "SQL-CASE-01",
+    "SQL-AGG-04",
+    "SQL-TYPE-01"
+  ],
+  "template_id": "T-OPENER-L2-category-scorecard",
+  "template_params": {
+    "table": "sales",
+    "group_by": "parent_category",
+    "from": "2025-01-01",
+    "to": "2025-12-31",
+    "threshold": 150,
+    "decimals": 1
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_agg",
+  "prompt": "Marieke, the CFO, is preparing the board pack and asks which parent categories sold high-ticket order lines in 2025, and how much of their revenue came through the web. Use the sales table and the order lines with an order_date from 2025-01-01 to 2025-12-31, both days included. Return four columns, in this order: parent_category; n_orders, the number of different orders (order_id) with at least one line in that parent category; revenue_eur, the sum of net_revenue_eur, not rounded; and web_revenue_pct, 100 times the net revenue of the lines with channel 'web' divided by revenue_eur, rounded to 1 decimal with ROUND(x, 1), so 15 percent is 15.0. A parent category with no web revenue has a web_revenue_pct of 0.0. A missing net_revenue_eur adds nothing to either total. Keep only the parent categories whose average net revenue per order line is above 150 euros; that average leaves out lines with a missing net_revenue_eur. Sort by revenue_eur from highest to lowest.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "parent_category",
+        "type_class": "text"
+      },
+      {
+        "name": "n_orders",
+        "type_class": "numeric"
+      },
+      {
+        "name": "revenue_eur",
+        "type_class": "numeric"
+      },
+      {
+        "name": "web_revenue_pct",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": true,
+    "sort_keys": [
+      {
+        "column": "revenue_eur",
+        "desc": true
+      }
+    ],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "parent_category",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "n_orders",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "revenue_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "web_revenue_pct",
+        "type_class": "numeric",
+        "precision": "ratio",
+        "require_rounding": 1
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "parent_category"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, choose the table and the rows: the 2025 order lines in sales, then decide what one row stands for.",
+    "The web share needs a sum over the web lines only, with 0 for the other lines. The 150 euro test is on each group's average, so it comes after GROUP BY, not in WHERE."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 242,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 243,
+      "to": 253,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 254,
+      "to": 318,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 319,
+      "to": 343,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 344,
+      "to": 377,
+      "subgoal": "group_filter"
+    },
+    {
+      "from": 378,
+      "to": 403,
+      "subgoal": "sort_limit"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "HAVING tests each parent category's average line, and a conditional SUM with ELSE 0 gives the web revenue, 0 when there is none."
+}

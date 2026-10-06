@@ -1,0 +1,117 @@
+{
+  "id": "EX-SQL-NULL-01-E1-31",
+  "version": 1,
+  "kind": "fix",
+  "tags": [
+    "sql",
+    "LVL-01",
+    "fix",
+    "is_null",
+    "products"
+  ],
+  "level": 1,
+  "source_ids": [
+    "01:SQL-NULL-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-NULL-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-NULL-01"
+  ],
+  "template_id": "T-NULL-01-fix-equals-null",
+  "template_params": {
+    "table": "products",
+    "null_column": "sister_product_id",
+    "test": "IS NOT NULL"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_null",
+  "prompt": "The query in the editor has one mistake. Fix it so that it answers this question: which monitors come with a sister product? Some products have a sister product, a close variant whose product_id is stored in sister_product_id; for a product without a sister, sister_product_id is missing (NULL). From the products table, list the products in category_id 9 (Monitors) that have a sister product. Return three columns, in this order: product_id, product_name, sister_product_id. Return one row per product. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "product_name",
+        "type_class": "text"
+      },
+      {
+        "name": "sister_product_id",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per product"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "product_name",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "sister_product_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the test that keeps the products whose sister_product_id is recorded.",
+    "A comparison with NULL is unknown, never true, so the test in the query keeps no rows at all. SQL has its own test for whether a value is missing or recorded."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 50,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 51,
+      "to": 64,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 65,
+      "to": 120,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": "SELECT product_id, product_name, sister_product_id\nFROM products\nWHERE category_id = 9 AND sister_product_id <> NULL",
+  "starter_error_id": "ERR-SEM-04",
+  "time_target_ms": 90000,
+  "why_this_works": "IS NOT NULL is true for every recorded sister_product_id, while <> NULL is unknown for every row and keeps none."
+}

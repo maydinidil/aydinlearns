@@ -1,0 +1,117 @@
+{
+  "id": "EX-SQL-NULL-01-E1-21",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-01",
+    "is_null",
+    "and_or_not"
+  ],
+  "level": 1,
+  "source_ids": [
+    "01:SQL-NULL-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-NULL-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-NULL-01",
+    "SQL-FILTER-01"
+  ],
+  "template_id": "T-NULL-01-is-not-null-and-or",
+  "template_params": {
+    "table": "stores",
+    "null_column": "close_date",
+    "test": "IS NOT NULL"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_null",
+  "prompt": "The Dutch property team wants the Dutch stores that need attention: every store in the Netherlands (country_code 'NL') that either has a close date recorded or is an outlet (store_type 'outlet'). close_date is missing (NULL) for a store with no planned closure. A store with no store_type recorded still counts when it has a close date. Return three columns, in this order: store_code, store_type, close_date. Return one row per store. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "store_code",
+        "type_class": "text"
+      },
+      {
+        "name": "store_type",
+        "type_class": "text"
+      },
+      {
+        "name": "close_date",
+        "type_class": "temporal"
+      }
+    ],
+    "grain": "one row per store"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "store_code",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "store_type",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "close_date",
+        "type_class": "temporal",
+        "precision": "exact"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "store_code"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the row filter. Keep a Dutch store when it has a close date or when it is an outlet.",
+    "A missing value needs its own test, not = or <>. Put brackets around the OR so the Dutch condition applies to both choices."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 41,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 42,
+      "to": 53,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 54,
+      "to": 133,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 100000,
+  "why_this_works": "IS NOT NULL finds the stores with a close date, and the brackets keep the NL condition on both the closing stores and the outlets."
+}

@@ -1,0 +1,132 @@
+{
+  "id": "EX-SQL-AGG-04-E2-07",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-02",
+    "conditional-aggregation",
+    "count-if",
+    "filter-clause",
+    "pivot",
+    "sales"
+  ],
+  "level": 2,
+  "source_ids": [
+    "01:SQL-AGG-04"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-AGG-04",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-AGG-04"
+  ],
+  "template_id": "T-AGG-04-filter-clause",
+  "template_params": {
+    "table": "sales",
+    "group": "parent_category",
+    "split": "country_code",
+    "form": "FILTER"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_agg",
+  "prompt": "For each parent category, how many order lines shipped to each country? Use the sales table, where country_code is 'NL', 'BE' or 'LU'. This time, write each count with the FILTER clause. Return four columns, in this order: parent_category, nl_lines, be_lines and lu_lines, the number of order lines whose country_code is 'NL', 'BE' and 'LU'. Every order line counts, including lines with missing units, and a category with no lines for a country shows 0. Return one row per parent_category. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "parent_category",
+        "type_class": "text"
+      },
+      {
+        "name": "nl_lines",
+        "type_class": "numeric"
+      },
+      {
+        "name": "be_lines",
+        "type_class": "numeric"
+      },
+      {
+        "name": "lu_lines",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per parent_category"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "parent_category",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "nl_lines",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "be_lines",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "lu_lines",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "parent_category"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the three country counts, each with its own FILTER clause.",
+    "FILTER comes straight after the aggregate's closing bracket and holds a bracketed WHERE condition, so each COUNT(*) sees only the lines of one country."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 214,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 215,
+      "to": 225,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 226,
+      "to": 250,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 150000,
+  "why_this_works": "FILTER (WHERE ...) hands each COUNT(*) only the lines of one country, so one GROUP BY gives a column per country; a CASE inside SUM gives the same counts and works in more databases."
+}

@@ -1,0 +1,109 @@
+{
+  "id": "EX-SQL-BASICS-01-E1-31",
+  "version": 1,
+  "kind": "fix",
+  "tags": [
+    "sql",
+    "LVL-01",
+    "fix",
+    "select_from",
+    "calendar"
+  ],
+  "level": 1,
+  "source_ids": [
+    "01:SQL-BASICS-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-BASICS-01",
+  "concept_ids": [
+    "SQL-BASICS-01"
+  ],
+  "template_id": "T-BASICS-01-fix-keyword-typo",
+  "template_params": {
+    "table": "calendar",
+    "columns": 3
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_basics",
+  "prompt": "The query in the editor has one mistake. Fix it so that it answers this question: which month and quarter does each day belong to? From the calendar table, return three columns, in this order: cal_date, month, quarter. Return one row per calendar day and keep every day. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "cal_date",
+        "type_class": "temporal"
+      },
+      {
+        "name": "month",
+        "type_class": "numeric"
+      },
+      {
+        "name": "quarter",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per day"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "cal_date",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "month",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "quarter",
+        "type_class": "numeric",
+        "precision": "exact"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, read the error message: it names the word where the engine stopped.",
+    "That word should be the keyword every query starts with. Compare its spelling, letter by letter, with the keyword you learned."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 31,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 32,
+      "to": 45,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": "SELEC cal_date, month, quarter\nFROM calendar",
+  "starter_error_id": "ERR-SYN-01",
+  "time_target_ms": 90000,
+  "why_this_works": "A query starts with SELECT, spelled exactly. The engine cannot read a misspelled keyword, so it stops at that word."
+}

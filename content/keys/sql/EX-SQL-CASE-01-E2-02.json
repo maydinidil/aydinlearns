@@ -1,0 +1,41 @@
+{
+  "item_id": "EX-SQL-CASE-01-E2-02",
+  "item_version": 1,
+  "reference_sql": "SELECT CASE WHEN net_revenue_eur IS NULL THEN 'unknown'\n            WHEN net_revenue_eur < 50 THEN 'small'\n            WHEN net_revenue_eur < 100 THEN 'medium'\n            ELSE 'large'\n       END AS size_band,\n       COUNT(*) AS n_lines\nFROM sales\nGROUP BY size_band",
+  "alternatives": [
+    "SELECT CASE WHEN net_revenue_eur IS NULL THEN 'unknown' WHEN net_revenue_eur < 50 THEN 'small' WHEN net_revenue_eur < 100 THEN 'medium' ELSE 'large' END AS size_band, COUNT(*) AS n_lines FROM sales GROUP BY 1",
+    "SELECT CASE WHEN net_revenue_eur >= 100 THEN 'large' WHEN net_revenue_eur >= 50 THEN 'medium' WHEN net_revenue_eur < 50 THEN 'small' ELSE 'unknown' END AS size_band, COUNT(*) AS n_lines FROM sales GROUP BY CASE WHEN net_revenue_eur >= 100 THEN 'large' WHEN net_revenue_eur >= 50 THEN 'medium' WHEN net_revenue_eur < 50 THEN 'small' ELSE 'unknown' END"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-SEM-01",
+      "sql": "SELECT CASE WHEN net_revenue_eur IS NULL THEN 'unknown' WHEN net_revenue_eur < 50 THEN 'small' WHEN net_revenue_eur < 100 THEN 'medium' ELSE 'large' END AS size_band, COUNT(*) AS n_lines FROM sales"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-07",
+      "sql": "SELECT CASE WHEN net_revenue_eur IS NULL THEN 'unknown' WHEN net_revenue_eur < 50 THEN 'small' WHEN net_revenue_eur < 100 THEN 'medium' ELSE 'large' END AS size_band, COUNT(*) AS n_lines FROM sales GROUP BY net_revenue_eur"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-15",
+      "sql": "SELECT CASE WHEN net_revenue_eur IS NULL THEN 'unknown' WHEN net_revenue_eur <= 50 THEN 'small' WHEN net_revenue_eur <= 100 THEN 'medium' ELSE 'large' END AS size_band, COUNT(*) AS n_lines FROM sales GROUP BY size_band"
+    },
+    {
+      "id": "PW4",
+      "error_id": "ERR-LOG-04",
+      "sql": "SELECT CASE WHEN net_revenue_eur IS NULL THEN 'unknown' WHEN net_revenue_eur < 50 THEN 'small' WHEN net_revenue_eur < 100 THEN 'medium' ELSE 'large' END AS size_band, COUNT(net_revenue_eur) AS n_lines FROM sales GROUP BY size_band"
+    }
+  ],
+  "hint3_partial": "SELECT CASE WHEN net_revenue_eur IS NULL THEN 'unknown'\n            WHEN net_revenue_eur < 50 THEN 'small'\n            WHEN net_revenue_eur < ___ THEN 'medium'\n            ELSE 'large'\n       END AS size_band,\n       COUNT(*) AS n_lines\nFROM sales\nGROUP BY ___",
+  "solver": {
+    "prompt_hash": "279012e656b7b5c7",
+    "schema_version": "cebf75df442f",
+    "dataset_version": "506a9858f862fdfb",
+    "grader_version": "1b.3",
+    "query": "SELECT CASE WHEN net_revenue_eur IS NULL THEN 'unknown' WHEN net_revenue_eur < 50.00 THEN 'small' WHEN net_revenue_eur < 100.00 THEN 'medium' ELSE 'large' END AS size_band, COUNT(*) AS n_lines FROM sales GROUP BY 1\n",
+    "at": "2026-10-04T10:06:50.796Z"
+  }
+}

@@ -1,0 +1,47 @@
+{
+  "id": "Q-MET-RETAIL-11-04",
+  "version": 1,
+  "kind": "mcq",
+  "section": "methodology",
+  "concept_id": "MET-RETAIL-11",
+  "stem": "About a quarter of Voltmarkt's webshop orders are guest orders with a missing customer ID. How should they be handled in the repeat purchase rate?",
+  "options": [
+    {
+      "oid": "oaaca003",
+      "text": "Leave them out of both counts, since they cannot be linked to a customer",
+      "misconception_id": null
+    },
+    {
+      "oid": "o1b31287",
+      "text": "Count each guest order as a separate customer, one who has bought only once",
+      "misconception_id": null
+    },
+    {
+      "oid": "o9c9e060",
+      "text": "Group them as one customer, whose many orders make it a repeat buyer",
+      "misconception_id": null
+    },
+    {
+      "oid": "o540b41e",
+      "text": "Count every guest as a repeat buyer, since most guests have bought before",
+      "misconception_id": null
+    }
+  ],
+  "typed": null,
+  "held_out": false,
+  "enemy_group": "EG-MET-RETAIL-11-01",
+  "status": "active",
+  "verified": true,
+  "level": null,
+  "tags": [
+    "methodology",
+    "T-MET-RETAIL"
+  ],
+  "source_ids": [
+    "04:MET-RETAIL-11",
+    "ERRATA:E-155"
+  ],
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "supersedes": []
+}

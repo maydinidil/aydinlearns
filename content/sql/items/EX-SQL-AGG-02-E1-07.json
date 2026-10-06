@@ -1,0 +1,120 @@
+{
+  "id": "EX-SQL-AGG-02-E1-07",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-02",
+    "group_by",
+    "count",
+    "avg",
+    "promotions"
+  ],
+  "level": 2,
+  "source_ids": [
+    "01:SQL-AGG-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-AGG-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02"
+  ],
+  "template_id": "T-AGG-02-two-metrics-per-group",
+  "template_params": {
+    "table": "promotions",
+    "group_by": "promo_type",
+    "metrics": "count, avg discount_pct"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_agg",
+  "prompt": "For each promotion type, how many promotions are there and what is their average discount? Use the promotions table. Return three columns, in this order: promo_type, n_promotions, the number of promotions, and avg_discount_pct, the average of discount_pct over those promotions. Return one row per promo_type. Every promotion counts. Do not round. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "promo_type",
+        "type_class": "text"
+      },
+      {
+        "name": "n_promotions",
+        "type_class": "numeric"
+      },
+      {
+        "name": "avg_discount_pct",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per promotion type"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "promo_type",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "n_promotions",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "avg_discount_pct",
+        "type_class": "numeric",
+        "precision": "ratio"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "promo_type"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, decide what one row stands for: one row per promotion type, with the count and the average worked out inside each type.",
+    "Group by the only column that is not inside COUNT or AVG."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 82,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 83,
+      "to": 98,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 99,
+      "to": 118,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 150000,
+  "why_this_works": "GROUP BY promo_type makes one group per type, so COUNT(*) and AVG(discount_pct) each give one value per type."
+}

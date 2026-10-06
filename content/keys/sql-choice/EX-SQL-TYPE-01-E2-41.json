@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-TYPE-01-E2-41",
+  "item_version": 1,
+  "correct_oid": "o2d96ccd",
+  "explanation": "26 / 3 is about 8.67, and a CAST to INTEGER in DuckDB rounds to the nearest whole number, so cast_result is 9. // is integer division, which drops the decimals, so 26 // 3 is 8. A CAST to INTEGER never keeps decimals, and it does not cut them off the way // does.",
+  "solver": {
+    "prompt_hash": "9f764937d6eb2b51",
+    "grader_version": "choice.1",
+    "chosen": "o2d96ccd",
+    "typed": null,
+    "at": "2026-10-06T09:08:14.862Z"
+  }
+}

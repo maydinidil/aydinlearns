@@ -1,0 +1,119 @@
+{
+  "id": "EX-SQL-TYPE-01-E2-04",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-02",
+    "type",
+    "share-scale",
+    "stored-percentage",
+    "premature-rounding",
+    "round",
+    "group-by",
+    "promotions"
+  ],
+  "level": 2,
+  "source_ids": [
+    "01:SQL-TYPE-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-TYPE-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01"
+  ],
+  "template_id": "T-TYPE-01-share-per-group",
+  "template_params": {
+    "table": "promotions",
+    "group_by": "promo_type",
+    "part": "discount_pct",
+    "scale": "share",
+    "decimals": 3,
+    "output": "avg_discount_share"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_type",
+  "prompt": "What is the average discount of each promotion type, as a share of the price? Use the promotions table and all its promotions. discount_pct holds the discount in percent: 15.00 means 15 percent off. Return two columns, in this order: promo_type and avg_discount_share, the average discount as a share between 0 and 1 (so 15 percent is 0.15), rounded to 3 decimals with ROUND(x, 3). Return one row per promo_type. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "promo_type",
+        "type_class": "text"
+      },
+      {
+        "name": "avg_discount_share",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per promo_type"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "promo_type",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "avg_discount_share",
+        "type_class": "numeric",
+        "precision": "ratio",
+        "require_rounding": 3
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "promo_type"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, decide what one row stands for, then write the calculated column avg_discount_share.",
+    "Move from the percent scale to a share by dividing by 100, and round only the final average to 3 decimals. Rounding each discount before you average it changes the answer."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 81,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 82,
+      "to": 97,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 98,
+      "to": 117,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 150000,
+  "why_this_works": "Dividing by 100 moves the stored percentage to the share scale, and rounding the average once keeps every discount exact until the end."
+}

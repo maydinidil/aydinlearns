@@ -1,0 +1,42 @@
+{
+  "item_id": "EX-SQL-AGG-02-E2-06",
+  "item_version": 1,
+  "reference_sql": "SELECT order_month, COUNT(DISTINCT store_code) AS n_stores\nFROM sales\nGROUP BY order_month\nORDER BY order_month",
+  "alternatives": [
+    "SELECT order_month, COUNT(DISTINCT store_code) AS n_stores FROM sales GROUP BY 1 ORDER BY 1",
+    "SELECT order_month, COUNT(DISTINCT store_code) AS n_stores FROM sales GROUP BY order_month ORDER BY order_month ASC",
+    "SELECT sales.order_month, COUNT(DISTINCT sales.store_code) AS n_stores FROM sales GROUP BY sales.order_month ORDER BY sales.order_month"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-04",
+      "sql": "SELECT order_month, COUNT(store_code) AS n_stores FROM sales GROUP BY order_month ORDER BY order_month"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-18",
+      "sql": "SELECT order_month, COUNT(DISTINCT store_code) AS n_stores FROM sales GROUP BY order_month ORDER BY n_stores DESC, order_month"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-SEM-01",
+      "sql": "SELECT order_month, COUNT(DISTINCT store_code) AS n_stores FROM sales GROUP BY store_code ORDER BY order_month"
+    },
+    {
+      "id": "PW4",
+      "error_id": "ERR-LOG-07",
+      "sql": "SELECT order_month, COUNT(DISTINCT store_code) AS n_stores FROM sales GROUP BY order_month, channel ORDER BY order_month"
+    }
+  ],
+  "hint3_partial": "SELECT order_month, COUNT(___) AS n_stores\nFROM sales\nGROUP BY order_month\nORDER BY ___",
+  "solver": {
+    "prompt_hash": "d3dc08155d7f31fc",
+    "schema_version": "cebf75df442f",
+    "dataset_version": "506a9858f862fdfb",
+    "grader_version": "1b.3",
+    "query": "SELECT order_month, COUNT(DISTINCT store_code) AS n_stores FROM sales GROUP BY order_month ORDER BY order_month\n",
+    "at": "2026-10-04T10:06:44.348Z"
+  }
+}

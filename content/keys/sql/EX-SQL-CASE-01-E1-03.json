@@ -1,0 +1,36 @@
+{
+  "item_id": "EX-SQL-CASE-01-E1-03",
+  "item_version": 1,
+  "reference_sql": "SELECT promo_code, discount_pct,\n       CASE WHEN discount_pct >= 30 THEN 'deep' ELSE 'light' END AS depth\nFROM promotions",
+  "alternatives": [
+    "SELECT promo_code, discount_pct, CASE WHEN discount_pct < 30 THEN 'light' ELSE 'deep' END AS depth FROM promotions",
+    "SELECT promo_code, discount_pct, CASE WHEN discount_pct >= 30 THEN 'deep' WHEN discount_pct < 30 THEN 'light' END AS depth FROM promotions"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-15",
+      "sql": "SELECT promo_code, discount_pct, CASE WHEN discount_pct > 30 THEN 'deep' ELSE 'light' END AS depth FROM promotions"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-03",
+      "sql": "SELECT promo_code, discount_pct, CASE WHEN discount_pct >= 30 THEN 'deep' END AS depth FROM promotions"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-SYN-07",
+      "sql": "SELECT promo_code, discount_pct, CASE WHEN discount_pct >= 30 THEN \"deep\" ELSE \"light\" END AS depth FROM promotions"
+    }
+  ],
+  "hint3_partial": "SELECT promo_code, discount_pct,\n       CASE WHEN discount_pct ___ 30 THEN 'deep' ___ END AS depth\nFROM promotions",
+  "solver": {
+    "prompt_hash": "bd7677f57e37d202",
+    "schema_version": "f0340f71a1f5",
+    "dataset_version": "506a9858f862fdfb",
+    "grader_version": "1b.3",
+    "query": "SELECT promo_code, discount_pct, CASE WHEN discount_pct >= 30 THEN 'deep' ELSE 'light' END AS depth FROM promotions\n",
+    "at": "2026-10-04T10:06:50.433Z"
+  }
+}

@@ -1,0 +1,41 @@
+{
+  "item_id": "EX-SQL-CASE-01-E2-03",
+  "item_version": 1,
+  "reference_sql": "SELECT promo_type,\n       CASE WHEN discount_pct >= 40 THEN 'deep'\n            WHEN discount_pct >= 20 THEN 'medium'\n            ELSE 'light'\n       END AS depth,\n       COUNT(*) AS n_promotions\nFROM promotions\nGROUP BY promo_type, depth",
+  "alternatives": [
+    "SELECT promo_type, CASE WHEN discount_pct < 20 THEN 'light' WHEN discount_pct < 40 THEN 'medium' ELSE 'deep' END AS depth, COUNT(*) AS n_promotions FROM promotions GROUP BY 1, 2",
+    "SELECT promo_type, CASE WHEN discount_pct >= 40 THEN 'deep' WHEN discount_pct >= 20 THEN 'medium' ELSE 'light' END AS depth, COUNT(*) AS n_promotions FROM promotions GROUP BY promo_type, CASE WHEN discount_pct >= 40 THEN 'deep' WHEN discount_pct >= 20 THEN 'medium' ELSE 'light' END"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-00",
+      "sql": "SELECT promo_type, CASE WHEN discount_pct >= 20 THEN 'medium' WHEN discount_pct >= 40 THEN 'deep' ELSE 'light' END AS depth, COUNT(*) AS n_promotions FROM promotions GROUP BY promo_type, depth"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-15",
+      "sql": "SELECT promo_type, CASE WHEN discount_pct > 40 THEN 'deep' WHEN discount_pct > 20 THEN 'medium' ELSE 'light' END AS depth, COUNT(*) AS n_promotions FROM promotions GROUP BY promo_type, depth"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-07",
+      "sql": "SELECT promo_type, CASE WHEN discount_pct >= 40 THEN 'deep' WHEN discount_pct >= 20 THEN 'medium' ELSE 'light' END AS depth, COUNT(*) AS n_promotions FROM promotions GROUP BY promo_type, discount_pct"
+    },
+    {
+      "id": "PW4",
+      "error_id": "ERR-SEM-01",
+      "sql": "SELECT promo_type, CASE WHEN discount_pct >= 40 THEN 'deep' WHEN discount_pct >= 20 THEN 'medium' ELSE 'light' END AS depth, COUNT(*) AS n_promotions FROM promotions GROUP BY promo_type"
+    }
+  ],
+  "hint3_partial": "SELECT promo_type,\n       CASE WHEN discount_pct >= 40 THEN 'deep'\n            WHEN discount_pct >= ___ THEN 'medium'\n            ELSE ___\n       END AS depth,\n       COUNT(*) AS n_promotions\nFROM promotions\nGROUP BY promo_type, ___",
+  "solver": {
+    "prompt_hash": "720e72b89c4a3016",
+    "schema_version": "f0340f71a1f5",
+    "dataset_version": "506a9858f862fdfb",
+    "grader_version": "1b.3",
+    "query": "SELECT promo_type, CASE WHEN discount_pct < 20 THEN 'light' WHEN discount_pct < 40 THEN 'medium' ELSE 'deep' END AS depth, COUNT(*) AS n_promotions FROM promotions GROUP BY 1, 2\n",
+    "at": "2026-10-04T10:06:50.812Z"
+  }
+}

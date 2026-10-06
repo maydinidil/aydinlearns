@@ -1,0 +1,14 @@
+{
+  "concept_id": "MET-RETAIL-11",
+  "section": "methodology",
+  "version": 1,
+  "title": "Repeat purchase rate",
+  "reading_md": "**What it measures.** The share of customers who bought at least twice in a window, out of all customers who bought at least once in it.\n\n**Formula.**\n\nRepeat purchase rate % = 100 × customers with 2 or more transactions / customers with 1 or more transactions\n\nGrain: channel × period (the window). Both counts are customers, not orders.\n\n**Who counts.** Only customers you can recognise. About a quarter of Voltmarkt's orders are guest orders with a missing `customer_id`. They cannot be linked to anyone, so they stay out of both counts. A customer who once checked out as a guest can then look like a one-time buyer, so the rate describes known customers only and tends to understate repeat buying.\n\n**Worked example.** In 2025, 40,000 known customers bought from Voltmarkt's webshop at least once, and 9,200 of them bought two or more times.\n\n- Repeat purchase rate = 100 × 9,200 / 40,000 = 23.0%.\n- Over July to September alone, 15,000 customers bought and 1,200 of them bought again: 8.0%. People buy electronics rarely, so a short window misses most second purchases.\n\n**Common mistakes.**\n\n- A window too short for how often customers buy.\n- Counting each guest order as a customer, or letting all guest orders fall into one group. GROUP BY customer_id puts every missing customer_id in a single group, which then looks like one customer with thousands of orders.\n- Dividing orders instead of customers.\n\n**What it does not answer.**\n\n- How much repeat customers spend: look at AOV and revenue per customer.\n- Why customers do not come back.\n- What it cost to win them: that is CAC.\n\n**How managers ask for it.** \"Do new customers come back?\" \"Repeat rate for Q3?\"",
+  "source_ids": [
+    "04:MET-RETAIL-11",
+    "ERRATA:E-100",
+    "ERRATA:E-155"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06"
+}

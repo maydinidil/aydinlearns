@@ -1,0 +1,148 @@
+{
+  "id": "EX-SQL-SORT-01-E3-21",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "limit",
+    "top-n",
+    "tie-break",
+    "between",
+    "promotions"
+  ],
+  "level": 1,
+  "source_ids": [
+    "01:SQL-SORT-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-SORT-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01"
+  ],
+  "template_id": "T-SORT-01-top-n",
+  "template_params": {
+    "table": "promotions",
+    "n": 3,
+    "direction": "desc",
+    "year": 2025
+  },
+  "sub_skill": "limit",
+  "difficulty": "E3",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_sort",
+  "prompt": "Among the promotions that started in 2025 (start_date from 1 January 2025 to 31 December 2025, both days included), which 3 gave the deepest discount? Return promo_code, promo_type, discount_pct and start_date, in that order, with exactly these column names, highest discount_pct first. When promotions tie on discount_pct, the one with the earlier start_date comes first and wins the place. A promotion with no discount_pct does not count. Return exactly 3 rows.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "promo_code",
+        "type_class": "text"
+      },
+      {
+        "name": "promo_type",
+        "type_class": "text"
+      },
+      {
+        "name": "discount_pct",
+        "type_class": "numeric"
+      },
+      {
+        "name": "start_date",
+        "type_class": "temporal"
+      }
+    ],
+    "grain": "one row per promotion"
+  },
+  "rules": {
+    "order_matters": true,
+    "sort_keys": [
+      {
+        "column": "discount_pct",
+        "desc": true
+      },
+      {
+        "column": "start_date",
+        "desc": false
+      }
+    ],
+    "check_names": true,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "promo_code",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "promo_type",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "discount_pct",
+        "type_class": "numeric",
+        "precision": "ratio"
+      },
+      {
+        "name": "start_date",
+        "type_class": "temporal",
+        "precision": "exact"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "promo_code"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the row filter, then the sort and the row limit. Keep the 2025 promotions, sort by discount with the tie-break, then keep 3 rows.",
+    "WHERE comes before ORDER BY, and LIMIT comes last. In ORDER BY, the discount comes first, highest first, and the start date breaks ties, earliest first."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 76,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 77,
+      "to": 92,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 93,
+      "to": 157,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 158,
+      "to": 196,
+      "subgoal": "sort_limit"
+    },
+    {
+      "from": 197,
+      "to": 204,
+      "subgoal": "sort_limit"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 210000,
+  "why_this_works": "BETWEEN keeps the 2025 start dates, DESC puts the deepest discount first, the earlier start_date settles a tie at the cut-off, and LIMIT keeps 3 rows."
+}

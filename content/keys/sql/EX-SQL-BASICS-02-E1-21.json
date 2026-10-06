@@ -1,0 +1,37 @@
+{
+  "item_id": "EX-SQL-BASICS-02-E1-21",
+  "item_version": 1,
+  "reference_sql": "SELECT promo_code,\n       100 - discount_pct AS pay_pct\nFROM promotions",
+  "alternatives": [
+    "SELECT promo_code,\n       (1 - discount_pct / 100) * 100 AS pay_pct\nFROM promotions",
+    "SELECT p.promo_code,\n       100 - p.discount_pct AS pay_pct\nFROM promotions AS p",
+    "SELECT promo_code,\n       -discount_pct + 100 AS pay_pct\nFROM promotions"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-21",
+      "sql": "SELECT promo_code, 1 - discount_pct / 100 AS pay_pct FROM promotions"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-00",
+      "sql": "SELECT promo_code, discount_pct AS pay_pct FROM promotions"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-OUT-01",
+      "sql": "SELECT promo_code, discount_pct, 100 - discount_pct AS pay_pct FROM promotions"
+    }
+  ],
+  "hint3_partial": "SELECT promo_code,\n       ___ - discount_pct AS pay_pct\nFROM promotions",
+  "solver": {
+    "prompt_hash": "13cb8bfa94a0f6d6",
+    "schema_version": "f0340f71a1f5",
+    "dataset_version": "506a9858f862fdfb",
+    "grader_version": "1b.3",
+    "query": "SELECT promo_code, 100 - discount_pct AS pay_pct FROM promotions\n",
+    "at": "2026-10-04T14:33:17.527Z"
+  }
+}

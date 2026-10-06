@@ -1,0 +1,126 @@
+{
+  "id": "EX-SQL-CASE-01-E2-03",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-02",
+    "case",
+    "segment-count",
+    "bands",
+    "branch-order",
+    "group-by",
+    "promotions"
+  ],
+  "level": 2,
+  "source_ids": [
+    "01:SQL-CASE-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-CASE-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CASE-01"
+  ],
+  "template_id": "T-CASE-01-segment-count",
+  "template_params": {
+    "table": "promotions",
+    "group_by": "promo_type",
+    "tested": "discount_pct",
+    "thresholds": "20, 40",
+    "output": "depth"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_case",
+  "prompt": "How many promotions of each type fall in each discount depth band? Use the promotions table. depth is the text 'light' when discount_pct is under 20, 'medium' when it is 20 or more but under 40, and 'deep' when it is 40 or more. Return three columns, in this order: promo_type, depth and n_promotions, the number of promotions. Return one row per promo_type and depth combination that has at least one promotion. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "promo_type",
+        "type_class": "text"
+      },
+      {
+        "name": "depth",
+        "type_class": "text"
+      },
+      {
+        "name": "n_promotions",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per promotion type and depth band"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "promo_type",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "depth",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "n_promotions",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "promo_type",
+      "depth"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the band column depth after promo_type, then count the promotions and decide what one row stands for.",
+    "With >= tests, the highest threshold must come first, because CASE stops at the first true branch. Group by promo_type and by the band, not by discount_pct itself."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 194,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 195,
+      "to": 210,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 211,
+      "to": 237,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 170000,
+  "why_this_works": "Testing 40 before 20 lets the deep promotions reach their own branch, and grouping by type and band gives one count per pair."
+}

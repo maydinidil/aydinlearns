@@ -1,0 +1,41 @@
+{
+  "item_id": "EX-SQL-TYPE-01-E2-22",
+  "item_version": 1,
+  "reference_sql": "SELECT parent_category,\n       ROUND(SUM(net_revenue_eur - units * unit_cost_eur) / SUM(units), 2) AS margin_per_unit_eur\nFROM sales\nWHERE net_revenue_eur IS NOT NULL\n  AND units IS NOT NULL\n  AND unit_cost_eur IS NOT NULL\nGROUP BY parent_category",
+  "alternatives": [
+    "SELECT parent_category, ROUND((SUM(net_revenue_eur) - SUM(units * unit_cost_eur)) / SUM(units), 2) AS margin_per_unit_eur FROM sales WHERE net_revenue_eur IS NOT NULL AND units IS NOT NULL AND unit_cost_eur IS NOT NULL GROUP BY 1",
+    "SELECT parent_category, ROUND(SUM(net_revenue_eur - units * unit_cost_eur) * 1.0 / SUM(units), 2) AS margin_per_unit_eur FROM sales WHERE NOT (net_revenue_eur IS NULL OR units IS NULL OR unit_cost_eur IS NULL) GROUP BY parent_category"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-17",
+      "sql": "SELECT parent_category, ROUND(SUM(net_revenue_eur - units * unit_cost_eur) / SUM(units), 2) AS margin_per_unit_eur FROM sales GROUP BY parent_category"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-20",
+      "sql": "SELECT parent_category, ROUND(AVG((net_revenue_eur - units * unit_cost_eur) / units), 2) AS margin_per_unit_eur FROM sales WHERE net_revenue_eur IS NOT NULL AND units IS NOT NULL AND unit_cost_eur IS NOT NULL GROUP BY parent_category"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-19",
+      "sql": "SELECT parent_category, ROUND(SUM(ROUND(net_revenue_eur - units * unit_cost_eur, 0)) / SUM(units), 2) AS margin_per_unit_eur FROM sales WHERE net_revenue_eur IS NOT NULL AND units IS NOT NULL AND unit_cost_eur IS NOT NULL GROUP BY parent_category"
+    },
+    {
+      "id": "PW4",
+      "error_id": "ERR-LOG-05",
+      "sql": "SELECT parent_category, CAST(SUM(net_revenue_eur - units * unit_cost_eur) / SUM(units) AS INTEGER) AS margin_per_unit_eur FROM sales WHERE net_revenue_eur IS NOT NULL AND units IS NOT NULL AND unit_cost_eur IS NOT NULL GROUP BY parent_category"
+    }
+  ],
+  "hint3_partial": "SELECT parent_category,\n       ROUND(SUM(___) / SUM(units), 2) AS margin_per_unit_eur\nFROM sales\nWHERE net_revenue_eur IS NOT NULL\n  AND ___\nGROUP BY parent_category",
+  "solver": {
+    "prompt_hash": "b5f110c87963a6a9",
+    "schema_version": "cebf75df442f",
+    "dataset_version": "506a9858f862fdfb",
+    "grader_version": "1b.3",
+    "query": "SELECT parent_category, ROUND(SUM(net_revenue_eur - units * unit_cost_eur) / SUM(units), 2) AS margin_per_unit_eur\nFROM sales\nWHERE net_revenue_eur IS NOT NULL AND units IS NOT NULL AND unit_cost_eur IS NOT NULL\nGROUP BY parent_category\n",
+    "at": "2026-10-04T14:33:19.189Z"
+  }
+}

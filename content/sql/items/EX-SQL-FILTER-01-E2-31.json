@@ -1,0 +1,125 @@
+{
+  "id": "EX-SQL-FILTER-01-E2-31",
+  "version": 1,
+  "kind": "fix",
+  "tags": [
+    "sql",
+    "LVL-01",
+    "fix",
+    "where",
+    "and_or_not",
+    "stores"
+  ],
+  "level": 1,
+  "source_ids": [
+    "01:SQL-FILTER-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-FILTER-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01"
+  ],
+  "template_id": "T-FILTER-01-fix-and-or-brackets",
+  "template_params": {
+    "table": "stores",
+    "conditions": 3
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_filter",
+  "prompt": "The query in the editor has one mistake. Fix it so that it answers this question: which stores in Belgium or Luxembourg opened before 2017? From the stores table, list the stores whose country_code is 'BE' or 'LU' and that opened before 1 January 2017. Return four columns, in this order: store_code, city, country_code, opened_on. Return one row per store. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "store_code",
+        "type_class": "text"
+      },
+      {
+        "name": "city",
+        "type_class": "text"
+      },
+      {
+        "name": "country_code",
+        "type_class": "text"
+      },
+      {
+        "name": "opened_on",
+        "type_class": "temporal"
+      }
+    ],
+    "grain": "one row per store"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "store_code",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "city",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "country_code",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "opened_on",
+        "type_class": "temporal",
+        "precision": "exact"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the row filter so the opening date test applies to both countries. Some stores the query returns opened in 2017 or later.",
+    "SQL applies AND before OR, so here the date test binds only to the country written next to it. Brackets around the part joined by OR make the date test apply to both countries."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 48,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 49,
+      "to": 60,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 61,
+      "to": 145,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": "SELECT store_code, city, country_code, opened_on\nFROM stores\nWHERE country_code = 'BE' OR country_code = 'LU' AND opened_on < DATE '2017-01-01'",
+  "starter_error_id": "ERR-LOG-13",
+  "time_target_ms": 120000,
+  "why_this_works": "The brackets make the two countries one condition, so the opening date test applies to both of them, not only to the country next to it."
+}

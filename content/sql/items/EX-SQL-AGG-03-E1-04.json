@@ -1,0 +1,121 @@
+{
+  "id": "EX-SQL-AGG-03-E1-04",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-02",
+    "having",
+    "sum",
+    "sales"
+  ],
+  "level": 2,
+  "source_ids": [
+    "01:SQL-AGG-03"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "lesson",
+  "target_concept_id": "SQL-AGG-03",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-AGG-03"
+  ],
+  "template_id": "T-AGG-03-sum-threshold",
+  "template_params": {
+    "table": "sales",
+    "group_by": "category_name",
+    "aggregate": "sum",
+    "comparison": "more than",
+    "threshold": 50000
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_agg",
+  "prompt": "Which categories sold more than 50,000 units in total? Use the sales table and its category_name column. Return two columns, in this order: category_name and units_sold, the sum of units. Return one row per category, and only the categories whose total is above 50,000. Order lines with missing units add nothing to the total. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "category_name",
+        "type_class": "text"
+      },
+      {
+        "name": "units_sold",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per category"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "category_name",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "units_sold",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "category_name"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the group filter: keep only the categories whose units total is above 50,000.",
+    "The condition is on the total of each category, not on one line, so it goes in the clause after GROUP BY and repeats the aggregate."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 46,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 47,
+      "to": 57,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 58,
+      "to": 80,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 81,
+      "to": 106,
+      "subgoal": "group_filter"
+    }
+  ],
+  "fading": {
+    "stage1": 81,
+    "stage2": 58
+  },
+  "faded_shape": "SELECT category_name, SUM(units) AS units_sold\nFROM sales\nGROUP BY category_name\n",
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "HAVING tests each category's SUM of units after grouping; a WHERE on units would test single lines instead."
+}

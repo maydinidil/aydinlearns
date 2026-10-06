@@ -1,0 +1,32 @@
+{
+  "item_id": "EX-SQL-FILTER-01-E2-22",
+  "item_version": 1,
+  "reference_sql": "SELECT category_id, category_name, parent_category\nFROM categories\nWHERE (parent_category = 'Audio' OR parent_category = 'Smart Home') AND category_name <> 'Smart Speakers'",
+  "alternatives": [
+    "SELECT category_id, category_name, parent_category\nFROM categories\nWHERE (parent_category = 'Audio' OR parent_category = 'Smart Home') AND NOT category_name = 'Smart Speakers'",
+    "SELECT category_id, category_name, parent_category\nFROM categories\nWHERE category_name <> 'Smart Speakers' AND (parent_category = 'Smart Home' OR parent_category = 'Audio')",
+    "SELECT category_id, category_name, parent_category\nFROM categories\nWHERE (parent_category = 'Audio' AND category_name <> 'Smart Speakers') OR (parent_category = 'Smart Home' AND category_name <> 'Smart Speakers')"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-13",
+      "sql": "SELECT category_id, category_name, parent_category FROM categories WHERE category_name <> 'Smart Speakers' AND parent_category = 'Audio' OR parent_category = 'Smart Home'"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-SYN-07",
+      "sql": "SELECT category_id, category_name, parent_category FROM categories WHERE (parent_category = 'Audio' OR parent_category = 'Smart Home') AND category_name <> \"Smart Speakers\""
+    }
+  ],
+  "hint3_partial": "SELECT category_id, category_name, parent_category\nFROM categories\nWHERE (parent_category = 'Audio' OR ...) AND category_name ...",
+  "solver": {
+    "prompt_hash": "b9dee05f2751ae84",
+    "schema_version": "d9fba3510579",
+    "dataset_version": "506a9858f862fdfb",
+    "grader_version": "1b.3",
+    "query": "SELECT category_id, category_name, parent_category FROM categories WHERE parent_category IN ('Audio', 'Smart Home') AND category_name <> 'Smart Speakers'\n",
+    "at": "2026-10-04T14:33:18.118Z"
+  }
+}

@@ -1,0 +1,37 @@
+{
+  "item_id": "EX-SQL-BASICS-01-E2-03",
+  "item_version": 1,
+  "reference_sql": "SELECT promo_name, promo_type, start_date, end_date\nFROM promotions",
+  "alternatives": [
+    "SELECT promotions.promo_name, promotions.promo_type, promotions.start_date, promotions.end_date\nFROM promotions",
+    "SELECT pr.promo_name, pr.promo_type, pr.start_date, pr.end_date\nFROM promotions AS pr",
+    "SELECT \"promo_name\", \"promo_type\", \"start_date\", \"end_date\"\nFROM \"promotions\""
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "M1",
+      "error_id": "ERR-SYN-02",
+      "sql": "SELECT promo_name, promo_type, starts_on, ends_on FROM promotions"
+    },
+    {
+      "id": "M2",
+      "error_id": "ERR-OUT-01",
+      "sql": "SELECT promo_name, promo_type, start_date end_date FROM promotions"
+    },
+    {
+      "id": "M3",
+      "error_id": "ERR-SYN-01",
+      "sql": "SELECT promo_name, promo_type, start_date, end_date FORM promotions"
+    }
+  ],
+  "hint3_partial": "SELECT promo_name, ...\nFROM promotions",
+  "solver": {
+    "prompt_hash": "20f15d1de1b0e3d1",
+    "schema_version": "f0340f71a1f5",
+    "dataset_version": "9639f8ae1f71c2ef",
+    "grader_version": "1a.2",
+    "query": "SELECT promo_name, promo_type, start_date, end_date FROM promotions\n",
+    "at": "2026-10-03T13:08:02.036Z"
+  }
+}

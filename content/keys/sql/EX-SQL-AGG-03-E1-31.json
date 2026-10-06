@@ -1,0 +1,36 @@
+{
+  "item_id": "EX-SQL-AGG-03-E1-31",
+  "item_version": 1,
+  "reference_sql": "SELECT category_name, AVG(units) AS avg_units\nFROM sales\nWHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-03-31'\nGROUP BY category_name\nHAVING AVG(units) > 1.25",
+  "alternatives": [
+    "SELECT category_name, AVG(units) AS avg_units FROM sales WHERE order_date >= DATE '2025-01-01' AND order_date < DATE '2025-04-01' GROUP BY 1 HAVING 1.25 < AVG(units)",
+    "SELECT category_name, SUM(units) * 1.0 / COUNT(units) AS avg_units FROM sales WHERE order_date BETWEEN '2025-01-01' AND '2025-03-31' GROUP BY category_name HAVING SUM(units) * 1.0 / COUNT(units) > 1.25"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "EX-SQL-AGG-03-E1-31-PW1",
+      "error_id": "ERR-SYN-05",
+      "sql": "SELECT category_name, AVG(units) AS avg_units FROM sales WHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-03-31' AND AVG(units) > 1.25 GROUP BY category_name"
+    },
+    {
+      "id": "EX-SQL-AGG-03-E1-31-PW2",
+      "error_id": "ERR-LOG-02",
+      "sql": "SELECT category_name, AVG(units) AS avg_units FROM sales WHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-03-31' AND units > 1.25 GROUP BY category_name"
+    },
+    {
+      "id": "EX-SQL-AGG-03-E1-31-PW3",
+      "error_id": "ERR-LOG-17",
+      "sql": "SELECT category_name, SUM(units) * 1.0 / COUNT(*) AS avg_units FROM sales WHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-03-31' GROUP BY category_name HAVING SUM(units) * 1.0 / COUNT(*) > 1.25"
+    }
+  ],
+  "hint3_partial": "SELECT category_name, AVG(units) AS avg_units\nFROM sales\nWHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-03-31'\nGROUP BY category_name\nHAVING ___ > 1.25",
+  "solver": {
+    "prompt_hash": "a456ad90aa26a78b",
+    "schema_version": "cebf75df442f",
+    "dataset_version": "506a9858f862fdfb",
+    "grader_version": "1b.3",
+    "query": "SELECT category_name, AVG(units) AS avg_units\nFROM sales\nWHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-03-31'\nGROUP BY category_name\nHAVING AVG(units) > 1.25\n",
+    "at": "2026-10-04T14:33:16.524Z"
+  }
+}

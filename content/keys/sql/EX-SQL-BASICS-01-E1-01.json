@@ -1,0 +1,37 @@
+{
+  "item_id": "EX-SQL-BASICS-01-E1-01",
+  "item_version": 1,
+  "reference_sql": "SELECT store_code, city\nFROM stores",
+  "alternatives": [
+    "SELECT stores.store_code, stores.city\nFROM stores",
+    "SELECT s.store_code, s.city\nFROM stores AS s",
+    "SELECT \"store_code\", \"city\"\nFROM \"stores\""
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "M1",
+      "error_id": "ERR-SYN-02",
+      "sql": "SELECT store_code, city FROM store"
+    },
+    {
+      "id": "M2",
+      "error_id": "ERR-OUT-01",
+      "sql": "SELECT * FROM stores"
+    },
+    {
+      "id": "M3",
+      "error_id": "ERR-SYN-04",
+      "sql": "SELECT store_code, city' FROM stores"
+    }
+  ],
+  "hint3_partial": "SELECT store_code, ...\nFROM stores",
+  "solver": {
+    "prompt_hash": "a5b4c2f0c82e7acc",
+    "schema_version": "9a8d01143702",
+    "dataset_version": "9639f8ae1f71c2ef",
+    "grader_version": "1a.2",
+    "query": "SELECT store_code, city FROM stores\n",
+    "at": "2026-10-03T13:08:01.865Z"
+  }
+}

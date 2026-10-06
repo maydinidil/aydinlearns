@@ -1,0 +1,14 @@
+{
+  "concept_id": "MET-MKT-07",
+  "section": "methodology",
+  "version": 1,
+  "title": "Funnel conversion by stage",
+  "reading_md": "**What it measures.** How many sessions reach each step of a path, such as add to cart, begin checkout and purchase, and what share of sessions moves on from one step to the next.\n\n**Formula.**\n\n- Step conversion = 100 × sessions reaching step n / sessions reaching step n-1.\n- Overall conversion = 100 × sessions reaching the last step / sessions at the first step.\n\nGrain: channel × period × step. Step conversion always divides by the previous step. Overall conversion divides by the first step, and the report says so.\n\n**The counting rule.** A session counts at a step only when it also reached every earlier step. A session that bought through a buy-now button, with no add to cart recorded, does not count at the purchase step. Without this rule a step can hold sessions that never passed the step before it, and a step conversion can go above 100%. If a buy-now path matters, report it as its own funnel.\n\n**Worked example.** In October Voltmarkt's webshop had 200,000 sessions. 24,000 of them added to cart, 9,600 of those began checkout, and 6,720 of those purchased.\n\n| Step | Sessions | Step conversion |\n|---|---|---|\n| Session | 200,000 | |\n| Add to cart | 24,000 | 12.0% |\n| Begin checkout | 9,600 | 40.0% |\n| Purchase | 6,720 | 70.0% |\n\nOverall conversion from the first step = 100 × 6,720 / 200,000 = 3.36%. The biggest drop is at add to cart, where 88% of sessions leave.\n\n**Common mistakes.**\n\n- Counting events instead of sessions. One session can add to cart five times.\n- Letting a session count at a later step when it skipped an earlier one.\n- Dividing by the first step when the question is about one step, or by the previous step when it is about the whole path. Overall conversion divides by the first step, step conversion divides by the previous step, and the report names which one it shows.\n\n**What it does not answer.**\n\n- Why sessions leave at a step. That needs user research or an A/B test.\n- What the orders are worth: that is AOV and revenue.\n\n**How managers ask for it.** \"Where do people drop off in checkout?\" \"Is mobile converting worse at cart?\"",
+  "source_ids": [
+    "04:MET-MKT-07",
+    "ERRATA:E-012",
+    "ERRATA:E-100"
+  ],
+  "verified": true,
+  "as_of": "2026-10-05"
+}

@@ -1,0 +1,119 @@
+{
+  "id": "EX-SQL-NULL-01-E2-31",
+  "version": 1,
+  "kind": "fix",
+  "tags": [
+    "sql",
+    "LVL-01",
+    "fix",
+    "is_null",
+    "like",
+    "and_or_not",
+    "promotions"
+  ],
+  "level": 1,
+  "source_ids": [
+    "01:SQL-NULL-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-NULL-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-NULL-01"
+  ],
+  "template_id": "T-NULL-01-fix-not-like-or-null",
+  "template_params": {
+    "table": "promotions",
+    "null_column": "promo_name"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_null",
+  "prompt": "The query in the editor has one mistake. Fix it so that it answers this question: which promotions with a discount of at least 20 percent were not clearance campaigns? From the promotions table, list the promotions whose promo_name does not contain the word Clearance and whose discount_pct is 20 or more. A promotion with no promo_name recorded (NULL) is not known to be a clearance campaign, so include it. A promotion with no discount_pct recorded does not count. Return three columns, in this order: promo_code, promo_name, discount_pct. Return one row per promotion. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "promo_code",
+        "type_class": "text"
+      },
+      {
+        "name": "promo_name",
+        "type_class": "text"
+      },
+      {
+        "name": "discount_pct",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per promotion"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "promo_code",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "promo_name",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "discount_pct",
+        "type_class": "numeric",
+        "precision": "ratio"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the row filter so it also keeps a promotion with no promo_name.",
+    "NOT LIKE on a missing name is unknown, not true, so the query drops the promotion with no promo_name. Keep it with an extra test joined by OR, in brackets so the discount test still applies to every row."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 43,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 44,
+      "to": 59,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 60,
+      "to": 146,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": "SELECT promo_code, promo_name, discount_pct\nFROM promotions\nWHERE promo_name NOT LIKE '%Clearance%' AND discount_pct >= 20",
+  "starter_error_id": "ERR-LOG-03",
+  "time_target_ms": 120000,
+  "why_this_works": "OR promo_name IS NULL keeps the promotion with no name, which NOT LIKE alone drops because a comparison with NULL is unknown; the brackets keep the discount test on both."
+}

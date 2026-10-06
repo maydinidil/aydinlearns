@@ -1,0 +1,36 @@
+{
+  "item_id": "EX-SQL-CASE-01-E1-01",
+  "item_version": 1,
+  "reference_sql": "SELECT store_code,\n       CASE WHEN close_date IS NULL THEN 'open' ELSE 'closed' END AS status\nFROM stores",
+  "alternatives": [
+    "SELECT store_code, CASE WHEN close_date IS NOT NULL THEN 'closed' ELSE 'open' END AS status FROM stores",
+    "SELECT store_code, CASE WHEN close_date IS NULL THEN 'open' WHEN close_date IS NOT NULL THEN 'closed' END AS status FROM stores"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-03",
+      "sql": "SELECT store_code, CASE WHEN close_date IS NOT NULL THEN 'closed' END AS status FROM stores"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-SEM-04",
+      "sql": "SELECT store_code, CASE WHEN close_date = NULL THEN 'open' ELSE 'closed' END AS status FROM stores"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-SYN-07",
+      "sql": "SELECT store_code, CASE WHEN close_date IS NULL THEN \"open\" ELSE \"closed\" END AS status FROM stores"
+    }
+  ],
+  "hint3_partial": "SELECT store_code,\n       CASE WHEN close_date ___ THEN 'open' ELSE ___ END AS status\nFROM stores",
+  "solver": {
+    "prompt_hash": "a1e938ff4bed652e",
+    "schema_version": "9a8d01143702",
+    "dataset_version": "506a9858f862fdfb",
+    "grader_version": "1b.3",
+    "query": "SELECT store_code, CASE WHEN close_date IS NOT NULL THEN 'closed' ELSE 'open' END AS status FROM stores\n",
+    "at": "2026-10-04T10:06:50.396Z"
+  }
+}

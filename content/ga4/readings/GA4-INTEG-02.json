@@ -1,0 +1,27 @@
+{
+  "concept_id": "GA4-INTEG-02",
+  "section": "ga4",
+  "version": 1,
+  "title": "BigQuery, Data Import, Measurement Protocol",
+  "reading_md": "## What it is\n\nThree features move data out of GA4 or into it, and a fourth link adds Google search data.\n\n- **BigQuery export** sends raw, unsampled event-level data out to BigQuery, where you query it with SQL and join it with other data. The link is free; BigQuery costs may apply beyond the free sandbox. A standard property's daily export allows 1 million events per day, and exports may be paused if a property goes far above that. Streaming export has no limit, and Analytics 360 can export up to 20 billion events per day. Exported data has no data thresholds and no Google signals data, and it cannot be exported a second time.\n- **Data Import** brings outside data into GA4, such as cost data, item data, user data and offline events. Since 28 July 2026, cost data imports need a currency field (New in 2026).\n- **Measurement Protocol** sends events to GA4 from a server rather than from a browser. Since 7 May 2026, the Data Manager API is an alternative (New in 2026).\n- **The Search Console link** joins a web data stream to a Search Console website property. It adds two reports. Queries shows Google organic search queries with their clicks, impressions, click-through rate and average position. Google organic search traffic shows landing pages with Search Console and GA4 metrics together. The reports arrive in a collection that is unpublished by default, so you publish it from the Library. They cover at most 16 months, with a 48-hour delay. A GA4 property links to one Search Console property at a time, and you must own the Search Console property and have edit permission in GA4.\n\nVoltmarkt needs, matched to a feature:\n\n| Need | Feature |\n|---|---|\n| Analyse web events together with store sales, in SQL | BigQuery export |\n| Add each product's supplier to the item reports | Data Import |\n| Record a refund when the back office processes it | Measurement Protocol |\n| See which Google searches bring visitors to the webshop | Search Console link |\n\n## What the exam asks\n\nPicking the right integration for a need. Export means BigQuery, import means Data Import, server to server means Measurement Protocol, and Google search queries mean Search Console.\n\n## Common confusions\n\n- BigQuery export sends data out; Data Import brings data in.\n- BigQuery export is not 360-only. Standard properties export too, daily and streaming.\n- The daily export limit (1 million events per day) is not the explorations sampling limit (10 million events per query).\n- Looker Studio is for visualisation, not storage.\n- The Queries report holds Google search terms, not searches made on your own site, and it breaks them down by Search Console dimensions only.\n- Search Console reports do not appear by themselves after linking: publish the collection first.\n\n## In Skillshop\n\nCourse \"Google Analytics Certification (2026)\", module \"Use GA with Other Tools and Data Sources\": the parts on BigQuery and Data Import (Unverified).",
+  "source_ids": [
+    "06:GA4-INTEG-02",
+    "06:QS-03",
+    "06:GA4-CH-10",
+    "10:GA4-INTEG-20",
+    "10:GA4-INTEG-22",
+    "10:§5",
+    "10:§6",
+    "10:COR-12",
+    "10:COR-13",
+    "10:COR-15",
+    "ERRATA:E-031",
+    "ERRATA:E-117",
+    "06:§2.1",
+    "10:§7",
+    "ERRATA:E-116",
+    "ERRATA:E-122"
+  ],
+  "verified": true,
+  "as_of": "2026-10-05"
+}

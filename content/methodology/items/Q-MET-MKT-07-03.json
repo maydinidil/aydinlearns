@@ -1,0 +1,31 @@
+{
+  "id": "Q-MET-MKT-07-03",
+  "version": 1,
+  "kind": "typed",
+  "section": "methodology",
+  "concept_id": "MET-MKT-07",
+  "stem": "One day the webshop had 10,000 sessions. 1,500 added to cart, 600 of those began checkout, and 450 of those purchased. Another 50 sessions bought through a buy-now button that records no add to cart and no checkout. A session counts at a step only when it reached every earlier step. What was the step conversion from begin checkout to purchase, as a percentage with 1 decimal?",
+  "options": [],
+  "typed": {
+    "precision": "ratio",
+    "scale": "percent",
+    "decimals": 1,
+    "unit_label": "%"
+  },
+  "held_out": true,
+  "enemy_group": null,
+  "status": "active",
+  "verified": true,
+  "level": null,
+  "tags": [
+    "methodology",
+    "T-MET-MKT"
+  ],
+  "source_ids": [
+    "04:MET-MKT-07",
+    "ERRATA:E-012"
+  ],
+  "as_of": "2026-10-05",
+  "review_after": null,
+  "supersedes": []
+}

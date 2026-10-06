@@ -1,0 +1,37 @@
+{
+  "item_id": "EX-SQL-FILTER-02-E3-21",
+  "item_version": 1,
+  "reference_sql": "SELECT product_id, product_name, brand, category_raw\nFROM products\nWHERE category_raw IN ('Headphones', 'Earbuds', 'Speakers')\n  AND brand NOT IN ('Sonora', 'Basswell')",
+  "alternatives": [
+    "SELECT product_id, product_name, brand, category_raw\nFROM products\nWHERE (category_raw = 'Headphones' OR category_raw = 'Earbuds' OR category_raw = 'Speakers') AND brand <> 'Sonora' AND brand <> 'Basswell'",
+    "SELECT product_id, product_name, brand, category_raw\nFROM products\nWHERE brand NOT IN ('Basswell', 'Sonora') AND category_raw IN ('Speakers', 'Earbuds', 'Headphones')",
+    "SELECT product_id, product_name, brand, category_raw\nFROM products\nWHERE category_raw IN ('Headphones', 'Earbuds', 'Speakers') AND NOT brand IN ('Sonora', 'Basswell')"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-00",
+      "sql": "SELECT product_id, product_name, brand, category_raw FROM products WHERE category_raw IN ('Headphones', 'Earbuds', 'Speakers') AND brand NOT IN ('Sonora')"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-13",
+      "sql": "SELECT product_id, product_name, brand, category_raw FROM products WHERE category_raw = 'Headphones' OR category_raw = 'Earbuds' OR category_raw = 'Speakers' AND brand NOT IN ('Sonora', 'Basswell')"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-00",
+      "sql": "SELECT product_id, product_name, brand, category_raw FROM products WHERE category_raw IN ('Headphones', 'Earbuds') AND brand NOT IN ('Sonora', 'Basswell')"
+    }
+  ],
+  "hint3_partial": "SELECT product_id, product_name, brand, category_raw\nFROM products\nWHERE category_raw IN (...)\n  AND brand NOT IN (...)",
+  "solver": {
+    "prompt_hash": "c2f94b291bd27a4d",
+    "schema_version": "d77fe1c31a0e",
+    "dataset_version": "506a9858f862fdfb",
+    "grader_version": "1b.3",
+    "query": "SELECT product_id, product_name, brand, category_raw FROM products WHERE category_raw IN ('Headphones', 'Earbuds', 'Speakers') AND brand NOT IN ('Sonora', 'Basswell')\n",
+    "at": "2026-10-04T14:33:18.271Z"
+  }
+}

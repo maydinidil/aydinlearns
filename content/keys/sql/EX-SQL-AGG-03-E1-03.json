@@ -1,0 +1,36 @@
+{
+  "item_id": "EX-SQL-AGG-03-E1-03",
+  "item_version": 1,
+  "reference_sql": "SELECT store_code, COUNT(*) AS n_lines\nFROM sales\nGROUP BY store_code\nHAVING COUNT(*) > 30000",
+  "alternatives": [
+    "SELECT store_code, COUNT(order_line_id) AS n_lines FROM sales GROUP BY store_code HAVING COUNT(order_line_id) > 30000",
+    "SELECT store_code, COUNT(*) AS n_lines FROM sales GROUP BY 1 HAVING COUNT(*) >= 30001"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-SYN-05",
+      "sql": "SELECT store_code, COUNT(*) AS n_lines FROM sales WHERE COUNT(*) > 30000 GROUP BY store_code"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-SYN-06",
+      "sql": "SELECT store_code, COUNT(*) AS n_lines FROM sales WHERE n_lines > 30000 GROUP BY store_code"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-04",
+      "sql": "SELECT store_code, COUNT(DISTINCT order_id) AS n_lines FROM sales GROUP BY store_code HAVING COUNT(DISTINCT order_id) > 30000"
+    }
+  ],
+  "hint3_partial": "SELECT store_code, COUNT(*) AS n_lines\nFROM sales\nGROUP BY store_code\nHAVING ___ > 30000",
+  "solver": {
+    "prompt_hash": "7a6897eb74aa11b3",
+    "schema_version": "cebf75df442f",
+    "dataset_version": "506a9858f862fdfb",
+    "grader_version": "1b.3",
+    "query": "SELECT store_code, COUNT(*) AS n_lines FROM sales GROUP BY store_code HAVING COUNT(*) > 30000\n",
+    "at": "2026-10-04T10:06:45.269Z"
+  }
+}

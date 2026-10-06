@@ -1,0 +1,120 @@
+{
+  "id": "EX-SQL-AGG-04-E2-01",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-02",
+    "conditional-aggregation",
+    "share",
+    "sum-if",
+    "sales",
+    "ratio-of-sums"
+  ],
+  "level": 2,
+  "source_ids": [
+    "01:SQL-AGG-04"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "lesson",
+  "target_concept_id": "SQL-AGG-04",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CASE-01",
+    "SQL-AGG-04"
+  ],
+  "template_id": "T-AGG-04-share",
+  "template_params": {
+    "table": "sales",
+    "group": "parent_category",
+    "condition": "channel = 'web'",
+    "measure": "net_revenue_eur",
+    "output": "web_share"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_agg",
+  "prompt": "What share of each parent category's net revenue comes from the web? Use the sales table, where channel is 'web' or 'store'. Return two columns, in this order: parent_category and web_share, the category's web net revenue divided by its total net revenue, as a fraction from 0 to 1 (0.25 means a quarter). Lines with a missing net_revenue_eur add nothing to either total. A category with no web revenue has a web_share of 0. Return one row per parent_category. Do not round. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "parent_category",
+        "type_class": "text"
+      },
+      {
+        "name": "web_share",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per parent_category"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "parent_category",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "web_share",
+        "type_class": "numeric",
+        "precision": "ratio"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "parent_category"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the calculated column web_share: the web revenue on top, the category's total revenue below.",
+    "Build the web revenue with a CASE inside SUM, then divide it by the plain SUM of net_revenue_eur. Divide the two totals; do not average a share worked out line by line."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 129,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 130,
+      "to": 140,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 141,
+      "to": 165,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": {
+    "stage1": 31,
+    "stage2": 31
+  },
+  "faded_shape": "SELECT parent_category,\n       ",
+  "faded_suffix": "\nFROM sales\nGROUP BY parent_category",
+  "starter_sql": null,
+  "time_target_ms": 150000,
+  "why_this_works": "Dividing the web total by the overall total weighs each line by its revenue; an average of line-by-line shares would count a 5 euro cable the same as a 1,000 euro TV."
+}

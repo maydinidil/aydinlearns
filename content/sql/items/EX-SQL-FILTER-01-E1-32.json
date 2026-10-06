@@ -1,0 +1,125 @@
+{
+  "id": "EX-SQL-FILTER-01-E1-32",
+  "version": 1,
+  "kind": "fix",
+  "tags": [
+    "sql",
+    "LVL-01",
+    "fix",
+    "where",
+    "and_or_not",
+    "promotions"
+  ],
+  "level": 1,
+  "source_ids": [
+    "01:SQL-FILTER-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-FILTER-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01"
+  ],
+  "template_id": "T-FILTER-01-fix-comparison-operator",
+  "template_params": {
+    "table": "promotions",
+    "conditions": 2
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_filter",
+  "prompt": "The query in the editor has one mistake. Fix it so that it answers this question: which promotions that started in 2025 or later gave a discount of at least 40 percent? From the promotions table, list the promotions whose start_date is on or after 1 January 2025, with no upper limit, and whose discount_pct is 40 or more (discount_pct holds 40.00 for 40 percent). Return four columns, in this order: promo_code, promo_name, start_date, discount_pct. Return one row per promotion. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "promo_code",
+        "type_class": "text"
+      },
+      {
+        "name": "promo_name",
+        "type_class": "text"
+      },
+      {
+        "name": "start_date",
+        "type_class": "temporal"
+      },
+      {
+        "name": "discount_pct",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per promotion"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "promo_code",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "promo_name",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "start_date",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "discount_pct",
+        "type_class": "numeric",
+        "precision": "ratio"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, check the operator in the discount test against the words \"at least 40\".",
+    "At least 40 keeps a promotion whose discount_pct is exactly 40.00. Look at which comparison operator keeps the value on the boundary."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 55,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 56,
+      "to": 71,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 72,
+      "to": 132,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": "SELECT promo_code, promo_name, start_date, discount_pct\nFROM promotions\nWHERE start_date >= DATE '2025-01-01' AND discount_pct > 40",
+  "starter_error_id": "ERR-LOG-15",
+  "time_target_ms": 90000,
+  "why_this_works": ">= 40 keeps the promotions at exactly 40 percent, which > 40 leaves out."
+}

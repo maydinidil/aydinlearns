@@ -1,0 +1,107 @@
+{
+  "id": "EX-SQL-AGG-01-E2-01",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-02",
+    "aggregate",
+    "count_column",
+    "products",
+    "count_column",
+    "null"
+  ],
+  "level": 2,
+  "source_ids": [
+    "01:SQL-AGG-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "lesson",
+  "target_concept_id": "SQL-AGG-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-AGG-01"
+  ],
+  "template_id": "T-AGG-01-count-star-vs-column",
+  "template_params": {
+    "table": "products",
+    "counted": "sister_product_id"
+  },
+  "sub_skill": "count_column",
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_agg",
+  "prompt": "In the products table, sister_product_id holds the product_id of a product's sister model, and is missing (NULL) when the product has none. How many products are there in total, and how many of them have a sister_product_id recorded? Return two columns, in this order: n_products and n_with_sister. Use exactly these column names. The result is a single row. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "n_products",
+        "type_class": "numeric"
+      },
+      {
+        "name": "n_with_sister",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row in total"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": true,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "n_products",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "n_with_sister",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the two counts. The first counts every product row; the second counts only the rows where sister_product_id has a value.",
+    "Both counts go in the SELECT list, named with AS. One form of COUNT counts rows whatever they hold, and another skips the rows where its column is missing."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 79,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 80,
+      "to": 93,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": {
+    "stage1": 7,
+    "stage2": 7
+  },
+  "faded_shape": "SELECT ",
+  "faded_suffix": "\nFROM products",
+  "starter_sql": null,
+  "time_target_ms": 150000,
+  "why_this_works": "COUNT(*) counts every row, while COUNT(sister_product_id) skips the rows where that column is NULL."
+}

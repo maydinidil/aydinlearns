@@ -1,0 +1,126 @@
+{
+  "id": "EX-SQL-CASE-01-E2-22",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-02",
+    "case",
+    "segment-count",
+    "and-or",
+    "in-list",
+    "group-by",
+    "sales",
+    "drill"
+  ],
+  "level": 2,
+  "source_ids": [
+    "01:SQL-CASE-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-CASE-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CASE-01"
+  ],
+  "template_id": "T-CASE-01-segment-count-and-or",
+  "template_params": {
+    "table": "sales",
+    "sources": "channel, country_code",
+    "output": "delivery"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_case",
+  "prompt": "Voltmarkt promises a delivery speed for each order line. delivery is the text 'next_day' when channel is 'web' and country_code is 'NL', 'two_day' when channel is 'web' and country_code is 'BE' or 'LU', and 'in_store' for every store line (channel 'store'). Use the sales table, where country_code is the country an order ships to. Return three columns, in this order: delivery, n_lines, the number of order lines, and units_sold, the sum of units. Return one row per delivery value. Every order line counts in n_lines, including a line with missing units, and missing units add nothing to units_sold. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "delivery",
+        "type_class": "text"
+      },
+      {
+        "name": "n_lines",
+        "type_class": "numeric"
+      },
+      {
+        "name": "units_sold",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per delivery speed"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "delivery",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "n_lines",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "units_sold",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "delivery"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the calculated column delivery with its three branches, then count the lines and add up the units for each delivery value.",
+    "AND is applied before OR, so the two countries of the two_day branch need brackets or IN, or a Luxembourg store line ends up in two_day. Group by the label you built."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 265,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 266,
+      "to": 276,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 277,
+      "to": 294,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 170000,
+  "why_this_works": "IN keeps both countries under the web test, ELSE labels every store line, and grouping by the label counts the lines and units of each delivery speed."
+}

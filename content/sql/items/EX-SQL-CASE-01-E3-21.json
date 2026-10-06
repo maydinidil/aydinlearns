@@ -1,0 +1,168 @@
+{
+  "id": "EX-SQL-CASE-01-E3-21",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-02",
+    "case",
+    "segment-count",
+    "date-bands",
+    "count-distinct",
+    "group-by",
+    "order-by",
+    "sales",
+    "drill"
+  ],
+  "level": 2,
+  "source_ids": [
+    "01:SQL-CASE-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-CASE-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CASE-01"
+  ],
+  "template_id": "T-CASE-01-period-scorecard-sorted",
+  "template_params": {
+    "table": "sales",
+    "source": "order_date",
+    "from": "2025-01-01",
+    "to": "2025-06-30",
+    "output": "quarter"
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_case",
+  "prompt": "Compare the first two quarters of 2025 by channel. Use the sales table and keep only the order lines with an order_date from 2025-01-01 to 2025-06-30, both included. quarter is the text 'Q1' for an order_date from 2025-01-01 to 2025-03-31 and 'Q2' for an order_date from 2025-04-01 to 2025-06-30, both days included each time. Return five columns, in this order: quarter, channel, n_orders, the number of different orders, n_lines, the number of order lines, and revenue_eur, the sum of net_revenue_eur. Return one row per quarter and channel combination, sorted by quarter from Q1 to Q2, then by channel from A to Z. Every order line counts in n_orders and n_lines, including a line with a missing value, and a missing net_revenue_eur adds nothing to revenue_eur. Do not round.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "quarter",
+        "type_class": "text"
+      },
+      {
+        "name": "channel",
+        "type_class": "text"
+      },
+      {
+        "name": "n_orders",
+        "type_class": "numeric"
+      },
+      {
+        "name": "n_lines",
+        "type_class": "numeric"
+      },
+      {
+        "name": "revenue_eur",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per quarter and channel combination"
+  },
+  "rules": {
+    "order_matters": true,
+    "sort_keys": [
+      {
+        "column": "quarter",
+        "desc": false
+      },
+      {
+        "column": "channel",
+        "desc": false
+      }
+    ],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "quarter",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "channel",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "n_orders",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "n_lines",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "revenue_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "quarter",
+      "channel"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, keep the first half of 2025, write the calculated column quarter, then decide what one row stands for: one row per quarter and channel.",
+    "An order dated 31 March belongs to Q1, so that end of the first quarter counts. An order with several lines is one order. Sort by the quarter label first and the channel second."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 235,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 236,
+      "to": 246,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 247,
+      "to": 311,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 312,
+      "to": 337,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 338,
+      "to": 363,
+      "subgoal": "sort_limit"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 230000,
+  "why_this_works": "WHERE keeps the first half of 2025, the CASE puts 31 March in Q1, and grouping by quarter and channel with DISTINCT orders gives each pair its own counts."
+}

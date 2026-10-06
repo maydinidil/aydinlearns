@@ -1,0 +1,98 @@
+{
+  "id": "EX-SQL-SORT-01-E1-07",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "order-by",
+    "categories"
+  ],
+  "level": 1,
+  "source_ids": [
+    "01:SQL-SORT-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-02",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-SORT-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-SORT-01"
+  ],
+  "template_id": "T-SORT-01-order-keys",
+  "template_params": {
+    "table": "categories",
+    "keys": 1
+  },
+  "sub_skill": "order_by",
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_sort",
+  "prompt": "List the name of every category. Return one column, category_name, with exactly this name, sorted from A to Z. One row per category, every category included.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "category_name",
+        "type_class": "text"
+      }
+    ],
+    "grain": "one row per category"
+  },
+  "rules": {
+    "order_matters": true,
+    "sort_keys": [
+      {
+        "column": "category_name",
+        "desc": false
+      }
+    ],
+    "check_names": true,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "category_name",
+        "type_class": "text",
+        "precision": "exact"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the sort. Every category is already a row; only the order is missing.",
+    "The order goes in an ORDER BY at the end, and A to Z is the default direction. Keep every row: two categories with the same name are still two categories."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 20,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 21,
+      "to": 36,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 37,
+      "to": 59,
+      "subgoal": "sort_limit"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 60000,
+  "why_this_works": "ORDER BY category_name sorts A to Z, and without DISTINCT every category keeps its own row."
+}

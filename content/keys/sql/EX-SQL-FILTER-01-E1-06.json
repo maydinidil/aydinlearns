@@ -1,0 +1,32 @@
+{
+  "item_id": "EX-SQL-FILTER-01-E1-06",
+  "item_version": 1,
+  "reference_sql": "SELECT store_code, city, opened_on\nFROM stores\nWHERE opened_on >= '2019-03-01'",
+  "alternatives": [
+    "SELECT store_code, city, opened_on\nFROM stores\nWHERE opened_on >= DATE '2019-03-01'",
+    "SELECT store_code, city, opened_on\nFROM stores\nWHERE NOT opened_on < '2019-03-01'",
+    "SELECT store_code, city, opened_on\nFROM stores\nWHERE '2019-03-01' <= opened_on"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "M1",
+      "error_id": "ERR-LOG-15",
+      "sql": "SELECT store_code, city, opened_on\nFROM stores\nWHERE opened_on > '2019-03-01'"
+    },
+    {
+      "id": "M2",
+      "error_id": "ERR-SYN-07",
+      "sql": "SELECT store_code, city, opened_on\nFROM stores\nWHERE opened_on >= \"2019-03-01\""
+    }
+  ],
+  "hint3_partial": "SELECT store_code, city, opened_on\nFROM stores\nWHERE opened_on ...",
+  "solver": {
+    "prompt_hash": "f7bd7981e9741f24",
+    "schema_version": "9a8d01143702",
+    "dataset_version": "9639f8ae1f71c2ef",
+    "grader_version": "1a.2",
+    "query": "SELECT store_code, city, opened_on FROM stores WHERE opened_on >= '2019-03-01'\n",
+    "at": "2026-10-03T13:08:02.450Z"
+  }
+}

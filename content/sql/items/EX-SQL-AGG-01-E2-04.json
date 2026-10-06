@@ -1,0 +1,103 @@
+{
+  "id": "EX-SQL-AGG-01-E2-04",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-02",
+    "aggregate",
+    "count_distinct",
+    "sales",
+    "count_distinct",
+    "and_or"
+  ],
+  "level": 2,
+  "source_ids": [
+    "01:SQL-AGG-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-AGG-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-AGG-01"
+  ],
+  "template_id": "T-AGG-01-count-distinct-two-filters",
+  "template_params": {
+    "table": "sales",
+    "filter": "channel = 'web' AND country_code IN ('BE','LU')",
+    "counted": "order_id",
+    "output": "n_orders"
+  },
+  "sub_skill": "count_distinct",
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_agg",
+  "prompt": "How many different web orders (channel 'web') were shipped to Belgium or Luxembourg (country_code 'BE' or 'LU')? An order with several lines counts once. Return one column, n_orders. The result is a single row. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "n_orders",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row in total"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "n_orders",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the row filter. A line counts when it is a web line and its country_code is BE or LU, then the orders are counted.",
+    "The count takes each order_id once. In the filter, AND is applied before OR, so keep the two countries together with brackets, or list them with IN."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 43,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 44,
+      "to": 54,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 55,
+      "to": 111,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 150000,
+  "why_this_works": "The brackets (or IN) keep both countries under the web condition, and COUNT(DISTINCT order_id) counts each order once."
+}

@@ -1,0 +1,32 @@
+{
+  "item_id": "EX-SQL-NULL-01-E1-05",
+  "item_version": 1,
+  "reference_sql": "SELECT store_code, city, country_code\nFROM stores\nWHERE (country_code = 'NL' OR country_code = 'LU') AND close_date IS NULL",
+  "alternatives": [
+    "SELECT store_code, city, country_code\nFROM stores\nWHERE country_code IN ('NL', 'LU') AND close_date IS NULL",
+    "SELECT store_code, city, country_code\nFROM stores\nWHERE close_date IS NULL AND (country_code = 'LU' OR country_code = 'NL')",
+    "SELECT store_code, city, country_code\nFROM stores\nWHERE (country_code = 'NL' AND close_date IS NULL) OR (country_code = 'LU' AND close_date IS NULL)"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "M1",
+      "error_id": "ERR-SEM-04",
+      "sql": "SELECT store_code, city, country_code\nFROM stores\nWHERE (country_code = 'NL' OR country_code = 'LU') AND close_date = NULL"
+    },
+    {
+      "id": "M2",
+      "error_id": "ERR-LOG-13",
+      "sql": "SELECT store_code, city, country_code\nFROM stores\nWHERE country_code = 'NL' OR country_code = 'LU' AND close_date IS NULL"
+    }
+  ],
+  "hint3_partial": "SELECT store_code, city, country_code\nFROM stores\nWHERE (country_code = 'NL' OR country_code = 'LU') AND close_date ...",
+  "solver": {
+    "prompt_hash": "7de1eaf93bf552e6",
+    "schema_version": "9a8d01143702",
+    "dataset_version": "9639f8ae1f71c2ef",
+    "grader_version": "1a.2",
+    "query": "SELECT store_code, city, country_code FROM stores WHERE country_code IN ('NL', 'LU') AND close_date IS NULL\n",
+    "at": "2026-10-03T13:08:02.896Z"
+  }
+}

@@ -1,0 +1,117 @@
+{
+  "id": "EX-SQL-BASICS-01-E2-22",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-01",
+    "select_from"
+  ],
+  "level": 1,
+  "source_ids": [
+    "01:SQL-BASICS-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-BASICS-01",
+  "concept_ids": [
+    "SQL-BASICS-01"
+  ],
+  "template_id": "T-BASICS-01-column-order",
+  "template_params": {
+    "table": "promotions",
+    "columns": 4
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_basics",
+  "prompt": "Finance wants to see when each promotion ends and how deep it goes. From the promotions table, return four columns, in this order: promo_code, end_date, promo_type, discount_pct. This is not the order the columns have in the table. Show discount_pct exactly as stored (12.50 means 12.5 percent). Return one row per promotion and keep every promotion. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "promo_code",
+        "type_class": "text"
+      },
+      {
+        "name": "end_date",
+        "type_class": "temporal"
+      },
+      {
+        "name": "promo_type",
+        "type_class": "text"
+      },
+      {
+        "name": "discount_pct",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per promotion"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "promo_code",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "end_date",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "promo_type",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "discount_pct",
+        "type_class": "numeric",
+        "precision": "ratio"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "promo_code"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the columns to return. The table is promotions; list the four columns in the question's order.",
+    "After SELECT, put a comma between every two column names; a missing comma turns the next name into a new heading for the column before it."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 53,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 54,
+      "to": 69,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "The SELECT list puts the four columns in the order asked, and FROM promotions keeps one row per promotion."
+}

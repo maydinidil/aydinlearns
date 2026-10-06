@@ -1,0 +1,86 @@
+{
+  "id": "EX-SQL-CASE-01-E2-42",
+  "version": 1,
+  "kind": "choose_query",
+  "tags": [
+    "sql",
+    "LVL-02",
+    "choose_query",
+    "case",
+    "bands",
+    "branch_order",
+    "promotions"
+  ],
+  "level": 2,
+  "source_ids": [
+    "01:SQL-CASE-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-CASE-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-CASE-01"
+  ],
+  "template_id": "T-CASE-01-choose-case-bands-order",
+  "template_params": {
+    "table": "promotions"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_case",
+  "prompt": "Band every promotion by discount_pct: depth is 'deep' for 40 or more, 'medium' for 20 or more but under 40, and 'light' for anything lower. Return promo_code and depth, one row per promotion. Any row order is fine. Which query returns it?",
+  "output_contract": null,
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [],
+  "subgoals": [],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 90000,
+  "why_this_works": "",
+  "options": [
+    {
+      "oid": "o2ade4ab",
+      "text": "SELECT promo_code,\n       CASE WHEN discount_pct >= 20 THEN 'medium'\n            WHEN discount_pct >= 40 THEN 'deep'\n            ELSE 'light'\n       END AS depth\nFROM promotions",
+      "misconception_id": "ERR-LOG-00"
+    },
+    {
+      "oid": "o7047d36",
+      "text": "SELECT promo_code,\n       CASE WHEN discount_pct > 40 THEN 'deep'\n            WHEN discount_pct > 20 THEN 'medium'\n            ELSE 'light'\n       END AS depth\nFROM promotions",
+      "misconception_id": "ERR-LOG-15"
+    },
+    {
+      "oid": "ob82f250",
+      "text": "SELECT promo_code,\n       CASE WHEN discount_pct >= 40 THEN 'deep'\n            WHEN discount_pct >= 20 THEN 'medium'\n            ELSE 'light'\n       END AS depth\nFROM promotions",
+      "misconception_id": null
+    },
+    {
+      "oid": "oecfa3a6",
+      "text": "SELECT promo_code,\n       CASE WHEN discount_pct >= 40 THEN 'deep'\n            WHEN discount_pct >= 20 THEN 'medium'\n       END AS depth\nFROM promotions",
+      "misconception_id": "ERR-LOG-00"
+    }
+  ]
+}

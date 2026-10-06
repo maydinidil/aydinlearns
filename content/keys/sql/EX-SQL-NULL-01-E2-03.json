@@ -1,0 +1,32 @@
+{
+  "item_id": "EX-SQL-NULL-01-E2-03",
+  "item_version": 1,
+  "reference_sql": "SELECT category_id, category_name, parent_category\nFROM categories\nWHERE parent_category NOT IN ('Audio', 'Accessories') OR parent_category IS NULL",
+  "alternatives": [
+    "SELECT category_id, category_name, parent_category\nFROM categories\nWHERE parent_category IS NULL OR (parent_category <> 'Audio' AND parent_category <> 'Accessories')",
+    "SELECT category_id, category_name, parent_category\nFROM categories\nWHERE NOT (parent_category = 'Audio' OR parent_category = 'Accessories') OR parent_category IS NULL",
+    "SELECT category_id, category_name, parent_category\nFROM categories\nWHERE parent_category IS NULL OR parent_category NOT IN ('Accessories', 'Audio')"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "M1",
+      "error_id": "ERR-LOG-03",
+      "sql": "SELECT category_id, category_name, parent_category\nFROM categories\nWHERE parent_category NOT IN ('Audio', 'Accessories')"
+    },
+    {
+      "id": "M2",
+      "error_id": "ERR-LOG-03",
+      "sql": "SELECT category_id, category_name, parent_category\nFROM categories\nWHERE parent_category NOT IN ('Audio', 'Accessories', NULL)"
+    }
+  ],
+  "hint3_partial": "SELECT category_id, category_name, parent_category\nFROM categories\nWHERE parent_category NOT IN ('Audio', 'Accessories') OR ...",
+  "solver": {
+    "prompt_hash": "025f770dcfb25dc8",
+    "schema_version": "d9fba3510579",
+    "dataset_version": "9639f8ae1f71c2ef",
+    "grader_version": "1a.2",
+    "query": "SELECT category_id, category_name, parent_category FROM categories WHERE parent_category NOT IN ('Audio', 'Accessories') OR parent_category IS NULL\n",
+    "at": "2026-10-03T13:08:02.949Z"
+  }
+}

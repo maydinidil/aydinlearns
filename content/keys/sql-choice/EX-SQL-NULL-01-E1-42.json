@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-NULL-01-E1-42",
+  "item_version": 1,
+  "correct_oid": "odc5e488",
+  "explanation": "The calendar starts on 2024-01-01, and its first days have no event, so IS NULL keeps 2024-01-01, 2024-01-02 and 2024-01-03. IS NULL is the right test for a missing value, unlike = NULL. COALESCE then puts the text none where event is missing, so the label is never missing.",
+  "solver": {
+    "prompt_hash": "cb4c078d992b7e4c",
+    "grader_version": "choice.1",
+    "chosen": "odc5e488",
+    "typed": null,
+    "at": "2026-10-06T09:08:14.850Z"
+  }
+}

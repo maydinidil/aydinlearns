@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-SORT-01-E1-42",
+  "item_version": 1,
+  "correct_oid": "o912ff24",
+  "explanation": "ORDER BY opened_on sorts from the earliest opening date, because ascending is the default, and LIMIT 2 then keeps the first two rows of that sorted list. Utrecht opened in 2011 and Amsterdam in 2012, before the others. Stores 1 and 2 are only first by store_id, and Eindhoven and Den Haag are the two newest.",
+  "solver": {
+    "prompt_hash": "c50da543b3fdb72e",
+    "grader_version": "choice.1",
+    "chosen": "o912ff24",
+    "typed": null,
+    "at": "2026-10-06T09:08:14.855Z"
+  }
+}

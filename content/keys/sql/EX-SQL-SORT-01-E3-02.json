@@ -1,0 +1,37 @@
+{
+  "item_id": "EX-SQL-SORT-01-E3-02",
+  "item_version": 1,
+  "reference_sql": "SELECT promo_code,\n       promo_name,\n       discount_pct,\n       start_date\nFROM promotions\nWHERE promo_type = 'percent_off'\nORDER BY discount_pct DESC, start_date\nLIMIT 2",
+  "alternatives": [
+    "SELECT promo_code, promo_name, discount_pct, start_date FROM promotions WHERE promo_type = 'percent_off' ORDER BY discount_pct DESC, start_date ASC LIMIT 2",
+    "SELECT promo_code, promo_name, discount_pct, start_date FROM promotions WHERE promo_type = 'percent_off' ORDER BY 3 DESC, 4 LIMIT 2",
+    "SELECT promo_code, promo_name, discount_pct, start_date FROM promotions WHERE promo_type IN ('percent_off') ORDER BY discount_pct DESC NULLS LAST, start_date LIMIT 2"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "EX-SQL-SORT-01-E3-02-PW1",
+      "error_id": "ERR-LOG-16",
+      "sql": "SELECT promo_code, promo_name, discount_pct, start_date FROM promotions WHERE promo_type = 'percent_off' ORDER BY discount_pct DESC LIMIT 2"
+    },
+    {
+      "id": "EX-SQL-SORT-01-E3-02-PW2",
+      "error_id": "ERR-LOG-16",
+      "sql": "SELECT promo_code, promo_name, discount_pct, start_date FROM promotions WHERE promo_type = 'percent_off' ORDER BY discount_pct DESC, start_date DESC LIMIT 2"
+    },
+    {
+      "id": "EX-SQL-SORT-01-E3-02-PW3",
+      "error_id": "ERR-LOG-16",
+      "sql": "SELECT promo_code, promo_name, discount_pct, start_date FROM promotions WHERE promo_type = 'percent_off' ORDER BY start_date, discount_pct DESC LIMIT 2"
+    }
+  ],
+  "hint3_partial": "SELECT promo_code,\n       promo_name,\n       discount_pct,\n       start_date\nFROM promotions\nWHERE promo_type = 'percent_off'\nORDER BY discount_pct DESC, ___\nLIMIT 2",
+  "solver": {
+    "prompt_hash": "4d511266a211b148",
+    "schema_version": "f0340f71a1f5",
+    "dataset_version": "9639f8ae1f71c2ef",
+    "grader_version": "1a.2",
+    "query": "SELECT promo_code, promo_name, discount_pct, start_date FROM promotions WHERE promo_type = 'percent_off' ORDER BY discount_pct DESC, start_date ASC LIMIT 2\n",
+    "at": "2026-10-03T13:08:03.322Z"
+  }
+}

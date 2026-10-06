@@ -1,0 +1,15 @@
+{
+  "concept_id": "MET-PRICE-07",
+  "section": "methodology",
+  "version": 1,
+  "title": "Gross margin and markup",
+  "reading_md": "**What gross margin measures.** The share of net revenue left after paying for the goods sold (COGS). Net revenue is what customers actually paid, after discounts.\n\nGross margin % = 100 × (net revenue - COGS) / net revenue\n\nGrain: product or category × period. In Voltmarkt's `sales` table, net revenue is `net_revenue_eur` and the cost of a line is `units * unit_cost_eur`:\n\n```sql\nSELECT parent_category,\n  ROUND(100.0 * SUM(net_revenue_eur - units * unit_cost_eur)\n        / NULLIF(SUM(net_revenue_eur), 0), 1) AS gm_pct\nFROM sales\nGROUP BY parent_category;\n```\n\n**Markup is the same profit over a different base.** Markup divides by cost instead of by revenue:\n\nMarkup % = 100 × (net revenue - COGS) / COGS\n\nA soundbar that sells for €250 net and costs €175 makes €75 of gross profit:\n\n- gross margin = 75 / 250 = 30.0%\n- markup = 75 / 175 = 42.9%\n\nCost is smaller than revenue, so markup is the bigger number whenever there is a profit. To convert, use shares (0.30, not 30): margin = markup / (1 + markup), and markup = margin / (1 - margin). A 25% markup is a 20% margin, and a 20% margin is a 25% markup.\n\n**Worked example for a group of products.** Own-brand cables earn €40,000 of net revenue at a 50% margin, and TVs earn €360,000 at a 12% margin. Together the margin is (20,000 + 43,200) / 400,000 = 15.8%, not the 31% average of the two percentages. Recompute from the sums.\n\n**Common mistakes.**\n\n- Dividing by list-price revenue instead of net revenue. Margin is measured on what customers paid.\n- Averaging margin percentages across products or stores instead of recomputing from summed revenue and cost.\n- Mixing up margin and markup. A \"40% margin\" quoted by a supplier may be a 40% markup, which is only a 28.6% margin.\n- Forgetting that deep promotions can push lines below cost: a 30% discount on a low-margin accessory can make its margin negative.\n\n**What gross margin does not answer.**\n\n- How many euros of profit there are. A higher percentage on fewer sales can mean fewer euros.\n- Profit after store, staff and marketing costs. Gross margin stops at the cost of the goods.\n- Why margin changed between two periods: that is the margin bridge (price, volume, mix and cost).\n\n**How managers ask for it.** \"What's the margin on our own-brand accessories?\" \"Which categories are below 30% margin?\"",
+  "source_ids": [
+    "04:MET-PRICE-07",
+    "ERRATA:E-156",
+    "ERRATA:E-100",
+    "ERRATA:E-101"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04"
+}

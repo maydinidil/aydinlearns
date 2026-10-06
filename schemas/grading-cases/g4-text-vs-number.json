@@ -1,0 +1,23 @@
+{
+  "id": "g4-text-vs-number",
+  "rule": "G4",
+  "setup_sql": [
+    "CREATE SCHEMA g",
+    "CREATE TABLE g.n AS SELECT 10 AS v"
+  ],
+  "key_sql": "SELECT v FROM g.n",
+  "learner_sql": "SELECT CAST(v AS VARCHAR) AS v FROM g.n",
+  "rules": {
+    "columns": [
+      {
+        "name": "v",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ]
+  },
+  "expect": {
+    "pass": false,
+    "reject": "shape"
+  }
+}

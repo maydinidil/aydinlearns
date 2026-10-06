@@ -1,0 +1,37 @@
+{
+  "item_id": "EX-SQL-SORT-01-E1-05",
+  "item_version": 2,
+  "reference_sql": "SELECT promo_id,\n       promo_name,\n       discount_pct\nFROM promotions\nWHERE promo_type = 'percent_off'\nORDER BY discount_pct DESC, promo_id\nLIMIT 3",
+  "alternatives": [
+    "SELECT promo_id, promo_name, discount_pct FROM promotions WHERE promo_type = 'percent_off' ORDER BY discount_pct DESC, promo_id ASC LIMIT 3",
+    "SELECT promo_id, promo_name, discount_pct FROM promotions WHERE promo_type = 'percent_off' ORDER BY 3 DESC, 1 LIMIT 3",
+    "SELECT promotions.promo_id, promotions.promo_name, promotions.discount_pct FROM promotions WHERE promotions.promo_type = 'percent_off' ORDER BY promotions.discount_pct DESC, promotions.promo_id LIMIT 3"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "EX-SQL-SORT-01-E1-05-PW1",
+      "error_id": "ERR-LOG-18",
+      "sql": "SELECT promo_id, promo_name, discount_pct FROM promotions WHERE promo_type = 'percent_off' ORDER BY discount_pct DESC LIMIT 3"
+    },
+    {
+      "id": "EX-SQL-SORT-01-E1-05-PW2",
+      "error_id": "ERR-LOG-16",
+      "sql": "SELECT promo_id, promo_name, discount_pct FROM promotions WHERE promo_type = 'percent_off' ORDER BY discount_pct, promo_id LIMIT 3"
+    },
+    {
+      "id": "EX-SQL-SORT-01-E1-05-PW3",
+      "error_id": "ERR-LOG-16",
+      "sql": "SELECT promo_id, promo_name, discount_pct FROM promotions WHERE promo_type = 'percent_off' LIMIT 3"
+    }
+  ],
+  "hint3_partial": "SELECT promo_id,\n       promo_name,\n       discount_pct\nFROM promotions\nWHERE promo_type = 'percent_off'\nORDER BY ___ DESC, ___\nLIMIT 3",
+  "solver": {
+    "prompt_hash": "c9630c9ca868ccbb",
+    "schema_version": "f0340f71a1f5",
+    "dataset_version": "9639f8ae1f71c2ef",
+    "grader_version": "1a.2",
+    "query": "SELECT promo_id, promo_name, discount_pct FROM promotions WHERE promo_type = 'percent_off' ORDER BY discount_pct DESC, promo_id ASC LIMIT 3\n",
+    "at": "2026-10-03T13:08:03.129Z"
+  }
+}

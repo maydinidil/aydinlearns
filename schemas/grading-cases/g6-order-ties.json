@@ -1,0 +1,34 @@
+{
+  "id": "g6-order-ties",
+  "rule": "G6",
+  "setup_sql": [
+    "CREATE SCHEMA g",
+    "CREATE TABLE g.o AS SELECT * FROM (VALUES ('x',3),('y',3),('z',1)) v(k,n)"
+  ],
+  "key_sql": "SELECT k, n FROM g.o ORDER BY n DESC, k",
+  "learner_sql": "SELECT k, n FROM g.o ORDER BY n DESC, k DESC",
+  "rules": {
+    "order_matters": true,
+    "sort_keys": [
+      {
+        "column": "n",
+        "desc": true
+      }
+    ],
+    "columns": [
+      {
+        "name": "k",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "n",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ]
+  },
+  "expect": {
+    "pass": true
+  }
+}

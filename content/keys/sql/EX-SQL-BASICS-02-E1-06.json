@@ -1,0 +1,36 @@
+{
+  "item_id": "EX-SQL-BASICS-02-E1-06",
+  "item_version": 1,
+  "reference_sql": "SELECT category_id,\n       category_name AS category,\n       parent_category AS department\nFROM categories",
+  "alternatives": [
+    "SELECT category_id, category_name category, parent_category department FROM categories",
+    "SELECT category_id, category_name AS \"category\", parent_category AS \"department\" FROM categories"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "EX-SQL-BASICS-02-E1-06-PW1",
+      "error_id": "ERR-OUT-01",
+      "sql": "SELECT category_name AS category, parent_category AS department FROM categories"
+    },
+    {
+      "id": "EX-SQL-BASICS-02-E1-06-PW2",
+      "error_id": "ERR-SYN-01",
+      "sql": "SELECT category_id, category_name AS category, parent_category AS department name FROM categories"
+    },
+    {
+      "id": "EX-SQL-BASICS-02-E1-06-PW3",
+      "error_id": "ERR-OUT-01",
+      "sql": "SELECT category_id, category_name AS category, parent_category AS department, parent_category FROM categories"
+    }
+  ],
+  "hint3_partial": "SELECT category_id,\n       category_name AS ___,\n       parent_category AS ___\nFROM categories",
+  "solver": {
+    "prompt_hash": "1e905c5f00acca50",
+    "schema_version": "d9fba3510579",
+    "dataset_version": "9639f8ae1f71c2ef",
+    "grader_version": "1a.2",
+    "query": "SELECT category_id, category_name AS category, parent_category AS department FROM categories\n",
+    "at": "2026-10-03T13:08:02.217Z"
+  }
+}

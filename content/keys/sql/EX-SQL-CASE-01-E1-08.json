@@ -1,0 +1,36 @@
+{
+  "item_id": "EX-SQL-CASE-01-E1-08",
+  "item_version": 1,
+  "reference_sql": "SELECT category_name, parent_category,\n       CASE WHEN parent_category IN ('TV & Video', 'Computing', 'Phones') THEN 'yes' ELSE 'no' END AS big_ticket\nFROM categories",
+  "alternatives": [
+    "SELECT category_name, parent_category, CASE WHEN parent_category = 'TV & Video' OR parent_category = 'Computing' OR parent_category = 'Phones' THEN 'yes' ELSE 'no' END AS big_ticket FROM categories",
+    "SELECT category_name, parent_category, CASE parent_category WHEN 'TV & Video' THEN 'yes' WHEN 'Computing' THEN 'yes' WHEN 'Phones' THEN 'yes' ELSE 'no' END AS big_ticket FROM categories"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-03",
+      "sql": "SELECT category_name, parent_category, CASE WHEN parent_category IN ('TV & Video', 'Computing', 'Phones') THEN 'yes' END AS big_ticket FROM categories"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-SYN-04",
+      "sql": "SELECT category_name, parent_category, CASE WHEN parent_category IN ('TV & Video', 'Computing', 'Phones' THEN 'yes' ELSE 'no' END AS big_ticket FROM categories"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-OUT-01",
+      "sql": "SELECT category_name, CASE WHEN parent_category IN ('TV & Video', 'Computing', 'Phones') THEN 'yes' ELSE 'no' END AS big_ticket FROM categories"
+    }
+  ],
+  "hint3_partial": "SELECT category_name, parent_category,\n       CASE WHEN parent_category ___ ('TV & Video', 'Computing', 'Phones') THEN 'yes' ___ END AS big_ticket\nFROM categories",
+  "solver": {
+    "prompt_hash": "2acbddc46e206278",
+    "schema_version": "d9fba3510579",
+    "dataset_version": "506a9858f862fdfb",
+    "grader_version": "1b.3",
+    "query": "SELECT category_name, parent_category, CASE WHEN parent_category IN ('TV & Video', 'Computing', 'Phones') THEN 'yes' ELSE 'no' END AS big_ticket FROM categories\n",
+    "at": "2026-10-04T10:06:50.649Z"
+  }
+}

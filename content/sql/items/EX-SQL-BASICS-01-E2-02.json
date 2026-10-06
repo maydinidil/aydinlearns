@@ -1,0 +1,120 @@
+{
+  "id": "EX-SQL-BASICS-01-E2-02",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-01",
+    "select_from"
+  ],
+  "level": 1,
+  "source_ids": [
+    "01:SQL-BASICS-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-02",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "lesson",
+  "target_concept_id": "SQL-BASICS-01",
+  "concept_ids": [
+    "SQL-BASICS-01"
+  ],
+  "template_id": "T-BASICS-01-column-order",
+  "template_params": {
+    "table": "products",
+    "columns": 4
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_basics",
+  "prompt": "Build a product catalogue list. From the products table, return four columns, in this order: sku, brand, product_name, launch_date. This is not the order the columns have in the table. Return one row per product and keep every product. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "sku",
+        "type_class": "text"
+      },
+      {
+        "name": "brand",
+        "type_class": "text"
+      },
+      {
+        "name": "product_name",
+        "type_class": "text"
+      },
+      {
+        "name": "launch_date",
+        "type_class": "temporal"
+      }
+    ],
+    "grain": "one row per product"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "sku",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "brand",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "product_name",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "launch_date",
+        "type_class": "temporal",
+        "precision": "exact"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "sku"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, choose the table. The products table has one row per product; it goes in the FROM clause.",
+    "The SELECT list sets the column order of the result. Write the four columns in the question's order, with one comma between each pair and none after the last."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 44,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 45,
+      "to": 58,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": {
+    "stage1": 45,
+    "stage2": 7
+  },
+  "faded_shape": "SELECT sku, brand, product_name, launch_date\n",
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "The SELECT list puts the four columns in the order asked, and FROM products gives one row per product."
+}

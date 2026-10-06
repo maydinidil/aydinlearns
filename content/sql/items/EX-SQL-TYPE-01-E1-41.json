@@ -1,0 +1,134 @@
+{
+  "id": "EX-SQL-TYPE-01-E1-41",
+  "version": 1,
+  "kind": "predict_result",
+  "tags": [
+    "sql",
+    "LVL-02",
+    "predict_result",
+    "division",
+    "integer_division",
+    "types"
+  ],
+  "level": 2,
+  "source_ids": [
+    "01:SQL-TYPE-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pretest",
+  "target_concept_id": "SQL-TYPE-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-TYPE-01"
+  ],
+  "template_id": "T-TYPE-01-predict-result-division-operators",
+  "template_params": {
+    "table": "stores"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_type",
+  "prompt": "Which result does this query return in DuckDB, the engine this app runs?",
+  "output_contract": null,
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [],
+  "subgoals": [],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 60000,
+  "why_this_works": "",
+  "shown_sql": "SELECT 9 / 4 AS slash_result,\n       9 // 4 AS double_slash_result\nFROM stores\nWHERE store_id = 1",
+  "options": [
+    {
+      "oid": "oc341864",
+      "text": "2 and 2",
+      "misconception_id": "ERR-LOG-05",
+      "table": {
+        "columns": [
+          "slash_result",
+          "double_slash_result"
+        ],
+        "rows": [
+          [
+            2,
+            2
+          ]
+        ]
+      }
+    },
+    {
+      "oid": "o42f4dbe",
+      "text": "2.25 and 2",
+      "misconception_id": null,
+      "table": {
+        "columns": [
+          "slash_result",
+          "double_slash_result"
+        ],
+        "rows": [
+          [
+            2.25,
+            2
+          ]
+        ]
+      }
+    },
+    {
+      "oid": "ob16efd1",
+      "text": "2.25 and 2.25",
+      "misconception_id": "ERR-LOG-05",
+      "table": {
+        "columns": [
+          "slash_result",
+          "double_slash_result"
+        ],
+        "rows": [
+          [
+            2.25,
+            2.25
+          ]
+        ]
+      }
+    },
+    {
+      "oid": "o85886d8",
+      "text": "2 and 2.25",
+      "misconception_id": "ERR-LOG-05",
+      "table": {
+        "columns": [
+          "slash_result",
+          "double_slash_result"
+        ],
+        "rows": [
+          [
+            2,
+            2.25
+          ]
+        ]
+      }
+    }
+  ]
+}

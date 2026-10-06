@@ -1,0 +1,103 @@
+{
+  "id": "EX-SQL-AGG-01-E1-22",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-02",
+    "aggregate",
+    "sum_avg",
+    "sales",
+    "avg",
+    "null",
+    "drill"
+  ],
+  "level": 2,
+  "source_ids": [
+    "01:SQL-AGG-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-AGG-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-AGG-01"
+  ],
+  "template_id": "T-AGG-01-avg-skip-missing",
+  "template_params": {
+    "table": "sales",
+    "filter": "channel = 'web'",
+    "measure": "units",
+    "output": "avg_units_per_line"
+  },
+  "sub_skill": "sum_avg",
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_agg",
+  "prompt": "What is the average number of units on a web order line (channel 'web')? Leave lines with a missing units value out of the average completely: they count neither as units nor as lines. Return one column, avg_units_per_line. Do not round. The result is a single row. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "avg_units_per_line",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row in total"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "avg_units_per_line",
+        "type_class": "numeric",
+        "precision": "ratio"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the row filter that keeps only the web lines, then take the average of units.",
+    "AVG already skips a missing value and divides by the values it used. Turning a missing units value into 0 would count that line and pull the average down."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 39,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 40,
+      "to": 50,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 51,
+      "to": 72,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 90000,
+  "why_this_works": "AVG(units) adds up the units that are there and divides by how many there are, so a line with missing units is left out completely."
+}

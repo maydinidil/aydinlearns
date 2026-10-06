@@ -1,0 +1,37 @@
+{
+  "item_id": "EX-SQL-BASICS-02-E1-01",
+  "item_version": 1,
+  "reference_sql": "SELECT store_code AS code,\n       city AS store_city\nFROM stores",
+  "alternatives": [
+    "SELECT store_code code, city store_city FROM stores",
+    "SELECT store_code AS \"code\", city AS \"store_city\" FROM stores",
+    "SELECT stores.store_code AS code, stores.city AS store_city FROM stores"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "EX-SQL-BASICS-02-E1-01-PW1",
+      "error_id": "ERR-OUT-01",
+      "sql": "SELECT store_code AS code FROM stores"
+    },
+    {
+      "id": "EX-SQL-BASICS-02-E1-01-PW2",
+      "error_id": "ERR-SYN-01",
+      "sql": "SELECT store_code AS code, city AS store city FROM stores"
+    },
+    {
+      "id": "EX-SQL-BASICS-02-E1-01-PW3",
+      "error_id": "ERR-OUT-01",
+      "sql": "SELECT store_id, store_code AS code, city AS store_city FROM stores"
+    }
+  ],
+  "hint3_partial": "SELECT store_code AS code,\n       city AS ___\nFROM stores",
+  "solver": {
+    "prompt_hash": "1e6654703c2a0bdc",
+    "schema_version": "9a8d01143702",
+    "dataset_version": "9639f8ae1f71c2ef",
+    "grader_version": "1a.2",
+    "query": "SELECT store_code AS code, city AS store_city FROM stores\n",
+    "at": "2026-10-03T13:08:02.134Z"
+  }
+}

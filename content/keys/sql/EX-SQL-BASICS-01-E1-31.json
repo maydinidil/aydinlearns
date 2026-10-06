@@ -1,0 +1,36 @@
+{
+  "item_id": "EX-SQL-BASICS-01-E1-31",
+  "item_version": 1,
+  "reference_sql": "SELECT cal_date, month, quarter\nFROM calendar",
+  "alternatives": [
+    "SELECT calendar.cal_date, calendar.month, calendar.quarter\nFROM calendar",
+    "SELECT c.cal_date, c.month, c.quarter\nFROM calendar AS c"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "EX-SQL-BASICS-01-E1-31-PW1",
+      "error_id": "ERR-SYN-01",
+      "sql": "SELEC cal_date, month, quarter\nFROM calendar"
+    },
+    {
+      "id": "EX-SQL-BASICS-01-E1-31-PW2",
+      "error_id": "ERR-SYN-02",
+      "sql": "SELECT cal_date, month_number, quarter FROM calendar"
+    },
+    {
+      "id": "EX-SQL-BASICS-01-E1-31-PW3",
+      "error_id": "ERR-OUT-01",
+      "sql": "SELECT cal_date, quarter FROM calendar"
+    }
+  ],
+  "hint3_partial": "___ cal_date, month, quarter\nFROM calendar",
+  "solver": {
+    "prompt_hash": "ff59055ee11b599a",
+    "schema_version": "0d8e15555347",
+    "dataset_version": "506a9858f862fdfb",
+    "grader_version": "1b.3",
+    "query": "SELECT cal_date, month, quarter FROM calendar\n",
+    "at": "2026-10-04T14:33:17.419Z"
+  }
+}

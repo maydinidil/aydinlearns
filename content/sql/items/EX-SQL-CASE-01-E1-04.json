@@ -1,0 +1,118 @@
+{
+  "id": "EX-SQL-CASE-01-E1-04",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-02",
+    "case",
+    "flag",
+    "in-list",
+    "calendar"
+  ],
+  "level": 2,
+  "source_ids": [
+    "01:SQL-CASE-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "lesson",
+  "target_concept_id": "SQL-CASE-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-CASE-01"
+  ],
+  "template_id": "T-CASE-01-flag-list",
+  "template_params": {
+    "table": "calendar",
+    "tested": "weekday_name",
+    "output": "day_type",
+    "from": "2025-04-01",
+    "to": "2025-04-30"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_case",
+  "prompt": "Label each day of April 2025 as a weekend day or a weekday. Use the calendar table and keep the days from 2025-04-01 to 2025-04-30, both included. Return two columns, in this order: cal_date and day_type. day_type is the text 'weekend' when weekday_name is 'Saturday' or 'Sunday', and 'weekday' for every other day. Return one row per day. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "cal_date",
+        "type_class": "temporal"
+      },
+      {
+        "name": "day_type",
+        "type_class": "text"
+      }
+    ],
+    "grain": "one row per day"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "cal_date",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "day_type",
+        "type_class": "text",
+        "precision": "exact"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "cal_date"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the calculated column day_type, which gives Saturdays and Sundays one label and every other day another.",
+    "day_type is a CASE expression in the SELECT list. One WHEN test can check weekday_name against a list of two day names with IN; ELSE covers the other days, then END and the name."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 118,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 119,
+      "to": 132,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 133,
+      "to": 195,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": {
+    "stage1": 24,
+    "stage2": 24
+  },
+  "faded_shape": "SELECT cal_date,\n       ",
+  "faded_suffix": "\nFROM calendar\nWHERE cal_date BETWEEN DATE '2025-04-01' AND DATE '2025-04-30'",
+  "starter_sql": null,
+  "time_target_ms": 100000,
+  "why_this_works": "One WHEN test with IN catches both weekend days, and ELSE labels the five other days 'weekday'."
+}

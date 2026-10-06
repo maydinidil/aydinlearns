@@ -1,0 +1,128 @@
+{
+  "concept_id": "SQL-AGG-03",
+  "version": 1,
+  "reading_md": "## HAVING: keep only the groups you want\n\nGROUP BY gives one row per group. Often the question wants only some groups: the stores with more than 30,000 order lines, or the categories that sold more than 50,000 units. HAVING does this: it comes after GROUP BY and tests each group's aggregates.\n\n`SELECT store_code, COUNT(*) AS n_lines FROM sales GROUP BY store_code HAVING COUNT(*) > 30000`\n\n### WHERE filters rows, HAVING filters groups\n\n- **WHERE** tests one row at a time, before any group exists. Use it for a single row's values: `channel = 'web'`, `units >= 2`, a date range.\n- **HAVING** tests one group at a time, after its aggregates are worked out. Use it for totals, counts, averages, MIN and MAX.\n\nAsk of each condition: is it about one row, or about a group? One query can use both: WHERE picks the rows, GROUP BY groups what is left, and HAVING keeps the groups that pass.\n\n### Four mistakes to avoid\n\n1. **An aggregate in WHERE.** `WHERE SUM(units) > 50000` stops with \"WHERE clause cannot contain aggregates\". Move it to HAVING.\n2. **A row condition in HAVING.** `HAVING units >= 2` stops with an error, because units is neither grouped nor aggregated. Put it in WHERE.\n3. **A row test instead of a group test.** `WHERE net_revenue_eur > 3000000` keeps lines above 3 million, not stores whose total is above it. The query runs, so nothing warns you.\n4. **A missing row filter.** If the question asks about 2025, the date range belongs in WHERE. Without it, HAVING tests all-time totals.\n\n### The evaluation-order card\n\nYou write the clauses in one order; the database runs them in another:\n\n| Step | Clause | Works on |\n|---|---|---|\n| 1 | FROM | the table's rows |\n| 2 | WHERE | single rows |\n| 3 | GROUP BY | forms the groups |\n| 4 | HAVING | whole groups |\n| 5 | SELECT | the output columns and their aliases |\n| 6 | ORDER BY | the result rows |\n| 7 | LIMIT | cuts the result |\n\nAliases are made in step 5, after WHERE and HAVING, so in standard SQL those clauses cannot use them. PostgreSQL follows the standard: `WHERE price_incl_vat > 100`, with price_incl_vat named in SELECT, fails with \"column does not exist\", and so does `HAVING n_lines > 30000`. DuckDB looks ahead and accepts both, so this app passes them with a portability note. Interviews often use other engines: repeat the expression instead. ORDER BY runs after SELECT, so an alias works there everywhere.\n\nOne alias fails even in DuckDB: an alias of an aggregate, used in WHERE. `WHERE n_lines > 30000` is still an aggregate in WHERE.\n\n### Missing values\n\nAggregates skip missing values, so HAVING tests totals over the rows that have a value. A group whose values are all missing gets a missing total, which never passes a comparison, so HAVING drops it.",
+  "syntax_md": "```sql\nSELECT group_column, AGGREGATE(value_column) AS metric_name   -- metrics\nFROM table_name                                               -- source and grain\nWHERE row_condition                                           -- row filter\nGROUP BY group_column                                         -- output grain\nHAVING AGGREGATE(value_column) > threshold                    -- group filter\nORDER BY group_column;                                        -- sort and limit\n```\n\n- HAVING comes after GROUP BY and before ORDER BY.\n- HAVING tests aggregates. Join several tests with AND or OR.\n- Repeat the aggregate in HAVING rather than its SELECT alias: every engine accepts that.\n- WHERE filters rows before grouping; HAVING filters groups after it.",
+  "dialect_note": "DuckDB accepts a SELECT alias in WHERE when it stands for a plain calculation, and in HAVING for any expression. PostgreSQL and SQL Server reject an alias in both clauses, and MySQL accepts one in HAVING but not in WHERE (each vendor's SELECT documentation). An alias that stands for an aggregate fails in WHERE in DuckDB too, with \"WHERE clause cannot contain aggregates\" (checked on 1.5.6). A condition on a grouped column, such as HAVING channel = 'web' after GROUP BY channel, runs in every engine, but it belongs in WHERE, where it removes the rows before they are grouped.",
+  "worked_examples": [
+    {
+      "title": "Parent categories with more than 150,000 order lines",
+      "prompt": "Which parent categories have more than 150,000 order lines? Return parent_category and n_lines, the number of order lines, one row per parent category.",
+      "clauses": [
+        {
+          "text": "SELECT parent_category, COUNT(*) AS n_lines",
+          "subgoal": "metrics",
+          "why": "The grouping column plus the count the question asks about."
+        },
+        {
+          "text": "FROM sales",
+          "subgoal": "source_grain",
+          "why": "sales has one row per order line, so COUNT(*) counts lines."
+        },
+        {
+          "text": "GROUP BY parent_category",
+          "subgoal": "output_grain",
+          "why": "One group, and one output row, per parent category."
+        },
+        {
+          "text": "HAVING COUNT(*) > 150000",
+          "subgoal": "group_filter",
+          "why": "The count exists only once the groups are formed, so the test goes in HAVING, not WHERE."
+        }
+      ]
+    },
+    {
+      "title": "Web revenue above 10,000,000 per parent category",
+      "prompt": "Looking only at web order lines, which parent categories brought in more than 10,000,000 euros of net revenue? Return parent_category and revenue_eur, the sum of net_revenue_eur, one row per parent category, sorted by parent_category from A to Z.",
+      "clauses": [
+        {
+          "text": "SELECT parent_category, SUM(net_revenue_eur) AS revenue_eur",
+          "subgoal": "metrics",
+          "why": "The grouping column plus the total that HAVING will test."
+        },
+        {
+          "text": "FROM sales",
+          "subgoal": "source_grain",
+          "why": "One row per order line, each with its channel and parent category."
+        },
+        {
+          "text": "WHERE channel = 'web'",
+          "subgoal": "row_filter",
+          "why": "The channel is a value of one line, so this test runs on rows, before grouping."
+        },
+        {
+          "text": "GROUP BY parent_category",
+          "subgoal": "output_grain",
+          "why": "One group per parent category, built only from the web lines."
+        },
+        {
+          "text": "HAVING SUM(net_revenue_eur) > 10000000",
+          "subgoal": "group_filter",
+          "why": "The total exists only per group, so the revenue test goes in HAVING, repeating the aggregate rather than its alias."
+        },
+        {
+          "text": "ORDER BY parent_category",
+          "subgoal": "sort_limit",
+          "why": "Grouped rows come back in no promised order, so the sort is written out."
+        }
+      ]
+    }
+  ],
+  "pretest_item_ids": [
+    "EX-SQL-AGG-03-E1-01",
+    "EX-SQL-AGG-03-E1-02"
+  ],
+  "lesson_item_ids": [
+    "EX-SQL-AGG-03-E1-03",
+    "EX-SQL-AGG-03-E1-04",
+    "EX-SQL-AGG-03-E2-01",
+    "EX-SQL-AGG-03-E2-02"
+  ],
+  "retest_item_id": "EX-SQL-AGG-03-E1-05",
+  "pool_item_ids": [
+    "EX-SQL-AGG-03-E1-06",
+    "EX-SQL-AGG-03-E1-07",
+    "EX-SQL-AGG-03-E1-08",
+    "EX-SQL-AGG-03-E1-09",
+    "EX-SQL-AGG-03-E2-03",
+    "EX-SQL-AGG-03-E2-04",
+    "EX-SQL-AGG-03-E2-05",
+    "EX-SQL-AGG-03-E2-06",
+    "EX-SQL-AGG-03-E2-07",
+    "EX-SQL-AGG-03-E3-01",
+    "EX-SQL-AGG-03-E3-02",
+    "EX-SQL-AGG-03-E3-03",
+    "EX-SQL-AGG-03-E1-31",
+    "EX-SQL-AGG-03-E2-31",
+    "EX-SQL-AGG-03-E1-42",
+    "EX-SQL-AGG-03-E2-41",
+    "EX-SQL-AGG-03-E2-42"
+  ],
+  "source_ids": [
+    "01:SQL-AGG-03"
+  ],
+  "why_clause": {
+    "clause": "HAVING COUNT(*) > 150000",
+    "stem": "Why is the test on the count in HAVING and not in WHERE?",
+    "options": [
+      {
+        "id": "a",
+        "text": "HAVING runs faster than WHERE does on a table as large as sales."
+      },
+      {
+        "id": "b",
+        "text": "The count only exists once the groups are made, so HAVING tests it."
+      },
+      {
+        "id": "c",
+        "text": "WHERE can only test text columns, and COUNT(*) gives a number."
+      },
+      {
+        "id": "d",
+        "text": "HAVING keeps only the single order lines worth more than 150,000 euros."
+      }
+    ],
+    "correct_id": "b",
+    "explanation": "WHERE filters single rows before any grouping, when there is no count yet, so an aggregate cannot go there. HAVING filters whole groups after GROUP BY has counted them, so it can test COUNT(*)."
+  }
+}

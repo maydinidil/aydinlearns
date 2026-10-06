@@ -1,0 +1,51 @@
+{
+  "item_id": "EX-OPENER-L2-01",
+  "item_version": 1,
+  "reference_sql": "SELECT parent_category,\n       COUNT(DISTINCT order_id) AS n_orders,\n       SUM(net_revenue_eur) AS revenue_eur,\n       ROUND(100.0 * SUM(CASE WHEN channel = 'web' THEN net_revenue_eur ELSE 0 END) / SUM(net_revenue_eur), 1) AS web_revenue_pct\nFROM sales\nWHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\nGROUP BY parent_category\nHAVING AVG(net_revenue_eur) > 150\nORDER BY revenue_eur DESC",
+  "alternatives": [
+    "SELECT parent_category, COUNT(DISTINCT order_id) AS n_orders, SUM(net_revenue_eur) AS revenue_eur, ROUND(100.0 * COALESCE(SUM(net_revenue_eur) FILTER (WHERE channel = 'web'), 0) / SUM(net_revenue_eur), 1) AS web_revenue_pct FROM sales WHERE order_date >= DATE '2025-01-01' AND order_date < DATE '2026-01-01' GROUP BY 1 HAVING SUM(net_revenue_eur) / COUNT(net_revenue_eur) > 150 ORDER BY 3 DESC",
+    "SELECT parent_category, COUNT(DISTINCT order_id) AS n_orders, SUM(net_revenue_eur) AS revenue_eur, ROUND(CAST(SUM(CASE WHEN channel = 'web' THEN net_revenue_eur ELSE 0 END) AS DOUBLE) * 100 / SUM(net_revenue_eur), 1) AS web_revenue_pct FROM sales WHERE order_date BETWEEN '2025-01-01' AND '2025-12-31' GROUP BY parent_category HAVING 150 < AVG(net_revenue_eur) ORDER BY SUM(net_revenue_eur) DESC"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "EX-OPENER-L2-01-PW1",
+      "error_id": "ERR-LOG-02",
+      "sql": "SELECT parent_category, COUNT(DISTINCT order_id) AS n_orders, SUM(net_revenue_eur) AS revenue_eur, ROUND(100.0 * SUM(CASE WHEN channel = 'web' THEN net_revenue_eur ELSE 0 END) / SUM(net_revenue_eur), 1) AS web_revenue_pct FROM sales WHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31' AND net_revenue_eur > 150 GROUP BY parent_category ORDER BY revenue_eur DESC"
+    },
+    {
+      "id": "EX-OPENER-L2-01-PW2",
+      "error_id": "ERR-SYN-05",
+      "sql": "SELECT parent_category, COUNT(DISTINCT order_id) AS n_orders, SUM(net_revenue_eur) AS revenue_eur, ROUND(100.0 * SUM(CASE WHEN channel = 'web' THEN net_revenue_eur ELSE 0 END) / SUM(net_revenue_eur), 1) AS web_revenue_pct FROM sales WHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31' AND AVG(net_revenue_eur) > 150 GROUP BY parent_category ORDER BY revenue_eur DESC"
+    },
+    {
+      "id": "EX-OPENER-L2-01-PW3",
+      "error_id": "ERR-LOG-04",
+      "sql": "SELECT parent_category, COUNT(order_id) AS n_orders, SUM(net_revenue_eur) AS revenue_eur, ROUND(100.0 * SUM(CASE WHEN channel = 'web' THEN net_revenue_eur ELSE 0 END) / SUM(net_revenue_eur), 1) AS web_revenue_pct FROM sales WHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31' GROUP BY parent_category HAVING AVG(net_revenue_eur) > 150 ORDER BY revenue_eur DESC"
+    },
+    {
+      "id": "EX-OPENER-L2-01-PW4",
+      "error_id": "ERR-LOG-17",
+      "sql": "SELECT parent_category, COUNT(DISTINCT order_id) AS n_orders, SUM(net_revenue_eur) AS revenue_eur, ROUND(100.0 * SUM(CASE WHEN channel = 'web' THEN net_revenue_eur END) / SUM(net_revenue_eur), 1) AS web_revenue_pct FROM sales WHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31' GROUP BY parent_category HAVING AVG(net_revenue_eur) > 150 ORDER BY revenue_eur DESC"
+    },
+    {
+      "id": "EX-OPENER-L2-01-PW5",
+      "error_id": "ERR-LOG-21",
+      "sql": "SELECT parent_category, COUNT(DISTINCT order_id) AS n_orders, SUM(net_revenue_eur) AS revenue_eur, ROUND(1.0 * SUM(CASE WHEN channel = 'web' THEN net_revenue_eur ELSE 0 END) / SUM(net_revenue_eur), 1) AS web_revenue_pct FROM sales WHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31' GROUP BY parent_category HAVING AVG(net_revenue_eur) > 150 ORDER BY revenue_eur DESC"
+    },
+    {
+      "id": "EX-OPENER-L2-01-PW6",
+      "error_id": "ERR-LOG-18",
+      "sql": "SELECT parent_category, COUNT(DISTINCT order_id) AS n_orders, SUM(net_revenue_eur) AS revenue_eur, ROUND(100.0 * SUM(CASE WHEN channel = 'web' THEN net_revenue_eur ELSE 0 END) / SUM(net_revenue_eur), 1) AS web_revenue_pct FROM sales WHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31' GROUP BY parent_category HAVING AVG(net_revenue_eur) > 150 ORDER BY revenue_eur"
+    }
+  ],
+  "hint3_partial": "SELECT parent_category,\n       COUNT(___) AS n_orders,\n       SUM(net_revenue_eur) AS revenue_eur,\n       ROUND(100.0 * SUM(CASE WHEN ___ THEN net_revenue_eur ELSE 0 END) / SUM(net_revenue_eur), 1) AS web_revenue_pct\nFROM sales\nWHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\nGROUP BY parent_category\nHAVING ___\nORDER BY ___",
+  "solver": {
+    "prompt_hash": "7b8147d9e2e43a4b",
+    "schema_version": "cebf75df442f",
+    "dataset_version": "506a9858f862fdfb",
+    "grader_version": "1b.3",
+    "query": "SELECT parent_category,\n       COUNT(DISTINCT order_id) AS n_orders,\n       SUM(net_revenue_eur) AS revenue_eur,\n       ROUND(100 * COALESCE(SUM(CASE WHEN channel = 'web' THEN net_revenue_eur END), 0) / SUM(net_revenue_eur), 1) AS web_revenue_pct\nFROM sales\nWHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\nGROUP BY parent_category\nHAVING AVG(net_revenue_eur) > 150\nORDER BY revenue_eur DESC\n",
+    "at": "2026-10-04T14:33:15.463Z"
+  }
+}

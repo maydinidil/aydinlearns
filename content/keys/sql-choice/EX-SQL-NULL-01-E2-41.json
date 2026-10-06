@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-NULL-01-E2-41",
+  "item_version": 1,
+  "value": 4,
+  "explanation": "The panel lists three events: black_friday, cyber_monday and sinterklaas. The sample rows show that most days have no event, so event is missing on them. DISTINCT keeps one row for the missing value too, so the result has 4 rows.",
+  "solver": {
+    "prompt_hash": "664a19266c2441bb",
+    "grader_version": "choice.1",
+    "chosen": null,
+    "typed": "4",
+    "at": "2026-10-06T09:08:14.851Z"
+  }
+}

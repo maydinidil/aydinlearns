@@ -1,0 +1,36 @@
+{
+  "item_id": "EX-SQL-AGG-04-E1-01",
+  "item_version": 1,
+  "reference_sql": "SELECT COUNT(*) AS n_lines,\n       SUM(CASE WHEN channel = 'web' THEN 1 ELSE 0 END) AS web_lines\nFROM sales",
+  "alternatives": [
+    "SELECT COUNT(*) AS n_lines, COUNT(CASE WHEN channel = 'web' THEN 1 END) AS web_lines FROM sales",
+    "SELECT COUNT(*) AS n_lines, COUNT(*) FILTER (WHERE channel = 'web') AS web_lines FROM sales"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-04",
+      "sql": "SELECT COUNT(*) AS n_lines, COUNT(CASE WHEN channel = 'web' THEN units END) AS web_lines FROM sales"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-04",
+      "sql": "SELECT COUNT(*) AS n_lines, COUNT(CASE WHEN channel = 'web' THEN 1 ELSE 0 END) AS web_lines FROM sales"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-14",
+      "sql": "SELECT COUNT(*) AS n_lines, SUM(CASE WHEN channel = 'web' THEN units ELSE 0 END) AS web_lines FROM sales"
+    }
+  ],
+  "hint3_partial": "SELECT COUNT(*) AS n_lines,\n       SUM(CASE WHEN channel = ___ THEN ___ ELSE ___ END) AS web_lines\nFROM sales",
+  "solver": {
+    "prompt_hash": "16499c59d57518b6",
+    "schema_version": "cebf75df442f",
+    "dataset_version": "506a9858f862fdfb",
+    "grader_version": "1b.3",
+    "query": "SELECT COUNT(*) AS n_lines, COUNT(*) FILTER (WHERE channel = 'web') AS web_lines FROM sales\n",
+    "at": "2026-10-04T10:06:47.414Z"
+  }
+}

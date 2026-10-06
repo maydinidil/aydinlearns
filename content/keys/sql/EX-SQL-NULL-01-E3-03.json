@@ -1,0 +1,37 @@
+{
+  "item_id": "EX-SQL-NULL-01-E3-03",
+  "item_version": 2,
+  "reference_sql": "SELECT promo_code, promo_type, COALESCE(discount_pct, 0) AS discount_pct\nFROM promotions\nWHERE (promo_type <> 'percent_off' OR promo_type IS NULL) AND start_date >= DATE '2025-01-01'",
+  "alternatives": [
+    "SELECT promo_code, promo_type, COALESCE(discount_pct, 0) AS discount_pct\nFROM promotions\nWHERE start_date >= '2025-01-01' AND (promo_type IS NULL OR promo_type <> 'percent_off')",
+    "SELECT promo_code, promo_type, COALESCE(discount_pct, 0.00) AS discount_pct\nFROM promotions\nWHERE (NOT promo_type = 'percent_off' OR promo_type IS NULL) AND start_date > DATE '2024-12-31'",
+    "SELECT promo_code, promo_type, COALESCE(discount_pct, 0) AS discount_pct\nFROM promotions\nWHERE (promo_type <> 'percent_off' AND start_date >= DATE '2025-01-01') OR (promo_type IS NULL AND start_date >= DATE '2025-01-01')"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "M1",
+      "error_id": "ERR-LOG-03",
+      "sql": "SELECT promo_code, promo_type, COALESCE(discount_pct, 0) AS discount_pct\nFROM promotions\nWHERE promo_type <> 'percent_off' AND start_date >= DATE '2025-01-01'"
+    },
+    {
+      "id": "M2",
+      "error_id": "ERR-LOG-17",
+      "sql": "SELECT promo_code, promo_type, discount_pct\nFROM promotions\nWHERE (promo_type <> 'percent_off' OR promo_type IS NULL) AND start_date >= DATE '2025-01-01'"
+    },
+    {
+      "id": "M3",
+      "error_id": "ERR-LOG-13",
+      "sql": "SELECT promo_code, promo_type, COALESCE(discount_pct, 0) AS discount_pct\nFROM promotions\nWHERE promo_type <> 'percent_off' OR promo_type IS NULL AND start_date >= DATE '2025-01-01'"
+    }
+  ],
+  "hint3_partial": "SELECT promo_code, promo_type, COALESCE(...) AS discount_pct\nFROM promotions\nWHERE (promo_type <> 'percent_off' OR ...) AND start_date >= DATE '2025-01-01'",
+  "solver": {
+    "prompt_hash": "b1c6102cc53bab44",
+    "schema_version": "f0340f71a1f5",
+    "dataset_version": "9639f8ae1f71c2ef",
+    "grader_version": "1b.1",
+    "query": "SELECT promo_code, promo_type, COALESCE(discount_pct, 0) AS discount_pct FROM promotions WHERE (promo_type <> 'percent_off' OR promo_type IS NULL) AND start_date >= DATE '2025-01-01'",
+    "at": "2026-10-03T20:33:06.596Z"
+  }
+}

@@ -1,0 +1,41 @@
+{
+  "item_id": "EX-SQL-TYPE-01-E3-04",
+  "item_version": 1,
+  "reference_sql": "SELECT order_month,\n       COUNT(DISTINCT order_id) AS n_orders,\n       ROUND(SUM(units) * 1.0 / COUNT(DISTINCT order_id), 2) AS units_per_order,\n       ROUND(100.0 * SUM(units) FILTER (WHERE channel = 'web') / SUM(units), 1) AS web_units_pct\nFROM sales\nWHERE order_date BETWEEN DATE '2025-10-01' AND DATE '2025-12-31'\nGROUP BY order_month",
+  "alternatives": [
+    "SELECT order_month, COUNT(DISTINCT order_id) AS n_orders, ROUND(CAST(SUM(units) AS DOUBLE) / COUNT(DISTINCT order_id), 2) AS units_per_order, ROUND(SUM(CASE WHEN channel = 'web' THEN units ELSE 0 END) * 100.0 / SUM(units), 1) AS web_units_pct FROM sales WHERE order_date >= DATE '2025-10-01' AND order_date <= DATE '2025-12-31' GROUP BY order_month",
+    "SELECT order_month, COUNT(DISTINCT order_id) AS n_orders, ROUND(SUM(COALESCE(units, 0)) / CAST(COUNT(DISTINCT order_id) AS DOUBLE), 2) AS units_per_order, ROUND(100 * CAST(SUM(units) FILTER (WHERE channel = 'web') AS DOUBLE) / SUM(units), 1) AS web_units_pct FROM sales WHERE order_date BETWEEN '2025-10-01' AND '2025-12-31' GROUP BY 1"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-05",
+      "sql": "SELECT order_month, COUNT(DISTINCT order_id) AS n_orders, ROUND(SUM(units) // COUNT(DISTINCT order_id), 2) AS units_per_order, ROUND(100.0 * SUM(units) FILTER (WHERE channel = 'web') / SUM(units), 1) AS web_units_pct FROM sales WHERE order_date BETWEEN DATE '2025-10-01' AND DATE '2025-12-31' GROUP BY order_month"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-21",
+      "sql": "SELECT order_month, COUNT(DISTINCT order_id) AS n_orders, ROUND(SUM(units) * 1.0 / COUNT(DISTINCT order_id), 2) AS units_per_order, ROUND(SUM(units) FILTER (WHERE channel = 'web') * 1.0 / SUM(units), 1) AS web_units_pct FROM sales WHERE order_date BETWEEN DATE '2025-10-01' AND DATE '2025-12-31' GROUP BY order_month"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-04",
+      "sql": "SELECT order_month, COUNT(order_id) AS n_orders, ROUND(SUM(units) * 1.0 / COUNT(order_id), 2) AS units_per_order, ROUND(100.0 * SUM(units) FILTER (WHERE channel = 'web') / SUM(units), 1) AS web_units_pct FROM sales WHERE order_date BETWEEN DATE '2025-10-01' AND DATE '2025-12-31' GROUP BY order_month"
+    },
+    {
+      "id": "PW4",
+      "error_id": "ERR-OUT-02",
+      "sql": "SELECT strftime(order_month, '%Y-%m') AS order_month, COUNT(DISTINCT order_id) AS n_orders, ROUND(SUM(units) * 1.0 / COUNT(DISTINCT order_id), 2) AS units_per_order, ROUND(100.0 * SUM(units) FILTER (WHERE channel = 'web') / SUM(units), 1) AS web_units_pct FROM sales WHERE order_date BETWEEN DATE '2025-10-01' AND DATE '2025-12-31' GROUP BY 1"
+    }
+  ],
+  "hint3_partial": "SELECT order_month,\n       COUNT(DISTINCT order_id) AS n_orders,\n       ROUND(SUM(units) ___ / COUNT(DISTINCT order_id), 2) AS units_per_order,\n       ROUND(100.0 * SUM(units) FILTER (WHERE ___) / SUM(units), 1) AS web_units_pct\nFROM sales\nWHERE order_date BETWEEN DATE '2025-10-01' AND DATE '2025-12-31'\nGROUP BY order_month",
+  "solver": {
+    "prompt_hash": "7e54cd6889072851",
+    "schema_version": "cebf75df442f",
+    "dataset_version": "506a9858f862fdfb",
+    "grader_version": "1b.3",
+    "query": "SELECT order_month, COUNT(DISTINCT order_id) AS n_orders, ROUND(SUM(units) * 1.0 / COUNT(DISTINCT order_id), 2) AS units_per_order, ROUND(100.0 * SUM(units) FILTER (WHERE channel = 'web') / SUM(units), 1) AS web_units_pct FROM sales WHERE order_date BETWEEN '2025-10-01' AND '2025-12-31' GROUP BY order_month\n",
+    "at": "2026-10-04T10:06:53.240Z"
+  }
+}

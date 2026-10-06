@@ -1,0 +1,47 @@
+{
+  "id": "Q-MET-RETAIL-11-06",
+  "version": 1,
+  "kind": "mcq",
+  "section": "methodology",
+  "concept_id": "MET-RETAIL-11",
+  "stem": "An analyst reports the repeat purchase rate as the orders placed by customers with two or more orders, divided by all orders. Why is this not the repeat purchase rate?",
+  "options": [
+    {
+      "oid": "odd14556",
+      "text": "The repeat purchase rate divides by the customers who placed no order",
+      "misconception_id": null
+    },
+    {
+      "oid": "oab41547",
+      "text": "It leaves out the guest orders, which belong in the denominator of the rate",
+      "misconception_id": null
+    },
+    {
+      "oid": "oe745d10",
+      "text": "It divides orders, not customers, so frequent buyers count once per order",
+      "misconception_id": null
+    },
+    {
+      "oid": "o6be3a0a",
+      "text": "It should divide by the orders of the customers who bought only once",
+      "misconception_id": null
+    }
+  ],
+  "typed": null,
+  "held_out": false,
+  "enemy_group": null,
+  "status": "active",
+  "verified": true,
+  "level": null,
+  "tags": [
+    "methodology",
+    "T-MET-RETAIL"
+  ],
+  "source_ids": [
+    "04:MET-RETAIL-11",
+    "ERRATA:E-155"
+  ],
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "supersedes": []
+}

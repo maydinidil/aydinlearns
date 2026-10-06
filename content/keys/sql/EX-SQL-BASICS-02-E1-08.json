@@ -1,0 +1,36 @@
+{
+  "item_id": "EX-SQL-BASICS-02-E1-08",
+  "item_version": 1,
+  "reference_sql": "SELECT sku,\n       product_name,\n       unit_cost_eur + 4.95 AS landed_cost_eur\nFROM products",
+  "alternatives": [
+    "SELECT sku, product_name, 4.95 + unit_cost_eur AS landed_cost_eur FROM products",
+    "SELECT sku, product_name, unit_cost_eur + 495 / 100.0 AS landed_cost_eur FROM products"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "EX-SQL-BASICS-02-E1-08-PW1",
+      "error_id": "ERR-LOG-00",
+      "sql": "SELECT sku, product_name, unit_cost_eur * 4.95 AS landed_cost_eur FROM products"
+    },
+    {
+      "id": "EX-SQL-BASICS-02-E1-08-PW2",
+      "error_id": "ERR-OUT-01",
+      "sql": "SELECT sku, unit_cost_eur + 4.95 AS landed_cost_eur FROM products"
+    },
+    {
+      "id": "EX-SQL-BASICS-02-E1-08-PW3",
+      "error_id": "ERR-SYN-01",
+      "sql": "SELECT sku, product_name, unit_cost_eur + 4.95 AS landed cost FROM products"
+    }
+  ],
+  "hint3_partial": "SELECT sku,\n       product_name,\n       unit_cost_eur ___ AS landed_cost_eur\nFROM products",
+  "solver": {
+    "prompt_hash": "463814123f759b78",
+    "schema_version": "d77fe1c31a0e",
+    "dataset_version": "9639f8ae1f71c2ef",
+    "grader_version": "1a.2",
+    "query": "SELECT sku, product_name, unit_cost_eur + 4.95 AS landed_cost_eur FROM products\n",
+    "at": "2026-10-03T13:08:02.250Z"
+  }
+}

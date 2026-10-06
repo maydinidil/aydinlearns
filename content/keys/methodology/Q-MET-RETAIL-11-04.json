@@ -1,0 +1,13 @@
+{
+  "item_id": "Q-MET-RETAIL-11-04",
+  "item_version": 1,
+  "correct_oid": "oaaca003",
+  "explanation": "A repeat purchase rate needs to know who bought twice, and a guest order names no one. Counting each guest order as a one-time customer drags the rate down, and grouping all guest orders under one missing ID creates one false customer with thousands of orders. The rate then covers known customers only, so say so.",
+  "solver": {
+    "prompt_hash": "84e180d426344ad9",
+    "grader_version": "choice.1",
+    "chosen": "oaaca003",
+    "typed": null,
+    "at": "2026-10-05T22:54:48.099Z"
+  }
+}

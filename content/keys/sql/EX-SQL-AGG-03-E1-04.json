@@ -1,0 +1,41 @@
+{
+  "item_id": "EX-SQL-AGG-03-E1-04",
+  "item_version": 1,
+  "reference_sql": "SELECT category_name, SUM(units) AS units_sold\nFROM sales\nGROUP BY category_name\nHAVING SUM(units) > 50000",
+  "alternatives": [
+    "SELECT category_name, SUM(units) AS units_sold FROM sales GROUP BY 1 HAVING SUM(units) >= 50001",
+    "SELECT category_name, SUM(units) AS units_sold FROM sales GROUP BY category_name HAVING 50000 < SUM(units)"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-SYN-05",
+      "sql": "SELECT category_name, SUM(units) AS units_sold FROM sales WHERE SUM(units) > 50000 GROUP BY category_name"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-02",
+      "sql": "SELECT category_name, SUM(units) AS units_sold FROM sales WHERE units > 50000 GROUP BY category_name"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-14",
+      "sql": "SELECT category_name, SUM(units) AS units_sold FROM sales GROUP BY category_name HAVING COUNT(*) > 50000"
+    },
+    {
+      "id": "PW4",
+      "error_id": "ERR-SYN-06",
+      "sql": "SELECT category_name, SUM(units) AS units_sold FROM sales WHERE units_sold > 50000 GROUP BY category_name"
+    }
+  ],
+  "hint3_partial": "SELECT category_name, SUM(units) AS units_sold\nFROM sales\nGROUP BY category_name\nHAVING SUM(___) > 50000",
+  "solver": {
+    "prompt_hash": "69a9c570e07e4311",
+    "schema_version": "cebf75df442f",
+    "dataset_version": "506a9858f862fdfb",
+    "grader_version": "1b.3",
+    "query": "SELECT category_name, SUM(units) AS units_sold FROM sales GROUP BY category_name HAVING SUM(units) > 50000\n",
+    "at": "2026-10-04T10:06:45.390Z"
+  }
+}

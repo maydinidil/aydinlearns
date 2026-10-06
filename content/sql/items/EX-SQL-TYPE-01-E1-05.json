@@ -1,0 +1,129 @@
+{
+  "id": "EX-SQL-TYPE-01-E1-05",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-02",
+    "type",
+    "division",
+    "decimals",
+    "round",
+    "count-distinct",
+    "date-type",
+    "group-by",
+    "sales"
+  ],
+  "level": 2,
+  "source_ids": [
+    "01:SQL-TYPE-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "retest",
+  "target_concept_id": "SQL-TYPE-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01"
+  ],
+  "template_id": "T-TYPE-01-ratio-per-group",
+  "template_params": {
+    "table": "sales",
+    "group_by": "order_month",
+    "top": "COUNT(*)",
+    "bottom": "COUNT(DISTINCT order_id)",
+    "from": "2025-01-01",
+    "to": "2025-12-31",
+    "decimals": 2,
+    "output": "lines_per_order"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_type",
+  "prompt": "How many order lines does an order have on average in each month of 2025? Use the sales table and keep the order lines with an order_date from 2025-01-01 to 2025-12-31, both included. Return two columns, in this order: order_month, as the date it holds (the first day of the month), and lines_per_order, the number of order lines divided by the number of different orders (order_id), rounded to 2 decimals with ROUND(x, 2). Return one row per order_month. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "order_month",
+        "type_class": "temporal"
+      },
+      {
+        "name": "lines_per_order",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per order_month"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "order_month",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "lines_per_order",
+        "type_class": "numeric",
+        "precision": "ratio",
+        "require_rounding": 2
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "order_month"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, keep the 2025 lines, decide what one row stands for, and write the calculated column lines_per_order.",
+    "Both counts are whole numbers, so make one side a decimal before you divide, then round the whole result to 2 decimals. Keep order_month as it is: it is already a date."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 97,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 98,
+      "to": 108,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 109,
+      "to": 173,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 174,
+      "to": 194,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "Making one count a decimal keeps the division's decimals on every engine, and order_month stays a date because the contract asks for one."
+}

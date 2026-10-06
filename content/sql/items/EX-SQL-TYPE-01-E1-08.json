@@ -1,0 +1,107 @@
+{
+  "id": "EX-SQL-TYPE-01-E1-08",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-02",
+    "type",
+    "boolean",
+    "output-type",
+    "is-null",
+    "stores"
+  ],
+  "level": 2,
+  "source_ids": [
+    "01:SQL-TYPE-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-TYPE-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-NULL-01",
+    "SQL-TYPE-01"
+  ],
+  "template_id": "T-TYPE-01-boolean-flag",
+  "template_params": {
+    "table": "stores",
+    "tested": "close_date",
+    "output": "is_closed"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_type",
+  "prompt": "Which stores have closed? Use the stores table. Return two columns, in this order: store_code and is_closed, a boolean (the values true and false, not text) that is true when close_date is present and false when close_date is missing. Return one row per store. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "store_code",
+        "type_class": "text"
+      },
+      {
+        "name": "is_closed",
+        "type_class": "boolean"
+      }
+    ],
+    "grain": "one row per store"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "store_code",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "is_closed",
+        "type_class": "boolean",
+        "precision": "exact"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "store_code"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the calculated column is_closed, a true or false value for each store.",
+    "A test such as IS NULL or IS NOT NULL already gives a boolean, so its result can be the column itself. Quoted words such as 'true' or 'yes' are text, a different type."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 61,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 62,
+      "to": 73,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 90000,
+  "why_this_works": "IS NOT NULL returns a real boolean for every store, so the column holds true and false rather than text that only looks like them."
+}

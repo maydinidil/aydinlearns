@@ -1,0 +1,41 @@
+{
+  "item_id": "EX-SQL-AGG-02-E2-21",
+  "item_version": 1,
+  "reference_sql": "SELECT store_code, COUNT(DISTINCT order_date) AS n_days, COUNT(*) AS n_lines\nFROM sales\nWHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\nGROUP BY store_code",
+  "alternatives": [
+    "SELECT store_code, COUNT(DISTINCT order_date) AS n_days, COUNT(*) AS n_lines FROM sales WHERE order_date >= DATE '2025-01-01' AND order_date < DATE '2026-01-01' GROUP BY 1",
+    "SELECT store_code, COUNT(DISTINCT order_date) AS n_days, COUNT(order_line_id) AS n_lines FROM sales WHERE order_date BETWEEN '2025-01-01' AND '2025-12-31' GROUP BY store_code"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-04",
+      "sql": "SELECT store_code, COUNT(order_date) AS n_days, COUNT(*) AS n_lines FROM sales WHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31' GROUP BY store_code"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-SEM-01",
+      "sql": "SELECT store_code, country_code, COUNT(DISTINCT order_date) AS n_days, COUNT(*) AS n_lines FROM sales WHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31' GROUP BY store_code"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-23",
+      "sql": "SELECT store_code, COUNT(DISTINCT order_date) AS n_days, COUNT(*) AS n_lines FROM sales WHERE order_date >= DATE '2025-01-01' AND order_date < DATE '2025-12-31' GROUP BY store_code"
+    },
+    {
+      "id": "PW4",
+      "error_id": "ERR-LOG-07",
+      "sql": "SELECT store_code, COUNT(DISTINCT order_date) AS n_days, COUNT(*) AS n_lines FROM sales WHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31' GROUP BY store_code, country_code"
+    }
+  ],
+  "hint3_partial": "SELECT store_code, COUNT(___) AS n_days, COUNT(*) AS n_lines\nFROM sales\nWHERE order_date BETWEEN ___\nGROUP BY ___",
+  "solver": {
+    "prompt_hash": "3998f44ac021ba90",
+    "schema_version": "cebf75df442f",
+    "dataset_version": "506a9858f862fdfb",
+    "grader_version": "1b.3",
+    "query": "SELECT store_code, COUNT(DISTINCT order_date) AS n_days, COUNT(*) AS n_lines FROM sales WHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31' GROUP BY store_code\n",
+    "at": "2026-10-04T14:33:16.183Z"
+  }
+}

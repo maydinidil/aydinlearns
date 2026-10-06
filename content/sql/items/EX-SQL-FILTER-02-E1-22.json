@@ -1,0 +1,116 @@
+{
+  "id": "EX-SQL-FILTER-02-E1-22",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-01",
+    "between",
+    "calendar"
+  ],
+  "level": 1,
+  "source_ids": [
+    "01:SQL-FILTER-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-FILTER-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02"
+  ],
+  "template_id": "T-FILTER-02-between-date",
+  "template_params": {
+    "table": "calendar",
+    "days": 3
+  },
+  "sub_skill": "between",
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_filter",
+  "prompt": "The stores ran a long-weekend sale from Friday 28 February 2025 to Sunday 2 March 2025. From the calendar table, return three columns, in this order: cal_date, weekday_name, is_weekend. Keep only the days whose cal_date is from 28 February 2025 to 2 March 2025, both days included. cal_date is a date with no time of day, and every day has one. Return one row per day. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "cal_date",
+        "type_class": "temporal"
+      },
+      {
+        "name": "weekday_name",
+        "type_class": "text"
+      },
+      {
+        "name": "is_weekend",
+        "type_class": "boolean"
+      }
+    ],
+    "grain": "one row per day"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "cal_date",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "weekday_name",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "is_weekend",
+        "type_class": "boolean",
+        "precision": "exact"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "cal_date"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the row filter. Keep the three days of the sale, from the Friday to the Sunday.",
+    "BETWEEN takes the earlier date first and keeps both ends. Write each date in single quotes, year first, as cal_date stores it."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 41,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 42,
+      "to": 55,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 56,
+      "to": 118,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 90000,
+  "why_this_works": "BETWEEN includes both of its ends, so the Friday and the Sunday stay in along with the Saturday."
+}

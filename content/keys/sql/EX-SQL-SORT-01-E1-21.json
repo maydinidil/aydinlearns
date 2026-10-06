@@ -1,0 +1,32 @@
+{
+  "item_id": "EX-SQL-SORT-01-E1-21",
+  "item_version": 1,
+  "reference_sql": "SELECT promo_type,\n       promo_name\nFROM promotions\nORDER BY promo_type, promo_name",
+  "alternatives": [
+    "SELECT promo_type,\n       promo_name\nFROM promotions\nORDER BY promo_type ASC, promo_name ASC",
+    "SELECT promo_type,\n       promo_name\nFROM promotions\nORDER BY 1, 2",
+    "SELECT promotions.promo_type,\n       promotions.promo_name\nFROM promotions\nORDER BY promotions.promo_type, promotions.promo_name"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-18",
+      "sql": "SELECT promo_type, promo_name FROM promotions ORDER BY promo_name, promo_type"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-09",
+      "sql": "SELECT DISTINCT promo_type, promo_name FROM promotions ORDER BY promo_type, promo_name"
+    }
+  ],
+  "hint3_partial": "SELECT promo_type,\n       promo_name\nFROM promotions\nORDER BY ___",
+  "solver": {
+    "prompt_hash": "5b0817ca9ea5d215",
+    "schema_version": "f0340f71a1f5",
+    "dataset_version": "506a9858f862fdfb",
+    "grader_version": "1b.3",
+    "query": "SELECT promo_type, promo_name FROM promotions ORDER BY promo_type ASC, promo_name ASC\n",
+    "at": "2026-10-04T14:33:18.418Z"
+  }
+}

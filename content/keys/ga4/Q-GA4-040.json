@@ -1,0 +1,13 @@
+{
+  "item_id": "Q-GA4-040",
+  "item_version": 2,
+  "correct_oid": "o0a9294c",
+  "explanation": "Internal traffic needs two steps: a rule in the web stream's tag settings that defines the office IP addresses, and an active Internal traffic data filter. An audience or an exploration segment leaves the office visits in the reports, and unwanted referrals only change how referring sites are attributed.",
+  "solver": {
+    "prompt_hash": "db523a3db3c6877c",
+    "grader_version": "choice.1",
+    "chosen": "o0a9294c",
+    "typed": null,
+    "at": "2026-10-04T10:12:05.621Z"
+  }
+}

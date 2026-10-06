@@ -1,0 +1,37 @@
+{
+  "item_id": "EX-SQL-NULL-01-E3-21",
+  "item_version": 1,
+  "reference_sql": "SELECT promo_code, promo_name, 120 * COALESCE(discount_pct, 0) / 100 AS saving_eur\nFROM promotions\nWHERE start_date <= DATE '2025-02-10' AND (end_date >= DATE '2025-01-10' OR end_date IS NULL)",
+  "alternatives": [
+    "SELECT promo_code, promo_name, COALESCE(120 * discount_pct / 100, 0) AS saving_eur\nFROM promotions\nWHERE start_date <= DATE '2025-02-10' AND (end_date >= DATE '2025-01-10' OR end_date IS NULL)",
+    "SELECT promo_code, promo_name, 1.2 * COALESCE(discount_pct, 0) AS saving_eur\nFROM promotions\nWHERE (end_date IS NULL OR end_date >= '2025-01-10') AND start_date <= '2025-02-10'",
+    "SELECT promo_code, promo_name, COALESCE(discount_pct, 0) * 120 / 100 AS saving_eur\nFROM promotions\nWHERE NOT start_date > DATE '2025-02-10' AND (end_date IS NULL OR NOT end_date < DATE '2025-01-10')"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-03",
+      "sql": "SELECT promo_code, promo_name, 120 * COALESCE(discount_pct, 0) / 100 AS saving_eur FROM promotions WHERE start_date <= DATE '2025-02-10' AND end_date >= DATE '2025-01-10'"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-17",
+      "sql": "SELECT promo_code, promo_name, 120 * discount_pct / 100 AS saving_eur FROM promotions WHERE start_date <= DATE '2025-02-10' AND (end_date >= DATE '2025-01-10' OR end_date IS NULL)"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-13",
+      "sql": "SELECT promo_code, promo_name, 120 * COALESCE(discount_pct, 0) / 100 AS saving_eur FROM promotions WHERE end_date >= DATE '2025-01-10' OR end_date IS NULL AND start_date <= DATE '2025-02-10'"
+    }
+  ],
+  "hint3_partial": "SELECT promo_code, promo_name, 120 * COALESCE(...) / 100 AS saving_eur\nFROM promotions\nWHERE start_date <= DATE '2025-02-10' AND (end_date >= DATE '2025-01-10' OR ...)",
+  "solver": {
+    "prompt_hash": "00faa7c4ab0a4ff7",
+    "schema_version": "f0340f71a1f5",
+    "dataset_version": "506a9858f862fdfb",
+    "grader_version": "1b.3",
+    "query": "SELECT promo_code, promo_name, 120 * COALESCE(discount_pct, 0) / 100 AS saving_eur FROM promotions WHERE start_date <= DATE '2025-02-10' AND (end_date IS NULL OR end_date >= DATE '2025-01-10')\n",
+    "at": "2026-10-04T14:33:18.400Z"
+  }
+}

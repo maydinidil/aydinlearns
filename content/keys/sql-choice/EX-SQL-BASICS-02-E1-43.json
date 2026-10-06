@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-BASICS-02-E1-43",
+  "item_version": 1,
+  "correct_oid": "o73e3ae3",
+  "explanation": "A percentage becomes a share when you divide it by 100, so 25.00 becomes 0.25, and AS gives the column its name. Leaving discount_pct as it is keeps the percent scale, and multiplying by 100 moves further away. Dividing without AS gives the right numbers under a made-up column name instead of discount_share.",
+  "solver": {
+    "prompt_hash": "fec603891d41beb1",
+    "grader_version": "choice.1",
+    "chosen": "o73e3ae3",
+    "typed": null,
+    "at": "2026-10-06T09:08:14.834Z"
+  }
+}

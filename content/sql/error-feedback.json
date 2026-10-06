@@ -1,0 +1,162 @@
+{
+  "ERR-SYN-01": {
+    "assumed": "You probably expected SQL to accept the clauses in any order, to read past a small typo in a keyword, or to read a name with a space in it, such as `AS my column`, as one name.",
+    "why": "SQL recognises keywords only by their exact spelling, and the clauses must come in a fixed written order. A name ends at the first space unless it is in double quotes, so the word after the space looks like a keyword in the wrong place. The engine stops at the first word it does not expect, and its message names that word.",
+    "model": "Write the clauses in this order: SELECT, FROM (with any JOIN), WHERE, GROUP BY, HAVING, ORDER BY, LIMIT. Then check the spelling of the keywords near the word the message names. A column name you give with AS needs no space: write `AS my_column`, or put the name in double quotes, as in `AS \"my column\"`."
+  },
+  "ERR-SYN-02": {
+    "assumed": "You probably expected the engine to recognise a name that is close to the real one: a column, a table or a function.",
+    "why": "SQL only finds names spelled exactly as they exist: a column in one of the tables your query reads, a table in the schema, or a function the engine knows. Capital letters do not matter here, but a typo, a singular instead of a plural, or a column from a table that is not in your FROM clause all count as unknown.",
+    "model": "Copy table and column names exactly from the schema panel, check that each column belongs to a table in your FROM clause, and check the spelling of each function name, such as COUNT or ROUND."
+  },
+  "ERR-SYN-03": {
+    "assumed": "You probably expected the engine to work out which table `{column}` should come from.",
+    "why": "`{column}` exists in more than one of the tables in your query, and SQL will not guess which one you mean.",
+    "model": "Write the table's alias in front of the column everywhere you use it, as in `alias.{column}`, where alias is the short name you gave that table in FROM or JOIN."
+  },
+  "ERR-SYN-04": {
+    "assumed": "You probably expected the engine to see where each piece of text, bracket or list ends, even with a quote, bracket or comma missing or extra.",
+    "why": "SQL uses quotes, brackets and commas to mark where each part of the query starts and stops. One unclosed quote or bracket swallows everything after it, so the engine reaches the end of the query still waiting for it to close.",
+    "model": "Check that every opening quote and bracket has its closing partner, and that a comma separates every two items in a list."
+  },
+  "ERR-SYN-05": {
+    "assumed": "You probably expected WHERE to filter on a total, a count or an average.",
+    "why": "SQL runs WHERE on single rows, before GROUP BY builds any groups or totals, so an aggregate such as `SUM(...)` or `COUNT(*)` cannot be used there.",
+    "model": "Keep conditions on single rows in WHERE, and put conditions on totals in HAVING, after GROUP BY, for example `HAVING COUNT(*) > 10`."
+  },
+  "ERR-SYN-06": {
+    "assumed": "You probably expected a name you gave a total or a count in SELECT (with AS) to be usable in WHERE.",
+    "why": "WHERE filters single rows before any totals are worked out, and before SELECT names its columns. So it cannot test an aggregate such as `COUNT(*)` or `SUM(...)`, not even through its alias.",
+    "model": "Test a total in HAVING, after GROUP BY, and repeat the aggregate there: `GROUP BY category HAVING COUNT(*) > 1` instead of `WHERE n_products > 1`. Or work the total out in a subquery and filter it with WHERE in the outer query."
+  },
+  "ERR-SYN-07": {
+    "assumed": "You probably meant \"{column}\" as a piece of text, which is what double quotes mean in many other languages.",
+    "why": "In SQL, double quotes mark the name of a column or table, and only single quotes mark text, so the engine looked for a column called {column} and found none.",
+    "model": "Put text in single quotes, as in `'{column}'`, and compare values with `=` and `<>`, the standard SQL operators."
+  },
+  "ERR-SEM-01": {
+    "assumed": "You probably expected SQL to show a column next to your totals without being told how to combine its values in each group.",
+    "why": "After GROUP BY, each group becomes one row. A column that is neither in GROUP BY nor inside an aggregate can hold many different values within one group, and SQL will not pick one for you.",
+    "model": "Add the column to GROUP BY if the question wants one row per that column too (this changes the grain), or wrap it in an aggregate such as `MAX(...)` if one value per group is enough. If the column is only read by a CASE label, group by the label instead (its name, its position or the whole CASE). If it sits in a HAVING test on single rows, move that test to WHERE."
+  },
+  "ERR-SEM-04": {
+    "assumed": "You probably expected `= NULL` to find the missing values.",
+    "why": "In SQL, a comparison with NULL is unknown, not true, so `= NULL` and `<> NULL` keep no rows.",
+    "model": "Use `IS NULL` or `IS NOT NULL` to test for missing values."
+  },
+  "ERR-SEM-05": {
+    "assumed": "You probably expected a subquery in brackets to give back one value, however many rows it finds.",
+    "why": "A subquery used as a single value, for example in the SELECT list or after `=`, must return at most one row. Yours returned more than one, and SQL will not pick one of them for you.",
+    "model": "Make the subquery return one row: add a condition that keeps only one row, or use an aggregate such as `MAX(...)` or `COUNT(*)`. To compare with every value a subquery returns, write `IN (...)` instead of `=`."
+  },
+  "ERR-LOG-00": {
+    "assumed": "You probably expected this query to answer the question as it is written.",
+    "why": "The app could not match this answer to one common mistake, so the details shown with it, either the rows that differ from the expected result or the engine's message, are the best clue.",
+    "model": "Check each clause against the question in the order SQL runs them: the table (FROM), the rows to keep (WHERE), one row per what (GROUP BY), the group filter (HAVING), the columns and numbers (SELECT), then the order and cut-off (ORDER BY, LIMIT). If you have a result, compare one missing row with one extra row to see which clause is off."
+  },
+  "ERR-LOG-02": {
+    "assumed": "You probably expected WHERE and HAVING to do the same job, so the condition went into the wrong one.",
+    "why": "WHERE removes single rows before they are grouped, and HAVING removes whole groups after their totals are computed. A condition in the wrong place filters different rows, so the groups or their totals change.",
+    "model": "Ask of each condition whether it is about one row or about a group's total. Conditions on rows, such as `country_code = 'BE'`, go in WHERE before GROUP BY; conditions on totals, such as `COUNT(*) > 10`, go in HAVING after it."
+  },
+  "ERR-LOG-03": {
+    "assumed": "You probably expected every row to be kept or to get a label, but `<>`, `NOT IN` and `NOT LIKE` drop rows with a missing value, and a CASE with no ELSE leaves every row no WHEN matched as NULL.",
+    "why": "A comparison with NULL is unknown, not true, so a filter such as `country_code <> 'NL'` drops the rows with no country_code along with the NL rows. In the same way, a CASE with no ELSE returns NULL for every row that no WHEN branch matches.",
+    "model": "When the question counts rows with a missing value, keep them explicitly, for example `WHERE country_code <> 'NL' OR country_code IS NULL`. When every row needs a label, end the CASE with an ELSE."
+  },
+  "ERR-LOG-04": {
+    "assumed": "You probably expected every form of COUNT to give the same number.",
+    "why": "`COUNT(*)` counts rows, `COUNT(col)` counts only the rows where col is not NULL, and `COUNT(DISTINCT col)` counts each different value once. When the data has NULLs or repeated values, the three give different answers.",
+    "model": "Match the count to the question's words: 'how many rows' is `COUNT(*)`, 'how many have a value' is `COUNT(col)`, and 'how many different' or 'how many unique' is `COUNT(DISTINCT col)`."
+  },
+  "ERR-LOG-05": {
+    "assumed": "You probably expected dividing one whole number by another, or a CAST to INTEGER, to keep the decimals.",
+    "why": "In PostgreSQL and SQL Server, and with `//` in DuckDB, a whole number divided by a whole number drops everything after the decimal point, so 3 / 4 gives 0 and rates come out as whole numbers. DuckDB's `/` keeps the decimals, but online SQL tests often run on engines that do not. A CAST to INTEGER also gives a whole number: DuckDB rounds it, so `CAST(8.7 AS INTEGER)` is 9.",
+    "model": "Make one side a decimal before you divide, for example `clicks * 1.0 / views`. This works the same way on every engine. To round, wrap the final result in `ROUND(x, n)` instead of casting it to INTEGER."
+  },
+  "ERR-LOG-06": {
+    "assumed": "You probably expected the end date of your range to include that whole day.",
+    "why": "`BETWEEN` includes both ends, but on a timestamp the end date means midnight at the start of that day, so anything later on the last day falls outside. A `>` where `>=` was needed, or a `<=` where `<` was needed, moves a whole day in or out of the range in the same way.",
+    "model": "Use a half-open range: on or after the first day, and before the day after the last one, for example `ts >= '2025-03-01' AND ts < '2025-04-01'` for all of March."
+  },
+  "ERR-LOG-07": {
+    "assumed": "You probably expected your GROUP BY to give one row per thing the question asks about.",
+    "why": "GROUP BY makes one row for each different combination of the columns you list. An extra column splits each group into smaller ones, and a missing column or a missing GROUP BY merges them, so your rows no longer match the 'per' in the question.",
+    "model": "Find the 'for each' or 'per' phrase in the question and group by exactly those columns. Then select those same columns plus the numbers the question asks for, and nothing else."
+  },
+  "ERR-LOG-08": {
+    "assumed": "You probably expected each value to appear only once in your list.",
+    "why": "SELECT returns one row for every row it reads, so a value shared by several rows, such as a brand with many products, appears once for each of them.",
+    "model": "When the question asks for a list of different values, such as 'which brands' or 'each country once', add DISTINCT: `SELECT DISTINCT brand FROM products`."
+  },
+  "ERR-LOG-09": {
+    "assumed": "You probably expected DISTINCT to remove only true copies of the same record.",
+    "why": "DISTINCT keeps one row from each set of identical rows, and inside an aggregate it keeps one of each value, even when those rows are different records. Two products with the same cost are still two products, but `SUM(DISTINCT unit_cost_eur)` counts that cost only once.",
+    "model": "Remove DISTINCT unless the question asks for different values. To count unique things, apply DISTINCT to their ID, as in `COUNT(DISTINCT product_id)`."
+  },
+  "ERR-LOG-13": {
+    "assumed": "You probably expected SQL to read your conditions from left to right.",
+    "why": "SQL applies AND before OR, the way multiplication comes before addition. So `a OR b AND c` means `a OR (b AND c)`, and the condition after AND applies to only one side of the OR.",
+    "model": "Put brackets around the OR part whenever you mix AND and OR, for example `WHERE (country_code = 'BE' OR country_code = 'LU') AND store_type = 'outlet'`."
+  },
+  "ERR-LOG-14": {
+    "assumed": "You probably expected the aggregate you chose to answer the question's wording.",
+    "why": "Each aggregate answers a different question: SUM gives a total, AVG an average, COUNT how many, MIN the smallest and MAX the largest. A different one still returns a real number, just not the one asked for.",
+    "model": "Translate the question's word into the function: 'total' is SUM, 'average' is AVG, 'how many' is COUNT, 'lowest', 'cheapest' or 'earliest' is MIN, and 'highest', 'most expensive' or 'latest' is MAX."
+  },
+  "ERR-LOG-15": {
+    "assumed": "You probably expected `>` and `>=` (or `<` and `<=`) to keep the same rows.",
+    "why": "They differ exactly at the boundary: `> 100` drops a row whose value is exactly 100, and `>= 100` keeps it. The question's wording decides which one is right.",
+    "model": "'At least' and 'or more' mean `>=`, 'more than' and 'over' mean `>`, 'at most' and 'or less' mean `<=`, and 'less than' and 'under' mean `<`. BETWEEN includes both of its ends."
+  },
+  "ERR-LOG-16": {
+    "assumed": "You probably expected LIMIT to return the top rows on its own.",
+    "why": "LIMIT only cuts the result after a number of rows. Without an ORDER BY in the right direction, those are whichever rows came first, and when values tie at the cut-off, only the tie-break the question states decides which row stays in.",
+    "model": "Sort first, then cut: `ORDER BY` the ranking column with `DESC` for highest first or `ASC` for lowest first, add the question's tie-break as a second sort column, then `LIMIT n`."
+  },
+  "ERR-LOG-17": {
+    "assumed": "You probably expected a missing value (NULL) to count as 0 in your calculation, or the reverse.",
+    "why": "Arithmetic with NULL gives NULL, so `price + NULL` is NULL, and SUM, AVG and COUNT(col) skip NULL values completely. If the question treats a missing value as 0, those rows drop out of your average; if it says to leave them out, turning them into 0 pulls the average down.",
+    "model": "Read how the question treats missing values. If missing means 0, wrap the column in `COALESCE(col, 0)` before you calculate; if it says to ignore them, use the column as it is."
+  },
+  "ERR-LOG-18": {
+    "assumed": "You probably expected the rows to come out in the order the question asks for, either without an ORDER BY or with one on a different column or in the other direction.",
+    "why": "SQL gives no guaranteed row order unless the query sorts the rows. Your rows are right, but when the question asks for an order, the order is part of the answer.",
+    "model": "Add `ORDER BY` with the column the question names, `DESC` for highest or latest first and `ASC` for lowest or earliest first, and add the question's tie-break as a second sort column after a comma."
+  },
+  "ERR-LOG-19": {
+    "assumed": "You probably expected rounding before you add up or divide to give the same answer as rounding at the end.",
+    "why": "Each early rounding adds a small error, and SUM, AVG or a division adds those errors together, so the final number drifts a few cents or decimals away from the expected one.",
+    "model": "Calculate with the full values and round once, around the final result: `ROUND(SUM(x), 2)`, not `SUM(ROUND(x, 2))`."
+  },
+  "ERR-LOG-20": {
+    "assumed": "You probably expected the average of each row's ratio to equal the overall ratio.",
+    "why": "AVG of a ratio gives every row the same weight, however big or small it is, so a line that sold 1 unit counts as much as a line that sold 1,000. The overall ratio weights each row by its size.",
+    "model": "Add up the top and the bottom first, then divide once: `SUM(revenue) / SUM(units)` for an average selling price, not `AVG(revenue / units)`."
+  },
+  "ERR-LOG-21": {
+    "assumed": "You probably expected a share and a percentage to be the same number.",
+    "why": "A share of 0.15 and a percentage of 15 are the same amount on scales 100 times apart. Returning the share when the question asks for a percentage, or using a stored percentage such as `discount_pct` without dividing it by 100, puts every value off by a factor of 100.",
+    "model": "Check the scale the question asks for. For a percentage, multiply the share by 100, as in `100.0 * part / whole`; to use a stored percentage in a calculation, divide it by 100 first, as in `discount_pct / 100.0`."
+  },
+  "ERR-LOG-22": {
+    "assumed": "You probably expected LIKE to find the text whatever its letter case, or wherever it sits in the value.",
+    "why": "LIKE is case-sensitive, so `'%pro%'` does not find Pro or PRO. A pattern also has to match the whole value: without a `%` on one side, the text must start or end right there, and each `_` stands for exactly one character.",
+    "model": "Use ILIKE when the question says any letter case, and put a `%` wherever other text may come: `product_name ILIKE '%pro%'` finds pro anywhere in the name, in any case. Then check the pattern by hand against one value that should match and one that should not."
+  },
+  "ERR-LOG-23": {
+    "assumed": "You probably expected your range to keep exactly the values the question describes.",
+    "why": "BETWEEN low AND high keeps the values from low to high, both ends included, so `BETWEEN 20 AND 10` matches nothing at all. A range written with `>` or `<` leaves its end out and one written with `>=` or `<=` keeps it, so the wrong one drops or adds the rows that sit exactly on an end.",
+    "model": "Put the low end first, as in `discount_pct BETWEEN 10 AND 20`. Then read the wording for each end: 'from ... to', 'at least' and 'up to' keep the end, while 'over', 'under', 'after' and 'before' leave it out."
+  },
+  "ERR-OUT-01": {
+    "assumed": "You probably expected the answer to count as right with an extra column, a missing column or a differently named column.",
+    "why": "The output contract asks for {expected_columns} column(s) with the names it lists, and your query returned {actual_columns}. The columns are part of the answer: an extra one changes what each row means, and a missing one leaves part of the question unanswered.",
+    "model": "Select exactly the columns in the output contract, in its order, and use AS to give each one the name it lists. A missing comma also turns the next column name into an alias, as in `SELECT city country_code`, so check the commas in your SELECT list."
+  },
+  "ERR-OUT-02": {
+    "assumed": "You probably expected a value to count as right whatever its type, for example the text '10' for the number 10, or a date written as text.",
+    "why": "SQL keeps text, numbers and dates as different types: the text '10' never equals the number 10, and the engine stops when it cannot turn one type into another. Each column must have the type the output contract shows, in the place it shows it.",
+    "model": "Return each column in the contract's type and order: leave numbers and dates unformatted rather than casting them to text, and compare text columns with quoted text such as `'BE'` and number columns with plain numbers such as `10`."
+  }
+}

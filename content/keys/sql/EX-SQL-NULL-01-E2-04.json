@@ -1,0 +1,32 @@
+{
+  "item_id": "EX-SQL-NULL-01-E2-04",
+  "item_version": 1,
+  "reference_sql": "SELECT product_id, product_name, unit_cost_eur\nFROM products\nWHERE (category_raw = 'Cables' OR category_raw = 'Batteries') AND unit_cost_eur < 5",
+  "alternatives": [
+    "SELECT product_id, product_name, unit_cost_eur\nFROM products\nWHERE category_raw IN ('Cables', 'Batteries') AND unit_cost_eur < 5",
+    "SELECT product_id, product_name, unit_cost_eur\nFROM products\nWHERE (category_raw = 'Batteries' OR category_raw = 'Cables') AND unit_cost_eur < 5 AND unit_cost_eur IS NOT NULL",
+    "SELECT product_id, product_name, unit_cost_eur\nFROM products\nWHERE unit_cost_eur < 5.00 AND (category_raw = 'Cables' OR category_raw = 'Batteries')"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "M1",
+      "error_id": "ERR-LOG-17",
+      "sql": "SELECT product_id, product_name, unit_cost_eur\nFROM products\nWHERE (category_raw = 'Cables' OR category_raw = 'Batteries') AND COALESCE(unit_cost_eur, 0) < 5"
+    },
+    {
+      "id": "M2",
+      "error_id": "ERR-LOG-13",
+      "sql": "SELECT product_id, product_name, unit_cost_eur\nFROM products\nWHERE category_raw = 'Cables' OR category_raw = 'Batteries' AND unit_cost_eur < 5"
+    }
+  ],
+  "hint3_partial": "SELECT product_id, product_name, unit_cost_eur\nFROM products\nWHERE (category_raw = 'Cables' OR category_raw = 'Batteries') AND unit_cost_eur ...",
+  "solver": {
+    "prompt_hash": "71dc37d11a53da79",
+    "schema_version": "d77fe1c31a0e",
+    "dataset_version": "9639f8ae1f71c2ef",
+    "grader_version": "1a.2",
+    "query": "SELECT product_id, product_name, unit_cost_eur FROM products WHERE category_raw IN ('Cables', 'Batteries') AND unit_cost_eur < 5\n",
+    "at": "2026-10-03T13:08:02.966Z"
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "schema": "voltmarkt_edge_type",
+  "mirrors": "voltmarkt",
+  "family": "type",
+  "contains": [
+    "stores whose units per line do not divide evenly, one of them with a fraction above one half",
+    "two stores that tie for second place by units per line",
+    "two products that tie for third place by net revenue",
+    "a product whose margin is exactly 15% of its net revenue, and one whose margin is 12.5%",
+    "a promotion with a discount of 15.00 percent",
+    "a line with a missing quantity and a line with a missing unit price",
+    "a product with no unit cost",
+    "a store that sells in one month only",
+    "orders on the last day of a month, and on days whose ISO week starts in the previous month"
+  ]
+}

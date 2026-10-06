@@ -1,0 +1,15 @@
+{
+  "schema": "voltmarkt_edge_null",
+  "mirrors": "voltmarkt",
+  "family": "null",
+  "contains": [
+    "a store with no city and a store with no country code",
+    "a store with no store type",
+    "categories with no parent category",
+    "products with no brand, no cost or no category",
+    "a product with a cost of exactly 0.00 euro",
+    "a promotion with no name, and one with no discount or end date",
+    "a promotion with no promotion type",
+    "calendar days in November and December 2025: Sinterklaas, Black Friday and Cyber Monday days next to days with no event"
+  ]
+}

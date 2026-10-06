@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-AGG-01-E1-41",
+  "item_version": 1,
+  "value": 1,
+  "explanation": "Aggregates such as COUNT and MAX collapse all the rows they read into one value each. With no GROUP BY, the whole table is one group, so the query returns a single row: the number of products and the highest unit cost.",
+  "solver": {
+    "prompt_hash": "7f3b69b739e43eff",
+    "grader_version": "choice.1",
+    "chosen": null,
+    "typed": "1",
+    "at": "2026-10-06T09:08:14.805Z"
+  }
+}

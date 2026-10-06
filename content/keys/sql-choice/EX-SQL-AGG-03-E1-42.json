@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-AGG-03-E1-42",
+  "item_version": 1,
+  "correct_oid": "oc214c64",
+  "explanation": "The date is a test on single rows, so it goes in WHERE, before grouping. The number of lines exists only per order, so the test on COUNT(*) goes in HAVING, and \"3 or more\" is >=. Dropping the WHERE counts orders from every day, > 3 leaves out orders with exactly 3 lines, and units >= 3 tests the units of a line instead of counting lines.",
+  "solver": {
+    "prompt_hash": "fbbfe71d3efbbdb8",
+    "grader_version": "choice.1",
+    "chosen": "oc214c64",
+    "typed": null,
+    "at": "2026-10-06T09:08:14.818Z"
+  }
+}

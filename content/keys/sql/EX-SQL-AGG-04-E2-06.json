@@ -1,0 +1,36 @@
+{
+  "item_id": "EX-SQL-AGG-04-E2-06",
+  "item_version": 1,
+  "reference_sql": "SELECT store_code,\n       SUM(CASE WHEN units >= 2 THEN 1 ELSE 0 END) AS multi_unit_lines\nFROM sales\nWHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\nGROUP BY store_code\nORDER BY multi_unit_lines DESC, store_code\nLIMIT 3",
+  "alternatives": [
+    "SELECT store_code, COUNT(CASE WHEN units >= 2 THEN 1 END) AS multi_unit_lines FROM sales WHERE order_date >= DATE '2025-01-01' AND order_date <= DATE '2025-12-31' GROUP BY store_code ORDER BY 2 DESC, 1 ASC LIMIT 3",
+    "SELECT store_code, COUNT(*) FILTER (WHERE units >= 2) AS multi_unit_lines FROM sales WHERE order_date BETWEEN '2025-01-01' AND '2025-12-31' GROUP BY store_code ORDER BY multi_unit_lines DESC, store_code ASC LIMIT 3"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-16",
+      "sql": "SELECT store_code, SUM(CASE WHEN units >= 2 THEN 1 ELSE 0 END) AS multi_unit_lines FROM sales WHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31' GROUP BY store_code ORDER BY multi_unit_lines DESC, store_code DESC LIMIT 3"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-15",
+      "sql": "SELECT store_code, SUM(CASE WHEN units > 2 THEN 1 ELSE 0 END) AS multi_unit_lines FROM sales WHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31' GROUP BY store_code ORDER BY multi_unit_lines DESC, store_code LIMIT 3"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-04",
+      "sql": "SELECT store_code, COUNT(CASE WHEN units >= 2 THEN 1 ELSE 0 END) AS multi_unit_lines FROM sales WHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31' GROUP BY store_code ORDER BY multi_unit_lines DESC, store_code LIMIT 3"
+    }
+  ],
+  "hint3_partial": "SELECT store_code,\n       SUM(CASE WHEN units >= ___ THEN ___ ELSE ___ END) AS multi_unit_lines\nFROM sales\nWHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\nGROUP BY store_code\nORDER BY ___\nLIMIT 3",
+  "solver": {
+    "prompt_hash": "4e8bd7ad1be8cc35",
+    "schema_version": "cebf75df442f",
+    "dataset_version": "506a9858f862fdfb",
+    "grader_version": "1b.3",
+    "query": "SELECT store_code, COUNT(*) AS multi_unit_lines FROM sales WHERE order_date BETWEEN '2025-01-01' AND '2025-12-31' AND units >= 2 GROUP BY store_code ORDER BY multi_unit_lines DESC, store_code ASC LIMIT 3\n",
+    "at": "2026-10-04T10:06:49.317Z"
+  }
+}

@@ -1,0 +1,86 @@
+{
+  "id": "EX-SQL-AGG-02-E2-42",
+  "version": 1,
+  "kind": "choose_query",
+  "tags": [
+    "sql",
+    "LVL-02",
+    "choose_query",
+    "group_by",
+    "grain",
+    "sum",
+    "sales"
+  ],
+  "level": 2,
+  "source_ids": [
+    "01:SQL-AGG-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-AGG-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-AGG-02"
+  ],
+  "template_id": "T-AGG-02-choose-two-column-grain",
+  "template_params": {
+    "table": "sales"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_agg",
+  "prompt": "What is the total of units for each pair of channel and country_code? Use the sales table. Return channel, country_code and total_units, one row per pair. Any row order is fine. Which query returns it?",
+  "output_contract": null,
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [],
+  "subgoals": [],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 90000,
+  "why_this_works": "",
+  "options": [
+    {
+      "oid": "o827a2ab",
+      "text": "SELECT channel, country_code, SUM(units) AS total_units\nFROM sales\nGROUP BY channel, country_code",
+      "misconception_id": null
+    },
+    {
+      "oid": "oc4adf14",
+      "text": "SELECT channel, SUM(units) AS total_units\nFROM sales\nGROUP BY channel",
+      "misconception_id": "ERR-LOG-07"
+    },
+    {
+      "oid": "o0ce2d90",
+      "text": "SELECT channel, country_code, SUM(units) AS total_units\nFROM sales\nGROUP BY channel, country_code, store_code",
+      "misconception_id": "ERR-LOG-07"
+    },
+    {
+      "oid": "o8c3bf18",
+      "text": "SELECT channel, country_code, COUNT(units) AS total_units\nFROM sales\nGROUP BY channel, country_code",
+      "misconception_id": "ERR-LOG-14"
+    }
+  ]
+}

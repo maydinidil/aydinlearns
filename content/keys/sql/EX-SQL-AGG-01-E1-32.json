@@ -1,0 +1,31 @@
+{
+  "item_id": "EX-SQL-AGG-01-E1-32",
+  "item_version": 1,
+  "reference_sql": "SELECT SUM(units) AS total_units\nFROM sales\nWHERE parent_category = 'Accessories' AND order_date BETWEEN DATE '2025-01-01' AND DATE '2025-03-31'",
+  "alternatives": [
+    "SELECT SUM(units) AS total_units FROM sales WHERE order_date >= DATE '2025-01-01' AND order_date < DATE '2025-04-01' AND parent_category = 'Accessories'",
+    "SELECT SUM(COALESCE(units, 0)) AS total_units FROM sales WHERE parent_category = 'Accessories' AND order_date BETWEEN '2025-01-01' AND '2025-03-31'"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "EX-SQL-AGG-01-E1-32-PW1",
+      "error_id": "ERR-LOG-14",
+      "sql": "SELECT COUNT(units) AS total_units FROM sales WHERE parent_category = 'Accessories' AND order_date BETWEEN DATE '2025-01-01' AND DATE '2025-03-31'"
+    },
+    {
+      "id": "EX-SQL-AGG-01-E1-32-PW2",
+      "error_id": "ERR-LOG-23",
+      "sql": "SELECT SUM(units) AS total_units FROM sales WHERE parent_category = 'Accessories' AND order_date >= DATE '2025-01-01' AND order_date < DATE '2025-03-31'"
+    }
+  ],
+  "hint3_partial": "SELECT ___(units) AS total_units\nFROM sales\nWHERE parent_category = 'Accessories' AND order_date BETWEEN DATE '2025-01-01' AND DATE '2025-03-31'",
+  "solver": {
+    "prompt_hash": "86ee575ce7388d76",
+    "schema_version": "cebf75df442f",
+    "dataset_version": "506a9858f862fdfb",
+    "grader_version": "1b.3",
+    "query": "SELECT SUM(units) AS total_units FROM sales WHERE parent_category = 'Accessories' AND order_date BETWEEN DATE '2025-01-01' AND DATE '2025-03-31'\n",
+    "at": "2026-10-04T14:33:15.683Z"
+  }
+}

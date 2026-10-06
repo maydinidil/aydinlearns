@@ -1,0 +1,26 @@
+{
+  "concept_id": "GA4-INTEG-01",
+  "section": "ga4",
+  "version": 1,
+  "title": "Google Ads link",
+  "reading_md": "## What it is\n\nLinking a GA4 property to a Google Ads account connects the two products.\n\n- Google Ads campaign, click and cost data appears in GA4 reports.\n- You can create Google Ads conversions from GA4 key events, so Smart Bidding can optimise toward them.\n- GA4 audiences can be shared with Google Ads for remarketing. This needs personalized advertising enabled on the link.\n- GA4 audiences can also be built from inside Google Ads.\n\n**Access.** Creating the link needs the Editor role or above on the GA4 property, plus administrative access to the Google Ads account or a Google Ads manager account. Importing key events as Google Ads conversions needs the Marketer role or above. Linked Google Ads users get GA4 roles for the GA4 features they use inside Google Ads.\n\n**Auto-tagging** is the recommended way to get detailed Google Ads click data. Switched on in Google Ads, it adds a click identifier, the GCLID, to ad clicks. GA4 uses it for campaign details and Google Ads dimensions, and it makes key event import possible. Auto-tagging belongs to Google's advertising products: Google Ads adds GCLID and DV360 adds DCLID. Links anywhere else, such as in an email, need UTM parameters.\n\nA Voltmarkt example: the webshop's `purchase` key event becomes a Google Ads conversion, so Smart Bidding can aim for sales. Separately, an audience of shoppers who left a TV in the cart is shared with Google Ads for remarketing.\n\n## What the exam asks\n\n- What the link enables, and what it does not.\n- Which access creates the link, and which role imports key events.\n- Why auto-tagging matters for Google Ads data.\n\n## Common confusions\n\n- Linking does not change data retention: keeping data beyond 14 months needs Analytics 360. Linking does not remove data thresholds either.\n- Bidding and remarketing are separate. Smart Bidding works from Google Ads conversions; remarketing works from shared audiences.\n- With auto-tagging on, Google Ads traffic needs no UTM parameters. When both are present, the auto-tagged values win.\n- The Google Ads link is not the Search Console link, and not Data Import.\n- In the EEA, remarketing also needs consent mode v2 signals (see the lesson \"Consent mode\").\n- Google signals still powers cross-device remarketing and cross-device key event export to Google Ads.\n\n## In Skillshop\n\nCourse \"Google Analytics Certification (2026)\", module \"Use GA with Other Tools and Data Sources\": the part on the Google Ads link (Unverified).",
+  "source_ids": [
+    "06:GA4-INTEG-01",
+    "06:GA4-PRIVACY-01",
+    "10:GA4-INTEG-21",
+    "10:GA4-ATTRIB-22",
+    "10:GA4-PRIVACY-20",
+    "10:§4",
+    "10:§5",
+    "10:COR-09",
+    "ERRATA:E-032",
+    "ERRATA:E-114",
+    "ERRATA:E-117",
+    "06:§2.1",
+    "10:§7",
+    "ERRATA:E-116",
+    "ERRATA:E-122"
+  ],
+  "verified": true,
+  "as_of": "2026-10-05"
+}

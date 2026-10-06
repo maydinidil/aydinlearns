@@ -1,0 +1,42 @@
+{
+  "item_id": "EX-SQL-FILTER-01-E3-02",
+  "item_version": 1,
+  "reference_sql": "SELECT promo_code, promo_type, start_date, discount_pct\nFROM promotions\nWHERE start_date >= '2025-01-01' AND (discount_pct >= 30 OR promo_type = 'loyalty')",
+  "alternatives": [
+    "SELECT promo_code, promo_type, start_date, discount_pct\nFROM promotions\nWHERE (discount_pct >= 30 OR promo_type = 'loyalty') AND start_date >= '2025-01-01'",
+    "SELECT promo_code, promo_type, start_date, discount_pct\nFROM promotions\nWHERE (start_date >= '2025-01-01' AND discount_pct >= 30) OR (start_date >= '2025-01-01' AND promo_type = 'loyalty')",
+    "SELECT promo_code, promo_type, start_date, discount_pct\nFROM promotions\nWHERE start_date >= '2025-01-01' AND NOT (discount_pct < 30 AND promo_type <> 'loyalty')"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "M1",
+      "error_id": "ERR-LOG-13",
+      "sql": "SELECT promo_code, promo_type, start_date, discount_pct\nFROM promotions\nWHERE start_date >= '2025-01-01' AND discount_pct >= 30 OR promo_type = 'loyalty'"
+    },
+    {
+      "id": "M2",
+      "error_id": "ERR-LOG-15",
+      "sql": "SELECT promo_code, promo_type, start_date, discount_pct\nFROM promotions\nWHERE start_date >= '2025-01-01' AND (discount_pct > 30 OR promo_type = 'loyalty')"
+    },
+    {
+      "id": "M3",
+      "error_id": "ERR-LOG-21",
+      "sql": "SELECT promo_code, promo_type, start_date, discount_pct\nFROM promotions\nWHERE start_date >= '2025-01-01' AND (discount_pct >= 0.30 OR promo_type = 'loyalty')"
+    },
+    {
+      "id": "M4",
+      "error_id": "ERR-SYN-07",
+      "sql": "SELECT promo_code, promo_type, start_date, discount_pct\nFROM promotions\nWHERE start_date >= '2025-01-01' AND (discount_pct >= 30 OR promo_type = \"loyalty\")"
+    }
+  ],
+  "hint3_partial": "SELECT promo_code, promo_type, start_date, discount_pct\nFROM promotions\nWHERE start_date >= '2025-01-01' AND (...)",
+  "solver": {
+    "prompt_hash": "acfcc8b2c1c0c5ff",
+    "schema_version": "f0340f71a1f5",
+    "dataset_version": "9639f8ae1f71c2ef",
+    "grader_version": "1a.2",
+    "query": "SELECT promo_code, promo_type, start_date, discount_pct FROM promotions WHERE start_date >= '2025-01-01' AND (discount_pct >= 30 OR promo_type = 'loyalty')\n",
+    "at": "2026-10-03T13:08:02.589Z"
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "concept_id": "MET-MKT-09",
+  "section": "methodology",
+  "version": 1,
+  "title": "First-click attribution",
+  "reading_md": "**What it measures.** Which channel gets the credit for an order when all of it goes to the first touch in the lookback window.\n\n**Formula.** For each order, take the customer's touches inside the lookback window, no later than the order. The first of them gets 100% of the order's revenue. A channel's credit is the revenue of all orders whose first touch in the window was that channel. Grain: channel × period.\n\nThe first touch means the first one inside the window, not the first touch ever. With a 30-day window, a display click 60 days before the order does not count.\n\n**Orders with no touch.** As with last click, credit orders that have no touch in the window to an \"unattributed\" row. Dropping them, which happens when orders are joined to touches with an inner join, makes credited revenue fall short of total revenue.\n\n**Worked example.** A customer clicked a social ad on 1 October, an email on 9 October and a paid search ad on 14 October, then ordered for €600 on 15 October.\n\n- First click gives social €600. Last click would give paid search €600.\n\n**Common mistakes.**\n\n- Counting touches after the order, or ignoring the window, so a click from months ago becomes the first touch.\n- Dropping customers with no touches.\n- Reading first click as cause. It rewards channels that open journeys, such as social and display, and gives nothing to the channels that close them.\n\n**A note on tools.** Google Ads and GA4 no longer offer first click, so Voltmarkt computes it from its own touch data.\n\n**How managers ask for it.** \"Which channel brings people in first?\" \"Is TikTok starting journeys?\"",
+  "source_ids": [
+    "04:MET-MKT-09",
+    "04:§2.1",
+    "ERRATA:E-097",
+    "ERRATA:E-100"
+  ],
+  "verified": true,
+  "as_of": "2026-10-05"
+}

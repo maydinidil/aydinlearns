@@ -1,0 +1,13 @@
+{
+  "item_id": "Q-MET-PRICE-04-03",
+  "item_version": 2,
+  "value": 133.3,
+  "explanation": "The baseline is the average weekly units in the 4 weeks before the start: (25 + 27 + 23 + 25) / 4 = 25. The promotion averaged (61 + 55 + 59) / 3 = 175 / 3, about 58.33 units a week, so it sold about 33.33 extra units a week. Uplift = 100 x (175 / 3 - 25) / 25 = 133.3%. Dividing the extra units by the promotion average instead of the baseline, 100 x 33.33 / 58.33, gives 57.1% and uses the wrong denominator.",
+  "solver": {
+    "prompt_hash": "b983922e43d5cf58",
+    "grader_version": "choice.1",
+    "chosen": null,
+    "typed": "133.3",
+    "at": "2026-10-04T10:18:36.012Z"
+  }
+}

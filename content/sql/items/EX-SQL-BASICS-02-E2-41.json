@@ -1,0 +1,85 @@
+{
+  "id": "EX-SQL-BASICS-02-E2-41",
+  "version": 1,
+  "kind": "choose_query",
+  "tags": [
+    "sql",
+    "LVL-01",
+    "choose_query",
+    "calculated_column",
+    "precedence",
+    "promotions"
+  ],
+  "level": 1,
+  "source_ids": [
+    "01:SQL-BASICS-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-BASICS-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02"
+  ],
+  "template_id": "T-BASICS-02-choose-precedence-price-after",
+  "template_params": {
+    "table": "promotions"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_basics",
+  "prompt": "A product has a price of 200 euros. For every promotion, what would it cost after the promotion's discount? discount_pct holds a percentage, so 25.00 means 25% off. Which query returns promo_code and price_after_eur, one row per promotion?",
+  "output_contract": null,
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [],
+  "subgoals": [],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 90000,
+  "why_this_works": "",
+  "options": [
+    {
+      "oid": "oc5cf09c",
+      "text": "SELECT promo_code, 200 * 1 - discount_pct / 100 AS price_after_eur\nFROM promotions",
+      "misconception_id": "ERR-LOG-00"
+    },
+    {
+      "oid": "o67850da",
+      "text": "SELECT promo_code, 200 * discount_pct / 100 AS price_after_eur\nFROM promotions",
+      "misconception_id": "ERR-LOG-00"
+    },
+    {
+      "oid": "o45fba5f",
+      "text": "SELECT promo_code, 200 * (1 - discount_pct) AS price_after_eur\nFROM promotions",
+      "misconception_id": "ERR-LOG-21"
+    },
+    {
+      "oid": "o632e3ee",
+      "text": "SELECT promo_code, 200 * (1 - discount_pct / 100) AS price_after_eur\nFROM promotions",
+      "misconception_id": null
+    }
+  ]
+}

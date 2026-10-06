@@ -1,0 +1,36 @@
+{
+  "item_id": "EX-SQL-AGG-01-E2-03",
+  "item_version": 1,
+  "reference_sql": "SELECT COUNT(*) AS n_lines,\n       COUNT(DISTINCT order_id) AS n_orders,\n       COUNT(DISTINCT product_id) AS n_products\nFROM sales\nWHERE parent_category = 'Accessories'",
+  "alternatives": [
+    "SELECT COUNT(order_line_id) AS n_lines, COUNT(DISTINCT order_id) AS n_orders, COUNT(DISTINCT product_name) AS n_products FROM sales WHERE parent_category = 'Accessories'",
+    "SELECT COUNT(1) AS n_lines, COUNT(DISTINCT order_id) AS n_orders, COUNT(DISTINCT product_id) AS n_products FROM sales WHERE parent_category IN ('Accessories')"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "EX-SQL-AGG-01-E2-03-PW1",
+      "error_id": "ERR-LOG-04",
+      "sql": "SELECT COUNT(*) AS n_lines, COUNT(order_id) AS n_orders, COUNT(product_id) AS n_products FROM sales WHERE parent_category = 'Accessories'"
+    },
+    {
+      "id": "EX-SQL-AGG-01-E2-03-PW2",
+      "error_id": "ERR-OUT-01",
+      "sql": "SELECT COUNT(DISTINCT order_id) AS n_orders, COUNT(DISTINCT product_id) AS n_products FROM sales WHERE parent_category = 'Accessories'"
+    },
+    {
+      "id": "EX-SQL-AGG-01-E2-03-PW3",
+      "error_id": "ERR-SYN-07",
+      "sql": "SELECT COUNT(*) AS n_lines, COUNT(DISTINCT order_id) AS n_orders, COUNT(DISTINCT product_id) AS n_products FROM sales WHERE parent_category = \"Accessories\""
+    }
+  ],
+  "hint3_partial": "SELECT COUNT(*) AS n_lines,\n       COUNT(___) AS n_orders,\n       COUNT(___) AS n_products\nFROM sales\nWHERE parent_category = 'Accessories'",
+  "solver": {
+    "prompt_hash": "9c95bc39988d3fc6",
+    "schema_version": "cebf75df442f",
+    "dataset_version": "506a9858f862fdfb",
+    "grader_version": "1b.3",
+    "query": "SELECT COUNT(*) AS n_lines, COUNT(DISTINCT order_id) AS n_orders, COUNT(DISTINCT product_id) AS n_products FROM sales WHERE parent_category = 'Accessories'\n",
+    "at": "2026-10-04T10:06:42.190Z"
+  }
+}

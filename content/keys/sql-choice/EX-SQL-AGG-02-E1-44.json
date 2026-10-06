@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-AGG-02-E1-44",
+  "item_version": 1,
+  "correct_oid": "od6c7b82",
+  "explanation": "sales has one row per order line, and order_line_id is its key, so each value names exactly one row. That is the grain of sales: grouping by order_line_id would leave every row as its own group, while grouping by order_id combines the lines of each order.",
+  "solver": {
+    "prompt_hash": "57b9783e4f051853",
+    "grader_version": "choice.1",
+    "chosen": "od6c7b82",
+    "typed": null,
+    "at": "2026-10-06T09:08:14.814Z"
+  }
+}

@@ -1,0 +1,32 @@
+{
+  "item_id": "EX-SQL-NULL-01-E1-21",
+  "item_version": 1,
+  "reference_sql": "SELECT store_code, store_type, close_date\nFROM stores\nWHERE country_code = 'NL' AND (close_date IS NOT NULL OR store_type = 'outlet')",
+  "alternatives": [
+    "SELECT store_code, store_type, close_date\nFROM stores\nWHERE (store_type = 'outlet' OR close_date IS NOT NULL) AND country_code = 'NL'",
+    "SELECT store_code, store_type, close_date\nFROM stores\nWHERE (country_code = 'NL' AND close_date IS NOT NULL) OR (country_code = 'NL' AND store_type = 'outlet')",
+    "SELECT store_code, store_type, close_date\nFROM stores\nWHERE country_code = 'NL' AND (NOT close_date IS NULL OR store_type = 'outlet')"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-SEM-04",
+      "sql": "SELECT store_code, store_type, close_date FROM stores WHERE country_code = 'NL' AND (close_date <> NULL OR store_type = 'outlet')"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-13",
+      "sql": "SELECT store_code, store_type, close_date FROM stores WHERE country_code = 'NL' AND close_date IS NOT NULL OR store_type = 'outlet'"
+    }
+  ],
+  "hint3_partial": "SELECT store_code, store_type, close_date\nFROM stores\nWHERE country_code = 'NL' AND (close_date ... OR store_type = 'outlet')",
+  "solver": {
+    "prompt_hash": "88ed508a8670246b",
+    "schema_version": "9a8d01143702",
+    "dataset_version": "506a9858f862fdfb",
+    "grader_version": "1b.3",
+    "query": "SELECT store_code, store_type, close_date FROM stores WHERE country_code = 'NL' AND (close_date IS NOT NULL OR store_type = 'outlet')\n",
+    "at": "2026-10-04T14:33:18.285Z"
+  }
+}

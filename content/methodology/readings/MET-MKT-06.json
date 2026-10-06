@@ -1,0 +1,15 @@
+{
+  "concept_id": "MET-MKT-06",
+  "section": "methodology",
+  "version": 1,
+  "title": "Return on ad spend (ROAS)",
+  "reading_md": "**What it measures.** How much attributed revenue comes back for each euro of ad spend.\n\n**Formula.**\n\nROAS = attributed revenue / ad spend\n\nGrain: channel or campaign × period. It is written as a ratio (4.0, meaning €4 of revenue per €1 of spend) or as a percentage (400%). Google Ads computes target ROAS as conversion value / ad spend × 100%, so a \"400% target\" is a ratio of 4.0.\n\n**Worked example.** In one month Voltmarkt spent €30,000 on paid search, and paid search was credited with €156,000 of revenue under last-click attribution. ROAS = 156,000 / 30,000 = 5.2, or 520%.\n\nFor several campaigns, add up first. Campaign 1 spent €5,000 and was credited with €45,000 (9.0). Campaign 2 spent €15,000 and was credited with €45,000 (3.0). Together: 90,000 / 20,000 = 4.5, not the 6.0 you get by averaging the two.\n\n**ROAS is revenue, not profit.** Voltmarkt keeps only the gross margin of each euro of revenue. At a ROAS of 3.0 on products with a 25% gross margin, each €1 of spend brings €3 of revenue but only €0.75 of gross profit, so the campaign loses €0.25 per euro before any other cost. To cover the spend itself, ROAS must reach at least 1 / gross margin: 4.0 at a 25% margin.\n\n**Common mistakes.**\n\n- Judging ROAS on revenue when the question is profit.\n- Adding up what each ad platform reports. A search platform and a social platform can both claim the same order, so the sum counts some revenue twice. Use Voltmarkt's own orders with one attribution model.\n- Ignoring the attribution model. Last click and data-driven give the same channel different revenue. Say which model the number uses.\n- Averaging campaign ROAS instead of dividing total revenue by total spend.\n- Mixing scales: 5.2 and 520% are the same ROAS.\n\n**What ROAS does not answer.**\n\n- Whether the campaign made money: that needs the gross margin.\n- Whether the sales would have happened without the ads. Attribution hands out credit; it does not prove the ads caused the sale.\n- How many new customers the spend won: that is CAC.\n\n**How managers ask for it.** \"Which channel gives the best return?\" \"Are we above our 400% ROAS target?\"",
+  "source_ids": [
+    "04:MET-MKT-06",
+    "04:MET-PRICE-07",
+    "ERRATA:E-100",
+    "ERRATA:E-101"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04"
+}

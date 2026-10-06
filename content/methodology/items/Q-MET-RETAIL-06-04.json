@@ -1,0 +1,46 @@
+{
+  "id": "Q-MET-RETAIL-06-04",
+  "version": 1,
+  "kind": "mcq",
+  "section": "methodology",
+  "concept_id": "MET-RETAIL-06",
+  "stem": "An analyst computes Voltmarkt's AOV as SUM(net_revenue_eur) / COUNT(*) on the sales table, which has one row per order line. How does the result compare with the true AOV?",
+  "options": [
+    {
+      "oid": "o1a9d9fd",
+      "text": "Too low: an order with several lines is counted several times",
+      "misconception_id": null
+    },
+    {
+      "oid": "o842c014",
+      "text": "Too high: an order with several lines is counted only once",
+      "misconception_id": null
+    },
+    {
+      "oid": "odb4dd9e",
+      "text": "The same: each order line is its own purchase, so it is right",
+      "misconception_id": null
+    },
+    {
+      "oid": "o335649a",
+      "text": "Too low: guest orders with a missing customer are left out",
+      "misconception_id": null
+    }
+  ],
+  "typed": null,
+  "held_out": true,
+  "enemy_group": null,
+  "status": "active",
+  "verified": true,
+  "level": 1,
+  "tags": [
+    "methodology",
+    "T-MET-RETAIL"
+  ],
+  "source_ids": [
+    "04:MET-RETAIL-06"
+  ],
+  "as_of": "2026-10-04",
+  "review_after": null,
+  "supersedes": []
+}

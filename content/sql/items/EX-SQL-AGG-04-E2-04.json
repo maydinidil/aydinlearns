@@ -1,0 +1,124 @@
+{
+  "id": "EX-SQL-AGG-04-E2-04",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-02",
+    "conditional-aggregation",
+    "avg-if",
+    "sales",
+    "no-else",
+    "missing-values"
+  ],
+  "level": 2,
+  "source_ids": [
+    "01:SQL-AGG-04"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-AGG-04",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CASE-01",
+    "SQL-AGG-04"
+  ],
+  "template_id": "T-AGG-04-avg-if",
+  "template_params": {
+    "table": "sales",
+    "group": "country_code",
+    "split": "channel",
+    "measure": "net_revenue_eur"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_agg",
+  "prompt": "For each country, what is the average net revenue of a web order line and of a store order line? Use the sales table, where country_code is the country an order ships to and channel is 'web' or 'store'. Return three columns, in this order: country_code, avg_web_line_eur, the average net_revenue_eur over the country's web lines, and avg_store_line_eur, the average net_revenue_eur over its store lines. Lines with a missing net_revenue_eur are left out of the averages. Return one row per country_code. Do not round. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "country_code",
+        "type_class": "text"
+      },
+      {
+        "name": "avg_web_line_eur",
+        "type_class": "numeric"
+      },
+      {
+        "name": "avg_store_line_eur",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per country_code"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "country_code",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "avg_web_line_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "avg_store_line_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "country_code"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the two average columns, each averaging only one channel's lines.",
+    "Put a CASE inside AVG that gives net_revenue_eur for a line of that channel, and leave out ELSE: a 0 for each line of the other channel would be averaged in, but a missing value is skipped."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 191,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 192,
+      "to": 202,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 203,
+      "to": 224,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 150000,
+  "why_this_works": "Without ELSE, the CASE gives a missing value for lines of the other channel, and AVG skips missing values, so each average divides by that channel's own lines only."
+}

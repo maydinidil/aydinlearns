@@ -1,0 +1,129 @@
+{
+  "id": "EX-SQL-CASE-01-E3-02",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-02",
+    "case",
+    "segment-count",
+    "bands",
+    "branch-order",
+    "is-null",
+    "margin",
+    "group-by",
+    "sales"
+  ],
+  "level": 2,
+  "source_ids": [
+    "01:SQL-CASE-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-CASE-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CASE-01"
+  ],
+  "template_id": "T-CASE-01-segment-count",
+  "template_params": {
+    "table": "sales",
+    "group_by": "channel",
+    "tested": "margin",
+    "output": "margin_band"
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_case",
+  "prompt": "Sort the order lines into margin bands. A line's margin is net_revenue_eur minus units times unit_cost_eur. margin_band is the text 'unknown' when net_revenue_eur, units or unit_cost_eur is missing; 'loss' when the margin is below 0; 'thin' when the margin is 0 or more but below 20 percent of net_revenue_eur; and 'healthy' for every other line. Use the sales table. Return three columns, in this order: channel, margin_band and n_lines, the number of order lines. Return one row per channel and margin_band combination that has at least one line. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "channel",
+        "type_class": "text"
+      },
+      {
+        "name": "margin_band",
+        "type_class": "text"
+      },
+      {
+        "name": "n_lines",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per channel and margin band"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "channel",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "margin_band",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "n_lines",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "channel",
+      "margin_band"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the column margin_band with its four branches, count the lines, and decide what one row stands for.",
+    "A margin worked out from a missing value is missing, and a missing value fails every < test, so ELSE would call it healthy: test for missing values first. A loss is also below 20 percent, so the loss test goes above the thin test."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 360,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 361,
+      "to": 371,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 372,
+      "to": 401,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 230000,
+  "why_this_works": "The missing-value test runs first so no incomplete line is called healthy, and the loss test sits above the thin test because every loss is also below 20 percent."
+}

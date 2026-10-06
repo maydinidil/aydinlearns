@@ -1,0 +1,41 @@
+{
+  "item_id": "EX-SQL-AGG-03-E2-02",
+  "item_version": 1,
+  "reference_sql": "SELECT order_month, COUNT(DISTINCT order_id) AS n_orders\nFROM sales\nGROUP BY order_month\nHAVING COUNT(DISTINCT order_id) > 30000\nORDER BY order_month",
+  "alternatives": [
+    "SELECT order_month, COUNT(DISTINCT order_id) AS n_orders FROM sales GROUP BY order_month HAVING COUNT(DISTINCT order_id) >= 30001 ORDER BY order_month ASC",
+    "SELECT order_month, COUNT(DISTINCT order_id) AS n_orders FROM sales GROUP BY 1 HAVING 30000 < COUNT(DISTINCT order_id) ORDER BY 1"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-04",
+      "sql": "SELECT order_month, COUNT(*) AS n_orders FROM sales GROUP BY order_month HAVING COUNT(*) > 30000 ORDER BY order_month"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-18",
+      "sql": "SELECT order_month, COUNT(DISTINCT order_id) AS n_orders FROM sales GROUP BY order_month HAVING COUNT(DISTINCT order_id) > 30000 ORDER BY order_month DESC"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-SYN-05",
+      "sql": "SELECT order_month, COUNT(DISTINCT order_id) AS n_orders FROM sales WHERE COUNT(DISTINCT order_id) > 30000 GROUP BY order_month ORDER BY order_month"
+    },
+    {
+      "id": "PW4",
+      "error_id": "ERR-SYN-06",
+      "sql": "SELECT order_month, COUNT(DISTINCT order_id) AS n_orders FROM sales WHERE n_orders > 30000 GROUP BY order_month ORDER BY order_month"
+    }
+  ],
+  "hint3_partial": "SELECT order_month, COUNT(DISTINCT order_id) AS n_orders\nFROM sales\nGROUP BY order_month\nHAVING COUNT(___) > 30000\nORDER BY order_month",
+  "solver": {
+    "prompt_hash": "9fd6e4fc344597b8",
+    "schema_version": "cebf75df442f",
+    "dataset_version": "506a9858f862fdfb",
+    "grader_version": "1b.3",
+    "query": "SELECT order_month, COUNT(DISTINCT order_id) AS n_orders FROM sales GROUP BY order_month HAVING COUNT(DISTINCT order_id) > 30000 ORDER BY order_month ASC\n",
+    "at": "2026-10-04T10:06:46.153Z"
+  }
+}

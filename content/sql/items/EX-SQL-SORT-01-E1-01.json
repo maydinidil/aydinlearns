@@ -1,0 +1,111 @@
+{
+  "id": "EX-SQL-SORT-01-E1-01",
+  "version": 3,
+  "kind": "write",
+  "tags": [
+    "order-by",
+    "stores"
+  ],
+  "level": 1,
+  "source_ids": [
+    "01:SQL-SORT-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-02",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pretest",
+  "target_concept_id": "SQL-SORT-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-SORT-01"
+  ],
+  "template_id": "T-SORT-01-order-keys",
+  "template_params": {
+    "table": "stores",
+    "keys": 2
+  },
+  "sub_skill": "order_by",
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_sort",
+  "prompt": "List where every store is. Return two columns in this order: country_code and city. Use exactly these column names. Sort the rows by country_code from A to Z, and within each country by city from A to Z. One row per store, every store included (the webshop too). Rows with a missing country_code may come first or last, and so may rows with a missing city within their country.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "country_code",
+        "type_class": "text"
+      },
+      {
+        "name": "city",
+        "type_class": "text"
+      }
+    ],
+    "grain": "one row per store"
+  },
+  "rules": {
+    "order_matters": true,
+    "sort_keys": [
+      {
+        "column": "country_code",
+        "desc": false
+      },
+      {
+        "column": "city",
+        "desc": false
+      }
+    ],
+    "check_names": true,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "country_code",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "city",
+        "type_class": "text",
+        "precision": "exact"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the sort. Every store is already in the result; the rows only need putting in order, by country first.",
+    "The order goes in an ORDER BY after FROM. The first sort key decides the order, and the second only orders the rows that share a value in the first. ASC is the default."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 32,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 33,
+      "to": 44,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 45,
+      "to": 72,
+      "subgoal": "sort_limit"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 60000,
+  "why_this_works": "ORDER BY sorts by country_code first, and city only orders the stores that share a country."
+}

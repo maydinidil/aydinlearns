@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-BASICS-02-E2-41",
+  "item_version": 1,
+  "correct_oid": "o632e3ee",
+  "explanation": "The price after the discount is 200 times the part still paid, and the part paid is 1 minus the discount as a share, so the brackets must hold 1 - discount_pct / 100. Without them, * and / run before -, so the query takes 200 and subtracts only a tiny share. 200 * discount_pct / 100 gives the discount itself, not the price, and 1 - discount_pct mixes a share with a percentage.",
+  "solver": {
+    "prompt_hash": "a4559d021aa5a40c",
+    "grader_version": "choice.1",
+    "chosen": "o632e3ee",
+    "typed": null,
+    "at": "2026-10-06T09:08:14.835Z"
+  }
+}

@@ -1,0 +1,37 @@
+{
+  "item_id": "EX-SQL-BASICS-01-E3-21",
+  "item_version": 1,
+  "reference_sql": "SELECT product_id, sku, brand, category_raw, unit_cost_eur, launch_date\nFROM products",
+  "alternatives": [
+    "SELECT products.product_id, products.sku, products.brand, products.category_raw, products.unit_cost_eur, products.launch_date\nFROM products",
+    "SELECT p.product_id, p.sku, p.brand, p.category_raw, p.unit_cost_eur, p.launch_date\nFROM products AS p",
+    "SELECT \"product_id\", \"sku\", \"brand\", \"category_raw\", \"unit_cost_eur\", \"launch_date\"\nFROM \"products\""
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-OUT-01",
+      "sql": "SELECT * FROM products"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-SYN-02",
+      "sql": "SELECT product_id, sku, brand, category_raw, unit_cost_eur, launch_date FROM categories"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-SYN-04",
+      "sql": "SELECT product_id, sku, brand, 'category_raw, unit_cost_eur, launch_date FROM products"
+    }
+  ],
+  "hint3_partial": "SELECT product_id, sku, brand, ...\nFROM products",
+  "solver": {
+    "prompt_hash": "504a76eea2125d66",
+    "schema_version": "d77fe1c31a0e",
+    "dataset_version": "506a9858f862fdfb",
+    "grader_version": "1b.3",
+    "query": "SELECT product_id, sku, brand, category_raw, unit_cost_eur, launch_date FROM products\n",
+    "at": "2026-10-04T14:33:17.514Z"
+  }
+}

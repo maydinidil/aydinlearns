@@ -1,0 +1,37 @@
+{
+  "item_id": "EX-SQL-AGG-02-E1-08",
+  "item_version": 1,
+  "reference_sql": "SELECT category_name, SUM(net_revenue_eur) AS revenue_eur\nFROM sales\nWHERE parent_category = 'Audio'\nGROUP BY category_name",
+  "alternatives": [
+    "SELECT category_name, SUM(net_revenue_eur) AS revenue_eur FROM sales WHERE parent_category = 'Audio' GROUP BY 1",
+    "SELECT category_name, SUM(net_revenue_eur) AS revenue_eur FROM sales WHERE parent_category IN ('Audio') GROUP BY category_name",
+    "SELECT sales.category_name, SUM(sales.net_revenue_eur) AS revenue_eur FROM sales WHERE sales.parent_category = 'Audio' GROUP BY sales.category_name"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-SYN-07",
+      "sql": "SELECT category_name, SUM(net_revenue_eur) AS revenue_eur FROM sales WHERE parent_category = \"Audio\" GROUP BY category_name"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-07",
+      "sql": "SELECT category_name, SUM(net_revenue_eur) AS revenue_eur FROM sales WHERE parent_category = 'Audio' GROUP BY category_name, channel"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-SEM-01",
+      "sql": "SELECT category_name, SUM(net_revenue_eur) AS revenue_eur FROM sales WHERE parent_category = 'Audio' GROUP BY parent_category"
+    }
+  ],
+  "hint3_partial": "SELECT category_name, SUM(net_revenue_eur) AS revenue_eur\nFROM sales\nWHERE parent_category = ___\nGROUP BY ___",
+  "solver": {
+    "prompt_hash": "5157b9febb0a1381",
+    "schema_version": "cebf75df442f",
+    "dataset_version": "506a9858f862fdfb",
+    "grader_version": "1b.3",
+    "query": "SELECT category_name, SUM(net_revenue_eur) AS revenue_eur FROM sales WHERE parent_category = 'Audio' GROUP BY category_name\n",
+    "at": "2026-10-04T10:06:43.381Z"
+  }
+}

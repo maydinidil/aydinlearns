@@ -1,0 +1,100 @@
+{
+  "id": "EX-SQL-AGG-01-E1-01",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-02",
+    "aggregate",
+    "count_rows",
+    "sales",
+    "count_star"
+  ],
+  "level": 2,
+  "source_ids": [
+    "01:SQL-AGG-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pretest",
+  "target_concept_id": "SQL-AGG-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-AGG-01"
+  ],
+  "template_id": "T-AGG-01-count-rows",
+  "template_params": {
+    "table": "sales",
+    "filter": "channel = 'web'",
+    "output": "n_lines"
+  },
+  "sub_skill": "count_rows",
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_agg",
+  "prompt": "How many order lines did Voltmarkt sell through its web channel (channel 'web')? The sales table has one row per order line. Return one column, n_lines. The result is a single row. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "n_lines",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row in total"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "n_lines",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the count. One row of sales is one order line, so the answer is a number of rows.",
+    "Put the count in the SELECT list and name it n_lines with AS. Count every row the web filter keeps, not the different orders those rows belong to."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 26,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 27,
+      "to": 37,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 38,
+      "to": 59,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 90000,
+  "why_this_works": "COUNT(*) counts every row the WHERE clause keeps, and each row of sales is one order line."
+}

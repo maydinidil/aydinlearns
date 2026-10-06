@@ -1,0 +1,32 @@
+{
+  "item_id": "EX-SQL-SORT-01-E1-22",
+  "item_version": 1,
+  "reference_sql": "SELECT DISTINCT country_code\nFROM stores\nORDER BY country_code",
+  "alternatives": [
+    "SELECT DISTINCT country_code\nFROM stores\nORDER BY country_code ASC",
+    "SELECT DISTINCT country_code\nFROM stores\nORDER BY 1",
+    "SELECT DISTINCT stores.country_code\nFROM stores\nORDER BY stores.country_code"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-08",
+      "sql": "SELECT country_code FROM stores ORDER BY country_code"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-18",
+      "sql": "SELECT DISTINCT country_code FROM stores ORDER BY country_code DESC"
+    }
+  ],
+  "hint3_partial": "SELECT ___ country_code\nFROM stores\nORDER BY country_code",
+  "solver": {
+    "prompt_hash": "5bba338238d887b4",
+    "schema_version": "9a8d01143702",
+    "dataset_version": "506a9858f862fdfb",
+    "grader_version": "1b.3",
+    "query": "SELECT DISTINCT country_code FROM stores ORDER BY country_code ASC\n",
+    "at": "2026-10-04T14:33:18.438Z"
+  }
+}

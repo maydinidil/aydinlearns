@@ -1,0 +1,13 @@
+{
+  "item_id": "Q-MET-MKT-09-04",
+  "item_version": 1,
+  "correct_oid": "o8433697",
+  "explanation": "An inner join keeps only orders with a matching touch, so orders without one vanish and the report credits less revenue than the webshop took. Join with a LEFT JOIN instead and credit those orders to an unattributed row, so the total matches.",
+  "solver": {
+    "prompt_hash": "6c349d4fc61ef5fe",
+    "grader_version": "choice.1",
+    "chosen": "o8433697",
+    "typed": null,
+    "at": "2026-10-05T22:54:47.997Z"
+  }
+}

@@ -1,0 +1,466 @@
+{
+  "version": 1,
+  "errors": [
+    {
+      "id": "ERR-SYN-01",
+      "category": "SYN",
+      "name": "Clause order or keyword typo",
+      "detection_checks": [
+        "CHK-ENGINE-ERROR"
+      ],
+      "feedback_template": "The engine stopped near `{token}`. Clauses must follow the order SELECT, FROM, JOIN, WHERE, GROUP BY, HAVING, ORDER BY, LIMIT.",
+      "concept_id": "SQL-BASICS-01"
+    },
+    {
+      "id": "ERR-SYN-02",
+      "category": "SYN",
+      "name": "Unknown column or table",
+      "detection_checks": [
+        "CHK-ENGINE-ERROR"
+      ],
+      "feedback_template": "`{identifier}` is not in the schema. Did you mean `{closest_match}`?",
+      "concept_id": "SQL-BASICS-01"
+    },
+    {
+      "id": "ERR-SYN-03",
+      "category": "SYN",
+      "name": "Ambiguous column",
+      "detection_checks": [
+        "CHK-ENGINE-ERROR"
+      ],
+      "feedback_template": "`{column}` exists in more than one table. Prefix it with a table alias, for example `{alias}.{column}`.",
+      "concept_id": "SQL-JOIN-01"
+    },
+    {
+      "id": "ERR-SYN-04",
+      "category": "SYN",
+      "name": "Punctuation",
+      "detection_checks": [
+        "CHK-ENGINE-ERROR"
+      ],
+      "feedback_template": "Check the punctuation near `{token}`: a comma is missing or extra, or a bracket or quote is unbalanced.",
+      "concept_id": "SQL-BASICS-01"
+    },
+    {
+      "id": "ERR-SYN-05",
+      "category": "SYN",
+      "name": "Aggregate in WHERE",
+      "detection_checks": [
+        "CHK-ENGINE-ERROR",
+        "CHK-STATIC-PATTERN"
+      ],
+      "feedback_template": "WHERE filters rows before groups exist, so it cannot use `{aggregate}`. Move this condition to HAVING.",
+      "concept_id": "SQL-AGG-03"
+    },
+    {
+      "id": "ERR-SYN-06",
+      "category": "SYN",
+      "name": "SELECT alias used in WHERE",
+      "detection_checks": [
+        "CHK-ENGINE-ERROR"
+      ],
+      "feedback_template": "WHERE runs before SELECT, so `{alias}` does not exist yet. Repeat the expression or use a subquery or CTE.",
+      "concept_id": "SQL-BASICS-02"
+    },
+    {
+      "id": "ERR-SYN-07",
+      "category": "SYN",
+      "name": "Nonstandard operator or quoting",
+      "detection_checks": [
+        "CHK-ENGINE-ERROR",
+        "CHK-STATIC-PATTERN"
+      ],
+      "feedback_template": "Use = and <> for comparisons and single quotes for text: '{value}'. Double quotes mean a column name in standard SQL.",
+      "concept_id": "SQL-FILTER-01"
+    },
+    {
+      "id": "ERR-SEM-01",
+      "category": "SEM",
+      "name": "Column not in GROUP BY",
+      "detection_checks": [
+        "CHK-ENGINE-ERROR",
+        "CHK-VALUE-DIFF",
+        "CHK-STATIC-PATTERN"
+      ],
+      "feedback_template": "`{column}` is neither grouped nor aggregated. Add it to GROUP BY (this changes the grain) or wrap it in an aggregate.",
+      "concept_id": "SQL-AGG-02"
+    },
+    {
+      "id": "ERR-SEM-02",
+      "category": "SEM",
+      "name": "Contradictory condition",
+      "detection_checks": [
+        "CHK-EMPTY",
+        "CHK-STATIC-PATTERN"
+      ],
+      "feedback_template": "Your condition can never be true (`{column}` cannot equal two values at once), so you got 0 rows. Did you mean OR, or IN (...)?",
+      "concept_id": "SQL-FILTER-01"
+    },
+    {
+      "id": "ERR-SEM-03",
+      "category": "SEM",
+      "name": "Missing join condition",
+      "detection_checks": [
+        "CHK-CROSS-PRODUCT",
+        "CHK-ROWS-MORE",
+        "CHK-DUP-EXTRA"
+      ],
+      "feedback_template": "You returned {s_rows} rows against the expected {k_rows}, which looks like every row paired with every row. Add a join condition.",
+      "concept_id": "SQL-JOIN-01"
+    },
+    {
+      "id": "ERR-SEM-04",
+      "category": "SEM",
+      "name": "Comparing with NULL using = or <>",
+      "detection_checks": [
+        "CHK-EMPTY",
+        "CHK-NULL-ROWS-MISSING",
+        "CHK-STATIC-PATTERN"
+      ],
+      "feedback_template": "`= NULL` is never true because NULL means unknown. Use IS NULL or IS NOT NULL.",
+      "concept_id": "SQL-NULL-01"
+    },
+    {
+      "id": "ERR-SEM-05",
+      "category": "SEM",
+      "name": "Scalar subquery returns many rows",
+      "detection_checks": [
+        "CHK-ENGINE-ERROR",
+        "CHK-VALUE-DIFF"
+      ],
+      "feedback_template": "Your subquery can return several rows, but = expects one value. Use IN, or aggregate the subquery.",
+      "concept_id": "SQL-SUBQ-01"
+    },
+    {
+      "id": "ERR-LOG-00",
+      "category": "LOG",
+      "name": "Values differ (unclassified)",
+      "detection_checks": [
+        "CHK-VALUE-DIFF",
+        "CHK-SUBSET",
+        "CHK-SUPERSET"
+      ],
+      "feedback_template": "Your result differs from the expected result in {n_diff_rows} rows. First difference: expected `{k_row}`, got `{s_row}`.",
+      "concept_id": "SQL-BASICS-01"
+    },
+    {
+      "id": "ERR-LOG-01",
+      "category": "LOG",
+      "name": "Join fan-out",
+      "detection_checks": [
+        "CHK-MEASURE-INFLATED",
+        "CHK-MUTANT-MATCH",
+        "CHK-DUP-EXTRA"
+      ],
+      "feedback_template": "Some totals are {ratio}x too large. Joining `{parent}` to `{child}` repeats each parent row once per child row. Aggregate the child table first.",
+      "concept_id": "SQL-JOIN-03"
+    },
+    {
+      "id": "ERR-LOG-02",
+      "category": "LOG",
+      "name": "WHERE vs HAVING",
+      "detection_checks": [
+        "CHK-MUTANT-MATCH",
+        "CHK-ROWS-FEWER",
+        "CHK-ROWS-MORE",
+        "CHK-VALUE-DIFF"
+      ],
+      "feedback_template": "You filtered individual rows (WHERE) but the question filters groups by an aggregate. Put `{aggregate_condition}` in HAVING.",
+      "concept_id": "SQL-AGG-03"
+    },
+    {
+      "id": "ERR-LOG-03",
+      "category": "LOG",
+      "name": "NULL-blind filter",
+      "detection_checks": [
+        "CHK-NULL-ROWS-MISSING",
+        "CHK-EMPTY",
+        "CHK-MUTANT-MATCH"
+      ],
+      "feedback_template": "{n_missing} expected rows are missing, and all have NULL in `{column}`. Add OR {column} IS NULL, or use NOT EXISTS.",
+      "concept_id": "SQL-NULL-01"
+    },
+    {
+      "id": "ERR-LOG-04",
+      "category": "LOG",
+      "name": "COUNT(*) vs COUNT(col) vs COUNT(DISTINCT col)",
+      "detection_checks": [
+        "CHK-COUNT-NULL-GAP",
+        "CHK-MEASURE-INFLATED",
+        "CHK-MUTANT-MATCH"
+      ],
+      "feedback_template": "Your count is {s_val}; expected {k_val}. COUNT(*) counts rows, COUNT({col}) skips NULLs, and COUNT(DISTINCT {col}) counts unique values.",
+      "concept_id": "SQL-AGG-01"
+    },
+    {
+      "id": "ERR-LOG-05",
+      "category": "LOG",
+      "name": "Integer division",
+      "detection_checks": [
+        "CHK-INT-TRUNC",
+        "CHK-STATIC-PATTERN",
+        "CHK-MUTANT-MATCH"
+      ],
+      "feedback_template": "Your rates are whole numbers. On {engine}, integer / integer drops the decimals. Multiply by 1.0 or CAST one side before dividing.",
+      "concept_id": "SQL-TYPE-01"
+    },
+    {
+      "id": "ERR-LOG-06",
+      "category": "LOG",
+      "name": "Off-by-one date range",
+      "detection_checks": [
+        "CHK-BOUNDARY",
+        "CHK-ROWS-FEWER",
+        "CHK-ROWS-MORE",
+        "CHK-STATIC-PATTERN"
+      ],
+      "feedback_template": "The rows you missed or added all fall on {boundary_date}. For timestamps, use >= start AND < day after end.",
+      "concept_id": "SQL-FILTER-02"
+    },
+    {
+      "id": "ERR-LOG-07",
+      "category": "LOG",
+      "name": "Wrong grain",
+      "detection_checks": [
+        "CHK-GRAIN",
+        "CHK-ROWS-MORE",
+        "CHK-ROWS-FEWER",
+        "CHK-COLS-COUNT"
+      ],
+      "feedback_template": "The question wants one row per {expected_grain}; your result has one row per {detected_grain}. Check your GROUP BY list.",
+      "concept_id": "SQL-AGG-02"
+    },
+    {
+      "id": "ERR-LOG-08",
+      "category": "LOG",
+      "name": "Missing DISTINCT",
+      "detection_checks": [
+        "CHK-DUP-EXTRA",
+        "CHK-SUPERSET",
+        "CHK-MUTANT-MATCH"
+      ],
+      "feedback_template": "Your list repeats {n_dupes} values. Use DISTINCT, or EXISTS if you only need to know whether a match exists.",
+      "concept_id": "SQL-SORT-01"
+    },
+    {
+      "id": "ERR-LOG-09",
+      "category": "LOG",
+      "name": "Harmful DISTINCT",
+      "detection_checks": [
+        "CHK-DUP-COLLAPSED",
+        "CHK-VALUE-DIFF",
+        "CHK-STATIC-PATTERN"
+      ],
+      "feedback_template": "Your total is too low. DISTINCT removed legitimate rows that share a value. Remove it, or apply it to an ID.",
+      "concept_id": "SQL-SORT-01"
+    },
+    {
+      "id": "ERR-LOG-10",
+      "category": "LOG",
+      "name": "Right-table filter after LEFT JOIN",
+      "detection_checks": [
+        "CHK-NULL-ROWS-MISSING",
+        "CHK-ROWS-FEWER",
+        "CHK-MUTANT-MATCH",
+        "CHK-STATIC-PATTERN"
+      ],
+      "feedback_template": "{n_missing} unmatched {left_entity} rows disappeared. A WHERE filter on `{right_table}` removes the NULL rows. Move the condition into ON.",
+      "concept_id": "SQL-JOIN-02"
+    },
+    {
+      "id": "ERR-LOG-11",
+      "category": "LOG",
+      "name": "Wrong join type",
+      "detection_checks": [
+        "CHK-NULL-ROWS-MISSING",
+        "CHK-ROWS-FEWER",
+        "CHK-ROWS-MORE",
+        "CHK-MUTANT-MATCH"
+      ],
+      "feedback_template": "The expected result {keeps_or_drops} {entity} rows with no match. Check whether you need INNER JOIN or LEFT JOIN.",
+      "concept_id": "SQL-JOIN-02"
+    },
+    {
+      "id": "ERR-LOG-12",
+      "category": "LOG",
+      "name": "Wrong join key",
+      "detection_checks": [
+        "CHK-VALUE-DIFF",
+        "CHK-EMPTY",
+        "CHK-STATIC-PATTERN"
+      ],
+      "feedback_template": "Your join matches `{left_col}` to `{right_col}`, which refer to different things. Join on `{expected_join}`.",
+      "concept_id": "SQL-JOIN-01"
+    },
+    {
+      "id": "ERR-LOG-13",
+      "category": "LOG",
+      "name": "AND/OR precedence",
+      "detection_checks": [
+        "CHK-ROWS-MORE",
+        "CHK-MUTANT-MATCH",
+        "CHK-STATIC-PATTERN"
+      ],
+      "feedback_template": "AND is evaluated before OR, so part of your filter applies to only one branch. Wrap the OR part in parentheses.",
+      "concept_id": "SQL-FILTER-01"
+    },
+    {
+      "id": "ERR-LOG-14",
+      "category": "LOG",
+      "name": "Wrong aggregate",
+      "detection_checks": [
+        "CHK-MUTANT-MATCH",
+        "CHK-VALUE-DIFF"
+      ],
+      "feedback_template": "Your `{column}` values match {detected_agg}, but the question asks for {expected_agg}.",
+      "concept_id": "SQL-AGG-01"
+    },
+    {
+      "id": "ERR-LOG-15",
+      "category": "LOG",
+      "name": "Wrong comparison operator",
+      "detection_checks": [
+        "CHK-MUTANT-MATCH",
+        "CHK-ROWS-FEWER",
+        "CHK-ROWS-MORE"
+      ],
+      "feedback_template": "You missed or added rows where `{column}` equals exactly {threshold}. Check > vs >=.",
+      "concept_id": "SQL-FILTER-01"
+    },
+    {
+      "id": "ERR-LOG-16",
+      "category": "LOG",
+      "name": "Top-N without correct ORDER BY or tie rule",
+      "detection_checks": [
+        "CHK-VALUE-DIFF",
+        "CHK-TOPN-TIE",
+        "CHK-STATIC-PATTERN"
+      ],
+      "feedback_template": "LIMIT without the right ORDER BY returns the wrong rows. Sort by `{sort_col} {direction}` and apply the stated tie-break.",
+      "concept_id": "SQL-SORT-01"
+    },
+    {
+      "id": "ERR-LOG-17",
+      "category": "LOG",
+      "name": "NULL in arithmetic or averages",
+      "detection_checks": [
+        "CHK-NULL-VS-ZERO",
+        "CHK-VALUE-DIFF",
+        "CHK-MUTANT-MATCH"
+      ],
+      "feedback_template": "AVG and + treat NULL specially. If missing means 0 here, use COALESCE({column}, 0).",
+      "concept_id": "SQL-NULL-01"
+    },
+    {
+      "id": "ERR-LOG-18",
+      "category": "LOG",
+      "name": "Missing or wrong ORDER BY",
+      "detection_checks": [
+        "CHK-ORDER"
+      ],
+      "feedback_template": "The rows are right but not in the requested order. Add ORDER BY {sort_col} {direction}.",
+      "concept_id": "SQL-SORT-01"
+    },
+    {
+      "id": "ERR-LOG-19",
+      "category": "LOG",
+      "name": "Premature rounding",
+      "detection_checks": [
+        "CHK-ROUNDING",
+        "CHK-VALUE-DIFF"
+      ],
+      "feedback_template": "Your numbers are close but off by small amounts. Round only once, at the end.",
+      "concept_id": "SQL-TYPE-01"
+    },
+    {
+      "id": "ERR-CMP-01",
+      "category": "CMP",
+      "name": "Unnecessary DISTINCT",
+      "detection_checks": [
+        "CHK-STATIC-PATTERN"
+      ],
+      "feedback_template": "Correct. `{column}` is already unique, so DISTINCT is not needed.",
+      "concept_id": "SQL-SORT-01"
+    },
+    {
+      "id": "ERR-CMP-02",
+      "category": "CMP",
+      "name": "Unnecessary join",
+      "detection_checks": [
+        "CHK-STATIC-PATTERN"
+      ],
+      "feedback_template": "Correct. The join to `{table}` is not needed here.",
+      "concept_id": "SQL-JOIN-01"
+    },
+    {
+      "id": "ERR-CMP-03",
+      "category": "CMP",
+      "name": "HAVING without aggregate",
+      "detection_checks": [
+        "CHK-STATIC-PATTERN"
+      ],
+      "feedback_template": "Correct. `{condition}` has no aggregate, so it can go in WHERE.",
+      "concept_id": "SQL-AGG-03"
+    },
+    {
+      "id": "ERR-OUT-01",
+      "category": "OUT",
+      "name": "Missing or extra columns",
+      "detection_checks": [
+        "CHK-COLS-COUNT"
+      ],
+      "feedback_template": "Expected {k_cols} columns ({k_col_list}); you returned {s_cols}.",
+      "concept_id": "SQL-BASICS-01"
+    },
+    {
+      "id": "ERR-OUT-02",
+      "category": "OUT",
+      "name": "Wrong type or format",
+      "detection_checks": [
+        "CHK-COLS-TYPE"
+      ],
+      "feedback_template": "Values match but `{column}` is {s_type}; expected {k_type}.",
+      "concept_id": "SQL-TYPE-01"
+    },
+    {
+      "id": "ERR-LOG-20",
+      "category": "LOG",
+      "name": "Averaging ratios instead of dividing sums",
+      "detection_checks": [
+        "CHK-MUTANT-MATCH"
+      ],
+      "feedback_template": "",
+      "concept_id": "SQL-AGG-01"
+    },
+    {
+      "id": "ERR-LOG-21",
+      "category": "LOG",
+      "name": "Percent scale (0.15 vs 15)",
+      "detection_checks": [
+        "CHK-MUTANT-MATCH"
+      ],
+      "feedback_template": "",
+      "concept_id": "SQL-BASICS-02"
+    },
+    {
+      "id": "ERR-LOG-22",
+      "category": "LOG",
+      "name": "LIKE pattern: case sensitivity or a missing wildcard",
+      "detection_checks": [
+        "CHK-MUTANT-MATCH"
+      ],
+      "feedback_template": "",
+      "concept_id": "SQL-FILTER-02"
+    },
+    {
+      "id": "ERR-LOG-23",
+      "category": "LOG",
+      "name": "BETWEEN with reversed bounds, or a wrong inclusive or exclusive range",
+      "detection_checks": [
+        "CHK-MUTANT-MATCH"
+      ],
+      "feedback_template": "",
+      "concept_id": "SQL-FILTER-02"
+    }
+  ]
+}

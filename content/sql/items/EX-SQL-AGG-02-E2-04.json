@@ -1,0 +1,147 @@
+{
+  "id": "EX-SQL-AGG-02-E2-04",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-02",
+    "group_by",
+    "sum",
+    "two-columns",
+    "month",
+    "order-by",
+    "sales"
+  ],
+  "level": 2,
+  "source_ids": [
+    "01:SQL-AGG-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-AGG-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02"
+  ],
+  "template_id": "T-AGG-02-sum-per-store-month-sorted",
+  "template_params": {
+    "table": "sales",
+    "group_by": "store_code, order_month",
+    "metric": "net_revenue_eur",
+    "from": "2025-01-01",
+    "to": "2025-03-31"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_agg",
+  "prompt": "What was each store's net revenue in each month of the first quarter of 2025? Use the sales table and its order_month column, the first day of the month the order was placed in. Count order lines dated from 1 January 2025 to 31 March 2025, both days included. Return three columns, in this order: store_code, order_month and revenue_eur, the sum of net_revenue_eur. Return one row per store_code and order_month combination, leaving out months in which a store had no order lines. Sort by store_code from A to Z, then by order_month from earliest to latest. Order lines with a missing net_revenue_eur add nothing to the total; when none of a store's lines in a month has a net_revenue_eur, revenue_eur is missing. Do not round.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "store_code",
+        "type_class": "text"
+      },
+      {
+        "name": "order_month",
+        "type_class": "temporal"
+      },
+      {
+        "name": "revenue_eur",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per store and month combination"
+  },
+  "rules": {
+    "order_matters": true,
+    "sort_keys": [
+      {
+        "column": "store_code",
+        "desc": false
+      },
+      {
+        "column": "order_month",
+        "desc": false
+      }
+    ],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "store_code",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "order_month",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "revenue_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "store_code",
+      "order_month"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the row filter for the first quarter of 2025. After it, decide what one row stands for: one row per store and month.",
+    "List both columns that name a row in the grouping clause, then sort by the same two columns in the order the question gives."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 67,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 68,
+      "to": 78,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 79,
+      "to": 143,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 144,
+      "to": 176,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 177,
+      "to": 209,
+      "subgoal": "sort_limit"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 210000,
+  "why_this_works": "WHERE keeps the quarter's lines, GROUP BY store_code, order_month makes one group per store and month, and ORDER BY sorts the groups, since grouping alone promises no order."
+}

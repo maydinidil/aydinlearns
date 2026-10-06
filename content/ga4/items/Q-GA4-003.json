@@ -1,0 +1,50 @@
+{
+  "id": "Q-GA4-003",
+  "version": 2,
+  "kind": "mcq",
+  "section": "ga4",
+  "concept_id": "GA4-SETUP-01",
+  "parent_id": null,
+  "topic_id": "T-GA4-01",
+  "legacy_id": "Q-GA4-03",
+  "stem": "An agency is setting up GA4 for two unrelated client businesses. What is the recommended approach?",
+  "options": [
+    {
+      "oid": "ofe506b4",
+      "text": "Separate accounts (or at least separate properties) for each business",
+      "misconception_id": null
+    },
+    {
+      "oid": "oe137eb7",
+      "text": "One shared property, with one web data stream per client business",
+      "misconception_id": null
+    },
+    {
+      "oid": "o9729e13",
+      "text": "One shared web data stream, with a data filter for each client's traffic",
+      "misconception_id": null
+    },
+    {
+      "oid": "o0339532",
+      "text": "One account and one property, with a comparison or segment per client",
+      "misconception_id": null
+    }
+  ],
+  "typed": null,
+  "exam_relevance": "core",
+  "held_out": true,
+  "enemy_group": null,
+  "status": "active",
+  "verified": true,
+  "level": 1,
+  "tags": [
+    "ga4",
+    "T-GA4-01"
+  ],
+  "source_ids": [
+    "06:Q-GA4-03"
+  ],
+  "as_of": "2026-09-30",
+  "review_after": null,
+  "supersedes": []
+}

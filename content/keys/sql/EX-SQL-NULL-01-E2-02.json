@@ -1,0 +1,32 @@
+{
+  "item_id": "EX-SQL-NULL-01-E2-02",
+  "item_version": 2,
+  "reference_sql": "SELECT cal_date, weekday_name, event\nFROM calendar\nWHERE cal_date >= DATE '2025-11-01' AND cal_date <= DATE '2025-11-30' AND (event <> 'black_friday' OR event IS NULL)",
+  "alternatives": [
+    "SELECT cal_date, weekday_name, event\nFROM calendar\nWHERE cal_date BETWEEN '2025-11-01' AND '2025-11-30' AND (event IS NULL OR event <> 'black_friday')",
+    "SELECT cal_date, weekday_name, event\nFROM calendar\nWHERE (event <> 'black_friday' OR event IS NULL) AND cal_date >= '2025-11-01' AND cal_date < '2025-12-01'",
+    "SELECT cal_date, weekday_name, event\nFROM calendar\nWHERE cal_date BETWEEN DATE '2025-11-01' AND DATE '2025-11-30' AND (NOT event = 'black_friday' OR event IS NULL)"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "M1",
+      "error_id": "ERR-LOG-03",
+      "sql": "SELECT cal_date, weekday_name, event\nFROM calendar\nWHERE cal_date >= DATE '2025-11-01' AND cal_date <= DATE '2025-11-30' AND event <> 'black_friday'"
+    },
+    {
+      "id": "M2",
+      "error_id": "ERR-LOG-13",
+      "sql": "SELECT cal_date, weekday_name, event\nFROM calendar\nWHERE cal_date >= DATE '2025-11-01' AND cal_date <= DATE '2025-11-30' AND event <> 'black_friday' OR event IS NULL"
+    }
+  ],
+  "hint3_partial": "SELECT cal_date, weekday_name, event\nFROM calendar\nWHERE cal_date >= DATE '2025-11-01' AND cal_date <= DATE '2025-11-30' AND (event <> 'black_friday' OR ...)",
+  "solver": {
+    "prompt_hash": "78ccf34087f882c2",
+    "schema_version": "0d8e15555347",
+    "dataset_version": "9639f8ae1f71c2ef",
+    "grader_version": "1a.2",
+    "query": "SELECT cal_date, weekday_name, event FROM calendar WHERE cal_date >= '2025-11-01' AND cal_date <= '2025-11-30' AND (event <> 'black_friday' OR event IS NULL)\n",
+    "at": "2026-10-03T13:08:02.934Z"
+  }
+}

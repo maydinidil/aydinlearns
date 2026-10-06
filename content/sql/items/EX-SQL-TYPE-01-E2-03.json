@@ -1,0 +1,126 @@
+{
+  "id": "EX-SQL-TYPE-01-E2-03",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-02",
+    "type",
+    "premature-rounding",
+    "round",
+    "missing-values",
+    "group-by",
+    "sales"
+  ],
+  "level": 2,
+  "source_ids": [
+    "01:SQL-TYPE-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-TYPE-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01"
+  ],
+  "template_id": "T-TYPE-01-round-at-end",
+  "template_params": {
+    "table": "sales",
+    "group_by": "parent_category",
+    "measure": "margin",
+    "decimals": 0,
+    "from": "2025-01-01",
+    "to": "2025-12-31",
+    "output": "margin_eur"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_type",
+  "prompt": "What was the total margin of each parent category in 2025, in whole euros? Use the sales table and keep the order lines with an order_date from 2025-01-01 to 2025-12-31, both included. A line's margin is net_revenue_eur minus units times unit_cost_eur; a line with a missing net_revenue_eur, units or unit_cost_eur has a missing margin and adds nothing to the total. Return two columns, in this order: parent_category and margin_eur, the sum of the line margins rounded to whole euros with ROUND(x, 0). Return one row per parent_category. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "parent_category",
+        "type_class": "text"
+      },
+      {
+        "name": "margin_eur",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per parent_category"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "parent_category",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "margin_eur",
+        "type_class": "numeric",
+        "precision": "money",
+        "require_rounding": 0
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "parent_category"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, keep the 2025 lines and write the calculated column margin_eur, one total per parent_category.",
+    "Add up the full line margins and round once, around the total. Rounding each line first adds up many small errors. Work out each line's margin inside the SUM, so a line with a missing value drops out as a whole."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 99,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 100,
+      "to": 110,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 111,
+      "to": 175,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 176,
+      "to": 200,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "Rounding once around the SUM keeps every cent until the end, and computing the margin per line inside the SUM drops a line with a missing value as a whole."
+}

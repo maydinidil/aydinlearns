@@ -1,0 +1,36 @@
+{
+  "item_id": "EX-SQL-AGG-01-E2-22",
+  "item_version": 1,
+  "reference_sql": "SELECT COUNT(*) AS n_products,\n       COUNT(unit_cost_eur) AS n_with_cost,\n       COUNT(sister_product_id) AS n_with_sister\nFROM products\nWHERE launch_date BETWEEN DATE '2024-01-01' AND DATE '2024-12-31'",
+  "alternatives": [
+    "SELECT COUNT(product_id) AS n_products, COUNT(unit_cost_eur) AS n_with_cost, COUNT(sister_product_id) AS n_with_sister FROM products WHERE launch_date >= DATE '2024-01-01' AND launch_date <= DATE '2024-12-31'",
+    "SELECT COUNT(*) AS n_products, COUNT(unit_cost_eur) AS n_with_cost, COUNT(sister_product_id) AS n_with_sister FROM products WHERE launch_date >= '2024-01-01' AND launch_date < '2025-01-01'"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-04",
+      "sql": "SELECT COUNT(*) AS n_products, COUNT(*) AS n_with_cost, COUNT(sister_product_id) AS n_with_sister FROM products WHERE launch_date BETWEEN DATE '2024-01-01' AND DATE '2024-12-31'"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-06",
+      "sql": "SELECT COUNT(*) AS n_products, COUNT(unit_cost_eur) AS n_with_cost, COUNT(sister_product_id) AS n_with_sister FROM products WHERE launch_date > DATE '2024-01-01' AND launch_date <= DATE '2024-12-31'"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-23",
+      "sql": "SELECT COUNT(*) AS n_products, COUNT(unit_cost_eur) AS n_with_cost, COUNT(sister_product_id) AS n_with_sister FROM products WHERE launch_date BETWEEN DATE '2024-12-31' AND DATE '2024-01-01'"
+    }
+  ],
+  "hint3_partial": "SELECT COUNT(*) AS n_products,\n       COUNT(___) AS n_with_cost,\n       COUNT(___) AS n_with_sister\nFROM products\nWHERE launch_date BETWEEN ___",
+  "solver": {
+    "prompt_hash": "8bd125ac7532f6f2",
+    "schema_version": "d77fe1c31a0e",
+    "dataset_version": "506a9858f862fdfb",
+    "grader_version": "1b.3",
+    "query": "SELECT COUNT(*) AS n_products, COUNT(unit_cost_eur) AS n_with_cost, COUNT(sister_product_id) AS n_with_sister FROM products WHERE launch_date BETWEEN DATE '2024-01-01' AND DATE '2024-12-31'\n",
+    "at": "2026-10-04T14:33:15.728Z"
+  }
+}

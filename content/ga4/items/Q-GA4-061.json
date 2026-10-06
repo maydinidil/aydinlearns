@@ -1,0 +1,50 @@
+{
+  "id": "Q-GA4-061",
+  "version": 2,
+  "kind": "mcq",
+  "section": "ga4",
+  "concept_id": "GA4-PRIVACY-01",
+  "parent_id": null,
+  "topic_id": "T-GA4-05",
+  "legacy_id": "Q-GA4-61",
+  "stem": "An Amsterdam webshop wants to keep building remarketing audiences for new EEA visitors. What must be in place?",
+  "options": [
+    {
+      "oid": "obe9c86f",
+      "text": "A consent banner that passes all four consent mode v2 signals, including ad_user_data and ad_personalization",
+      "misconception_id": null
+    },
+    {
+      "oid": "o53c96a0",
+      "text": "A consent banner that passes only analytics_storage and ad_storage, the two signals that consent mode v1 defined",
+      "misconception_id": null
+    },
+    {
+      "oid": "o14a8c3f",
+      "text": "A hostname include data filter that limits collection to the webshop's own domain",
+      "misconception_id": null
+    },
+    {
+      "oid": "o8b17832",
+      "text": "14-month event data retention, so EEA visitors stay in remarketing audiences for longer",
+      "misconception_id": null
+    }
+  ],
+  "typed": null,
+  "exam_relevance": "core",
+  "held_out": false,
+  "enemy_group": null,
+  "status": "active",
+  "verified": true,
+  "level": null,
+  "tags": [
+    "ga4",
+    "T-GA4-05"
+  ],
+  "source_ids": [
+    "06:Q-GA4-61"
+  ],
+  "as_of": "2026-09-30",
+  "review_after": null,
+  "supersedes": []
+}

@@ -1,0 +1,31 @@
+{
+  "item_id": "EX-SQL-AGG-01-E2-02",
+  "item_version": 1,
+  "reference_sql": "SELECT SUM(net_revenue_eur) / SUM(units) AS avg_unit_price_eur\nFROM sales\nWHERE category_name = 'Earbuds'",
+  "alternatives": [
+    "SELECT SUM(net_revenue_eur) / SUM(units) AS avg_unit_price_eur FROM sales WHERE category_name = 'Earbuds' AND units IS NOT NULL AND net_revenue_eur IS NOT NULL",
+    "SELECT SUM(net_revenue_eur) * 1.0 / SUM(units) AS avg_unit_price_eur FROM sales WHERE category_name IN ('Earbuds')"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "EX-SQL-AGG-01-E2-02-PW1",
+      "error_id": "ERR-LOG-20",
+      "sql": "SELECT AVG(net_revenue_eur / units) AS avg_unit_price_eur FROM sales WHERE category_name = 'Earbuds'"
+    },
+    {
+      "id": "EX-SQL-AGG-01-E2-02-PW2",
+      "error_id": "ERR-LOG-14",
+      "sql": "SELECT AVG(net_revenue_eur) AS avg_unit_price_eur FROM sales WHERE category_name = 'Earbuds'"
+    }
+  ],
+  "hint3_partial": "SELECT SUM(___) / SUM(___) AS avg_unit_price_eur\nFROM sales\nWHERE category_name = 'Earbuds'",
+  "solver": {
+    "prompt_hash": "5e2b09dd2e463209",
+    "schema_version": "cebf75df442f",
+    "dataset_version": "506a9858f862fdfb",
+    "grader_version": "1b.3",
+    "query": "SELECT SUM(net_revenue_eur) / SUM(units) AS avg_unit_price_eur FROM sales WHERE category_name = 'Earbuds' AND units IS NOT NULL AND net_revenue_eur IS NOT NULL\n",
+    "at": "2026-10-04T10:06:42.059Z"
+  }
+}

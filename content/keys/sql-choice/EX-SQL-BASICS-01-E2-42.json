@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-BASICS-01-E2-42",
+  "item_version": 1,
+  "correct_oid": "o63dd04e",
+  "explanation": "Columns in the SELECT list are separated by commas and written without quotes. Without the comma, parent_category becomes a new name for category_name, so the result has one column. In single quotes, category_name is a piece of text, so every row shows the words category_name instead of the value. Swapping the columns puts them in the wrong order.",
+  "solver": {
+    "prompt_hash": "ebd077e71f606198",
+    "grader_version": "choice.1",
+    "chosen": "o63dd04e",
+    "typed": null,
+    "at": "2026-10-06T09:08:14.830Z"
+  }
+}

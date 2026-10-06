@@ -1,0 +1,18 @@
+{
+  "concept_id": "GA4-EVENTS-01",
+  "section": "ga4",
+  "version": 2,
+  "title": "Tags and event types",
+  "reading_md": "## What it is\n\nGA4 records every interaction as an event, and each event carries parameters that describe it. The Google tag (gtag.js) sends the events. It is installed either directly in the site's code or through Google Tag Manager. Events come in four families.\n\n- **Automatically collected.** The tag sends them with no extra work, for example `first_visit`, `session_start` and `user_engagement`.\n- **Enhanced measurement.** Switched on with toggles in the web data stream's settings, with no code. It covers page views, scrolls, outbound clicks, site search, form interactions, video engagement for embedded YouTube videos, and file downloads.\n- **Recommended.** Google defines the event name and its parameters, but you implement them, in code or in Tag Manager. Examples: `purchase`, `add_to_cart`, `generate_lead`, `login` and `sign_up`.\n- **Custom.** Your own name and parameters, used only when no recommended event fits.\n\nTwo enhanced measurement details matter. The scroll event fires only when a visitor reaches about 90% of the page depth. Site search reads the search term from a query parameter in the page URL; if your site uses a less common parameter name, add it in the site search settings.\n\n## What the exam asks\n\n- **Which family fits a requirement.** Ask in order. Does GA4 collect it with no setup at all? Automatically collected. Can a toggle on the web stream turn it on? Enhanced measurement. Does Google publish a name for it? Recommended. None of these? Custom.\n- **No-code answers.** When a requirement can be met without a developer, enhanced measurement is usually where to look.\n- **Recommended before custom.** Use Google's name and parameters whenever one fits. GA4's built-in reports, such as the ecommerce reports, are built on the recommended events, so a home-made name for the same action is collected but does not fill them. A Voltmarkt example: a \"reserve in store\" button has no recommended event, so the webshop sends a custom event, `reserve_in_store`, with a `store_id` parameter. A completed order, on the other hand, goes out as the recommended `purchase` event.\n\n## Common confusions\n\n- Recommended events are not automatic. Nothing arrives until someone implements them.\n- Automatically collected and enhanced measurement are separate families: the first needs no setting at all, while the second depends on the stream's toggles.\n- The scroll event marks about 90% depth only, not other depths.\n- Universal Analytics hits with a category, action and label do not exist in GA4. There is one event name, plus parameters.\n- A new parameter arrives with its event, but reports can use it only once it is registered (see the lesson \"Parameters, custom dimensions and metrics, user properties\").\n\n## In Skillshop\n\nCourse \"Google Analytics Certification (2026)\", module \"Get Started Using Google Analytics\": the parts on events and how data is collected (Unverified).",
+  "source_ids": [
+    "06:GA4-EVENTS-01",
+    "06:Q-GA4-58",
+    "06:GA4-EVENTS-02",
+    "06:§2.1",
+    "10:§7",
+    "ERRATA:E-116",
+    "ERRATA:E-122"
+  ],
+  "verified": true,
+  "as_of": "2026-10-05"
+}

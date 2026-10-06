@@ -1,0 +1,32 @@
+{
+  "item_id": "EX-SQL-FILTER-01-E2-04",
+  "item_version": 1,
+  "reference_sql": "SELECT promo_code, promo_name, promo_type, start_date\nFROM promotions\nWHERE (promo_type = 'loyalty' OR promo_type = 'bundle') AND start_date >= '2025-01-01'",
+  "alternatives": [
+    "SELECT promo_code, promo_name, promo_type, start_date\nFROM promotions\nWHERE start_date >= '2025-01-01' AND (promo_type = 'bundle' OR promo_type = 'loyalty')",
+    "SELECT promo_code, promo_name, promo_type, start_date\nFROM promotions\nWHERE (promo_type = 'loyalty' AND start_date >= '2025-01-01') OR (promo_type = 'bundle' AND start_date >= '2025-01-01')",
+    "SELECT promo_code, promo_name, promo_type, start_date\nFROM promotions\nWHERE (promo_type = 'loyalty' OR promo_type = 'bundle') AND NOT start_date < DATE '2025-01-01'"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "M1",
+      "error_id": "ERR-LOG-13",
+      "sql": "SELECT promo_code, promo_name, promo_type, start_date\nFROM promotions\nWHERE promo_type = 'loyalty' OR promo_type = 'bundle' AND start_date >= '2025-01-01'"
+    },
+    {
+      "id": "M2",
+      "error_id": "ERR-SYN-07",
+      "sql": "SELECT promo_code, promo_name, promo_type, start_date\nFROM promotions\nWHERE (promo_type = \"loyalty\" OR promo_type = 'bundle') AND start_date >= '2025-01-01'"
+    }
+  ],
+  "hint3_partial": "SELECT promo_code, promo_name, promo_type, start_date\nFROM promotions\nWHERE (promo_type = 'loyalty' OR ...) AND ...",
+  "solver": {
+    "prompt_hash": "bb94f07bc7fe5d21",
+    "schema_version": "f0340f71a1f5",
+    "dataset_version": "9639f8ae1f71c2ef",
+    "grader_version": "1a.2",
+    "query": "SELECT promo_code, promo_name, promo_type, start_date FROM promotions WHERE promo_type IN ('loyalty', 'bundle') AND start_date >= '2025-01-01'\n",
+    "at": "2026-10-03T13:08:02.534Z"
+  }
+}

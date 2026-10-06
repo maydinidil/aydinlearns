@@ -1,0 +1,36 @@
+{
+  "item_id": "EX-SQL-AGG-04-E1-02",
+  "item_version": 1,
+  "reference_sql": "SELECT parent_category,\n       SUM(CASE WHEN channel = 'web' THEN net_revenue_eur ELSE 0 END) AS web_revenue_eur,\n       SUM(CASE WHEN channel = 'store' THEN net_revenue_eur ELSE 0 END) AS store_revenue_eur\nFROM sales\nGROUP BY parent_category",
+  "alternatives": [
+    "SELECT parent_category, COALESCE(SUM(CASE WHEN channel = 'web' THEN net_revenue_eur END), 0) AS web_revenue_eur, COALESCE(SUM(CASE WHEN channel = 'store' THEN net_revenue_eur END), 0) AS store_revenue_eur FROM sales GROUP BY parent_category",
+    "SELECT parent_category, COALESCE(SUM(net_revenue_eur) FILTER (WHERE channel = 'web'), 0) AS web_revenue_eur, COALESCE(SUM(net_revenue_eur) FILTER (WHERE channel = 'store'), 0) AS store_revenue_eur FROM sales GROUP BY 1"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-17",
+      "sql": "SELECT parent_category, SUM(CASE WHEN channel = 'web' THEN net_revenue_eur END) AS web_revenue_eur, SUM(CASE WHEN channel = 'store' THEN net_revenue_eur END) AS store_revenue_eur FROM sales GROUP BY parent_category"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-14",
+      "sql": "SELECT parent_category, COUNT(CASE WHEN channel = 'web' THEN net_revenue_eur END) AS web_revenue_eur, COUNT(CASE WHEN channel = 'store' THEN net_revenue_eur END) AS store_revenue_eur FROM sales GROUP BY parent_category"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-SEM-01",
+      "sql": "SELECT parent_category, SUM(CASE WHEN channel = 'web' THEN net_revenue_eur ELSE 0 END) AS web_revenue_eur, SUM(CASE WHEN channel = 'store' THEN net_revenue_eur ELSE 0 END) AS store_revenue_eur FROM sales"
+    }
+  ],
+  "hint3_partial": "SELECT parent_category,\n       SUM(CASE WHEN channel = 'web' THEN ___ ELSE ___ END) AS web_revenue_eur,\n       SUM(CASE WHEN ___ THEN ___ ELSE ___ END) AS store_revenue_eur\nFROM sales\nGROUP BY parent_category",
+  "solver": {
+    "prompt_hash": "ee606963438f7531",
+    "schema_version": "cebf75df442f",
+    "dataset_version": "506a9858f862fdfb",
+    "grader_version": "1b.3",
+    "query": "SELECT parent_category, COALESCE(SUM(net_revenue_eur) FILTER (WHERE channel = 'web'), 0) AS web_revenue_eur, COALESCE(SUM(net_revenue_eur) FILTER (WHERE channel = 'store'), 0) AS store_revenue_eur FROM sales GROUP BY parent_category\n",
+    "at": "2026-10-04T10:06:47.610Z"
+  }
+}

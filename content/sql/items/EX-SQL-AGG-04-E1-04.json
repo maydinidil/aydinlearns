@@ -1,0 +1,127 @@
+{
+  "id": "EX-SQL-AGG-04-E1-04",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-02",
+    "conditional-aggregation",
+    "sum-if",
+    "sales",
+    "else-zero"
+  ],
+  "level": 2,
+  "source_ids": [
+    "01:SQL-AGG-04"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "lesson",
+  "target_concept_id": "SQL-AGG-04",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CASE-01",
+    "SQL-AGG-04"
+  ],
+  "template_id": "T-AGG-04-sum-if-group",
+  "template_params": {
+    "table": "sales",
+    "group": "store_code",
+    "condition": "parent_category = 'Accessories'",
+    "measure": "net_revenue_eur"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_agg",
+  "prompt": "How much net revenue did each store make in total, and how much of it came from Accessories? Use the sales table; the webshop, WEB-01, counts as a store. Return three columns, in this order: store_code, revenue_eur, the sum of net_revenue_eur, and accessories_revenue_eur, the sum of net_revenue_eur over the lines whose parent_category is 'Accessories'. Lines with a missing net_revenue_eur add nothing. A store with no Accessories revenue shows 0, not a missing value. Return one row per store_code. Do not round. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "store_code",
+        "type_class": "text"
+      },
+      {
+        "name": "revenue_eur",
+        "type_class": "numeric"
+      },
+      {
+        "name": "accessories_revenue_eur",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per store_code"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "store_code",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "revenue_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "accessories_revenue_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "store_code"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the calculated column accessories_revenue_eur, which adds up only the Accessories lines.",
+    "Put a CASE inside SUM that passes on net_revenue_eur for an Accessories line and 0 for every other line, so a store with none still gets 0. Close the CASE with END before the bracket."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 175,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 176,
+      "to": 186,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 187,
+      "to": 206,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": {
+    "stage1": 70,
+    "stage2": 70
+  },
+  "faded_shape": "SELECT store_code,\n       SUM(net_revenue_eur) AS revenue_eur,\n       ",
+  "faded_suffix": "\nFROM sales\nGROUP BY store_code",
+  "starter_sql": null,
+  "time_target_ms": 110000,
+  "why_this_works": "The CASE hands SUM the revenue of Accessories lines and a 0 for every other line, so the total and the Accessories part come from one pass, and ELSE 0 keeps a store with no Accessories revenue at 0."
+}

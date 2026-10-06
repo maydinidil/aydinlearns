@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-TYPE-01-E1-41",
+  "item_version": 1,
+  "correct_oid": "o42f4dbe",
+  "explanation": "In DuckDB, / always keeps the decimals, so 9 / 4 is 2.25, and // is integer division, which drops everything after the decimal point, so 9 // 4 is 2. The WHERE keeps one store, so there is one row. PostgreSQL and SQLite would give 2 for 9 / 4 instead, because they divide whole numbers as whole numbers.",
+  "solver": {
+    "prompt_hash": "d99412d9a7a11a28",
+    "grader_version": "choice.1",
+    "chosen": "o42f4dbe",
+    "typed": null,
+    "at": "2026-10-06T09:08:14.859Z"
+  }
+}

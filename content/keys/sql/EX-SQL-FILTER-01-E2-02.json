@@ -1,0 +1,32 @@
+{
+  "item_id": "EX-SQL-FILTER-01-E2-02",
+  "item_version": 1,
+  "reference_sql": "SELECT product_id, product_name, category_id, unit_cost_eur\nFROM products\nWHERE (category_id = 15 OR category_id = 16) AND unit_cost_eur >= 100",
+  "alternatives": [
+    "SELECT product_id, product_name, category_id, unit_cost_eur\nFROM products\nWHERE unit_cost_eur >= 100 AND (category_id = 16 OR category_id = 15)",
+    "SELECT product_id, product_name, category_id, unit_cost_eur\nFROM products\nWHERE (category_id = 15 AND unit_cost_eur >= 100) OR (category_id = 16 AND unit_cost_eur >= 100)",
+    "SELECT product_id, product_name, category_id, unit_cost_eur\nFROM products\nWHERE (category_id = 15 OR category_id = 16) AND NOT unit_cost_eur < 100"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "M1",
+      "error_id": "ERR-LOG-13",
+      "sql": "SELECT product_id, product_name, category_id, unit_cost_eur\nFROM products\nWHERE category_id = 15 OR category_id = 16 AND unit_cost_eur >= 100"
+    },
+    {
+      "id": "M2",
+      "error_id": "ERR-LOG-15",
+      "sql": "SELECT product_id, product_name, category_id, unit_cost_eur\nFROM products\nWHERE (category_id = 15 OR category_id = 16) AND unit_cost_eur > 100"
+    }
+  ],
+  "hint3_partial": "SELECT product_id, product_name, category_id, unit_cost_eur\nFROM products\nWHERE (category_id = 15 OR ...) AND ...",
+  "solver": {
+    "prompt_hash": "a6fb01eff23fbaa8",
+    "schema_version": "d77fe1c31a0e",
+    "dataset_version": "9639f8ae1f71c2ef",
+    "grader_version": "1a.2",
+    "query": "SELECT product_id, product_name, category_id, unit_cost_eur FROM products WHERE category_id IN (15, 16) AND unit_cost_eur >= 100\n",
+    "at": "2026-10-03T13:08:02.508Z"
+  }
+}

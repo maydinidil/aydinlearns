@@ -1,0 +1,37 @@
+{
+  "item_id": "EX-SQL-FILTER-02-E2-21",
+  "item_version": 1,
+  "reference_sql": "SELECT product_id, product_name, unit_cost_eur\nFROM products\nWHERE product_name ILIKE 'sonora pro%'\n  AND unit_cost_eur <= 100",
+  "alternatives": [
+    "SELECT product_id, product_name, unit_cost_eur\nFROM products\nWHERE product_name ILIKE 'Sonora Pro%' AND unit_cost_eur <= 100",
+    "SELECT product_id, product_name, unit_cost_eur\nFROM products\nWHERE unit_cost_eur <= 100 AND product_name ILIKE 'SONORA PRO%'",
+    "SELECT product_id, product_name, unit_cost_eur\nFROM products\nWHERE product_name ILIKE 'sonora pro%' AND NOT unit_cost_eur > 100"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-22",
+      "sql": "SELECT product_id, product_name, unit_cost_eur FROM products WHERE product_name LIKE 'Sonora Pro%' AND unit_cost_eur <= 100"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-22",
+      "sql": "SELECT product_id, product_name, unit_cost_eur FROM products WHERE product_name ILIKE '%pro%' AND unit_cost_eur <= 100"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-15",
+      "sql": "SELECT product_id, product_name, unit_cost_eur FROM products WHERE product_name ILIKE 'sonora pro%' AND unit_cost_eur < 100"
+    }
+  ],
+  "hint3_partial": "SELECT product_id, product_name, unit_cost_eur\nFROM products\nWHERE product_name ILIKE ___\n  AND unit_cost_eur <= 100",
+  "solver": {
+    "prompt_hash": "0733d6bada09bda4",
+    "schema_version": "d77fe1c31a0e",
+    "dataset_version": "506a9858f862fdfb",
+    "grader_version": "1b.3",
+    "query": "SELECT product_id, product_name, unit_cost_eur FROM products WHERE product_name ILIKE 'sonora pro%' AND unit_cost_eur <= 100\n",
+    "at": "2026-10-04T14:33:18.225Z"
+  }
+}

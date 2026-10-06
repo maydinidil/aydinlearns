@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-FILTER-01-E1-42",
+  "item_version": 1,
+  "correct_oid": "oe4e80ca",
+  "explanation": "\"100 or more\" is >=, and both tests must hold, so they are joined with AND. > 100 leaves out a product that costs exactly 100, and <= 100 keeps the cheap products instead. OR would also keep every product of any brand that costs 100 or more.",
+  "solver": {
+    "prompt_hash": "20171e370bc0df6e",
+    "grader_version": "choice.1",
+    "chosen": "oe4e80ca",
+    "typed": null,
+    "at": "2026-10-06T09:08:14.842Z"
+  }
+}

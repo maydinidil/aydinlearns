@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-TYPE-01-E1-42",
+  "item_version": 1,
+  "correct_oid": "o7e150fb",
+  "explanation": "The share is the web count divided by the total count, with * 1.0 keeping the decimals on every engine, and ROUND wraps the whole division. // drops the decimals, so a share below 1 becomes 0. 100.0 * turns the share into a percentage, and rounding only the count, before dividing, leaves the share unrounded.",
+  "solver": {
+    "prompt_hash": "b297161424780daf",
+    "grader_version": "choice.1",
+    "chosen": "o7e150fb",
+    "typed": null,
+    "at": "2026-10-06T09:08:14.860Z"
+  }
+}

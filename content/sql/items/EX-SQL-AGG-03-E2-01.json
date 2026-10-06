@@ -1,0 +1,130 @@
+{
+  "id": "EX-SQL-AGG-03-E2-01",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-02",
+    "having",
+    "sum",
+    "where",
+    "sales"
+  ],
+  "level": 2,
+  "source_ids": [
+    "01:SQL-AGG-03"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "lesson",
+  "target_concept_id": "SQL-AGG-03",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-AGG-03"
+  ],
+  "template_id": "T-AGG-03-where-and-having",
+  "template_params": {
+    "table": "sales",
+    "group_by": "store_code",
+    "row_filter": "order_date in 2025",
+    "aggregate": "sum",
+    "comparison": "more than",
+    "threshold": 3000000
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_agg",
+  "prompt": "Which stores brought in more than 3,000,000 euros of net revenue in 2025? Use the sales table. Count only order lines dated from 1 January 2025 to 31 December 2025, both days included. Return two columns, in this order: store_code and revenue_eur, the sum of net_revenue_eur over those lines. Return one row per store, and only the stores whose 2025 total is above 3,000,000. Order lines with a missing net_revenue_eur add nothing to the total. Do not round. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "store_code",
+        "type_class": "text"
+      },
+      {
+        "name": "revenue_eur",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per store"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "store_code",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "revenue_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "store_code"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the group filter: keep only the stores whose 2025 revenue total is above 3,000,000.",
+    "The date test is about single lines and is already in WHERE. The revenue test is about a store total, so it goes in its own clause after GROUP BY."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 54,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 55,
+      "to": 65,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 66,
+      "to": 130,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 131,
+      "to": 150,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 151,
+      "to": 188,
+      "subgoal": "group_filter"
+    }
+  ],
+  "fading": {
+    "stage1": 151,
+    "stage2": 131
+  },
+  "faded_shape": "SELECT store_code, SUM(net_revenue_eur) AS revenue_eur\nFROM sales\nWHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\nGROUP BY store_code\n",
+  "starter_sql": null,
+  "time_target_ms": 150000,
+  "why_this_works": "WHERE keeps only the 2025 lines before grouping, so the SUM that HAVING tests is each store's 2025 total, not its all-time total."
+}

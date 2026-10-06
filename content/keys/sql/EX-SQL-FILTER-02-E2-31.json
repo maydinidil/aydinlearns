@@ -1,0 +1,36 @@
+{
+  "item_id": "EX-SQL-FILTER-02-E2-31",
+  "item_version": 1,
+  "reference_sql": "SELECT promo_code, promo_name, start_date, discount_pct\nFROM promotions\nWHERE start_date BETWEEN DATE '2025-06-01' AND DATE '2025-06-30'",
+  "alternatives": [
+    "SELECT promo_code, promo_name, start_date, discount_pct\nFROM promotions\nWHERE start_date >= DATE '2025-06-01' AND start_date <= DATE '2025-06-30'",
+    "SELECT promo_code, promo_name, start_date, discount_pct\nFROM promotions\nWHERE start_date >= DATE '2025-06-01' AND start_date < DATE '2025-07-01'"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "EX-SQL-FILTER-02-E2-31-PW1",
+      "error_id": "ERR-LOG-06",
+      "sql": "SELECT promo_code, promo_name, start_date, discount_pct\nFROM promotions\nWHERE start_date >= DATE '2025-06-01' AND start_date < DATE '2025-06-30'"
+    },
+    {
+      "id": "EX-SQL-FILTER-02-E2-31-PW2",
+      "error_id": "ERR-LOG-23",
+      "sql": "SELECT promo_code, promo_name, start_date, discount_pct FROM promotions WHERE start_date BETWEEN DATE '2025-06-30' AND DATE '2025-06-01'"
+    },
+    {
+      "id": "EX-SQL-FILTER-02-E2-31-PW3",
+      "error_id": "ERR-OUT-01",
+      "sql": "SELECT promo_code, promo_name, start_date FROM promotions WHERE start_date BETWEEN DATE '2025-06-01' AND DATE '2025-06-30'"
+    }
+  ],
+  "hint3_partial": "SELECT promo_code, promo_name, start_date, discount_pct\nFROM promotions\nWHERE start_date BETWEEN DATE '2025-06-01' AND DATE ___",
+  "solver": {
+    "prompt_hash": "6dee738d191f19df",
+    "schema_version": "f0340f71a1f5",
+    "dataset_version": "506a9858f862fdfb",
+    "grader_version": "1b.3",
+    "query": "SELECT promo_code, promo_name, start_date, discount_pct FROM promotions WHERE start_date >= DATE '2025-06-01' AND start_date <= DATE '2025-06-30'\n",
+    "at": "2026-10-04T14:33:18.255Z"
+  }
+}

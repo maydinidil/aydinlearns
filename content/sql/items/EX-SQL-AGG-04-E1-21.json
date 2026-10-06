@@ -1,0 +1,125 @@
+{
+  "id": "EX-SQL-AGG-04-E1-21",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-02",
+    "conditional-aggregation",
+    "count-if",
+    "products",
+    "else-zero",
+    "drill"
+  ],
+  "level": 2,
+  "source_ids": [
+    "01:SQL-AGG-04"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-AGG-04",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CASE-01",
+    "SQL-AGG-04"
+  ],
+  "template_id": "T-AGG-04-count-if-group",
+  "template_params": {
+    "table": "products",
+    "group_by": "brand",
+    "condition": "launch_date in 2025",
+    "output": "n_products, new_products"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_agg",
+  "prompt": "How many products does each brand have, and how many of them were launched in 2025? Use the products table. Return three columns, in this order: brand, n_products, the number of products of that brand, and new_products, the number of its products with a launch_date from 2025-01-01 to 2025-12-31, both included. Every product counts in n_products. A brand with no products launched in 2025 shows 0 for new_products, not a missing value. Return one row per brand. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "brand",
+        "type_class": "text"
+      },
+      {
+        "name": "n_products",
+        "type_class": "numeric"
+      },
+      {
+        "name": "new_products",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per brand"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "brand",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "n_products",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "new_products",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "brand"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the column new_products: a count of only the products launched in 2025, inside each brand.",
+    "Add up a CASE that gives 1 for a 2025 launch and 0 for any other product, so a brand with none still shows 0. COUNT would count the zeros too."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 160,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 161,
+      "to": 174,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 175,
+      "to": 189,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 110000,
+  "why_this_works": "The CASE gives 1 for a 2025 launch and 0 for every other product, so SUM counts the new products and shows 0 for a brand with none."
+}

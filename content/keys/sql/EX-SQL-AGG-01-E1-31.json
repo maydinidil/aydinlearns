@@ -1,0 +1,31 @@
+{
+  "item_id": "EX-SQL-AGG-01-E1-31",
+  "item_version": 1,
+  "reference_sql": "SELECT COUNT(DISTINCT product_id) AS n_products\nFROM sales\nWHERE channel = 'store' AND order_date BETWEEN DATE '2025-01-01' AND DATE '2025-03-31'",
+  "alternatives": [
+    "SELECT COUNT(DISTINCT product_id) AS n_products FROM sales WHERE order_date >= DATE '2025-01-01' AND order_date <= DATE '2025-03-31' AND channel = 'store'",
+    "SELECT COUNT(DISTINCT product_id) AS n_products FROM sales WHERE channel = 'store' AND order_date >= DATE '2025-01-01' AND order_date < DATE '2025-04-01'"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "EX-SQL-AGG-01-E1-31-PW1",
+      "error_id": "ERR-LOG-04",
+      "sql": "SELECT COUNT(product_id) AS n_products FROM sales WHERE channel = 'store' AND order_date BETWEEN DATE '2025-01-01' AND DATE '2025-03-31'"
+    },
+    {
+      "id": "EX-SQL-AGG-01-E1-31-PW2",
+      "error_id": "ERR-LOG-23",
+      "sql": "SELECT COUNT(DISTINCT product_id) AS n_products FROM sales WHERE channel = 'store' AND order_date BETWEEN DATE '2025-03-31' AND DATE '2025-01-01'"
+    }
+  ],
+  "hint3_partial": "SELECT COUNT(___) AS n_products\nFROM sales\nWHERE channel = 'store' AND order_date BETWEEN DATE '2025-01-01' AND DATE '2025-03-31'",
+  "solver": {
+    "prompt_hash": "e08e421c97d53f02",
+    "schema_version": "cebf75df442f",
+    "dataset_version": "506a9858f862fdfb",
+    "grader_version": "1b.3",
+    "query": "SELECT COUNT(DISTINCT product_id) AS n_products FROM sales WHERE channel = 'store' AND order_date BETWEEN DATE '2025-01-01' AND DATE '2025-03-31'\n",
+    "at": "2026-10-04T14:33:15.649Z"
+  }
+}

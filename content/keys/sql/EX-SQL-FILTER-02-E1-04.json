@@ -1,0 +1,36 @@
+{
+  "item_id": "EX-SQL-FILTER-02-E1-04",
+  "item_version": 1,
+  "reference_sql": "SELECT product_id, product_name, category_id, unit_cost_eur\nFROM products\nWHERE category_id IN (15, 16, 18)\n  AND unit_cost_eur < 100",
+  "alternatives": [
+    "SELECT product_id, product_name, category_id, unit_cost_eur\nFROM products\nWHERE unit_cost_eur < 100\n  AND category_id IN (18, 16, 15)",
+    "SELECT product_id, product_name, category_id, unit_cost_eur\nFROM products\nWHERE (category_id = 15 OR category_id = 16 OR category_id = 18)\n  AND unit_cost_eur < 100"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "EX-SQL-FILTER-02-E1-04-PW1",
+      "error_id": "ERR-LOG-13",
+      "sql": "SELECT product_id, product_name, category_id, unit_cost_eur\nFROM products\nWHERE category_id = 15 OR category_id = 16 OR category_id = 18 AND unit_cost_eur < 100"
+    },
+    {
+      "id": "EX-SQL-FILTER-02-E1-04-PW2",
+      "error_id": "ERR-LOG-15",
+      "sql": "SELECT product_id, product_name, category_id, unit_cost_eur\nFROM products\nWHERE category_id IN (15, 16, 18)\n  AND unit_cost_eur <= 100"
+    },
+    {
+      "id": "EX-SQL-FILTER-02-E1-04-PW3",
+      "error_id": "ERR-LOG-00",
+      "sql": "SELECT product_id, product_name, category_id, unit_cost_eur\nFROM products\nWHERE category_id IN (15, 16)\n  AND unit_cost_eur < 100"
+    }
+  ],
+  "hint3_partial": "SELECT product_id, product_name, category_id, unit_cost_eur\nFROM products\nWHERE category_id IN (___, ___, ___)\n  AND unit_cost_eur ___ 100",
+  "solver": {
+    "prompt_hash": "ac909ce53aeb30dd",
+    "schema_version": "d77fe1c31a0e",
+    "dataset_version": "9639f8ae1f71c2ef",
+    "grader_version": "1a.2",
+    "query": "SELECT product_id, product_name, category_id, unit_cost_eur FROM products WHERE category_id IN (15, 16, 18) AND unit_cost_eur < 100\n",
+    "at": "2026-10-03T13:08:02.664Z"
+  }
+}

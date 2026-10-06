@@ -1,0 +1,120 @@
+{
+  "id": "EX-SQL-BASICS-02-E2-21",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "calculated-column",
+    "products",
+    "percent"
+  ],
+  "level": 1,
+  "source_ids": [
+    "01:SQL-BASICS-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-BASICS-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02"
+  ],
+  "template_id": "T-BASICS-02-two-steps",
+  "template_params": {
+    "table": "products",
+    "rebate_pct": 3,
+    "fee_eur": "2.50"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_basics",
+  "prompt": "A supplier gives Voltmarkt a 3% rebate on each product's unit cost, then adds a flat handling fee of 2.50 euros per unit. For every product, return product_id, unit_cost_eur and net_cost_eur (the unit cost less the 3% rebate, plus the 2.50-euro fee, in euros), in that order. Use exactly these column names and do not round. One row per product, every product included. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "unit_cost_eur",
+        "type_class": "numeric"
+      },
+      {
+        "name": "net_cost_eur",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per product"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": true,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "unit_cost_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "net_cost_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "product_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the calculated column. Take the 3% rebate off the unit cost first, then add the fee.",
+    "The new column goes after unit_cost_eur, named with AS. Keeping 97% of a cost means multiplying by a share below 1, and the fee is added after that, so the rebate does not reduce it."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 18,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 26,
+      "to": 40,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 48,
+      "to": 91,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 92,
+      "to": 105,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 150000,
+  "why_this_works": "Multiplying by 0.97 keeps 97% of the cost after the rebate, and the 2.50 fee is added afterwards, so the rebate does not touch it."
+}

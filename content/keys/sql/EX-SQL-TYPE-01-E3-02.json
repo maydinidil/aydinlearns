@@ -1,0 +1,31 @@
+{
+  "item_id": "EX-SQL-TYPE-01-E3-02",
+  "item_version": 1,
+  "reference_sql": "SELECT store_code,\n       SUM(units) * 1.0 / COUNT(*) AS units_per_line\nFROM sales\nWHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\nGROUP BY store_code\nORDER BY units_per_line DESC, store_code\nLIMIT 2",
+  "alternatives": [
+    "SELECT store_code, CAST(SUM(units) AS DOUBLE) / COUNT(*) AS units_per_line FROM sales WHERE order_date >= DATE '2025-01-01' AND order_date <= DATE '2025-12-31' GROUP BY store_code ORDER BY CAST(SUM(units) AS DOUBLE) / COUNT(*) DESC, store_code ASC LIMIT 2",
+    "SELECT store_code, SUM(COALESCE(units, 0)) / CAST(COUNT(*) AS DOUBLE) AS units_per_line FROM sales WHERE order_date BETWEEN '2025-01-01' AND '2025-12-31' GROUP BY 1 ORDER BY 2 DESC, 1 LIMIT 2"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-05",
+      "sql": "SELECT store_code, SUM(units) // COUNT(*) AS units_per_line FROM sales WHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31' GROUP BY store_code ORDER BY units_per_line DESC, store_code LIMIT 2"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-16",
+      "sql": "SELECT store_code, SUM(units) * 1.0 / COUNT(*) AS units_per_line FROM sales WHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31' GROUP BY store_code ORDER BY units_per_line DESC, store_code DESC LIMIT 2"
+    }
+  ],
+  "hint3_partial": "SELECT store_code,\n       SUM(units) ___ / COUNT(*) AS units_per_line\nFROM sales\nWHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\nGROUP BY store_code\nORDER BY ___\nLIMIT 2",
+  "solver": {
+    "prompt_hash": "e0aeeeb8b83ba61f",
+    "schema_version": "cebf75df442f",
+    "dataset_version": "506a9858f862fdfb",
+    "grader_version": "1b.3",
+    "query": "SELECT store_code, SUM(units) * 1.0 / COUNT(*) AS units_per_line FROM sales WHERE order_date BETWEEN '2025-01-01' AND '2025-12-31' GROUP BY store_code ORDER BY units_per_line DESC, store_code ASC LIMIT 2\n",
+    "at": "2026-10-04T10:06:52.998Z"
+  }
+}

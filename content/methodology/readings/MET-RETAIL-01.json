@@ -1,0 +1,16 @@
+{
+  "concept_id": "MET-RETAIL-01",
+  "section": "methodology",
+  "version": 1,
+  "title": "Like-for-like (LFL) sales growth",
+  "reading_md": "**What it measures.** How much store sales grew against the same period a year earlier, counting only established stores that traded in both periods. Openings and closures are taken out, so the number shows whether the existing stores are selling more. At Voltmarkt it covers store sales; the webshop is reported on its own.\n\n**Formula.**\n\nLFL growth % = 100 × (LFL sales this period - LFL sales a year earlier) / LFL sales a year earlier\n\nGrain: one eligible store, or the total of all eligible stores, × period. For the total, add up the sales of the eligible stores first, then compute one growth rate.\n\n**Which stores count.** For a month's LFL, a store counts when:\n\n- it opened at least 12 full months before the first day of the same month last year, so it had already traded a full year when last year's month began;\n- it has not closed by the end of this month; and\n- it had sales in both months. A store with no sales in one of them, for example one shut for a whole month for a refit, gets no LFL figure and is left out of the total.\n\n**Worked example.** September 2025 against September 2024, sales in € thousands:\n\n| Stores | Sep 2024 | Sep 2025 |\n|---|---|---|\n| The 22 stores that count | 8,000 | 8,240 |\n| Almere, opened 1 September 2024 | 150 | 330 |\n| Mechelen, opened 1 March 2025 | 0 | 250 |\n| Zwolle, closed 30 June 2025 | 250 | 0 |\n| All stores | 8,400 | 8,820 |\n\n- LFL growth = 100 × (8,240 - 8,000) / 8,000 = 3.0%.\n- Total store growth = 100 × (8,820 - 8,400) / 8,400 = 5.0%. The extra 2 points come from the new stores, not from stores customers already knew.\n\nAlmere opened on the first day of September 2024, so it had not yet traded a full year when September 2024 began. It first counts in September 2026.\n\n**Common mistakes.**\n\n- Including new or closed stores. New stores push growth up, closures push it down, and neither says anything about the existing stores.\n- Ignoring the calendar. A month can have one more Saturday than a year before, and Easter moves between March and April (31 March in 2024, 20 April in 2025). Check the calendar before calling a month strong or weak.\n- Ignoring refits. A store closed for part of a month drags its LFL down; one closed for the whole month is left out.\n\n**What LFL does not answer.**\n\n- Total growth, which also counts new and closed stores.\n- Whether growth came from more customers, bigger baskets or higher prices: look at conversion rate, AOV and ASP.\n- Whether the stores made more profit: that needs gross margin.\n\n**How managers ask for it.** \"What was our LFL in September?\" \"Strip out the new stores, are we actually growing?\"",
+  "source_ids": [
+    "04:MET-RETAIL-01",
+    "04:§2.1",
+    "ERRATA:E-006",
+    "ERRATA:E-082",
+    "ERRATA:E-100"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06"
+}

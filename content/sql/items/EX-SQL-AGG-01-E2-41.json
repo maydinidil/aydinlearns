@@ -1,0 +1,86 @@
+{
+  "id": "EX-SQL-AGG-01-E2-41",
+  "version": 1,
+  "kind": "choose_query",
+  "tags": [
+    "sql",
+    "LVL-02",
+    "choose_query",
+    "aggregate",
+    "count_distinct",
+    "sales",
+    "grain"
+  ],
+  "level": 2,
+  "source_ids": [
+    "01:SQL-AGG-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-AGG-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-AGG-01"
+  ],
+  "template_id": "T-AGG-01-choose-count-distinct-orders",
+  "template_params": {
+    "table": "sales"
+  },
+  "sub_skill": "count_distinct",
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_agg",
+  "prompt": "How many different orders placed in the Netherlands (country_code 'NL')? Use the sales table, which has one row per order line. Which query returns this as n_orders?",
+  "output_contract": null,
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [],
+  "subgoals": [],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 90000,
+  "why_this_works": "",
+  "options": [
+    {
+      "oid": "ocdb2ae8",
+      "text": "SELECT COUNT(*) AS n_orders\nFROM sales\nWHERE country_code = 'NL'",
+      "misconception_id": "ERR-LOG-04"
+    },
+    {
+      "oid": "o347ed77",
+      "text": "SELECT COUNT(order_id) AS n_orders\nFROM sales\nWHERE country_code = 'NL'",
+      "misconception_id": "ERR-LOG-04"
+    },
+    {
+      "oid": "o9deec25",
+      "text": "SELECT COUNT(DISTINCT order_id) AS n_orders\nFROM sales\nWHERE country_code = 'NL'",
+      "misconception_id": null
+    },
+    {
+      "oid": "o875c24e",
+      "text": "SELECT COUNT(DISTINCT country_code) AS n_orders\nFROM sales\nWHERE country_code = 'NL'",
+      "misconception_id": "ERR-LOG-14"
+    }
+  ]
+}

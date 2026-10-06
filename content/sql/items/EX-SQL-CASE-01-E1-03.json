@@ -1,0 +1,119 @@
+{
+  "id": "EX-SQL-CASE-01-E1-03",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-02",
+    "case",
+    "flag",
+    "threshold",
+    "promotions"
+  ],
+  "level": 2,
+  "source_ids": [
+    "01:SQL-CASE-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "lesson",
+  "target_concept_id": "SQL-CASE-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-CASE-01"
+  ],
+  "template_id": "T-CASE-01-flag-threshold",
+  "template_params": {
+    "table": "promotions",
+    "tested": "discount_pct",
+    "threshold": 30,
+    "output": "depth"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_case",
+  "prompt": "Mark each promotion as deep or light. Use the promotions table. Return three columns, in this order: promo_code, discount_pct and depth. depth is the text 'deep' when discount_pct is 30 or more, and 'light' when it is under 30. Return one row per promotion. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "promo_code",
+        "type_class": "text"
+      },
+      {
+        "name": "discount_pct",
+        "type_class": "numeric"
+      },
+      {
+        "name": "depth",
+        "type_class": "text"
+      }
+    ],
+    "grain": "one row per promotion"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "promo_code",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "discount_pct",
+        "type_class": "numeric",
+        "precision": "ratio"
+      },
+      {
+        "name": "depth",
+        "type_class": "text",
+        "precision": "exact"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "promo_code"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the calculated column depth: one label for a discount of 30 or more, another for the rest.",
+    "depth is a CASE expression: a WHEN test on discount_pct that keeps 30 itself, THEN 'deep', an ELSE for the rest, then END and the name. Text labels go in single quotes."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 106,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 107,
+      "to": 122,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": {
+    "stage1": 40,
+    "stage2": 40
+  },
+  "faded_shape": "SELECT promo_code, discount_pct,\n       ",
+  "faded_suffix": "\nFROM promotions",
+  "starter_sql": null,
+  "time_target_ms": 90000,
+  "why_this_works": "The WHEN test sends every promotion of 30 or more to 'deep', and ELSE gives all the others 'light', so no row is left without a label."
+}

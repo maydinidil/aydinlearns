@@ -1,0 +1,50 @@
+{
+  "id": "Q-GA4-040",
+  "version": 2,
+  "kind": "mcq",
+  "section": "ga4",
+  "concept_id": "GA4-ADMIN-01",
+  "parent_id": null,
+  "topic_id": "T-GA4-05",
+  "legacy_id": "Q-GA4-40",
+  "stem": "You need to stop your office's own visits appearing in GA4 reports. What should you configure?",
+  "options": [
+    {
+      "oid": "o0a9294c",
+      "text": "Define internal traffic by IP in the web stream tag settings, then activate the Internal traffic data filter",
+      "misconception_id": null
+    },
+    {
+      "oid": "oda28c96",
+      "text": "Create an audience of office visitors, then share it with Google Ads as an exclusion list",
+      "misconception_id": null
+    },
+    {
+      "oid": "o22ade70",
+      "text": "Create a segment that excludes office sessions in a free-form exploration, then share that exploration with the team",
+      "misconception_id": null
+    },
+    {
+      "oid": "o4122660",
+      "text": "Add the office IP range to the list of unwanted referrals in the web stream tag settings",
+      "misconception_id": null
+    }
+  ],
+  "typed": null,
+  "exam_relevance": "core",
+  "held_out": false,
+  "enemy_group": null,
+  "status": "active",
+  "verified": true,
+  "level": null,
+  "tags": [
+    "ga4",
+    "T-GA4-05"
+  ],
+  "source_ids": [
+    "06:Q-GA4-40"
+  ],
+  "as_of": "2026-09-30",
+  "review_after": null,
+  "supersedes": []
+}

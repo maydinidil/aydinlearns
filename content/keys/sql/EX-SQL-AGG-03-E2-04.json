@@ -1,0 +1,46 @@
+{
+  "item_id": "EX-SQL-AGG-03-E2-04",
+  "item_version": 1,
+  "reference_sql": "SELECT category_name, COUNT(*) AS n_lines\nFROM sales\nWHERE units >= 2\nGROUP BY category_name\nHAVING COUNT(*) > 9000",
+  "alternatives": [
+    "SELECT category_name, COUNT(*) AS n_lines FROM sales WHERE units > 1 GROUP BY category_name HAVING COUNT(*) >= 9001",
+    "SELECT category_name, COUNT(order_line_id) AS n_lines FROM sales WHERE NOT units < 2 GROUP BY 1 HAVING COUNT(order_line_id) > 9000"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-SEM-01",
+      "sql": "SELECT category_name, COUNT(*) AS n_lines FROM sales GROUP BY category_name HAVING units >= 2 AND COUNT(*) > 9000"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-SYN-05",
+      "sql": "SELECT category_name, COUNT(*) AS n_lines FROM sales WHERE units >= 2 AND COUNT(*) > 9000 GROUP BY category_name"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-15",
+      "sql": "SELECT category_name, COUNT(*) AS n_lines FROM sales WHERE units > 2 GROUP BY category_name HAVING COUNT(*) > 9000"
+    },
+    {
+      "id": "PW4",
+      "error_id": "ERR-LOG-14",
+      "sql": "SELECT category_name, COUNT(*) AS n_lines FROM sales WHERE units >= 2 GROUP BY category_name HAVING SUM(units) > 9000"
+    },
+    {
+      "id": "PW5",
+      "error_id": "ERR-LOG-02",
+      "sql": "SELECT category_name, COUNT(*) AS n_lines FROM sales GROUP BY category_name HAVING MIN(units) >= 2 AND COUNT(*) > 9000"
+    }
+  ],
+  "hint3_partial": "SELECT category_name, COUNT(*) AS n_lines\nFROM sales\nWHERE ___\nGROUP BY category_name\nHAVING ___",
+  "solver": {
+    "prompt_hash": "7b97cb8416a9873d",
+    "schema_version": "cebf75df442f",
+    "dataset_version": "506a9858f862fdfb",
+    "grader_version": "1b.3",
+    "query": "SELECT category_name, COUNT(*) AS n_lines FROM sales WHERE units >= 2 GROUP BY category_name HAVING COUNT(*) > 9000\n",
+    "at": "2026-10-04T10:06:46.366Z"
+  }
+}

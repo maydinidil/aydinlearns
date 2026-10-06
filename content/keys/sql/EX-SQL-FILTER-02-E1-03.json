@@ -1,0 +1,36 @@
+{
+  "item_id": "EX-SQL-FILTER-02-E1-03",
+  "item_version": 1,
+  "reference_sql": "SELECT promo_code, promo_name, discount_pct\nFROM promotions\nWHERE discount_pct BETWEEN 10 AND 20",
+  "alternatives": [
+    "SELECT promo_code, promo_name, discount_pct\nFROM promotions\nWHERE discount_pct >= 10\n  AND discount_pct <= 20",
+    "SELECT promo_code, promo_name, discount_pct\nFROM promotions\nWHERE discount_pct BETWEEN 10.00 AND 20.00"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "EX-SQL-FILTER-02-E1-03-PW1",
+      "error_id": "ERR-LOG-15",
+      "sql": "SELECT promo_code, promo_name, discount_pct\nFROM promotions\nWHERE discount_pct > 10\n  AND discount_pct < 20"
+    },
+    {
+      "id": "EX-SQL-FILTER-02-E1-03-PW2",
+      "error_id": "ERR-LOG-15",
+      "sql": "SELECT promo_code, promo_name, discount_pct\nFROM promotions\nWHERE discount_pct >= 10\n  AND discount_pct < 20"
+    },
+    {
+      "id": "EX-SQL-FILTER-02-E1-03-PW3",
+      "error_id": "ERR-LOG-23",
+      "sql": "SELECT promo_code, promo_name, discount_pct\nFROM promotions\nWHERE discount_pct BETWEEN 20 AND 10"
+    }
+  ],
+  "hint3_partial": "SELECT promo_code, promo_name, discount_pct\nFROM promotions\nWHERE discount_pct BETWEEN ___ AND ___",
+  "solver": {
+    "prompt_hash": "8595423c119acd6e",
+    "schema_version": "f0340f71a1f5",
+    "dataset_version": "9639f8ae1f71c2ef",
+    "grader_version": "1a.2",
+    "query": "SELECT promo_code, promo_name, discount_pct FROM promotions WHERE discount_pct BETWEEN 10 AND 20\n",
+    "at": "2026-10-03T13:08:02.647Z"
+  }
+}

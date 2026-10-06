@@ -1,0 +1,32 @@
+{
+  "item_id": "EX-SQL-NULL-01-E3-01",
+  "item_version": 1,
+  "reference_sql": "SELECT promo_code, promo_name, start_date, end_date\nFROM promotions\nWHERE start_date <= DATE '2025-05-20' AND (end_date >= DATE '2025-05-20' OR end_date IS NULL)",
+  "alternatives": [
+    "SELECT promo_code, promo_name, start_date, end_date\nFROM promotions\nWHERE (end_date IS NULL OR end_date >= '2025-05-20') AND start_date <= '2025-05-20'",
+    "SELECT promo_code, promo_name, start_date, end_date\nFROM promotions\nWHERE (start_date <= DATE '2025-05-20' AND end_date >= DATE '2025-05-20') OR (start_date <= DATE '2025-05-20' AND end_date IS NULL)",
+    "SELECT promo_code, promo_name, start_date, end_date\nFROM promotions\nWHERE start_date < DATE '2025-05-21' AND (end_date > DATE '2025-05-19' OR end_date IS NULL)"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "M1",
+      "error_id": "ERR-LOG-03",
+      "sql": "SELECT promo_code, promo_name, start_date, end_date\nFROM promotions\nWHERE start_date <= DATE '2025-05-20' AND end_date >= DATE '2025-05-20'"
+    },
+    {
+      "id": "M2",
+      "error_id": "ERR-LOG-13",
+      "sql": "SELECT promo_code, promo_name, start_date, end_date\nFROM promotions\nWHERE end_date >= DATE '2025-05-20' OR end_date IS NULL AND start_date <= DATE '2025-05-20'"
+    }
+  ],
+  "hint3_partial": "SELECT promo_code, promo_name, start_date, end_date\nFROM promotions\nWHERE start_date <= DATE '2025-05-20' AND (end_date >= DATE '2025-05-20' OR ...)",
+  "solver": {
+    "prompt_hash": "d3435bb3f2b3f66b",
+    "schema_version": "f0340f71a1f5",
+    "dataset_version": "9639f8ae1f71c2ef",
+    "grader_version": "1a.2",
+    "query": "SELECT promo_code, promo_name, start_date, end_date FROM promotions WHERE start_date <= '2025-05-20' AND (end_date IS NULL OR end_date >= '2025-05-20')\n",
+    "at": "2026-10-03T13:08:03.006Z"
+  }
+}

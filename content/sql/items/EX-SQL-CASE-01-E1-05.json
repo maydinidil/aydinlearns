@@ -1,0 +1,123 @@
+{
+  "id": "EX-SQL-CASE-01-E1-05",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-02",
+    "case",
+    "bands",
+    "is-null",
+    "products"
+  ],
+  "level": 2,
+  "source_ids": [
+    "01:SQL-CASE-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "retest",
+  "target_concept_id": "SQL-CASE-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-NULL-01",
+    "SQL-CASE-01"
+  ],
+  "template_id": "T-CASE-01-bands-missing",
+  "template_params": {
+    "table": "products",
+    "filter": "brand = 'Sonora'",
+    "tested": "unit_cost_eur",
+    "threshold": 100,
+    "output": "cost_band"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_case",
+  "prompt": "Put the Sonora products in cost bands. Use the products table and keep the products whose brand is 'Sonora'. Return three columns, in this order: product_name, unit_cost_eur and cost_band. cost_band is the text 'unknown' when unit_cost_eur is missing, 'premium' when unit_cost_eur is 100.00 or more, and 'budget' when it is under 100.00. Return one row per product. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "product_name",
+        "type_class": "text"
+      },
+      {
+        "name": "unit_cost_eur",
+        "type_class": "numeric"
+      },
+      {
+        "name": "cost_band",
+        "type_class": "text"
+      }
+    ],
+    "grain": "one row per product"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "product_name",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "unit_cost_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "cost_band",
+        "type_class": "text",
+        "precision": "exact"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "product_name"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the calculated column cost_band, with one branch for each of the three labels.",
+    "cost_band is a CASE expression in the SELECT list. A missing unit cost never passes a >= or < test, so it needs its own WHEN branch with IS NULL; ELSE then catches the products under 100.00."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 192,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 193,
+      "to": 206,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 207,
+      "to": 229,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "The IS NULL branch catches a missing unit cost before ELSE can call it 'budget', and the >= test keeps 100.00 itself in 'premium'."
+}

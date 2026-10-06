@@ -1,0 +1,50 @@
+{
+  "id": "Q-GA4-022",
+  "version": 2,
+  "kind": "mcq",
+  "section": "ga4",
+  "concept_id": "GA4-AUDIENCE-01",
+  "parent_id": null,
+  "topic_id": "T-GA4-03",
+  "legacy_id": "Q-GA4-22",
+  "stem": "You want to show Google Ads to users who added to cart but did not buy. What should you do?",
+  "options": [
+    {
+      "oid": "oad551e9",
+      "text": "Create an audience that includes add_to_cart and excludes purchase, and share it with the linked Google Ads account",
+      "misconception_id": null
+    },
+    {
+      "oid": "o3af813c",
+      "text": "Create an exploration segment that includes add_to_cart and excludes purchase, and target it in Google Ads",
+      "misconception_id": null
+    },
+    {
+      "oid": "o2cf3cbb",
+      "text": "Create a data filter that excludes purchase events, then target the remaining add_to_cart users with Google Ads campaigns",
+      "misconception_id": null
+    },
+    {
+      "oid": "o19d8765",
+      "text": "Mark add_to_cart as a key event and import it into the linked Google Ads account as a conversion to bid toward",
+      "misconception_id": null
+    }
+  ],
+  "typed": null,
+  "exam_relevance": "core",
+  "held_out": false,
+  "enemy_group": "EG-GA4-05",
+  "status": "active",
+  "verified": false,
+  "level": null,
+  "tags": [
+    "ga4",
+    "T-GA4-03"
+  ],
+  "source_ids": [
+    "06:Q-GA4-22"
+  ],
+  "as_of": "2026-09-30",
+  "review_after": null,
+  "supersedes": []
+}

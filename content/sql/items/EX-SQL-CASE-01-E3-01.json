@@ -1,0 +1,144 @@
+{
+  "id": "EX-SQL-CASE-01-E3-01",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-02",
+    "case",
+    "case-over-aggregate",
+    "branch-order",
+    "group-by",
+    "order-by",
+    "sales"
+  ],
+  "level": 2,
+  "source_ids": [
+    "01:SQL-CASE-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-CASE-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CASE-01"
+  ],
+  "template_id": "T-CASE-01-group-tier",
+  "template_params": {
+    "table": "sales",
+    "group_by": "store_code",
+    "thresholds": "2000000, 3000000",
+    "output": "tier",
+    "from": "2025-01-01",
+    "to": "2025-12-31"
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_case",
+  "prompt": "Put Voltmarkt's stores in tiers by their 2025 net revenue. Use the sales table and keep the order lines with an order_date from 2025-01-01 to 2025-12-31, both included. Return three columns, in this order: store_code, revenue_eur, the sum of net_revenue_eur, and tier. tier is the text 'A' when revenue_eur is 3000000 or more, 'B' when it is 2000000 or more but under 3000000, and 'C' when it is under 2000000. A missing net_revenue_eur adds nothing to the sum. Return one row per store_code with 2025 sales, sorted by revenue_eur from highest to lowest. Do not round.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "store_code",
+        "type_class": "text"
+      },
+      {
+        "name": "revenue_eur",
+        "type_class": "numeric"
+      },
+      {
+        "name": "tier",
+        "type_class": "text"
+      }
+    ],
+    "grain": "one row per store"
+  },
+  "rules": {
+    "order_matters": true,
+    "sort_keys": [
+      {
+        "column": "revenue_eur",
+        "desc": true
+      }
+    ],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "store_code",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "revenue_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "tier",
+        "type_class": "text",
+        "precision": "exact"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "store_code"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, keep the 2025 lines and decide what one row stands for: one row per store. Then write the total and the tier that labels it.",
+    "A CASE can test an aggregate: the WHEN conditions can use the same SUM as the revenue column. Test the 3000000 threshold before the 2000000 one, because the first true branch wins."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 218,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 219,
+      "to": 229,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 230,
+      "to": 294,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 295,
+      "to": 314,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 315,
+      "to": 340,
+      "subgoal": "sort_limit"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 220000,
+  "why_this_works": "The CASE runs on each store's total after grouping, and testing the higher threshold first keeps the A stores out of the B branch."
+}

@@ -1,0 +1,128 @@
+{
+  "id": "EX-SQL-AGG-03-E2-05",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-02",
+    "having",
+    "sum",
+    "two-conditions",
+    "sales"
+  ],
+  "level": 2,
+  "source_ids": [
+    "01:SQL-AGG-03"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-AGG-03",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-AGG-03"
+  ],
+  "template_id": "T-AGG-03-two-conditions",
+  "template_params": {
+    "table": "sales",
+    "group_by": "category_name",
+    "condition_1": "sum units more than 40000",
+    "condition_2": "sum revenue less than 2000000"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_agg",
+  "prompt": "Which categories sold more than 40,000 units in total but brought in less than 2,000,000 euros of net revenue? Use the sales table and its category_name column. Return three columns, in this order: category_name, units_sold, the sum of units, and revenue_eur, the sum of net_revenue_eur. Return one row per category, and only the categories that meet both conditions. Missing units or net_revenue_eur add nothing to the totals. Do not round. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "category_name",
+        "type_class": "text"
+      },
+      {
+        "name": "units_sold",
+        "type_class": "numeric"
+      },
+      {
+        "name": "revenue_eur",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per category"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "category_name",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "units_sold",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "revenue_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "category_name"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the group filter: both conditions are on category totals, and a category must pass both.",
+    "One clause after GROUP BY can hold two tests on aggregates. Join them so that both must be true."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 83,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 84,
+      "to": 94,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 95,
+      "to": 117,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 118,
+      "to": 178,
+      "subgoal": "group_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "Both conditions test category totals, so both go in HAVING, joined with AND so a category must pass each one."
+}

@@ -1,0 +1,124 @@
+{
+  "concept_id": "SQL-TYPE-01",
+  "version": 1,
+  "reading_md": "# Types, CAST, division and rounding\n\nEvery value in SQL has a type: a whole number (INTEGER, BIGINT), a decimal (DECIMAL, DOUBLE), text (VARCHAR), a date (DATE) or a boolean (true or false). The type decides what an operator does with a value.\n\n## Division: keep the decimals\n\nIn DuckDB, `/` always keeps the decimals: `7 / 2` is 3.5. Integer division has its own operator, `//`, which drops everything after the decimal point: `7 // 2` is 3. PostgreSQL and SQLite divide two whole numbers as integer division, so there `7 / 2` is 3, and a rate of 3 out of 4 comes out as 0. Online SQL tests often run on those engines.\n\nCOUNT(*), COUNT(DISTINCT ...) and the SUM of a whole-number column such as units are whole numbers. The portable habit is to make one side a decimal before you divide:\n\n```sql\nSUM(units) * 1.0 / COUNT(*)            -- 1.0 makes the top a decimal\nCAST(SUM(units) AS DOUBLE) / COUNT(*)  -- or convert it with CAST\n```\n\nA DECIMAL column such as net_revenue_eur is already a decimal, so `SUM(net_revenue_eur) / SUM(units)` keeps its decimals on every engine.\n\n## CAST changes the type\n\n`CAST(value AS type)` converts a value: `CAST(units AS DOUBLE)`, `CAST(order_date AS VARCHAR)`, `CAST('2025-07-01' AS DATE)`. DuckDB also accepts the short form `units::DOUBLE`. A CAST to INTEGER rounds to the nearest whole number in DuckDB (`CAST(8.7 AS INTEGER)` is 9), so it is no way to keep decimals or to round to 1 or 2 decimals.\n\n## ROUND once, at the end\n\n`ROUND(x, 2)` rounds to 2 decimals and `ROUND(x, 0)` to whole numbers; a half rounds away from zero, so `ROUND(2.5, 0)` is 3. Round only the final result: `ROUND(SUM(x), 0)`, not `SUM(ROUND(x, 0))`. Each early rounding adds a small error, and SUM, AVG and division add those errors up.\n\n## Shares and percentages\n\nA share runs from 0 to 1; a percentage is the share times 100. 0.15 and 15.0 are the same amount on two scales, so read which one the question asks for. For a percentage, multiply first: `100.0 * part / whole` gives the percent scale and a decimal division in one step. A stored percentage such as discount_pct, where 15.00 means 15 percent, becomes a share when you divide it by 100.\n\n## The right type in each column\n\nA number column holds numbers: '15.0%' is text and never equals 15.0. A yes-or-no column is a boolean: `units >= 2 AS is_multi_unit` gives true or false, while 'yes' and 'no' are text. A date column stays a date unless the question asks for text.\n\n## How to write a ratio column\n\n1. Name the top and the bottom, and what each one counts or adds up.\n2. Make one side a decimal, then divide.\n3. Scale it: times 100 for a percentage, nothing more for a share.\n4. Wrap the whole expression in ROUND with the decimals asked for, and name it with AS.",
+  "syntax_md": "```sql\nSELECT group_column,\n       ROUND(SUM(whole_col) * 1.0 / COUNT(*), 2) AS ratio,   -- metrics: a decimal division, rounded once\n       ROUND(100.0 * SUM(part) / SUM(whole), 1) AS pct,      -- metrics: the percent scale\n       CAST(some_col AS DOUBLE) AS some_col_decimal          -- metrics: a new type\nFROM table_name                                             -- source and grain\nGROUP BY group_column;                                      -- one row per group\n```\n\n- In DuckDB, `/` always keeps the decimals and `//` is integer division: `7 / 2` is 3.5, `7 // 2` is 3.\n- Make one side a decimal before you divide two whole numbers: `* 1.0` or `CAST(x AS DOUBLE)`.\n- CAST converts: `CAST(x AS DOUBLE)`, `CAST(x AS DECIMAL(10, 2))`, `CAST(x AS INTEGER)` (rounds in DuckDB), `CAST(x AS VARCHAR)`, `CAST('2025-07-01' AS DATE)`. `x::DOUBLE` is DuckDB's short form.\n- `ROUND(x, n)` rounds to n decimals, a half away from zero; `ROUND(x, 0)` gives whole numbers. Round once, around the final result.\n- Percentage: `100.0 * part / whole`. Share: `part * 1.0 / whole`. A stored percentage becomes a share with `/ 100`.\n- A test such as `col IS NOT NULL` is already a boolean column; 'true' in quotes is text.",
+  "dialect_note": "DuckDB's / always returns a decimal (7 / 2 is 3.5), and // is integer division, which cuts toward zero (7 // 2 is 3, -7 // 2 is -3; checked on 1.5.6). PostgreSQL and SQLite divide two integers as integer division (7 / 2 is 3), while BigQuery returns 3.5 and writes integer division as DIV(7, 2). Dividing by zero with / gives Infinity in DuckDB (NaN for 0 / 0), an error in PostgreSQL and BigQuery, and NULL in SQLite. Writing * 1.0 or a CAST on one side gives the same answer on every engine, so it is the portable choice. CAST to INTEGER rounds in DuckDB: a DECIMAL rounds a half away from zero (CAST(2.5 AS INTEGER) is 3) and a DOUBLE rounds a half to even (CAST(2.5::DOUBLE AS INTEGER) is 2), so use ROUND when you mean to round.",
+  "worked_examples": [
+    {
+      "title": "Units per order line in each parent category",
+      "prompt": "How many units does an order line hold on average in each parent category? Use the sales table and all its order lines. Return parent_category and units_per_line, the total of units divided by the number of order lines, rounded to 2 decimals with ROUND(x, 2). Return one row per parent_category.",
+      "clauses": [
+        {
+          "text": "SELECT parent_category,",
+          "subgoal": "metrics",
+          "why": "The group comes first, so each row says which category its number belongs to."
+        },
+        {
+          "text": "       ROUND(SUM(units) * 1.0 / COUNT(*), 2) AS units_per_line",
+          "subgoal": "metrics",
+          "why": "SUM(units) and COUNT(*) are whole numbers; the 1.0 keeps the decimals on every engine, and ROUND wraps only the final result."
+        },
+        {
+          "text": "FROM sales",
+          "subgoal": "source_grain",
+          "why": "sales has one row per order line, so COUNT(*) counts lines."
+        },
+        {
+          "text": "GROUP BY parent_category",
+          "subgoal": "output_grain",
+          "why": "One row per parent category, with the total and the count worked out inside each group."
+        }
+      ]
+    },
+    {
+      "title": "Web share of revenue, as a percentage",
+      "prompt": "What percentage of each parent category's net revenue came from the web? Use the sales table and all its order lines. Return parent_category and web_revenue_pct, 100 times the net_revenue_eur on lines with channel 'web' divided by all net_revenue_eur, rounded to 1 decimal with ROUND(x, 1), so 15 percent is 15.0. Return one row per parent_category.",
+      "clauses": [
+        {
+          "text": "SELECT parent_category,",
+          "subgoal": "metrics",
+          "why": "The group the percentage belongs to."
+        },
+        {
+          "text": "       ROUND(100.0 * SUM(net_revenue_eur) FILTER (WHERE channel = 'web')",
+          "subgoal": "metrics",
+          "why": "The top of the division is the web revenue only, and multiplying by 100.0 first puts the answer on the percent scale."
+        },
+        {
+          "text": "             / SUM(net_revenue_eur), 1) AS web_revenue_pct",
+          "subgoal": "metrics",
+          "why": "Dividing by all revenue gives the share; ROUND around the whole expression rounds once, at the end, and never the share before it is scaled."
+        },
+        {
+          "text": "FROM sales",
+          "subgoal": "source_grain",
+          "why": "One row per order line, each with its channel and revenue."
+        },
+        {
+          "text": "GROUP BY parent_category",
+          "subgoal": "output_grain",
+          "why": "Both sums are worked out per parent category, so the percentage is too."
+        }
+      ]
+    }
+  ],
+  "pretest_item_ids": [
+    "EX-SQL-TYPE-01-E1-01",
+    "EX-SQL-TYPE-01-E1-02"
+  ],
+  "lesson_item_ids": [
+    "EX-SQL-TYPE-01-E1-03",
+    "EX-SQL-TYPE-01-E1-04",
+    "EX-SQL-TYPE-01-E2-01",
+    "EX-SQL-TYPE-01-E2-02"
+  ],
+  "retest_item_id": "EX-SQL-TYPE-01-E1-05",
+  "pool_item_ids": [
+    "EX-SQL-TYPE-01-E1-06",
+    "EX-SQL-TYPE-01-E1-07",
+    "EX-SQL-TYPE-01-E1-08",
+    "EX-SQL-TYPE-01-E2-03",
+    "EX-SQL-TYPE-01-E2-04",
+    "EX-SQL-TYPE-01-E2-05",
+    "EX-SQL-TYPE-01-E2-06",
+    "EX-SQL-TYPE-01-E2-07",
+    "EX-SQL-TYPE-01-E3-01",
+    "EX-SQL-TYPE-01-E3-02",
+    "EX-SQL-TYPE-01-E3-03",
+    "EX-SQL-TYPE-01-E3-04",
+    "EX-SQL-TYPE-01-E1-31",
+    "EX-SQL-TYPE-01-E1-32",
+    "EX-SQL-TYPE-01-E2-31",
+    "EX-SQL-TYPE-01-E1-42",
+    "EX-SQL-TYPE-01-E2-41",
+    "EX-SQL-TYPE-01-E2-42"
+  ],
+  "source_ids": [
+    "01:SQL-TYPE-01"
+  ],
+  "why_clause": {
+    "clause": "ROUND(SUM(units) * 1.0 / COUNT(*), 2) AS units_per_line",
+    "stem": "Why is SUM(units) multiplied by 1.0 before the division?",
+    "options": [
+      {
+        "id": "a",
+        "text": "It turns the units into euros before they are divided."
+      },
+      {
+        "id": "b",
+        "text": "It rounds SUM(units) to 1 decimal before the division."
+      },
+      {
+        "id": "c",
+        "text": "It makes DuckDB divide two whole numbers the way other engines do."
+      },
+      {
+        "id": "d",
+        "text": "It makes the top a decimal, so no engine drops the decimals."
+      }
+    ],
+    "correct_id": "d",
+    "explanation": "SUM(units) and COUNT(*) are whole numbers, and PostgreSQL and SQLite divide two whole numbers as integer division, which drops the decimals. Multiplying by 1.0 makes the top a decimal first, so every engine keeps the decimals. DuckDB keeps them anyway, so there the result does not change."
+  }
+}

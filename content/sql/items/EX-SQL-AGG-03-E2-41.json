@@ -1,0 +1,158 @@
+{
+  "id": "EX-SQL-AGG-03-E2-41",
+  "version": 1,
+  "kind": "predict_result",
+  "tags": [
+    "sql",
+    "LVL-02",
+    "predict_result",
+    "having",
+    "group_by",
+    "products"
+  ],
+  "level": 2,
+  "source_ids": [
+    "01:SQL-AGG-03"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-AGG-03",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-AGG-03"
+  ],
+  "template_id": "T-AGG-03-predict-result-having-brands",
+  "template_params": {
+    "table": "products"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_agg",
+  "prompt": "Which result does this query return? Use the sample rows of products in the tables panel, which hold products 1 to 5. Rows may be in any order.",
+  "output_contract": null,
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [],
+  "subgoals": [],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 90000,
+  "why_this_works": "",
+  "shown_sql": "SELECT brand, COUNT(*) AS n_products\nFROM products\nWHERE product_id <= 5\nGROUP BY brand\nHAVING COUNT(*) > 1",
+  "options": [
+    {
+      "oid": "ocd7d5c1",
+      "text": "Lumio, Nordvue and Vistara",
+      "misconception_id": "ERR-LOG-02",
+      "table": {
+        "columns": [
+          "brand",
+          "n_products"
+        ],
+        "rows": [
+          [
+            "Lumio",
+            2
+          ],
+          [
+            "Nordvue",
+            1
+          ],
+          [
+            "Vistara",
+            2
+          ]
+        ]
+      }
+    },
+    {
+      "oid": "ode8efda",
+      "text": "Lumio and Vistara",
+      "misconception_id": null,
+      "table": {
+        "columns": [
+          "brand",
+          "n_products"
+        ],
+        "rows": [
+          [
+            "Lumio",
+            2
+          ],
+          [
+            "Vistara",
+            2
+          ]
+        ]
+      }
+    },
+    {
+      "oid": "o3beb656",
+      "text": "Nordvue only",
+      "misconception_id": "ERR-LOG-15",
+      "table": {
+        "columns": [
+          "brand",
+          "n_products"
+        ],
+        "rows": [
+          [
+            "Nordvue",
+            1
+          ]
+        ]
+      }
+    },
+    {
+      "oid": "o43ac075",
+      "text": "Lumio twice and Vistara twice, each with a count of 1",
+      "misconception_id": "ERR-LOG-02",
+      "table": {
+        "columns": [
+          "brand",
+          "n_products"
+        ],
+        "rows": [
+          [
+            "Lumio",
+            1
+          ],
+          [
+            "Lumio",
+            1
+          ],
+          [
+            "Vistara",
+            1
+          ],
+          [
+            "Vistara",
+            1
+          ]
+        ]
+      }
+    }
+  ]
+}

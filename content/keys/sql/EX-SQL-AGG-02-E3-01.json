@@ -1,0 +1,42 @@
+{
+  "item_id": "EX-SQL-AGG-02-E3-01",
+  "item_version": 1,
+  "reference_sql": "SELECT parent_category, SUM(net_revenue_eur) / SUM(units) AS avg_unit_price_eur\nFROM sales\nWHERE net_revenue_eur IS NOT NULL\nGROUP BY parent_category",
+  "alternatives": [
+    "SELECT parent_category, SUM(net_revenue_eur) / SUM(units) AS avg_unit_price_eur FROM sales WHERE net_revenue_eur IS NOT NULL AND units IS NOT NULL GROUP BY parent_category",
+    "SELECT parent_category, SUM(net_revenue_eur) / SUM(units) AS avg_unit_price_eur FROM sales WHERE NOT net_revenue_eur IS NULL GROUP BY 1",
+    "SELECT parent_category, 1.0 * SUM(net_revenue_eur) / SUM(units) AS avg_unit_price_eur FROM sales WHERE net_revenue_eur IS NOT NULL GROUP BY parent_category"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-20",
+      "sql": "SELECT parent_category, AVG(net_revenue_eur / units) AS avg_unit_price_eur FROM sales WHERE net_revenue_eur IS NOT NULL GROUP BY parent_category"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-17",
+      "sql": "SELECT parent_category, SUM(net_revenue_eur) / SUM(units) AS avg_unit_price_eur FROM sales GROUP BY parent_category"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-14",
+      "sql": "SELECT parent_category, AVG(net_revenue_eur) AS avg_unit_price_eur FROM sales WHERE net_revenue_eur IS NOT NULL GROUP BY parent_category"
+    },
+    {
+      "id": "PW4",
+      "error_id": "ERR-LOG-07",
+      "sql": "SELECT parent_category, SUM(net_revenue_eur) / SUM(units) AS avg_unit_price_eur FROM sales WHERE net_revenue_eur IS NOT NULL GROUP BY parent_category, category_name"
+    }
+  ],
+  "hint3_partial": "SELECT parent_category, SUM(net_revenue_eur) / ___ AS avg_unit_price_eur\nFROM sales\nWHERE net_revenue_eur IS NOT NULL\nGROUP BY ___",
+  "solver": {
+    "prompt_hash": "cfaac7acc51393ee",
+    "schema_version": "cebf75df442f",
+    "dataset_version": "506a9858f862fdfb",
+    "grader_version": "1b.3",
+    "query": "SELECT parent_category, SUM(net_revenue_eur) / SUM(units) AS avg_unit_price_eur FROM sales WHERE net_revenue_eur IS NOT NULL GROUP BY parent_category\n",
+    "at": "2026-10-04T10:06:44.703Z"
+  }
+}

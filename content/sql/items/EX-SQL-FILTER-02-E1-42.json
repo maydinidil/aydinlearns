@@ -1,0 +1,157 @@
+{
+  "id": "EX-SQL-FILTER-02-E1-42",
+  "version": 1,
+  "kind": "predict_result",
+  "tags": [
+    "sql",
+    "LVL-01",
+    "predict_result",
+    "between",
+    "promotions"
+  ],
+  "level": 1,
+  "source_ids": [
+    "01:SQL-FILTER-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-FILTER-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-02"
+  ],
+  "template_id": "T-FILTER-02-predict-result-between-inclusive",
+  "template_params": {
+    "table": "promotions"
+  },
+  "sub_skill": "between",
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_filter",
+  "prompt": "Which result does this query return? Use the sample rows of promotions in the tables panel, which hold promotions 1 to 5. Rows may be in any order.",
+  "output_contract": null,
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [],
+  "subgoals": [],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 60000,
+  "why_this_works": "",
+  "shown_sql": "SELECT promo_id, discount_pct\nFROM promotions\nWHERE promo_id <= 5\n  AND discount_pct BETWEEN 30 AND 50",
+  "options": [
+    {
+      "oid": "o8c1b956",
+      "text": "Promotion 2 only",
+      "misconception_id": "ERR-LOG-23",
+      "table": {
+        "columns": [
+          "promo_id",
+          "discount_pct"
+        ],
+        "rows": [
+          [
+            2,
+            "40.00"
+          ]
+        ]
+      }
+    },
+    {
+      "oid": "obd77771",
+      "text": "Promotions 2 and 5",
+      "misconception_id": "ERR-LOG-23",
+      "table": {
+        "columns": [
+          "promo_id",
+          "discount_pct"
+        ],
+        "rows": [
+          [
+            2,
+            "40.00"
+          ],
+          [
+            5,
+            "30.00"
+          ]
+        ]
+      }
+    },
+    {
+      "oid": "ocb533f3",
+      "text": "Promotions 1, 2 and 4",
+      "misconception_id": "ERR-LOG-23",
+      "table": {
+        "columns": [
+          "promo_id",
+          "discount_pct"
+        ],
+        "rows": [
+          [
+            1,
+            "50.00"
+          ],
+          [
+            2,
+            "40.00"
+          ],
+          [
+            4,
+            "50.00"
+          ]
+        ]
+      }
+    },
+    {
+      "oid": "o541d010",
+      "text": "Promotions 1, 2, 4 and 5",
+      "misconception_id": null,
+      "table": {
+        "columns": [
+          "promo_id",
+          "discount_pct"
+        ],
+        "rows": [
+          [
+            1,
+            "50.00"
+          ],
+          [
+            2,
+            "40.00"
+          ],
+          [
+            4,
+            "50.00"
+          ],
+          [
+            5,
+            "30.00"
+          ]
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,36 @@
+{
+  "item_id": "EX-SQL-AGG-01-E2-05",
+  "item_version": 1,
+  "reference_sql": "SELECT AVG(net_revenue_eur) AS avg_line_revenue_eur\nFROM sales\nWHERE order_date BETWEEN DATE '2025-03-01' AND DATE '2025-03-31'",
+  "alternatives": [
+    "SELECT SUM(net_revenue_eur) / COUNT(net_revenue_eur) AS avg_line_revenue_eur FROM sales WHERE order_date >= DATE '2025-03-01' AND order_date < DATE '2025-04-01'",
+    "SELECT AVG(net_revenue_eur) AS avg_line_revenue_eur FROM sales WHERE order_date BETWEEN DATE '2025-03-01' AND DATE '2025-03-31' AND net_revenue_eur IS NOT NULL"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "EX-SQL-AGG-01-E2-05-PW1",
+      "error_id": "ERR-LOG-04",
+      "sql": "SELECT SUM(net_revenue_eur) / COUNT(*) AS avg_line_revenue_eur FROM sales WHERE order_date BETWEEN DATE '2025-03-01' AND DATE '2025-03-31'"
+    },
+    {
+      "id": "EX-SQL-AGG-01-E2-05-PW2",
+      "error_id": "ERR-LOG-06",
+      "sql": "SELECT AVG(net_revenue_eur) AS avg_line_revenue_eur FROM sales WHERE order_date >= DATE '2025-03-01' AND order_date < DATE '2025-03-31'"
+    },
+    {
+      "id": "EX-SQL-AGG-01-E2-05-PW3",
+      "error_id": "ERR-LOG-14",
+      "sql": "SELECT SUM(net_revenue_eur) AS avg_line_revenue_eur FROM sales WHERE order_date BETWEEN DATE '2025-03-01' AND DATE '2025-03-31'"
+    }
+  ],
+  "hint3_partial": "SELECT ___(net_revenue_eur) AS avg_line_revenue_eur\nFROM sales\nWHERE order_date BETWEEN ___ AND ___",
+  "solver": {
+    "prompt_hash": "4c640e809b1cd625",
+    "schema_version": "cebf75df442f",
+    "dataset_version": "506a9858f862fdfb",
+    "grader_version": "1b.3",
+    "query": "SELECT AVG(net_revenue_eur) AS avg_line_revenue_eur FROM sales WHERE order_date >= '2025-03-01' AND order_date <= '2025-03-31'\n",
+    "at": "2026-10-04T10:06:42.270Z"
+  }
+}

@@ -1,0 +1,41 @@
+{
+  "item_id": "EX-SQL-AGG-02-E2-22",
+  "item_version": 1,
+  "reference_sql": "SELECT order_week, SUM(units) AS units_sold\nFROM sales\nWHERE order_date BETWEEN DATE '2025-02-01' AND DATE '2025-02-28'\nGROUP BY order_week\nORDER BY order_week",
+  "alternatives": [
+    "SELECT order_week, SUM(units) AS units_sold FROM sales WHERE order_date >= DATE '2025-02-01' AND order_date < DATE '2025-03-01' GROUP BY 1 ORDER BY 1",
+    "SELECT order_week, SUM(units) AS units_sold FROM sales WHERE order_date BETWEEN '2025-02-01' AND '2025-02-28' GROUP BY order_week ORDER BY order_week ASC"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-18",
+      "sql": "SELECT order_week, SUM(units) AS units_sold FROM sales WHERE order_date BETWEEN DATE '2025-02-01' AND DATE '2025-02-28' GROUP BY order_week ORDER BY order_week DESC"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-23",
+      "sql": "SELECT order_week, SUM(units) AS units_sold FROM sales WHERE order_date > DATE '2025-02-01' AND order_date <= DATE '2025-02-28' GROUP BY order_week ORDER BY order_week"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-14",
+      "sql": "SELECT order_week, COUNT(units) AS units_sold FROM sales WHERE order_date BETWEEN DATE '2025-02-01' AND DATE '2025-02-28' GROUP BY order_week ORDER BY order_week"
+    },
+    {
+      "id": "PW4",
+      "error_id": "ERR-SEM-01",
+      "sql": "SELECT order_week, order_month, SUM(units) AS units_sold FROM sales WHERE order_date BETWEEN DATE '2025-02-01' AND DATE '2025-02-28' GROUP BY order_week ORDER BY order_week"
+    }
+  ],
+  "hint3_partial": "SELECT order_week, SUM(units) AS units_sold\nFROM sales\nWHERE order_date BETWEEN ___\nGROUP BY ___\nORDER BY ___",
+  "solver": {
+    "prompt_hash": "fabdead9f9b48a05",
+    "schema_version": "cebf75df442f",
+    "dataset_version": "506a9858f862fdfb",
+    "grader_version": "1b.3",
+    "query": "SELECT order_week, SUM(units) AS units_sold FROM sales WHERE order_date BETWEEN DATE '2025-02-01' AND DATE '2025-02-28' GROUP BY order_week ORDER BY order_week ASC\n",
+    "at": "2026-10-04T14:33:16.222Z"
+  }
+}

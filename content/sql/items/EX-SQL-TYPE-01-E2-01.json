@@ -1,0 +1,134 @@
+{
+  "id": "EX-SQL-TYPE-01-E2-01",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-02",
+    "type",
+    "division",
+    "decimals",
+    "round",
+    "ratio-of-sums",
+    "missing-values",
+    "group-by",
+    "sales"
+  ],
+  "level": 2,
+  "source_ids": [
+    "01:SQL-TYPE-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "lesson",
+  "target_concept_id": "SQL-TYPE-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01"
+  ],
+  "template_id": "T-TYPE-01-ratio-per-group",
+  "template_params": {
+    "table": "sales",
+    "group_by": "parent_category",
+    "top": "SUM(net_revenue_eur)",
+    "bottom": "SUM(units)",
+    "from": "2025-07-01",
+    "to": "2025-12-31",
+    "decimals": 2,
+    "output": "avg_price_eur"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_type",
+  "prompt": "What is the average selling price per unit in each parent category in the second half of 2025? Use the sales table and keep the order lines with an order_date from 2025-07-01 to 2025-12-31, both included, that have both units and net_revenue_eur present. Return two columns, in this order: parent_category and avg_price_eur, the total net_revenue_eur divided by the total units, rounded to 2 decimals with ROUND(x, 2). Return one row per parent_category. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "parent_category",
+        "type_class": "text"
+      },
+      {
+        "name": "avg_price_eur",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per parent_category"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "parent_category",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "avg_price_eur",
+        "type_class": "numeric",
+        "precision": "money",
+        "require_rounding": 2
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "parent_category"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the calculated column avg_price_eur: one total divided by another, for each parent_category.",
+    "Add up the revenue and the units first and divide once; an average of each line's price gives every line the same weight. net_revenue_eur is already a decimal, so this division keeps its decimals. Round the final result to 2 decimals."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 91,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 92,
+      "to": 102,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 103,
+      "to": 225,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 226,
+      "to": 250,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": {
+    "stage1": 31,
+    "stage2": 31
+  },
+  "faded_shape": "SELECT parent_category,\n       ",
+  "faded_suffix": "\nFROM sales\nWHERE order_date BETWEEN DATE '2025-07-01' AND DATE '2025-12-31'\n  AND units IS NOT NULL\n  AND net_revenue_eur IS NOT NULL\nGROUP BY parent_category",
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "Dividing the two totals weights every line by its units, a decimal numerator keeps the decimals, and rounding happens once at the end."
+}

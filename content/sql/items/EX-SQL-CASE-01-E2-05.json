@@ -1,0 +1,124 @@
+{
+  "id": "EX-SQL-CASE-01-E2-05",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-02",
+    "case",
+    "labels",
+    "branch-order",
+    "promotions"
+  ],
+  "level": 2,
+  "source_ids": [
+    "01:SQL-CASE-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-CASE-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-CASE-01"
+  ],
+  "template_id": "T-CASE-01-priority-labels",
+  "template_params": {
+    "table": "promotions",
+    "first": "promo_type = 'clearance'",
+    "second": "discount_pct >= 30",
+    "output": "promo_class"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_case",
+  "prompt": "Classify every promotion. promo_class is the text 'clearance' when promo_type is 'clearance', whatever its discount; 'deep' when the promotion is not a clearance and discount_pct is 30 or more; and 'standard' for every other promotion. Use the promotions table. Return four columns, in this order: promo_code, promo_type, discount_pct and promo_class. Return one row per promotion. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "promo_code",
+        "type_class": "text"
+      },
+      {
+        "name": "promo_type",
+        "type_class": "text"
+      },
+      {
+        "name": "discount_pct",
+        "type_class": "numeric"
+      },
+      {
+        "name": "promo_class",
+        "type_class": "text"
+      }
+    ],
+    "grain": "one row per promotion"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "promo_code",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "promo_type",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "discount_pct",
+        "type_class": "numeric",
+        "precision": "ratio"
+      },
+      {
+        "name": "promo_class",
+        "type_class": "text",
+        "precision": "exact"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "promo_code"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the calculated column promo_class, with the clearance rule, the deep rule and a label for the rest.",
+    "Every clearance promotion also has a discount of 30 or more, so both tests are true for it. CASE stops at the first true branch: decide which test must come first."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 205,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 206,
+      "to": 221,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 150000,
+  "why_this_works": "The clearance test comes first, so a clearance with a big discount is never caught by the 'deep' branch below it."
+}

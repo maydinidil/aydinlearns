@@ -1,0 +1,36 @@
+{
+  "item_id": "EX-SQL-AGG-04-E1-08",
+  "item_version": 1,
+  "reference_sql": "SELECT parent_category,\n       SUM(CASE WHEN net_revenue_eur >= 100 THEN 1 ELSE 0 END) AS big_lines,\n       SUM(CASE WHEN net_revenue_eur >= 100 THEN 0 ELSE 1 END) AS other_lines\nFROM sales\nGROUP BY parent_category",
+  "alternatives": [
+    "SELECT parent_category, SUM(CASE WHEN net_revenue_eur >= 100 THEN 1 ELSE 0 END) AS big_lines, COUNT(*) - SUM(CASE WHEN net_revenue_eur >= 100 THEN 1 ELSE 0 END) AS other_lines FROM sales GROUP BY parent_category",
+    "SELECT parent_category, COUNT(CASE WHEN net_revenue_eur >= 100 THEN 1 END) AS big_lines, COUNT(CASE WHEN net_revenue_eur < 100 OR net_revenue_eur IS NULL THEN 1 END) AS other_lines FROM sales GROUP BY 1"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-03",
+      "sql": "SELECT parent_category, SUM(CASE WHEN net_revenue_eur >= 100 THEN 1 ELSE 0 END) AS big_lines, SUM(CASE WHEN net_revenue_eur < 100 THEN 1 ELSE 0 END) AS other_lines FROM sales GROUP BY parent_category"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-04",
+      "sql": "SELECT parent_category, COUNT(CASE WHEN net_revenue_eur >= 100 THEN 1 ELSE 0 END) AS big_lines, COUNT(CASE WHEN net_revenue_eur >= 100 THEN 0 ELSE 1 END) AS other_lines FROM sales GROUP BY parent_category"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-07",
+      "sql": "SELECT parent_category, channel, SUM(CASE WHEN net_revenue_eur >= 100 THEN 1 ELSE 0 END) AS big_lines, SUM(CASE WHEN net_revenue_eur >= 100 THEN 0 ELSE 1 END) AS other_lines FROM sales GROUP BY parent_category, channel"
+    }
+  ],
+  "hint3_partial": "SELECT parent_category,\n       SUM(CASE WHEN net_revenue_eur >= ___ THEN 1 ELSE 0 END) AS big_lines,\n       SUM(CASE WHEN net_revenue_eur >= ___ THEN ___ ELSE ___ END) AS other_lines\nFROM sales\nGROUP BY parent_category",
+  "solver": {
+    "prompt_hash": "5fb969ce1a2ff4d0",
+    "schema_version": "cebf75df442f",
+    "dataset_version": "506a9858f862fdfb",
+    "grader_version": "1b.3",
+    "query": "SELECT parent_category, COUNT(*) FILTER (WHERE net_revenue_eur >= 100.00) AS big_lines, COUNT(*) FILTER (WHERE net_revenue_eur < 100.00 OR net_revenue_eur IS NULL) AS other_lines FROM sales GROUP BY parent_category\n",
+    "at": "2026-10-04T10:06:48.321Z"
+  }
+}

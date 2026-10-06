@@ -1,0 +1,41 @@
+{
+  "item_id": "EX-SQL-AGG-03-E2-05",
+  "item_version": 1,
+  "reference_sql": "SELECT category_name, SUM(units) AS units_sold, SUM(net_revenue_eur) AS revenue_eur\nFROM sales\nGROUP BY category_name\nHAVING SUM(units) > 40000 AND SUM(net_revenue_eur) < 2000000",
+  "alternatives": [
+    "SELECT category_name, SUM(units) AS units_sold, SUM(net_revenue_eur) AS revenue_eur FROM sales GROUP BY category_name HAVING SUM(net_revenue_eur) < 2000000 AND SUM(units) > 40000",
+    "SELECT category_name, SUM(units) AS units_sold, SUM(net_revenue_eur) AS revenue_eur FROM sales GROUP BY 1 HAVING SUM(units) >= 40001 AND NOT SUM(net_revenue_eur) >= 2000000"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-13",
+      "sql": "SELECT category_name, SUM(units) AS units_sold, SUM(net_revenue_eur) AS revenue_eur FROM sales GROUP BY category_name HAVING SUM(units) > 40000 OR SUM(net_revenue_eur) < 2000000"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-SYN-05",
+      "sql": "SELECT category_name, SUM(units) AS units_sold, SUM(net_revenue_eur) AS revenue_eur FROM sales WHERE SUM(units) > 40000 AND SUM(net_revenue_eur) < 2000000 GROUP BY category_name"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-02",
+      "sql": "SELECT category_name, SUM(units) AS units_sold, SUM(net_revenue_eur) AS revenue_eur FROM sales WHERE net_revenue_eur < 2000000 GROUP BY category_name HAVING SUM(units) > 40000"
+    },
+    {
+      "id": "PW4",
+      "error_id": "ERR-LOG-14",
+      "sql": "SELECT category_name, SUM(units) AS units_sold, SUM(net_revenue_eur) AS revenue_eur FROM sales GROUP BY category_name HAVING COUNT(*) > 40000 AND SUM(net_revenue_eur) < 2000000"
+    }
+  ],
+  "hint3_partial": "SELECT category_name, SUM(units) AS units_sold, SUM(net_revenue_eur) AS revenue_eur\nFROM sales\nGROUP BY category_name\nHAVING SUM(units) > 40000 ___",
+  "solver": {
+    "prompt_hash": "5e0cad865893b705",
+    "schema_version": "cebf75df442f",
+    "dataset_version": "506a9858f862fdfb",
+    "grader_version": "1b.3",
+    "query": "SELECT category_name, SUM(units) AS units_sold, SUM(net_revenue_eur) AS revenue_eur FROM sales GROUP BY category_name HAVING SUM(units) > 40000 AND SUM(net_revenue_eur) < 2000000\n",
+    "at": "2026-10-04T10:06:46.495Z"
+  }
+}

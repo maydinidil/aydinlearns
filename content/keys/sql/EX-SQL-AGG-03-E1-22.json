@@ -1,0 +1,41 @@
+{
+  "item_id": "EX-SQL-AGG-03-E1-22",
+  "item_version": 1,
+  "reference_sql": "SELECT order_month, COUNT(*) AS n_lines\nFROM sales\nGROUP BY order_month\nHAVING COUNT(*) > 41000",
+  "alternatives": [
+    "SELECT order_month, COUNT(*) AS n_lines FROM sales GROUP BY 1 HAVING COUNT(*) >= 41001",
+    "SELECT order_month, COUNT(order_line_id) AS n_lines FROM sales GROUP BY order_month HAVING COUNT(order_line_id) > 41000"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-SYN-05",
+      "sql": "SELECT order_month, COUNT(*) AS n_lines FROM sales WHERE COUNT(*) > 41000 GROUP BY order_month"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-SYN-06",
+      "sql": "SELECT order_month, COUNT(*) AS n_lines FROM sales WHERE n_lines > 41000 GROUP BY order_month"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-07",
+      "sql": "SELECT order_month, COUNT(*) AS n_lines FROM sales GROUP BY order_month, channel HAVING COUNT(*) > 41000"
+    },
+    {
+      "id": "PW4",
+      "error_id": "ERR-LOG-14",
+      "sql": "SELECT order_month, COUNT(*) AS n_lines FROM sales GROUP BY order_month HAVING SUM(units) > 41000"
+    }
+  ],
+  "hint3_partial": "SELECT order_month, COUNT(*) AS n_lines\nFROM sales\nGROUP BY order_month\nHAVING ___",
+  "solver": {
+    "prompt_hash": "e1483354fdd20cf0",
+    "schema_version": "cebf75df442f",
+    "dataset_version": "506a9858f862fdfb",
+    "grader_version": "1b.3",
+    "query": "SELECT order_month, COUNT(*) AS n_lines\nFROM sales\nGROUP BY order_month\nHAVING COUNT(*) > 41000\n",
+    "at": "2026-10-04T14:33:16.479Z"
+  }
+}

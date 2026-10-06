@@ -1,0 +1,123 @@
+{
+  "id": "EX-SQL-AGG-04-E1-08",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-02",
+    "conditional-aggregation",
+    "count-if",
+    "sales",
+    "missing-values",
+    "complement"
+  ],
+  "level": 2,
+  "source_ids": [
+    "01:SQL-AGG-04"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-AGG-04",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CASE-01",
+    "SQL-AGG-04"
+  ],
+  "template_id": "T-AGG-04-count-if-complement",
+  "template_params": {
+    "table": "sales",
+    "group": "parent_category",
+    "condition": "net_revenue_eur >= 100"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_agg",
+  "prompt": "For each parent category, how many order lines made 100.00 euros or more, and how many did not? Use the sales table. Return three columns, in this order: parent_category, big_lines, the number of lines with a net_revenue_eur of 100.00 or more, and other_lines, the number of all other lines, including lines with a missing net_revenue_eur. Return one row per parent_category. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "parent_category",
+        "type_class": "text"
+      },
+      {
+        "name": "big_lines",
+        "type_class": "numeric"
+      },
+      {
+        "name": "other_lines",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per parent_category"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "parent_category",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "big_lines",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "other_lines",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "parent_category"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the two conditional counts: one for lines of 100.00 or more, and one for every other line.",
+    "A missing net_revenue_eur fails every comparison. Test for the big lines and let ELSE catch the rest; a separate test for lines under 100 would drop the missing ones."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 178,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 179,
+      "to": 189,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 190,
+      "to": 214,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 110000,
+  "why_this_works": "Both columns use the same test, and other_lines counts the lines that do not pass it, so a line with a missing net_revenue_eur, which fails every comparison, lands in other_lines and the two counts add up to all lines."
+}

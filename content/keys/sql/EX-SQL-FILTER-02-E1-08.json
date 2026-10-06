@@ -1,0 +1,31 @@
+{
+  "item_id": "EX-SQL-FILTER-02-E1-08",
+  "item_version": 1,
+  "reference_sql": "SELECT store_code, city, store_type\nFROM stores\nWHERE store_type IN ('outlet', 'flagship')",
+  "alternatives": [
+    "SELECT store_code, city, store_type\nFROM stores\nWHERE store_type IN ('flagship', 'outlet')",
+    "SELECT store_code, city, store_type\nFROM stores\nWHERE store_type = 'outlet'\n   OR store_type = 'flagship'"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "EX-SQL-FILTER-02-E1-08-PW1",
+      "error_id": "ERR-LOG-00",
+      "sql": "SELECT store_code, city, store_type\nFROM stores\nWHERE store_type NOT IN ('standard')"
+    },
+    {
+      "id": "EX-SQL-FILTER-02-E1-08-PW2",
+      "error_id": "ERR-LOG-00",
+      "sql": "SELECT store_code, city, store_type\nFROM stores\nWHERE store_type IN ('Outlet', 'Flagship')"
+    }
+  ],
+  "hint3_partial": "SELECT store_code, city, store_type\nFROM stores\nWHERE store_type IN (___, ___)",
+  "solver": {
+    "prompt_hash": "df190467039678ab",
+    "schema_version": "9a8d01143702",
+    "dataset_version": "9639f8ae1f71c2ef",
+    "grader_version": "1a.2",
+    "query": "SELECT store_code, city, store_type FROM stores WHERE store_type IN ('outlet', 'flagship')\n",
+    "at": "2026-10-03T13:08:02.718Z"
+  }
+}

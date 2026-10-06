@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-AGG-02-E1-42",
+  "item_version": 1,
+  "correct_oid": "ofa2dd9e",
+  "explanation": "WHERE keeps stores 1 to 5 first: one flagship and four standard stores. GROUP BY then makes one row per store_type found in those rows, and COUNT(*) counts the rows in each group. A type with no rows makes no group, so outlet and web do not appear with 0.",
+  "solver": {
+    "prompt_hash": "6d78b4e91441518f",
+    "grader_version": "choice.1",
+    "chosen": "ofa2dd9e",
+    "typed": null,
+    "at": "2026-10-06T09:08:14.813Z"
+  }
+}

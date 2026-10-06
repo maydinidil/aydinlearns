@@ -1,0 +1,114 @@
+{
+  "id": "EX-SQL-NULL-01-E2-32",
+  "version": 1,
+  "kind": "fix",
+  "tags": [
+    "sql",
+    "LVL-01",
+    "fix",
+    "coalesce",
+    "null_arithmetic",
+    "calculated-column",
+    "promotions"
+  ],
+  "level": 1,
+  "source_ids": [
+    "01:SQL-NULL-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-NULL-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-NULL-01"
+  ],
+  "template_id": "T-NULL-01-fix-null-arithmetic",
+  "template_params": {
+    "table": "promotions",
+    "null_column": "discount_pct",
+    "list_price": 60
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_null",
+  "prompt": "The query in the editor has one mistake. Fix it so that it answers this question: what does a 60-euro gift box cost at each promotion? For every promotion, return three columns, in this order: promo_code, discount_pct and box_price_eur, the price of the 60-euro gift box after the promotion's discount (discount_pct is a percentage, so 25 means 25% off and the box then costs 45 euros). A promotion with no discount_pct recorded (NULL) gave no discount, so its box_price_eur is the full 60 euros. Show discount_pct as it is stored, missing where it is missing. Do not round. Return one row per promotion, every promotion included. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "promo_code",
+        "type_class": "text"
+      },
+      {
+        "name": "discount_pct",
+        "type_class": "numeric"
+      },
+      {
+        "name": "box_price_eur",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per promotion"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "promo_code",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "discount_pct",
+        "type_class": "numeric",
+        "precision": "ratio"
+      },
+      {
+        "name": "box_price_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the calculated column so a missing discount counts as 0.",
+    "Arithmetic with NULL gives NULL, so box_price_eur comes out missing for a promotion with no discount_pct. Turn the missing discount into 0 before the calculation uses it."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 91,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 92,
+      "to": 107,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": "SELECT promo_code, discount_pct, 60 - 60 * discount_pct / 100 AS box_price_eur\nFROM promotions",
+  "starter_error_id": "ERR-LOG-17",
+  "time_target_ms": 120000,
+  "why_this_works": "COALESCE(discount_pct, 0) turns a missing discount into 0 before the arithmetic, so the box costs the full 60 euros instead of NULL."
+}

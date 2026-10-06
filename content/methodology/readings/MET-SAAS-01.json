@@ -1,0 +1,15 @@
+{
+  "concept_id": "MET-SAAS-01",
+  "section": "methodology",
+  "version": 2,
+  "title": "Monthly recurring revenue (MRR)",
+  "reading_md": "**Setting.** The examples use Business Care, the device-support subscription Voltmarkt sells to small offices, which is billed monthly. Voltmarkt also sells Business Care Year, the same support paid for a year in advance.\n\n**What it measures.** The recurring subscription revenue earned in one month from active subscriptions, with every plan turned into its monthly amount.\n\n**Formula.**\n\nMRR = SUM(monthly recurring fee of every active subscription) for the month\n\n- A plan billed monthly, such as Business Care, counts at its monthly fee.\n- A plan billed yearly, such as Business Care Year, counts at its yearly fee / 12, in every month it covers, whatever month it was invoiced in.\n- One-off charges, such as a setup fee or a replacement laptop, are not recurring and stay out.\n- Grain: month, optionally by segment. In a SaaS company's data that is SUM(mrr) over one row per customer per month.\n\n**Worked example.** In March 2026, 420 businesses pay €40 a month on Business Care and 80 businesses are on Business Care Year at €420 a year. 30 new businesses also paid a one-off €99 setup fee.\n\n- MRR = 420 × 40 + 80 × 420 / 12 = 16,800 + 2,800 = €19,600.\n- Adding the annual invoices raised in March, or the €2,970 of setup fees, would mix billing with recurring revenue, and MRR would jump in every month that yearly plans renew.\n\n**Reading the trend.** MRR changes for five reasons: new businesses, upgrades, downgrades, cancellations and businesses that come back. Total MRR shows only the net of these, so break a change down before explaining it.\n\n**Common mistakes.**\n\n- Counting one-off fees, or counting annual invoices in full in the month they are billed.\n- Letting exchange rates move MRR. Business Care bills only in euros, but a company that bills in several currencies must keep exchange-rate swings out of its MRR movements, so they do not look like growth or churn.\n\n**What MRR does not answer.**\n\n- Whether existing customers stay and grow: that is NRR and GRR.\n- How many customers left: that is logo churn.\n- How much cash came in: a yearly plan brings in a year's cash at once.\n- Profit: that needs gross margin.\n\n**How managers ask for it.** \"What's MRR this month?\" \"Show MRR trend for 2026.\"",
+  "source_ids": [
+    "04:MET-SAAS-01",
+    "04:MET-SAAS-02",
+    "04:§2.1",
+    "ERRATA:E-100"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06"
+}

@@ -1,0 +1,112 @@
+{
+  "id": "EX-SQL-AGG-01-E2-06",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-02",
+    "aggregate",
+    "min_max",
+    "sales",
+    "min",
+    "max",
+    "like"
+  ],
+  "level": 2,
+  "source_ids": [
+    "01:SQL-AGG-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-AGG-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-AGG-01"
+  ],
+  "template_id": "T-AGG-01-min-max-like",
+  "template_params": {
+    "table": "sales",
+    "filter": "category_name LIKE 'TVs%'",
+    "measure": "net_revenue_eur"
+  },
+  "sub_skill": "min_max",
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_agg",
+  "prompt": "Across all order lines whose category_name starts with 'TVs' (the three TV size categories), what are the smallest and the largest net revenue on a single line? The match is case-sensitive, and lines with a missing net revenue do not count. Return two columns, in this order: min_line_revenue_eur and max_line_revenue_eur. Use exactly these column names. The result is a single row. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "min_line_revenue_eur",
+        "type_class": "numeric"
+      },
+      {
+        "name": "max_line_revenue_eur",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row in total"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": true,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "min_line_revenue_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "max_line_revenue_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the row filter. Keep the lines whose category_name begins with the three letters TVs, written exactly so.",
+    "Then put the smallest and the largest net_revenue_eur in the SELECT list, each named with AS. A text pattern needs a wildcard after TVs, and LIKE matches capital letters exactly."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 104,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 105,
+      "to": 115,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 116,
+      "to": 147,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 150000,
+  "why_this_works": "LIKE 'TVs%' keeps every category that begins with TVs, and MIN and MAX then pick the extremes of those lines."
+}

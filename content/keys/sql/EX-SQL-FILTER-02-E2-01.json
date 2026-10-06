@@ -1,0 +1,31 @@
+{
+  "item_id": "EX-SQL-FILTER-02-E2-01",
+  "item_version": 1,
+  "reference_sql": "SELECT promo_code, promo_name, start_date, discount_pct\nFROM promotions\nWHERE promo_name ILIKE '%week%'\n  AND discount_pct >= 20",
+  "alternatives": [
+    "SELECT promo_code, promo_name, start_date, discount_pct\nFROM promotions\nWHERE discount_pct >= 20\n  AND promo_name ILIKE '%WEEK%'",
+    "SELECT promo_code, promo_name, start_date, discount_pct\nFROM promotions\nWHERE promo_name ILIKE '%Week%'\n  AND NOT discount_pct < 20"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "EX-SQL-FILTER-02-E2-01-PW1",
+      "error_id": "ERR-LOG-22",
+      "sql": "SELECT promo_code, promo_name, start_date, discount_pct\nFROM promotions\nWHERE promo_name LIKE '%Week%'\n  AND discount_pct >= 20"
+    },
+    {
+      "id": "EX-SQL-FILTER-02-E2-01-PW2",
+      "error_id": "ERR-LOG-15",
+      "sql": "SELECT promo_code, promo_name, start_date, discount_pct\nFROM promotions\nWHERE promo_name ILIKE '%week%'\n  AND discount_pct > 20"
+    }
+  ],
+  "hint3_partial": "SELECT promo_code, promo_name, start_date, discount_pct\nFROM promotions\nWHERE promo_name ILIKE ___\n  AND discount_pct ___ 20",
+  "solver": {
+    "prompt_hash": "82b8618417e8bd46",
+    "schema_version": "f0340f71a1f5",
+    "dataset_version": "9639f8ae1f71c2ef",
+    "grader_version": "1a.2",
+    "query": "SELECT promo_code, promo_name, start_date, discount_pct FROM promotions WHERE promo_name ILIKE '%week%' AND discount_pct >= 20\n",
+    "at": "2026-10-03T13:08:02.731Z"
+  }
+}

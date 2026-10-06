@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-BASICS-02-E1-42",
+  "item_version": 1,
+  "value": 60,
+  "explanation": "The new column pct_paid is calculated on every row and nothing is filtered, so the result keeps one row per promotion. promotions has 60 rows, so the query returns 60. A calculation never adds or removes rows.",
+  "solver": {
+    "prompt_hash": "7095938a54a39fbc",
+    "grader_version": "choice.1",
+    "chosen": null,
+    "typed": "60",
+    "at": "2026-10-06T09:08:14.833Z"
+  }
+}

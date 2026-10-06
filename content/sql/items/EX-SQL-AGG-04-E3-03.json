@@ -1,0 +1,115 @@
+{
+  "id": "EX-SQL-AGG-04-E3-03",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-02",
+    "conditional-aggregation",
+    "count-distinct-if",
+    "share",
+    "sales",
+    "orders"
+  ],
+  "level": 2,
+  "source_ids": [
+    "01:SQL-AGG-04"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-AGG-04",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CASE-01",
+    "SQL-AGG-04"
+  ],
+  "template_id": "T-AGG-04-attach-rate",
+  "template_params": {
+    "table": "sales",
+    "group": "country_code",
+    "condition": "parent_category = 'Accessories'",
+    "counted": "order_id"
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_agg",
+  "prompt": "In each country, what share of orders included at least one Accessories line? Use the sales table, which has one row per order line, so an order with several lines appears on several rows; country_code is the country an order ships to. Return two columns, in this order: country_code and accessory_order_share, the number of different orders with at least one line whose parent_category is 'Accessories', divided by the number of different orders, as a fraction from 0 to 1. Return one row per country_code. Do not round. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "country_code",
+        "type_class": "text"
+      },
+      {
+        "name": "accessory_order_share",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per country_code"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "country_code",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "accessory_order_share",
+        "type_class": "numeric",
+        "precision": "ratio"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "country_code"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the calculated column accessory_order_share: the orders with Accessories on top, all orders below.",
+    "Both counts need COUNT(DISTINCT order_id), because an order can have several lines. For the top one, a CASE gives order_id only on an Accessories line."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 161,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 162,
+      "to": 172,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 173,
+      "to": 194,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "COUNT(DISTINCT ...) counts each order once, however many lines it has, and the CASE passes on order_id only from Accessories lines, so the top counts the orders that hold Accessories and the bottom counts every order."
+}

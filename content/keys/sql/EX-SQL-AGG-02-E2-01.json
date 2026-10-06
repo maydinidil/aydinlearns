@@ -1,0 +1,37 @@
+{
+  "item_id": "EX-SQL-AGG-02-E2-01",
+  "item_version": 1,
+  "reference_sql": "SELECT country_code, channel, SUM(net_revenue_eur) AS revenue_eur\nFROM sales\nGROUP BY country_code, channel",
+  "alternatives": [
+    "SELECT country_code, channel, SUM(net_revenue_eur) AS revenue_eur FROM sales GROUP BY channel, country_code",
+    "SELECT country_code, channel, SUM(net_revenue_eur) AS revenue_eur FROM sales GROUP BY 1, 2",
+    "SELECT country_code, channel, SUM(COALESCE(net_revenue_eur, 0)) AS revenue_eur FROM sales GROUP BY country_code, channel"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-SEM-01",
+      "sql": "SELECT country_code, channel, SUM(net_revenue_eur) AS revenue_eur FROM sales GROUP BY country_code"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-07",
+      "sql": "SELECT country_code, channel, SUM(net_revenue_eur) AS revenue_eur FROM sales GROUP BY country_code, channel, store_code"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-14",
+      "sql": "SELECT country_code, channel, MAX(net_revenue_eur) AS revenue_eur FROM sales GROUP BY country_code, channel"
+    }
+  ],
+  "hint3_partial": "SELECT country_code, channel, SUM(net_revenue_eur) AS revenue_eur\nFROM sales\nGROUP BY country_code, ___",
+  "solver": {
+    "prompt_hash": "29a31bf5c6e4206d",
+    "schema_version": "cebf75df442f",
+    "dataset_version": "506a9858f862fdfb",
+    "grader_version": "1b.3",
+    "query": "SELECT country_code, channel, SUM(net_revenue_eur) AS revenue_eur FROM sales GROUP BY country_code, channel\n",
+    "at": "2026-10-04T10:06:43.652Z"
+  }
+}

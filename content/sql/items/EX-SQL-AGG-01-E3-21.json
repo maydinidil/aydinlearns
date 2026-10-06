@@ -1,0 +1,134 @@
+{
+  "id": "EX-SQL-AGG-01-E3-21",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-02",
+    "aggregate",
+    "min_max",
+    "sales",
+    "min",
+    "max",
+    "and_or",
+    "date_range",
+    "drill"
+  ],
+  "level": 2,
+  "source_ids": [
+    "01:SQL-AGG-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-AGG-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-AGG-01"
+  ],
+  "template_id": "T-AGG-01-min-max-two-stores",
+  "template_params": {
+    "table": "sales",
+    "stores": "BE-01, LU-01",
+    "from": "2025-01-01",
+    "to": "2025-02-28",
+    "output": "first_order_date, last_order_date, max_units, max_line_revenue_eur"
+  },
+  "sub_skill": "min_max",
+  "difficulty": "E3",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_agg",
+  "prompt": "Look at the order lines of the two flagship stores BE-01 and LU-01 (store_code 'BE-01' or 'LU-01') with an order_date from 1 January 2025 to 28 February 2025, both days included. Return four columns, in this order: first_order_date (the earliest order_date), last_order_date (the latest order_date), max_units (the most units on a single line) and max_line_revenue_eur (the highest net_revenue_eur on a single line). Every line counts for the two dates; a line with a missing units or net_revenue_eur value is left out of that maximum only. Use exactly these column names. Do not round. The result is a single row. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "first_order_date",
+        "type_class": "temporal"
+      },
+      {
+        "name": "last_order_date",
+        "type_class": "temporal"
+      },
+      {
+        "name": "max_units",
+        "type_class": "numeric"
+      },
+      {
+        "name": "max_line_revenue_eur",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row in total"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "first_order_date",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "last_order_date",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "max_units",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "max_line_revenue_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the row filter: either of the two stores, and the date range for both of them.",
+    "AND is applied before OR, so keep the two stores together, in brackets or with IN, before the date test. Then use MIN for the earliest value and MAX for the latest and the largest ones."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 170,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 171,
+      "to": 181,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 182,
+      "to": 285,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 210000,
+  "why_this_works": "IN keeps both stores under the date test, MIN and MAX skip missing values on their own, and every line still counts for the dates."
+}

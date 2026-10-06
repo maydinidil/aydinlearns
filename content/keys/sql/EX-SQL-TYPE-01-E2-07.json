@@ -1,0 +1,31 @@
+{
+  "item_id": "EX-SQL-TYPE-01-E2-07",
+  "item_version": 1,
+  "reference_sql": "SELECT store_code,\n       ROUND(SUM(units) * 1.0 / COUNT(*), 2) AS units_per_line,\n       SUM(units) // COUNT(*) AS units_per_line_int\nFROM sales\nGROUP BY store_code",
+  "alternatives": [
+    "SELECT store_code, ROUND(CAST(SUM(units) AS DOUBLE) / COUNT(*), 2) AS units_per_line, FLOOR(SUM(units) * 1.0 / COUNT(*)) AS units_per_line_int FROM sales GROUP BY store_code",
+    "SELECT store_code, ROUND(SUM(COALESCE(units, 0)) * 1.0 / COUNT(*), 2) AS units_per_line, CAST(FLOOR(SUM(units) / COUNT(*)) AS INTEGER) AS units_per_line_int FROM sales GROUP BY 1"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-05",
+      "sql": "SELECT store_code, ROUND(SUM(units) // COUNT(*), 2) AS units_per_line, SUM(units) // COUNT(*) AS units_per_line_int FROM sales GROUP BY store_code"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-17",
+      "sql": "SELECT store_code, ROUND(AVG(units), 2) AS units_per_line, SUM(units) // COUNT(*) AS units_per_line_int FROM sales GROUP BY store_code"
+    }
+  ],
+  "hint3_partial": "SELECT store_code,\n       ROUND(SUM(units) * 1.0 / COUNT(*), 2) AS units_per_line,\n       SUM(units) ___ COUNT(*) AS units_per_line_int\nFROM sales\nGROUP BY ___",
+  "solver": {
+    "prompt_hash": "0afe23508c07781b",
+    "schema_version": "cebf75df442f",
+    "dataset_version": "506a9858f862fdfb",
+    "grader_version": "1b.3",
+    "query": "SELECT store_code, ROUND(SUM(units) * 1.0 / COUNT(*), 2) AS units_per_line, SUM(units) // COUNT(*) AS units_per_line_int FROM sales GROUP BY store_code\n",
+    "at": "2026-10-04T10:06:52.710Z"
+  }
+}

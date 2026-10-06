@@ -1,0 +1,37 @@
+{
+  "item_id": "EX-SQL-AGG-02-E1-02",
+  "item_version": 1,
+  "reference_sql": "SELECT brand, COUNT(*) AS n_products\nFROM products\nGROUP BY brand",
+  "alternatives": [
+    "SELECT brand, COUNT(product_id) AS n_products FROM products GROUP BY brand",
+    "SELECT brand, COUNT(*) AS n_products FROM products GROUP BY 1",
+    "SELECT brand, COUNT(DISTINCT product_id) AS n_products FROM products GROUP BY brand"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-SEM-01",
+      "sql": "SELECT brand, COUNT(*) AS n_products FROM products"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-04",
+      "sql": "SELECT brand, COUNT(unit_cost_eur) AS n_products FROM products GROUP BY brand"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-07",
+      "sql": "SELECT brand, COUNT(*) AS n_products FROM products GROUP BY brand, category_id"
+    }
+  ],
+  "hint3_partial": "SELECT brand, COUNT(*) AS n_products\nFROM products\nGROUP BY ___",
+  "solver": {
+    "prompt_hash": "7e9d02f3a3e933ee",
+    "schema_version": "d77fe1c31a0e",
+    "dataset_version": "506a9858f862fdfb",
+    "grader_version": "1b.3",
+    "query": "SELECT brand, COUNT(*) AS n_products FROM products GROUP BY brand\n",
+    "at": "2026-10-04T10:06:42.841Z"
+  }
+}

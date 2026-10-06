@@ -1,0 +1,118 @@
+{
+  "id": "EX-SQL-AGG-03-E3-01",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-02",
+    "having",
+    "ratio-of-sums",
+    "sales"
+  ],
+  "level": 2,
+  "source_ids": [
+    "01:SQL-AGG-03"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-AGG-03",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-AGG-03"
+  ],
+  "template_id": "T-AGG-03-ratio-threshold",
+  "template_params": {
+    "table": "sales",
+    "group_by": "category_name",
+    "measure": "sum revenue / sum units",
+    "comparison": "less than",
+    "threshold": 25
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_agg",
+  "prompt": "Which categories have an average price per unit below 25 euros? Work out each category's price per unit as its total net_revenue_eur divided by its total units, from the sales table and its category_name column. Each total skips missing values on its own, so a line with units but a missing net_revenue_eur still adds its units. Return two columns, in this order: category_name and price_per_unit_eur, that price per unit. Return one row per category, and only the categories whose price per unit is below 25. Do not round. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "category_name",
+        "type_class": "text"
+      },
+      {
+        "name": "price_per_unit_eur",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per category"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "category_name",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "price_per_unit_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "category_name"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the group filter: keep only the categories whose total revenue divided by total units is below 25.",
+    "Divide the two totals, not each line's own price, and test that division after GROUP BY, repeating it as the SELECT list writes it."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 77,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 78,
+      "to": 88,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 89,
+      "to": 111,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 112,
+      "to": 157,
+      "subgoal": "group_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "Dividing the category totals weights every unit equally, and HAVING tests that ratio per category; an average of line prices would weight a one-unit line like a ten-unit line."
+}

@@ -1,0 +1,42 @@
+{
+  "item_id": "EX-SQL-BASICS-01-E3-01",
+  "item_version": 1,
+  "reference_sql": "SELECT store_code, city, country_code, store_type, opened_on, close_date\nFROM stores",
+  "alternatives": [
+    "SELECT stores.store_code, stores.city, stores.country_code, stores.store_type, stores.opened_on, stores.close_date\nFROM stores",
+    "SELECT s.store_code, s.city, s.country_code, s.store_type, s.opened_on, s.close_date\nFROM stores AS s",
+    "SELECT \"store_code\", \"city\", \"country_code\", \"store_type\", \"opened_on\", \"close_date\"\nFROM \"stores\""
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "M1",
+      "error_id": "ERR-OUT-01",
+      "sql": "SELECT * FROM stores"
+    },
+    {
+      "id": "M2",
+      "error_id": "ERR-SYN-02",
+      "sql": "SELECT store_code, city, country_code, store_type, opened_on, closed_on FROM stores"
+    },
+    {
+      "id": "M3",
+      "error_id": "ERR-SYN-04",
+      "sql": "SELECT (store_code, city, country_code, store_type, opened_on, close_date FROM stores"
+    },
+    {
+      "id": "M4",
+      "error_id": "ERR-OUT-01",
+      "sql": "SELECT store_code, city, country_code, store_type, opened_on FROM stores"
+    }
+  ],
+  "hint3_partial": "SELECT store_code, ...\nFROM stores",
+  "solver": {
+    "prompt_hash": "29f17a4f261794da",
+    "schema_version": "9a8d01143702",
+    "dataset_version": "9639f8ae1f71c2ef",
+    "grader_version": "1a.2",
+    "query": "SELECT store_code, city, country_code, store_type, opened_on, close_date FROM stores\n",
+    "at": "2026-10-03T13:08:02.086Z"
+  }
+}

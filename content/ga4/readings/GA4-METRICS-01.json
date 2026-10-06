@@ -1,0 +1,29 @@
+{
+  "concept_id": "GA4-METRICS-01",
+  "section": "ga4",
+  "version": 2,
+  "title": "Users, sessions and engagement metrics",
+  "reading_md": "## What it is\n\nA session is one visit, and one user can have many sessions. By default a session ends after 30 minutes without activity; the timeout is a tag setting on the web stream and can be changed. GA4 counts users in several metrics, among them total users, new users and active users. In most reports, the label \"Users\" means active users (Unverified).\n\nA session counts as **engaged** when any one of these is true: it lasts longer than 10 seconds, it has a key event, or it has 2 or more page or screen views. One condition is enough. The 10-second timer can be set anywhere from 10 to 60 seconds.\n\n**Engagement rate** = engaged sessions / sessions. **Bounce rate** = 100% minus engagement rate, so it is the share of sessions that were not engaged. Example: on one day Voltmarkt's webshop has 20,000 sessions, 13,000 of them engaged. Engagement rate is 13,000 / 20,000 = 65%, and bounce rate is 35%. **Average engagement time** counts only the time the page or app was in the foreground.\n\n**Reporting identity** decides how GA4 recognises one user across sessions and devices. It is set in Admin > Data display > Reporting identity (Editor role or above).\n\n- **Blended:** User-ID, then device ID, then modeling. You must choose Blended to see modeled data, which appears when behavioral modeling for consent mode is eligible.\n- **Observed:** User-ID, then device ID, with no modeling.\n- **Device-based:** device ID only (the client ID on the web, the app-instance ID in apps). It ignores collected user IDs, so User explorer shows all events for one pseudonymous ID.\n\nSwitching changes reporting only, never data collection or processing, and you can switch again at any time.\n\n## What the exam asks\n\n- Whether a given session is engaged. Know the three conditions exactly.\n- The difference between users, new users and sessions.\n- Bounce rate as the opposite of engagement rate.\n- Which reporting identity fits a scenario: modeled data needs Blended, and a view by device ID alone needs Device-based.\n\n## Common confusions\n\n- GA4 bounce rate is not the Universal Analytics single-page session rate. A visit with one page view that lasts 15 seconds is engaged, so it does not count as a bounce.\n- A user is not a session. Per-user and per-session metrics answer different questions, so say which one you use.\n- Total users is a different metric from active users.\n- The session timeout (30 minutes by default) and the engaged-session timer (10 to 60 seconds) are separate settings.\n- Google signals is no longer part of reporting identity: Google removed it on 12 February 2024. A definition of Observed that includes Google signals is out of date.\n- Cross-device unification in reports comes from User-ID, not from Google signals.\n- Switching the reporting identity is not on Google's current list of fixes for data thresholds (see the lesson \"Data retention and data thresholds\").\n\n## In Skillshop\n\nCourse \"Google Analytics Certification (2026)\": the module \"Get Started Using Google Analytics\" for users and sessions, and the module \"Manage GA Data and Learn to Read Reports\" for reading these metrics in reports (Unverified).",
+  "source_ids": [
+    "06:GA4-METRICS-01",
+    "06:GA4-SETUP-01",
+    "06:QS-05",
+    "10:GA4-ADMIN-20",
+    "10:§1",
+    "10:COR-01",
+    "10:COR-02",
+    "10:COR-11",
+    "ERRATA:E-022",
+    "ERRATA:E-030",
+    "ERRATA:E-031",
+    "ERRATA:E-113",
+    "ERRATA:E-117",
+    "ERRATA:E-118",
+    "06:§2.1",
+    "10:§7",
+    "ERRATA:E-116",
+    "ERRATA:E-122"
+  ],
+  "verified": true,
+  "as_of": "2026-10-05"
+}

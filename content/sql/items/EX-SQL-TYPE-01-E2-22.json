@@ -1,0 +1,128 @@
+{
+  "id": "EX-SQL-TYPE-01-E2-22",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-02",
+    "type",
+    "division",
+    "round",
+    "ratio-of-sums",
+    "margin",
+    "missing-values",
+    "group-by",
+    "sales",
+    "drill"
+  ],
+  "level": 2,
+  "source_ids": [
+    "01:SQL-TYPE-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-TYPE-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01"
+  ],
+  "template_id": "T-TYPE-01-ratio-of-sums-per-group",
+  "template_params": {
+    "table": "sales",
+    "group_by": "parent_category",
+    "numerator": "sum of line margins",
+    "denominator": "sum of units",
+    "decimals": 2,
+    "output": "margin_per_unit_eur"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_type",
+  "prompt": "What margin does Voltmarkt make per unit sold in each parent category? Use the sales table and keep only the order lines that have net_revenue_eur, units and unit_cost_eur all present. A line's margin is net_revenue_eur minus units times unit_cost_eur. Return two columns, in this order: parent_category and margin_per_unit_eur, the sum of the line margins divided by the sum of units, rounded to 2 decimals with ROUND(x, 2). Return one row per parent_category. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "parent_category",
+        "type_class": "text"
+      },
+      {
+        "name": "margin_per_unit_eur",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per parent_category"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "parent_category",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "margin_per_unit_eur",
+        "type_class": "numeric",
+        "precision": "money",
+        "require_rounding": 2
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "parent_category"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the row filter that keeps only the complete lines, then the calculated column margin_per_unit_eur.",
+    "Without the filter, a line with a missing cost adds nothing to the margins but still adds its units. Divide the two totals, not each line, and round once at the end."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 121,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 122,
+      "to": 132,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 133,
+      "to": 222,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 223,
+      "to": 247,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "The filter keeps only complete lines, so both totals cover the same lines, and dividing the totals before one ROUND gives the margin per unit."
+}

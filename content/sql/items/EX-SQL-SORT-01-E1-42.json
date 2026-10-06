@@ -1,0 +1,162 @@
+{
+  "id": "EX-SQL-SORT-01-E1-42",
+  "version": 1,
+  "kind": "predict_result",
+  "tags": [
+    "sql",
+    "LVL-01",
+    "predict_result",
+    "order_by",
+    "limit",
+    "stores"
+  ],
+  "level": 1,
+  "source_ids": [
+    "01:SQL-SORT-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-SORT-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-SORT-01"
+  ],
+  "template_id": "T-SORT-01-predict-result-order-then-limit",
+  "template_params": {
+    "table": "stores"
+  },
+  "sub_skill": "limit",
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_sort",
+  "prompt": "Which rows does this query return? Use the sample rows of stores in the tables panel, which hold stores 1 to 5.",
+  "output_contract": null,
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [],
+  "subgoals": [],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 60000,
+  "why_this_works": "",
+  "shown_sql": "SELECT store_id, city\nFROM stores\nWHERE store_id <= 5\nORDER BY opened_on\nLIMIT 2",
+  "options": [
+    {
+      "oid": "ocef7fe3",
+      "text": "Amsterdam and Rotterdam",
+      "misconception_id": "ERR-LOG-16",
+      "table": {
+        "columns": [
+          "store_id",
+          "city"
+        ],
+        "rows": [
+          [
+            1,
+            "Amsterdam"
+          ],
+          [
+            2,
+            "Rotterdam"
+          ]
+        ]
+      }
+    },
+    {
+      "oid": "o912ff24",
+      "text": "Utrecht and Amsterdam",
+      "misconception_id": null,
+      "table": {
+        "columns": [
+          "store_id",
+          "city"
+        ],
+        "rows": [
+          [
+            4,
+            "Utrecht"
+          ],
+          [
+            1,
+            "Amsterdam"
+          ]
+        ]
+      }
+    },
+    {
+      "oid": "o42fb1fb",
+      "text": "Eindhoven and Den Haag",
+      "misconception_id": "ERR-LOG-18",
+      "table": {
+        "columns": [
+          "store_id",
+          "city"
+        ],
+        "rows": [
+          [
+            5,
+            "Eindhoven"
+          ],
+          [
+            3,
+            "Den Haag"
+          ]
+        ]
+      }
+    },
+    {
+      "oid": "obe5a456",
+      "text": "All five stores",
+      "misconception_id": "ERR-LOG-16",
+      "table": {
+        "columns": [
+          "store_id",
+          "city"
+        ],
+        "rows": [
+          [
+            4,
+            "Utrecht"
+          ],
+          [
+            1,
+            "Amsterdam"
+          ],
+          [
+            2,
+            "Rotterdam"
+          ],
+          [
+            3,
+            "Den Haag"
+          ],
+          [
+            5,
+            "Eindhoven"
+          ]
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,32 @@
+{
+  "item_id": "EX-SQL-SORT-01-E1-01",
+  "item_version": 3,
+  "reference_sql": "SELECT country_code,\n       city\nFROM stores\nORDER BY country_code, city",
+  "alternatives": [
+    "SELECT country_code, city FROM stores ORDER BY country_code ASC, city ASC",
+    "SELECT country_code, city FROM stores ORDER BY 1, 2",
+    "SELECT stores.country_code, stores.city FROM stores ORDER BY stores.country_code, stores.city"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "EX-SQL-SORT-01-E1-01-PW1",
+      "error_id": "ERR-LOG-18",
+      "sql": "SELECT country_code, city FROM stores"
+    },
+    {
+      "id": "EX-SQL-SORT-01-E1-01-PW2",
+      "error_id": "ERR-LOG-09",
+      "sql": "SELECT DISTINCT country_code, city FROM stores ORDER BY country_code, city"
+    }
+  ],
+  "hint3_partial": "SELECT country_code,\n       city\nFROM stores\nORDER BY ___, ___",
+  "solver": {
+    "prompt_hash": "e24384ec733a5d2f",
+    "schema_version": "9a8d01143702",
+    "dataset_version": "9639f8ae1f71c2ef",
+    "grader_version": "1b.1",
+    "query": "SELECT country_code, city FROM stores ORDER BY country_code ASC, city ASC\n",
+    "at": "2026-10-03T20:33:06.613Z"
+  }
+}

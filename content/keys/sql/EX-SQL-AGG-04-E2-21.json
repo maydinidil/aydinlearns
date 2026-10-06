@@ -1,0 +1,36 @@
+{
+  "item_id": "EX-SQL-AGG-04-E2-21",
+  "item_version": 1,
+  "reference_sql": "SELECT parent_category,\n       AVG(CASE WHEN units = 1 THEN net_revenue_eur END) AS avg_single_line_eur,\n       AVG(CASE WHEN units >= 2 THEN net_revenue_eur END) AS avg_multi_line_eur\nFROM sales\nGROUP BY parent_category",
+  "alternatives": [
+    "SELECT parent_category, AVG(net_revenue_eur) FILTER (WHERE units = 1) AS avg_single_line_eur, AVG(net_revenue_eur) FILTER (WHERE units >= 2) AS avg_multi_line_eur FROM sales GROUP BY parent_category",
+    "SELECT parent_category, AVG(CASE WHEN units = 1 THEN net_revenue_eur ELSE NULL END) AS avg_single_line_eur, AVG(CASE WHEN units > 1 THEN net_revenue_eur ELSE NULL END) AS avg_multi_line_eur FROM sales GROUP BY 1"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-17",
+      "sql": "SELECT parent_category, AVG(CASE WHEN units = 1 THEN net_revenue_eur ELSE 0 END) AS avg_single_line_eur, AVG(CASE WHEN units >= 2 THEN net_revenue_eur ELSE 0 END) AS avg_multi_line_eur FROM sales GROUP BY parent_category"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-15",
+      "sql": "SELECT parent_category, AVG(CASE WHEN units = 1 THEN net_revenue_eur END) AS avg_single_line_eur, AVG(CASE WHEN units > 2 THEN net_revenue_eur END) AS avg_multi_line_eur FROM sales GROUP BY parent_category"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-14",
+      "sql": "SELECT parent_category, SUM(CASE WHEN units = 1 THEN net_revenue_eur END) AS avg_single_line_eur, SUM(CASE WHEN units >= 2 THEN net_revenue_eur END) AS avg_multi_line_eur FROM sales GROUP BY parent_category"
+    }
+  ],
+  "hint3_partial": "SELECT parent_category,\n       AVG(CASE WHEN units = 1 THEN ___ END) AS avg_single_line_eur,\n       AVG(CASE WHEN ___ THEN net_revenue_eur END) AS avg_multi_line_eur\nFROM sales\nGROUP BY parent_category",
+  "solver": {
+    "prompt_hash": "cf315c8c01cdfed8",
+    "schema_version": "cebf75df442f",
+    "dataset_version": "506a9858f862fdfb",
+    "grader_version": "1b.3",
+    "query": "SELECT parent_category,\n       AVG(CASE WHEN units = 1 THEN net_revenue_eur END) AS avg_single_line_eur,\n       AVG(CASE WHEN units >= 2 THEN net_revenue_eur END) AS avg_multi_line_eur\nFROM sales\nGROUP BY parent_category\n",
+    "at": "2026-10-04T14:33:17.096Z"
+  }
+}

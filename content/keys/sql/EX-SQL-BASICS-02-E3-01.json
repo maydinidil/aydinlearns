@@ -1,0 +1,41 @@
+{
+  "item_id": "EX-SQL-BASICS-02-E3-01",
+  "item_version": 1,
+  "reference_sql": "SELECT promo_code,\n       800 * (1 - discount_pct / 100) AS sale_price_eur,\n       800 * (1 - discount_pct / 100) - 520 AS margin_eur,\n       ROUND((800 * (1 - discount_pct / 100) - 520) / (800 * (1 - discount_pct / 100)) * 100, 2) AS margin_pct\nFROM promotions",
+  "alternatives": [
+    "SELECT promo_code, 800 - 8 * discount_pct AS sale_price_eur, 280 - 8 * discount_pct AS margin_eur, ROUND(100.0 * (280 - 8 * discount_pct) / (800 - 8 * discount_pct), 2) AS margin_pct FROM promotions",
+    "SELECT promo_code, 800 * (100 - discount_pct) / 100 AS sale_price_eur, 800 * (100 - discount_pct) / 100 - 520 AS margin_eur, ROUND(100 * (1 - 520 / (800 * (100 - discount_pct) / 100)), 2) AS margin_pct FROM promotions"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "EX-SQL-BASICS-02-E3-01-PW1",
+      "error_id": "ERR-LOG-21",
+      "sql": "SELECT promo_code, 800 * (1 - discount_pct / 100) AS sale_price_eur, 800 * (1 - discount_pct / 100) - 520 AS margin_eur, ROUND((800 * (1 - discount_pct / 100) - 520) / (800 * (1 - discount_pct / 100)), 2) AS margin_pct FROM promotions"
+    },
+    {
+      "id": "EX-SQL-BASICS-02-E3-01-PW2",
+      "error_id": "ERR-LOG-00",
+      "sql": "SELECT promo_code, 800 * 1 - discount_pct / 100 AS sale_price_eur, 800 * 1 - discount_pct / 100 - 520 AS margin_eur, ROUND((800 * 1 - discount_pct / 100 - 520) / (800 * 1 - discount_pct / 100) * 100, 2) AS margin_pct FROM promotions"
+    },
+    {
+      "id": "EX-SQL-BASICS-02-E3-01-PW3",
+      "error_id": "ERR-LOG-00",
+      "sql": "SELECT promo_code, 800 * (1 - discount_pct / 100) AS sale_price_eur, 800 * (1 - discount_pct / 100) - 520 AS margin_eur, ROUND((800 * (1 - discount_pct / 100) - 520) / 520 * 100, 2) AS margin_pct FROM promotions"
+    },
+    {
+      "id": "EX-SQL-BASICS-02-E3-01-PW4",
+      "error_id": "ERR-OUT-01",
+      "sql": "SELECT promo_code, 800 * (1 - discount_pct / 100) AS sale_price_eur, ROUND((800 * (1 - discount_pct / 100) - 520) / (800 * (1 - discount_pct / 100)) * 100, 2) AS margin_pct FROM promotions"
+    }
+  ],
+  "hint3_partial": "SELECT promo_code,\n       800 * (1 - discount_pct / 100) AS sale_price_eur,\n       800 * (1 - discount_pct / 100) - 520 AS margin_eur,\n       ROUND((___) / (___) * 100, 2) AS margin_pct\nFROM promotions",
+  "solver": {
+    "prompt_hash": "3bceb6a75b8a7e0f",
+    "schema_version": "f0340f71a1f5",
+    "dataset_version": "9639f8ae1f71c2ef",
+    "grader_version": "1a.2",
+    "query": "SELECT promo_code, sale_price_eur, sale_price_eur - 520 AS margin_eur, ROUND((sale_price_eur - 520) / sale_price_eur * 100, 2) AS margin_pct FROM (SELECT promo_code, 800 - 800 * discount_pct / 100.0 AS sale_price_eur FROM promotions) AS p\n",
+    "at": "2026-10-03T13:08:02.347Z"
+  }
+}

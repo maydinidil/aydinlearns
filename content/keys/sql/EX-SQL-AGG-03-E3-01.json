@@ -1,0 +1,41 @@
+{
+  "item_id": "EX-SQL-AGG-03-E3-01",
+  "item_version": 1,
+  "reference_sql": "SELECT category_name, SUM(net_revenue_eur) / SUM(units) AS price_per_unit_eur\nFROM sales\nGROUP BY category_name\nHAVING SUM(net_revenue_eur) / SUM(units) < 25",
+  "alternatives": [
+    "SELECT category_name, SUM(net_revenue_eur) / SUM(units) AS price_per_unit_eur FROM sales GROUP BY 1 HAVING SUM(net_revenue_eur) < 25 * SUM(units)",
+    "SELECT category_name, SUM(net_revenue_eur) / SUM(units) AS price_per_unit_eur FROM sales GROUP BY category_name HAVING 25 > SUM(net_revenue_eur) / SUM(units)"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-20",
+      "sql": "SELECT category_name, AVG(net_revenue_eur / units) AS price_per_unit_eur FROM sales GROUP BY category_name HAVING AVG(net_revenue_eur / units) < 25"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-02",
+      "sql": "SELECT category_name, SUM(net_revenue_eur) / SUM(units) AS price_per_unit_eur FROM sales WHERE net_revenue_eur / units < 25 GROUP BY category_name"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-SYN-06",
+      "sql": "SELECT category_name, SUM(net_revenue_eur) / SUM(units) AS price_per_unit_eur FROM sales WHERE price_per_unit_eur < 25 GROUP BY category_name"
+    },
+    {
+      "id": "PW4",
+      "error_id": "ERR-LOG-14",
+      "sql": "SELECT category_name, SUM(net_revenue_eur) / COUNT(*) AS price_per_unit_eur FROM sales GROUP BY category_name HAVING SUM(net_revenue_eur) / COUNT(*) < 25"
+    }
+  ],
+  "hint3_partial": "SELECT category_name, SUM(net_revenue_eur) / SUM(units) AS price_per_unit_eur\nFROM sales\nGROUP BY category_name\nHAVING ___ < 25",
+  "solver": {
+    "prompt_hash": "0b6aaac8a0e8f844",
+    "schema_version": "cebf75df442f",
+    "dataset_version": "506a9858f862fdfb",
+    "grader_version": "1b.3",
+    "query": "SELECT category_name, SUM(net_revenue_eur) / SUM(units) AS price_per_unit_eur FROM sales GROUP BY category_name HAVING SUM(net_revenue_eur) / SUM(units) < 25\n",
+    "at": "2026-10-04T10:06:46.809Z"
+  }
+}

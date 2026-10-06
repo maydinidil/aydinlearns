@@ -1,0 +1,36 @@
+{
+  "item_id": "EX-SQL-AGG-01-E2-04",
+  "item_version": 1,
+  "reference_sql": "SELECT COUNT(DISTINCT order_id) AS n_orders\nFROM sales\nWHERE channel = 'web'\n  AND country_code IN ('BE', 'LU')",
+  "alternatives": [
+    "SELECT COUNT(DISTINCT order_id) AS n_orders FROM sales WHERE (country_code = 'BE' OR country_code = 'LU') AND channel = 'web'",
+    "SELECT COUNT(DISTINCT order_id) AS n_orders FROM sales WHERE country_code IN ('LU', 'BE') AND channel IN ('web')"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "EX-SQL-AGG-01-E2-04-PW1",
+      "error_id": "ERR-LOG-13",
+      "sql": "SELECT COUNT(DISTINCT order_id) AS n_orders FROM sales WHERE channel = 'web' AND country_code = 'BE' OR country_code = 'LU'"
+    },
+    {
+      "id": "EX-SQL-AGG-01-E2-04-PW2",
+      "error_id": "ERR-LOG-04",
+      "sql": "SELECT COUNT(*) AS n_orders FROM sales WHERE channel = 'web' AND country_code IN ('BE', 'LU')"
+    },
+    {
+      "id": "EX-SQL-AGG-01-E2-04-PW3",
+      "error_id": "ERR-SYN-07",
+      "sql": "SELECT COUNT(DISTINCT order_id) AS n_orders FROM sales WHERE channel = \"web\" AND country_code IN ('BE', 'LU')"
+    }
+  ],
+  "hint3_partial": "SELECT COUNT(DISTINCT order_id) AS n_orders\nFROM sales\nWHERE channel = 'web'\n  AND ___",
+  "solver": {
+    "prompt_hash": "86e96751520a6a89",
+    "schema_version": "cebf75df442f",
+    "dataset_version": "506a9858f862fdfb",
+    "grader_version": "1b.3",
+    "query": "SELECT COUNT(DISTINCT order_id) AS n_orders FROM sales WHERE channel = 'web' AND country_code IN ('BE', 'LU')\n",
+    "at": "2026-10-04T10:06:42.242Z"
+  }
+}

@@ -1,0 +1,36 @@
+{
+  "item_id": "EX-SQL-AGG-01-E1-05",
+  "item_version": 1,
+  "reference_sql": "SELECT COUNT(DISTINCT product_id) AS n_products\nFROM sales\nWHERE category_name = 'Headphones'",
+  "alternatives": [
+    "SELECT COUNT(DISTINCT product_name) AS n_products FROM sales WHERE category_name = 'Headphones'",
+    "SELECT COUNT(DISTINCT product_id) AS n_products FROM sales WHERE category_name IN ('Headphones')"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "EX-SQL-AGG-01-E1-05-PW1",
+      "error_id": "ERR-LOG-04",
+      "sql": "SELECT COUNT(*) AS n_products FROM sales WHERE category_name = 'Headphones'"
+    },
+    {
+      "id": "EX-SQL-AGG-01-E1-05-PW2",
+      "error_id": "ERR-SYN-02",
+      "sql": "SELECT COUNT(DISTINCT product) AS n_products FROM sales WHERE category_name = 'Headphones'"
+    },
+    {
+      "id": "EX-SQL-AGG-01-E1-05-PW3",
+      "error_id": "ERR-SYN-07",
+      "sql": "SELECT COUNT(DISTINCT product_id) AS n_products FROM sales WHERE category_name = \"Headphones\""
+    }
+  ],
+  "hint3_partial": "SELECT COUNT(___ product_id) AS n_products\nFROM sales\nWHERE category_name = 'Headphones'",
+  "solver": {
+    "prompt_hash": "6e96ceb31b5aa902",
+    "schema_version": "cebf75df442f",
+    "dataset_version": "506a9858f862fdfb",
+    "grader_version": "1b.3",
+    "query": "SELECT COUNT(DISTINCT product_id) AS n_products FROM sales WHERE category_name = 'Headphones'\n",
+    "at": "2026-10-04T10:06:41.729Z"
+  }
+}

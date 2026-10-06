@@ -1,0 +1,145 @@
+{
+  "id": "EX-SQL-TYPE-01-E3-02",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-02",
+    "type",
+    "division",
+    "decimals",
+    "top-n",
+    "tie-break",
+    "missing-values",
+    "group-by",
+    "order-by",
+    "limit",
+    "sales"
+  ],
+  "level": 2,
+  "source_ids": [
+    "01:SQL-TYPE-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-TYPE-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01"
+  ],
+  "template_id": "T-TYPE-01-topn-ratio",
+  "template_params": {
+    "table": "sales",
+    "group_by": "store_code",
+    "rank_by": "units_per_line",
+    "n": 2,
+    "tie_break": "store_code",
+    "from": "2025-01-01",
+    "to": "2025-12-31",
+    "output": "units_per_line"
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_type",
+  "prompt": "Which 2 stores sold the most units per order line in 2025? Use the sales table and keep the order lines with an order_date from 2025-01-01 to 2025-12-31, both included. Return two columns, in this order: store_code and units_per_line, the total of units divided by the number of order lines, with all its decimals kept. Count every order line, including a line whose units value is missing: a missing units value adds nothing to the total. Sort by units_per_line from highest to lowest, and when two stores have the same units_per_line, by store_code from A to Z. Return only the first 2 rows, one row per store_code. Do not round.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "store_code",
+        "type_class": "text"
+      },
+      {
+        "name": "units_per_line",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per store_code"
+  },
+  "rules": {
+    "order_matters": true,
+    "sort_keys": [
+      {
+        "column": "units_per_line",
+        "desc": true
+      },
+      {
+        "column": "store_code",
+        "desc": false
+      }
+    ],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "store_code",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "units_per_line",
+        "type_class": "numeric",
+        "precision": "ratio"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "store_code"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, keep the 2025 lines, decide what one row stands for, write units_per_line, then write the sort and the row limit.",
+    "Both the total of units and the count of lines are whole numbers, so make one side a decimal before you divide; integer division would make many stores tie. Put the store_code tie-break after units_per_line in the same ORDER BY, from A to Z."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 71,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 72,
+      "to": 82,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 83,
+      "to": 147,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 148,
+      "to": 167,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 168,
+      "to": 216,
+      "subgoal": "sort_limit"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "A decimal division keeps the small differences between stores, and the store_code tie-break settles which of two equal values comes first at the cut-off."
+}

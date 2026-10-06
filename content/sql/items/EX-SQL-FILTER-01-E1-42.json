@@ -1,0 +1,86 @@
+{
+  "id": "EX-SQL-FILTER-01-E1-42",
+  "version": 1,
+  "kind": "choose_query",
+  "tags": [
+    "sql",
+    "LVL-01",
+    "choose_query",
+    "where",
+    "and",
+    "comparison",
+    "products"
+  ],
+  "level": 1,
+  "source_ids": [
+    "01:SQL-FILTER-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-FILTER-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01"
+  ],
+  "template_id": "T-FILTER-01-choose-and-with-threshold",
+  "template_params": {
+    "table": "products"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_filter",
+  "prompt": "Which query lists the Sonora products (brand 'Sonora') whose unit_cost_eur is 100 or more? Return product_name and unit_cost_eur. Any row order is fine.",
+  "output_contract": null,
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [],
+  "subgoals": [],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 60000,
+  "why_this_works": "",
+  "options": [
+    {
+      "oid": "o41d637b",
+      "text": "SELECT product_name, unit_cost_eur\nFROM products\nWHERE brand = 'Sonora' AND unit_cost_eur > 100",
+      "misconception_id": "ERR-LOG-15"
+    },
+    {
+      "oid": "oe4e80ca",
+      "text": "SELECT product_name, unit_cost_eur\nFROM products\nWHERE brand = 'Sonora' AND unit_cost_eur >= 100",
+      "misconception_id": null
+    },
+    {
+      "oid": "o71f5b78",
+      "text": "SELECT product_name, unit_cost_eur\nFROM products\nWHERE brand = 'Sonora' OR unit_cost_eur >= 100",
+      "misconception_id": "ERR-LOG-13"
+    },
+    {
+      "oid": "o6851983",
+      "text": "SELECT product_name, unit_cost_eur\nFROM products\nWHERE brand = 'Sonora' AND unit_cost_eur <= 100",
+      "misconception_id": "ERR-LOG-15"
+    }
+  ]
+}

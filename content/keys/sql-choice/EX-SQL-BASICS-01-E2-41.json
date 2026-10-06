@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-BASICS-01-E2-41",
+  "item_version": 1,
+  "value": 40,
+  "explanation": "SELECT keeps every row of the table: categories has 40 rows, so the result has 40 rows. parent_category has only 7 different values, but plain SELECT does not remove repeats, so each value shows once for every category under it. Only SELECT DISTINCT would give 7 rows.",
+  "solver": {
+    "prompt_hash": "127a3d503a80805e",
+    "grader_version": "choice.1",
+    "chosen": null,
+    "typed": "40",
+    "at": "2026-10-06T09:08:14.829Z"
+  }
+}

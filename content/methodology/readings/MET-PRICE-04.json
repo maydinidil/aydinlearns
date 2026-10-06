@@ -1,0 +1,15 @@
+{
+  "concept_id": "MET-PRICE-04",
+  "section": "methodology",
+  "version": 1,
+  "title": "Promo uplift vs baseline",
+  "reading_md": "**What it answers.** How much extra volume a promotion brought compared with normal weeks. Typical questions: \"Did the 25% off deal on Earbuds Pro X actually work?\" and \"How much extra volume did promotion P-2025-03 bring?\"\n\n**Formula (Voltmarkt's convention).**\n\nuplift % = 100 x (average weekly units during the promotion - baseline) / baseline\n\n- Baseline = the promoted product's average weekly units in the 4 weeks before the promotion starts.\n- Weekly units come from a zero-filled product by week series over the calendar: every product has a row for every week, and a week with no sales counts as 0. In Voltmarkt's data, cross each product with every `calendar.week_start`, left join the weekly sum of `order_lines.quantity`, and turn the missing sums into 0.\n- The grain is one promotion.\n\n**Worked example.** Earbuds Pro X sold 40, 0, 36 and 44 units in the 4 weeks before its promotion. The week with 0 has no order lines at all. Zero-filled, the baseline is (40 + 0 + 36 + 44) / 4 = 30 units a week. During the 2 promotion weeks it sold 84 and 78, an average of 81. Uplift = 100 x (81 - 30) / 30 = 170%.\n\nAveraging only the weeks that have sales rows makes the baseline 120 / 3 = 40 and the uplift 102.5%. Skipping empty weeks raises the baseline and understates the uplift. The same rule holds inside the promotion: a promotion week with no sales counts as 0 too.\n\n**Common mistakes.**\n- Averaging only the weeks with sales instead of the zero-filled series.\n- A baseline that contains another promotion on the same product, which inflates the baseline.\n- Seasonality: a promotion in Black Week or before Sinterklaas, compared with quiet October weeks, credits the season to the deal.\n- Ignoring pull-forward. After the 55-inch TV promotion, the next 2 weeks sold about 80% of baseline: customers bought early, so part of the promotion's volume was borrowed from later weeks.\n\n**What it does not answer.**\n- Whether the promotion made money. Uplift counts units; the cost of the discount is not in it (see gross margin).\n- What happened to other products. Earbuds Lite, the sister product, lost sales while Pro X was on deal (cannibalisation, a separate metric), and soundbars can gain from a TV deal (halo).\n- Whether the extra units were new demand or purchases pulled forward from later weeks.",
+  "source_ids": [
+    "04:MET-PRICE-04",
+    "ERRATA:E-100",
+    "ERRATA:E-011",
+    "ERRATA:E-101"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04"
+}

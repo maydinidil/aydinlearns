@@ -1,0 +1,103 @@
+{
+  "concept_id": "SQL-BASICS-02",
+  "version": 1,
+  "reading_md": "## Calculated columns and aliases\n\nA SELECT list can hold more than column names. It can hold an **expression**: arithmetic on the columns of each row. The result is a new column in your output. Nothing is stored and the table does not change; the database works the value out again, row by row, every time the query runs.\n\n```sql\nSELECT product_id,\n       unit_cost_eur * 1.21 AS cost_incl_vat\nFROM products;\n```\n\nThis returns the same rows as `products`, one per product, with a new column worked out from `unit_cost_eur` on that row.\n\n### Arithmetic\n\nUse `+`, `-`, `*` and `/` with columns and plain numbers. SQL follows the order you know from school: `*` and `/` run before `+` and `-`. So `10 - 4 / 2` is 8, not 3. When you mean something else, add brackets: `(price - cost) / price`. Brackets cost nothing and show your intent, so use them whenever you are unsure.\n\n### Naming the result with AS\n\nWithout a name, the engine invents one from the expression. Write `AS` and a name after the expression to choose it. You can rename a plain column the same way: `city AS store_city`. `AS` can usually be left out (`city store_city` also works), but it is needed when the new name is also an SQL keyword: `launch_date AS year` works, while `launch_date year` is a syntax error. Writing AS every time avoids that and makes the query easier to read.\n\nKeep names to one word made of letters, digits and underscores, such as `cost_incl_vat`. A name with a space, such as `cost incl vat`, is a syntax error unless you wrap it in double quotes. Watch your commas too: `SELECT city country_code` returns one column, `city` renamed to `country_code`.\n\nThe alias names the output column only. It is not a column of the table, and WHERE runs before SELECT, so standard SQL does not let WHERE use it. DuckDB accepts a plain alias in WHERE, but PostgreSQL and most SQL tests reject it: repeat the expression in WHERE instead.\n\n### Percentages and shares\n\nA share of 0.15 and a percentage of 15 are the same amount on scales 100 apart. Suppose a column `rate_pct` holds 15 for 15%:\n\n- the rate as a share is `rate_pct / 100`;\n- what remains after it is `1 - rate_pct / 100`;\n- a value grown by 15% is `value * 1.15`, and 15% of a value is `value * 0.15`.\n\nRead each question for the scale it asks for, and check one row by hand. A 25% discount on 200 euros should give 150, not -4800, which is what you get when 25 is used where 0.25 was meant.\n\n### Percentages in steps\n\nA 20% markup followed by 5% off is `* 1.20 * 0.95`, which is 1.14 times the cost. Percentages applied one after the other multiply; they do not add up to 15%.",
+  "syntax_md": "```sql\nSELECT column_a,\n       expression AS new_name,\n       column_b AS renamed_column\nFROM table_name;\n```\nOperators: `+`, `-`, `*` and `/`. `*` and `/` run before `+` and `-`, and anything in brackets runs first. `AS` is needed when the new name is an SQL keyword, such as year, and recommended everywhere else.",
+  "dialect_note": "DuckDB's `/` always keeps the decimals: `7 / 2` is 3.5. PostgreSQL, SQL Server and SQLite divide two whole numbers as whole numbers, so `7 / 2` is 3 there. When both sides of a division are whole numbers, write one as a decimal, as in `7 / 2.0` or `100.0 * part / whole`, and the query gives the same answer everywhere. DuckDB also lets a later column in the SELECT list reuse an earlier alias, which most engines reject, so repeat the expression instead.",
+  "worked_examples": [
+    {
+      "title": "Unit cost including VAT",
+      "prompt": "Dutch VAT is 21%. For every product, return product_id, product_name and cost_incl_vat (the unit cost with 21% VAT added, in euros). One row per product.",
+      "clauses": [
+        {
+          "text": "SELECT product_id,\n       product_name,",
+          "subgoal": "metrics",
+          "why": "The ID and the name say which product each row is."
+        },
+        {
+          "text": "unit_cost_eur * 1.21 AS cost_incl_vat",
+          "subgoal": "metrics",
+          "why": "Multiplying by 1.21 keeps the cost and adds 21% of it, and AS names the new column."
+        },
+        {
+          "text": "FROM products",
+          "subgoal": "source_grain",
+          "why": "products has one row per product, which is the grain the question asks for."
+        }
+      ]
+    },
+    {
+      "title": "A soundbar's price under each promotion",
+      "prompt": "A soundbar lists at 250 euros. For every promotion, return promo_code and sale_price_eur (the soundbar's price after the promotion's discount_pct, a percentage such as 25 for 25% off). One row per promotion.",
+      "clauses": [
+        {
+          "text": "SELECT promo_code,",
+          "subgoal": "metrics",
+          "why": "The code says which promotion each row is."
+        },
+        {
+          "text": "250 * (1 - discount_pct / 100) AS sale_price_eur",
+          "subgoal": "metrics",
+          "why": "discount_pct / 100 turns 25 into 0.25, 1 minus that is the share still paid, and the brackets make it happen before the multiplication by 250."
+        },
+        {
+          "text": "FROM promotions",
+          "subgoal": "source_grain",
+          "why": "promotions has one row per promotion."
+        }
+      ]
+    }
+  ],
+  "pretest_item_ids": [
+    "EX-SQL-BASICS-02-E1-01",
+    "EX-SQL-BASICS-02-E1-02"
+  ],
+  "lesson_item_ids": [
+    "EX-SQL-BASICS-02-E1-03",
+    "EX-SQL-BASICS-02-E1-04",
+    "EX-SQL-BASICS-02-E2-01",
+    "EX-SQL-BASICS-02-E2-02"
+  ],
+  "retest_item_id": "EX-SQL-BASICS-02-E1-05",
+  "pool_item_ids": [
+    "EX-SQL-BASICS-02-E1-06",
+    "EX-SQL-BASICS-02-E1-07",
+    "EX-SQL-BASICS-02-E1-08",
+    "EX-SQL-BASICS-02-E2-03",
+    "EX-SQL-BASICS-02-E2-04",
+    "EX-SQL-BASICS-02-E2-05",
+    "EX-SQL-BASICS-02-E3-01",
+    "EX-SQL-BASICS-02-E3-02",
+    "EX-SQL-BASICS-02-E1-31",
+    "EX-SQL-BASICS-02-E1-42",
+    "EX-SQL-BASICS-02-E1-43",
+    "EX-SQL-BASICS-02-E2-41"
+  ],
+  "source_ids": [
+    "01:SQL-BASICS-02"
+  ],
+  "why_clause": {
+    "clause": "unit_cost_eur * 1.21 AS cost_incl_vat",
+    "stem": "Why is unit_cost_eur multiplied by 1.21?",
+    "options": [
+      {
+        "id": "a",
+        "text": "It returns only the VAT part, 21% of the cost."
+      },
+      {
+        "id": "b",
+        "text": "It keeps the whole cost and adds 21% of it on top."
+      },
+      {
+        "id": "c",
+        "text": "It changes the unit cost stored in the products table."
+      },
+      {
+        "id": "d",
+        "text": "It adds 1.21 euros to the unit cost of every product."
+      }
+    ],
+    "correct_id": "b",
+    "explanation": "Multiplying by 1.21 is the cost plus 0.21 times the cost, so the result is the cost with 21% VAT added. Multiplying by 0.21 would give only the VAT. The new column exists only in the result: the products table does not change."
+  }
+}

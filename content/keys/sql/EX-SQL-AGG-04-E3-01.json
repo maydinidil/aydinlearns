@@ -1,0 +1,36 @@
+{
+  "item_id": "EX-SQL-AGG-04-E3-01",
+  "item_version": 1,
+  "reference_sql": "SELECT country_code,\n       SUM(CASE WHEN channel = 'web' THEN net_revenue_eur ELSE 0 END) / SUM(CASE WHEN channel = 'web' THEN units ELSE 0 END) AS web_price_per_unit_eur,\n       SUM(CASE WHEN channel = 'store' THEN net_revenue_eur ELSE 0 END) / SUM(CASE WHEN channel = 'store' THEN units ELSE 0 END) AS store_price_per_unit_eur\nFROM sales\nWHERE net_revenue_eur IS NOT NULL\n  AND units IS NOT NULL\nGROUP BY country_code",
+  "alternatives": [
+    "SELECT country_code, SUM(CASE WHEN channel = 'web' THEN net_revenue_eur END) / SUM(CASE WHEN channel = 'web' THEN units END) AS web_price_per_unit_eur, SUM(CASE WHEN channel = 'store' THEN net_revenue_eur END) / SUM(CASE WHEN channel = 'store' THEN units END) AS store_price_per_unit_eur FROM sales WHERE net_revenue_eur IS NOT NULL AND units IS NOT NULL GROUP BY country_code",
+    "SELECT country_code, SUM(net_revenue_eur) FILTER (WHERE channel = 'web') / SUM(units) FILTER (WHERE channel = 'web') AS web_price_per_unit_eur, SUM(net_revenue_eur) FILTER (WHERE channel = 'store') / SUM(units) FILTER (WHERE channel = 'store') AS store_price_per_unit_eur FROM sales WHERE NOT (net_revenue_eur IS NULL OR units IS NULL) GROUP BY 1"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-20",
+      "sql": "SELECT country_code, AVG(CASE WHEN channel = 'web' THEN net_revenue_eur / units END) AS web_price_per_unit_eur, AVG(CASE WHEN channel = 'store' THEN net_revenue_eur / units END) AS store_price_per_unit_eur FROM sales WHERE net_revenue_eur IS NOT NULL AND units IS NOT NULL GROUP BY country_code"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-14",
+      "sql": "SELECT country_code, AVG(CASE WHEN channel = 'web' THEN net_revenue_eur END) AS web_price_per_unit_eur, AVG(CASE WHEN channel = 'store' THEN net_revenue_eur END) AS store_price_per_unit_eur FROM sales WHERE net_revenue_eur IS NOT NULL AND units IS NOT NULL GROUP BY country_code"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-17",
+      "sql": "SELECT country_code, SUM(CASE WHEN channel = 'web' THEN net_revenue_eur ELSE 0 END) / SUM(CASE WHEN channel = 'web' THEN units ELSE 0 END) AS web_price_per_unit_eur, SUM(CASE WHEN channel = 'store' THEN net_revenue_eur ELSE 0 END) / SUM(CASE WHEN channel = 'store' THEN units ELSE 0 END) AS store_price_per_unit_eur FROM sales GROUP BY country_code"
+    }
+  ],
+  "hint3_partial": "SELECT country_code,\n       SUM(CASE WHEN channel = 'web' THEN net_revenue_eur ELSE 0 END) / SUM(CASE WHEN channel = 'web' THEN ___ ELSE 0 END) AS web_price_per_unit_eur,\n       ___ / ___ AS store_price_per_unit_eur\nFROM sales\nWHERE ___\nGROUP BY country_code",
+  "solver": {
+    "prompt_hash": "5ae7e4ce5b17b678",
+    "schema_version": "cebf75df442f",
+    "dataset_version": "506a9858f862fdfb",
+    "grader_version": "1b.3",
+    "query": "SELECT country_code, SUM(net_revenue_eur) FILTER (WHERE channel = 'web') / SUM(units) FILTER (WHERE channel = 'web') AS web_price_per_unit_eur, SUM(net_revenue_eur) FILTER (WHERE channel = 'store') / SUM(units) FILTER (WHERE channel = 'store') AS store_price_per_unit_eur FROM sales WHERE net_revenue_eur IS NOT NULL AND units IS NOT NULL GROUP BY country_code\n",
+    "at": "2026-10-04T10:06:49.969Z"
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "id": "empty-both",
+  "rule": "EMPTY",
+  "setup_sql": [
+    "CREATE SCHEMA g",
+    "CREATE TABLE g.e AS SELECT 1 AS x WHERE false"
+  ],
+  "key_sql": "SELECT x FROM g.e",
+  "learner_sql": "SELECT x FROM g.e WHERE x > 5",
+  "rules": {
+    "columns": [
+      {
+        "name": "x",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ]
+  },
+  "expect": {
+    "pass": true
+  }
+}

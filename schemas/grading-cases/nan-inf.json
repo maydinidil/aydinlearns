@@ -1,0 +1,22 @@
+{
+  "id": "nan-inf",
+  "rule": "NAN",
+  "setup_sql": [
+    "CREATE SCHEMA g",
+    "CREATE TABLE g.f AS SELECT * FROM (VALUES ('nan'::DOUBLE),('inf'::DOUBLE),(1.5)) v(x)"
+  ],
+  "key_sql": "SELECT x FROM g.f",
+  "learner_sql": "SELECT x * 1.0 AS x FROM g.f",
+  "rules": {
+    "columns": [
+      {
+        "name": "x",
+        "type_class": "numeric",
+        "precision": "ratio"
+      }
+    ]
+  },
+  "expect": {
+    "pass": true
+  }
+}

@@ -1,0 +1,36 @@
+{
+  "item_id": "EX-SQL-CASE-01-E1-21",
+  "item_version": 1,
+  "reference_sql": "SELECT product_id, product_name,\n       CASE WHEN sister_product_id IS NULL THEN 'no'\n            ELSE 'yes'\n       END AS has_sister\nFROM products\nWHERE brand = 'Energo'",
+  "alternatives": [
+    "SELECT product_id, product_name, CASE WHEN sister_product_id IS NOT NULL THEN 'yes' ELSE 'no' END AS has_sister FROM products WHERE brand = 'Energo'",
+    "SELECT product_id, product_name, CASE WHEN COALESCE(sister_product_id, 0) = 0 THEN 'no' ELSE 'yes' END AS has_sister FROM products WHERE brand IN ('Energo')"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-SEM-04",
+      "sql": "SELECT product_id, product_name, CASE WHEN sister_product_id = NULL THEN 'no' ELSE 'yes' END AS has_sister FROM products WHERE brand = 'Energo'"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-03",
+      "sql": "SELECT product_id, product_name, CASE WHEN sister_product_id > 0 THEN 'yes' END AS has_sister FROM products WHERE brand = 'Energo'"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-SYN-07",
+      "sql": "SELECT product_id, product_name, CASE WHEN sister_product_id IS NULL THEN 'no' ELSE 'yes' END AS has_sister FROM products WHERE brand = \"Energo\""
+    }
+  ],
+  "hint3_partial": "SELECT product_id, product_name,\n       CASE WHEN sister_product_id ___ THEN 'no'\n            ELSE ___\n       END AS has_sister\nFROM products\nWHERE brand = 'Energo'",
+  "solver": {
+    "prompt_hash": "49c77de226a9f6d9",
+    "schema_version": "d77fe1c31a0e",
+    "dataset_version": "506a9858f862fdfb",
+    "grader_version": "1b.3",
+    "query": "SELECT product_id, product_name, CASE WHEN sister_product_id IS NOT NULL THEN 'yes' ELSE 'no' END AS has_sister\nFROM products\nWHERE brand = 'Energo'\n",
+    "at": "2026-10-04T14:33:17.626Z"
+  }
+}

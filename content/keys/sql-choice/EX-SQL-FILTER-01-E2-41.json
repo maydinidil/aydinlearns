@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-FILTER-01-E2-41",
+  "item_version": 1,
+  "correct_oid": "o2890511",
+  "explanation": "AND is worked out before OR, so the filter reads: store 2, or (store 3 and a flagship). Store 2 passes the first test on its own. Store 3 is a standard store, so its AND test fails. Reading it as (store 2 or store 3) and a flagship would keep no rows, because neither store is a flagship.",
+  "solver": {
+    "prompt_hash": "b0ee831d35f1fb04",
+    "grader_version": "choice.1",
+    "chosen": "o2890511",
+    "typed": null,
+    "at": "2026-10-06T09:08:14.843Z"
+  }
+}

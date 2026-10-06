@@ -1,0 +1,130 @@
+{
+  "id": "EX-SQL-AGG-03-E1-31",
+  "version": 1,
+  "kind": "fix",
+  "tags": [
+    "sql",
+    "LVL-02",
+    "fix",
+    "having",
+    "avg",
+    "sales",
+    "date_range"
+  ],
+  "level": 2,
+  "source_ids": [
+    "01:SQL-AGG-03"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-AGG-03",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-AGG-03"
+  ],
+  "template_id": "T-AGG-03-fix-aggregate-in-where",
+  "template_params": {
+    "table": "sales",
+    "group_by": "category_name",
+    "aggregate": "avg",
+    "comparison": "more than",
+    "threshold": 1.25,
+    "from": "2025-01-01",
+    "to": "2025-03-31"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_agg",
+  "prompt": "The query in the editor has one mistake. Fix it so that it answers this question: which categories averaged more than 1.25 units per order line in the first quarter of 2025 (order_date from 1 January 2025 to 31 March 2025, both days included)? Use the sales table and its category_name column. Return two columns, in this order: category_name and avg_units, the average of units over the category's lines in that quarter. Lines with missing units are left out of the average. Return one row per category, and only the categories whose average is above 1.25. Do not round. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "category_name",
+        "type_class": "text"
+      },
+      {
+        "name": "avg_units",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per category"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "category_name",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "avg_units",
+        "type_class": "numeric",
+        "precision": "ratio"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "category_name"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the group filter: the test on each category's average belongs after GROUP BY.",
+    "WHERE runs on single lines, before any average exists, so the engine refuses AVG there. Keep the date test where it is and move only the test on the average."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 45,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 46,
+      "to": 56,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 57,
+      "to": 121,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 122,
+      "to": 144,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 145,
+      "to": 169,
+      "subgoal": "group_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": "SELECT category_name, AVG(units) AS avg_units\nFROM sales\nWHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-03-31' AND AVG(units) > 1.25\nGROUP BY category_name",
+  "starter_error_id": "ERR-SYN-05",
+  "time_target_ms": 90000,
+  "why_this_works": "HAVING tests each category's AVG(units) after grouping; WHERE can only test single lines."
+}

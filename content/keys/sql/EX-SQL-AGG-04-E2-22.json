@@ -1,0 +1,41 @@
+{
+  "item_id": "EX-SQL-AGG-04-E2-22",
+  "item_version": 1,
+  "reference_sql": "SELECT store_code,\n       MIN(CASE WHEN parent_category = 'Gaming' THEN order_date END) AS first_gaming_date,\n       MIN(CASE WHEN parent_category = 'Accessories' THEN order_date END) AS first_accessories_date\nFROM sales\nGROUP BY store_code",
+  "alternatives": [
+    "SELECT store_code, MIN(order_date) FILTER (WHERE parent_category = 'Gaming') AS first_gaming_date, MIN(order_date) FILTER (WHERE parent_category = 'Accessories') AS first_accessories_date FROM sales GROUP BY store_code",
+    "SELECT store_code, MIN(CASE WHEN parent_category = 'Gaming' THEN order_date ELSE NULL END) AS first_gaming_date, MIN(CASE WHEN parent_category IN ('Accessories') THEN order_date ELSE NULL END) AS first_accessories_date FROM sales GROUP BY 1"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-14",
+      "sql": "SELECT store_code, MAX(CASE WHEN parent_category = 'Gaming' THEN order_date END) AS first_gaming_date, MAX(CASE WHEN parent_category = 'Accessories' THEN order_date END) AS first_accessories_date FROM sales GROUP BY store_code"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-07",
+      "sql": "SELECT store_code, MIN(CASE WHEN parent_category = 'Gaming' THEN order_date END) AS first_gaming_date, MIN(CASE WHEN parent_category = 'Accessories' THEN order_date END) AS first_accessories_date FROM sales GROUP BY store_code, country_code"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-03",
+      "sql": "SELECT store_code, MIN(CASE WHEN parent_category = 'Gaming' THEN order_date END) AS first_gaming_date, MIN(CASE WHEN parent_category = 'Accessories' THEN order_date END) AS first_accessories_date FROM sales WHERE net_revenue_eur > 0 GROUP BY store_code"
+    },
+    {
+      "id": "PW4",
+      "error_id": "ERR-SEM-01",
+      "sql": "SELECT store_code, channel, MIN(CASE WHEN parent_category = 'Gaming' THEN order_date END) AS first_gaming_date, MIN(CASE WHEN parent_category = 'Accessories' THEN order_date END) AS first_accessories_date FROM sales GROUP BY store_code"
+    }
+  ],
+  "hint3_partial": "SELECT store_code,\n       MIN(CASE WHEN parent_category = 'Gaming' THEN ___ END) AS first_gaming_date,\n       ___ AS first_accessories_date\nFROM sales\nGROUP BY store_code",
+  "solver": {
+    "prompt_hash": "df97eb771b8020e4",
+    "schema_version": "cebf75df442f",
+    "dataset_version": "506a9858f862fdfb",
+    "grader_version": "1b.3",
+    "query": "SELECT store_code,\n       MIN(CASE WHEN parent_category = 'Gaming' THEN order_date END) AS first_gaming_date,\n       MIN(CASE WHEN parent_category = 'Accessories' THEN order_date END) AS first_accessories_date\nFROM sales\nGROUP BY store_code\n",
+    "at": "2026-10-04T14:33:17.236Z"
+  }
+}

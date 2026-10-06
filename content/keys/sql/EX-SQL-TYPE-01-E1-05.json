@@ -1,0 +1,31 @@
+{
+  "item_id": "EX-SQL-TYPE-01-E1-05",
+  "item_version": 1,
+  "reference_sql": "SELECT order_month,\n       ROUND(COUNT(*) * 1.0 / COUNT(DISTINCT order_id), 2) AS lines_per_order\nFROM sales\nWHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\nGROUP BY order_month",
+  "alternatives": [
+    "SELECT order_month, ROUND(CAST(COUNT(*) AS DOUBLE) / COUNT(DISTINCT order_id), 2) AS lines_per_order FROM sales WHERE order_date >= DATE '2025-01-01' AND order_date <= DATE '2025-12-31' GROUP BY order_month",
+    "SELECT order_month, ROUND(COUNT(order_line_id) / CAST(COUNT(DISTINCT order_id) AS DECIMAL(18, 2)), 2) AS lines_per_order FROM sales WHERE order_date BETWEEN '2025-01-01' AND '2025-12-31' GROUP BY 1"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-05",
+      "sql": "SELECT order_month, ROUND(COUNT(*) // COUNT(DISTINCT order_id), 2) AS lines_per_order FROM sales WHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31' GROUP BY order_month"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-OUT-02",
+      "sql": "SELECT strftime(order_month, '%Y-%m') AS order_month, ROUND(COUNT(*) * 1.0 / COUNT(DISTINCT order_id), 2) AS lines_per_order FROM sales WHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31' GROUP BY 1"
+    }
+  ],
+  "hint3_partial": "SELECT order_month,\n       ROUND(COUNT(*) ___ / COUNT(DISTINCT order_id), 2) AS lines_per_order\nFROM sales\nWHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\nGROUP BY ___",
+  "solver": {
+    "prompt_hash": "6d2af5fb5a4c8e6d",
+    "schema_version": "cebf75df442f",
+    "dataset_version": "506a9858f862fdfb",
+    "grader_version": "1b.3",
+    "query": "SELECT order_month, ROUND(COUNT(*) * 1.0 / COUNT(DISTINCT order_id), 2) AS lines_per_order FROM sales WHERE order_date BETWEEN '2025-01-01' AND '2025-12-31' GROUP BY order_month\n",
+    "at": "2026-10-04T10:06:51.864Z"
+  }
+}

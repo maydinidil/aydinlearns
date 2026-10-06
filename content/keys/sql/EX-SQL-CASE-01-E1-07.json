@@ -1,0 +1,36 @@
+{
+  "item_id": "EX-SQL-CASE-01-E1-07",
+  "item_version": 1,
+  "reference_sql": "SELECT CASE WHEN country_code = 'NL' THEN 'home' ELSE 'export' END AS market,\n       COUNT(*) AS n_lines\nFROM sales\nGROUP BY market",
+  "alternatives": [
+    "SELECT CASE WHEN country_code = 'NL' THEN 'home' ELSE 'export' END AS market, COUNT(*) AS n_lines FROM sales GROUP BY CASE WHEN country_code = 'NL' THEN 'home' ELSE 'export' END",
+    "SELECT CASE WHEN country_code <> 'NL' THEN 'export' ELSE 'home' END AS market, COUNT(*) AS n_lines FROM sales GROUP BY 1"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-07",
+      "sql": "SELECT CASE WHEN country_code = 'NL' THEN 'home' ELSE 'export' END AS market, COUNT(*) AS n_lines FROM sales GROUP BY country_code"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-03",
+      "sql": "SELECT CASE WHEN country_code = 'NL' THEN 'home' WHEN country_code = 'BE' THEN 'export' END AS market, COUNT(*) AS n_lines FROM sales GROUP BY market"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-SEM-01",
+      "sql": "SELECT CASE WHEN country_code = 'NL' THEN 'home' ELSE 'export' END AS market, COUNT(*) AS n_lines FROM sales"
+    }
+  ],
+  "hint3_partial": "SELECT CASE WHEN country_code = 'NL' THEN 'home' ELSE ___ END AS market,\n       COUNT(*) AS n_lines\nFROM sales\nGROUP BY ___",
+  "solver": {
+    "prompt_hash": "34d1e1347fc4fb03",
+    "schema_version": "cebf75df442f",
+    "dataset_version": "506a9858f862fdfb",
+    "grader_version": "1b.3",
+    "query": "SELECT CASE WHEN country_code = 'NL' THEN 'home' ELSE 'export' END AS market, COUNT(*) AS n_lines FROM sales GROUP BY 1\n",
+    "at": "2026-10-04T10:06:50.634Z"
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "concept_id": "GA4-ADMIN-01",
+  "section": "ga4",
+  "version": 1,
+  "title": "Data filters and internal traffic",
+  "reading_md": "## What it is\n\nA data filter excludes matching incoming events from a property's data. Its main use is internal traffic, such as Voltmarkt's own staff browsing the webshop from the head office. Excluding internal traffic takes two steps.\n\n- **Step 1: define an internal traffic rule** in the web stream's tag settings, for example by the office's IP addresses. Matching events get the parameter `traffic_type` with the value `internal`.\n- **Step 2: create an Internal traffic data filter** in Admin, and set it to Active.\n\nA data filter has three states.\n\n- **Testing:** matching data is still processed, but labelled, so you can check it with the \"Test data filter name\" dimension.\n- **Active:** matching data is excluded.\n- **Inactive:** the filter does nothing.\n\nA **developer traffic filter** works the same way for events sent in debug mode, so test events stay out of reports.\n\nFilters are not retroactive: they act on data from the moment they are active. Excluded data cannot be recovered.\n\nTwo hostname filters arrived in 2026: hostname exclude filters in June and hostname include filters in September (New in 2026). A hostname include filter works as an allowlist: GA4 keeps data only from the domains you approve.\n\n## What the exam asks\n\n- The two-step setup for internal traffic: the rule, then an active filter.\n- What each filter state does.\n- That filters are not retroactive.\n- Look for the multi-step answer: a rule on its own, or a filter on its own, is not enough.\n\n## Common confusions\n\n- Universal Analytics view filters no longer exist. The nearest GA4 tool is a data filter.\n- Defining the internal traffic rule excludes nothing by itself. It only labels events; the filter does the excluding, and only when it is Active.\n- A filter in Testing excludes nothing yet.\n- Excluded data is gone for good, so check a filter in Testing before you activate it.\n- The internal traffic filter and the developer traffic filter catch different events: events your traffic rule labels as internal, and events sent in debug mode.\n- Hostname filters are very new and may not be on the exam yet.\n\n## In Skillshop\n\nCourse \"Google Analytics Certification (2026)\": privacy and administration topics are spread over the modules \"Get Started Using Google Analytics\" and \"Use GA with Other Tools and Data Sources\" (Unverified).",
+  "source_ids": [
+    "06:GA4-ADMIN-01",
+    "06:Q-GA4-42",
+    "06:GA4-CH-14",
+    "06:GA4-CH-16",
+    "06:GA4-SETUP-01",
+    "06:QS-02",
+    "ERRATA:E-121",
+    "06:§2.2",
+    "06:§2.1",
+    "10:§7",
+    "ERRATA:E-116",
+    "ERRATA:E-122"
+  ],
+  "verified": true,
+  "as_of": "2026-10-05"
+}

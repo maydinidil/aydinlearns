@@ -1,0 +1,41 @@
+{
+  "item_id": "EX-SQL-AGG-03-E2-22",
+  "item_version": 1,
+  "reference_sql": "SELECT category_name, MIN(net_revenue_eur) AS lowest_line_revenue_eur\nFROM sales\nGROUP BY category_name\nHAVING MIN(net_revenue_eur) >= 50",
+  "alternatives": [
+    "SELECT category_name, MIN(net_revenue_eur) AS lowest_line_revenue_eur FROM sales GROUP BY 1 HAVING NOT MIN(net_revenue_eur) < 50",
+    "SELECT category_name, MIN(net_revenue_eur) AS lowest_line_revenue_eur FROM sales WHERE net_revenue_eur IS NOT NULL GROUP BY category_name HAVING MIN(net_revenue_eur) >= 50.00"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-02",
+      "sql": "SELECT category_name, MIN(net_revenue_eur) AS lowest_line_revenue_eur FROM sales WHERE net_revenue_eur >= 50 GROUP BY category_name"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-SYN-05",
+      "sql": "SELECT category_name, MIN(net_revenue_eur) AS lowest_line_revenue_eur FROM sales WHERE MIN(net_revenue_eur) >= 50 GROUP BY category_name"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-14",
+      "sql": "SELECT category_name, MIN(net_revenue_eur) AS lowest_line_revenue_eur FROM sales GROUP BY category_name HAVING AVG(net_revenue_eur) >= 50"
+    },
+    {
+      "id": "PW4",
+      "error_id": "ERR-SYN-06",
+      "sql": "SELECT category_name, MIN(net_revenue_eur) AS lowest_line_revenue_eur FROM sales WHERE lowest_line_revenue_eur >= 50 GROUP BY category_name"
+    }
+  ],
+  "hint3_partial": "SELECT category_name, MIN(net_revenue_eur) AS lowest_line_revenue_eur\nFROM sales\nGROUP BY category_name\nHAVING ___",
+  "solver": {
+    "prompt_hash": "377e8a95aafd1e82",
+    "schema_version": "cebf75df442f",
+    "dataset_version": "506a9858f862fdfb",
+    "grader_version": "1b.3",
+    "query": "SELECT category_name, MIN(net_revenue_eur) AS lowest_line_revenue_eur\nFROM sales\nGROUP BY category_name\nHAVING MIN(net_revenue_eur) >= 50\n",
+    "at": "2026-10-04T14:33:16.693Z"
+  }
+}

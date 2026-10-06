@@ -1,0 +1,116 @@
+{
+  "id": "EX-SQL-FILTER-02-E2-03",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-01",
+    "between",
+    "stores"
+  ],
+  "level": 1,
+  "source_ids": [
+    "01:SQL-FILTER-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-02",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-FILTER-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02"
+  ],
+  "template_id": "T-FILTER-02-between-date",
+  "template_params": {
+    "table": "stores",
+    "years": "2015-2017"
+  },
+  "sub_skill": "between",
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_filter",
+  "prompt": "The property team is checking the leases of the stores that opened in 2015, 2016 or 2017. From the stores table, return three columns, in this order: store_code, city, opened_on. Keep only the stores whose opened_on is from 1 January 2015 to 31 December 2017, both days included. opened_on is a date with no time of day, every store has one, and the webshop counts as a store. Return one row per store. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "store_code",
+        "type_class": "text"
+      },
+      {
+        "name": "city",
+        "type_class": "text"
+      },
+      {
+        "name": "opened_on",
+        "type_class": "temporal"
+      }
+    ],
+    "grain": "one row per store"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "store_code",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "city",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "opened_on",
+        "type_class": "temporal",
+        "precision": "exact"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "store_code"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the row filter. Keep a store when it opened on any day of the three years, the first and the last day included.",
+    "One range test on opened_on covers all three years, both end days included. Write its ends as DATE values."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 34,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 35,
+      "to": 46,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 47,
+      "to": 110,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "BETWEEN on a DATE keeps both end days, so a store that opened on 1 January 2015 or 31 December 2017 is in."
+}

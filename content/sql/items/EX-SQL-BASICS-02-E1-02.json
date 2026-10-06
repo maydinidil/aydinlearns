@@ -1,0 +1,114 @@
+{
+  "id": "EX-SQL-BASICS-02-E1-02",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "calculated-column",
+    "products",
+    "currency"
+  ],
+  "level": 1,
+  "source_ids": [
+    "01:SQL-BASICS-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-02",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pretest",
+  "target_concept_id": "SQL-BASICS-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02"
+  ],
+  "template_id": "T-BASICS-02-rate",
+  "template_params": {
+    "table": "products",
+    "factor": "1.08"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_basics",
+  "prompt": "Voltmarkt pays some suppliers in US dollars, at 1.08 dollars for every euro. For every product, return product_id, unit_cost_eur and unit_cost_usd (the unit cost converted to US dollars), in that order. Use exactly these column names and do not round. One row per product, every product included. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "unit_cost_eur",
+        "type_class": "numeric"
+      },
+      {
+        "name": "unit_cost_usd",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per product"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": true,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "unit_cost_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "unit_cost_usd",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "product_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the calculated column. unit_cost_usd is worked out from unit_cost_eur on each row.",
+    "The new column goes in the SELECT list after unit_cost_eur, named with AS. Every euro of cost is 1.08 dollars, so decide whether to multiply or divide."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 40,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 48,
+      "to": 85,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 86,
+      "to": 99,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 90000,
+  "why_this_works": "Each euro is worth 1.08 dollars, so multiplying the euro cost by 1.08 converts every row."
+}

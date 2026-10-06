@@ -1,0 +1,15 @@
+{
+  "schema": "voltmarkt_edge_sort",
+  "mirrors": "voltmarkt",
+  "family": "sort",
+  "contains": [
+    "rows stored out of order in every table",
+    "two stores in the same city, and stores with no close date",
+    "two categories with the same name under different parent categories",
+    "three products that tie for the third-highest unit cost, and a product with no unit cost",
+    "a product with a missing brand",
+    "two products with the same name and cost but different IDs",
+    "three promotions that tie for the third-highest discount, and two with the same name",
+    "six calendar days from late 2025, some with no event"
+  ]
+}

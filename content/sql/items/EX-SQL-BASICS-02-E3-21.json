@@ -1,0 +1,120 @@
+{
+  "id": "EX-SQL-BASICS-02-E3-21",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "calculated-column",
+    "promotions",
+    "percent"
+  ],
+  "level": 1,
+  "source_ids": [
+    "01:SQL-BASICS-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-BASICS-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02"
+  ],
+  "template_id": "T-BASICS-02-stacked-discount",
+  "template_params": {
+    "table": "promotions",
+    "list_price_eur": 200,
+    "extra_pct": 5
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_basics",
+  "prompt": "A pair of headphones lists at 200 euros. Loyalty members get an extra 5% off, taken from the price after the promotion's discount_pct (a percentage such as 25 for 25% off). For every promotion, return three columns in this order: promo_code; member_price_eur, the price a loyalty member pays; and member_off_pct, the member's total saving as a percentage of the 200-euro list price (such as 30 for 30%). Use exactly these column names and do not round. One row per promotion, every promotion included. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "promo_code",
+        "type_class": "text"
+      },
+      {
+        "name": "member_price_eur",
+        "type_class": "numeric"
+      },
+      {
+        "name": "member_off_pct",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per promotion"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": true,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "promo_code",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "member_price_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "member_off_pct",
+        "type_class": "numeric",
+        "precision": "ratio"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "promo_code"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the calculated columns. Work out the promotion price first, then take the extra 5% off that price.",
+    "Two percentages taken one after the other do not add up: the 5% applies to the already reduced price. For member_off_pct, compare what the member saves with the 200-euro list price, on the 0 to 100 scale."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 18,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 26,
+      "to": 84,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 92,
+      "to": 167,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 168,
+      "to": 183,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "The extra 5% is taken from the promotion price, so the two discounts multiply rather than add, and the total saving is measured against the 200-euro list price."
+}

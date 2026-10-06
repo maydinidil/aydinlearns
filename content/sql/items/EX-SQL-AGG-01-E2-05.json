@@ -1,0 +1,105 @@
+{
+  "id": "EX-SQL-AGG-01-E2-05",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-02",
+    "aggregate",
+    "sum_avg",
+    "sales",
+    "avg",
+    "null",
+    "date_range"
+  ],
+  "level": 2,
+  "source_ids": [
+    "01:SQL-AGG-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-AGG-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-AGG-01"
+  ],
+  "template_id": "T-AGG-01-avg-skip-null",
+  "template_params": {
+    "table": "sales",
+    "from": "2025-03-01",
+    "to": "2025-03-31",
+    "measure": "net_revenue_eur",
+    "output": "avg_line_revenue_eur"
+  },
+  "sub_skill": "sum_avg",
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_agg",
+  "prompt": "What was the average net revenue per order line in March 2025 (order_date from 1 March 2025 to 31 March 2025, both days included)? Leave lines with a missing net revenue out of the average completely: they count neither as revenue nor as lines. Return one column, avg_line_revenue_eur. Do not round. The result is a single row. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "avg_line_revenue_eur",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row in total"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "avg_line_revenue_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the average. It is taken over the March 2025 lines that have a net revenue.",
+    "The average goes in the SELECT list, named avg_line_revenue_eur with AS. If you divide a total by a count yourself, the count must skip the lines with no revenue, as AVG does; and the date range must keep 31 March."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 51,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 52,
+      "to": 62,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 63,
+      "to": 127,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 150000,
+  "why_this_works": "AVG skips NULLs in both the total and the count, so lines with no revenue drop out of the average."
+}

@@ -1,0 +1,36 @@
+{
+  "item_id": "EX-SQL-AGG-04-E3-21",
+  "item_version": 1,
+  "reference_sql": "SELECT country_code,\n       SUM(CASE WHEN channel = 'web' THEN net_revenue_eur END)\n         / COUNT(DISTINCT CASE WHEN channel = 'web' THEN order_id END) AS web_order_value_eur,\n       SUM(CASE WHEN channel = 'store' THEN net_revenue_eur END)\n         / COUNT(DISTINCT CASE WHEN channel = 'store' THEN order_id END) AS store_order_value_eur\nFROM sales\nWHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\nGROUP BY country_code",
+  "alternatives": [
+    "SELECT country_code, SUM(net_revenue_eur) FILTER (WHERE channel = 'web') / COUNT(DISTINCT order_id) FILTER (WHERE channel = 'web') AS web_order_value_eur, SUM(net_revenue_eur) FILTER (WHERE channel = 'store') / COUNT(DISTINCT order_id) FILTER (WHERE channel = 'store') AS store_order_value_eur FROM sales WHERE order_date >= DATE '2025-01-01' AND order_date < DATE '2026-01-01' GROUP BY country_code",
+    "SELECT country_code, SUM(CASE WHEN channel = 'web' THEN net_revenue_eur ELSE 0 END) * 1.0 / COUNT(DISTINCT CASE WHEN channel = 'web' THEN order_id END) AS web_order_value_eur, SUM(CASE WHEN channel = 'store' THEN net_revenue_eur ELSE 0 END) * 1.0 / COUNT(DISTINCT CASE WHEN channel = 'store' THEN order_id END) AS store_order_value_eur FROM sales WHERE order_date BETWEEN '2025-01-01' AND '2025-12-31' GROUP BY 1"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-20",
+      "sql": "SELECT country_code, AVG(CASE WHEN channel = 'web' THEN net_revenue_eur END) AS web_order_value_eur, AVG(CASE WHEN channel = 'store' THEN net_revenue_eur END) AS store_order_value_eur FROM sales WHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31' GROUP BY country_code"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-07",
+      "sql": "SELECT country_code, SUM(CASE WHEN channel = 'web' THEN net_revenue_eur END) / COUNT(DISTINCT CASE WHEN channel = 'web' THEN order_id END) AS web_order_value_eur, SUM(CASE WHEN channel = 'store' THEN net_revenue_eur END) / COUNT(DISTINCT CASE WHEN channel = 'store' THEN order_id END) AS store_order_value_eur FROM sales WHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31' GROUP BY country_code, channel"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-06",
+      "sql": "SELECT country_code, SUM(CASE WHEN channel = 'web' THEN net_revenue_eur END) / COUNT(DISTINCT CASE WHEN channel = 'web' THEN order_id END) AS web_order_value_eur, SUM(CASE WHEN channel = 'store' THEN net_revenue_eur END) / COUNT(DISTINCT CASE WHEN channel = 'store' THEN order_id END) AS store_order_value_eur FROM sales WHERE order_date BETWEEN DATE '2024-12-31' AND DATE '2025-12-31' GROUP BY country_code"
+    }
+  ],
+  "hint3_partial": "SELECT country_code,\n       SUM(CASE WHEN channel = 'web' THEN net_revenue_eur END)\n         / COUNT(DISTINCT ___) AS web_order_value_eur,\n       ___\n         / ___ AS store_order_value_eur\nFROM sales\nWHERE order_date BETWEEN ___\nGROUP BY country_code",
+  "solver": {
+    "prompt_hash": "fd65892624f8cf47",
+    "schema_version": "cebf75df442f",
+    "dataset_version": "506a9858f862fdfb",
+    "grader_version": "1b.3",
+    "query": "SELECT country_code,\n       SUM(CASE WHEN channel = 'web' THEN net_revenue_eur END) / COUNT(DISTINCT CASE WHEN channel = 'web' THEN order_id END) AS web_order_value_eur,\n       SUM(CASE WHEN channel = 'store' THEN net_revenue_eur END) / COUNT(DISTINCT CASE WHEN channel = 'store' THEN order_id END) AS store_order_value_eur\nFROM sales\nWHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\nGROUP BY country_code\n",
+    "at": "2026-10-04T14:33:17.373Z"
+  }
+}

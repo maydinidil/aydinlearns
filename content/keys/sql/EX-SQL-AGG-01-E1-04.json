@@ -1,0 +1,36 @@
+{
+  "item_id": "EX-SQL-AGG-01-E1-04",
+  "item_version": 2,
+  "reference_sql": "SELECT MIN(order_date) AS first_order_date,\n       MAX(order_date) AS last_order_date\nFROM sales\nWHERE store_code = 'NL-06'",
+  "alternatives": [
+    "SELECT MIN(order_date) AS first_order_date, MAX(order_date) AS last_order_date FROM sales WHERE store_code IN ('NL-06')",
+    "SELECT MIN(order_date) first_order_date, MAX(order_date) last_order_date FROM sales WHERE store_code LIKE 'NL-06'"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "EX-SQL-AGG-01-E1-04-PW1",
+      "error_id": "ERR-LOG-14",
+      "sql": "SELECT MAX(order_date) AS first_order_date, MIN(order_date) AS last_order_date FROM sales WHERE store_code = 'NL-06'"
+    },
+    {
+      "id": "EX-SQL-AGG-01-E1-04-PW2",
+      "error_id": "ERR-SYN-07",
+      "sql": "SELECT MIN(order_date) AS first_order_date, MAX(order_date) AS last_order_date FROM sales WHERE store_code = \"NL-06\""
+    },
+    {
+      "id": "EX-SQL-AGG-01-E1-04-PW3",
+      "error_id": "ERR-OUT-01",
+      "sql": "SELECT MAX(order_date) AS last_order_date FROM sales WHERE store_code = 'NL-06'"
+    }
+  ],
+  "hint3_partial": "SELECT ___(order_date) AS first_order_date,\n       ___(order_date) AS last_order_date\nFROM sales\nWHERE store_code = 'NL-06'",
+  "solver": {
+    "prompt_hash": "d89998367e928534",
+    "schema_version": "cebf75df442f",
+    "dataset_version": "506a9858f862fdfb",
+    "grader_version": "1b.3",
+    "query": "SELECT MIN(order_date) AS first_order_date, MAX(order_date) AS last_order_date FROM sales WHERE store_code = 'NL-06'",
+    "at": "2026-10-04T10:06:41.635Z"
+  }
+}

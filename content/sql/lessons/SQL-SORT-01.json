@@ -1,0 +1,122 @@
+{
+  "concept_id": "SQL-SORT-01",
+  "version": 1,
+  "reading_md": "## Sorting, top lists and unique values\n\nA table has no built-in row order. Without ORDER BY, the database returns rows in whatever order is cheapest for it, and that order can change between runs, engines and versions. When a question says \"highest first\" or \"A to Z\", the order is part of the answer.\n\n### ORDER BY\n\n`ORDER BY` comes after FROM and WHERE. List one or more sort keys, each with a direction:\n\n- `ASC`, the default: lowest first, A to Z, earliest date first;\n- `DESC`: highest first, Z to A, latest date first.\n\n`ORDER BY country_code, city` sorts by country first; city only orders the rows that share a country. Each key takes its own direction: `ORDER BY discount_pct DESC, promo_name` puts the deepest discount first, then names A to Z within each discount.\n\n### Tie-breaks\n\nRows with the same sort value are a tie, and SQL promises no order inside a tie: the same query can return tied rows differently next time. Add a tie-break, a later sort key that is unique, such as an ID: `ORDER BY unit_cost_eur DESC, product_id`. In this course, every question where rows can tie names its tie-break, and it always runs from low to high.\n\n### LIMIT\n\n`LIMIT n` keeps the first n rows of the result and drops the rest. It is the very last step, so a top list needs a full sort before it:\n\n1. sort by the ranking column in the right direction;\n2. add the tie-break;\n3. cut with LIMIT.\n\n`LIMIT 5` without ORDER BY returns five rows, but not the top five. And when rows tie at the cut-off, only the tie-break decides which row stays in.\n\n### DISTINCT\n\n`SELECT DISTINCT` removes duplicate rows from the output. It works on the whole row, not on the first column: `SELECT DISTINCT country_code, store_type` keeps each combination once. Use it when the question asks for each value once: \"which brands\", \"each type once\".\n\nDISTINCT is not a clean-up button. Two promotions called Black Week with the same discount are still two promotions, so when the question wants one row per promotion, DISTINCT wrongly merges them. Sort a DISTINCT list by the columns it returns.\n\n### NULLs in a sort\n\nA missing value (NULL) has no size, so each engine decides where it goes. DuckDB puts NULLs last whether you sort ASC or DESC. Write `NULLS FIRST` or `NULLS LAST` after a sort key to choose. In DuckDB, a top list sorted DESC therefore skips products with no cost, but other engines differ (see the dialect note).\n\n### The order the clauses run\n\nYou write SELECT, FROM, WHERE, ORDER BY, LIMIT. The database runs FROM, then WHERE, then SELECT and DISTINCT, then ORDER BY, and LIMIT last.",
+  "syntax_md": "```sql\nSELECT [DISTINCT] column_a, column_b\nFROM table_name\nWHERE condition\nORDER BY sort_key [ASC | DESC] [NULLS FIRST | NULLS LAST], tie_break_key\nLIMIT n;\n```\nASC is the default direction. Each sort key takes its own direction. LIMIT comes last and keeps the first n rows of the sorted result. DISTINCT applies to the whole SELECT list.",
+  "dialect_note": "DuckDB puts NULLs last for both ASC and DESC (checked on 1.5.6). PostgreSQL treats NULL as the largest value, so NULLs come last on ASC but first on DESC, where they can fill a top list. SQLite treats NULL as the smallest value, so NULLs come first on ASC. Write NULLS FIRST or NULLS LAST whenever a sort column can hold NULLs, and the query sorts the same way everywhere. PostgreSQL also rejects an ORDER BY that uses a column missing from a DISTINCT query's SELECT list, while DuckDB accepts it (checked on 1.5.6), so sort a DISTINCT list by the columns it returns. SQL Server writes a top list as SELECT TOP 5 instead of LIMIT 5. No engine promises the order of tied rows, so add a tie-break.",
+  "worked_examples": [
+    {
+      "title": "The 5 most expensive monitors",
+      "prompt": "Return product_id, product_name and unit_cost_eur for the 5 products in category 9 (Monitors) with the highest unit cost, most expensive first. When products tie on unit_cost_eur, the lower product_id comes first.",
+      "clauses": [
+        {
+          "text": "SELECT product_id, product_name, unit_cost_eur",
+          "subgoal": "metrics",
+          "why": "The three columns the question asks for; product_id names each product and is also the tie-break."
+        },
+        {
+          "text": "FROM products",
+          "subgoal": "source_grain",
+          "why": "products has one row per product."
+        },
+        {
+          "text": "WHERE category_id = 9",
+          "subgoal": "row_filter",
+          "why": "Keep only the monitors before anything is sorted or cut."
+        },
+        {
+          "text": "ORDER BY unit_cost_eur DESC, product_id",
+          "subgoal": "sort_limit",
+          "why": "DESC puts the highest cost first, and product_id orders products with the same cost."
+        },
+        {
+          "text": "LIMIT 5",
+          "subgoal": "sort_limit",
+          "why": "LIMIT keeps the first 5 rows of the sorted list, so the sort before it decides which products they are."
+        }
+      ]
+    },
+    {
+      "title": "The brands that sell projectors",
+      "prompt": "Return brand, each brand once, sorted from A to Z, for the brands with at least one product in category 4 (Projectors).",
+      "clauses": [
+        {
+          "text": "SELECT DISTINCT brand",
+          "subgoal": "output_grain",
+          "why": "DISTINCT turns one row per product into one row per brand."
+        },
+        {
+          "text": "FROM products",
+          "subgoal": "source_grain",
+          "why": "The brand is stored on each product row."
+        },
+        {
+          "text": "WHERE category_id = 4",
+          "subgoal": "row_filter",
+          "why": "Only projectors count, so the filter runs before the duplicates are removed."
+        },
+        {
+          "text": "ORDER BY brand",
+          "subgoal": "sort_limit",
+          "why": "Without ORDER BY the brands come back in no promised order; ASC is the default, so this is A to Z."
+        }
+      ]
+    }
+  ],
+  "pretest_item_ids": [
+    "EX-SQL-SORT-01-E1-01",
+    "EX-SQL-SORT-01-E1-02"
+  ],
+  "lesson_item_ids": [
+    "EX-SQL-SORT-01-E1-03",
+    "EX-SQL-SORT-01-E1-04",
+    "EX-SQL-SORT-01-E2-01",
+    "EX-SQL-SORT-01-E2-02"
+  ],
+  "retest_item_id": "EX-SQL-SORT-01-E1-05",
+  "pool_item_ids": [
+    "EX-SQL-SORT-01-E1-06",
+    "EX-SQL-SORT-01-E1-07",
+    "EX-SQL-SORT-01-E1-08",
+    "EX-SQL-SORT-01-E2-03",
+    "EX-SQL-SORT-01-E2-04",
+    "EX-SQL-SORT-01-E2-05",
+    "EX-SQL-SORT-01-E3-01",
+    "EX-SQL-SORT-01-E3-02",
+    "EX-SQL-SORT-01-E1-31",
+    "EX-SQL-SORT-01-E1-32",
+    "EX-SQL-SORT-01-E2-31",
+    "EX-SQL-SORT-01-E2-32",
+    "EX-SQL-SORT-01-E1-42",
+    "EX-SQL-SORT-01-E1-43",
+    "EX-SQL-SORT-01-E1-44",
+    "EX-SQL-SORT-01-E2-41"
+  ],
+  "source_ids": [
+    "01:SQL-SORT-01"
+  ],
+  "why_clause": {
+    "clause": "LIMIT 5",
+    "stem": "Why does LIMIT 5 come after ORDER BY unit_cost_eur DESC, product_id?",
+    "options": [
+      {
+        "id": "a",
+        "text": "Without ORDER BY, LIMIT 5 would give the 5 cheapest monitors."
+      },
+      {
+        "id": "b",
+        "text": "LIMIT 5 sorts the five rows it keeps once more, by product_id."
+      },
+      {
+        "id": "c",
+        "text": "The sort runs first, so the 5 rows kept are the most expensive."
+      },
+      {
+        "id": "d",
+        "text": "LIMIT 5 keeps five monitors of each different unit cost in the list."
+      }
+    ],
+    "correct_id": "c",
+    "explanation": "LIMIT keeps the first rows of the result as it stands. ORDER BY runs before it, so those rows are the 5 highest unit costs, with product_id settling ties. Without ORDER BY, the 5 rows kept would be whichever the engine returns first, not the cheapest and not the most expensive."
+  }
+}

@@ -1,0 +1,36 @@
+{
+  "item_id": "EX-SQL-CASE-01-E1-06",
+  "item_version": 1,
+  "reference_sql": "SELECT store_code, store_type,\n       CASE WHEN store_type = 'flagship' THEN 'big'\n            WHEN store_type = 'outlet' THEN 'small'\n            WHEN store_type = 'web' THEN 'online'\n            ELSE 'regular'\n       END AS store_format\nFROM stores",
+  "alternatives": [
+    "SELECT store_code, store_type, CASE store_type WHEN 'flagship' THEN 'big' WHEN 'outlet' THEN 'small' WHEN 'web' THEN 'online' ELSE 'regular' END AS store_format FROM stores",
+    "SELECT store_code, store_type, CASE WHEN store_type = 'web' THEN 'online' WHEN store_type = 'outlet' THEN 'small' WHEN store_type = 'flagship' THEN 'big' ELSE 'regular' END AS store_format FROM stores"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-03",
+      "sql": "SELECT store_code, store_type, CASE WHEN store_type = 'flagship' THEN 'big' WHEN store_type = 'outlet' THEN 'small' WHEN store_type = 'web' THEN 'online' END AS store_format FROM stores"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-SYN-07",
+      "sql": "SELECT store_code, store_type, CASE WHEN store_type = \"flagship\" THEN 'big' WHEN store_type = \"outlet\" THEN 'small' WHEN store_type = \"web\" THEN 'online' ELSE 'regular' END AS store_format FROM stores"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-OUT-01",
+      "sql": "SELECT store_code, CASE WHEN store_type = 'flagship' THEN 'big' WHEN store_type = 'outlet' THEN 'small' WHEN store_type = 'web' THEN 'online' ELSE 'regular' END AS store_format FROM stores"
+    }
+  ],
+  "hint3_partial": "SELECT store_code, store_type,\n       CASE WHEN store_type = 'flagship' THEN 'big'\n            WHEN store_type = ___ THEN 'small'\n            WHEN store_type = ___ THEN 'online'\n            ___\n       END AS store_format\nFROM stores",
+  "solver": {
+    "prompt_hash": "9401851eb99e4d27",
+    "schema_version": "9a8d01143702",
+    "dataset_version": "506a9858f862fdfb",
+    "grader_version": "1b.3",
+    "query": "SELECT store_code, store_type, CASE WHEN store_type = 'flagship' THEN 'big' WHEN store_type = 'outlet' THEN 'small' WHEN store_type = 'web' THEN 'online' ELSE 'regular' END AS store_format FROM stores\n",
+    "at": "2026-10-04T10:06:50.477Z"
+  }
+}

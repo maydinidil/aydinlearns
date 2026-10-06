@@ -1,0 +1,129 @@
+{
+  "id": "EX-SQL-CASE-01-E2-08",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-02",
+    "case",
+    "custom-sort",
+    "order-by",
+    "stores"
+  ],
+  "level": 2,
+  "source_ids": [
+    "01:SQL-CASE-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-CASE-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-SORT-01",
+    "SQL-CASE-01"
+  ],
+  "template_id": "T-CASE-01-custom-sort",
+  "template_params": {
+    "table": "stores",
+    "tested": "store_type",
+    "output": "type_rank"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_case",
+  "prompt": "List the stores with the flagships first. type_rank is the number 1 when store_type is 'flagship', 2 when it is 'standard', 3 when it is 'outlet', and 4 for every other store type. Use the stores table. Return three columns, in this order: store_code, store_type and type_rank. Return one row per store, sorted by type_rank from low to high, then by store_code from A to Z.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "store_code",
+        "type_class": "text"
+      },
+      {
+        "name": "store_type",
+        "type_class": "text"
+      },
+      {
+        "name": "type_rank",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per store"
+  },
+  "rules": {
+    "order_matters": true,
+    "sort_keys": [
+      {
+        "column": "type_rank",
+        "desc": false
+      },
+      {
+        "column": "store_code",
+        "desc": false
+      }
+    ],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "store_code",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "store_type",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "type_rank",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "store_code"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the calculated column type_rank, which turns each store type into its number, then write the sort.",
+    "type_rank is a CASE expression whose THEN values are numbers, not text. Sorting by store_type itself gives A to Z order (outlet before standard), so sort by the new rank column first."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 215,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 216,
+      "to": 227,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 228,
+      "to": 258,
+      "subgoal": "sort_limit"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 150000,
+  "why_this_works": "The CASE gives each store type a number in the wanted order, and sorting by that number, then store_code, puts the flagships first."
+}

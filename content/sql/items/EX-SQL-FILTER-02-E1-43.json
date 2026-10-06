@@ -1,0 +1,85 @@
+{
+  "id": "EX-SQL-FILTER-02-E1-43",
+  "version": 1,
+  "kind": "choose_query",
+  "tags": [
+    "sql",
+    "LVL-01",
+    "choose_query",
+    "like",
+    "ilike",
+    "products"
+  ],
+  "level": 1,
+  "source_ids": [
+    "01:SQL-FILTER-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-FILTER-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-02"
+  ],
+  "template_id": "T-FILTER-02-choose-ilike-contains",
+  "template_params": {
+    "table": "products"
+  },
+  "sub_skill": "like",
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_filter",
+  "prompt": "Which query returns product_name for every product whose name contains pro in any mix of upper and lower case, such as Pro or PRO? Any row order is fine.",
+  "output_contract": null,
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [],
+  "subgoals": [],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 60000,
+  "why_this_works": "",
+  "options": [
+    {
+      "oid": "o1d95d7e",
+      "text": "SELECT product_name\nFROM products\nWHERE product_name LIKE '%pro%'",
+      "misconception_id": "ERR-LOG-22"
+    },
+    {
+      "oid": "ob6788f2",
+      "text": "SELECT product_name\nFROM products\nWHERE product_name ILIKE 'pro%'",
+      "misconception_id": "ERR-LOG-22"
+    },
+    {
+      "oid": "o072ba59",
+      "text": "SELECT product_name\nFROM products\nWHERE product_name ILIKE '%pro%'",
+      "misconception_id": null
+    },
+    {
+      "oid": "o1c25703",
+      "text": "SELECT product_name\nFROM products\nWHERE product_name LIKE '%Pro%'\n   OR product_name LIKE '%PRO%'",
+      "misconception_id": "ERR-LOG-22"
+    }
+  ]
+}

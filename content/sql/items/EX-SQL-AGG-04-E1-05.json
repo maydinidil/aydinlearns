@@ -1,0 +1,123 @@
+{
+  "id": "EX-SQL-AGG-04-E1-05",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-02",
+    "conditional-aggregation",
+    "sum-if",
+    "pivot",
+    "sales",
+    "dates"
+  ],
+  "level": 2,
+  "source_ids": [
+    "01:SQL-AGG-04"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "retest",
+  "target_concept_id": "SQL-AGG-04",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-AGG-01",
+    "SQL-CASE-01",
+    "SQL-AGG-04"
+  ],
+  "template_id": "T-AGG-04-sum-if-total",
+  "template_params": {
+    "table": "sales",
+    "split": "country_code",
+    "measure": "net_revenue_eur",
+    "period": "2025-Q1"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_agg",
+  "prompt": "How much net revenue shipped to each country in the first quarter of 2025, side by side in one row? Use the sales table and count only order lines with an order_date from 2025-01-01 to 2025-03-31, both days included. Return three columns, in this order: nl_revenue_eur, be_revenue_eur and lu_revenue_eur, the sum of net_revenue_eur over the lines whose country_code is 'NL', 'BE' and 'LU'. Lines with a missing net_revenue_eur add nothing. Return one row. Do not round. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "nl_revenue_eur",
+        "type_class": "numeric"
+      },
+      {
+        "name": "be_revenue_eur",
+        "type_class": "numeric"
+      },
+      {
+        "name": "lu_revenue_eur",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row in total"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "nl_revenue_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "be_revenue_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "lu_revenue_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the three revenue columns, each adding up one country's lines.",
+    "Each column is a SUM with a CASE inside that passes on net_revenue_eur for one country_code and 0 for the others. The date range goes in WHERE, so it applies to all three."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 277,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 278,
+      "to": 288,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 289,
+      "to": 353,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 110000,
+  "why_this_works": "WHERE keeps the quarter's lines once for all three columns, and each CASE inside SUM passes on one country's revenue, so the three totals sit side by side in one row."
+}

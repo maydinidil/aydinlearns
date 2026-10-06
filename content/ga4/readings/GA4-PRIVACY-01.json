@@ -1,0 +1,21 @@
+{
+  "concept_id": "GA4-PRIVACY-01",
+  "section": "ga4",
+  "version": 1,
+  "title": "Consent mode",
+  "reading_md": "## What it is\n\nConsent mode passes each visitor's consent choices to Google tags. Consent mode v2 has four parameters:\n\n- `analytics_storage` controls whether analytics cookies, such as the `_ga` cookie, may be stored.\n- The other three relate to advertising: `ad_storage`, plus `ad_user_data` and `ad_personalization`, which v2 added.\n\nSince 6 March 2024, consent mode v2 has been required to use personalised advertising features, remarketing among them, for users in the European Economic Area (EEA).\n\nThere are two ways to implement it.\n\n- **Basic consent mode** blocks the Google tags until the visitor consents. A visitor who declines sends nothing.\n- **Advanced consent mode** loads the tags with \"denied\" defaults. When a visitor declines, the tags send cookieless pings instead, and these make behavioral modeling possible.\n\nModeled data shows in reports only with the Blended reporting identity, once behavioral modeling for consent mode is eligible (see the lesson \"Users, sessions and engagement metrics\").\n\nA Voltmarkt example. With basic consent mode, a visitor who declines leaves no trace in GA4. With advanced consent mode, the same visitor sends cookieless pings, so GA4 can estimate that visitor's activity through modeling.\n\n## What the exam asks\n\n- What each parameter controls, especially `analytics_storage` against the three advertising parameters.\n- Basic against advanced consent mode.\n- What v2 added, and why it matters for advertising to users in the EEA.\n\n## Common confusions\n\n- Consent mode is not a consent banner. You still need a consent management platform (CMP) to ask visitors for consent.\n- v1 already had `ad_storage` and `analytics_storage`. v2 added `ad_user_data` and `ad_personalization`.\n- Only advanced consent mode sends pings when consent is denied. Basic consent mode sends nothing until the visitor consents.\n- Modeled data is not data thresholds. Modeling estimates the activity of visitors who declined; thresholds hide rows that could identify users.\n\n## In Skillshop\n\nCourse \"Google Analytics Certification (2026)\": privacy and administration topics are spread over the modules \"Get Started Using Google Analytics\" and \"Use GA with Other Tools and Data Sources\" (Unverified).",
+  "source_ids": [
+    "06:GA4-PRIVACY-01",
+    "06:GA4-CH-05",
+    "06:Q-GA4-61",
+    "10:GA4-ADMIN-20",
+    "10:§1",
+    "06:§2.2",
+    "06:§2.1",
+    "10:§7",
+    "ERRATA:E-116",
+    "ERRATA:E-122"
+  ],
+  "verified": true,
+  "as_of": "2026-10-05"
+}

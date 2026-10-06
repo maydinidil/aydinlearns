@@ -1,0 +1,48 @@
+{
+  "id": "Q-MET-PRICE-01-07",
+  "version": 1,
+  "kind": "mcq",
+  "section": "methodology",
+  "concept_id": "MET-PRICE-01",
+  "stem": "Rival shelf prices are missing for some Voltmarkt products in some weeks. An analyst joins Voltmarkt's weekly shelf prices to the rival prices with an inner join and reports the category's price index. What is the risk?",
+  "options": [
+    {
+      "oid": "o456f7fe",
+      "text": "Products and weeks with no rival price drop out silently, so the index covers less",
+      "misconception_id": null
+    },
+    {
+      "oid": "o8a171af",
+      "text": "Products with no rival price enter with an index of 0, so the category looks cheap",
+      "misconception_id": null
+    },
+    {
+      "oid": "oeabb500",
+      "text": "The inner join flips the base, so a value above 100 starts to mean cheaper",
+      "misconception_id": null
+    },
+    {
+      "oid": "oefbc99a",
+      "text": "The inner join counts each product's units twice, so big sellers dominate",
+      "misconception_id": null
+    }
+  ],
+  "typed": null,
+  "held_out": false,
+  "enemy_group": null,
+  "status": "active",
+  "verified": true,
+  "level": 1,
+  "tags": [
+    "methodology",
+    "T-MET-PRICE"
+  ],
+  "source_ids": [
+    "04:MET-PRICE-01",
+    "ERRATA:E-010",
+    "ERRATA:E-101"
+  ],
+  "as_of": "2026-10-04",
+  "review_after": null,
+  "supersedes": []
+}

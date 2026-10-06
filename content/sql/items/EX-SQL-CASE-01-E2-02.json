@@ -1,0 +1,120 @@
+{
+  "id": "EX-SQL-CASE-01-E2-02",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-02",
+    "case",
+    "segment-count",
+    "bands",
+    "group-by",
+    "is-null",
+    "sales"
+  ],
+  "level": 2,
+  "source_ids": [
+    "01:SQL-CASE-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "lesson",
+  "target_concept_id": "SQL-CASE-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CASE-01"
+  ],
+  "template_id": "T-CASE-01-segment-count",
+  "template_params": {
+    "table": "sales",
+    "tested": "net_revenue_eur",
+    "thresholds": "50, 100",
+    "output": "size_band"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_case",
+  "prompt": "How many order lines fall in each size band? Use the sales table. size_band is the text 'small' when net_revenue_eur is under 50.00, 'medium' when it is 50.00 or more but under 100.00, 'large' when it is 100.00 or more, and 'unknown' when net_revenue_eur is missing. Return two columns, in this order: size_band and n_lines, the number of order lines in the band. Return one row per size band that has at least one line. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "size_band",
+        "type_class": "text"
+      },
+      {
+        "name": "n_lines",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per size band"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "size_band",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "n_lines",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "size_band"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the band column size_band and the count of lines next to it.",
+    "The CASE expression comes first in the SELECT list, named size_band, then COUNT(*). Group by the band, not by net_revenue_eur, so each label becomes one row. A line worth exactly 50.00 is medium, not small."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 236,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 237,
+      "to": 247,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 248,
+      "to": 266,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": {
+    "stage1": 7,
+    "stage2": 7
+  },
+  "faded_shape": "SELECT ",
+  "faded_suffix": "\nFROM sales\nGROUP BY size_band",
+  "starter_sql": null,
+  "time_target_ms": 160000,
+  "why_this_works": "The CASE turns each line into a band label, and grouping by that label makes one row per band, with COUNT(*) counting every line, those with a missing value included."
+}

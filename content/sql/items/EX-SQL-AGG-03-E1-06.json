@@ -1,0 +1,118 @@
+{
+  "id": "EX-SQL-AGG-03-E1-06",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-02",
+    "having",
+    "avg",
+    "sales"
+  ],
+  "level": 2,
+  "source_ids": [
+    "01:SQL-AGG-03"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-AGG-03",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-AGG-03"
+  ],
+  "template_id": "T-AGG-03-avg-threshold",
+  "template_params": {
+    "table": "sales",
+    "group_by": "parent_category",
+    "aggregate": "avg",
+    "comparison": "more than",
+    "threshold": 300
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_agg",
+  "prompt": "Which parent categories have an average net revenue per order line above 300 euros? Use the sales table, which has one row per order line. Return two columns, in this order: parent_category and avg_line_revenue_eur, the average of net_revenue_eur. Return one row per parent category, and only those whose average is above 300. Lines with a missing net_revenue_eur are left out of the average. Do not round. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "parent_category",
+        "type_class": "text"
+      },
+      {
+        "name": "avg_line_revenue_eur",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per parent category"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "parent_category",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "avg_line_revenue_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "parent_category"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the group filter: keep only the parent categories whose average line revenue is above 300.",
+    "The test is on each group's average, not on single lines, so it goes after GROUP BY and repeats the same aggregate as the SELECT list."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 68,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 69,
+      "to": 79,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 80,
+      "to": 104,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 105,
+      "to": 138,
+      "subgoal": "group_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "HAVING tests each parent category's AVG after grouping; a WHERE on net_revenue_eur would average only the large lines."
+}

@@ -1,0 +1,37 @@
+{
+  "item_id": "EX-SQL-BASICS-01-E3-02",
+  "item_version": 1,
+  "reference_sql": "SELECT cal_date, weekday_name, is_weekend, month_start, event\nFROM calendar",
+  "alternatives": [
+    "SELECT calendar.cal_date, calendar.weekday_name, calendar.is_weekend, calendar.month_start, calendar.event\nFROM calendar",
+    "SELECT c.cal_date, c.weekday_name, c.is_weekend, c.month_start, c.event\nFROM calendar AS c",
+    "SELECT \"cal_date\", \"weekday_name\", \"is_weekend\", \"month_start\", \"event\"\nFROM \"calendar\""
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "M1",
+      "error_id": "ERR-OUT-01",
+      "sql": "SELECT cal_date, weekday_name, is_weekend, month_start FROM calendar"
+    },
+    {
+      "id": "M2",
+      "error_id": "ERR-SYN-02",
+      "sql": "SELECT cal_date, weekday_name, is_weekend, month_start, event FROM calendars"
+    },
+    {
+      "id": "M3",
+      "error_id": "ERR-SYN-01",
+      "sql": "SELECT FROM calendar cal_date, weekday_name, is_weekend, month_start, event"
+    }
+  ],
+  "hint3_partial": "SELECT cal_date, ...\nFROM calendar",
+  "solver": {
+    "prompt_hash": "250c5d0a82ab0b27",
+    "schema_version": "0d8e15555347",
+    "dataset_version": "9639f8ae1f71c2ef",
+    "grader_version": "1a.2",
+    "query": "SELECT cal_date, weekday_name, is_weekend, month_start, event FROM calendar\n",
+    "at": "2026-10-03T13:08:02.105Z"
+  }
+}

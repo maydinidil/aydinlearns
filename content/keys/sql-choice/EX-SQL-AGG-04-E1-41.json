@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-AGG-04-E1-41",
+  "item_version": 1,
+  "correct_oid": "o020641a",
+  "explanation": "The CASE turns each standard store into 1 and every other store into 0, so SUM adds up to the number of standard stores: 4 of stores 1 to 5. The CASE removes no row, so COUNT(*) in the same query still counts all 5 stores.",
+  "solver": {
+    "prompt_hash": "43e795b6c8488216",
+    "grader_version": "choice.1",
+    "chosen": "o020641a",
+    "typed": null,
+    "at": "2026-10-06T09:08:14.821Z"
+  }
+}

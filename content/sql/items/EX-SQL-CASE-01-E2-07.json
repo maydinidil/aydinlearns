@@ -1,0 +1,134 @@
+{
+  "id": "EX-SQL-CASE-01-E2-07",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-02",
+    "case",
+    "segment-count",
+    "branch-order",
+    "group-by",
+    "is-null",
+    "calendar"
+  ],
+  "level": 2,
+  "source_ids": [
+    "01:SQL-CASE-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-CASE-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CASE-01"
+  ],
+  "template_id": "T-CASE-01-segment-count",
+  "template_params": {
+    "table": "calendar",
+    "group_by": "month_start",
+    "output": "day_kind",
+    "from": "2025-01-01",
+    "to": "2025-12-31"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_case",
+  "prompt": "How many event days, weekend days and normal days does each month of 2025 have? Use the calendar table and keep the days from 2025-01-01 to 2025-12-31, both included. day_kind is the text 'event' when the day's event is not missing, 'weekend' when the day has no event and is_weekend is true, and 'normal' for every other day. An event on a Saturday or Sunday counts as 'event'. Return three columns, in this order: month_start, day_kind and n_days, the number of days. Return one row per month_start and day_kind combination that has at least one day. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "month_start",
+        "type_class": "temporal"
+      },
+      {
+        "name": "day_kind",
+        "type_class": "text"
+      },
+      {
+        "name": "n_days",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per month and day kind"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "month_start",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "day_kind",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "n_days",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "month_start",
+      "day_kind"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the column day_kind with its three branches, count the days, and decide what one row stands for.",
+    "Some event days fall on a weekend, and CASE stops at the first true branch, so the event test goes first. A missing event is found with IS NULL or IS NOT NULL. Group by the month and by the day kind."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 186,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 187,
+      "to": 200,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 201,
+      "to": 263,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 264,
+      "to": 294,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "Testing the event first keeps a weekend event day in the event count, and grouping by month and day kind gives one count per pair."
+}

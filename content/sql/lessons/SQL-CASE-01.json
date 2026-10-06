@@ -1,0 +1,146 @@
+{
+  "concept_id": "SQL-CASE-01",
+  "version": 1,
+  "reading_md": "# CASE WHEN: segments and flags\n\nMany questions put each row in a group that is not a column yet: cheap or expensive, open or closed, home or abroad. **CASE** builds that column. Like IF in a spreadsheet, it checks conditions and returns one value for each row.\n\n```sql\nCASE WHEN unit_cost_eur >= 500 THEN 'high'\n     WHEN unit_cost_eur >= 100 THEN 'mid'\n     ELSE 'low'\nEND AS cost_band\n```\n\n## The first true branch wins\n\nCASE reads its WHEN branches from the top and stops at the first condition that is true, so when conditions overlap, their order matters. A product that costs 700.00 passes both `>= 500` and `>= 100`. With `>= 100` first, it would be called 'mid', and no product would reach 'high'. Put the highest threshold, or the rule that wins, first. \"A web order is always 'online', whatever its value\" means the web test goes above the value test.\n\n## ELSE, and missing values\n\nELSE catches every row that no WHEN matched. Without ELSE, those rows get NULL, a missing value, which is rarely what the question wants.\n\nA comparison with NULL is never true, so a product with no unit cost passes neither `>= 100` nor `< 100`: it falls through to ELSE. When the question gives missing values a label of their own, test them first with `WHEN unit_cost_eur IS NULL THEN 'unknown'`. A test with `= NULL` never matches anything.\n\n## One type per CASE\n\nEvery THEN and the ELSE give the same type: all text labels in single quotes, or all numbers. Mixing 'high' with 0 stops the query with a conversion error. Double quotes name a column, so `THEN \"high\"` looks for a column called high.\n\n## Two forms\n\nThe searched form above takes any condition: AND, OR, IN, LIKE, IS NULL. The short form compares one column with values: `CASE store_type WHEN 'flagship' THEN 'big' ELSE 'other' END`. It only tests equality, so it cannot find a NULL.\n\n## Segments: group by the label\n\nTo count or add up per band, put the CASE in the SELECT list and group by it:\n\n```sql\nSELECT CASE WHEN unit_cost_eur >= 500 THEN 'high'\n            WHEN unit_cost_eur >= 100 THEN 'mid'\n            ELSE 'low'\n       END AS cost_band,\n       COUNT(*) AS n_products\nFROM products\nGROUP BY cost_band\n```\n\nGROUP BY can name the label (cost_band), its position (1) or the whole CASE again. Never group by the column the CASE reads: that gives one row per price, not per band.\n\nAfter GROUP BY, a CASE can also label each group by testing an aggregate, as in `CASE WHEN COUNT(*) >= 20000 THEN 'busy' ELSE 'quiet' END`.\n\n## How to write a CASE column\n\n1. From the question, list each label and its rule.\n2. Order the WHEN branches: missing values first, then the highest or winning rule.\n3. Check each boundary: \"50.00 or more\" is `>= 50`, \"under 50.00\" is `< 50`.\n4. Add ELSE for the rest, then END and a name with AS.",
+  "syntax_md": "```sql\nSELECT column_a,\n       CASE WHEN condition_1 THEN 'label_1'   -- checked first\n            WHEN condition_2 THEN 'label_2'   -- only when condition_1 was not true\n            ELSE 'label_3'                    -- every other row, missing values included\n       END AS new_column                       -- metrics\nFROM table_name;                               -- source and grain\n```\n\n- The first true WHEN wins; the branches below it are skipped for that row.\n- Without ELSE, a row that matches no WHEN gets NULL.\n- A comparison with NULL is never true: give missing values their own `IS NULL` branch, first.\n- Every THEN and ELSE returns the same type: all text in single quotes, or all numbers.\n- Short form, for equality only: `CASE column WHEN 'a' THEN 'x' WHEN 'b' THEN 'y' ELSE 'z' END`.\n- To count per label, put the CASE in the SELECT list and GROUP BY its name, its position or the whole CASE.",
+  "dialect_note": "CASE is standard SQL and works the same way in every major engine, so it is the portable choice. Some engines add shortcuts: IF(condition, a, b) in MySQL, BigQuery and DuckDB, and IIF in SQL Server. Grouping by a SELECT alias, as in GROUP BY cost_band, works in DuckDB, PostgreSQL, MySQL and BigQuery, but SQL Server and Oracle need the whole CASE repeated in GROUP BY. When the branches mix text and numbers, DuckDB picks one type for all of them and stops with a conversion error at the first text label it has to turn into a number (checked on 1.5.6); PostgreSQL rejects it too.",
+  "worked_examples": [
+    {
+      "title": "When each store opened",
+      "prompt": "Label each store by when it opened. period is 'new' when opened_on is 2024-01-01 or later, 'recent' when opened_on is 2020-01-01 or later but before 2024-01-01, and 'established' for every other store. Return store_code, opened_on and period, one row per store.",
+      "clauses": [
+        {
+          "text": "SELECT store_code, opened_on,",
+          "subgoal": "metrics",
+          "why": "The two columns the question names come first; the label is the third column."
+        },
+        {
+          "text": "       CASE WHEN opened_on >= DATE '2024-01-01' THEN 'new'",
+          "subgoal": "metrics",
+          "why": "The latest cut-off goes first: a store opened in 2024 also passes the 2020 test, and the first true WHEN wins."
+        },
+        {
+          "text": "            WHEN opened_on >= DATE '2020-01-01' THEN 'recent'",
+          "subgoal": "metrics",
+          "why": "Only stores that failed the first test get here, so this branch means 2020 to 2023."
+        },
+        {
+          "text": "            ELSE 'established'",
+          "subgoal": "metrics",
+          "why": "Every store left over gets a label instead of a missing value."
+        },
+        {
+          "text": "       END AS period",
+          "subgoal": "metrics",
+          "why": "END closes the CASE, and AS names the new column."
+        },
+        {
+          "text": "FROM stores",
+          "subgoal": "source_grain",
+          "why": "stores has one row per store, so the result has one label per store."
+        }
+      ]
+    },
+    {
+      "title": "Order lines per pack size",
+      "prompt": "How many order lines are there of each pack size? pack is 'unknown' when units is missing, 'bulk' when units is 5 or more, 'multi' when units is 2 or more but under 5, and 'single' otherwise. Return pack and n_lines, one row per pack size.",
+      "clauses": [
+        {
+          "text": "SELECT CASE WHEN units IS NULL THEN 'unknown'",
+          "subgoal": "metrics",
+          "why": "A missing units value fails every comparison and would land in ELSE, so it gets its own branch first."
+        },
+        {
+          "text": "            WHEN units >= 5 THEN 'bulk'",
+          "subgoal": "metrics",
+          "why": "The higher threshold comes before the lower one, or no line would reach bulk."
+        },
+        {
+          "text": "            WHEN units >= 2 THEN 'multi'",
+          "subgoal": "metrics",
+          "why": "Only lines under 5 units get here, so this branch means 2 to 4 units."
+        },
+        {
+          "text": "            ELSE 'single'",
+          "subgoal": "metrics",
+          "why": "What is left is a line of 1 unit."
+        },
+        {
+          "text": "       END AS pack,",
+          "subgoal": "metrics",
+          "why": "The label is a column of its own, named so that GROUP BY can use it."
+        },
+        {
+          "text": "       COUNT(*) AS n_lines",
+          "subgoal": "metrics",
+          "why": "COUNT(*) counts every line in the group, a line with a missing value included."
+        },
+        {
+          "text": "FROM sales",
+          "subgoal": "source_grain",
+          "why": "sales has one row per order line."
+        },
+        {
+          "text": "GROUP BY pack",
+          "subgoal": "output_grain",
+          "why": "Grouping by the label gives one row per pack size; grouping by units would give one row per number of units."
+        }
+      ]
+    }
+  ],
+  "pretest_item_ids": [
+    "EX-SQL-CASE-01-E1-01",
+    "EX-SQL-CASE-01-E1-02"
+  ],
+  "lesson_item_ids": [
+    "EX-SQL-CASE-01-E1-03",
+    "EX-SQL-CASE-01-E1-04",
+    "EX-SQL-CASE-01-E2-01",
+    "EX-SQL-CASE-01-E2-02"
+  ],
+  "retest_item_id": "EX-SQL-CASE-01-E1-05",
+  "pool_item_ids": [
+    "EX-SQL-CASE-01-E1-06",
+    "EX-SQL-CASE-01-E1-07",
+    "EX-SQL-CASE-01-E1-08",
+    "EX-SQL-CASE-01-E2-03",
+    "EX-SQL-CASE-01-E2-04",
+    "EX-SQL-CASE-01-E2-05",
+    "EX-SQL-CASE-01-E2-06",
+    "EX-SQL-CASE-01-E2-07",
+    "EX-SQL-CASE-01-E2-08",
+    "EX-SQL-CASE-01-E3-01",
+    "EX-SQL-CASE-01-E3-02",
+    "EX-SQL-CASE-01-E3-03",
+    "EX-SQL-CASE-01-E1-42",
+    "EX-SQL-CASE-01-E2-41",
+    "EX-SQL-CASE-01-E2-42"
+  ],
+  "source_ids": [
+    "01:SQL-CASE-01"
+  ],
+  "why_clause": {
+    "clause": "CASE WHEN opened_on >= DATE '2024-01-01' THEN 'new'",
+    "stem": "Why does the 2024 test come before the 2020 test?",
+    "options": [
+      {
+        "id": "a",
+        "text": "CASE checks every WHEN and then keeps the last one that is true."
+      },
+      {
+        "id": "b",
+        "text": "The WHEN tests must be written from the oldest date on to the newest."
+      },
+      {
+        "id": "c",
+        "text": "The first true WHEN wins, and a 2024 store passes the 2020 test too."
+      },
+      {
+        "id": "d",
+        "text": "A store that passes the first test is dropped from the result rows."
+      }
+    ],
+    "correct_id": "c",
+    "explanation": "CASE reads its WHEN tests from top to bottom and uses the first one that is true. A store opened in 2024 also opened on or after 2020, so with the 2020 test first it would be labelled recent. Putting the latest cut-off first gives it new. CASE never drops a row."
+  }
+}

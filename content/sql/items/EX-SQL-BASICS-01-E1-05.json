@@ -1,0 +1,99 @@
+{
+  "id": "EX-SQL-BASICS-01-E1-05",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-01",
+    "select_from"
+  ],
+  "level": 1,
+  "source_ids": [
+    "01:SQL-BASICS-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-02",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "retest",
+  "target_concept_id": "SQL-BASICS-01",
+  "concept_ids": [
+    "SQL-BASICS-01"
+  ],
+  "template_id": "T-BASICS-01-select-columns",
+  "template_params": {
+    "table": "calendar",
+    "columns": 2
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_basics",
+  "prompt": "Show which weekday each date falls on. From the calendar table, return two columns, in this order: cal_date, weekday_name. Return one row per calendar day and keep every day. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "cal_date",
+        "type_class": "temporal"
+      },
+      {
+        "name": "weekday_name",
+        "type_class": "text"
+      }
+    ],
+    "grain": "one row per calendar day"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "cal_date",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "weekday_name",
+        "type_class": "text",
+        "precision": "exact"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "cal_date"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, choose the table. Find the table that has one row per calendar day; it goes in the FROM clause.",
+    "The table name goes after FROM. The two column names go after SELECT, in the question's order, spelled exactly as in the schema panel."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 29,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 30,
+      "to": 43,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 75000,
+  "why_this_works": "SELECT names the date and its weekday, and FROM calendar gives one row per day."
+}

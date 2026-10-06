@@ -1,0 +1,15 @@
+{
+  "concept_id": "MET-MKT-04",
+  "section": "methodology",
+  "version": 1,
+  "title": "Cost per acquisition (CPA)",
+  "reading_md": "**What it measures.** What one conversion costs in ad spend. The conversion is whatever the team defined: an order, a lead or a sign-up. Only the conversions credited to the channel count.\n\n**Formula.** CPA = ad spend / attributed conversions. Grain: channel × period. CPA also equals CPC / the share of clicks that convert: €0.60 per click with 2% of clicks converting gives €30 per conversion.\n\n**Worked example.** In October paid social cost Voltmarkt €18,000 and was credited with 600 orders under last click.\n\n- CPA = 18,000 / 600 = €30.00 per order.\n\nOf those 600 orders, 240 were first orders from new customers.\n\n- Paid social CAC = 18,000 / 240 = €75.00 per new customer.\n\n**CPA and CAC.** CPA counts every credited conversion, including orders from returning customers. CAC counts only new customers. With orders as the conversion, CPA is lower than CAC whenever returning customers also order, because their orders count in CPA but not in CAC.\n\n**Common mistakes.**\n\n- Comparing CPAs that count different conversions. A CPA per sign-up and a CPA per order measure different things; check what each platform counts, and over which window.\n- Adding up the conversions that each ad platform reports. Two platforms can claim the same order, so the total is too high and CPA too low. Use Voltmarkt's own orders with one attribution model.\n- Calling CPA a customer acquisition cost.\n\n**What CPA does not answer.**\n\n- Whether the conversions are new customers: that is CAC.\n- Whether the orders made money: that needs revenue and margin, as in ROAS.\n- What a click costs: that is CPC.\n\n**How managers ask for it.** \"What does a sign-up cost us on Meta?\" \"CPA by channel versus target?\"",
+  "source_ids": [
+    "04:MET-MKT-04",
+    "04:MET-MKT-05",
+    "04:MET-MKT-02",
+    "ERRATA:E-100"
+  ],
+  "verified": true,
+  "as_of": "2026-10-05"
+}

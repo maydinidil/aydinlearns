@@ -1,0 +1,126 @@
+{
+  "id": "EX-SQL-AGG-03-E2-04",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-02",
+    "having",
+    "count",
+    "where",
+    "sales"
+  ],
+  "level": 2,
+  "source_ids": [
+    "01:SQL-AGG-03"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-AGG-03",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-AGG-03"
+  ],
+  "template_id": "T-AGG-03-where-and-having",
+  "template_params": {
+    "table": "sales",
+    "group_by": "category_name",
+    "row_filter": "units >= 2",
+    "aggregate": "count",
+    "comparison": "more than",
+    "threshold": 9000
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_agg",
+  "prompt": "Look only at order lines with 2 or more units. Which categories have more than 9,000 such lines? Use the sales table and its category_name column. Return two columns, in this order: category_name and n_lines, the number of order lines with 2 or more units. Lines with missing units do not count. Return one row per category, and only the categories with more than 9,000 of these lines. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "category_name",
+        "type_class": "text"
+      },
+      {
+        "name": "n_lines",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per category"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "category_name",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "n_lines",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "category_name"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the row filter: keep only the lines with 2 or more units, before anything is grouped.",
+    "The units test is about one line, so it goes before GROUP BY; the test on the number of lines is about a category, so it goes after GROUP BY."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 41,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 42,
+      "to": 52,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 53,
+      "to": 69,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 70,
+      "to": 92,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 93,
+      "to": 115,
+      "subgoal": "group_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "WHERE drops the one-unit lines first, so COUNT(*) counts only multi-unit lines, and HAVING then keeps the categories with more than 9,000 of them."
+}

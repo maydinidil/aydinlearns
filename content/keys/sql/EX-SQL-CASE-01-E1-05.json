@@ -1,0 +1,36 @@
+{
+  "item_id": "EX-SQL-CASE-01-E1-05",
+  "item_version": 1,
+  "reference_sql": "SELECT product_name, unit_cost_eur,\n       CASE WHEN unit_cost_eur IS NULL THEN 'unknown'\n            WHEN unit_cost_eur >= 100 THEN 'premium'\n            ELSE 'budget'\n       END AS cost_band\nFROM products\nWHERE brand = 'Sonora'",
+  "alternatives": [
+    "SELECT product_name, unit_cost_eur, CASE WHEN unit_cost_eur >= 100 THEN 'premium' WHEN unit_cost_eur < 100 THEN 'budget' ELSE 'unknown' END AS cost_band FROM products WHERE brand = 'Sonora'",
+    "SELECT product_name, unit_cost_eur, CASE WHEN unit_cost_eur < 100 THEN 'budget' WHEN unit_cost_eur IS NULL THEN 'unknown' ELSE 'premium' END AS cost_band FROM products WHERE brand IN ('Sonora')"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-SEM-04",
+      "sql": "SELECT product_name, unit_cost_eur, CASE WHEN unit_cost_eur = NULL THEN 'unknown' WHEN unit_cost_eur >= 100 THEN 'premium' ELSE 'budget' END AS cost_band FROM products WHERE brand = 'Sonora'"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-03",
+      "sql": "SELECT product_name, unit_cost_eur, CASE WHEN unit_cost_eur IS NULL THEN 'unknown' WHEN unit_cost_eur >= 100 THEN 'premium' END AS cost_band FROM products WHERE brand = 'Sonora'"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-SYN-01",
+      "sql": "SELECT product_name, unit_cost_eur, CASE WHEN unit_cost_eur IS NULL THEN 'unknown' WHEN unit_cost_eur >= 100 THEN 'premium' ELSE 'budget' AS cost_band FROM products WHERE brand = 'Sonora'"
+    }
+  ],
+  "hint3_partial": "SELECT product_name, unit_cost_eur,\n       CASE WHEN unit_cost_eur ___ THEN 'unknown'\n            WHEN unit_cost_eur >= 100 THEN 'premium'\n            ___\n       END AS cost_band\nFROM products\nWHERE brand = 'Sonora'",
+  "solver": {
+    "prompt_hash": "b4f9d1f5849cdf60",
+    "schema_version": "d77fe1c31a0e",
+    "dataset_version": "506a9858f862fdfb",
+    "grader_version": "1b.3",
+    "query": "SELECT product_name, unit_cost_eur, CASE WHEN unit_cost_eur IS NULL THEN 'unknown' WHEN unit_cost_eur >= 100.00 THEN 'premium' ELSE 'budget' END AS cost_band FROM products WHERE brand = 'Sonora'\n",
+    "at": "2026-10-04T10:06:50.463Z"
+  }
+}

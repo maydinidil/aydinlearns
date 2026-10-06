@@ -1,0 +1,36 @@
+{
+  "item_id": "EX-SQL-AGG-01-E1-22",
+  "item_version": 1,
+  "reference_sql": "SELECT AVG(units) AS avg_units_per_line\nFROM sales\nWHERE channel = 'web'",
+  "alternatives": [
+    "SELECT SUM(units) * 1.0 / COUNT(units) AS avg_units_per_line FROM sales WHERE channel = 'web'",
+    "SELECT AVG(units) AS avg_units_per_line FROM sales WHERE channel = 'web' AND units IS NOT NULL"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-17",
+      "sql": "SELECT AVG(COALESCE(units, 0)) AS avg_units_per_line FROM sales WHERE channel = 'web'"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-14",
+      "sql": "SELECT SUM(units) AS avg_units_per_line FROM sales WHERE channel = 'web'"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-OUT-01",
+      "sql": "SELECT AVG(units) AS avg_units_per_line, COUNT(*) AS n_lines FROM sales WHERE channel = 'web'"
+    }
+  ],
+  "hint3_partial": "SELECT ___(units) AS avg_units_per_line\nFROM sales\nWHERE channel = ___",
+  "solver": {
+    "prompt_hash": "b73f1f99a4af25ee",
+    "schema_version": "cebf75df442f",
+    "dataset_version": "506a9858f862fdfb",
+    "grader_version": "1b.3",
+    "query": "SELECT AVG(units) AS avg_units_per_line FROM sales WHERE channel = 'web'\n",
+    "at": "2026-10-04T14:33:15.615Z"
+  }
+}

@@ -1,0 +1,50 @@
+{
+  "id": "Q-GA4-060",
+  "version": 2,
+  "kind": "mcq",
+  "section": "ga4",
+  "concept_id": "GA4-PRIVACY-02",
+  "parent_id": null,
+  "topic_id": "T-GA4-05",
+  "legacy_id": "Q-GA4-60",
+  "stem": "A small site's age and gender report hides rows and shows a thresholding notice. Which statement is correct?",
+  "options": [
+    {
+      "oid": "oe09d4f2",
+      "text": "Thresholds are system-defined and cannot be changed; expanding the date range or using BigQuery Export are the listed workarounds",
+      "misconception_id": null
+    },
+    {
+      "oid": "o9a10926",
+      "text": "Increasing event data retention to 14 months removes thresholds, because the older data adds enough users to each row",
+      "misconception_id": null
+    },
+    {
+      "oid": "o75abfb5",
+      "text": "Thresholding means the report was sampled; choosing more detailed results in an exploration shows every hidden row",
+      "misconception_id": null
+    },
+    {
+      "oid": "o01ae93e",
+      "text": "An Administrator can switch thresholds off in Admin, and the fix Google lists for small sites is to set the reporting identity to device-based",
+      "misconception_id": null
+    }
+  ],
+  "typed": null,
+  "exam_relevance": "core",
+  "held_out": false,
+  "enemy_group": null,
+  "status": "active",
+  "verified": true,
+  "level": null,
+  "tags": [
+    "ga4",
+    "T-GA4-05"
+  ],
+  "source_ids": [
+    "06:Q-GA4-60"
+  ],
+  "as_of": "2026-09-30",
+  "review_after": null,
+  "supersedes": []
+}

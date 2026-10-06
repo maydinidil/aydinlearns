@@ -1,0 +1,112 @@
+{
+  "id": "EX-SQL-CASE-01-E1-07",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-02",
+    "case",
+    "segment-count",
+    "group-by",
+    "sales"
+  ],
+  "level": 2,
+  "source_ids": [
+    "01:SQL-CASE-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-CASE-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CASE-01"
+  ],
+  "template_id": "T-CASE-01-segment-count",
+  "template_params": {
+    "table": "sales",
+    "tested": "country_code",
+    "output": "market"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_case",
+  "prompt": "How many order lines ship to the home market, and how many ship abroad? Use the sales table, where country_code is the country an order ships to. market is the text 'home' when country_code is 'NL', and 'export' for every other country. Return two columns, in this order: market and n_lines, the number of order lines. Return one row per market. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "market",
+        "type_class": "text"
+      },
+      {
+        "name": "n_lines",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per market"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "market",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "n_lines",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "market"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the column market, which turns each country_code into one of two labels, and count the lines next to it.",
+    "market is a CASE expression in the SELECT list, followed by COUNT(*). To get one row per label, group by the label itself (its name, its position or the whole CASE), not by country_code."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 104,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 105,
+      "to": 115,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 116,
+      "to": 131,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "Grouping by the CASE label puts the BE and LU lines in one export group, so the query returns exactly one row per market."
+}

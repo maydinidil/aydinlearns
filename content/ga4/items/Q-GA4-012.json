@@ -1,0 +1,50 @@
+{
+  "id": "Q-GA4-012",
+  "version": 2,
+  "kind": "mcq",
+  "section": "ga4",
+  "concept_id": "GA4-EVENTS-03",
+  "parent_id": null,
+  "topic_id": "T-GA4-03",
+  "legacy_id": "Q-GA4-12",
+  "stem": "How does a GA4 key event become a conversion that Google Ads can bid on?",
+  "options": [
+    {
+      "oid": "o164d656",
+      "text": "Link GA4 to Google Ads and create or import a Google Ads conversion from the key event",
+      "misconception_id": null
+    },
+    {
+      "oid": "o9b9a333",
+      "text": "Change the reporting attribution model to Google paid channels last click so Ads can use it",
+      "misconception_id": null
+    },
+    {
+      "oid": "ofb0bb55",
+      "text": "Link BigQuery and export the key event daily, so Google Ads can read it from the dataset",
+      "misconception_id": null
+    },
+    {
+      "oid": "o127e8dc",
+      "text": "Build an audience of users who triggered it and share that audience with Google Ads",
+      "misconception_id": null
+    }
+  ],
+  "typed": null,
+  "exam_relevance": "core",
+  "held_out": false,
+  "enemy_group": "EG-GA4-03",
+  "status": "active",
+  "verified": true,
+  "level": null,
+  "tags": [
+    "ga4",
+    "T-GA4-03"
+  ],
+  "source_ids": [
+    "06:Q-GA4-12"
+  ],
+  "as_of": "2026-09-30",
+  "review_after": null,
+  "supersedes": []
+}

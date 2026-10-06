@@ -1,0 +1,24 @@
+{
+  "concept_id": "GA4-ADMIN-02",
+  "section": "ga4",
+  "version": 1,
+  "title": "User roles and permissions",
+  "reading_md": "## What it is\n\nGA4 has five standard roles, listed from most to least access:\n\n| Role | What it can do |\n|---|---|\n| Administrator | Full control, including managing users |\n| Editor | Change settings, but not manage users |\n| Marketer | Marketing settings: audiences, key events, attribution and event settings |\n| Analyst | Create and share explorations and other shared assets |\n| Viewer | View data only |\n\nRoles can be given at account level or at property level. **Data restrictions**, \"No cost metrics\" and \"No revenue metrics\", hide those metrics from a user, on top of the role.\n\nTasks from other lessons, with the lowest role that can do each one:\n\n| Task | Lowest role |\n|---|---|\n| Add or remove users | Administrator |\n| Create a Google Ads link | Editor |\n| Change the reporting identity | Editor |\n| Set up cross-domain measurement or custom channel groups | Editor |\n| Change the report Library | Editor |\n| Create audiences or mark key events | Marketer |\n| Import key events into Google Ads as conversions | Marketer |\n| Create and share explorations | Analyst |\n| Read reports | Viewer |\n\n## What the exam asks\n\nChoosing the least-privilege role for a scenario: the lowest role that can do the job, and no more. Voltmarkt examples:\n\n- The pricing team builds explorations and shares them with each other: Analyst.\n- Store managers only read reports: Viewer.\n- The web developer changes data stream settings but should not manage users: Editor.\n\n## Common confusions\n\n- Analyst is not Viewer: an Analyst can create and share explorations.\n- Marketer sits between Analyst and Editor.\n- Only an Administrator manages users. An Editor cannot.\n- Hiding revenue or cost is a data restriction added to a role, not a role of its own.\n- A data restriction limits what one user sees. A data filter changes the property's data itself.\n\n## In Skillshop\n\nCourse \"Google Analytics Certification (2026)\": privacy and administration topics are spread over the modules \"Get Started Using Google Analytics\" and \"Use GA with Other Tools and Data Sources\" (Unverified).",
+  "source_ids": [
+    "06:GA4-ADMIN-02",
+    "06:GA4-INTEG-01",
+    "06:GA4-REPORTS-01",
+    "06:QS-04",
+    "10:GA4-INTEG-21",
+    "10:§1",
+    "10:§4",
+    "10:§5",
+    "06:§2.2",
+    "06:§2.1",
+    "10:§7",
+    "ERRATA:E-116",
+    "ERRATA:E-122"
+  ],
+  "verified": true,
+  "as_of": "2026-10-05"
+}

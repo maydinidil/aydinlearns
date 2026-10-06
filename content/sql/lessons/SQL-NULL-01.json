@@ -1,0 +1,105 @@
+{
+  "concept_id": "SQL-NULL-01",
+  "version": 1,
+  "reading_md": "# NULL, IS NULL, COALESCE\n\nA cell can hold **NULL**: no value at all. NULL means \"missing or unknown\". It is not 0, and it is not empty text (''). In the stores table, close_date is NULL for every store that has not closed; in products, sister_product_id is NULL for a product without a sister model.\n\n## Why `= NULL` never matches\n\nSQL conditions have three possible answers: true, false and **unknown**. Any comparison with NULL is unknown, because SQL cannot know what the missing value is. Even `NULL = NULL` is unknown. WHERE keeps only the rows whose condition is true, so `WHERE close_date = NULL` keeps no rows at all, and DuckDB gives no error. Test for a missing value with:\n\n- `close_date IS NULL`: true when the value is missing;\n- `close_date IS NOT NULL`: true when there is a value.\n\n## The silent drop\n\nThe same rule hides a common mistake. `store_type <> 'outlet'` is unknown for a store with no store_type, so WHERE drops that store along with the outlets. When the question says a missing value counts, keep it explicitly:\n\n`WHERE (store_type <> 'outlet' OR store_type IS NULL) AND country_code = 'BE'`\n\nThe brackets matter: AND is applied before OR, so without them the IS NULL part escapes the country condition.\n\nNOT IN behaves the same way. `parent_category NOT IN ('Gaming')` drops the categories with no parent, and a NULL inside a NOT IN list makes it keep nothing at all.\n\nOpen-ended dates too: a promotion with no end_date has not ended, but `end_date >= DATE '2025-08-01'` is unknown for it, so add `OR end_date IS NULL`.\n\n## NULL in calculations\n\nArithmetic with NULL gives NULL: if unit_cost_eur is NULL, `unit_cost_eur * 1.21` is NULL too. Often that is exactly right, because an unknown cost stays unknown. A filter such as `unit_cost_eur < 20` also leaves that product out, which is right when an unknown cost is not a low cost.\n\n## COALESCE\n\n`COALESCE(a, b)` returns the first of its values that is not NULL. `COALESCE(discount_pct, 0)` gives the discount when there is one, and 0 when it is missing.\n\nUse it only when missing really means zero. A promotion with no discount recorded gave no discount, so 0 is right. A product with no recorded cost did not cost nothing: turning its cost into 0 makes it look cheap and pulls totals down. Read what the question says a missing value means before you replace it.\n\n## How to handle missing values\n\n1. Find the columns in the question that can be NULL.\n2. Decide what a missing value means here: unknown (leave the row out, or show NULL), a match (add OR ... IS NULL), or zero (COALESCE).\n3. Write IS NULL or IS NOT NULL, never = NULL or <> NULL, and put brackets around every OR that sits next to an AND.",
+  "syntax_md": "```sql\nSELECT column_1, COALESCE(column_2, 0) AS column_2\nFROM table_name\nWHERE column_3 IS NULL\n  AND (column_4 <> 'x' OR column_4 IS NULL);\n```\n\n- `IS NULL` and `IS NOT NULL` test for a missing value; `= NULL` and `<> NULL` are never true.\n- A comparison or arithmetic with NULL gives NULL (unknown), and WHERE drops unknown rows. IN and NOT IN test each listed value the same way: `1 IN (1, NULL)` is true, but `2 IN (1, NULL)` and `2 NOT IN (1, NULL)` are unknown, so a NULL in a NOT IN list keeps no rows.\n- `COALESCE(a, b)` returns the first of its values that is not NULL. Use it only when a missing value really means the replacement.",
+  "dialect_note": "In DuckDB and PostgreSQL, `= NULL` runs without an error and simply keeps no rows, so the mistake is silent. COALESCE works in every major database. DuckDB and MySQL also accept IFNULL(a, b), and SQL Server has ISNULL(a, b), a function that is easy to confuse with the IS NULL test: write COALESCE, which every engine accepts. DuckDB sorts NULLs last in both ASC and DESC order, while PostgreSQL puts them first in DESC order (see SQL-SORT-01).",
+  "worked_examples": [
+    {
+      "title": "Testing for a value with IS NOT NULL",
+      "prompt": "Which stores have a close date, so they have closed or will close? Return store_code, city and close_date, one row per store.",
+      "clauses": [
+        {
+          "text": "SELECT store_code, city, close_date",
+          "subgoal": "metrics",
+          "why": "These are the three columns the question asks for, in its order."
+        },
+        {
+          "text": "FROM stores",
+          "subgoal": "source_grain",
+          "why": "The stores table has one row per store, which is the grain of the answer."
+        },
+        {
+          "text": "WHERE close_date IS NOT NULL",
+          "subgoal": "row_filter",
+          "why": "IS NOT NULL is true exactly when close_date holds a date; close_date <> NULL would be unknown for every row and return nothing."
+        }
+      ]
+    },
+    {
+      "title": "Keeping the missing values with OR ... IS NULL",
+      "prompt": "List the stores outside Belgium. A store with no country_code recorded is not known to be Belgian, so it counts. Return store_code, city and country_code, one row per store.",
+      "clauses": [
+        {
+          "text": "SELECT store_code, city, country_code",
+          "subgoal": "metrics",
+          "why": "The three columns asked for, in the order asked."
+        },
+        {
+          "text": "FROM stores",
+          "subgoal": "source_grain",
+          "why": "One row per store, so the result has one row per store too."
+        },
+        {
+          "text": "WHERE country_code <> 'BE' OR country_code IS NULL",
+          "subgoal": "row_filter",
+          "why": "<> is unknown for a store with no country_code, so WHERE alone would drop it; the OR country_code IS NULL test brings it back."
+        }
+      ]
+    }
+  ],
+  "pretest_item_ids": [
+    "EX-SQL-NULL-01-E1-01",
+    "EX-SQL-NULL-01-E1-02"
+  ],
+  "lesson_item_ids": [
+    "EX-SQL-NULL-01-E1-03",
+    "EX-SQL-NULL-01-E1-04",
+    "EX-SQL-NULL-01-E2-01",
+    "EX-SQL-NULL-01-E2-02"
+  ],
+  "retest_item_id": "EX-SQL-NULL-01-E1-05",
+  "pool_item_ids": [
+    "EX-SQL-NULL-01-E1-06",
+    "EX-SQL-NULL-01-E2-03",
+    "EX-SQL-NULL-01-E2-04",
+    "EX-SQL-NULL-01-E2-05",
+    "EX-SQL-NULL-01-E2-06",
+    "EX-SQL-NULL-01-E3-01",
+    "EX-SQL-NULL-01-E3-02",
+    "EX-SQL-NULL-01-E3-03",
+    "EX-SQL-NULL-01-E1-31",
+    "EX-SQL-NULL-01-E2-31",
+    "EX-SQL-NULL-01-E2-32",
+    "EX-SQL-NULL-01-E1-42",
+    "EX-SQL-NULL-01-E2-41",
+    "EX-SQL-NULL-01-E2-42"
+  ],
+  "source_ids": [
+    "01:SQL-NULL-01"
+  ],
+  "why_clause": {
+    "clause": "WHERE close_date IS NOT NULL",
+    "stem": "Why does the filter use IS NOT NULL and not close_date <> NULL?",
+    "options": [
+      {
+        "id": "a",
+        "text": "Both tests give the same rows; IS NOT NULL is only shorter to type."
+      },
+      {
+        "id": "b",
+        "text": "Any comparison with a missing value is unknown, so <> NULL keeps none."
+      },
+      {
+        "id": "c",
+        "text": "close_date <> NULL would keep only the stores that have no close date."
+      },
+      {
+        "id": "d",
+        "text": "IS NOT NULL would also keep the stores whose close_date is missing."
+      }
+    ],
+    "correct_id": "b",
+    "explanation": "A missing value is unknown, so close_date <> NULL is unknown for every store, never true, and WHERE keeps no rows. IS NOT NULL is the test made for missing values: it is true exactly when close_date holds a date."
+  }
+}

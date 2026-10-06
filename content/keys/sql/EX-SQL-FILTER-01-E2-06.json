@@ -1,0 +1,32 @@
+{
+  "item_id": "EX-SQL-FILTER-01-E2-06",
+  "item_version": 1,
+  "reference_sql": "SELECT category_id, category_name, parent_category\nFROM categories\nWHERE parent_category = 'Audio' AND NOT (category_name = 'Headphones' OR category_name = 'Earbuds')",
+  "alternatives": [
+    "SELECT category_id, category_name, parent_category\nFROM categories\nWHERE parent_category = 'Audio' AND category_name <> 'Headphones' AND category_name <> 'Earbuds'",
+    "SELECT category_id, category_name, parent_category\nFROM categories\nWHERE NOT (category_name = 'Headphones' OR category_name = 'Earbuds') AND parent_category = 'Audio'",
+    "SELECT category_id, category_name, parent_category\nFROM categories\nWHERE parent_category = 'Audio' AND NOT category_name = 'Headphones' AND NOT category_name = 'Earbuds'"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "M1",
+      "error_id": "ERR-LOG-13",
+      "sql": "SELECT category_id, category_name, parent_category\nFROM categories\nWHERE parent_category = 'Audio' AND NOT category_name = 'Headphones' OR category_name = 'Earbuds'"
+    },
+    {
+      "id": "M2",
+      "error_id": "ERR-SYN-07",
+      "sql": "SELECT category_id, category_name, parent_category\nFROM categories\nWHERE parent_category = \"Audio\" AND NOT (category_name = 'Headphones' OR category_name = 'Earbuds')"
+    }
+  ],
+  "hint3_partial": "SELECT category_id, category_name, parent_category\nFROM categories\nWHERE parent_category = 'Audio' AND NOT (...)",
+  "solver": {
+    "prompt_hash": "36bafb242d0b12e9",
+    "schema_version": "d9fba3510579",
+    "dataset_version": "9639f8ae1f71c2ef",
+    "grader_version": "1a.2",
+    "query": "SELECT category_id, category_name, parent_category FROM categories WHERE parent_category = 'Audio' AND category_name NOT IN ('Headphones', 'Earbuds')\n",
+    "at": "2026-10-03T13:08:02.560Z"
+  }
+}

@@ -1,0 +1,101 @@
+{
+  "id": "EX-SQL-SORT-01-E1-08",
+  "version": 2,
+  "kind": "write",
+  "tags": [
+    "distinct",
+    "desc",
+    "categories"
+  ],
+  "level": 1,
+  "source_ids": [
+    "01:SQL-SORT-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-02",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-SORT-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-SORT-01"
+  ],
+  "template_id": "T-SORT-01-distinct-values",
+  "template_params": {
+    "table": "categories",
+    "columns": 1
+  },
+  "sub_skill": "distinct",
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_sort",
+  "prompt": "Which parent categories does the category tree have? Return one column, parent_category, with exactly this name, listing each parent category once, sorted from Z to A. A missing parent_category counts as one value, and its row may come first or last.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "parent_category",
+        "type_class": "text"
+      }
+    ],
+    "grain": "one row per parent category"
+  },
+  "rules": {
+    "order_matters": true,
+    "sort_keys": [
+      {
+        "column": "parent_category",
+        "desc": true
+      }
+    ],
+    "check_names": true,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "parent_category",
+        "type_class": "text",
+        "precision": "exact"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "parent_category"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, decide what one row stands for. Many categories share a parent, but the answer has one row per parent category.",
+    "One keyword after SELECT keeps each parent category once. The ORDER BY at the end needs a direction, because Z to A is not the default."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 31,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 32,
+      "to": 47,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 48,
+      "to": 77,
+      "subgoal": "sort_limit"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 60000,
+  "why_this_works": "DISTINCT keeps each parent_category once, and DESC sorts text from Z to A."
+}

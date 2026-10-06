@@ -1,0 +1,121 @@
+{
+  "id": "EX-SQL-AGG-03-E1-03",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-02",
+    "having",
+    "count",
+    "sales"
+  ],
+  "level": 2,
+  "source_ids": [
+    "01:SQL-AGG-03"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "lesson",
+  "target_concept_id": "SQL-AGG-03",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-AGG-03"
+  ],
+  "template_id": "T-AGG-03-count-threshold",
+  "template_params": {
+    "table": "sales",
+    "group_by": "store_code",
+    "aggregate": "count",
+    "comparison": "more than",
+    "threshold": 30000
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_agg",
+  "prompt": "Which stores have more than 30,000 order lines? Use the sales table, which has one row per order line, and its store_code column. Return two columns, in this order: store_code and n_lines, the number of order lines. Count every order line. Return one row per store, and only the stores with more than 30,000 lines. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "store_code",
+        "type_class": "text"
+      },
+      {
+        "name": "n_lines",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per store"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "store_code",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "n_lines",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "store_code"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the group filter: keep only the stores whose line count is above 30,000.",
+    "WHERE runs before the lines are counted, so a condition on COUNT(*) goes in the clause after GROUP BY."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 38,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 39,
+      "to": 49,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 50,
+      "to": 69,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 70,
+      "to": 93,
+      "subgoal": "group_filter"
+    }
+  ],
+  "fading": {
+    "stage1": 70,
+    "stage2": 50
+  },
+  "faded_shape": "SELECT store_code, COUNT(*) AS n_lines\nFROM sales\nGROUP BY store_code\n",
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "GROUP BY counts the lines of each store, and HAVING keeps only the stores whose count is above 30,000."
+}

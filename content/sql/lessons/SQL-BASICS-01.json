@@ -1,0 +1,100 @@
+{
+  "concept_id": "SQL-BASICS-01",
+  "version": 1,
+  "reading_md": "# Tables, rows and your first SELECT\n\nA **table** is a grid. Each **row** is one thing: one store, one product, one promotion. Each **column** is one fact about that thing, such as a city or a unit cost. The schema panel lists Voltmarkt's tables, their columns, and what one row means (the **grain**): `stores` has one row per store, `products` one row per product, `calendar` one row per day.\n\nA query asks the database a question and gets back a **new table**, the result. Reading data never changes it: a SELECT does not move, delete or edit a single row.\n\n## Two clauses\n\n- **FROM** names the table to read. It sets the source and the grain: read from `stores` and you get one row per store.\n- **SELECT** names the columns to show, separated by commas. The result has exactly those columns, in the order you list them, whatever their order in the table.\n\nYou write SELECT first, but the database works FROM first: it finds the table, then picks the columns. Without a filter (that comes with WHERE), every row of the table comes back.\n\n## SELECT * is for looking, not for answers\n\n`SELECT *` returns every column in the table's own order. It is handy for a first look at a table you do not know. In an exercise or an interview answer, name the columns the question asks for: extra columns change what the result says, and the grader counts them as wrong (missing or extra columns).\n\n## Names must match exactly\n\nCopy table and column names from the schema panel. `store` is not `stores`, and `price` is not `unit_cost_eur`. Capital letters do not matter, but every other character does. When a name is wrong, the engine stops and names it: read the message, then fix that one word.\n\n## Punctuation\n\n- Put one comma between two columns, and none after the last one.\n- A **missing** comma does not raise an error. `SELECT city country_code` returns one column: the city, renamed `country_code`. Count your result's columns.\n- An opening quote or bracket needs its closing partner, or the engine reads to the end of the query looking for it.\n\n## Order of the rows\n\nWithout ORDER BY (SQL-SORT-01) the database may return rows in any order, so these exercises accept any row order. The column order is yours to set.\n\n## How to read a question\n\n1. Find the table whose grain matches \"one row per ...\". That goes in FROM.\n2. List the output columns in the order asked. That goes in SELECT.\n3. Run it, and check the column count and the first few rows.",
+  "syntax_md": "```sql\nSELECT column_1, column_2\nFROM table_name;\n```\n\n- `SELECT` lists the output columns, separated by commas, in the order you want them.\n- `FROM` names one table; its grain becomes the result's grain.\n- `SELECT *` returns every column, in the table's own order. Use it to explore, not to answer.",
+  "dialect_note": "DuckDB is more forgiving than most databases. It accepts a comma after the last column (a trailing comma before FROM) and a FROM-first form that starts with FROM and puts SELECT second. PostgreSQL, MySQL and SQL Server reject both, so write SELECT first, then FROM, with no comma after the last column.",
+  "worked_examples": [
+    {
+      "title": "Two columns from one table",
+      "prompt": "Which time zone does each store use? Return store_code and timezone, one row per store.",
+      "clauses": [
+        {
+          "text": "SELECT store_code, timezone",
+          "subgoal": "metrics",
+          "why": "These are the two columns the question asks for, in its order, with one comma between them."
+        },
+        {
+          "text": "FROM stores",
+          "subgoal": "source_grain",
+          "why": "The stores table has one row per store, so the result has one row per store too."
+        }
+      ]
+    },
+    {
+      "title": "Choosing the table and the column order",
+      "prompt": "For every calendar day, show the quarter and then the month it falls in. Return cal_date, quarter, month, one row per day.",
+      "clauses": [
+        {
+          "text": "SELECT cal_date, quarter, month",
+          "subgoal": "metrics",
+          "why": "The SELECT list sets the column order, so quarter comes before month even though the table stores month first."
+        },
+        {
+          "text": "FROM calendar",
+          "subgoal": "source_grain",
+          "why": "Only the calendar table has one row per day, which is the grain the question asks for."
+        }
+      ]
+    }
+  ],
+  "pretest_item_ids": [
+    "EX-SQL-BASICS-01-E1-01",
+    "EX-SQL-BASICS-01-E1-02"
+  ],
+  "lesson_item_ids": [
+    "EX-SQL-BASICS-01-E1-03",
+    "EX-SQL-BASICS-01-E1-04",
+    "EX-SQL-BASICS-01-E2-01",
+    "EX-SQL-BASICS-01-E2-02"
+  ],
+  "retest_item_id": "EX-SQL-BASICS-01-E1-05",
+  "pool_item_ids": [
+    "EX-SQL-BASICS-01-E1-06",
+    "EX-SQL-BASICS-01-E1-07",
+    "EX-SQL-BASICS-01-E1-08",
+    "EX-SQL-BASICS-01-E2-03",
+    "EX-SQL-BASICS-01-E2-04",
+    "EX-SQL-BASICS-01-E2-05",
+    "EX-SQL-BASICS-01-E3-01",
+    "EX-SQL-BASICS-01-E3-02",
+    "EX-SQL-BASICS-01-E3-03",
+    "EX-SQL-BASICS-01-E1-31",
+    "EX-SQL-BASICS-01-E1-32",
+    "EX-SQL-BASICS-01-E2-31",
+    "EX-SQL-BASICS-01-E2-32",
+    "EX-SQL-BASICS-01-E1-42",
+    "EX-SQL-BASICS-01-E1-43",
+    "EX-SQL-BASICS-01-E1-44",
+    "EX-SQL-BASICS-01-E2-41",
+    "EX-SQL-BASICS-01-E2-42",
+    "EX-SQL-BASICS-01-E2-43"
+  ],
+  "source_ids": [
+    "01:SQL-BASICS-01"
+  ],
+  "why_clause": {
+    "clause": "FROM stores",
+    "stem": "Why does this query read FROM stores?",
+    "options": [
+      {
+        "id": "a",
+        "text": "Because stores is the first table listed in the tables panel."
+      },
+      {
+        "id": "b",
+        "text": "Because FROM must name the table with the most rows."
+      },
+      {
+        "id": "c",
+        "text": "Because stores has one row per store, the grain asked for."
+      },
+      {
+        "id": "d",
+        "text": "Because FROM decides the order of the result's columns."
+      }
+    ],
+    "correct_id": "c",
+    "explanation": "FROM names the table the rows come from. The question wants one row per store, and stores has exactly one row per store, so the result has one row per store too. The order of the columns comes from the SELECT list, not from FROM."
+  }
+}

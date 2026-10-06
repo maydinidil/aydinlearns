@@ -1,0 +1,104 @@
+{
+  "id": "EX-SQL-AGG-01-E1-06",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-02",
+    "aggregate",
+    "min_max",
+    "products",
+    "min",
+    "max",
+    "null"
+  ],
+  "level": 2,
+  "source_ids": [
+    "01:SQL-AGG-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-AGG-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-AGG-01"
+  ],
+  "template_id": "T-AGG-01-min-max",
+  "template_params": {
+    "table": "products",
+    "measure": "unit_cost_eur"
+  },
+  "sub_skill": "min_max",
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_agg",
+  "prompt": "What are the lowest and the highest unit cost in the products table? A product with no unit_cost_eur recorded does not count. Return two columns, in this order: min_unit_cost_eur and max_unit_cost_eur. Use exactly these column names. The result is a single row. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "min_unit_cost_eur",
+        "type_class": "numeric"
+      },
+      {
+        "name": "max_unit_cost_eur",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row in total"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": true,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "min_unit_cost_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "max_unit_cost_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the two values. Both come from unit_cost_eur: the smallest one and the largest one.",
+    "Both go in the SELECT list, each named with AS. These functions already skip a missing cost, so a missing cost must not turn into 0."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 94,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 95,
+      "to": 108,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 90000,
+  "why_this_works": "MIN and MAX skip NULLs, so a product with no recorded cost is left out without any extra filter."
+}

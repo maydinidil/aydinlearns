@@ -1,0 +1,37 @@
+{
+  "item_id": "EX-SQL-BASICS-02-E3-21",
+  "item_version": 1,
+  "reference_sql": "SELECT promo_code,\n       200 * (1 - discount_pct / 100) * 0.95 AS member_price_eur,\n       (200 - 200 * (1 - discount_pct / 100) * 0.95) / 200 * 100 AS member_off_pct\nFROM promotions",
+  "alternatives": [
+    "SELECT promo_code,\n       190 * (1 - discount_pct / 100) AS member_price_eur,\n       100 - 95 * (1 - discount_pct / 100) AS member_off_pct\nFROM promotions",
+    "SELECT promo_code,\n       (200 - 2 * discount_pct) * 0.95 AS member_price_eur,\n       5 + 0.95 * discount_pct AS member_off_pct\nFROM promotions",
+    "SELECT promo_code,\n       200 * (100 - discount_pct) / 100 * 95 / 100 AS member_price_eur,\n       100 - (100 - discount_pct) * 95 / 100 AS member_off_pct\nFROM promotions"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-00",
+      "sql": "SELECT promo_code, 200 * (1 - (discount_pct + 5) / 100) AS member_price_eur, discount_pct + 5 AS member_off_pct FROM promotions"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-21",
+      "sql": "SELECT promo_code, 200 * (1 - discount_pct / 100) * 0.95 AS member_price_eur, (200 - 200 * (1 - discount_pct / 100) * 0.95) / 200 AS member_off_pct FROM promotions"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-OUT-01",
+      "sql": "SELECT 200 * (1 - discount_pct / 100) * 0.95 AS member_price_eur, (200 - 200 * (1 - discount_pct / 100) * 0.95) / 200 * 100 AS member_off_pct FROM promotions"
+    }
+  ],
+  "hint3_partial": "SELECT promo_code,\n       200 * (1 - discount_pct / 100) * ___ AS member_price_eur,\n       (200 - ___) / 200 * 100 AS member_off_pct\nFROM promotions",
+  "solver": {
+    "prompt_hash": "f9322eae10401bdd",
+    "schema_version": "f0340f71a1f5",
+    "dataset_version": "506a9858f862fdfb",
+    "grader_version": "1b.3",
+    "query": "SELECT promo_code, 200 * (1 - discount_pct / 100) * 0.95 AS member_price_eur, (1 - (1 - discount_pct / 100) * 0.95) * 100 AS member_off_pct FROM promotions\n",
+    "at": "2026-10-04T14:33:17.609Z"
+  }
+}

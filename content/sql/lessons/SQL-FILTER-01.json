@@ -1,0 +1,107 @@
+{
+  "concept_id": "SQL-FILTER-01",
+  "version": 1,
+  "reading_md": "# WHERE with AND, OR, NOT\n\nWithout a filter, a query returns every row of its table. **WHERE** keeps only the rows for which its condition is true; every other row is dropped before the result is built. The database works FROM first, then WHERE, then SELECT, so WHERE can test any column of the table, even one you do not show.\n\n## Comparisons\n\nA condition compares a column with a value:\n\n- `=` equal, `<>` not equal\n- `<` less than, `>` more than\n- `<=` at most, `>=` at least\n\nRead the boundary words carefully. \"More than 100\" is `> 100`, \"at least 100\" is `>= 100`. The two differ only for a row that is exactly 100, and that is where answers go wrong. \"Before 1 March\" leaves out 1 March itself; \"on or after 1 March\" keeps it.\n\n## Quotes\n\n- Text goes in **single quotes**, and the match is exact: `'BE'` is not `'be'`.\n- Numbers have no quotes: `discount_pct >= 25`.\n- Dates are written in single quotes as year-month-day: `'2024-09-01'`.\n- Double quotes mean a **name** in SQL. Write `\"BE\"` and the engine looks for a column called BE, and stops with an error.\n\n## AND, OR, NOT\n\n- `a AND b` keeps a row only when both conditions are true.\n- `a OR b` keeps a row when at least one of them is true.\n- `NOT a` keeps a row when `a` is false: `NOT store_type = 'outlet'` means the same as `store_type <> 'outlet'`.\n\n\"Leaving out X and Y\" is `NOT (name = 'X' OR name = 'Y')`, which is the same as `name <> 'X' AND name <> 'Y'`.\n\n## Brackets\n\nSQL applies NOT first, then AND, then OR, the way multiplication comes before addition. So\n\n`country_code = 'BE' OR country_code = 'LU' AND store_type = 'standard'`\n\nmeans \"every Belgian store, plus the standard stores in Luxembourg\": AND grabbed only its neighbour. If you mean \"standard stores in Belgium or Luxembourg\", put brackets around the OR part, as in the second worked example.\n\nWhen a question has two separate groups (\"all flagships, plus the new standard stores\"), the AND pairs belong together, and OR joins the groups. Brackets around each AND group are not required, but they show the reader what you meant.\n\nRule of thumb: whenever a WHERE mixes AND and OR, write the brackets.\n\n## Missing values\n\nA comparison with a missing value (NULL) is never true, so WHERE drops those rows. SQL-NULL-01 covers this; the questions here use columns without missing values.\n\n## How to build a filter\n\n1. Mark each condition in the question, and the words that join them: and, or, not, except, leaving out.\n2. Turn each condition into one comparison, and check its boundary word.\n3. Join them with AND, OR and NOT, add brackets wherever you mix AND and OR, then run the query and check a row that sits on a boundary.",
+  "syntax_md": "```sql\nSELECT column_1, column_2\nFROM table_name\nWHERE condition_1 AND (condition_2 OR condition_3);\n```\n\n- WHERE comes straight after FROM.\n- Comparisons: `=`, `<>`, `<`, `>`, `<=`, `>=`.\n- Text and dates in single quotes, numbers without quotes.\n- NOT is applied first, then AND, then OR: put brackets around the OR part whenever you mix AND and OR.",
+  "dialect_note": "DuckDB also accepts `!=` for not equal and `==` for equal; write `<>` and `=`, which every database accepts. DuckDB and PostgreSQL turn a quoted '2025-03-01' into a date when they compare it with a date column; the fully standard form is DATE '2025-03-01'. In DuckDB and PostgreSQL double quotes always mark a column name, while MySQL by default reads double-quoted text as a value, so use single quotes for every value.",
+  "worked_examples": [
+    {
+      "title": "Two conditions with AND",
+      "prompt": "Which Kestrel products cost Voltmarkt more than 1000 euro? Return product_name and unit_cost_eur, one row per product.",
+      "clauses": [
+        {
+          "text": "SELECT product_name, unit_cost_eur",
+          "subgoal": "metrics",
+          "why": "These are the two columns the question asks for, in its order."
+        },
+        {
+          "text": "FROM products",
+          "subgoal": "source_grain",
+          "why": "The products table has one row per product, which is the grain of the answer."
+        },
+        {
+          "text": "WHERE brand = 'Kestrel' AND unit_cost_eur > 1000",
+          "subgoal": "row_filter",
+          "why": "Both conditions must hold, so AND joins them; the brand is text in single quotes, and 'more than' is >, which leaves out exactly 1000."
+        }
+      ]
+    },
+    {
+      "title": "Brackets around OR",
+      "prompt": "List the standard stores in Belgium or Luxembourg. Return store_code and city, one row per store.",
+      "clauses": [
+        {
+          "text": "SELECT store_code, city",
+          "subgoal": "metrics",
+          "why": "The two columns asked for, in the order asked."
+        },
+        {
+          "text": "FROM stores",
+          "subgoal": "source_grain",
+          "why": "The stores table has one row per store, so the result does too."
+        },
+        {
+          "text": "WHERE (country_code = 'BE' OR country_code = 'LU') AND store_type = 'standard'",
+          "subgoal": "row_filter",
+          "why": "The brackets make OR pick the two countries first, so 'standard' applies to both; without them every Belgian store would come back."
+        }
+      ]
+    }
+  ],
+  "pretest_item_ids": [
+    "EX-SQL-FILTER-01-E1-01",
+    "EX-SQL-FILTER-01-E1-02"
+  ],
+  "lesson_item_ids": [
+    "EX-SQL-FILTER-01-E1-03",
+    "EX-SQL-FILTER-01-E1-04",
+    "EX-SQL-FILTER-01-E2-01",
+    "EX-SQL-FILTER-01-E2-02"
+  ],
+  "retest_item_id": "EX-SQL-FILTER-01-E1-05",
+  "pool_item_ids": [
+    "EX-SQL-FILTER-01-E1-06",
+    "EX-SQL-FILTER-01-E1-07",
+    "EX-SQL-FILTER-01-E1-08",
+    "EX-SQL-FILTER-01-E2-03",
+    "EX-SQL-FILTER-01-E2-04",
+    "EX-SQL-FILTER-01-E2-05",
+    "EX-SQL-FILTER-01-E2-06",
+    "EX-SQL-FILTER-01-E3-01",
+    "EX-SQL-FILTER-01-E3-02",
+    "EX-SQL-FILTER-01-E3-03",
+    "EX-SQL-FILTER-01-E1-31",
+    "EX-SQL-FILTER-01-E1-32",
+    "EX-SQL-FILTER-01-E2-31",
+    "EX-SQL-FILTER-01-E1-42",
+    "EX-SQL-FILTER-01-E2-41",
+    "EX-SQL-FILTER-01-E2-42"
+  ],
+  "source_ids": [
+    "01:SQL-FILTER-01"
+  ],
+  "why_clause": {
+    "clause": "WHERE brand = 'Kestrel' AND unit_cost_eur > 1000",
+    "stem": "Why are the two conditions joined with AND?",
+    "options": [
+      {
+        "id": "a",
+        "text": "AND keeps a product that passes either one of the two tests."
+      },
+      {
+        "id": "b",
+        "text": "AND makes the query sort the Kestrel products by their cost."
+      },
+      {
+        "id": "c",
+        "text": "AND is needed because unit_cost_eur is a number column."
+      },
+      {
+        "id": "d",
+        "text": "A product must be a Kestrel and also cost more than 1000."
+      }
+    ],
+    "correct_id": "d",
+    "explanation": "The question asks for products that are Kestrel products and also cost more than 1000 euro, so both tests must be true. AND keeps a row only when both are true. OR would keep every Kestrel product, whatever its cost, and every product above 1000 euro, whatever its brand."
+  }
+}

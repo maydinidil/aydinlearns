@@ -1,0 +1,150 @@
+{
+  "id": "EX-OPENER-L1-01",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-01",
+    "opener",
+    "promotions",
+    "calculated-column",
+    "in_list",
+    "between",
+    "coalesce",
+    "order_by"
+  ],
+  "level": 1,
+  "source_ids": [
+    "01:SQL-NULL-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "opener",
+  "target_concept_id": "SQL-NULL-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-NULL-01"
+  ],
+  "template_id": "T-OPENER-L1-promo-sale-price",
+  "template_params": {
+    "table": "promotions",
+    "list_price_eur": 400,
+    "from": "2025-01-01",
+    "to": "2025-06-30",
+    "output": "sale_price_eur"
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_null",
+  "prompt": "Joost, the pricing lead, is planning next year's deals and asks what a tablet that lists at 400.00 euros sold for during each percent-off and clearance promotion of the first half of 2025. From the promotions table, keep the promotions whose promo_type is 'percent_off' or 'clearance' and whose start_date is from 2025-01-01 to 2025-06-30, both days included. Return four columns, in this order: promo_code, promo_name, discount_pct and sale_price_eur, the tablet's price during that promotion: 400.00 euros minus discount_pct percent of 400.00. A promotion with a missing discount_pct gave no discount, so its sale_price_eur is the full 400.00, and a promotion with a missing promo_name is still listed. Do not round. Sort by sale_price_eur from lowest to highest; when promotions share a sale price, sort them by promo_code from A to Z.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "promo_code",
+        "type_class": "text"
+      },
+      {
+        "name": "promo_name",
+        "type_class": "text"
+      },
+      {
+        "name": "discount_pct",
+        "type_class": "numeric"
+      },
+      {
+        "name": "sale_price_eur",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": true,
+    "sort_keys": [
+      {
+        "column": "sale_price_eur",
+        "desc": false
+      },
+      {
+        "column": "promo_code",
+        "desc": false
+      }
+    ],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "promo_code",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "promo_name",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "discount_pct",
+        "type_class": "numeric",
+        "precision": "ratio"
+      },
+      {
+        "name": "sale_price_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "promo_code"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the row filter: two promotion types and a range of start dates, both days included.",
+    "A missing discount_pct makes the whole price calculation missing unless it is replaced with 0 first. Then sort on the calculated column, with promo_code as the second key."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 112,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 113,
+      "to": 128,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 129,
+      "to": 240,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 241,
+      "to": 276,
+      "subgoal": "sort_limit"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "COALESCE turns a missing discount into 0, so the full price shows, and promo_code settles promotions with the same sale price."
+}

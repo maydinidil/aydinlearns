@@ -1,0 +1,86 @@
+{
+  "id": "EX-SQL-TYPE-01-E2-42",
+  "version": 1,
+  "kind": "choose_query",
+  "tags": [
+    "sql",
+    "LVL-02",
+    "choose_query",
+    "division",
+    "cast",
+    "round",
+    "sales"
+  ],
+  "level": 2,
+  "source_ids": [
+    "01:SQL-TYPE-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-TYPE-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-TYPE-01"
+  ],
+  "template_id": "T-TYPE-01-choose-average-per-line",
+  "template_params": {
+    "table": "sales"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_type",
+  "prompt": "For each store_code, how many units does an order line hold on average? Work it out as the total units divided by the number of lines that have a units value, rounded to 2 decimals with ROUND(x, 2). Use the sales table. Return store_code and units_per_line, one row per store. Any row order is fine. Which query returns it?",
+  "output_contract": null,
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [],
+  "subgoals": [],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 90000,
+  "why_this_works": "",
+  "options": [
+    {
+      "oid": "of3b05b8",
+      "text": "SELECT store_code,\n       ROUND(SUM(units) * 1.0 / COUNT(units), 2) AS units_per_line\nFROM sales\nGROUP BY store_code",
+      "misconception_id": null
+    },
+    {
+      "oid": "od49924e",
+      "text": "SELECT store_code,\n       ROUND(SUM(units) // COUNT(units), 2) AS units_per_line\nFROM sales\nGROUP BY store_code",
+      "misconception_id": "ERR-LOG-05"
+    },
+    {
+      "oid": "o10f3b82",
+      "text": "SELECT store_code,\n       CAST(SUM(units) / COUNT(units) AS INTEGER) AS units_per_line\nFROM sales\nGROUP BY store_code",
+      "misconception_id": "ERR-OUT-02"
+    },
+    {
+      "oid": "ode502fb",
+      "text": "SELECT store_code,\n       ROUND(SUM(units) * 1.0 / COUNT(*), 2) AS units_per_line\nFROM sales\nGROUP BY store_code",
+      "misconception_id": "ERR-LOG-17"
+    }
+  ]
+}

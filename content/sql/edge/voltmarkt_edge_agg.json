@@ -1,0 +1,17 @@
+{
+  "schema": "voltmarkt_edge_agg",
+  "mirrors": "voltmarkt",
+  "family": "agg",
+  "contains": [
+    "two products that tie for third place by net revenue",
+    "two stores that tie for second place by units",
+    "a line with a missing quantity, so its units and net revenue are missing",
+    "a line with a missing unit price, so its net revenue is missing",
+    "a product with no unit cost",
+    "stores with no sales in some months, including a store that sells in one month only",
+    "orders with several lines, so an order ID appears on more than one row",
+    "lines on promotion, with the discount already taken off net revenue",
+    "orders on the last day of a month, one of them at 23:59:59",
+    "orders on days whose ISO week starts in the previous month (1 January, 1 February and 2 March 2025)"
+  ]
+}

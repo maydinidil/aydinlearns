@@ -1,0 +1,36 @@
+{
+  "item_id": "EX-SQL-CASE-01-E2-08",
+  "item_version": 1,
+  "reference_sql": "SELECT store_code, store_type,\n       CASE WHEN store_type = 'flagship' THEN 1\n            WHEN store_type = 'standard' THEN 2\n            WHEN store_type = 'outlet' THEN 3\n            ELSE 4\n       END AS type_rank\nFROM stores\nORDER BY type_rank, store_code",
+  "alternatives": [
+    "SELECT store_code, store_type, CASE store_type WHEN 'flagship' THEN 1 WHEN 'standard' THEN 2 WHEN 'outlet' THEN 3 ELSE 4 END AS type_rank FROM stores ORDER BY 3, 1",
+    "SELECT store_code, store_type, CASE WHEN store_type = 'flagship' THEN 1 WHEN store_type = 'standard' THEN 2 WHEN store_type = 'outlet' THEN 3 ELSE 4 END AS type_rank FROM stores ORDER BY type_rank ASC, store_code ASC"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-03",
+      "sql": "SELECT store_code, store_type, CASE WHEN store_type = 'flagship' THEN 1 WHEN store_type = 'standard' THEN 2 WHEN store_type = 'outlet' THEN 3 END AS type_rank FROM stores ORDER BY type_rank, store_code"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-18",
+      "sql": "SELECT store_code, store_type, CASE WHEN store_type = 'flagship' THEN 1 WHEN store_type = 'standard' THEN 2 WHEN store_type = 'outlet' THEN 3 ELSE 4 END AS type_rank FROM stores ORDER BY store_type, store_code"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-SYN-07",
+      "sql": "SELECT store_code, store_type, CASE WHEN store_type = \"flagship\" THEN 1 WHEN store_type = \"standard\" THEN 2 WHEN store_type = \"outlet\" THEN 3 ELSE 4 END AS type_rank FROM stores ORDER BY type_rank, store_code"
+    }
+  ],
+  "hint3_partial": "SELECT store_code, store_type,\n       CASE WHEN store_type = 'flagship' THEN 1\n            WHEN store_type = 'standard' THEN 2\n            WHEN store_type = 'outlet' THEN 3\n            ___\n       END AS type_rank\nFROM stores\nORDER BY ___, store_code",
+  "solver": {
+    "prompt_hash": "85e43d4d6d9252e4",
+    "schema_version": "9a8d01143702",
+    "dataset_version": "506a9858f862fdfb",
+    "grader_version": "1b.3",
+    "query": "SELECT store_code, store_type, CASE WHEN store_type = 'flagship' THEN 1 WHEN store_type = 'standard' THEN 2 WHEN store_type = 'outlet' THEN 3 ELSE 4 END AS type_rank FROM stores ORDER BY type_rank ASC, store_code ASC\n",
+    "at": "2026-10-04T10:06:51.011Z"
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "item_id": "EX-SQL-TYPE-01-E1-03",
+  "item_version": 1,
+  "reference_sql": "SELECT channel,\n       ROUND(SUM(units) * 1.0 / COUNT(DISTINCT order_id), 2) AS units_per_order\nFROM sales\nGROUP BY channel",
+  "alternatives": [
+    "SELECT channel, ROUND(CAST(SUM(units) AS DOUBLE) / COUNT(DISTINCT order_id), 2) AS units_per_order FROM sales GROUP BY channel",
+    "SELECT channel, ROUND(SUM(units) / CAST(COUNT(DISTINCT order_id) AS DECIMAL(18, 2)), 2) AS units_per_order FROM sales GROUP BY 1"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-05",
+      "sql": "SELECT channel, ROUND(SUM(units) // COUNT(DISTINCT order_id), 2) AS units_per_order FROM sales GROUP BY channel"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-04",
+      "sql": "SELECT channel, ROUND(SUM(units) * 1.0 / COUNT(order_id), 2) AS units_per_order FROM sales GROUP BY channel"
+    }
+  ],
+  "hint3_partial": "SELECT channel,\n       ROUND(SUM(units) * 1.0 / COUNT(___), 2) AS units_per_order\nFROM sales\nGROUP BY channel",
+  "solver": {
+    "prompt_hash": "5e5dbfe7e81904b7",
+    "schema_version": "cebf75df442f",
+    "dataset_version": "506a9858f862fdfb",
+    "grader_version": "1b.3",
+    "query": "SELECT channel, ROUND(SUM(units) * 1.0 / COUNT(DISTINCT order_id), 2) AS units_per_order FROM sales GROUP BY channel\n",
+    "at": "2026-10-04T10:06:51.757Z"
+  }
+}

@@ -1,0 +1,36 @@
+{
+  "item_id": "EX-SQL-AGG-04-E2-05",
+  "item_version": 1,
+  "reference_sql": "SELECT category_name,\n       SUM(CASE WHEN channel = 'web' THEN net_revenue_eur ELSE 0 END) AS web_revenue_eur,\n       SUM(CASE WHEN channel = 'store' THEN net_revenue_eur ELSE 0 END) AS store_revenue_eur\nFROM sales\nGROUP BY category_name\nHAVING SUM(CASE WHEN channel = 'web' THEN net_revenue_eur ELSE 0 END) >= 0.6 * SUM(CASE WHEN channel = 'store' THEN net_revenue_eur ELSE 0 END)",
+  "alternatives": [
+    "SELECT category_name, SUM(CASE WHEN channel = 'web' THEN net_revenue_eur END) AS web_revenue_eur, SUM(CASE WHEN channel = 'store' THEN net_revenue_eur END) AS store_revenue_eur FROM sales GROUP BY category_name HAVING SUM(CASE WHEN channel = 'web' THEN net_revenue_eur END) >= 0.6 * SUM(CASE WHEN channel = 'store' THEN net_revenue_eur END)",
+    "SELECT category_name, SUM(net_revenue_eur) FILTER (WHERE channel = 'web') AS web_revenue_eur, SUM(net_revenue_eur) FILTER (WHERE channel = 'store') AS store_revenue_eur FROM sales GROUP BY 1 HAVING SUM(net_revenue_eur) FILTER (WHERE channel = 'web') >= 0.6 * SUM(net_revenue_eur) FILTER (WHERE channel = 'store')"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-SYN-05",
+      "sql": "SELECT category_name, SUM(CASE WHEN channel = 'web' THEN net_revenue_eur ELSE 0 END) AS web_revenue_eur, SUM(CASE WHEN channel = 'store' THEN net_revenue_eur ELSE 0 END) AS store_revenue_eur FROM sales WHERE SUM(CASE WHEN channel = 'web' THEN net_revenue_eur ELSE 0 END) >= 0.6 * SUM(CASE WHEN channel = 'store' THEN net_revenue_eur ELSE 0 END) GROUP BY category_name"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-SYN-06",
+      "sql": "SELECT category_name, SUM(CASE WHEN channel = 'web' THEN net_revenue_eur ELSE 0 END) AS web_revenue_eur, SUM(CASE WHEN channel = 'store' THEN net_revenue_eur ELSE 0 END) AS store_revenue_eur FROM sales WHERE web_revenue_eur >= 0.6 * store_revenue_eur GROUP BY category_name"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-14",
+      "sql": "SELECT category_name, COUNT(CASE WHEN channel = 'web' THEN net_revenue_eur END) AS web_revenue_eur, COUNT(CASE WHEN channel = 'store' THEN net_revenue_eur END) AS store_revenue_eur FROM sales GROUP BY category_name HAVING COUNT(CASE WHEN channel = 'web' THEN net_revenue_eur END) >= 0.6 * COUNT(CASE WHEN channel = 'store' THEN net_revenue_eur END)"
+    }
+  ],
+  "hint3_partial": "SELECT category_name,\n       SUM(CASE WHEN channel = 'web' THEN net_revenue_eur ELSE 0 END) AS web_revenue_eur,\n       SUM(CASE WHEN channel = 'store' THEN net_revenue_eur ELSE 0 END) AS store_revenue_eur\nFROM sales\nGROUP BY category_name\nHAVING ___ >= ___",
+  "solver": {
+    "prompt_hash": "bf5b9a12133fac23",
+    "schema_version": "cebf75df442f",
+    "dataset_version": "506a9858f862fdfb",
+    "grader_version": "1b.3",
+    "query": "SELECT category_name, COALESCE(SUM(net_revenue_eur) FILTER (WHERE channel = 'web'), 0) AS web_revenue_eur, COALESCE(SUM(net_revenue_eur) FILTER (WHERE channel = 'store'), 0) AS store_revenue_eur FROM sales GROUP BY category_name HAVING COALESCE(SUM(net_revenue_eur) FILTER (WHERE channel = 'web'), 0) >= 0.6 * COALESCE(SUM(net_revenue_eur) FILTER (WHERE channel = 'store'), 0)\n",
+    "at": "2026-10-04T10:06:49.244Z"
+  }
+}

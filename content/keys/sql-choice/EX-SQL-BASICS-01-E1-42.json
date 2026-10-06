@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-BASICS-01-E1-42",
+  "item_version": 1,
+  "correct_oid": "ocfe0fd2",
+  "explanation": "The SELECT list sets both the columns and their order, so promo_code must come first and discount_pct second, and nothing else. Swapping the two columns gives the right data in the wrong order, and SELECT * returns every column of promotions. promo_name is the promotion's name, not its code.",
+  "solver": {
+    "prompt_hash": "b5a608d42b65925a",
+    "grader_version": "choice.1",
+    "chosen": "ocfe0fd2",
+    "typed": null,
+    "at": "2026-10-06T09:08:14.826Z"
+  }
+}

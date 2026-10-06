@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-FILTER-01-E2-42",
+  "item_version": 1,
+  "correct_oid": "o99cdf49",
+  "explanation": "The two types are alternatives, so they are joined with OR inside brackets, and the brackets make the discount test apply to both. Without brackets, AND runs first, so every clearance promotion comes back whatever its discount. A promotion cannot be clearance and percent_off at once, so AND between the types keeps nothing, and > 20 leaves out a discount of exactly 20.",
+  "solver": {
+    "prompt_hash": "8a94128a7c2423f7",
+    "grader_version": "choice.1",
+    "chosen": "o99cdf49",
+    "typed": null,
+    "at": "2026-10-06T09:08:14.843Z"
+  }
+}

@@ -1,0 +1,126 @@
+{
+  "id": "EX-SQL-AGG-04-E2-22",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-02",
+    "conditional-aggregation",
+    "min-if",
+    "sales",
+    "dates",
+    "no-else",
+    "missing-values",
+    "drill"
+  ],
+  "level": 2,
+  "source_ids": [
+    "01:SQL-AGG-04"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-AGG-04",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CASE-01",
+    "SQL-AGG-04"
+  ],
+  "template_id": "T-AGG-04-min-if",
+  "template_params": {
+    "table": "sales",
+    "group": "store_code",
+    "split": "parent_category 'Gaming' or 'Accessories'",
+    "measure": "order_date"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_agg",
+  "prompt": "When did each store first sell a Gaming line, and when did it first sell an Accessories line? Use the sales table; the webshop, WEB-01, counts as a store. Return three columns, in this order: store_code, first_gaming_date, the earliest order_date of the store's lines whose parent_category is 'Gaming', and first_accessories_date, the same for 'Accessories'. Every line counts, including a line with missing units or a missing net_revenue_eur. A store that never sold that parent category gets a missing date. Return one row per store_code. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "store_code",
+        "type_class": "text"
+      },
+      {
+        "name": "first_gaming_date",
+        "type_class": "temporal"
+      },
+      {
+        "name": "first_accessories_date",
+        "type_class": "temporal"
+      }
+    ],
+    "grain": "one row per store_code"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "store_code",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "first_gaming_date",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "first_accessories_date",
+        "type_class": "temporal",
+        "precision": "exact"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "store_code"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the two date columns, each taking the earliest date of only one parent category.",
+    "Put a CASE inside MIN that gives order_date for a line of that parent category and nothing for any other line. Do not drop lines with a missing value: they still count as sales."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 209,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 210,
+      "to": 220,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 221,
+      "to": 240,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 150000,
+  "why_this_works": "Each CASE passes on the order_date of one parent category only, and MIN skips the missing values, so a store with no such line gets a missing date."
+}

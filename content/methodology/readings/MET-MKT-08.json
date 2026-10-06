@@ -1,0 +1,15 @@
+{
+  "concept_id": "MET-MKT-08",
+  "section": "methodology",
+  "version": 1,
+  "title": "Last-click attribution",
+  "reading_md": "**What it measures.** Which channel gets the credit for an order when all of it goes to the last touch before the order. A touch is an ad click or a visit from a channel.\n\n**Formula.** For each order, take the customer's touches inside the lookback window: after the order time minus the window, and no later than the order. The last of them gets 100% of the order's revenue. A channel's credit is the revenue of all orders whose last touch was that channel. Grain: channel × period.\n\n**Orders with no touch.** Some orders have no touch in the window: the customer typed the web address, or the last touch was too long ago. Credit them to an \"unattributed\" row; never drop them. Credited revenue across all rows then adds up to total revenue, which shows that nothing was lost or counted twice.\n\n**Worked example.** Voltmarkt uses a 30-day window. A customer clicked a social ad on 1 October, an email on 9 October and a paid search ad on 14 October, then ordered for €600 on 15 October.\n\n- Last click gives paid search €600.\n\nAnother customer ordered for €200 on 15 October. The only touch was a display click on 1 September, 44 days before.\n\n- That touch is outside the window, so the €200 goes to the unattributed row.\n- Credited revenue: €600 + €200 = €800, the same as total revenue.\n\n**Common mistakes.**\n\n- Counting touches after the order. A retargeting click the day after buying did not close the sale.\n- Not applying the lookback window, so a click from months ago still gets credit.\n- Dropping orders with no touch. Credited revenue then falls short of total revenue.\n- Reading last click as cause. It rewards channels that close journeys, such as brand search and email, and gives nothing to the channels that started them.\n\n**A note on tools.** Google Ads and GA4 no longer offer first click, linear, time decay or position-based models; they offer last click and data-driven. Voltmarkt's own last-click figures use its own touch data and window, so they will not match a platform report exactly.\n\n**How managers ask for it.** \"Which channel closes the sale?\" \"What does Google Ads say drove orders?\"",
+  "source_ids": [
+    "04:MET-MKT-08",
+    "04:§2.1",
+    "ERRATA:E-097",
+    "ERRATA:E-100"
+  ],
+  "verified": true,
+  "as_of": "2026-10-05"
+}

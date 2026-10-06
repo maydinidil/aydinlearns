@@ -1,0 +1,13 @@
+{
+  "item_id": "Q-MET-SAAS-07-06",
+  "item_version": 1,
+  "correct_oid": "o4c76db2",
+  "explanation": "GRR counts each business at the lower of its end MRR and its start MRR. For a downgrade the lower one is the new fee, so the business adds 40 euros to the top of the fraction and 60 to the bottom. The cap only stops an upgrade from counting above its start amount; it never raises a downgrade back up.",
+  "solver": {
+    "prompt_hash": "f63cfee6c0e56d18",
+    "grader_version": "choice.1",
+    "chosen": "o4c76db2",
+    "typed": null,
+    "at": "2026-10-05T22:54:48.129Z"
+  }
+}

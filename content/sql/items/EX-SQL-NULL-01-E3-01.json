@@ -1,0 +1,125 @@
+{
+  "id": "EX-SQL-NULL-01-E3-01",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-01",
+    "is_null",
+    "open_ended_range",
+    "and_or_not"
+  ],
+  "level": 1,
+  "source_ids": [
+    "01:SQL-NULL-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-02",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-NULL-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-NULL-01",
+    "SQL-FILTER-01"
+  ],
+  "template_id": "T-NULL-01-open-ended-range",
+  "template_params": {
+    "table": "promotions",
+    "null_column": "end_date",
+    "on_date": "2025-05-20"
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_null",
+  "prompt": "Which promotions were running on 20 May 2025? A promotion runs from its start_date to its end_date, both days included. A promotion with no end_date recorded (NULL) has not ended, so it runs on every day from its start_date on. A promotion with no promo_name still counts. Return four columns, in this order: promo_code, promo_name, start_date, end_date. Return one row per promotion. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "promo_code",
+        "type_class": "text"
+      },
+      {
+        "name": "promo_name",
+        "type_class": "text"
+      },
+      {
+        "name": "start_date",
+        "type_class": "temporal"
+      },
+      {
+        "name": "end_date",
+        "type_class": "temporal"
+      }
+    ],
+    "grain": "one row per promotion"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "promo_code",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "promo_name",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "start_date",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "end_date",
+        "type_class": "temporal",
+        "precision": "exact"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the row filter. Keep the promotions that had started by 20 May 2025 and had not ended before it, counting a missing end_date as not ended.",
+    "The start-date test joins with AND to a bracketed choice about end_date. A date comparison is unknown for a missing end_date, so that case needs its own test inside the brackets."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 51,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 52,
+      "to": 67,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 68,
+      "to": 161,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 210000,
+  "why_this_works": "An open-ended promotion has a NULL end_date, which no date comparison can match, so the bracketed OR end_date IS NULL keeps it alongside the promotions that end on or after 20 May."
+}

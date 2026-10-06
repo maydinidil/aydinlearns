@@ -1,0 +1,32 @@
+{
+  "item_id": "EX-SQL-NULL-01-E1-03",
+  "item_version": 1,
+  "reference_sql": "SELECT cal_date, weekday_name, event\nFROM calendar\nWHERE cal_date >= DATE '2025-12-01' AND cal_date <= DATE '2025-12-31' AND (is_weekend = true OR event IS NOT NULL)",
+  "alternatives": [
+    "SELECT cal_date, weekday_name, event\nFROM calendar\nWHERE (is_weekend = true OR event IS NOT NULL) AND cal_date BETWEEN '2025-12-01' AND '2025-12-31'",
+    "SELECT cal_date, weekday_name, event\nFROM calendar\nWHERE cal_date >= '2025-12-01' AND cal_date < '2026-01-01' AND (is_weekend OR NOT event IS NULL)",
+    "SELECT cal_date, weekday_name, event\nFROM calendar\nWHERE (cal_date BETWEEN DATE '2025-12-01' AND DATE '2025-12-31' AND is_weekend = true) OR (cal_date BETWEEN DATE '2025-12-01' AND DATE '2025-12-31' AND event IS NOT NULL)"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "M1",
+      "error_id": "ERR-SEM-04",
+      "sql": "SELECT cal_date, weekday_name, event\nFROM calendar\nWHERE cal_date >= DATE '2025-12-01' AND cal_date <= DATE '2025-12-31' AND (is_weekend = true OR event <> NULL)"
+    },
+    {
+      "id": "M2",
+      "error_id": "ERR-LOG-13",
+      "sql": "SELECT cal_date, weekday_name, event\nFROM calendar\nWHERE cal_date >= DATE '2025-12-01' AND cal_date <= DATE '2025-12-31' AND is_weekend = true OR event IS NOT NULL"
+    }
+  ],
+  "hint3_partial": "SELECT cal_date, weekday_name, event\nFROM calendar\nWHERE cal_date >= DATE '2025-12-01' AND cal_date <= DATE '2025-12-31' AND (is_weekend = true OR event ...)",
+  "solver": {
+    "prompt_hash": "37ad03052ab094a0",
+    "schema_version": "0d8e15555347",
+    "dataset_version": "9639f8ae1f71c2ef",
+    "grader_version": "1a.2",
+    "query": "SELECT cal_date, weekday_name, event FROM calendar WHERE cal_date >= '2025-12-01' AND cal_date <= '2025-12-31' AND (is_weekend OR event IS NOT NULL)\n",
+    "at": "2026-10-03T13:08:02.866Z"
+  }
+}

@@ -1,0 +1,36 @@
+{
+  "item_id": "EX-SQL-FILTER-02-E1-02",
+  "item_version": 1,
+  "reference_sql": "SELECT product_id, product_name\nFROM products\nWHERE product_name ILIKE '%pro%'",
+  "alternatives": [
+    "SELECT product_id, product_name\nFROM products\nWHERE product_name ILIKE '%PRO%'",
+    "SELECT product_id, product_name\nFROM products\nWHERE product_name ILIKE '%Pro%'"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "EX-SQL-FILTER-02-E1-02-PW1",
+      "error_id": "ERR-LOG-22",
+      "sql": "SELECT product_id, product_name\nFROM products\nWHERE product_name LIKE '%Pro%'"
+    },
+    {
+      "id": "EX-SQL-FILTER-02-E1-02-PW2",
+      "error_id": "ERR-LOG-22",
+      "sql": "SELECT product_id, product_name\nFROM products\nWHERE product_name LIKE '%pro%'"
+    },
+    {
+      "id": "EX-SQL-FILTER-02-E1-02-PW3",
+      "error_id": "ERR-LOG-22",
+      "sql": "SELECT product_id, product_name\nFROM products\nWHERE product_name ILIKE 'pro%'"
+    }
+  ],
+  "hint3_partial": "SELECT product_id, product_name\nFROM products\nWHERE product_name ILIKE ___",
+  "solver": {
+    "prompt_hash": "fae56714c2f7d398",
+    "schema_version": "d77fe1c31a0e",
+    "dataset_version": "9639f8ae1f71c2ef",
+    "grader_version": "1a.2",
+    "query": "SELECT product_id, product_name FROM products WHERE product_name ILIKE '%pro%'\n",
+    "at": "2026-10-03T13:08:02.631Z"
+  }
+}

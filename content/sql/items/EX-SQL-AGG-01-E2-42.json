@@ -1,0 +1,86 @@
+{
+  "id": "EX-SQL-AGG-01-E2-42",
+  "version": 1,
+  "kind": "choose_query",
+  "tags": [
+    "sql",
+    "LVL-02",
+    "choose_query",
+    "aggregate",
+    "sum",
+    "ratio",
+    "sales"
+  ],
+  "level": 2,
+  "source_ids": [
+    "01:SQL-AGG-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-AGG-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-AGG-01"
+  ],
+  "template_id": "T-AGG-01-choose-ratio-of-sums",
+  "template_params": {
+    "table": "sales"
+  },
+  "sub_skill": "sum_avg",
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_agg",
+  "prompt": "What was the net revenue per unit sold in January 2025, from order_date 2025-01-01 to 2025-01-31 with both days included? Work it out as the total net_revenue_eur divided by the total units. Which query returns it as revenue_per_unit?",
+  "output_contract": null,
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [],
+  "subgoals": [],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 90000,
+  "why_this_works": "",
+  "options": [
+    {
+      "oid": "o77aa676",
+      "text": "SELECT AVG(net_revenue_eur / units) AS revenue_per_unit\nFROM sales\nWHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-01-31'",
+      "misconception_id": "ERR-LOG-20"
+    },
+    {
+      "oid": "o1c3cb00",
+      "text": "SELECT SUM(net_revenue_eur) / SUM(units) AS revenue_per_unit\nFROM sales\nWHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-01-31'",
+      "misconception_id": null
+    },
+    {
+      "oid": "o1166a64",
+      "text": "SELECT AVG(net_revenue_eur) AS revenue_per_unit\nFROM sales\nWHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-01-31'",
+      "misconception_id": "ERR-LOG-14"
+    },
+    {
+      "oid": "o1ceae67",
+      "text": "SELECT SUM(net_revenue_eur) / COUNT(*) AS revenue_per_unit\nFROM sales\nWHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-01-31'",
+      "misconception_id": "ERR-LOG-14"
+    }
+  ]
+}

@@ -1,0 +1,176 @@
+{
+  "id": "EX-SQL-AGG-04-E3-02",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-02",
+    "conditional-aggregation",
+    "scorecard",
+    "sum-if",
+    "count-if",
+    "sales",
+    "dates",
+    "iso-week"
+  ],
+  "level": 2,
+  "source_ids": [
+    "01:SQL-AGG-04"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-AGG-04",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CASE-01",
+    "SQL-AGG-04"
+  ],
+  "template_id": "T-AGG-04-scorecard",
+  "template_params": {
+    "table": "sales",
+    "group": "channel, order_week",
+    "period": "2025-Q1",
+    "measures": 4
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_agg",
+  "prompt": "Build a weekly scorecard per channel for the first quarter of 2025. Use the sales table and its order_week column, the Monday that starts an order's ISO week. Count only order lines with an order_date from 2025-01-01 to 2025-03-31, both days included, even when their week started in 2024. Return six columns, in this order: channel, order_week, n_orders, the number of different order_id values, revenue_eur, the sum of net_revenue_eur, accessories_revenue_eur, the sum of net_revenue_eur over the lines whose parent_category is 'Accessories', and multi_unit_lines, the number of lines with units of 2 or more. Lines with a missing value add nothing to a sum, a line with missing units is not a multi-unit line, and a week with no Accessories revenue shows 0, not a missing value. Return one row per channel and order_week combination, sorted by channel from A to Z, then by order_week from oldest to newest.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "channel",
+        "type_class": "text"
+      },
+      {
+        "name": "order_week",
+        "type_class": "temporal"
+      },
+      {
+        "name": "n_orders",
+        "type_class": "numeric"
+      },
+      {
+        "name": "revenue_eur",
+        "type_class": "numeric"
+      },
+      {
+        "name": "accessories_revenue_eur",
+        "type_class": "numeric"
+      },
+      {
+        "name": "multi_unit_lines",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per channel and order_week"
+  },
+  "rules": {
+    "order_matters": true,
+    "sort_keys": [
+      {
+        "column": "channel",
+        "desc": false
+      },
+      {
+        "column": "order_week",
+        "desc": false
+      }
+    ],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "channel",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "order_week",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "n_orders",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "revenue_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "accessories_revenue_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "multi_unit_lines",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "channel",
+      "order_week"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the four scorecard columns after channel and order_week: two plain aggregates and two conditional ones.",
+    "n_orders needs COUNT(DISTINCT ...), because an order can have several lines. The Accessories revenue and the multi-unit count each put a CASE inside SUM, with ELSE 0. Filter on order_date, not on order_week."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 308,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 309,
+      "to": 319,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 320,
+      "to": 384,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 385,
+      "to": 413,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 414,
+      "to": 442,
+      "subgoal": "sort_limit"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "One GROUP BY on channel and week feeds every column at once, with plain aggregates for the totals and a CASE inside SUM for each condition, while the filter on order_date keeps the early January days whose week began in 2024."
+}

@@ -1,0 +1,41 @@
+{
+  "item_id": "EX-SQL-AGG-04-E2-02",
+  "item_version": 1,
+  "reference_sql": "SELECT country_code,\n       COUNT(DISTINCT CASE WHEN channel = 'store' THEN order_id END) AS store_orders,\n       COUNT(DISTINCT CASE WHEN channel = 'web' THEN order_id END) AS web_orders\nFROM sales\nGROUP BY country_code",
+  "alternatives": [
+    "SELECT country_code, COUNT(DISTINCT order_id) FILTER (WHERE channel = 'store') AS store_orders, COUNT(DISTINCT order_id) FILTER (WHERE channel = 'web') AS web_orders FROM sales GROUP BY country_code",
+    "SELECT country_code, COUNT(DISTINCT CASE WHEN channel = 'store' THEN order_id ELSE NULL END) AS store_orders, COUNT(DISTINCT CASE WHEN channel = 'web' THEN order_id ELSE NULL END) AS web_orders FROM sales GROUP BY 1"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-04",
+      "sql": "SELECT country_code, COUNT(CASE WHEN channel = 'store' THEN order_id END) AS store_orders, COUNT(CASE WHEN channel = 'web' THEN order_id END) AS web_orders FROM sales GROUP BY country_code"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-04",
+      "sql": "SELECT country_code, COUNT(DISTINCT CASE WHEN channel = 'store' THEN order_id ELSE 0 END) AS store_orders, COUNT(DISTINCT CASE WHEN channel = 'web' THEN order_id ELSE 0 END) AS web_orders FROM sales GROUP BY country_code"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-07",
+      "sql": "SELECT country_code, channel, COUNT(DISTINCT CASE WHEN channel = 'store' THEN order_id END) AS store_orders, COUNT(DISTINCT CASE WHEN channel = 'web' THEN order_id END) AS web_orders FROM sales GROUP BY country_code, channel"
+    },
+    {
+      "id": "PW4",
+      "error_id": "ERR-SEM-01",
+      "sql": "SELECT country_code, COUNT(DISTINCT CASE WHEN channel = 'store' THEN order_id END) AS store_orders, COUNT(DISTINCT CASE WHEN channel = 'web' THEN order_id END) AS web_orders FROM sales"
+    }
+  ],
+  "hint3_partial": "SELECT country_code,\n       COUNT(DISTINCT CASE WHEN channel = 'store' THEN ___ END) AS store_orders,\n       COUNT(DISTINCT CASE WHEN ___ THEN ___ END) AS web_orders\nFROM sales\nGROUP BY country_code",
+  "solver": {
+    "prompt_hash": "208e34dd7a0cbb2d",
+    "schema_version": "cebf75df442f",
+    "dataset_version": "506a9858f862fdfb",
+    "grader_version": "1b.3",
+    "query": "SELECT country_code, COUNT(DISTINCT order_id) FILTER (WHERE channel = 'store') AS store_orders, COUNT(DISTINCT order_id) FILTER (WHERE channel = 'web') AS web_orders FROM sales GROUP BY country_code\n",
+    "at": "2026-10-04T10:06:48.798Z"
+  }
+}

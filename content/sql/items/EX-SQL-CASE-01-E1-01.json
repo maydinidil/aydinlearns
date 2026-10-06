@@ -1,0 +1,106 @@
+{
+  "id": "EX-SQL-CASE-01-E1-01",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-02",
+    "case",
+    "flag",
+    "is-null",
+    "stores"
+  ],
+  "level": 2,
+  "source_ids": [
+    "01:SQL-CASE-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pretest",
+  "target_concept_id": "SQL-CASE-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-NULL-01",
+    "SQL-CASE-01"
+  ],
+  "template_id": "T-CASE-01-flag-missing",
+  "template_params": {
+    "table": "stores",
+    "tested": "close_date",
+    "output": "status"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_case",
+  "prompt": "Label every store as open or closed. Use the stores table. Return two columns, in this order: store_code and status. status is the text 'closed' when the store has a close_date, and 'open' when its close_date is missing. Return one row per store, every store included. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "store_code",
+        "type_class": "text"
+      },
+      {
+        "name": "status",
+        "type_class": "text"
+      }
+    ],
+    "grain": "one row per store"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "store_code",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "status",
+        "type_class": "text",
+        "precision": "exact"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "store_code"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the calculated column status, which turns close_date into one of two labels.",
+    "status is a CASE expression in the SELECT list: one WHEN test on close_date, an ELSE for every other store, then END and the name. A missing value is found with IS NULL, never with = NULL."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 94,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 95,
+      "to": 106,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 90000,
+  "why_this_works": "IS NULL is the only test that is true for a missing close_date, and ELSE gives every other store the second label."
+}

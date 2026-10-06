@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-AGG-02-E2-43",
+  "item_version": 1,
+  "correct_oid": "oe94b07f",
+  "explanation": "sales has one row per order line, with the line's parent_category and its net_revenue_eur, so GROUP BY parent_category with SUM(net_revenue_eur) works on it alone. categories has parent_category but no revenue, and products and promotions have neither column.",
+  "solver": {
+    "prompt_hash": "1d57286c17519c77",
+    "grader_version": "choice.1",
+    "chosen": "oe94b07f",
+    "typed": null,
+    "at": "2026-10-06T09:08:14.816Z"
+  }
+}

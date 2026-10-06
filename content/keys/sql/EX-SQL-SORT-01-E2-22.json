@@ -1,0 +1,32 @@
+{
+  "item_id": "EX-SQL-SORT-01-E2-22",
+  "item_version": 1,
+  "reference_sql": "SELECT DISTINCT category_id,\n       brand\nFROM products\nWHERE category_id IN (1, 2, 3)\nORDER BY category_id, brand",
+  "alternatives": [
+    "SELECT DISTINCT category_id,\n       brand\nFROM products\nWHERE category_id IN (1, 2, 3)\nORDER BY 1, 2",
+    "SELECT DISTINCT category_id,\n       brand\nFROM products\nWHERE category_id BETWEEN 1 AND 3\nORDER BY category_id ASC, brand ASC",
+    "SELECT DISTINCT category_id,\n       brand\nFROM products\nWHERE category_id = 1 OR category_id = 2 OR category_id = 3\nORDER BY category_id, brand"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-08",
+      "sql": "SELECT category_id, brand FROM products WHERE category_id IN (1, 2, 3) ORDER BY category_id, brand"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-18",
+      "sql": "SELECT DISTINCT category_id, brand FROM products WHERE category_id IN (1, 2, 3) ORDER BY brand, category_id"
+    }
+  ],
+  "hint3_partial": "SELECT ___ category_id,\n       brand\nFROM products\nWHERE category_id IN (1, 2, 3)\nORDER BY ___",
+  "solver": {
+    "prompt_hash": "a872a7c5be7c56b9",
+    "schema_version": "d77fe1c31a0e",
+    "dataset_version": "506a9858f862fdfb",
+    "grader_version": "1b.3",
+    "query": "SELECT DISTINCT category_id, brand FROM products WHERE category_id IN (1, 2, 3) ORDER BY category_id ASC, brand ASC\n",
+    "at": "2026-10-04T14:33:18.518Z"
+  }
+}

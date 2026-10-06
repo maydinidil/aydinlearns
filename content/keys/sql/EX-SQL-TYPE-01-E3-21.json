@@ -1,0 +1,41 @@
+{
+  "item_id": "EX-SQL-TYPE-01-E3-21",
+  "item_version": 1,
+  "reference_sql": "SELECT country_code,\n       COUNT(DISTINCT order_id) AS n_orders,\n       ROUND(SUM(units) * 1.0 / COUNT(DISTINCT order_id), 2) AS units_per_order,\n       ROUND(100.0 * SUM(CASE WHEN units >= 3 THEN net_revenue_eur ELSE 0 END) / SUM(net_revenue_eur), 1) AS bulk_revenue_pct\nFROM sales\nWHERE order_date BETWEEN DATE '2025-10-01' AND DATE '2025-12-31'\nGROUP BY country_code",
+  "alternatives": [
+    "SELECT country_code, COUNT(DISTINCT order_id) AS n_orders, ROUND(CAST(SUM(units) AS DOUBLE) / COUNT(DISTINCT order_id), 2) AS units_per_order, ROUND(100.0 * SUM(net_revenue_eur) FILTER (WHERE units >= 3) / SUM(net_revenue_eur), 1) AS bulk_revenue_pct FROM sales WHERE order_date >= DATE '2025-10-01' AND order_date < DATE '2026-01-01' GROUP BY country_code",
+    "SELECT country_code, COUNT(DISTINCT order_id) AS n_orders, ROUND(SUM(COALESCE(units, 0)) / CAST(COUNT(DISTINCT order_id) AS DOUBLE), 2) AS units_per_order, ROUND(SUM(CASE WHEN units >= 3 THEN net_revenue_eur END) * 100.0 / SUM(net_revenue_eur), 1) AS bulk_revenue_pct FROM sales WHERE order_date BETWEEN '2025-10-01' AND '2025-12-31' GROUP BY 1"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-05",
+      "sql": "SELECT country_code, COUNT(DISTINCT order_id) AS n_orders, ROUND(SUM(units) // COUNT(DISTINCT order_id), 2) AS units_per_order, ROUND(100.0 * SUM(CASE WHEN units >= 3 THEN net_revenue_eur ELSE 0 END) / SUM(net_revenue_eur), 1) AS bulk_revenue_pct FROM sales WHERE order_date BETWEEN DATE '2025-10-01' AND DATE '2025-12-31' GROUP BY country_code"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-21",
+      "sql": "SELECT country_code, COUNT(DISTINCT order_id) AS n_orders, ROUND(SUM(units) * 1.0 / COUNT(DISTINCT order_id), 2) AS units_per_order, ROUND(SUM(CASE WHEN units >= 3 THEN net_revenue_eur ELSE 0 END) / SUM(net_revenue_eur), 1) AS bulk_revenue_pct FROM sales WHERE order_date BETWEEN DATE '2025-10-01' AND DATE '2025-12-31' GROUP BY country_code"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-04",
+      "sql": "SELECT country_code, COUNT(order_id) AS n_orders, ROUND(SUM(units) * 1.0 / COUNT(order_id), 2) AS units_per_order, ROUND(100.0 * SUM(CASE WHEN units >= 3 THEN net_revenue_eur ELSE 0 END) / SUM(net_revenue_eur), 1) AS bulk_revenue_pct FROM sales WHERE order_date BETWEEN DATE '2025-10-01' AND DATE '2025-12-31' GROUP BY country_code"
+    },
+    {
+      "id": "PW4",
+      "error_id": "ERR-LOG-15",
+      "sql": "SELECT country_code, COUNT(DISTINCT order_id) AS n_orders, ROUND(SUM(units) * 1.0 / COUNT(DISTINCT order_id), 2) AS units_per_order, ROUND(100.0 * SUM(CASE WHEN units > 3 THEN net_revenue_eur ELSE 0 END) / SUM(net_revenue_eur), 1) AS bulk_revenue_pct FROM sales WHERE order_date BETWEEN DATE '2025-10-01' AND DATE '2025-12-31' GROUP BY country_code"
+    }
+  ],
+  "hint3_partial": "SELECT country_code,\n       COUNT(DISTINCT order_id) AS n_orders,\n       ROUND(SUM(units) ___ / COUNT(DISTINCT order_id), 2) AS units_per_order,\n       ROUND(___ * SUM(CASE WHEN units >= 3 THEN ___ ELSE 0 END) / SUM(net_revenue_eur), 1) AS bulk_revenue_pct\nFROM sales\nWHERE order_date BETWEEN ___\nGROUP BY country_code",
+  "solver": {
+    "prompt_hash": "2aad9f172bfbe870",
+    "schema_version": "cebf75df442f",
+    "dataset_version": "506a9858f862fdfb",
+    "grader_version": "1b.3",
+    "query": "SELECT country_code, COUNT(DISTINCT order_id) AS n_orders,\n       ROUND(SUM(units) / COUNT(DISTINCT order_id), 2) AS units_per_order,\n       ROUND(100 * SUM(CASE WHEN units >= 3 THEN net_revenue_eur END) / SUM(net_revenue_eur), 1) AS bulk_revenue_pct\nFROM sales\nWHERE order_date BETWEEN DATE '2025-10-01' AND DATE '2025-12-31'\nGROUP BY country_code\n",
+    "at": "2026-10-04T14:33:19.296Z"
+  }
+}

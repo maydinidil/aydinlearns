@@ -1,0 +1,37 @@
+{
+  "item_id": "EX-SQL-AGG-02-E1-06",
+  "item_version": 1,
+  "reference_sql": "SELECT country_code, COUNT(*) AS n_stores\nFROM stores\nGROUP BY country_code",
+  "alternatives": [
+    "SELECT country_code, COUNT(store_id) AS n_stores FROM stores GROUP BY country_code",
+    "SELECT country_code, COUNT(*) AS n_stores FROM stores GROUP BY 1",
+    "SELECT country_code, COUNT(DISTINCT store_id) AS n_stores FROM stores GROUP BY country_code"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-SEM-01",
+      "sql": "SELECT country_code, COUNT(*) AS n_stores FROM stores GROUP BY store_type"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-07",
+      "sql": "SELECT country_code, COUNT(*) AS n_stores FROM stores GROUP BY country_code, store_type"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-04",
+      "sql": "SELECT country_code, COUNT(close_date) AS n_stores FROM stores GROUP BY country_code"
+    }
+  ],
+  "hint3_partial": "SELECT country_code, COUNT(*) AS n_stores\nFROM stores\nGROUP BY ___",
+  "solver": {
+    "prompt_hash": "842843e59bf31385",
+    "schema_version": "9a8d01143702",
+    "dataset_version": "506a9858f862fdfb",
+    "grader_version": "1b.3",
+    "query": "SELECT country_code, COUNT(*) AS n_stores FROM stores GROUP BY country_code\n",
+    "at": "2026-10-04T10:06:43.261Z"
+  }
+}

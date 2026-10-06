@@ -1,0 +1,123 @@
+{
+  "id": "EX-SQL-AGG-01-E2-22",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-02",
+    "aggregate",
+    "count_column",
+    "products",
+    "count_column",
+    "null",
+    "data_quality",
+    "drill"
+  ],
+  "level": 2,
+  "source_ids": [
+    "01:SQL-AGG-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-AGG-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-AGG-01"
+  ],
+  "template_id": "T-AGG-01-recorded-values-check",
+  "template_params": {
+    "table": "products",
+    "from": "2024-01-01",
+    "to": "2024-12-31",
+    "output": "n_products, n_with_cost, n_with_sister"
+  },
+  "sub_skill": "count_column",
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_agg",
+  "prompt": "Check the products launched in 2024 (launch_date from 1 January 2024 to 31 December 2024, both days included) for gaps. Use the products table, which has one row per product. Return three columns, in this order: n_products (all those products), n_with_cost (those with a unit_cost_eur recorded) and n_with_sister (those with a sister_product_id recorded). A missing value does not count as recorded. Use exactly these column names. The result is a single row. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "n_products",
+        "type_class": "numeric"
+      },
+      {
+        "name": "n_with_cost",
+        "type_class": "numeric"
+      },
+      {
+        "name": "n_with_sister",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row in total"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "n_products",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "n_with_cost",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "n_with_sister",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the row filter that keeps the products launched in 2024, then write the three counts.",
+    "One count takes every row, and the other two each name a column, so they skip the products where that column is missing."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 123,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 124,
+      "to": 137,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 138,
+      "to": 203,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 150000,
+  "why_this_works": "COUNT(*) counts every product launched in 2024, while COUNT(column) counts only the products where that column is recorded."
+}

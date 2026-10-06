@@ -1,0 +1,119 @@
+{
+  "id": "EX-SQL-NULL-01-E1-03",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-01",
+    "is_null",
+    "and_or_not",
+    "calendar"
+  ],
+  "level": 1,
+  "source_ids": [
+    "01:SQL-NULL-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-02",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "lesson",
+  "target_concept_id": "SQL-NULL-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-NULL-01",
+    "SQL-FILTER-01"
+  ],
+  "template_id": "T-NULL-01-is-not-null-in-or",
+  "template_params": {
+    "table": "calendar",
+    "null_column": "event",
+    "test": "IS NOT NULL"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_null",
+  "prompt": "The store teams need extra staff on weekend days and on event days. From the calendar table, list the days in December 2025 (1 to 31 December) that are a weekend day (is_weekend is true) or have an event. The event column is missing (NULL) on a day without an event. Return three columns, in this order: cal_date, weekday_name, event. Return one row per day. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "cal_date",
+        "type_class": "temporal"
+      },
+      {
+        "name": "weekday_name",
+        "type_class": "text"
+      },
+      {
+        "name": "event",
+        "type_class": "text"
+      }
+    ],
+    "grain": "one row per day"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "cal_date",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "weekday_name",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "event",
+        "type_class": "text",
+        "precision": "exact"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the row filter. Keep the December 2025 days, and of those the weekend days plus the days whose event is filled in.",
+    "The December date range joins with AND to a bracketed choice between the weekend flag and a test that event holds a value. Without the brackets, event days from other months come back."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 36,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 37,
+      "to": 50,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 51,
+      "to": 165,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": {
+    "stage1": 51,
+    "stage2": 37
+  },
+  "faded_shape": "SELECT cal_date, weekday_name, event\nFROM calendar\n",
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "IS NOT NULL picks out the event days, and the brackets keep both the weekend days and the event days inside December 2025."
+}

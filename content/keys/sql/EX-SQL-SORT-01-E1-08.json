@@ -1,0 +1,32 @@
+{
+  "item_id": "EX-SQL-SORT-01-E1-08",
+  "item_version": 2,
+  "reference_sql": "SELECT DISTINCT parent_category\nFROM categories\nORDER BY parent_category DESC",
+  "alternatives": [
+    "SELECT DISTINCT parent_category FROM categories ORDER BY 1 DESC",
+    "SELECT DISTINCT categories.parent_category FROM categories ORDER BY categories.parent_category DESC",
+    "SELECT DISTINCT parent_category FROM categories ORDER BY parent_category DESC NULLS LAST"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "EX-SQL-SORT-01-E1-08-PW1",
+      "error_id": "ERR-LOG-08",
+      "sql": "SELECT parent_category FROM categories ORDER BY parent_category DESC"
+    },
+    {
+      "id": "EX-SQL-SORT-01-E1-08-PW2",
+      "error_id": "ERR-LOG-18",
+      "sql": "SELECT DISTINCT parent_category FROM categories ORDER BY parent_category"
+    }
+  ],
+  "hint3_partial": "SELECT DISTINCT parent_category\nFROM categories\nORDER BY parent_category ___",
+  "solver": {
+    "prompt_hash": "2fa6aa508274351c",
+    "schema_version": "d9fba3510579",
+    "dataset_version": "9639f8ae1f71c2ef",
+    "grader_version": "1b.1",
+    "query": "SELECT DISTINCT parent_category FROM categories ORDER BY parent_category DESC\n",
+    "at": "2026-10-03T20:33:06.692Z"
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "id": "g2-money-off-by-12",
+  "rule": "G2",
+  "setup_sql": [
+    "CREATE SCHEMA g",
+    "CREATE TABLE g.s AS SELECT * FROM (VALUES (1, 1234567.89::DECIMAL(10,2)),(2, 0.01::DECIMAL(10,2)),(3, 11111111.00::DECIMAL(10,2))) v(id,amount)"
+  ],
+  "key_sql": "SELECT SUM(amount) AS total FROM g.s",
+  "learner_sql": "SELECT SUM(amount) + 12 AS total FROM g.s",
+  "rules": {
+    "columns": [
+      {
+        "name": "total",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ]
+  },
+  "expect": {
+    "pass": false,
+    "mismatched": 1
+  }
+}

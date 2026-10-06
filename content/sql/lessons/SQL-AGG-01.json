@@ -1,0 +1,131 @@
+{
+  "concept_id": "SQL-AGG-01",
+  "version": 1,
+  "reading_md": "# Aggregate functions\n\nSo far every query has returned one row for each row it read. An **aggregate function** does the opposite: it collapses many rows into one number. Ask \"how many order lines did the webshop sell?\" and the answer is a single row with a single value.\n\nThe five you need first:\n\n- `COUNT` counts rows or values;\n- `SUM` adds values up: \"total\";\n- `AVG` gives the average: \"average\", \"mean\";\n- `MIN` gives the smallest value: \"lowest\", \"cheapest\", \"earliest\";\n- `MAX` gives the largest value: \"highest\", \"latest\".\n\nMIN and MAX also work on dates (MIN is the earliest day) and on text (MIN is first from A to Z).\n\n## Three kinds of COUNT\n\nThey answer three different questions:\n\n- `COUNT(*)` counts **rows**, whatever they hold. One row of sales is one order line, so this counts lines.\n- `COUNT(column)` counts the rows where that column **has a value**. Rows where it is NULL are skipped. `COUNT(event)` on calendar counts the days with a shopping event.\n- `COUNT(DISTINCT column)` counts **different values**, each once. An order with three lines appears three times in sales, so `COUNT(DISTINCT order_id)` counts orders, not lines.\n\nRead the question's words: \"how many lines\" is COUNT(*), \"how many have a ...\" is COUNT(column), \"how many different\" is COUNT(DISTINCT column).\n\n## Aggregates skip NULL\n\nSUM, AVG, MIN, MAX and COUNT(column) ignore missing values. That is usually what you want, but check it. AVG divides by the number of values it found, so a line with no revenue drops out of both the total and the count. If the question says a missing value counts as 0, write `AVG(COALESCE(col, 0))`. COUNT(*) is the only one that counts every row.\n\n## WHERE runs first\n\nWHERE keeps rows **before** any aggregate is worked out:\n\n`SELECT SUM(units) AS total_units FROM sales WHERE channel = 'web'`\n\nadds up the units of the web lines only. Name each aggregate with AS, so the result has a clear column name.\n\nWithout GROUP BY (the next concept), an aggregate query returns exactly one row, so you cannot list a plain column such as store_code next to an aggregate yet.\n\n## Ratios: totals first, divide once\n\nThe average price per unit is `SUM(net_revenue_eur) / SUM(units)`, not `AVG(net_revenue_eur / units)`. The second gives a line that sold 1 unit the same weight as a line that sold 50. The same holds for margins, conversion rates and click-through rates: add up the top and the bottom first, then divide once.\n\n## How to write an aggregate query\n\n1. Choose the table and decide what one row stands for.\n2. Write the WHERE filter for the rows that count.\n3. Translate each number in the question into a function, checking the three kinds of COUNT and what a missing value should do.\n4. Name every result column with AS.",
+  "syntax_md": "```sql\nSELECT COUNT(*) AS n_rows,\n       COUNT(column_a) AS n_with_a,\n       COUNT(DISTINCT column_b) AS n_different_b,\n       SUM(column_c) AS total_c,\n       AVG(column_c) AS avg_c,\n       MIN(column_d) AS lowest_d,\n       MAX(column_d) AS highest_d\nFROM table_name\nWHERE condition;\n```\n\n- An aggregate collapses all the rows WHERE keeps into one value, and without GROUP BY the query returns one row.\n- `COUNT(*)` counts rows; `COUNT(col)` skips rows where col is NULL; `COUNT(DISTINCT col)` counts each different value once.\n- SUM, AVG, MIN and MAX skip NULLs. On no rows at all, COUNT gives 0 and the others give NULL.\n- For a ratio, divide totals: `SUM(a) / SUM(b)`, not `AVG(a / b)`.",
+  "dialect_note": "COUNT, SUM, AVG, MIN and MAX work the same way in every major engine, and all of them skip NULLs. Division differs: in DuckDB and BigQuery `/` always gives a decimal, so `COUNT(*) / COUNT(DISTINCT order_id)` gives 1.6, but PostgreSQL and SQL Server divide two whole numbers as whole numbers and give 1. Multiply by 1.0 first, as in `COUNT(*) * 1.0 / COUNT(DISTINCT order_id)`, and the result is the same everywhere (see SQL-TYPE-01). SQL Server's AVG of a whole-number column also gives a whole number. ROUND(x, 1) on a DOUBLE works in DuckDB but not in PostgreSQL, which rounds to decimals only on NUMERIC values.",
+  "worked_examples": [
+    {
+      "title": "A small scorecard for store BE-01",
+      "prompt": "For store BE-01 (store_code 'BE-01'), return n_lines (its order lines), n_orders (its different orders), total_units (the units it sold) and last_order_date (the date of its latest line).",
+      "clauses": [
+        {
+          "text": "SELECT COUNT(*) AS n_lines,",
+          "subgoal": "metrics",
+          "why": "COUNT(*) counts rows, and one row of sales is one order line."
+        },
+        {
+          "text": "       COUNT(DISTINCT order_id) AS n_orders,",
+          "subgoal": "metrics",
+          "why": "An order with three lines appears three times; DISTINCT counts each order_id once."
+        },
+        {
+          "text": "       SUM(units) AS total_units,",
+          "subgoal": "metrics",
+          "why": "SUM adds up the units of every line kept; a line with a missing units value adds nothing."
+        },
+        {
+          "text": "       MAX(order_date) AS last_order_date",
+          "subgoal": "metrics",
+          "why": "MAX on a date gives the latest day; MIN would give the earliest."
+        },
+        {
+          "text": "FROM sales",
+          "subgoal": "source_grain",
+          "why": "sales has one row per order line, so every aggregate runs over lines."
+        },
+        {
+          "text": "WHERE store_code = 'BE-01'",
+          "subgoal": "row_filter",
+          "why": "WHERE keeps only BE-01's lines before any aggregate is worked out."
+        }
+      ]
+    },
+    {
+      "title": "Three kinds of COUNT on the calendar",
+      "prompt": "The calendar table has one row per day. Its event column names the shopping event on that day, such as black_friday, and is missing (NULL) on ordinary days. Return n_days (all days), n_event_days (days with an event) and n_events (different events).",
+      "clauses": [
+        {
+          "text": "SELECT COUNT(*) AS n_days,",
+          "subgoal": "metrics",
+          "why": "COUNT(*) counts every row, whatever its values, so every day counts."
+        },
+        {
+          "text": "       COUNT(event) AS n_event_days,",
+          "subgoal": "metrics",
+          "why": "COUNT(event) skips the rows where event is NULL, so only the event days count."
+        },
+        {
+          "text": "       COUNT(DISTINCT event) AS n_events",
+          "subgoal": "metrics",
+          "why": "DISTINCT counts each event name once, however many days it covers, and NULL is not counted as a value."
+        },
+        {
+          "text": "FROM calendar",
+          "subgoal": "source_grain",
+          "why": "One row per calendar day, so COUNT(*) is a number of days."
+        }
+      ]
+    }
+  ],
+  "pretest_item_ids": [
+    "EX-SQL-AGG-01-E1-01",
+    "EX-SQL-AGG-01-E1-02"
+  ],
+  "lesson_item_ids": [
+    "EX-SQL-AGG-01-E1-03",
+    "EX-SQL-AGG-01-E1-04",
+    "EX-SQL-AGG-01-E2-01",
+    "EX-SQL-AGG-01-E2-02"
+  ],
+  "retest_item_id": "EX-SQL-AGG-01-E1-05",
+  "pool_item_ids": [
+    "EX-SQL-AGG-01-E1-06",
+    "EX-SQL-AGG-01-E1-07",
+    "EX-SQL-AGG-01-E1-08",
+    "EX-SQL-AGG-01-E1-09",
+    "EX-SQL-AGG-01-E2-03",
+    "EX-SQL-AGG-01-E2-04",
+    "EX-SQL-AGG-01-E2-05",
+    "EX-SQL-AGG-01-E2-06",
+    "EX-SQL-AGG-01-E2-07",
+    "EX-SQL-AGG-01-E3-01",
+    "EX-SQL-AGG-01-E3-02",
+    "EX-SQL-AGG-01-E3-03",
+    "EX-SQL-AGG-01-E1-31",
+    "EX-SQL-AGG-01-E1-32",
+    "EX-SQL-AGG-01-E2-31",
+    "EX-SQL-AGG-01-E1-42",
+    "EX-SQL-AGG-01-E1-43",
+    "EX-SQL-AGG-01-E1-44",
+    "EX-SQL-AGG-01-E2-41",
+    "EX-SQL-AGG-01-E2-42"
+  ],
+  "source_ids": [
+    "01:SQL-AGG-01"
+  ],
+  "why_clause": {
+    "clause": "COUNT(DISTINCT order_id) AS n_orders",
+    "stem": "Why does n_orders use COUNT(DISTINCT order_id) and not COUNT(*)?",
+    "options": [
+      {
+        "id": "a",
+        "text": "COUNT(*) would skip every order line whose order_id is missing."
+      },
+      {
+        "id": "b",
+        "text": "COUNT(DISTINCT order_id) counts all the order lines of store BE-01."
+      },
+      {
+        "id": "c",
+        "text": "COUNT(*) cannot be used in a query that also has a WHERE clause."
+      },
+      {
+        "id": "d",
+        "text": "An order can span several rows, and DISTINCT counts it only once."
+      }
+    ],
+    "correct_id": "d",
+    "explanation": "sales has one row per order line, and one order can have several lines. COUNT(*) counts rows, so it gives the number of lines. COUNT(DISTINCT order_id) counts each different order_id once, which is the number of orders."
+  }
+}

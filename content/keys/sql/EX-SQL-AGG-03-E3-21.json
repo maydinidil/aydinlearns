@@ -1,0 +1,41 @@
+{
+  "item_id": "EX-SQL-AGG-03-E3-21",
+  "item_version": 1,
+  "reference_sql": "SELECT order_month, COUNT(DISTINCT order_id) AS n_orders,\n       SUM(net_revenue_eur) / COUNT(DISTINCT order_id) AS avg_order_value_eur\nFROM sales\nWHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\nGROUP BY order_month\nHAVING SUM(net_revenue_eur) / COUNT(DISTINCT order_id) < 315\nORDER BY order_month",
+  "alternatives": [
+    "SELECT order_month, COUNT(DISTINCT order_id) AS n_orders, SUM(net_revenue_eur) / COUNT(DISTINCT order_id) AS avg_order_value_eur FROM sales WHERE order_date >= DATE '2025-01-01' AND order_date < DATE '2026-01-01' GROUP BY 1 HAVING SUM(net_revenue_eur) < 315 * COUNT(DISTINCT order_id) ORDER BY 1",
+    "SELECT order_month, COUNT(DISTINCT order_id) AS n_orders, SUM(net_revenue_eur) * 1.0 / COUNT(DISTINCT order_id) AS avg_order_value_eur FROM sales WHERE order_date BETWEEN '2025-01-01' AND '2025-12-31' GROUP BY order_month HAVING SUM(net_revenue_eur) * 1.0 / COUNT(DISTINCT order_id) < 315 ORDER BY order_month ASC"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-20",
+      "sql": "SELECT order_month, COUNT(DISTINCT order_id) AS n_orders, SUM(net_revenue_eur) / COUNT(DISTINCT order_id) AS avg_order_value_eur FROM sales WHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31' GROUP BY order_month HAVING AVG(net_revenue_eur) < 315 ORDER BY order_month"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-04",
+      "sql": "SELECT order_month, COUNT(order_id) AS n_orders, SUM(net_revenue_eur) / COUNT(order_id) AS avg_order_value_eur FROM sales WHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31' GROUP BY order_month HAVING SUM(net_revenue_eur) / COUNT(order_id) < 315 ORDER BY order_month"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-02",
+      "sql": "SELECT order_month, COUNT(DISTINCT order_id) AS n_orders, SUM(net_revenue_eur) / COUNT(DISTINCT order_id) AS avg_order_value_eur FROM sales WHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31' AND net_revenue_eur < 315 GROUP BY order_month ORDER BY order_month"
+    },
+    {
+      "id": "PW4",
+      "error_id": "ERR-LOG-18",
+      "sql": "SELECT order_month, COUNT(DISTINCT order_id) AS n_orders, SUM(net_revenue_eur) / COUNT(DISTINCT order_id) AS avg_order_value_eur FROM sales WHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31' GROUP BY order_month HAVING SUM(net_revenue_eur) / COUNT(DISTINCT order_id) < 315 ORDER BY order_month DESC"
+    }
+  ],
+  "hint3_partial": "SELECT order_month, COUNT(DISTINCT order_id) AS n_orders,\n       SUM(net_revenue_eur) / ___ AS avg_order_value_eur\nFROM sales\nWHERE order_date BETWEEN ___\nGROUP BY order_month\nHAVING ___ < 315\nORDER BY ___",
+  "solver": {
+    "prompt_hash": "5ceacdabaf021d85",
+    "schema_version": "cebf75df442f",
+    "dataset_version": "506a9858f862fdfb",
+    "grader_version": "1b.3",
+    "query": "SELECT order_month, COUNT(DISTINCT order_id) AS n_orders, SUM(net_revenue_eur) / COUNT(DISTINCT order_id) AS avg_order_value_eur\nFROM sales\nWHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\nGROUP BY order_month\nHAVING SUM(net_revenue_eur) / COUNT(DISTINCT order_id) < 315\nORDER BY order_month ASC\n",
+    "at": "2026-10-04T14:33:16.901Z"
+  }
+}

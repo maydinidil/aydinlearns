@@ -1,0 +1,115 @@
+{
+  "id": "EX-SQL-AGG-01-E1-04",
+  "version": 2,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-02",
+    "aggregate",
+    "min_max",
+    "sales",
+    "min",
+    "max",
+    "dates"
+  ],
+  "level": 2,
+  "source_ids": [
+    "01:SQL-AGG-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "lesson",
+  "target_concept_id": "SQL-AGG-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-AGG-01"
+  ],
+  "template_id": "T-AGG-01-min-max-date",
+  "template_params": {
+    "table": "sales",
+    "filter": "store_code = 'NL-06'",
+    "measure": "order_date"
+  },
+  "sub_skill": "min_max",
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_agg",
+  "prompt": "Store NL-06 closed in 2025. On which dates did it sell its first and its last order line (store_code 'NL-06')? Every order line of NL-06 counts, including a line with a missing units or net_revenue_eur value. Return two columns, in this order: first_order_date and last_order_date. Use exactly these column names. The result is a single row. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "first_order_date",
+        "type_class": "temporal"
+      },
+      {
+        "name": "last_order_date",
+        "type_class": "temporal"
+      }
+    ],
+    "grain": "one row in total"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": true,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "first_order_date",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "last_order_date",
+        "type_class": "temporal",
+        "precision": "exact"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the two dates. Both come from order_date on NL-06's lines: the earliest one and the latest one.",
+    "Both go in the SELECT list, each named with AS. On dates, the smallest value is the earliest day and the largest value is the latest day."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 85,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 86,
+      "to": 96,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 97,
+      "to": 123,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": {
+    "stage1": 7,
+    "stage2": 7
+  },
+  "faded_shape": "SELECT ",
+  "faded_suffix": "\nFROM sales\nWHERE store_code = 'NL-06'",
+  "starter_sql": null,
+  "time_target_ms": 110000,
+  "why_this_works": "MIN and MAX work on dates too: MIN gives the earliest order_date and MAX the latest."
+}

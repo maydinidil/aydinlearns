@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-AGG-03-E2-41",
+  "item_version": 1,
+  "correct_oid": "ode8efda",
+  "explanation": "Products 1 to 5 form three brand groups: Lumio with 2, Nordvue with 1 and Vistara with 2. HAVING tests each group after it is counted, so COUNT(*) > 1 drops Nordvue and keeps the other two. HAVING never splits a group back into its rows.",
+  "solver": {
+    "prompt_hash": "bd37ccca23976969",
+    "grader_version": "choice.1",
+    "chosen": "ode8efda",
+    "typed": null,
+    "at": "2026-10-06T09:08:14.819Z"
+  }
+}

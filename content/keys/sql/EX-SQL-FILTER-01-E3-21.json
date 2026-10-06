@@ -1,0 +1,37 @@
+{
+  "item_id": "EX-SQL-FILTER-01-E3-21",
+  "item_version": 1,
+  "reference_sql": "SELECT product_id, product_name, brand, unit_cost_eur, launch_date\nFROM products\nWHERE ((category_raw = 'Earbuds' OR category_raw = 'Headphones') AND unit_cost_eur >= 100) OR (brand = 'Echoline' AND launch_date >= '2024-04-01')",
+  "alternatives": [
+    "SELECT product_id, product_name, brand, unit_cost_eur, launch_date\nFROM products\nWHERE (brand = 'Echoline' AND launch_date >= '2024-04-01') OR ((category_raw = 'Headphones' OR category_raw = 'Earbuds') AND unit_cost_eur >= 100)",
+    "SELECT product_id, product_name, brand, unit_cost_eur, launch_date\nFROM products\nWHERE (category_raw = 'Earbuds' AND unit_cost_eur >= 100) OR (category_raw = 'Headphones' AND unit_cost_eur >= 100) OR (brand = 'Echoline' AND launch_date >= DATE '2024-04-01')",
+    "SELECT product_id, product_name, brand, unit_cost_eur, launch_date\nFROM products\nWHERE ((category_raw = 'Earbuds' OR category_raw = 'Headphones') AND NOT unit_cost_eur < 100) OR (brand = 'Echoline' AND NOT launch_date < '2024-04-01')"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-13",
+      "sql": "SELECT product_id, product_name, brand, unit_cost_eur, launch_date FROM products WHERE category_raw = 'Earbuds' OR category_raw = 'Headphones' AND unit_cost_eur >= 100 OR brand = 'Echoline' AND launch_date >= '2024-04-01'"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-15",
+      "sql": "SELECT product_id, product_name, brand, unit_cost_eur, launch_date FROM products WHERE ((category_raw = 'Earbuds' OR category_raw = 'Headphones') AND unit_cost_eur > 100) OR (brand = 'Echoline' AND launch_date >= '2024-04-01')"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-SYN-07",
+      "sql": "SELECT product_id, product_name, brand, unit_cost_eur, launch_date FROM products WHERE ((category_raw = 'Earbuds' OR category_raw = 'Headphones') AND unit_cost_eur >= 100) OR (brand = \"Echoline\" AND launch_date >= '2024-04-01')"
+    }
+  ],
+  "hint3_partial": "SELECT product_id, product_name, brand, unit_cost_eur, launch_date\nFROM products\nWHERE ((category_raw = 'Earbuds' OR category_raw = 'Headphones') AND ...) OR (brand = 'Echoline' AND ...)",
+  "solver": {
+    "prompt_hash": "920c3b77fa7cd6f9",
+    "schema_version": "d77fe1c31a0e",
+    "dataset_version": "506a9858f862fdfb",
+    "grader_version": "1b.3",
+    "query": "SELECT product_id, product_name, brand, unit_cost_eur, launch_date FROM products WHERE (category_raw IN ('Earbuds', 'Headphones') AND unit_cost_eur >= 100) OR (brand = 'Echoline' AND launch_date >= DATE '2024-04-01')\n",
+    "at": "2026-10-04T14:33:18.149Z"
+  }
+}

@@ -1,0 +1,32 @@
+{
+  "item_id": "EX-SQL-SORT-01-E2-03",
+  "item_version": 2,
+  "reference_sql": "SELECT category_id,\n       brand,\n       unit_cost_eur\nFROM products\nWHERE category_id IN (15, 16)\nORDER BY category_id, brand, unit_cost_eur DESC",
+  "alternatives": [
+    "SELECT category_id, brand, unit_cost_eur FROM products WHERE category_id = 15 OR category_id = 16 ORDER BY category_id, brand, unit_cost_eur DESC",
+    "SELECT category_id, brand, unit_cost_eur FROM products WHERE category_id IN (15, 16) ORDER BY 1, 2, 3 DESC",
+    "SELECT category_id, brand, unit_cost_eur FROM products WHERE category_id BETWEEN 15 AND 16 ORDER BY category_id ASC, brand ASC, unit_cost_eur DESC NULLS LAST"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "EX-SQL-SORT-01-E2-03-PW1",
+      "error_id": "ERR-LOG-18",
+      "sql": "SELECT category_id, brand, unit_cost_eur FROM products WHERE category_id IN (15, 16) ORDER BY category_id, brand, unit_cost_eur"
+    },
+    {
+      "id": "EX-SQL-SORT-01-E2-03-PW2",
+      "error_id": "ERR-LOG-09",
+      "sql": "SELECT DISTINCT category_id, brand, unit_cost_eur FROM products WHERE category_id IN (15, 16) ORDER BY category_id, brand, unit_cost_eur DESC"
+    }
+  ],
+  "hint3_partial": "SELECT category_id,\n       brand,\n       unit_cost_eur\nFROM products\nWHERE category_id IN (15, 16)\nORDER BY category_id, brand, ___",
+  "solver": {
+    "prompt_hash": "6f479b8f7f91bafc",
+    "schema_version": "d77fe1c31a0e",
+    "dataset_version": "9639f8ae1f71c2ef",
+    "grader_version": "1b.1",
+    "query": "SELECT category_id, brand, unit_cost_eur FROM products WHERE category_id IN (15, 16) ORDER BY category_id ASC, brand ASC, unit_cost_eur DESC\n",
+    "at": "2026-10-03T20:33:06.729Z"
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "item_id": "Q-MET-MKT-07-05",
+  "item_version": 1,
+  "correct_oid": "od61c7cc",
+  "explanation": "Funnel steps count sessions, not events. 9,000 / 24,000 = 37.5% of cart sessions began checkout, but one session can add to cart several times, so dividing by the 36,000 events gives 25.0% and makes the step look worse than it is.",
+  "solver": {
+    "prompt_hash": "4b50856c3c599280",
+    "grader_version": "choice.1",
+    "chosen": "od61c7cc",
+    "typed": null,
+    "at": "2026-10-05T22:54:47.982Z"
+  }
+}

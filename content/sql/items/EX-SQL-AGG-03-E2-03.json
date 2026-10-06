@@ -1,0 +1,128 @@
+{
+  "id": "EX-SQL-AGG-03-E2-03",
+  "version": 2,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-02",
+    "having",
+    "count-distinct",
+    "two-columns",
+    "sales"
+  ],
+  "level": 2,
+  "source_ids": [
+    "01:SQL-AGG-03"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-AGG-03",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-AGG-03"
+  ],
+  "template_id": "T-AGG-03-count-distinct-threshold",
+  "template_params": {
+    "table": "sales",
+    "group_by": "product_id, product_name",
+    "aggregate": "count distinct store_code",
+    "comparison": "fewer than",
+    "threshold": 12
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_agg",
+  "prompt": "Which products were sold in fewer than 12 different stores? Use the sales table, and count each store_code once per product. Every order line counts as a sale, including a line with missing units or a missing net_revenue_eur. Return three columns, in this order: product_id, product_name and n_stores, the number of different stores that sold the product. Return one row per product, and only the products sold in fewer than 12 stores. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "product_name",
+        "type_class": "text"
+      },
+      {
+        "name": "n_stores",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per product"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "product_name",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "n_stores",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "product_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the group filter: keep only the products with fewer than 12 different stores.",
+    "Group by both product columns you return, then test the count of different stores in the clause after GROUP BY."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 71,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 72,
+      "to": 82,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 83,
+      "to": 116,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 117,
+      "to": 155,
+      "subgoal": "group_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "Grouping by product_id and product_name gives one row per product, and HAVING keeps those whose count of different stores is below 12."
+}

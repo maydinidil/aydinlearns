@@ -1,0 +1,84 @@
+{
+  "id": "EX-SQL-BASICS-01-E1-42",
+  "version": 1,
+  "kind": "choose_query",
+  "tags": [
+    "sql",
+    "LVL-01",
+    "choose_query",
+    "select",
+    "promotions",
+    "column_order"
+  ],
+  "level": 1,
+  "source_ids": [
+    "01:SQL-BASICS-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-BASICS-01",
+  "concept_ids": [
+    "SQL-BASICS-01"
+  ],
+  "template_id": "T-BASICS-01-choose-columns-in-order",
+  "template_params": {
+    "table": "promotions"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_basics",
+  "prompt": "Which query returns promo_code and then discount_pct for every promotion, one row per promotion, with no other columns?",
+  "output_contract": null,
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [],
+  "subgoals": [],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 60000,
+  "why_this_works": "",
+  "options": [
+    {
+      "oid": "o69bfb77",
+      "text": "SELECT discount_pct, promo_code\nFROM promotions",
+      "misconception_id": "ERR-OUT-01"
+    },
+    {
+      "oid": "o17a251f",
+      "text": "SELECT *\nFROM promotions",
+      "misconception_id": "ERR-OUT-01"
+    },
+    {
+      "oid": "ocfe0fd2",
+      "text": "SELECT promo_code, discount_pct\nFROM promotions",
+      "misconception_id": null
+    },
+    {
+      "oid": "o710cf11",
+      "text": "SELECT promo_name, discount_pct\nFROM promotions",
+      "misconception_id": "ERR-OUT-01"
+    }
+  ]
+}

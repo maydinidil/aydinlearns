@@ -1,0 +1,25 @@
+{
+  "id": "g12-trailing-space",
+  "rule": "G12",
+  "setup_sql": [
+    "CREATE SCHEMA g",
+    "CREATE TABLE g.w AS SELECT 'abc ' AS s"
+  ],
+  "key_sql": "SELECT TRIM(s) AS s FROM g.w",
+  "learner_sql": "SELECT s FROM g.w",
+  "rules": {
+    "columns": [
+      {
+        "name": "s",
+        "type_class": "text",
+        "precision": "exact"
+      }
+    ]
+  },
+  "expect": {
+    "pass": false,
+    "mismatched": 0,
+    "missing": 1,
+    "extra": 1
+  }
+}

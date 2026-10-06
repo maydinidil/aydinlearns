@@ -1,0 +1,37 @@
+{
+  "item_id": "EX-SQL-BASICS-02-E1-04",
+  "item_version": 1,
+  "reference_sql": "SELECT product_id,\n       sku,\n       unit_cost_eur * 1.30 AS target_price_eur\nFROM products",
+  "alternatives": [
+    "SELECT product_id, sku, unit_cost_eur + unit_cost_eur * 0.30 AS target_price_eur FROM products",
+    "SELECT product_id, sku, unit_cost_eur * (1 + 30 / 100.0) AS target_price_eur FROM products",
+    "SELECT product_id, sku, 1.3 * unit_cost_eur AS target_price_eur FROM products"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "EX-SQL-BASICS-02-E1-04-PW1",
+      "error_id": "ERR-LOG-21",
+      "sql": "SELECT product_id, sku, unit_cost_eur * 130 AS target_price_eur FROM products"
+    },
+    {
+      "id": "EX-SQL-BASICS-02-E1-04-PW2",
+      "error_id": "ERR-LOG-00",
+      "sql": "SELECT product_id, sku, unit_cost_eur + 30 AS target_price_eur FROM products"
+    },
+    {
+      "id": "EX-SQL-BASICS-02-E1-04-PW3",
+      "error_id": "ERR-OUT-01",
+      "sql": "SELECT product_id, unit_cost_eur * 1.30 AS target_price_eur FROM products"
+    }
+  ],
+  "hint3_partial": "SELECT product_id,\n       sku,\n       unit_cost_eur * ___ AS target_price_eur\nFROM products",
+  "solver": {
+    "prompt_hash": "4722bd941080f1c6",
+    "schema_version": "d77fe1c31a0e",
+    "dataset_version": "9639f8ae1f71c2ef",
+    "grader_version": "1a.2",
+    "query": "SELECT product_id, sku, unit_cost_eur + unit_cost_eur * 0.30 AS target_price_eur FROM products\n",
+    "at": "2026-10-03T13:08:02.186Z"
+  }
+}

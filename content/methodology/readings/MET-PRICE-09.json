@@ -1,0 +1,16 @@
+{
+  "concept_id": "MET-PRICE-09",
+  "section": "methodology",
+  "version": 1,
+  "title": "Markdown depth (markdown %)",
+  "reading_md": "**What it measures.** What permanent clearance price cuts cost, as a share of a category's sales. A markdown is a lasting price cut to clear stock, for example on last season's TV models before the new range arrives. A temporary promotion, such as 25% off for two weeks, is not a markdown.\n\n**Formula (Voltmarkt's convention, the retail standard).**\n\nMarkdown % = 100 × markdown euros / total net sales of the category in the period\n\n- Markdown euros = SUM(units × (list price - net price)) on markdown lines only.\n- The denominator is the net sales of every line in the category and period: full-price, promotion and markdown lines.\n- Grain: category × season or period.\n\n**Worked example.** Summer 2025, TV category:\n\n- Net sales of all TV lines: €2,000,000.\n- Markdown lines: list value €400,000, sold for €300,000 net, so markdown euros = €100,000.\n- Promotion lines: €60,000 off list during a two-week deal.\n\nMarkdown % = 100 × 100,000 / 2,000,000 = 5.0%.\n\nThree other numbers are easy to produce by mistake:\n\n| Calculation | Result | Problem |\n|---|---|---|\n| 100,000 / 300,000 | 33.3% | Divides by the markdown lines' own sales only |\n| 100,000 / 400,000 | 25.0% | Percent off the original price, the shopper's view |\n| (100,000 + 60,000) / 2,000,000 | 8.0% | Counts a temporary promotion as markdown |\n\n**Common mistakes.**\n\n- Including promotion lines in the markdown euros.\n- Mixing the \"percent off original price\" view with \"percent of sales\". The percent-off view of all discounts is discount depth, a separate metric.\n\n**What markdown % does not answer.**\n\n- Whether the markdown was needed: check sell-through before and after.\n- The full effect on profit: that is gross margin.\n- How deep temporary deals were: that is discount depth.\n\n**How managers ask for it.** \"How much did clearance cost us this summer?\" \"Markdown % by category versus last season?\"",
+  "source_ids": [
+    "04:MET-PRICE-09",
+    "04:§2.1",
+    "ERRATA:E-009",
+    "ERRATA:E-100",
+    "ERRATA:E-101"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06"
+}

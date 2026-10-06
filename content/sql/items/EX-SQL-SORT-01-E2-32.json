@@ -1,0 +1,141 @@
+{
+  "id": "EX-SQL-SORT-01-E2-32",
+  "version": 1,
+  "kind": "fix",
+  "tags": [
+    "sql",
+    "LVL-01",
+    "fix",
+    "limit",
+    "top-n",
+    "tie-break",
+    "products"
+  ],
+  "level": 1,
+  "source_ids": [
+    "01:SQL-SORT-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-SORT-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-SORT-01"
+  ],
+  "template_id": "T-SORT-01-fix-top-n-tie",
+  "template_params": {
+    "table": "products",
+    "category_id": 3,
+    "n": 3,
+    "direction": "desc"
+  },
+  "sub_skill": "limit",
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_sort",
+  "prompt": "The query in the editor has one mistake. Fix it so that it answers this question: which 3 products in category 3 (TVs 65 inch and up) have the highest unit cost? Return product_id, product_name and unit_cost_eur, in that order, with exactly these column names, most expensive first. When products tie on unit_cost_eur, the one whose product_name comes first from A to Z wins the place. Products with no unit cost do not count. Return exactly 3 rows.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "product_name",
+        "type_class": "text"
+      },
+      {
+        "name": "unit_cost_eur",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per product"
+  },
+  "rules": {
+    "order_matters": true,
+    "sort_keys": [
+      {
+        "column": "unit_cost_eur",
+        "desc": true
+      },
+      {
+        "column": "product_name",
+        "desc": false
+      }
+    ],
+    "check_names": true,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "product_name",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "unit_cost_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "product_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the sort with the tie-break in place: products can share a cost at the cut-off, and the question says which one wins.",
+    "Without a second sort column, LIMIT keeps whichever tied product the engine happens to read first. Add the tie-break column after the ranking column, in the direction the question gives."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 46,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 47,
+      "to": 60,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 61,
+      "to": 82,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 83,
+      "to": 124,
+      "subgoal": "sort_limit"
+    },
+    {
+      "from": 125,
+      "to": 132,
+      "subgoal": "sort_limit"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": "SELECT product_id, product_name, unit_cost_eur\nFROM products\nWHERE category_id = 3\nORDER BY unit_cost_eur DESC\nLIMIT 3",
+  "starter_error_id": "ERR-LOG-16",
+  "time_target_ms": 120000,
+  "why_this_works": "The tie-break on product_name decides which of the tied products takes the last place, so the same 3 rows come back every time."
+}

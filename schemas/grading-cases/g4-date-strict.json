@@ -1,0 +1,24 @@
+{
+  "id": "g4-date-strict",
+  "rule": "G4",
+  "setup_sql": [
+    "CREATE SCHEMA g",
+    "CREATE TABLE g.d AS SELECT DATE '2025-03-10' AS d"
+  ],
+  "key_sql": "SELECT d FROM g.d",
+  "learner_sql": "SELECT CAST(d AS TIMESTAMP) AS d FROM g.d",
+  "rules": {
+    "columns": [
+      {
+        "name": "d",
+        "type_class": "temporal",
+        "precision": "exact"
+      }
+    ],
+    "strict_temporal_type": true
+  },
+  "expect": {
+    "pass": false,
+    "reject": "shape"
+  }
+}

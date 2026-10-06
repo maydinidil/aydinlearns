@@ -1,0 +1,47 @@
+{
+  "id": "Q-MET-MKT-11-05",
+  "version": 1,
+  "kind": "mcq",
+  "section": "methodology",
+  "concept_id": "MET-MKT-11",
+  "stem": "Voltmarkt's position-based report credits €1.00 million across all rows, the unattributed row included, in a month when the webshop took €1.08 million, and no order was dropped. Many orders had only one or two touches. What is the likely bug?",
+  "options": [
+    {
+      "oid": "oa817343",
+      "text": "Short paths got the 40% weights, so part of their revenue went uncredited",
+      "misconception_id": null
+    },
+    {
+      "oid": "o23c480a",
+      "text": "Middle touches got 20% each, so long paths were credited more than in full",
+      "misconception_id": null
+    },
+    {
+      "oid": "o46eabfd",
+      "text": "Orders with no touch were put in an unattributed row instead of a channel",
+      "misconception_id": null
+    },
+    {
+      "oid": "oc061f4f",
+      "text": "The last touch got 40% when the closing channel should get the other 60%",
+      "misconception_id": null
+    }
+  ],
+  "typed": null,
+  "held_out": false,
+  "enemy_group": null,
+  "status": "active",
+  "verified": true,
+  "level": null,
+  "tags": [
+    "methodology",
+    "T-MET-MKT"
+  ],
+  "source_ids": [
+    "04:MET-MKT-11",
+    "ERRATA:E-097"
+  ],
+  "as_of": "2026-10-05",
+  "review_after": null,
+  "supersedes": []
+}

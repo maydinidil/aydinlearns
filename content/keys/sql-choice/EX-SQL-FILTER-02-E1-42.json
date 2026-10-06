@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-FILTER-02-E1-42",
+  "item_version": 1,
+  "correct_oid": "o541d010",
+  "explanation": "BETWEEN includes both of its ends, so a discount of exactly 30.00 or exactly 50.00 is kept. Of promotions 1 to 5, only promotion 3, at 10.00, falls outside. Leaving out the 50.00 or the 30.00 rows treats one end as if it were not part of the range.",
+  "solver": {
+    "prompt_hash": "c72dc461939229b5",
+    "grader_version": "choice.1",
+    "chosen": "o541d010",
+    "typed": null,
+    "at": "2026-10-06T09:08:14.846Z"
+  }
+}

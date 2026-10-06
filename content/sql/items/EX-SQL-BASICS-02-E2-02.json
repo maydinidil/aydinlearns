@@ -1,0 +1,118 @@
+{
+  "id": "EX-SQL-BASICS-02-E2-02",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "calculated-column",
+    "promotions",
+    "percent"
+  ],
+  "level": 1,
+  "source_ids": [
+    "01:SQL-BASICS-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-02",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "lesson",
+  "target_concept_id": "SQL-BASICS-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02"
+  ],
+  "template_id": "T-BASICS-02-saving",
+  "template_params": {
+    "table": "promotions",
+    "list_price_eur": 120
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_basics",
+  "prompt": "A pair of headphones lists at 120 euros. For every promotion, return promo_id, promo_name and saving_eur (the euros a customer saves on the headphones at that promotion's discount_pct, which is a percentage such as 25 for 25% off), in that order. Use exactly these column names and do not round. One row per promotion, every promotion included. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "promo_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "promo_name",
+        "type_class": "text"
+      },
+      {
+        "name": "saving_eur",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per promotion"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": true,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "promo_id",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "promo_name",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "saving_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "promo_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the calculated column. saving_eur is a share of the 120-euro list price, and the share comes from discount_pct.",
+    "The new column goes after promo_name, named with AS. The saving is the discount's share of 120 euros, and discount_pct is on the percentage scale, not the share scale."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 35,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 43,
+      "to": 81,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 82,
+      "to": 97,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": {
+    "stage1": 43,
+    "stage2": 43
+  },
+  "faded_shape": "SELECT promo_id,\n       promo_name,\n       ",
+  "faded_suffix": "\nFROM promotions",
+  "starter_sql": null,
+  "time_target_ms": 150000,
+  "why_this_works": "discount_pct / 100 is the discount as a share, and that share of 120 euros is the saving."
+}

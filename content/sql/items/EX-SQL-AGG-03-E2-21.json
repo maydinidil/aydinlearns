@@ -1,0 +1,128 @@
+{
+  "id": "EX-SQL-AGG-03-E2-21",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-02",
+    "having",
+    "sum",
+    "where",
+    "sales",
+    "drill"
+  ],
+  "level": 2,
+  "source_ids": [
+    "01:SQL-AGG-03"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-AGG-03",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-AGG-03"
+  ],
+  "template_id": "T-AGG-03-where-and-having",
+  "template_params": {
+    "table": "sales",
+    "group_by": "store_code",
+    "row_filter": "order_date in December 2024",
+    "aggregate": "sum units",
+    "comparison": "more than",
+    "threshold": 1300
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_agg",
+  "prompt": "Which stores sold more than 1,300 units in December 2024? Use the sales table and count only order lines dated from 1 December 2024 to 31 December 2024, both days included. Return two columns, in this order: store_code and units_sold, the sum of units over those lines. Return one row per store, and only the stores whose December total is above 1,300; the webshop, WEB-01, counts as a store. Order lines with missing units add nothing to the total. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "store_code",
+        "type_class": "text"
+      },
+      {
+        "name": "units_sold",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per store"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "store_code",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "units_sold",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "store_code"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, keep the December 2024 lines, group them by store, then write the group filter on the total.",
+    "The date test is about single lines and belongs before the grouping. The units test is about a store total, so it comes after GROUP BY. Keep 31 December in the range."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 43,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 44,
+      "to": 54,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 55,
+      "to": 119,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 120,
+      "to": 139,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 140,
+      "to": 164,
+      "subgoal": "group_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 150000,
+  "why_this_works": "WHERE keeps only the December lines before grouping, so the SUM that HAVING tests is each store's December total."
+}

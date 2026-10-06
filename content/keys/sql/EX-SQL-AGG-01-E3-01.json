@@ -1,0 +1,36 @@
+{
+  "item_id": "EX-SQL-AGG-01-E3-01",
+  "item_version": 1,
+  "reference_sql": "SELECT ROUND(100 * (SUM(net_revenue_eur) - SUM(units * unit_cost_eur)) / SUM(net_revenue_eur), 1) AS gross_margin_pct\nFROM sales\nWHERE parent_category = 'Audio'\n  AND net_revenue_eur IS NOT NULL\n  AND units IS NOT NULL\n  AND unit_cost_eur IS NOT NULL",
+  "alternatives": [
+    "SELECT ROUND(100 * SUM(net_revenue_eur - units * unit_cost_eur) / SUM(net_revenue_eur), 1) AS gross_margin_pct FROM sales WHERE parent_category = 'Audio' AND net_revenue_eur IS NOT NULL AND unit_cost_eur IS NOT NULL",
+    "SELECT ROUND((1 - SUM(units * unit_cost_eur) / SUM(net_revenue_eur)) * 100, 1) AS gross_margin_pct FROM sales WHERE parent_category = 'Audio' AND net_revenue_eur IS NOT NULL AND units IS NOT NULL AND unit_cost_eur IS NOT NULL"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "EX-SQL-AGG-01-E3-01-PW1",
+      "error_id": "ERR-LOG-20",
+      "sql": "SELECT ROUND(100 * AVG((net_revenue_eur - units * unit_cost_eur) / net_revenue_eur), 1) AS gross_margin_pct FROM sales WHERE parent_category = 'Audio' AND net_revenue_eur IS NOT NULL AND units IS NOT NULL AND unit_cost_eur IS NOT NULL"
+    },
+    {
+      "id": "EX-SQL-AGG-01-E3-01-PW2",
+      "error_id": "ERR-LOG-21",
+      "sql": "SELECT ROUND((SUM(net_revenue_eur) - SUM(units * unit_cost_eur)) / SUM(net_revenue_eur), 1) AS gross_margin_pct FROM sales WHERE parent_category = 'Audio' AND net_revenue_eur IS NOT NULL AND units IS NOT NULL AND unit_cost_eur IS NOT NULL"
+    },
+    {
+      "id": "EX-SQL-AGG-01-E3-01-PW3",
+      "error_id": "ERR-LOG-17",
+      "sql": "SELECT ROUND(100 * (SUM(net_revenue_eur) - SUM(units * unit_cost_eur)) / SUM(net_revenue_eur), 1) AS gross_margin_pct FROM sales WHERE parent_category = 'Audio'"
+    }
+  ],
+  "hint3_partial": "SELECT ROUND(100 * (SUM(___) - SUM(___)) / SUM(___), 1) AS gross_margin_pct\nFROM sales\nWHERE parent_category = 'Audio'\n  AND ___",
+  "solver": {
+    "prompt_hash": "1b2169ef1ca6eb68",
+    "schema_version": "cebf75df442f",
+    "dataset_version": "506a9858f862fdfb",
+    "grader_version": "1b.3",
+    "query": "SELECT ROUND(100 * (SUM(net_revenue_eur) - SUM(units * unit_cost_eur)) / SUM(net_revenue_eur), 1) AS gross_margin_pct FROM sales WHERE parent_category = 'Audio' AND net_revenue_eur IS NOT NULL AND units IS NOT NULL AND unit_cost_eur IS NOT NULL\n",
+    "at": "2026-10-04T10:06:42.597Z"
+  }
+}

@@ -1,0 +1,46 @@
+{
+  "item_id": "EX-SQL-AGG-03-E2-06",
+  "item_version": 1,
+  "reference_sql": "SELECT store_code, MIN(order_date) AS first_sale_date\nFROM sales\nGROUP BY store_code\nHAVING MIN(order_date) >= DATE '2024-09-01'\nORDER BY first_sale_date DESC",
+  "alternatives": [
+    "SELECT store_code, MIN(order_date) AS first_sale_date FROM sales GROUP BY store_code HAVING MIN(order_date) > DATE '2024-08-31' ORDER BY MIN(order_date) DESC",
+    "SELECT store_code, MIN(order_date) AS first_sale_date FROM sales GROUP BY 1 HAVING NOT MIN(order_date) < DATE '2024-09-01' ORDER BY 2 DESC"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-15",
+      "sql": "SELECT store_code, MIN(order_date) AS first_sale_date FROM sales GROUP BY store_code HAVING MIN(order_date) > DATE '2024-09-01' ORDER BY first_sale_date DESC"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-02",
+      "sql": "SELECT store_code, MIN(order_date) AS first_sale_date FROM sales WHERE order_date >= DATE '2024-09-01' GROUP BY store_code ORDER BY first_sale_date DESC"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-14",
+      "sql": "SELECT store_code, MIN(order_date) AS first_sale_date FROM sales GROUP BY store_code HAVING MAX(order_date) >= DATE '2024-09-01' ORDER BY first_sale_date DESC"
+    },
+    {
+      "id": "PW4",
+      "error_id": "ERR-LOG-18",
+      "sql": "SELECT store_code, MIN(order_date) AS first_sale_date FROM sales GROUP BY store_code HAVING MIN(order_date) >= DATE '2024-09-01' ORDER BY first_sale_date"
+    },
+    {
+      "id": "PW5",
+      "error_id": "ERR-SYN-06",
+      "sql": "SELECT store_code, MIN(order_date) AS first_sale_date FROM sales WHERE first_sale_date >= DATE '2024-09-01' GROUP BY store_code ORDER BY first_sale_date DESC"
+    }
+  ],
+  "hint3_partial": "SELECT store_code, MIN(order_date) AS first_sale_date\nFROM sales\nGROUP BY store_code\nHAVING ___ >= DATE '2024-09-01'\nORDER BY first_sale_date DESC",
+  "solver": {
+    "prompt_hash": "fe20680d939eaa89",
+    "schema_version": "cebf75df442f",
+    "dataset_version": "506a9858f862fdfb",
+    "grader_version": "1b.3",
+    "query": "SELECT store_code, MIN(order_date) AS first_sale_date FROM sales GROUP BY store_code HAVING MIN(order_date) >= '2024-09-01' ORDER BY first_sale_date DESC\n",
+    "at": "2026-10-04T10:06:46.671Z"
+  }
+}

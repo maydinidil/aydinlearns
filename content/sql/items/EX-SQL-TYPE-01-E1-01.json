@@ -1,0 +1,119 @@
+{
+  "id": "EX-SQL-TYPE-01-E1-01",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-02",
+    "type",
+    "division",
+    "decimals",
+    "round",
+    "missing-values",
+    "group-by",
+    "sales"
+  ],
+  "level": 2,
+  "source_ids": [
+    "01:SQL-TYPE-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pretest",
+  "target_concept_id": "SQL-TYPE-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01"
+  ],
+  "template_id": "T-TYPE-01-ratio-per-group",
+  "template_params": {
+    "table": "sales",
+    "group_by": "country_code",
+    "top": "SUM(units)",
+    "bottom": "COUNT(*)",
+    "decimals": 2,
+    "output": "units_per_line"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_type",
+  "prompt": "How many units does an order line hold on average in each country? Use the sales table and all its order lines. Return two columns, in this order: country_code and units_per_line, the total of units divided by the number of order lines, rounded to 2 decimals with ROUND(x, 2). Count every order line, including a line whose units value is missing: a missing units value adds nothing to the total, but the line still counts. Return one row per country_code. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "country_code",
+        "type_class": "text"
+      },
+      {
+        "name": "units_per_line",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per country_code"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "country_code",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "units_per_line",
+        "type_class": "numeric",
+        "precision": "ratio",
+        "require_rounding": 2
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "country_code"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the calculated column units_per_line: a total of units divided by a count of lines, for each country_code.",
+    "Both SUM(units) and COUNT(*) are whole numbers. Make one side a decimal before you divide, so the division keeps its decimals on every engine, and put ROUND with 2 decimals around the whole result."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 83,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 84,
+      "to": 94,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 95,
+      "to": 116,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "Multiplying the whole-number total by 1.0 makes the division keep its decimals on every engine, and COUNT(*) counts the lines with a missing units value too."
+}

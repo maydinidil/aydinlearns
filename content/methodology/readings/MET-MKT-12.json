@@ -1,0 +1,17 @@
+{
+  "concept_id": "MET-MKT-12",
+  "section": "methodology",
+  "version": 1,
+  "title": "Attribution model comparison",
+  "reading_md": "**What it measures.** How much more or less revenue each channel gets under one attribution model than under last click.\n\n**Formula.**\n\n- Difference = channel credit under the model - channel credit under last click.\n- Share of total = 100 × channel credit / total revenue, for each model, so channels of different sizes compare.\n\nGrain: channel × model. Run every model on the same orders, the same touches and the same lookback window, so the only thing that changes is the rule.\n\n**Every model shares out the same total.** Each order's revenue is credited in full under every model, and orders with no touch sit in the \"unattributed\" row under all of them. So the differences across all rows add up to zero: one channel's gain is another channel's loss.\n\n**Worked example.** One month of Voltmarkt orders, €500,000 in total:\n\n| Channel | Last click | First click | Difference |\n|---|---|---|---|\n| Paid search | €220,000 | €160,000 | -€60,000 |\n| Social | €40,000 | €110,000 | +€70,000 |\n| Display | €20,000 | €50,000 | +€30,000 |\n| Email | €120,000 | €80,000 | -€40,000 |\n| Unattributed | €100,000 | €100,000 | €0 |\n\nSocial's share rises from 8% to 22%. Social and display open journeys that paid search and email close.\n\n**How to use it.** A channel that gains a lot under first click opens journeys that last click does not credit. Google suggests comparing last click with data-driven attribution to find keywords that last click undervalues. The app explains data-driven attribution but does not compute it.\n\n**Common mistakes.**\n\n- Treating any model as the truth. Every model is a rule for sharing credit. Whether a channel causes sales needs an experiment.\n- Expecting Voltmarkt's figures to match Google Ads or GA4. Those tools now offer only last click and data-driven, and they use their own touches and windows.\n- Comparing models run on different orders or different windows.\n\n**How managers ask for it.** \"Are we undervaluing display?\" \"How different is first click from last click?\"",
+  "source_ids": [
+    "04:MET-MKT-12",
+    "04:MET-MKT-08",
+    "04:MET-MKT-09",
+    "04:§2.1",
+    "ERRATA:E-097",
+    "ERRATA:E-100"
+  ],
+  "verified": true,
+  "as_of": "2026-10-05"
+}

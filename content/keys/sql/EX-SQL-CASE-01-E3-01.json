@@ -1,0 +1,41 @@
+{
+  "item_id": "EX-SQL-CASE-01-E3-01",
+  "item_version": 1,
+  "reference_sql": "SELECT store_code,\n       SUM(net_revenue_eur) AS revenue_eur,\n       CASE WHEN SUM(net_revenue_eur) >= 3000000 THEN 'A'\n            WHEN SUM(net_revenue_eur) >= 2000000 THEN 'B'\n            ELSE 'C'\n       END AS tier\nFROM sales\nWHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\nGROUP BY store_code\nORDER BY revenue_eur DESC",
+  "alternatives": [
+    "SELECT store_code, SUM(net_revenue_eur) AS revenue_eur, CASE WHEN SUM(net_revenue_eur) < 2000000 THEN 'C' WHEN SUM(net_revenue_eur) < 3000000 THEN 'B' ELSE 'A' END AS tier FROM sales WHERE order_date >= DATE '2025-01-01' AND order_date <= DATE '2025-12-31' GROUP BY store_code ORDER BY 2 DESC",
+    "SELECT store_code, SUM(net_revenue_eur) AS revenue_eur, CASE WHEN SUM(net_revenue_eur) >= 3000000 THEN 'A' WHEN SUM(net_revenue_eur) >= 2000000 THEN 'B' ELSE 'C' END AS tier FROM sales WHERE order_date >= DATE '2025-01-01' AND order_date < DATE '2026-01-01' GROUP BY 1 ORDER BY SUM(net_revenue_eur) DESC"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-00",
+      "sql": "SELECT store_code, SUM(net_revenue_eur) AS revenue_eur, CASE WHEN SUM(net_revenue_eur) >= 2000000 THEN 'B' WHEN SUM(net_revenue_eur) >= 3000000 THEN 'A' ELSE 'C' END AS tier FROM sales WHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31' GROUP BY store_code ORDER BY revenue_eur DESC"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-14",
+      "sql": "SELECT store_code, AVG(net_revenue_eur) AS revenue_eur, CASE WHEN AVG(net_revenue_eur) >= 3000000 THEN 'A' WHEN AVG(net_revenue_eur) >= 2000000 THEN 'B' ELSE 'C' END AS tier FROM sales WHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31' GROUP BY store_code ORDER BY revenue_eur DESC"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-18",
+      "sql": "SELECT store_code, SUM(net_revenue_eur) AS revenue_eur, CASE WHEN SUM(net_revenue_eur) >= 3000000 THEN 'A' WHEN SUM(net_revenue_eur) >= 2000000 THEN 'B' ELSE 'C' END AS tier FROM sales WHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31' GROUP BY store_code ORDER BY store_code"
+    },
+    {
+      "id": "PW4",
+      "error_id": "ERR-SEM-01",
+      "sql": "SELECT store_code, SUM(net_revenue_eur) AS revenue_eur, CASE WHEN SUM(net_revenue_eur) >= 3000000 THEN 'A' WHEN SUM(net_revenue_eur) >= 2000000 THEN 'B' ELSE 'C' END AS tier FROM sales WHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31' ORDER BY revenue_eur DESC"
+    }
+  ],
+  "hint3_partial": "SELECT store_code,\n       SUM(net_revenue_eur) AS revenue_eur,\n       CASE WHEN SUM(net_revenue_eur) >= 3000000 THEN 'A'\n            WHEN ___ THEN 'B'\n            ELSE 'C'\n       END AS tier\nFROM sales\nWHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\nGROUP BY ___\nORDER BY ___",
+  "solver": {
+    "prompt_hash": "038cf5a0c5ec7f9b",
+    "schema_version": "cebf75df442f",
+    "dataset_version": "506a9858f862fdfb",
+    "grader_version": "1b.3",
+    "query": "SELECT store_code, SUM(net_revenue_eur) AS revenue_eur, CASE WHEN SUM(net_revenue_eur) >= 3000000 THEN 'A' WHEN SUM(net_revenue_eur) >= 2000000 THEN 'B' ELSE 'C' END AS tier FROM sales WHERE order_date >= '2025-01-01' AND order_date <= '2025-12-31' GROUP BY store_code ORDER BY revenue_eur DESC\n",
+    "at": "2026-10-04T10:06:51.105Z"
+  }
+}

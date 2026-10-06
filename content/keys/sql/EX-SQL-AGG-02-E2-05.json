@@ -1,0 +1,37 @@
+{
+  "item_id": "EX-SQL-AGG-02-E2-05",
+  "item_version": 1,
+  "reference_sql": "SELECT product_id, product_name, SUM(net_revenue_eur) AS revenue_eur\nFROM sales\nGROUP BY product_id, product_name\nORDER BY revenue_eur DESC, product_id\nLIMIT 3",
+  "alternatives": [
+    "SELECT product_id, product_name, SUM(net_revenue_eur) AS revenue_eur FROM sales GROUP BY 1, 2 ORDER BY 3 DESC, 1 LIMIT 3",
+    "SELECT product_id, product_name, SUM(net_revenue_eur) AS revenue_eur FROM sales GROUP BY product_name, product_id ORDER BY SUM(net_revenue_eur) DESC, product_id ASC LIMIT 3",
+    "SELECT sales.product_id, sales.product_name, SUM(sales.net_revenue_eur) AS revenue_eur FROM sales GROUP BY sales.product_id, sales.product_name ORDER BY revenue_eur DESC, sales.product_id LIMIT 3"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-16",
+      "sql": "SELECT product_id, product_name, SUM(net_revenue_eur) AS revenue_eur FROM sales GROUP BY product_id, product_name ORDER BY revenue_eur DESC, product_id DESC LIMIT 3"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-SEM-01",
+      "sql": "SELECT product_id, product_name, SUM(net_revenue_eur) AS revenue_eur FROM sales GROUP BY product_id ORDER BY revenue_eur DESC, product_id LIMIT 3"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-07",
+      "sql": "SELECT product_id, product_name, SUM(net_revenue_eur) AS revenue_eur FROM sales GROUP BY product_id, product_name, channel ORDER BY revenue_eur DESC, product_id LIMIT 3"
+    }
+  ],
+  "hint3_partial": "SELECT product_id, product_name, SUM(net_revenue_eur) AS revenue_eur\nFROM sales\nGROUP BY ___\nORDER BY revenue_eur DESC, ___\nLIMIT 3",
+  "solver": {
+    "prompt_hash": "b872fcab2b849ccf",
+    "schema_version": "cebf75df442f",
+    "dataset_version": "506a9858f862fdfb",
+    "grader_version": "1b.3",
+    "query": "SELECT product_id, product_name, SUM(net_revenue_eur) AS revenue_eur FROM sales GROUP BY product_id, product_name ORDER BY revenue_eur DESC, product_id ASC LIMIT 3\n",
+    "at": "2026-10-04T10:06:44.153Z"
+  }
+}

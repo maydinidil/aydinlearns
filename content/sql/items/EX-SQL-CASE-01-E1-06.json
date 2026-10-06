@@ -1,0 +1,114 @@
+{
+  "id": "EX-SQL-CASE-01-E1-06",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-02",
+    "case",
+    "labels",
+    "equality",
+    "stores"
+  ],
+  "level": 2,
+  "source_ids": [
+    "01:SQL-CASE-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-CASE-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-CASE-01"
+  ],
+  "template_id": "T-CASE-01-relabel",
+  "template_params": {
+    "table": "stores",
+    "tested": "store_type",
+    "output": "store_format"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_case",
+  "prompt": "Give each store a format label. Use the stores table. Return three columns, in this order: store_code, store_type and store_format. store_format is the text 'big' when store_type is 'flagship', 'small' when it is 'outlet', 'online' when it is 'web', and 'regular' for every other store type. Return one row per store. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "store_code",
+        "type_class": "text"
+      },
+      {
+        "name": "store_type",
+        "type_class": "text"
+      },
+      {
+        "name": "store_format",
+        "type_class": "text"
+      }
+    ],
+    "grain": "one row per store"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "store_code",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "store_type",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "store_format",
+        "type_class": "text",
+        "precision": "exact"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "store_code"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the calculated column store_format, with one branch for each named store type and one for the rest.",
+    "store_format is a CASE expression in the SELECT list after store_type: a WHEN for flagship, outlet and web in turn, then an ELSE for every other type, so the standard stores get a label too."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 238,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 239,
+      "to": 250,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 100000,
+  "why_this_works": "Each WHEN maps one store type to its label, and ELSE gives every remaining type, here the standard stores, the label 'regular'."
+}

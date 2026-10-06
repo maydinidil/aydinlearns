@@ -1,0 +1,36 @@
+{
+  "item_id": "EX-SQL-AGG-01-E1-03",
+  "item_version": 1,
+  "reference_sql": "SELECT COUNT(DISTINCT order_id) AS n_orders\nFROM sales\nWHERE parent_category = 'Gaming'",
+  "alternatives": [
+    "SELECT COUNT(DISTINCT order_id) AS n_orders FROM sales WHERE parent_category IN ('Gaming')",
+    "SELECT COUNT(DISTINCT order_id) n_orders FROM sales WHERE parent_category LIKE 'Gaming'"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "EX-SQL-AGG-01-E1-03-PW1",
+      "error_id": "ERR-LOG-04",
+      "sql": "SELECT COUNT(*) AS n_orders FROM sales WHERE parent_category = 'Gaming'"
+    },
+    {
+      "id": "EX-SQL-AGG-01-E1-03-PW2",
+      "error_id": "ERR-SYN-04",
+      "sql": "SELECT COUNT(DISTINCT order_id AS n_orders FROM sales WHERE parent_category = 'Gaming'"
+    },
+    {
+      "id": "EX-SQL-AGG-01-E1-03-PW3",
+      "error_id": "ERR-SYN-07",
+      "sql": "SELECT COUNT(DISTINCT order_id) AS n_orders FROM sales WHERE parent_category = \"Gaming\""
+    }
+  ],
+  "hint3_partial": "SELECT COUNT(___ order_id) AS n_orders\nFROM sales\nWHERE parent_category = 'Gaming'",
+  "solver": {
+    "prompt_hash": "e1036fd8c247283b",
+    "schema_version": "cebf75df442f",
+    "dataset_version": "506a9858f862fdfb",
+    "grader_version": "1b.3",
+    "query": "SELECT COUNT(DISTINCT order_id) AS n_orders FROM sales WHERE parent_category = 'Gaming'\n",
+    "at": "2026-10-04T10:06:41.543Z"
+  }
+}

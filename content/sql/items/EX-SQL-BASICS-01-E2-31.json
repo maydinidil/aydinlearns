@@ -1,0 +1,109 @@
+{
+  "id": "EX-SQL-BASICS-01-E2-31",
+  "version": 1,
+  "kind": "fix",
+  "tags": [
+    "sql",
+    "LVL-01",
+    "fix",
+    "select_from",
+    "promotions"
+  ],
+  "level": 1,
+  "source_ids": [
+    "01:SQL-BASICS-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-BASICS-01",
+  "concept_ids": [
+    "SQL-BASICS-01"
+  ],
+  "template_id": "T-BASICS-01-fix-open-quote",
+  "template_params": {
+    "table": "promotions",
+    "columns": 3
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_basics",
+  "prompt": "The query in the editor has one mistake. Fix it so that it answers this question: when did each promotion start, and how deep was its discount? From the promotions table, return three columns, in this order: promo_name, start_date, discount_pct. Show discount_pct exactly as stored, without rounding. Return one row per promotion and keep every promotion, even when two promotions share a name. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "promo_name",
+        "type_class": "text"
+      },
+      {
+        "name": "start_date",
+        "type_class": "temporal"
+      },
+      {
+        "name": "discount_pct",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per promotion"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "promo_name",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "start_date",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "discount_pct",
+        "type_class": "numeric",
+        "precision": "ratio"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, read the error message: it says a quote was opened and never closed.",
+    "Look at the SELECT list. One column name starts with a double quote that is never closed, so the engine reads the rest of the query as part of that name."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 43,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 44,
+      "to": 59,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": "SELECT promo_name, \"start_date, discount_pct\nFROM promotions",
+  "starter_error_id": "ERR-SYN-04",
+  "time_target_ms": 120000,
+  "why_this_works": "A double quote that opens a name must be closed. These column names need no quotes at all, so the plain name start_date works."
+}

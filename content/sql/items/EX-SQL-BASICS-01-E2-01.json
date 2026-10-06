@@ -1,0 +1,109 @@
+{
+  "id": "EX-SQL-BASICS-01-E2-01",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-01",
+    "select_from"
+  ],
+  "level": 1,
+  "source_ids": [
+    "01:SQL-BASICS-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-02",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "lesson",
+  "target_concept_id": "SQL-BASICS-01",
+  "concept_ids": [
+    "SQL-BASICS-01"
+  ],
+  "template_id": "T-BASICS-01-column-order",
+  "template_params": {
+    "table": "stores",
+    "columns": 3
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_basics",
+  "prompt": "The property team wants to know where each store is, what kind of store it is and when it opened. From the stores table, return three columns, in this order: city, store_type, opened_on. This is not the order the columns have in the table. Return one row per store and keep every store, including the webshop. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "city",
+        "type_class": "text"
+      },
+      {
+        "name": "store_type",
+        "type_class": "text"
+      },
+      {
+        "name": "opened_on",
+        "type_class": "temporal"
+      }
+    ],
+    "grain": "one row per store"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "city",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "store_type",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "opened_on",
+        "type_class": "temporal",
+        "precision": "exact"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, choose the table. The stores table has one row per store; it goes in the FROM clause.",
+    "The SELECT list sets the column order of the result, whatever the order in the table. Write the three columns in the order the question asks for."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 34,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 35,
+      "to": 46,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": {
+    "stage1": 35,
+    "stage2": 7
+  },
+  "faded_shape": "SELECT city, store_type, opened_on\n",
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "The SELECT list, not the table, decides the column order, and FROM stores gives one row per store."
+}

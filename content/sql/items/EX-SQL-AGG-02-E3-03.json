@@ -1,0 +1,165 @@
+{
+  "id": "EX-SQL-AGG-02-E3-03",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-02",
+    "group_by",
+    "count-distinct",
+    "ratio-of-sums",
+    "two-columns",
+    "month",
+    "order-by",
+    "sales"
+  ],
+  "level": 2,
+  "source_ids": [
+    "01:SQL-AGG-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-AGG-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02"
+  ],
+  "template_id": "T-AGG-02-channel-month-scorecard",
+  "template_params": {
+    "table": "sales",
+    "group_by": "channel, order_month",
+    "from": "2025-01-01",
+    "to": "2025-03-31"
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_agg",
+  "prompt": "For each channel and each month of the first quarter of 2025, how many orders were there, what was their net revenue and what was the average order value? Use the sales table and its order_month column, the first day of the month the order was placed in. Count order lines dated from 1 January 2025 to 31 March 2025, both days included. Return five columns, in this order: channel, order_month, n_orders, the number of different orders, revenue_eur, the sum of net_revenue_eur, and avg_order_value_eur, revenue_eur divided by n_orders. Return one row per channel and order_month combination, sorted by channel from A to Z, then by order_month from earliest to latest. Every order counts in n_orders, including an order whose lines all have a missing net_revenue_eur; lines with a missing net_revenue_eur add nothing to revenue_eur. Do not round.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "channel",
+        "type_class": "text"
+      },
+      {
+        "name": "order_month",
+        "type_class": "temporal"
+      },
+      {
+        "name": "n_orders",
+        "type_class": "numeric"
+      },
+      {
+        "name": "revenue_eur",
+        "type_class": "numeric"
+      },
+      {
+        "name": "avg_order_value_eur",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per channel and month combination"
+  },
+  "rules": {
+    "order_matters": true,
+    "sort_keys": [
+      {
+        "column": "channel",
+        "desc": false
+      },
+      {
+        "column": "order_month",
+        "desc": false
+      }
+    ],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "channel",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "order_month",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "n_orders",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "revenue_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "avg_order_value_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "channel",
+      "order_month"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the row filter for the first quarter of 2025. Then decide what one row stands for: one row per channel and month.",
+    "An order with several lines must count once, in n_orders and in the division. Sort by the two grouping columns in the order the question gives."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 202,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 203,
+      "to": 213,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 214,
+      "to": 278,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 279,
+      "to": 308,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 309,
+      "to": 338,
+      "subgoal": "sort_limit"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "COUNT(DISTINCT order_id) counts each order once, so dividing the summed revenue by it gives the value per order, not per line."
+}

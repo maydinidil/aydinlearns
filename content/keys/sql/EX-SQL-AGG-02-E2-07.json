@@ -1,0 +1,42 @@
+{
+  "item_id": "EX-SQL-AGG-02-E2-07",
+  "item_version": 1,
+  "reference_sql": "SELECT store_code, SUM(units) AS units_sold\nFROM sales\nGROUP BY store_code\nORDER BY units_sold DESC, store_code\nLIMIT 2",
+  "alternatives": [
+    "SELECT store_code, SUM(units) AS units_sold FROM sales GROUP BY 1 ORDER BY 2 DESC, 1 LIMIT 2",
+    "SELECT store_code, SUM(units) AS units_sold FROM sales GROUP BY store_code ORDER BY SUM(units) DESC, store_code ASC LIMIT 2",
+    "SELECT sales.store_code, SUM(sales.units) AS units_sold FROM sales GROUP BY sales.store_code ORDER BY units_sold DESC, sales.store_code LIMIT 2"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-16",
+      "sql": "SELECT store_code, SUM(units) AS units_sold FROM sales GROUP BY store_code ORDER BY units_sold DESC, store_code DESC LIMIT 2"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-14",
+      "sql": "SELECT store_code, COUNT(*) AS units_sold FROM sales GROUP BY store_code ORDER BY units_sold DESC, store_code LIMIT 2"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-07",
+      "sql": "SELECT store_code, SUM(units) AS units_sold FROM sales GROUP BY store_code, country_code ORDER BY units_sold DESC, store_code LIMIT 2"
+    },
+    {
+      "id": "PW4",
+      "error_id": "ERR-SEM-01",
+      "sql": "SELECT store_code, SUM(units) AS units_sold FROM sales ORDER BY units_sold DESC, store_code LIMIT 2"
+    }
+  ],
+  "hint3_partial": "SELECT store_code, SUM(units) AS units_sold\nFROM sales\nGROUP BY store_code\nORDER BY ___\nLIMIT 2",
+  "solver": {
+    "prompt_hash": "8c891321a2af4536",
+    "schema_version": "cebf75df442f",
+    "dataset_version": "506a9858f862fdfb",
+    "grader_version": "1b.3",
+    "query": "SELECT store_code, SUM(units) AS units_sold FROM sales GROUP BY store_code ORDER BY units_sold DESC, store_code ASC LIMIT 2\n",
+    "at": "2026-10-04T10:06:44.518Z"
+  }
+}

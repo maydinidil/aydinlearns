@@ -1,0 +1,135 @@
+{
+  "id": "EX-SQL-BASICS-02-E3-02",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "calculated-column",
+    "products",
+    "markup",
+    "percent"
+  ],
+  "level": 1,
+  "source_ids": [
+    "01:SQL-BASICS-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-02",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-BASICS-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02"
+  ],
+  "template_id": "T-BASICS-02-chain",
+  "template_params": {
+    "table": "products",
+    "markup_pct": 25,
+    "discount_pct": 10
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_basics",
+  "prompt": "For a store-wide sale, every product gets a list price of its unit cost plus a 25% markup, and is then sold at 10% off that list price. For every product, return product_id, list_price_eur (the unit cost plus the 25% markup), sale_price_eur (list_price_eur less 10%) and profit_eur (sale_price_eur minus the unit cost), in that order. All amounts are in euros. Use exactly these column names and do not round. One row per product, every product included. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "list_price_eur",
+        "type_class": "numeric"
+      },
+      {
+        "name": "sale_price_eur",
+        "type_class": "numeric"
+      },
+      {
+        "name": "profit_eur",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per product"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": true,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "list_price_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "sale_price_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "profit_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "product_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the calculated columns. Build the three amounts in order: the list price, then the sale price from it, then the profit from the sale price.",
+    "Each amount builds on the one before it, so repeat the earlier expression inside the later one rather than reusing its alias. Taking 10% off a price is one multiplication, like adding a markup."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 18,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 26,
+      "to": 65,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 73,
+      "to": 119,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 127,
+      "to": 184,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 185,
+      "to": 198,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "Each step multiplies the price before it, so 25% up and then 10% off is 1.125 times cost, not 1.15."
+}

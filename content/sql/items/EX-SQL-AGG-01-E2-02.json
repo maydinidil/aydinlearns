@@ -1,0 +1,107 @@
+{
+  "id": "EX-SQL-AGG-01-E2-02",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-02",
+    "aggregate",
+    "sum_avg",
+    "sales",
+    "ratio_of_sums",
+    "average_price"
+  ],
+  "level": 2,
+  "source_ids": [
+    "01:SQL-AGG-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "lesson",
+  "target_concept_id": "SQL-AGG-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-AGG-01"
+  ],
+  "template_id": "T-AGG-01-ratio-of-sums",
+  "template_params": {
+    "table": "sales",
+    "filter": "category_name = 'Earbuds'",
+    "numerator": "net_revenue_eur",
+    "denominator": "units",
+    "output": "avg_unit_price_eur"
+  },
+  "sub_skill": "sum_avg",
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_agg",
+  "prompt": "What was the average price paid per unit for earbuds (category_name 'Earbuds')? Weight every unit sold equally, so a line that sold 2 units counts twice as much as a line that sold 1. Leave out any line with a missing units or net revenue value. Return one column, avg_unit_price_eur. Do not round. The result is a single row. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "avg_unit_price_eur",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row in total"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "avg_unit_price_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the calculated column. The average price per unit is the revenue of all the earbud lines together, shared over all the units they sold.",
+    "It goes in the SELECT list, named avg_unit_price_eur with AS. Work out the two totals first and divide once; averaging each line's own price gives every line the same weight."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 62,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 63,
+      "to": 73,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 74,
+      "to": 105,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": {
+    "stage1": 7,
+    "stage2": 7
+  },
+  "faded_shape": "SELECT ",
+  "faded_suffix": "\nFROM sales\nWHERE category_name = 'Earbuds'",
+  "starter_sql": null,
+  "time_target_ms": 150000,
+  "why_this_works": "Dividing total revenue by total units weights every unit equally; an average of line prices would weight every line equally."
+}

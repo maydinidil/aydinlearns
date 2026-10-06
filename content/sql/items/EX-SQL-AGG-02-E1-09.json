@@ -1,0 +1,120 @@
+{
+  "id": "EX-SQL-AGG-02-E1-09",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-02",
+    "group_by",
+    "min",
+    "max",
+    "sales"
+  ],
+  "level": 2,
+  "source_ids": [
+    "01:SQL-AGG-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-AGG-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02"
+  ],
+  "template_id": "T-AGG-02-min-max-per-group",
+  "template_params": {
+    "table": "sales",
+    "group_by": "store_code",
+    "metric": "order_date"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_agg",
+  "prompt": "When did each store take its first and its last order? Use the sales table. Return three columns, in this order: store_code, first_order_date, the earliest order_date of that store, and last_order_date, the latest order_date of that store. Return one row per store_code; the webshop, WEB-01, counts as a store. Every order line counts, including lines with missing units or a missing net_revenue_eur. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "store_code",
+        "type_class": "text"
+      },
+      {
+        "name": "first_order_date",
+        "type_class": "temporal"
+      },
+      {
+        "name": "last_order_date",
+        "type_class": "temporal"
+      }
+    ],
+    "grain": "one row per store"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "store_code",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "first_order_date",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "last_order_date",
+        "type_class": "temporal",
+        "precision": "exact"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "store_code"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, decide what one row stands for: one row per store, with the earliest and the latest date found among that store's lines.",
+    "Group by the one column that is not inside MIN or MAX."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 90,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 91,
+      "to": 101,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 102,
+      "to": 121,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 150000,
+  "why_this_works": "GROUP BY store_code makes one group per store, and MIN and MAX pick the earliest and the latest order_date inside each group."
+}

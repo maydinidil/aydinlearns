@@ -1,0 +1,120 @@
+{
+  "id": "EX-SQL-FILTER-02-E1-03",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-01",
+    "between",
+    "promotions"
+  ],
+  "level": 1,
+  "source_ids": [
+    "01:SQL-FILTER-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-02",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "lesson",
+  "target_concept_id": "SQL-FILTER-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02"
+  ],
+  "template_id": "T-FILTER-02-between-number",
+  "template_params": {
+    "table": "promotions",
+    "low": 10,
+    "high": 20
+  },
+  "sub_skill": "between",
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_filter",
+  "prompt": "The pricing team calls a discount from 10 to 20 percent a light promotion, and both 10 and 20 count. From the promotions table, return three columns, in this order: promo_code, promo_name, discount_pct. Keep only the promotions whose discount_pct is from 10 to 20, both ends included (discount_pct holds 15.00 for 15 percent). Every promotion has a discount_pct. Show discount_pct exactly as stored, without rounding. Return one row per promotion. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "promo_code",
+        "type_class": "text"
+      },
+      {
+        "name": "promo_name",
+        "type_class": "text"
+      },
+      {
+        "name": "discount_pct",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per promotion"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "promo_code",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "promo_name",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "discount_pct",
+        "type_class": "numeric",
+        "precision": "ratio"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "promo_code"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the row filter. Keep the promotions whose discount_pct lies in a range that includes both of its ends.",
+    "One range test in WHERE keeps both of its ends, and its two ends must come in a fixed order."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 43,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 44,
+      "to": 59,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 60,
+      "to": 96,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": {
+    "stage1": 60,
+    "stage2": 44
+  },
+  "faded_shape": "SELECT promo_code, promo_name, discount_pct\nFROM promotions\n",
+  "starter_sql": null,
+  "time_target_ms": 90000,
+  "why_this_works": "BETWEEN includes both ends, so it keeps 10, 20 and every discount in between."
+}

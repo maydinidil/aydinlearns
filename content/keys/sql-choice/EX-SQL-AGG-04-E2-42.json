@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-AGG-04-E2-42",
+  "item_version": 1,
+  "correct_oid": "oea58471",
+  "explanation": "Each column needs its own condition inside SUM, so the web lines and the store lines are added up separately in one row per country. A plain SUM(net_revenue_eur) adds every line, web included. Grouping by channel too gives two rows per country instead of two columns, and COUNT counts lines instead of adding up euros.",
+  "solver": {
+    "prompt_hash": "69bbab180b928890",
+    "grader_version": "choice.1",
+    "chosen": "oea58471",
+    "typed": null,
+    "at": "2026-10-06T09:08:14.824Z"
+  }
+}

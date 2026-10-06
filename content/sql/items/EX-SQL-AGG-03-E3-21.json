@@ -1,0 +1,151 @@
+{
+  "id": "EX-SQL-AGG-03-E3-21",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-02",
+    "having",
+    "count-distinct",
+    "ratio-of-sums",
+    "where",
+    "month",
+    "order-by",
+    "sales",
+    "drill"
+  ],
+  "level": 2,
+  "source_ids": [
+    "01:SQL-AGG-03"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-AGG-03",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-AGG-03"
+  ],
+  "template_id": "T-AGG-03-ratio-threshold-sorted",
+  "template_params": {
+    "table": "sales",
+    "group_by": "order_month",
+    "row_filter": "order_date in 2025",
+    "ratio": "net revenue per order",
+    "comparison": "below",
+    "threshold": 315
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_agg",
+  "prompt": "Which months of 2025 had an average order value below 315 euros? A month's average order value is its total net_revenue_eur divided by its number of different orders. Use the sales table and its order_month column, the first day of the month the order was placed in, and count only order lines dated from 1 January 2025 to 31 December 2025, both days included. Every order counts, including an order whose lines all have a missing net_revenue_eur, and a missing net_revenue_eur adds nothing to the total. Return three columns, in this order: order_month, n_orders, the number of different orders, and avg_order_value_eur, that average order value. Return one row per month, and only the months whose average order value is below 315, sorted by order_month from earliest to latest. Do not round.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "order_month",
+        "type_class": "temporal"
+      },
+      {
+        "name": "n_orders",
+        "type_class": "numeric"
+      },
+      {
+        "name": "avg_order_value_eur",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per month"
+  },
+  "rules": {
+    "order_matters": true,
+    "sort_keys": [
+      {
+        "column": "order_month",
+        "desc": false
+      }
+    ],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "order_month",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "n_orders",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "avg_order_value_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "order_month"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, keep the 2025 lines, group them by month, and write the group filter on the average order value.",
+    "An order has several lines, so divide the revenue total by the number of different orders, not by the lines. That division is about a whole month, so the test on it comes after GROUP BY. Sort the months in date order."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 135,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 136,
+      "to": 146,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 147,
+      "to": 211,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 212,
+      "to": 232,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 233,
+      "to": 293,
+      "subgoal": "group_filter"
+    },
+    {
+      "from": 294,
+      "to": 314,
+      "subgoal": "sort_limit"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "Dividing each month's revenue by its different orders gives the order value, HAVING keeps the months below 315, and ORDER BY puts them in date order."
+}

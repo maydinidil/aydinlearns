@@ -1,0 +1,144 @@
+{
+  "id": "EX-SQL-AGG-03-E3-02",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-02",
+    "having",
+    "count-distinct",
+    "top-n",
+    "limit",
+    "sales"
+  ],
+  "level": 2,
+  "source_ids": [
+    "01:SQL-AGG-03"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-AGG-03",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-AGG-03"
+  ],
+  "template_id": "T-AGG-03-top-n-after-having",
+  "template_params": {
+    "table": "sales",
+    "group_by": "product_id, product_name",
+    "group_filter": "count distinct store_code fewer than 15",
+    "rank_by": "sum net_revenue_eur",
+    "n": 3
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_agg",
+  "prompt": "Among the products sold in fewer than 15 different stores, which 3 brought in the most net revenue? Use the sales table, and count each store_code once per product. Return three columns, in this order: product_id, product_name and revenue_eur, the sum of net_revenue_eur. Order lines with a missing net_revenue_eur add nothing to the total. Do not round. Return one row per product, at most 3 rows, sorted by revenue_eur from highest to lowest; when two products have the same revenue_eur, the lower product_id comes first.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "product_name",
+        "type_class": "text"
+      },
+      {
+        "name": "revenue_eur",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per product"
+  },
+  "rules": {
+    "order_matters": true,
+    "sort_keys": [
+      {
+        "column": "revenue_eur",
+        "desc": true
+      },
+      {
+        "column": "product_id",
+        "desc": false
+      }
+    ],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "product_name",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "revenue_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "product_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the group filter: keep only the products with fewer than 15 different stores, before any sorting or cutting.",
+    "The store test goes after GROUP BY; then sort by revenue with the tie-break as a second sort column, and cut to 3 rows last."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 68,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 69,
+      "to": 79,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 80,
+      "to": 113,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 114,
+      "to": 152,
+      "subgoal": "group_filter"
+    },
+    {
+      "from": 153,
+      "to": 198,
+      "subgoal": "sort_limit"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "HAVING removes the widely sold products first, and only then do ORDER BY, with its product_id tie-break, and LIMIT pick the top 3 of those left."
+}

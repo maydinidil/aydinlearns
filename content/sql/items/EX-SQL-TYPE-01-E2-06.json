@@ -1,0 +1,140 @@
+{
+  "id": "EX-SQL-TYPE-01-E2-06",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-02",
+    "type",
+    "percent-scale",
+    "boolean",
+    "division",
+    "round",
+    "conditional-aggregation",
+    "group-by",
+    "calendar"
+  ],
+  "level": 2,
+  "source_ids": [
+    "01:SQL-TYPE-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-TYPE-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-AGG-04",
+    "SQL-TYPE-01"
+  ],
+  "template_id": "T-TYPE-01-share-per-group",
+  "template_params": {
+    "table": "calendar",
+    "group_by": "quarter",
+    "part": "weekend days",
+    "whole": "days",
+    "scale": "percent",
+    "decimals": 1,
+    "from": "2025-01-01",
+    "to": "2025-12-31",
+    "output": "weekend_pct"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_type",
+  "prompt": "What percentage of the days in each quarter of 2025 fall on a weekend? Use the calendar table and keep the days with a cal_date from 2025-01-01 to 2025-12-31, both included. is_weekend is a boolean that is true for a Saturday or a Sunday. Return three columns, in this order: quarter, n_days, the number of days, and weekend_pct, 100 times the number of weekend days divided by n_days, rounded to 1 decimal with ROUND(x, 1), so 15 percent is 15.0. Return one row per quarter. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "quarter",
+        "type_class": "numeric"
+      },
+      {
+        "name": "n_days",
+        "type_class": "numeric"
+      },
+      {
+        "name": "weekend_pct",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per quarter"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "quarter",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "n_days",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "weekend_pct",
+        "type_class": "numeric",
+        "precision": "ratio",
+        "require_rounding": 1
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "quarter"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, keep the 2025 days, decide what one row stands for, and write n_days and weekend_pct.",
+    "Count the weekend days with a conditional count, or turn the boolean into 1 and 0 and add it up. Both counts are whole numbers, so multiply by 100.0 before you divide, then round at the end."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 128,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 129,
+      "to": 142,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 143,
+      "to": 205,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 206,
+      "to": 222,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "Multiplying the count of weekend days by 100.0 gives a decimal division on the percent scale, and ROUND around it rounds only the final percentage."
+}

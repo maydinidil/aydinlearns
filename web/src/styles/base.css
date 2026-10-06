@@ -1,0 +1,33 @@
+/* web/src/styles/base.css: element defaults and the rules carried over from the old styles.css. Tokens only; state is never shown by colour alone. */
+* { box-sizing: border-box; }
+body { margin: 0; font: var(--t3)/var(--lh) var(--font); color: var(--ink); background: var(--canvas); }
+main { max-width: 1200px; margin: 0 auto; padding: var(--s5) var(--s6); }
+a { color: var(--section-text); }
+h1 { font-size: var(--t5); font-weight: 650; }
+h2 { font-size: var(--t4); }
+.muted { color: var(--muted); }
+.badge { font-size: var(--t2); padding: 1px 6px; border: 1px solid var(--line); border-radius: 4px; }
+.notice, .callout { padding: var(--s2) var(--s3); border: 1px solid var(--line); background: var(--surface); }
+table { border-collapse: collapse; }
+/* A wide result (SELECT * on products) scrolls inside its column instead of drawing over the schema panel. */
+.table-scroll { max-width: 100%; overflow-x: auto; }
+th, td { border: 1px solid var(--line); padding: 2px var(--s2); text-align: left; font-variant-numeric: tabular-nums; }
+th { background: var(--fill); color: var(--ink-2); }
+th .muted { color: var(--ink-2); }
+pre, code { font-family: var(--mono); }
+pre { background: var(--canvas); border: 1px solid var(--line); border-radius: var(--r1); padding: var(--s2); overflow: auto; }
+.ok::before { content: "✓ "; color: var(--ok); }
+.bad::before { content: "✗ "; color: var(--bad); }
+button { background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: var(--r1); font: 600 var(--t1)/var(--lh) var(--font); padding: var(--s1) var(--s3); cursor: pointer; }
+button:disabled { opacity: 0.55; cursor: default; }
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+[tabindex="-1"]:focus-visible { outline: none; }
+.exercise { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: var(--s4); }
+.cm-locked { background: var(--fill); color: var(--ink-2); }
+.cm-editor { min-height: 160px; background: var(--surface); }
+
+/* SQL choice items (Task C5) */
+.shown-sql { overflow-x: auto; }
+.option-code { white-space: pre-wrap; }
+.option-table table { margin-top: var(--s1); }
+.why-clause { margin-top: var(--s4); }

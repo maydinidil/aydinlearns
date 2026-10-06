@@ -1,0 +1,36 @@
+{
+  "item_id": "EX-SQL-AGG-01-E1-09",
+  "item_version": 1,
+  "reference_sql": "SELECT SUM(units) AS total_units\nFROM sales\nWHERE order_date BETWEEN DATE '2024-01-01' AND DATE '2024-12-31'",
+  "alternatives": [
+    "SELECT SUM(units) AS total_units FROM sales WHERE order_date >= DATE '2024-01-01' AND order_date < DATE '2025-01-01'",
+    "SELECT SUM(units) AS total_units FROM sales WHERE order_date >= '2024-01-01' AND order_date <= '2024-12-31'"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "EX-SQL-AGG-01-E1-09-PW1",
+      "error_id": "ERR-LOG-14",
+      "sql": "SELECT COUNT(units) AS total_units FROM sales WHERE order_date BETWEEN DATE '2024-01-01' AND DATE '2024-12-31'"
+    },
+    {
+      "id": "EX-SQL-AGG-01-E1-09-PW2",
+      "error_id": "ERR-LOG-06",
+      "sql": "SELECT SUM(units) AS total_units FROM sales WHERE order_date >= DATE '2024-01-01' AND order_date < DATE '2024-12-31'"
+    },
+    {
+      "id": "EX-SQL-AGG-01-E1-09-PW3",
+      "error_id": "ERR-LOG-23",
+      "sql": "SELECT SUM(units) AS total_units FROM sales WHERE order_date BETWEEN DATE '2024-12-31' AND DATE '2024-01-01'"
+    }
+  ],
+  "hint3_partial": "SELECT ___(units) AS total_units\nFROM sales\nWHERE order_date BETWEEN DATE '2024-01-01' AND ___",
+  "solver": {
+    "prompt_hash": "eb680e006cf701c4",
+    "schema_version": "cebf75df442f",
+    "dataset_version": "506a9858f862fdfb",
+    "grader_version": "1b.3",
+    "query": "SELECT SUM(units) AS total_units FROM sales WHERE order_date >= '2024-01-01' AND order_date <= '2024-12-31'\n",
+    "at": "2026-10-04T10:06:41.856Z"
+  }
+}

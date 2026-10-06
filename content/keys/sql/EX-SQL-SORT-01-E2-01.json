@@ -1,0 +1,32 @@
+{
+  "item_id": "EX-SQL-SORT-01-E2-01",
+  "item_version": 2,
+  "reference_sql": "SELECT DISTINCT country_code,\n       store_type\nFROM stores\nORDER BY country_code, store_type",
+  "alternatives": [
+    "SELECT DISTINCT country_code, store_type FROM stores ORDER BY country_code ASC, store_type ASC",
+    "SELECT DISTINCT country_code, store_type FROM stores ORDER BY 1, 2",
+    "SELECT DISTINCT stores.country_code, stores.store_type FROM stores ORDER BY stores.country_code, stores.store_type"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "EX-SQL-SORT-01-E2-01-PW1",
+      "error_id": "ERR-LOG-08",
+      "sql": "SELECT country_code, store_type FROM stores ORDER BY country_code, store_type"
+    },
+    {
+      "id": "EX-SQL-SORT-01-E2-01-PW2",
+      "error_id": "ERR-LOG-18",
+      "sql": "SELECT DISTINCT country_code, store_type FROM stores ORDER BY store_type, country_code"
+    }
+  ],
+  "hint3_partial": "SELECT ___ country_code,\n       store_type\nFROM stores\nORDER BY country_code, ___",
+  "solver": {
+    "prompt_hash": "af818e11e1730811",
+    "schema_version": "9a8d01143702",
+    "dataset_version": "9639f8ae1f71c2ef",
+    "grader_version": "1b.1",
+    "query": "SELECT DISTINCT country_code, store_type FROM stores ORDER BY country_code ASC, store_type ASC\n",
+    "at": "2026-10-03T20:33:06.711Z"
+  }
+}

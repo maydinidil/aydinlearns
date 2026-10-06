@@ -1,0 +1,32 @@
+{
+  "item_id": "EX-SQL-SORT-01-E2-05",
+  "item_version": 2,
+  "reference_sql": "SELECT promo_type,\n       promo_name,\n       discount_pct\nFROM promotions\nWHERE promo_type IN ('clearance', 'loyalty')\nORDER BY promo_type, discount_pct DESC, promo_name",
+  "alternatives": [
+    "SELECT promo_type, promo_name, discount_pct FROM promotions WHERE promo_type = 'clearance' OR promo_type = 'loyalty' ORDER BY promo_type, discount_pct DESC, promo_name",
+    "SELECT promo_type, promo_name, discount_pct FROM promotions WHERE promo_type IN ('loyalty', 'clearance') ORDER BY 1, 3 DESC, 2",
+    "SELECT promo_type, promo_name, discount_pct FROM promotions WHERE promo_type IN ('clearance', 'loyalty') ORDER BY promo_type ASC, discount_pct DESC, promo_name ASC"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "EX-SQL-SORT-01-E2-05-PW1",
+      "error_id": "ERR-LOG-18",
+      "sql": "SELECT promo_type, promo_name, discount_pct FROM promotions WHERE promo_type IN ('clearance', 'loyalty') ORDER BY promo_type, discount_pct, promo_name"
+    },
+    {
+      "id": "EX-SQL-SORT-01-E2-05-PW2",
+      "error_id": "ERR-LOG-09",
+      "sql": "SELECT DISTINCT promo_type, promo_name, discount_pct FROM promotions WHERE promo_type IN ('clearance', 'loyalty') ORDER BY promo_type, discount_pct DESC, promo_name"
+    }
+  ],
+  "hint3_partial": "SELECT promo_type,\n       promo_name,\n       discount_pct\nFROM promotions\nWHERE promo_type IN (___, ___)\nORDER BY promo_type, ___, promo_name",
+  "solver": {
+    "prompt_hash": "597b885b63c4a5b5",
+    "schema_version": "f0340f71a1f5",
+    "dataset_version": "9639f8ae1f71c2ef",
+    "grader_version": "1b.1",
+    "query": "SELECT promo_type, promo_name, discount_pct FROM promotions WHERE promo_type IN ('clearance', 'loyalty') ORDER BY promo_type ASC, discount_pct DESC, promo_name ASC\n",
+    "at": "2026-10-03T20:33:06.768Z"
+  }
+}

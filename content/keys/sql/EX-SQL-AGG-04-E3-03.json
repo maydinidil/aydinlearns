@@ -1,0 +1,36 @@
+{
+  "item_id": "EX-SQL-AGG-04-E3-03",
+  "item_version": 1,
+  "reference_sql": "SELECT country_code,\n       COUNT(DISTINCT CASE WHEN parent_category = 'Accessories' THEN order_id END) * 1.0 / COUNT(DISTINCT order_id) AS accessory_order_share\nFROM sales\nGROUP BY country_code",
+  "alternatives": [
+    "SELECT country_code, COUNT(DISTINCT CASE WHEN parent_category = 'Accessories' THEN order_id END) / COUNT(DISTINCT order_id) AS accessory_order_share FROM sales GROUP BY country_code",
+    "SELECT country_code, 1.0 * COUNT(DISTINCT order_id) FILTER (WHERE parent_category = 'Accessories') / COUNT(DISTINCT order_id) AS accessory_order_share FROM sales GROUP BY 1"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-04",
+      "sql": "SELECT country_code, COUNT(CASE WHEN parent_category = 'Accessories' THEN order_id END) * 1.0 / COUNT(order_id) AS accessory_order_share FROM sales GROUP BY country_code"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-21",
+      "sql": "SELECT country_code, 100.0 * COUNT(DISTINCT CASE WHEN parent_category = 'Accessories' THEN order_id END) / COUNT(DISTINCT order_id) AS accessory_order_share FROM sales GROUP BY country_code"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-07",
+      "sql": "SELECT country_code, channel, COUNT(DISTINCT CASE WHEN parent_category = 'Accessories' THEN order_id END) * 1.0 / COUNT(DISTINCT order_id) AS accessory_order_share FROM sales GROUP BY country_code, channel"
+    }
+  ],
+  "hint3_partial": "SELECT country_code,\n       COUNT(DISTINCT CASE WHEN parent_category = 'Accessories' THEN ___ END) * 1.0 / COUNT(DISTINCT ___) AS accessory_order_share\nFROM sales\nGROUP BY country_code",
+  "solver": {
+    "prompt_hash": "7d9a00296944d9ae",
+    "schema_version": "cebf75df442f",
+    "dataset_version": "506a9858f862fdfb",
+    "grader_version": "1b.3",
+    "query": "SELECT country_code, COUNT(DISTINCT order_id) FILTER (WHERE parent_category = 'Accessories') * 1.0 / COUNT(DISTINCT order_id) AS accessory_order_share FROM sales GROUP BY country_code\n",
+    "at": "2026-10-04T10:06:50.383Z"
+  }
+}

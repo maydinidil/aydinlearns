@@ -1,0 +1,99 @@
+{
+  "id": "EX-SQL-BASICS-02-E1-01",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "alias",
+    "stores"
+  ],
+  "level": 1,
+  "source_ids": [
+    "01:SQL-BASICS-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-02",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pretest",
+  "target_concept_id": "SQL-BASICS-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02"
+  ],
+  "template_id": "T-BASICS-02-rename",
+  "template_params": {
+    "table": "stores",
+    "renamed": 2
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_basics",
+  "prompt": "List every store, including the webshop. Return two columns in this order: code (the store's store_code) and store_city (its city). Use exactly these column names. One row per store. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "code",
+        "type_class": "text"
+      },
+      {
+        "name": "store_city",
+        "type_class": "text"
+      }
+    ],
+    "grain": "one row per store"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": true,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "code",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "store_city",
+        "type_class": "text",
+        "precision": "exact"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "code"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the columns to return. Each output column is an existing stores column shown under a new name.",
+    "In the SELECT list, write each column, then AS and the name the question gives it."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 52,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 53,
+      "to": 64,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 60000,
+  "why_this_works": "AS renames a column in the result only; the stores table keeps its own column names."
+}

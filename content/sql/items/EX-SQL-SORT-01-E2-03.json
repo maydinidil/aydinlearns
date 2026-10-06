@@ -1,0 +1,133 @@
+{
+  "id": "EX-SQL-SORT-01-E2-03",
+  "version": 2,
+  "kind": "write",
+  "tags": [
+    "order-by",
+    "desc",
+    "in-list",
+    "products"
+  ],
+  "level": 1,
+  "source_ids": [
+    "01:SQL-SORT-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-02",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-SORT-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01"
+  ],
+  "template_id": "T-SORT-01-order-keys",
+  "template_params": {
+    "table": "products",
+    "keys": 3
+  },
+  "sub_skill": "order_by",
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_sort",
+  "prompt": "For every product in category 15 (Headphones) or category 16 (Earbuds), return category_id, brand and unit_cost_eur, in that order, with exactly these column names. Sort by category_id from low to high, then by brand from A to Z, then by unit_cost_eur from highest to lowest. One row per product, every product in those two categories included, and a product with a missing brand or unit_cost_eur is included too. Rows with a missing brand may come first or last within their category, and so may rows with a missing unit_cost_eur within their brand.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "category_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "brand",
+        "type_class": "text"
+      },
+      {
+        "name": "unit_cost_eur",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per product"
+  },
+  "rules": {
+    "order_matters": true,
+    "sort_keys": [
+      {
+        "column": "category_id",
+        "desc": false
+      },
+      {
+        "column": "brand",
+        "desc": false
+      },
+      {
+        "column": "unit_cost_eur",
+        "desc": true
+      }
+    ],
+    "check_names": true,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "category_id",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "brand",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "unit_cost_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the sort. The filter keeps two categories; the sort has three keys, and only the last one runs from high to low.",
+    "List the three sort keys in ORDER BY in the order the question gives them. Each key takes its own direction, and only one of them needs a keyword."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 54,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 55,
+      "to": 68,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 69,
+      "to": 98,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 99,
+      "to": 146,
+      "subgoal": "sort_limit"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 150000,
+  "why_this_works": "Each later sort key only orders rows that tie on the keys before it, and DESC flips only unit_cost_eur."
+}

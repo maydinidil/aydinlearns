@@ -1,0 +1,36 @@
+{
+  "item_id": "EX-SQL-AGG-01-E1-02",
+  "item_version": 1,
+  "reference_sql": "SELECT SUM(net_revenue_eur) AS total_revenue_eur\nFROM sales\nWHERE country_code = 'BE'",
+  "alternatives": [
+    "SELECT SUM(net_revenue_eur) total_revenue_eur FROM sales WHERE country_code IN ('BE')",
+    "SELECT SUM(COALESCE(net_revenue_eur, 0)) AS total_revenue_eur FROM sales WHERE country_code = 'BE'"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "EX-SQL-AGG-01-E1-02-PW1",
+      "error_id": "ERR-LOG-14",
+      "sql": "SELECT AVG(net_revenue_eur) AS total_revenue_eur FROM sales WHERE country_code = 'BE'"
+    },
+    {
+      "id": "EX-SQL-AGG-01-E1-02-PW2",
+      "error_id": "ERR-LOG-14",
+      "sql": "SELECT COUNT(net_revenue_eur) AS total_revenue_eur FROM sales WHERE country_code = 'BE'"
+    },
+    {
+      "id": "EX-SQL-AGG-01-E1-02-PW3",
+      "error_id": "ERR-SYN-04",
+      "sql": "SELECT SUM(net_revenue_eur AS total_revenue_eur FROM sales WHERE country_code = 'BE'"
+    }
+  ],
+  "hint3_partial": "SELECT ___(net_revenue_eur) AS total_revenue_eur\nFROM sales\nWHERE country_code = 'BE'",
+  "solver": {
+    "prompt_hash": "2fce4f0e67831677",
+    "schema_version": "cebf75df442f",
+    "dataset_version": "506a9858f862fdfb",
+    "grader_version": "1b.3",
+    "query": "SELECT SUM(net_revenue_eur) AS total_revenue_eur FROM sales WHERE country_code = 'BE'\n",
+    "at": "2026-10-04T10:06:41.437Z"
+  }
+}

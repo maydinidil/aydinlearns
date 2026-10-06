@@ -1,0 +1,36 @@
+{
+  "item_id": "EX-SQL-NULL-01-E1-31",
+  "item_version": 1,
+  "reference_sql": "SELECT product_id, product_name, sister_product_id\nFROM products\nWHERE category_id = 9 AND sister_product_id IS NOT NULL",
+  "alternatives": [
+    "SELECT product_id, product_name, sister_product_id\nFROM products\nWHERE sister_product_id IS NOT NULL AND category_id = 9",
+    "SELECT product_id, product_name, sister_product_id\nFROM products\nWHERE category_id = 9 AND NOT sister_product_id IS NULL"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "EX-SQL-NULL-01-E1-31-PW1",
+      "error_id": "ERR-SEM-04",
+      "sql": "SELECT product_id, product_name, sister_product_id\nFROM products\nWHERE category_id = 9 AND sister_product_id <> NULL"
+    },
+    {
+      "id": "EX-SQL-NULL-01-E1-31-PW2",
+      "error_id": "ERR-OUT-01",
+      "sql": "SELECT product_id, product_name FROM products WHERE category_id = 9 AND sister_product_id IS NOT NULL"
+    },
+    {
+      "id": "EX-SQL-NULL-01-E1-31-PW3",
+      "error_id": "ERR-SYN-02",
+      "sql": "SELECT product_id, product_name, sister_product_id FROM products WHERE category_id = 9 AND sister_id IS NOT NULL"
+    }
+  ],
+  "hint3_partial": "SELECT product_id, product_name, sister_product_id\nFROM products\nWHERE category_id = 9 AND sister_product_id IS ___",
+  "solver": {
+    "prompt_hash": "75997ea1263b8c15",
+    "schema_version": "d77fe1c31a0e",
+    "dataset_version": "506a9858f862fdfb",
+    "grader_version": "1b.3",
+    "query": "SELECT product_id, product_name, sister_product_id FROM products WHERE category_id = 9 AND sister_product_id IS NOT NULL\n",
+    "at": "2026-10-04T14:33:18.313Z"
+  }
+}

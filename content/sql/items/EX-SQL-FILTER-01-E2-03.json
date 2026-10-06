@@ -1,0 +1,104 @@
+{
+  "id": "EX-SQL-FILTER-01-E2-03",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-01",
+    "where",
+    "and_or_not"
+  ],
+  "level": 1,
+  "source_ids": [
+    "01:SQL-FILTER-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-02",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-FILTER-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01"
+  ],
+  "template_id": "T-FILTER-01-and-or-brackets",
+  "template_params": {
+    "table": "calendar",
+    "conditions": 4
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_filter",
+  "prompt": "The stores need extra staff on Fridays and at weekends. From the calendar table, list the days in March 2025 (1 to 31 March) that are a Friday (weekday_name 'Friday') or a weekend day (is_weekend is true). Return two columns, in this order: cal_date, weekday_name. Return one row per day. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "cal_date",
+        "type_class": "temporal"
+      },
+      {
+        "name": "weekday_name",
+        "type_class": "text"
+      }
+    ],
+    "grain": "one row per day"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "cal_date",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "weekday_name",
+        "type_class": "text",
+        "precision": "exact"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the row filter. Keep the Fridays and the weekend days, but only those that fall in March 2025.",
+    "The WHERE clause mixes OR (the two kinds of day) and AND (the March range). Brackets decide which conditions the March range applies to, and both end days of March count."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 29,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 30,
+      "to": 43,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 44,
+      "to": 154,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 150000,
+  "why_this_works": "The brackets keep the Friday-or-weekend choice together, so the March 2025 date range applies to both kinds of day."
+}

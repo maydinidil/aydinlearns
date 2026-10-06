@@ -1,0 +1,128 @@
+{
+  "id": "EX-SQL-TYPE-01-E2-31",
+  "version": 1,
+  "kind": "fix",
+  "tags": [
+    "sql",
+    "LVL-02",
+    "fix",
+    "type",
+    "premature-rounding",
+    "round",
+    "currency",
+    "group-by",
+    "sales"
+  ],
+  "level": 2,
+  "source_ids": [
+    "01:SQL-TYPE-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-TYPE-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01"
+  ],
+  "template_id": "T-TYPE-01-fix-premature-rounding",
+  "template_params": {
+    "table": "sales",
+    "group_by": "country_code",
+    "rate": 1.08,
+    "from": "2025-10-01",
+    "to": "2025-12-31",
+    "decimals": 0,
+    "output": "revenue_usd"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_type",
+  "prompt": "The query in the editor has one mistake. Fix it so that it answers this question: what was each country's net revenue in the fourth quarter of 2025 in US dollars, at 1.08 US dollars for every euro? Use the sales table and keep the order lines with an order_date from 2025-10-01 to 2025-12-31, both included. Return two columns, in this order: country_code and revenue_usd, the country's total net_revenue_eur converted to US dollars, rounded to whole dollars with ROUND(x, 0). A missing net_revenue_eur adds nothing to the total. Return one row per country_code. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "country_code",
+        "type_class": "text"
+      },
+      {
+        "name": "revenue_usd",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per country_code"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "country_code",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "revenue_usd",
+        "type_class": "numeric",
+        "precision": "money",
+        "require_rounding": 0
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "country_code"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, look at where revenue_usd is rounded: once for every line, or once for each country's total.",
+    "Rounding every line to whole dollars before adding them up lets small errors pile up over thousands of lines. Add up and convert first, then round the total once."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 73,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 74,
+      "to": 84,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 85,
+      "to": 149,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 150,
+      "to": 171,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": "SELECT country_code, SUM(ROUND(net_revenue_eur * 1.08, 0)) AS revenue_usd\nFROM sales\nWHERE order_date BETWEEN DATE '2025-10-01' AND DATE '2025-12-31'\nGROUP BY country_code",
+  "starter_error_id": "ERR-LOG-19",
+  "time_target_ms": 150000,
+  "why_this_works": "ROUND around the converted total rounds once; rounding each line first adds up thousands of small rounding errors."
+}

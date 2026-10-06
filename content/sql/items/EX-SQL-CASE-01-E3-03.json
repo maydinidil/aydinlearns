@@ -1,0 +1,138 @@
+{
+  "id": "EX-SQL-CASE-01-E3-03",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-02",
+    "case",
+    "segment-count",
+    "bands",
+    "is-null",
+    "calculation",
+    "group-by",
+    "sales"
+  ],
+  "level": 2,
+  "source_ids": [
+    "01:SQL-CASE-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-CASE-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CASE-01"
+  ],
+  "template_id": "T-CASE-01-segment-count",
+  "template_params": {
+    "table": "sales",
+    "group_by": "parent_category",
+    "tested": "net_revenue_eur / units",
+    "thresholds": "50, 200",
+    "output": "price_band"
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_case",
+  "prompt": "Band the order lines by the price paid per unit. A line's unit price is net_revenue_eur divided by units. price_band is the text 'unknown' when net_revenue_eur or units is missing, 'entry' when the unit price is under 50.00, 'mid' when it is 50.00 or more but under 200.00, and 'premium' when it is 200.00 or more. Use the sales table. Return four columns, in this order: parent_category, price_band, n_lines, the number of order lines, and units_sold, the sum of units. A missing units value adds nothing to the sum. Return one row per parent_category and price_band combination that has at least one line. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "parent_category",
+        "type_class": "text"
+      },
+      {
+        "name": "price_band",
+        "type_class": "text"
+      },
+      {
+        "name": "n_lines",
+        "type_class": "numeric"
+      },
+      {
+        "name": "units_sold",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per parent category and price band"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "parent_category",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "price_band",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "n_lines",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "units_sold",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "parent_category",
+      "price_band"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the column price_band from the unit price, then the count and the units next to it, and decide what one row stands for.",
+    "The band tests divide net_revenue_eur by units on each line; a line of 4 units worth 50.00 has a unit price of 12.50. A missing value makes the unit price missing, which fails every < test, so give it its own branch first."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 326,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 327,
+      "to": 337,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 338,
+      "to": 374,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 230000,
+  "why_this_works": "Dividing inside the WHEN tests bands each line by its price per unit, and the missing-value branch comes first so an incomplete line is not called premium."
+}

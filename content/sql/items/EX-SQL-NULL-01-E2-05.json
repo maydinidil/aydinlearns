@@ -1,0 +1,117 @@
+{
+  "id": "EX-SQL-NULL-01-E2-05",
+  "version": 2,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-01",
+    "coalesce",
+    "null_arithmetic",
+    "calculated-column"
+  ],
+  "level": 1,
+  "source_ids": [
+    "01:SQL-NULL-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-02",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-NULL-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-NULL-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01"
+  ],
+  "template_id": "T-NULL-01-coalesce-arithmetic",
+  "template_params": {
+    "table": "promotions",
+    "null_column": "discount_pct",
+    "helper": "COALESCE"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_null",
+  "prompt": "For the clearance and bundle promotions that started in 2025 or later (promo_type 'clearance' or 'bundle', start_date on or after 1 January 2025, with no upper limit), show the share of the list price a customer still pays: price_factor = 1 - discount_pct / 100, so a discount_pct of 25 gives 0.75. Leave out promotions with a missing start_date. A promotion with no discount_pct recorded (NULL) gave no discount, so its price_factor is 1: use COALESCE(discount_pct, 0) in the calculation. Return three columns, in this order: promo_code, promo_type, price_factor. Return one row per promotion. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "promo_code",
+        "type_class": "text"
+      },
+      {
+        "name": "promo_type",
+        "type_class": "text"
+      },
+      {
+        "name": "price_factor",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per promotion"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "promo_code",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "promo_type",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "price_factor",
+        "type_class": "numeric",
+        "precision": "ratio"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the calculated column. price_factor is 1 minus the discount divided by 100, with a missing discount counted as 0.",
+    "In the SELECT list, apply COALESCE to the discount before the arithmetic, because arithmetic with NULL gives NULL. In WHERE, bracket the two promotion types, because they are joined by OR."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 82,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 83,
+      "to": 98,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 99,
+      "to": 192,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "COALESCE turns a missing discount into 0 before the arithmetic, so the price_factor is 1 instead of the NULL that 1 - NULL / 100 would give."
+}

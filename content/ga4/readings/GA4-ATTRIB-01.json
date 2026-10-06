@@ -1,0 +1,26 @@
+{
+  "concept_id": "GA4-ATTRIB-01",
+  "section": "ga4",
+  "version": 1,
+  "title": "Attribution settings and models",
+  "reading_md": "## What it is\n\nAttribution decides how the credit for a key event is shared among the clicks and channels that led to it. In 2026 GA4 offers three models:\n\n- **Data-driven**, the default.\n- **Paid and organic last click.**\n- **Google paid channels last click**, which gives the credit to the last click from a Google paid channel (Unverified).\n\nFirst click, linear, time decay and position-based were removed in November 2023.\n\nThe reporting attribution model is a property setting, and the Marketer role or above can change attribution settings. Switching the model recalculates the reports that use attributed credit, for past data as well as future data (Unverified). The **Attribution models** report, formerly called Model comparison, puts models side by side.\n\n**Lookback windows** set how far back a click can still earn credit for a key event.\n\n- Acquisition key events (`first_visit` and `first_open`): 30 days by default, or 7.\n- All other key events: 90 days by default, or 30 or 60.\n\nA Voltmarkt example: a shopper clicks an ad, then buys a TV 70 days later. With the default 90-day window, that click can earn credit for the purchase. With a 60-day window, it cannot.\n\nAcquisition dimensions come in three scopes: first user (how the user was first acquired), session (where each session came from) and event (credit given by the attribution model). The Default channel group is event-scoped and follows the property's model. The Session and First user default channel groups use paid and organic last click.\n\n## What the exam asks\n\n- Which models exist, and which one is the default.\n- The lookback windows: the defaults and the other choices, for acquisition key events and for all others.\n- First-user against session dimensions.\n- A third-party guide says attribution comes up more often in the updated 2026 assessment than before (Unverified).\n\n## Common confusions\n\n- Older prep sites list seven models. Four are gone, so an option naming first click, linear, time decay or position-based is almost always wrong.\n- The 30-day default applies only to `first_visit` and `first_open`. Every other key event starts at 90 days.\n- First-user dimensions describe how a user was first acquired; session dimensions describe each visit.\n- Google Ads conversions made from key events: an Analytics Help article says they use last click, while the 2026 conversion management updates let attribution be set per conversion (New in 2026). The sources may conflict here, so treat either claim with care (Unverified).\n\n## In Skillshop\n\nCourse \"Google Analytics Certification (2026)\", module \"Dive Deeper into GA Data and Reports\": the parts on attribution and the Advertising reports (Unverified).",
+  "source_ids": [
+    "06:GA4-ATTRIB-01",
+    "06:Q-GA4-66",
+    "06:GA4-CH-03",
+    "06:GA4-CH-10",
+    "06:GA4-ADMIN-02",
+    "06:QS-06",
+    "10:§4",
+    "10:§7",
+    "ERRATA:E-033",
+    "ERRATA:E-118",
+    "ERRATA:E-121",
+    "ERRATA:E-124",
+    "06:§2.1",
+    "ERRATA:E-116",
+    "ERRATA:E-122"
+  ],
+  "verified": true,
+  "as_of": "2026-10-05"
+}

@@ -1,0 +1,83 @@
+{
+  "id": "EX-SQL-AGG-02-E2-43",
+  "version": 1,
+  "kind": "which_table",
+  "tags": [
+    "sql",
+    "LVL-02",
+    "which_table",
+    "which_table",
+    "sales",
+    "grain"
+  ],
+  "level": 2,
+  "source_ids": [
+    "01:SQL-AGG-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-AGG-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-AGG-02"
+  ],
+  "template_id": "T-AGG-02-which-table-group-revenue",
+  "template_params": {},
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_agg",
+  "prompt": "You want the net revenue of each parent category, from one table with GROUP BY parent_category. Which table has both parent_category and net_revenue_eur?",
+  "output_contract": null,
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [],
+  "subgoals": [],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 90000,
+  "why_this_works": "",
+  "options": [
+    {
+      "oid": "ofdfd9f9",
+      "text": "categories",
+      "misconception_id": "ERR-SYN-02"
+    },
+    {
+      "oid": "occfd878",
+      "text": "products",
+      "misconception_id": "ERR-SYN-02"
+    },
+    {
+      "oid": "o0be1204",
+      "text": "promotions",
+      "misconception_id": "ERR-SYN-02"
+    },
+    {
+      "oid": "oe94b07f",
+      "text": "sales",
+      "misconception_id": null
+    }
+  ]
+}

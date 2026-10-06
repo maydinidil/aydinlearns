@@ -1,0 +1,104 @@
+{
+  "id": "EX-SQL-AGG-01-E1-09",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-02",
+    "aggregate",
+    "sum_avg",
+    "sales",
+    "sum",
+    "date_range"
+  ],
+  "level": 2,
+  "source_ids": [
+    "01:SQL-AGG-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-AGG-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-AGG-01"
+  ],
+  "template_id": "T-AGG-01-sum-date-range",
+  "template_params": {
+    "table": "sales",
+    "from": "2024-01-01",
+    "to": "2024-12-31",
+    "measure": "units",
+    "output": "total_units"
+  },
+  "sub_skill": "sum_avg",
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_agg",
+  "prompt": "How many units did Voltmarkt sell in total in 2024 (order_date from 1 January 2024 to 31 December 2024, both days included)? A line with a missing units value adds nothing. Return one column, total_units. The result is a single row. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "total_units",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row in total"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "total_units",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the total. Add up units over the lines whose order_date falls in 2024.",
+    "The total goes in the SELECT list, named total_units with AS. Adding up units is not the same as counting lines, and the date range must keep 31 December too."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 32,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 33,
+      "to": 43,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 44,
+      "to": 108,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 100000,
+  "why_this_works": "SUM adds the units of every 2024 line, and BETWEEN keeps both 1 January and 31 December."
+}

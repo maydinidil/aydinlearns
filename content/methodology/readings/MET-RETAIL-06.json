@@ -1,0 +1,15 @@
+{
+  "concept_id": "MET-RETAIL-06",
+  "section": "methodology",
+  "version": 1,
+  "title": "Average order value (AOV)",
+  "reading_md": "**What it measures.** The average net revenue of one order. Retail teams use it to ask whether baskets are getting bigger. GA4's closest metric is average purchase revenue.\n\n**Formula.**\n\nAOV = net revenue / number of distinct orders\n\nGrain: channel or store × period. In Voltmarkt's `sales` table one row is one order line, so count orders, not rows:\n\n```sql\nSELECT channel,\n  ROUND(SUM(net_revenue_eur) / COUNT(DISTINCT order_id), 2) AS aov\nFROM sales\nGROUP BY channel;\n```\n\n**Worked example.** In one week the Eindhoven store took 640 orders. Those orders had 1,600 order lines and €121,600 of net revenue.\n\n- AOV = 121,600 / 640 = €190.00.\n- Dividing by the 1,600 lines gives €76.00. That is revenue per line, not per order.\n\nTo combine stores or channels, add up revenue and orders first, then divide. Store 1 took €100,000 from 500 orders (AOV €200). Store 2 took €30,000 from 300 orders (AOV €100). Together: 130,000 / 800 = €162.50, not the €150.00 you get by averaging the two AOVs.\n\n**Common mistakes.**\n\n- Counting order lines instead of orders. Every extra line in a basket makes AOV look smaller.\n- Averaging store or day AOVs. A quiet store then counts as much as a busy one. Recompute from the sums.\n- Treating returns and VAT differently across channels. Decide whether revenue is before or after VAT and returns, and use the same rule for the webshop and the stores.\n- Reading a higher AOV as good news on its own. Revenue = AOV × orders, so AOV can rise while orders and revenue fall, for example when many small accessory orders drop away.\n\n**What AOV does not answer.**\n\n- How many orders there were, or total revenue.\n- How many items are in a basket: that is units per transaction (UPT).\n- What one unit sells for: that is average selling price (ASP).\n- Whether the orders make money: that needs gross margin.\n- How many visitors buy at all: that is conversion rate.\n\n**How managers ask for it.** \"Is basket value up?\" \"What's AOV online versus in store?\"",
+  "source_ids": [
+    "04:MET-RETAIL-06",
+    "ERRATA:E-100",
+    "ERRATA:E-101",
+    "ERRATA:E-013"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04"
+}

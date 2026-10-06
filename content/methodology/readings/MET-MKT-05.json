@@ -1,0 +1,15 @@
+{
+  "concept_id": "MET-MKT-05",
+  "section": "methodology",
+  "version": 1,
+  "title": "Customer acquisition cost (CAC)",
+  "reading_md": "**What it measures.** What it costs, on average, to win one new customer. A new customer is someone placing a first order ever. A returning customer is not new, however much was spent on reaching them again.\n\n**Formula.** CAC = cost / new customers. Grain: channel or company × period. There are two versions, so always say which one you mean.\n\n| Version | Cost | Customers |\n|---|---|---|\n| Blended CAC | All sales and marketing cost: media, agencies, the marketing team | All new customers, from every channel, paid or not |\n| Paid CAC (per channel) | That channel's paid media spend | New customers attributed to that channel |\n\nUse paid CAC per channel to decide where the next euro of budget goes. Blended CAC describes the company as a whole.\n\n**Worked example.** In one quarter Voltmarkt's total sales and marketing cost was €750,000, and 25,000 customers placed their first order.\n\n- Blended CAC = 750,000 / 25,000 = €30.00.\n\nPaid search cost €180,000 and was credited with 4,000 first orders from new customers, plus 2,000 orders from returning customers.\n\n- Paid search CAC = 180,000 / 4,000 = €45.00.\n- Dividing by all 6,000 orders gives €30.00. That is a cost per order, not CAC.\n\nThe blended €30 looks cheaper than paid search's €45 because the blended count includes customers who arrived through organic search, word of mouth or a store visit at no media cost. That is why blended CAC must not drive a channel budget decision.\n\n**Common mistakes.**\n\n- Quoting blended CAC when deciding channel budgets.\n- Counting returning customers as new. CAC then looks lower than it is.\n- Changing what the cost includes, such as media only in one quarter and media plus agency fees in the next. Label what the cost covers.\n\n**What CAC does not answer.**\n\n- Whether the customers are worth what they cost. That needs their margin and repeat orders over time (in SaaS, LTV and CAC payback).\n- How much revenue the spend brought back: that is ROAS.\n- What a click or a single order costs: those are CPC and CPA.\n\n**How managers ask for it.** \"What does it cost us to get a new customer?\" \"Is paid search CAC going up?\"",
+  "source_ids": [
+    "04:MET-MKT-05",
+    "04:§2.1",
+    "ERRATA:E-100",
+    "ERRATA:E-101"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04"
+}

@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-AGG-01-E2-41",
+  "item_version": 1,
+  "correct_oid": "o9deec25",
+  "explanation": "sales has one row per order line, and an order with three lines appears three times. COUNT(DISTINCT order_id) counts each order once. COUNT(*) and COUNT(order_id) both count lines, not orders. COUNT(DISTINCT country_code) counts countries, which is 1 after the filter.",
+  "solver": {
+    "prompt_hash": "1d30e3614874597b",
+    "grader_version": "choice.1",
+    "chosen": "o9deec25",
+    "typed": null,
+    "at": "2026-10-06T09:08:14.810Z"
+  }
+}

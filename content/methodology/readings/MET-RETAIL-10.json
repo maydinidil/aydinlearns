@@ -1,0 +1,16 @@
+{
+  "concept_id": "MET-RETAIL-10",
+  "section": "methodology",
+  "version": 1,
+  "title": "Returns rate",
+  "reading_md": "**What it measures.** The share of the units sold that customers send or bring back.\n\n**Formula.**\n\nReturns rate % = 100 × units returned / units sold\n\n- Each return counts in the month of the original sale, not the month it came back. A TV sold in November and returned in December counts against November.\n- Match each return to its original order line.\n- Grain: category or SKU × sale month. Voltmarkt counts units. A rate by value (refunds / net sales) is a different number, so say which one you report.\n\n**Worked example.** Voltmarkt sold 2,000 headphones in November 2025. Of those units, 90 came back in November, 50 in December and 20 in January: 160 in all. The returns rate for November = 100 × 160 / 2,000 = 8.0%.\n\nIn January 2026 Voltmarkt sold 1,200 headphones, and 210 headphones came back that month, most of them December gifts. Dividing January's returns by January's sales gives 17.5%, a number that mixes two months and says nothing about January's own sales.\n\n**Recent months look better.** Returns keep arriving for weeks after a sale, so last month's rate is still rising. Compare months only once their returns have had time to come in.\n\n**Common mistakes.**\n\n- Dividing the returns received in a month by the sales of that month.\n- Mixing units and value. When dearer items come back more often, the rate by value is higher than the rate by units.\n- Matching returns to orders by order and product alone. When an order has the same product on two lines, each return matches both lines and is counted twice.\n\n**What the returns rate does not answer.**\n\n- Why items came back: faulty, the wrong size of TV for the room, or a change of mind. That needs return reasons.\n- What returns cost: refunds, handling, and items that can no longer be sold as new.\n\n**How managers ask for it.** \"What's our return rate on headphones?\" \"Are web returns worse than store?\"",
+  "source_ids": [
+    "04:MET-RETAIL-10",
+    "04:§2.1",
+    "ERRATA:E-008",
+    "ERRATA:E-013",
+    "ERRATA:E-100"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06"
+}

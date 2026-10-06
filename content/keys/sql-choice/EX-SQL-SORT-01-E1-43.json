@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-SORT-01-E1-43",
+  "item_version": 1,
+  "correct_oid": "o8b6e12b",
+  "explanation": "DESC puts the highest discount first, and promo_id with no DESC settles a tie with the lower ID first, so LIMIT 3 keeps exactly the rows asked for. Without the tie-break, a tie at the third place is settled by chance. Ascending order returns the smallest discounts, and promo_id DESC puts the higher ID first.",
+  "solver": {
+    "prompt_hash": "6c963c0efecd5779",
+    "grader_version": "choice.1",
+    "chosen": "o8b6e12b",
+    "typed": null,
+    "at": "2026-10-06T09:08:14.856Z"
+  }
+}

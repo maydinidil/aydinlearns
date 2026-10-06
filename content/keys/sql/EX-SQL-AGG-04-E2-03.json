@@ -1,0 +1,36 @@
+{
+  "item_id": "EX-SQL-AGG-04-E2-03",
+  "item_version": 1,
+  "reference_sql": "SELECT store_code,\n       SUM(CASE WHEN order_month = DATE '2025-01-01' THEN net_revenue_eur ELSE 0 END) AS jan_revenue_eur,\n       SUM(CASE WHEN order_month = DATE '2025-02-01' THEN net_revenue_eur ELSE 0 END) AS feb_revenue_eur,\n       SUM(CASE WHEN order_month = DATE '2025-03-01' THEN net_revenue_eur ELSE 0 END) AS mar_revenue_eur\nFROM sales\nWHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-03-31'\nGROUP BY store_code",
+  "alternatives": [
+    "SELECT store_code, SUM(CASE WHEN order_date BETWEEN DATE '2025-01-01' AND DATE '2025-01-31' THEN net_revenue_eur ELSE 0 END) AS jan_revenue_eur, SUM(CASE WHEN order_date BETWEEN DATE '2025-02-01' AND DATE '2025-02-28' THEN net_revenue_eur ELSE 0 END) AS feb_revenue_eur, SUM(CASE WHEN order_date BETWEEN DATE '2025-03-01' AND DATE '2025-03-31' THEN net_revenue_eur ELSE 0 END) AS mar_revenue_eur FROM sales WHERE order_date >= DATE '2025-01-01' AND order_date <= DATE '2025-03-31' GROUP BY store_code",
+    "SELECT store_code, COALESCE(SUM(net_revenue_eur) FILTER (WHERE order_month = '2025-01-01'), 0) AS jan_revenue_eur, COALESCE(SUM(net_revenue_eur) FILTER (WHERE order_month = '2025-02-01'), 0) AS feb_revenue_eur, COALESCE(SUM(net_revenue_eur) FILTER (WHERE order_month = '2025-03-01'), 0) AS mar_revenue_eur FROM sales WHERE order_month BETWEEN '2025-01-01' AND '2025-03-01' GROUP BY 1"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-17",
+      "sql": "SELECT store_code, SUM(CASE WHEN order_month = DATE '2025-01-01' THEN net_revenue_eur END) AS jan_revenue_eur, SUM(CASE WHEN order_month = DATE '2025-02-01' THEN net_revenue_eur END) AS feb_revenue_eur, SUM(CASE WHEN order_month = DATE '2025-03-01' THEN net_revenue_eur END) AS mar_revenue_eur FROM sales WHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-03-31' GROUP BY store_code"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-06",
+      "sql": "SELECT store_code, SUM(CASE WHEN order_date >= DATE '2025-01-01' AND order_date < DATE '2025-01-31' THEN net_revenue_eur ELSE 0 END) AS jan_revenue_eur, SUM(CASE WHEN order_date >= DATE '2025-02-01' AND order_date < DATE '2025-02-28' THEN net_revenue_eur ELSE 0 END) AS feb_revenue_eur, SUM(CASE WHEN order_date >= DATE '2025-03-01' AND order_date < DATE '2025-03-31' THEN net_revenue_eur ELSE 0 END) AS mar_revenue_eur FROM sales WHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-03-31' GROUP BY store_code"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-07",
+      "sql": "SELECT store_code, order_month, SUM(CASE WHEN order_month = DATE '2025-01-01' THEN net_revenue_eur ELSE 0 END) AS jan_revenue_eur, SUM(CASE WHEN order_month = DATE '2025-02-01' THEN net_revenue_eur ELSE 0 END) AS feb_revenue_eur, SUM(CASE WHEN order_month = DATE '2025-03-01' THEN net_revenue_eur ELSE 0 END) AS mar_revenue_eur FROM sales WHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-03-31' GROUP BY store_code, order_month"
+    }
+  ],
+  "hint3_partial": "SELECT store_code,\n       SUM(CASE WHEN order_month = DATE '2025-01-01' THEN ___ ELSE ___ END) AS jan_revenue_eur,\n       SUM(CASE WHEN order_month = ___ THEN ___ ELSE ___ END) AS feb_revenue_eur,\n       ___ AS mar_revenue_eur\nFROM sales\nWHERE order_date BETWEEN ___ AND ___\nGROUP BY store_code",
+  "solver": {
+    "prompt_hash": "0d4a3d16ebcab625",
+    "schema_version": "cebf75df442f",
+    "dataset_version": "506a9858f862fdfb",
+    "grader_version": "1b.3",
+    "query": "SELECT store_code, COALESCE(SUM(net_revenue_eur) FILTER (WHERE order_month = '2025-01-01'), 0) AS jan_revenue_eur, COALESCE(SUM(net_revenue_eur) FILTER (WHERE order_month = '2025-02-01'), 0) AS feb_revenue_eur, COALESCE(SUM(net_revenue_eur) FILTER (WHERE order_month = '2025-03-01'), 0) AS mar_revenue_eur FROM sales WHERE order_date BETWEEN '2025-01-01' AND '2025-03-31' GROUP BY store_code\n",
+    "at": "2026-10-04T10:06:48.845Z"
+  }
+}

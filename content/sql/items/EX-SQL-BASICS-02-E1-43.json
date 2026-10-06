@@ -1,0 +1,85 @@
+{
+  "id": "EX-SQL-BASICS-02-E1-43",
+  "version": 1,
+  "kind": "choose_query",
+  "tags": [
+    "sql",
+    "LVL-01",
+    "choose_query",
+    "calculated_column",
+    "percent_scale",
+    "promotions"
+  ],
+  "level": 1,
+  "source_ids": [
+    "01:SQL-BASICS-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-BASICS-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02"
+  ],
+  "template_id": "T-BASICS-02-choose-percent-to-share",
+  "template_params": {
+    "table": "promotions"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_basics",
+  "prompt": "discount_pct holds a percentage, so 25.00 means 25% off. Which query returns promo_code and discount_share, the discount as a share (25% becomes 0.25), one row per promotion?",
+  "output_contract": null,
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [],
+  "subgoals": [],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 60000,
+  "why_this_works": "",
+  "options": [
+    {
+      "oid": "od4cf542",
+      "text": "SELECT promo_code, discount_pct * 100 AS discount_share\nFROM promotions",
+      "misconception_id": "ERR-LOG-21"
+    },
+    {
+      "oid": "o8d0d1a9",
+      "text": "SELECT promo_code, discount_pct AS discount_share\nFROM promotions",
+      "misconception_id": "ERR-LOG-21"
+    },
+    {
+      "oid": "o73e3ae3",
+      "text": "SELECT promo_code, discount_pct / 100 AS discount_share\nFROM promotions",
+      "misconception_id": null
+    },
+    {
+      "oid": "o0eb9824",
+      "text": "SELECT promo_code, discount_pct / 100\nFROM promotions",
+      "misconception_id": "ERR-OUT-01"
+    }
+  ]
+}

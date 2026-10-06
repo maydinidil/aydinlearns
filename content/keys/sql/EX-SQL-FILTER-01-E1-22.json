@@ -1,0 +1,32 @@
+{
+  "item_id": "EX-SQL-FILTER-01-E1-22",
+  "item_version": 1,
+  "reference_sql": "SELECT store_code, city, opened_on\nFROM stores\nWHERE store_type = 'standard' AND opened_on >= '2025-01-01'",
+  "alternatives": [
+    "SELECT store_code, city, opened_on\nFROM stores\nWHERE opened_on >= DATE '2025-01-01' AND store_type = 'standard'",
+    "SELECT store_code, city, opened_on\nFROM stores\nWHERE store_type = 'standard' AND NOT opened_on < '2025-01-01'",
+    "SELECT store_code, city, opened_on\nFROM stores\nWHERE store_type = 'standard' AND opened_on > '2024-12-31'"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-15",
+      "sql": "SELECT store_code, city, opened_on FROM stores WHERE store_type = 'standard' AND opened_on > '2025-01-01'"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-SYN-07",
+      "sql": "SELECT store_code, city, opened_on FROM stores WHERE store_type = \"standard\" AND opened_on >= '2025-01-01'"
+    }
+  ],
+  "hint3_partial": "SELECT store_code, city, opened_on\nFROM stores\nWHERE store_type = 'standard' AND ...",
+  "solver": {
+    "prompt_hash": "0e0a6bfbb62dd87d",
+    "schema_version": "9a8d01143702",
+    "dataset_version": "506a9858f862fdfb",
+    "grader_version": "1b.3",
+    "query": "SELECT store_code, city, opened_on FROM stores WHERE store_type = 'standard' AND opened_on >= DATE '2025-01-01'\n",
+    "at": "2026-10-04T14:33:18.056Z"
+  }
+}

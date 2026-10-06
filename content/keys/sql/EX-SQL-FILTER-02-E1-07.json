@@ -1,0 +1,31 @@
+{
+  "item_id": "EX-SQL-FILTER-02-E1-07",
+  "item_version": 1,
+  "reference_sql": "SELECT product_id, product_name, unit_cost_eur\nFROM products\nWHERE unit_cost_eur BETWEEN 50 AND 100",
+  "alternatives": [
+    "SELECT product_id, product_name, unit_cost_eur\nFROM products\nWHERE unit_cost_eur >= 50\n  AND unit_cost_eur <= 100",
+    "SELECT product_id, product_name, unit_cost_eur\nFROM products\nWHERE unit_cost_eur BETWEEN 50.00 AND 100.00"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "EX-SQL-FILTER-02-E1-07-PW1",
+      "error_id": "ERR-LOG-15",
+      "sql": "SELECT product_id, product_name, unit_cost_eur\nFROM products\nWHERE unit_cost_eur >= 50\n  AND unit_cost_eur < 100"
+    },
+    {
+      "id": "EX-SQL-FILTER-02-E1-07-PW2",
+      "error_id": "ERR-LOG-23",
+      "sql": "SELECT product_id, product_name, unit_cost_eur\nFROM products\nWHERE unit_cost_eur BETWEEN 100 AND 50"
+    }
+  ],
+  "hint3_partial": "SELECT product_id, product_name, unit_cost_eur\nFROM products\nWHERE unit_cost_eur BETWEEN ___ AND ___",
+  "solver": {
+    "prompt_hash": "a3ea2798d83bf965",
+    "schema_version": "d77fe1c31a0e",
+    "dataset_version": "9639f8ae1f71c2ef",
+    "grader_version": "1a.2",
+    "query": "SELECT product_id, product_name, unit_cost_eur FROM products WHERE unit_cost_eur BETWEEN 50 AND 100\n",
+    "at": "2026-10-03T13:08:02.705Z"
+  }
+}

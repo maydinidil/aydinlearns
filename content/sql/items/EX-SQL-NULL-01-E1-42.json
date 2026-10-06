@@ -1,0 +1,129 @@
+{
+  "id": "EX-SQL-NULL-01-E1-42",
+  "version": 1,
+  "kind": "predict_result",
+  "tags": [
+    "sql",
+    "LVL-01",
+    "predict_result",
+    "null",
+    "is_null",
+    "coalesce",
+    "calendar"
+  ],
+  "level": 1,
+  "source_ids": [
+    "01:SQL-NULL-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-NULL-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-NULL-01"
+  ],
+  "template_id": "T-NULL-01-predict-result-is-null-coalesce",
+  "template_params": {
+    "table": "calendar"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_null",
+  "prompt": "Which result does this query return? Use the sample rows of calendar in the tables panel. Rows may be in any order.",
+  "output_contract": null,
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [],
+  "subgoals": [],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 60000,
+  "why_this_works": "",
+  "shown_sql": "SELECT cal_date,\n       COALESCE(event, 'none') AS event_label\nFROM calendar\nWHERE cal_date <= DATE '2024-01-03'\n  AND event IS NULL",
+  "options": [
+    {
+      "oid": "o55a05f7",
+      "text": "Three days with a missing label",
+      "misconception_id": "ERR-LOG-00",
+      "table": {
+        "columns": [
+          "cal_date",
+          "event_label"
+        ],
+        "rows": [
+          [
+            "2024-01-01",
+            null
+          ],
+          [
+            "2024-01-02",
+            null
+          ],
+          [
+            "2024-01-03",
+            null
+          ]
+        ]
+      }
+    },
+    {
+      "oid": "occc558a",
+      "text": "No rows",
+      "misconception_id": "ERR-SEM-04",
+      "table": {
+        "columns": [
+          "cal_date",
+          "event_label"
+        ],
+        "rows": []
+      }
+    },
+    {
+      "oid": "odc5e488",
+      "text": "Three days labelled none",
+      "misconception_id": null,
+      "table": {
+        "columns": [
+          "cal_date",
+          "event_label"
+        ],
+        "rows": [
+          [
+            "2024-01-01",
+            "none"
+          ],
+          [
+            "2024-01-02",
+            "none"
+          ],
+          [
+            "2024-01-03",
+            "none"
+          ]
+        ]
+      }
+    }
+  ]
+}

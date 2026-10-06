@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-AGG-02-E2-41",
+  "item_version": 1,
+  "value": 4,
+  "explanation": "GROUP BY makes one group for each different event. The panel lists three events, and the sample rows show that most days have no event. All the days with a missing event form one more group of their own, so the result has 4 rows.",
+  "solver": {
+    "prompt_hash": "8b314f5796b2248a",
+    "grader_version": "choice.1",
+    "chosen": null,
+    "typed": "4",
+    "at": "2026-10-06T09:08:14.814Z"
+  }
+}

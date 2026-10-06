@@ -1,0 +1,14 @@
+{
+  "schema": "voltmarkt_edge_basics",
+  "mirrors": "voltmarkt",
+  "family": "basics",
+  "contains": [
+    "a store code in lower case",
+    "city, category, product and promotion names with accents or an apostrophe",
+    "long names, some with commas in them",
+    "a product that costs exactly 0.01 euro",
+    "a discount that is not a whole number",
+    "a promotion that starts and ends on the same day",
+    "five calendar days around New Year 2025, where the ISO year and the calendar year differ"
+  ]
+}

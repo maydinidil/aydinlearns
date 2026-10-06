@@ -1,0 +1,32 @@
+{
+  "concept_id": "GA4-SETUP-01",
+  "section": "ga4",
+  "version": 2,
+  "title": "Account, property and data stream structure",
+  "reading_md": "## What it is\n\nAn organization (optional) holds accounts. An account usually stands for one business. Inside it, a property is the reporting unit: reports and most settings live there. A property collects data through data streams, one per website, iOS app or Android app. A web stream has a Measurement ID that starts with G-. Its tag settings hold cross-domain measurement, unwanted referrals and the session timeout.\n\n- **User-ID.** Your own persistent ID for signed-in users. It joins one person's devices and sessions. It must be 256 characters or fewer and must not identify the person to a third party, so never an email address. Reports use it only when the reporting identity is Blended or Observed; Device-based ignores collected user IDs.\n- **User-provided data collection.** Consented, SHA256-hashed email, phone, name and address. It powers enhanced conversions, Customer Match and demographics from first-party data. It needs a Google Ads link, is not available in the Health category, and follows the user data retention setting (2 or 14 months).\n- **Cross-domain measurement.** For visitors moving between your own domains. Set it in Admin > Data streams > Web > Configure tag settings > Configure your domains (Editor role or above). The tag adds a `_gl` parameter to links between the listed domains, so the visit stays one session.\n- **Unwanted referrals.** A list of third-party domains, such as a payment gateway, that should not start a new attributed session.\n- **Analytics 360.** The paid version. It raises limits (event data retention up to 50 months instead of 14, 50 key events instead of 30, 400 audiences instead of 100), and adds unsampled explorations.\n- **Subproperties and roll-ups.** Two 360-only property types, at extra cost. A subproperty takes a filtered part of one 360 source property, such as one country: it splits. A roll-up property combines up to 200 source properties. Each source must be a 360 property or subproperty, never another roll-up: it combines.\n\n## What the exam asks\n\n- Choosing the structure: what belongs in one property, and when a business needs its own account.\n- Where a setting lives: account, property or data stream.\n- Keeping one journey whole across your own domains; User-ID versus user-provided data.\n- What 360 is for: which property type splits data, which combines it, and why a business upgrades. Learn the 360 purpose first, then its exact limits (Unverified).\n\n## Common confusions\n\n- GA4 has no Universal Analytics views. Use comparisons and filters in reports, data filters, a separate property or, in 360, a subproperty.\n- A separate property per app splits the data. Keep a site and its apps in one property for combined reporting.\n- The Measurement ID (G-) is not a Firebase app ID.\n- Unwanted referrals alone do not fix journeys across your own domains. Use the cross-domain admin setting, not linker code edited into every page.\n- Subdomains of one domain need no cross-domain setup.\n- Cross-device reporting comes from User-ID, not from Google signals.\n- User-ID and user-provided data are different features.\n- BigQuery export and explorations are not 360-only.\n\n## In Skillshop\n\nCourse \"Google Analytics Certification (2026)\": the module \"Get Started Using Google Analytics\" and \"Use GA with Other Tools and Data Sources\" for Analytics 360 (Unverified).",
+  "source_ids": [
+    "06:GA4-SETUP-01",
+    "06:GA4-REPORTS-01",
+    "10:GA4-SETUP-20",
+    "10:GA4-SETUP-21",
+    "10:GA4-SETUP-22",
+    "10:GA4-ADMIN-21",
+    "10:GA4-ADMIN-22",
+    "10:§5",
+    "10:§6",
+    "10:COR-11",
+    "10:COR-14",
+    "10:COR-15",
+    "ERRATA:E-030",
+    "ERRATA:E-031",
+    "ERRATA:E-032",
+    "ERRATA:E-113",
+    "ERRATA:E-117",
+    "06:§2.1",
+    "10:§7",
+    "ERRATA:E-116",
+    "ERRATA:E-122"
+  ],
+  "verified": true,
+  "as_of": "2026-10-05"
+}

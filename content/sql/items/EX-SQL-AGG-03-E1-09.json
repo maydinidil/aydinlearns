@@ -1,0 +1,118 @@
+{
+  "id": "EX-SQL-AGG-03-E1-09",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-02",
+    "having",
+    "count",
+    "stores"
+  ],
+  "level": 2,
+  "source_ids": [
+    "01:SQL-AGG-03"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-AGG-03",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-AGG-03"
+  ],
+  "template_id": "T-AGG-03-count-threshold",
+  "template_params": {
+    "table": "stores",
+    "group_by": "store_type",
+    "aggregate": "count",
+    "comparison": "at least",
+    "threshold": 2
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_agg",
+  "prompt": "Which store types have at least 2 stores? Use the stores table, which has one row per store, the webshop included. Return two columns, in this order: store_type and n_stores, the number of stores of that type. Return one row per store type, and only the types with 2 or more stores. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "store_type",
+        "type_class": "text"
+      },
+      {
+        "name": "n_stores",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per store type"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "store_type",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "n_stores",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "store_type"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the group filter: keep only the store types with 2 or more stores.",
+    "\"At least 2\" keeps a type with exactly 2 stores. Write the test on the count after GROUP BY."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 39,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 40,
+      "to": 51,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 52,
+      "to": 71,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 72,
+      "to": 92,
+      "subgoal": "group_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "GROUP BY counts the stores of each type, and HAVING COUNT(*) >= 2 keeps the types with two or more, exactly two included."
+}

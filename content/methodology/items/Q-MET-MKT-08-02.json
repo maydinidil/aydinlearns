@@ -1,0 +1,31 @@
+{
+  "id": "Q-MET-MKT-08-02",
+  "version": 1,
+  "kind": "typed",
+  "section": "methodology",
+  "concept_id": "MET-MKT-08",
+  "stem": "Voltmarkt counts only touches in the 30 days up to and including an order, and credits an order with no such touch to an unattributed row. Order A, €300: paid search 45 days before, email 3 days before. Order B, €500: social 10 days before, and a display retargeting click 1 day after the order. Order C, €200: one paid search click 40 days before. Order D, €150: no touches at all. Under last click, how much revenue goes to the unattributed row, in euros with 0 decimals?",
+  "options": [],
+  "typed": {
+    "precision": "money",
+    "scale": "eur",
+    "decimals": 0,
+    "unit_label": "€"
+  },
+  "held_out": false,
+  "enemy_group": "EG-MET-MKT-08-01",
+  "status": "active",
+  "verified": true,
+  "level": null,
+  "tags": [
+    "methodology",
+    "T-MET-MKT"
+  ],
+  "source_ids": [
+    "04:MET-MKT-08",
+    "ERRATA:E-097"
+  ],
+  "as_of": "2026-10-05",
+  "review_after": null,
+  "supersedes": []
+}

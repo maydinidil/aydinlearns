@@ -1,0 +1,31 @@
+{
+  "item_id": "EX-SQL-AGG-01-E2-31",
+  "item_version": 1,
+  "reference_sql": "SELECT SUM(net_revenue_eur) / SUM(units) AS avg_unit_price_eur\nFROM sales\nWHERE parent_category = 'Accessories' AND channel = 'web' AND order_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31' AND units IS NOT NULL AND net_revenue_eur IS NOT NULL",
+  "alternatives": [
+    "SELECT SUM(net_revenue_eur) / SUM(units) AS avg_unit_price_eur FROM sales WHERE channel = 'web' AND parent_category = 'Accessories' AND order_date >= DATE '2025-01-01' AND order_date < DATE '2026-01-01' AND net_revenue_eur IS NOT NULL AND units IS NOT NULL",
+    "SELECT SUM(net_revenue_eur) * 1.0 / SUM(units) AS avg_unit_price_eur FROM sales WHERE parent_category = 'Accessories' AND channel = 'web' AND order_date BETWEEN '2025-01-01' AND '2025-12-31' AND NOT (units IS NULL OR net_revenue_eur IS NULL)"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "EX-SQL-AGG-01-E2-31-PW1",
+      "error_id": "ERR-LOG-20",
+      "sql": "SELECT AVG(net_revenue_eur / units) AS avg_unit_price_eur FROM sales WHERE parent_category = 'Accessories' AND channel = 'web' AND order_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31' AND units IS NOT NULL AND net_revenue_eur IS NOT NULL"
+    },
+    {
+      "id": "EX-SQL-AGG-01-E2-31-PW2",
+      "error_id": "ERR-LOG-14",
+      "sql": "SELECT SUM(net_revenue_eur) / COUNT(*) AS avg_unit_price_eur FROM sales WHERE parent_category = 'Accessories' AND channel = 'web' AND order_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31' AND units IS NOT NULL AND net_revenue_eur IS NOT NULL"
+    }
+  ],
+  "hint3_partial": "SELECT ___ / ___ AS avg_unit_price_eur\nFROM sales\nWHERE parent_category = 'Accessories' AND channel = 'web' AND order_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31' AND units IS NOT NULL AND net_revenue_eur IS NOT NULL",
+  "solver": {
+    "prompt_hash": "e4d8c6b807349732",
+    "schema_version": "cebf75df442f",
+    "dataset_version": "506a9858f862fdfb",
+    "grader_version": "1b.3",
+    "query": "SELECT SUM(net_revenue_eur) / SUM(units) AS avg_unit_price_eur FROM sales WHERE parent_category = 'Accessories' AND channel = 'web' AND order_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31' AND units IS NOT NULL AND net_revenue_eur IS NOT NULL\n",
+    "at": "2026-10-04T14:33:15.892Z"
+  }
+}

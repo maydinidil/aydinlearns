@@ -1,0 +1,109 @@
+{
+  "id": "EX-SQL-AGG-01-E2-31",
+  "version": 1,
+  "kind": "fix",
+  "tags": [
+    "sql",
+    "LVL-02",
+    "fix",
+    "aggregate",
+    "sum_avg",
+    "ratio-of-sums",
+    "sales",
+    "null",
+    "date_range"
+  ],
+  "level": 2,
+  "source_ids": [
+    "01:SQL-AGG-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-AGG-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-NULL-01",
+    "SQL-AGG-01"
+  ],
+  "template_id": "T-AGG-01-fix-ratio-of-sums",
+  "template_params": {
+    "table": "sales",
+    "parent_category": "Accessories",
+    "channel": "web",
+    "from": "2025-01-01",
+    "to": "2025-12-31",
+    "output": "avg_unit_price_eur"
+  },
+  "sub_skill": "sum_avg",
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_agg",
+  "prompt": "The query in the editor has one mistake. Fix it so that it answers this question: what was the average price paid per unit for Accessories (parent_category 'Accessories') sold through the web (channel 'web') in 2025 (order_date from 1 January 2025 to 31 December 2025, both days included)? Weight every unit sold equally, so a line that sold 4 units counts four times as much as a line that sold 1. Leave out any line with a missing units or net_revenue_eur value. Return one column, avg_unit_price_eur. Do not round. The result is a single row. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "avg_unit_price_eur",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row in total"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "avg_unit_price_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, look at how the SELECT list turns many lines into one price, and ask whether every unit gets the same weight.",
+    "The average of each line's own price gives a 1-unit line as much weight as a 4-unit line. Add up the revenue and the units first, then divide once."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 62,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 63,
+      "to": 73,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 74,
+      "to": 248,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": "SELECT AVG(net_revenue_eur / units) AS avg_unit_price_eur\nFROM sales\nWHERE parent_category = 'Accessories' AND channel = 'web' AND order_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31' AND units IS NOT NULL AND net_revenue_eur IS NOT NULL",
+  "starter_error_id": "ERR-LOG-20",
+  "time_target_ms": 150000,
+  "why_this_works": "SUM(net_revenue_eur) / SUM(units) weights every unit equally; AVG of each line's price gives every line the same weight, whatever its units."
+}

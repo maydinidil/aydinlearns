@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-CASE-01-E1-41",
+  "item_version": 1,
+  "correct_oid": "o72aa80b",
+  "explanation": "CASE gives every row a label and never removes a row, so all three stores come back. Store 3 opened on 2014-02-01, on or after 2014-01-01, so it is newer. Stores 1 and 2 opened in 2012 and 2013, fail the test and get the ELSE label, older.",
+  "solver": {
+    "prompt_hash": "fb41872700664aba",
+    "grader_version": "choice.1",
+    "chosen": "o72aa80b",
+    "typed": null,
+    "at": "2026-10-06T09:08:14.836Z"
+  }
+}

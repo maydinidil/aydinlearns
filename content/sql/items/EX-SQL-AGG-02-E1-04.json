@@ -1,0 +1,112 @@
+{
+  "id": "EX-SQL-AGG-02-E1-04",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-02",
+    "group_by",
+    "count",
+    "sales"
+  ],
+  "level": 2,
+  "source_ids": [
+    "01:SQL-AGG-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "lesson",
+  "target_concept_id": "SQL-AGG-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02"
+  ],
+  "template_id": "T-AGG-02-count-per-group",
+  "template_params": {
+    "table": "sales",
+    "group_by": "country_code"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_agg",
+  "prompt": "How many order lines were shipped to each country? Use the sales table, where country_code is the country an order ships to. Return two columns, in this order: country_code and n_lines, the number of order lines. Return one row per country_code. Every order line counts, including lines with missing units or a missing net_revenue_eur. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "country_code",
+        "type_class": "text"
+      },
+      {
+        "name": "n_lines",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per ship-to country"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "country_code",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "n_lines",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "country_code"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, decide what one row stands for: one row per country, with the order lines counted inside each country.",
+    "After FROM, group the rows by the column you return next to the count."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 40,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 41,
+      "to": 51,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 52,
+      "to": 73,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": {
+    "stage1": 52,
+    "stage2": 41
+  },
+  "faded_shape": "SELECT country_code, COUNT(*) AS n_lines\nFROM sales\n",
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "GROUP BY country_code makes one group per ship-to country, and COUNT(*) counts every order line in it, whatever its other columns hold."
+}

@@ -1,0 +1,37 @@
+{
+  "item_id": "EX-SQL-BASICS-02-E2-02",
+  "item_version": 1,
+  "reference_sql": "SELECT promo_id,\n       promo_name,\n       120 * discount_pct / 100 AS saving_eur\nFROM promotions",
+  "alternatives": [
+    "SELECT promo_id, promo_name, discount_pct / 100 * 120 AS saving_eur FROM promotions",
+    "SELECT promo_id, promo_name, 1.2 * discount_pct AS saving_eur FROM promotions",
+    "SELECT promo_id, promo_name, 120 - 120 * (1 - discount_pct / 100) AS saving_eur FROM promotions"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "EX-SQL-BASICS-02-E2-02-PW1",
+      "error_id": "ERR-LOG-21",
+      "sql": "SELECT promo_id, promo_name, 120 * discount_pct AS saving_eur FROM promotions"
+    },
+    {
+      "id": "EX-SQL-BASICS-02-E2-02-PW2",
+      "error_id": "ERR-LOG-00",
+      "sql": "SELECT promo_id, promo_name, 120 - 120 * discount_pct / 100 AS saving_eur FROM promotions"
+    },
+    {
+      "id": "EX-SQL-BASICS-02-E2-02-PW3",
+      "error_id": "ERR-OUT-01",
+      "sql": "SELECT promo_id, 120 * discount_pct / 100 AS saving_eur FROM promotions"
+    }
+  ],
+  "hint3_partial": "SELECT promo_id,\n       promo_name,\n       120 * ___ AS saving_eur\nFROM promotions",
+  "solver": {
+    "prompt_hash": "7adebfe8baa5bbff",
+    "schema_version": "f0340f71a1f5",
+    "dataset_version": "9639f8ae1f71c2ef",
+    "grader_version": "1a.2",
+    "query": "SELECT promo_id, promo_name, 120 * discount_pct / 100.0 AS saving_eur FROM promotions\n",
+    "at": "2026-10-03T13:08:02.280Z"
+  }
+}

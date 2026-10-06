@@ -1,0 +1,67 @@
+{
+  "case_id": "CASE-VOLT-L2",
+  "world": "RETAIL",
+  "company_id": "voltmarkt",
+  "title": "High-ticket categories and the web",
+  "persona": {
+    "name": "Marieke",
+    "role": "CFO"
+  },
+  "brief": {
+    "decision": "Which high-ticket parent categories to show in the board pack, and how much each relies on the web",
+    "deadline": "The next board meeting"
+  },
+  "checkpoints": [
+    {
+      "id": "CP3",
+      "kind": "CP3",
+      "prompt": "Write the query that answers Marieke's question.",
+      "credits_concepts": [
+        "SQL-AGG-01",
+        "SQL-AGG-02",
+        "SQL-AGG-03",
+        "SQL-AGG-04",
+        "SQL-TYPE-01"
+      ],
+      "item_id": "EX-OPENER-L2-01"
+    },
+    {
+      "id": "CP4",
+      "kind": "CP4",
+      "prompt": "Marieke has a follow-up. Among the parent categories you listed, what percentage of their combined net revenue came from TV & Video? Use the order lines with an order_date from 2025-01-01 to 2025-12-31, both days included, in the parent categories whose average net revenue per order line is above 150 euros (that average leaves out lines with a missing net_revenue_eur, and a missing net_revenue_eur adds nothing to a total). Divide the net revenue of the TV & Video lines by the net revenue of all those categories together and multiply by 100. Type the percentage with 1 decimal, for example 12.5.",
+      "credits_concepts": [
+        "SQL-AGG-01"
+      ],
+      "item_id": "CASE-VOLT-L2:CP4",
+      "typed": {
+        "precision": "ratio",
+        "scale": "percent",
+        "decimals": 1,
+        "unit_label": "%"
+      },
+      "truth_key": "CASE-VOLT-L2:CP4"
+    }
+  ],
+  "model_plan": "Metrics: the number of different orders, the net revenue, and the web share of that revenue as a percentage of sums (web revenue over all revenue, times 100, rounded once at the end). Output grain: one row per parent category. Table: the sales view, one row per order line. Row filter: order_date in 2025, both ends included. Group filter: the average net revenue per line above 150 euros, tested after grouping. Edge cases: lines with a missing net revenue, a category with no web lines (its share is 0.0, not missing), and orders with several lines in one category. Sort: revenue from high to low.",
+  "model_answer_template": "In 2025, {n_categories} parent categories averaged more than 150 euros per order line. {top_category} led with {top_revenue} euros of net revenue from {top_orders} orders. Their web share ran from {lowest_web_pct}% to {highest_web_pct}%, so {so_what}.",
+  "difficulty": 2,
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-AGG-03",
+    "SQL-CASE-01",
+    "SQL-AGG-04",
+    "SQL-TYPE-01"
+  ],
+  "metric_ids": [],
+  "find_ids": [
+    "FIND-01-01",
+    "FIND-01-02"
+  ],
+  "uses_raw": false
+}

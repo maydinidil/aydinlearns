@@ -1,0 +1,133 @@
+{
+  "id": "EX-SQL-SORT-01-E2-05",
+  "version": 2,
+  "kind": "write",
+  "tags": [
+    "order-by",
+    "desc",
+    "in-list",
+    "promotions"
+  ],
+  "level": 1,
+  "source_ids": [
+    "01:SQL-SORT-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-02",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-SORT-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01"
+  ],
+  "template_id": "T-SORT-01-order-keys",
+  "template_params": {
+    "table": "promotions",
+    "keys": 3
+  },
+  "sub_skill": "order_by",
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_sort",
+  "prompt": "List every promotion whose promo_type is 'clearance' or 'loyalty'. Return promo_type, promo_name and discount_pct, in that order, with exactly these column names. Sort by promo_type from A to Z, then by discount_pct from highest to lowest, then by promo_name from A to Z. One row per promotion, every clearance and loyalty promotion included. Rows with a missing discount_pct may come first or last within their type, and so may rows with a missing promo_name among promotions that share a discount.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "promo_type",
+        "type_class": "text"
+      },
+      {
+        "name": "promo_name",
+        "type_class": "text"
+      },
+      {
+        "name": "discount_pct",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per promotion"
+  },
+  "rules": {
+    "order_matters": true,
+    "sort_keys": [
+      {
+        "column": "promo_type",
+        "desc": false
+      },
+      {
+        "column": "discount_pct",
+        "desc": true
+      },
+      {
+        "column": "promo_name",
+        "desc": false
+      }
+    ],
+    "check_names": true,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "promo_type",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "promo_name",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "discount_pct",
+        "type_class": "numeric",
+        "precision": "ratio"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the row filter, then the sort. Keep only the two promotion types, then sort with three keys in mixed directions.",
+    "A list test in WHERE keeps the two types. In ORDER BY, give each of the three keys its own direction: only one of them runs from high to low."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 57,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 58,
+      "to": 73,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 74,
+      "to": 118,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 119,
+      "to": 169,
+      "subgoal": "sort_limit"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 150000,
+  "why_this_works": "IN keeps the clearance and loyalty promotions, and the three sort keys order them by type, deepest discount, then name, keeping every promotion."
+}

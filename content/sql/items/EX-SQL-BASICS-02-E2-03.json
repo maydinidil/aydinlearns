@@ -1,0 +1,116 @@
+{
+  "id": "EX-SQL-BASICS-02-E2-03",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "calculated-column",
+    "products",
+    "markup",
+    "vat"
+  ],
+  "level": 1,
+  "source_ids": [
+    "01:SQL-BASICS-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-02",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-BASICS-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02"
+  ],
+  "template_id": "T-BASICS-02-two-steps",
+  "template_params": {
+    "table": "products",
+    "markup_pct": 40,
+    "vat_pct": 21
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_basics",
+  "prompt": "A product's shelf price is its unit cost plus a 40% markup, with 21% VAT then added on top of the marked-up price. For every product, return product_id, unit_cost_eur and shelf_price_eur (the shelf price in euros), in that order. Use exactly these column names and do not round. One row per product, every product included. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "unit_cost_eur",
+        "type_class": "numeric"
+      },
+      {
+        "name": "shelf_price_eur",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per product"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": true,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "unit_cost_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "shelf_price_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "product_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the calculated column. shelf_price_eur grows the unit cost twice: first by the markup, then by VAT on the marked-up price.",
+    "The new column goes after unit_cost_eur, named with AS. Each increase applies to the price before it, so the two percentages multiply; they do not add up."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 40,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 48,
+      "to": 94,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 95,
+      "to": 108,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 150000,
+  "why_this_works": "Percentages applied one after the other multiply: 1.40 for the markup, then 1.21 for VAT on the marked-up price."
+}

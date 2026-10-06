@@ -1,0 +1,42 @@
+{
+  "item_id": "EX-SQL-AGG-02-E3-03",
+  "item_version": 1,
+  "reference_sql": "SELECT channel,\n       order_month,\n       COUNT(DISTINCT order_id) AS n_orders,\n       SUM(net_revenue_eur) AS revenue_eur,\n       SUM(net_revenue_eur) / COUNT(DISTINCT order_id) AS avg_order_value_eur\nFROM sales\nWHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-03-31'\nGROUP BY channel, order_month\nORDER BY channel, order_month",
+  "alternatives": [
+    "SELECT channel, order_month, COUNT(DISTINCT order_id) AS n_orders, SUM(net_revenue_eur) AS revenue_eur, SUM(net_revenue_eur) / COUNT(DISTINCT order_id) AS avg_order_value_eur FROM sales WHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-03-31' GROUP BY 1, 2 ORDER BY 1, 2",
+    "SELECT channel, order_month, COUNT(DISTINCT order_id) AS n_orders, SUM(net_revenue_eur) AS revenue_eur, SUM(net_revenue_eur) / COUNT(DISTINCT order_id) AS avg_order_value_eur FROM sales WHERE order_date >= DATE '2025-01-01' AND order_date <= DATE '2025-03-31' GROUP BY channel, order_month ORDER BY channel ASC, order_month ASC",
+    "SELECT channel, order_month, COUNT(DISTINCT order_id) AS n_orders, SUM(net_revenue_eur) AS revenue_eur, SUM(net_revenue_eur) / COUNT(DISTINCT order_id) AS avg_order_value_eur FROM sales WHERE order_month BETWEEN '2025-01-01' AND '2025-03-01' GROUP BY order_month, channel ORDER BY channel, order_month"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-04",
+      "sql": "SELECT channel, order_month, COUNT(order_id) AS n_orders, SUM(net_revenue_eur) AS revenue_eur, SUM(net_revenue_eur) / COUNT(order_id) AS avg_order_value_eur FROM sales WHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-03-31' GROUP BY channel, order_month ORDER BY channel, order_month"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-14",
+      "sql": "SELECT channel, order_month, COUNT(DISTINCT order_id) AS n_orders, SUM(net_revenue_eur) AS revenue_eur, AVG(net_revenue_eur) AS avg_order_value_eur FROM sales WHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-03-31' GROUP BY channel, order_month ORDER BY channel, order_month"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-18",
+      "sql": "SELECT channel, order_month, COUNT(DISTINCT order_id) AS n_orders, SUM(net_revenue_eur) AS revenue_eur, SUM(net_revenue_eur) / COUNT(DISTINCT order_id) AS avg_order_value_eur FROM sales WHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-03-31' GROUP BY channel, order_month ORDER BY order_month, channel"
+    },
+    {
+      "id": "PW4",
+      "error_id": "ERR-SEM-01",
+      "sql": "SELECT channel, order_month, COUNT(DISTINCT order_id) AS n_orders, SUM(net_revenue_eur) AS revenue_eur, SUM(net_revenue_eur) / COUNT(DISTINCT order_id) AS avg_order_value_eur FROM sales WHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-03-31' GROUP BY channel ORDER BY channel, order_month"
+    }
+  ],
+  "hint3_partial": "SELECT channel,\n       order_month,\n       COUNT(DISTINCT order_id) AS n_orders,\n       SUM(net_revenue_eur) AS revenue_eur,\n       ___ AS avg_order_value_eur\nFROM sales\nWHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-03-31'\nGROUP BY ___\nORDER BY ___",
+  "solver": {
+    "prompt_hash": "fa69a3802f6f665a",
+    "schema_version": "cebf75df442f",
+    "dataset_version": "506a9858f862fdfb",
+    "grader_version": "1b.3",
+    "query": "SELECT channel, order_month, COUNT(DISTINCT order_id) AS n_orders, SUM(net_revenue_eur) AS revenue_eur, SUM(net_revenue_eur) / COUNT(DISTINCT order_id) AS avg_order_value_eur FROM sales WHERE order_date >= '2025-01-01' AND order_date <= '2025-03-31' GROUP BY channel, order_month ORDER BY channel, order_month\n",
+    "at": "2026-10-04T10:06:45.021Z"
+  }
+}

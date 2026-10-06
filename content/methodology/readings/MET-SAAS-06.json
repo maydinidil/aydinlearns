@@ -1,0 +1,13 @@
+{
+  "concept_id": "MET-SAAS-06",
+  "section": "methodology",
+  "version": 1,
+  "title": "Net revenue retention (NRR)",
+  "reading_md": "**Setting.** The examples use Business Care, the monthly device-support subscription Voltmarkt sells to small offices. Each business pays a monthly fee, its MRR (monthly recurring revenue).\n\n**What it answers.** Whether the customers you already had a year ago now pay you more or less in total, with upgrades, downgrades and cancellations all counted. Typical questions: \"What's our NRR?\" and \"Do existing customers grow over a year?\"\n\n**Formula (cohort method, 12 months).**\n\nNRR % = 100 x MRR of the starting cohort in the end month / MRR of the same cohort in the start month\n\n- The cohort is every business with MRR above 0 in the start month.\n- In the end month each of them counts at its current MRR: higher after an upgrade, lower after a downgrade, 0 if it cancelled.\n- Businesses that subscribe during the 12 months, and businesses that had left before the start month and come back later, never enter the cohort.\n- The same result in component form: 100 x (starting MRR - cancelled MRR - downgrades + upgrades) / starting MRR.\n\n**Worked example.** On 1 September 2025, 400 businesses paid €20,000 of MRR in total. On 1 September 2026 those same businesses pay €21,600: some upgraded, some downgraded and 30 cancelled (counted at €0). Businesses that subscribed during the year add €5,000, which is left out. NRR = 100 x 21,600 / 20,000 = 108.0%.\n\nIncluding the new businesses would give 100 x 26,600 / 20,000 = 133.0%, which mixes new sales into retention.\n\n**Reading the number.** Above 100% means the cohort's upgrades outweighed its cancellations and downgrades, even if many businesses left. Gross revenue retention (GRR) is its partner: it caps each business at its starting MRR, so upgrades cannot offset losses and GRR can never exceed 100%. Report both.\n\n**Common mistakes.**\n- Dividing total MRR now by total MRR a year ago, which counts new customers.\n- Putting reactivated customers into the cohort.\n- Reading NRR above 100% as \"no customers left\".\n\n**What it does not answer.** How many customers left (logo churn), how fast new business grows, or whether the revenue is profitable. A high NRR can hide heavy churn when a few accounts expand a lot.",
+  "source_ids": [
+    "04:MET-SAAS-06",
+    "ERRATA:E-100"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04"
+}

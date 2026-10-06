@@ -1,0 +1,41 @@
+{
+  "item_id": "EX-SQL-CASE-01-E2-21",
+  "item_version": 1,
+  "reference_sql": "SELECT CASE WHEN start_date BETWEEN DATE '2024-01-01' AND DATE '2024-06-30' THEN '2024-H1'\n            WHEN start_date BETWEEN DATE '2024-07-01' AND DATE '2024-12-31' THEN '2024-H2'\n            WHEN start_date BETWEEN DATE '2025-01-01' AND DATE '2025-06-30' THEN '2025-H1'\n            WHEN start_date BETWEEN DATE '2025-07-01' AND DATE '2025-12-31' THEN '2025-H2'\n       END AS half_year,\n       COUNT(*) AS n_promotions,\n       AVG(discount_pct) AS avg_discount_pct\nFROM promotions\nGROUP BY half_year",
+  "alternatives": [
+    "SELECT CASE WHEN start_date < DATE '2024-07-01' THEN '2024-H1' WHEN start_date < DATE '2025-01-01' THEN '2024-H2' WHEN start_date < DATE '2025-07-01' THEN '2025-H1' ELSE '2025-H2' END AS half_year, COUNT(*) AS n_promotions, AVG(discount_pct) AS avg_discount_pct FROM promotions GROUP BY 1",
+    "SELECT CASE WHEN start_date <= '2024-06-30' THEN '2024-H1' WHEN start_date <= '2024-12-31' THEN '2024-H2' WHEN start_date <= '2025-06-30' THEN '2025-H1' ELSE '2025-H2' END AS half_year, COUNT(promo_id) AS n_promotions, AVG(discount_pct) AS avg_discount_pct FROM promotions GROUP BY CASE WHEN start_date <= '2024-06-30' THEN '2024-H1' WHEN start_date <= '2024-12-31' THEN '2024-H2' WHEN start_date <= '2025-06-30' THEN '2025-H1' ELSE '2025-H2' END"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-06",
+      "sql": "SELECT CASE WHEN start_date < DATE '2024-07-01' THEN '2024-H1' WHEN start_date < DATE '2025-01-01' THEN '2024-H2' WHEN start_date < DATE '2025-06-30' THEN '2025-H1' ELSE '2025-H2' END AS half_year, COUNT(*) AS n_promotions, AVG(discount_pct) AS avg_discount_pct FROM promotions GROUP BY half_year"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-07",
+      "sql": "SELECT CASE WHEN start_date BETWEEN DATE '2024-01-01' AND DATE '2024-06-30' THEN '2024-H1' WHEN start_date BETWEEN DATE '2024-07-01' AND DATE '2024-12-31' THEN '2024-H2' WHEN start_date BETWEEN DATE '2025-01-01' AND DATE '2025-06-30' THEN '2025-H1' WHEN start_date BETWEEN DATE '2025-07-01' AND DATE '2025-12-31' THEN '2025-H2' END AS half_year, COUNT(*) AS n_promotions, AVG(discount_pct) AS avg_discount_pct FROM promotions GROUP BY half_year, promo_type"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-SEM-01",
+      "sql": "SELECT CASE WHEN start_date BETWEEN DATE '2024-01-01' AND DATE '2024-06-30' THEN '2024-H1' WHEN start_date BETWEEN DATE '2024-07-01' AND DATE '2024-12-31' THEN '2024-H2' WHEN start_date BETWEEN DATE '2025-01-01' AND DATE '2025-06-30' THEN '2025-H1' WHEN start_date BETWEEN DATE '2025-07-01' AND DATE '2025-12-31' THEN '2025-H2' END AS half_year, promo_type, COUNT(*) AS n_promotions, AVG(discount_pct) AS avg_discount_pct FROM promotions GROUP BY half_year"
+    },
+    {
+      "id": "PW4",
+      "error_id": "ERR-LOG-14",
+      "sql": "SELECT CASE WHEN start_date BETWEEN DATE '2024-01-01' AND DATE '2024-06-30' THEN '2024-H1' WHEN start_date BETWEEN DATE '2024-07-01' AND DATE '2024-12-31' THEN '2024-H2' WHEN start_date BETWEEN DATE '2025-01-01' AND DATE '2025-06-30' THEN '2025-H1' WHEN start_date BETWEEN DATE '2025-07-01' AND DATE '2025-12-31' THEN '2025-H2' END AS half_year, COUNT(*) AS n_promotions, SUM(discount_pct) AS avg_discount_pct FROM promotions GROUP BY half_year"
+    }
+  ],
+  "hint3_partial": "SELECT CASE WHEN start_date BETWEEN DATE '2024-01-01' AND DATE '2024-06-30' THEN '2024-H1'\n            WHEN ___ THEN '2024-H2'\n            WHEN ___ THEN '2025-H1'\n            WHEN ___ THEN '2025-H2'\n       END AS half_year,\n       COUNT(*) AS n_promotions,\n       ___ AS avg_discount_pct\nFROM promotions\nGROUP BY ___",
+  "solver": {
+    "prompt_hash": "bdd0308f3260a227",
+    "schema_version": "f0340f71a1f5",
+    "dataset_version": "506a9858f862fdfb",
+    "grader_version": "1b.3",
+    "query": "SELECT CASE WHEN start_date BETWEEN DATE '2024-01-01' AND DATE '2024-06-30' THEN '2024-H1'\n            WHEN start_date BETWEEN DATE '2024-07-01' AND DATE '2024-12-31' THEN '2024-H2'\n            WHEN start_date BETWEEN DATE '2025-01-01' AND DATE '2025-06-30' THEN '2025-H1'\n            WHEN start_date BETWEEN DATE '2025-07-01' AND DATE '2025-12-31' THEN '2025-H2' END AS half_year,\n       COUNT(*) AS n_promotions, AVG(discount_pct) AS avg_discount_pct\nFROM promotions\nGROUP BY 1\n",
+    "at": "2026-10-04T14:33:17.656Z"
+  }
+}

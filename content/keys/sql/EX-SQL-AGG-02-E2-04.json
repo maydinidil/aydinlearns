@@ -1,0 +1,42 @@
+{
+  "item_id": "EX-SQL-AGG-02-E2-04",
+  "item_version": 1,
+  "reference_sql": "SELECT store_code, order_month, SUM(net_revenue_eur) AS revenue_eur\nFROM sales\nWHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-03-31'\nGROUP BY store_code, order_month\nORDER BY store_code, order_month",
+  "alternatives": [
+    "SELECT store_code, order_month, SUM(net_revenue_eur) AS revenue_eur FROM sales WHERE order_date >= DATE '2025-01-01' AND order_date <= DATE '2025-03-31' GROUP BY store_code, order_month ORDER BY store_code ASC, order_month ASC",
+    "SELECT store_code, order_month, SUM(net_revenue_eur) AS revenue_eur FROM sales WHERE order_month BETWEEN '2025-01-01' AND '2025-03-01' GROUP BY 1, 2 ORDER BY 1, 2",
+    "SELECT store_code, order_month, SUM(net_revenue_eur) AS revenue_eur FROM sales WHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-03-31' GROUP BY order_month, store_code ORDER BY store_code, order_month"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-18",
+      "sql": "SELECT store_code, order_month, SUM(net_revenue_eur) AS revenue_eur FROM sales WHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-03-31' GROUP BY store_code, order_month ORDER BY order_month, store_code"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-SEM-01",
+      "sql": "SELECT store_code, order_month, SUM(net_revenue_eur) AS revenue_eur FROM sales WHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-03-31' GROUP BY store_code ORDER BY store_code"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-07",
+      "sql": "SELECT store_code, order_month, SUM(net_revenue_eur) AS revenue_eur FROM sales WHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-03-31' GROUP BY store_code, order_month, country_code ORDER BY store_code, order_month"
+    },
+    {
+      "id": "PW4",
+      "error_id": "ERR-LOG-23",
+      "sql": "SELECT store_code, order_month, SUM(net_revenue_eur) AS revenue_eur FROM sales WHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-03-01' GROUP BY store_code, order_month ORDER BY store_code, order_month"
+    }
+  ],
+  "hint3_partial": "SELECT store_code, order_month, SUM(net_revenue_eur) AS revenue_eur\nFROM sales\nWHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-03-31'\nGROUP BY ___\nORDER BY ___",
+  "solver": {
+    "prompt_hash": "cc0e35aadeff4601",
+    "schema_version": "cebf75df442f",
+    "dataset_version": "506a9858f862fdfb",
+    "grader_version": "1b.3",
+    "query": "SELECT store_code, order_month, SUM(net_revenue_eur) AS revenue_eur FROM sales WHERE order_date >= '2025-01-01' AND order_date <= '2025-03-31' GROUP BY store_code, order_month ORDER BY store_code, order_month\n",
+    "at": "2026-10-04T10:06:43.933Z"
+  }
+}

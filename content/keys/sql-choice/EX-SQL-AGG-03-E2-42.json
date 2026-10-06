@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-AGG-03-E2-42",
+  "item_version": 1,
+  "value": 2,
+  "explanation": "Lines 1 to 5 belong to two orders. Order 1 has three lines, 89.99 + 769.99 + 144.99 = 1004.97, and order 2 has two, 259.99 + 1009.99 = 1269.98. HAVING tests each order's total, and both are above 1000, so 2 rows come back. Only line 5 is above 1000 on its own, but HAVING does not test single lines.",
+  "solver": {
+    "prompt_hash": "a3439a8df3c26682",
+    "grader_version": "choice.1",
+    "chosen": null,
+    "typed": "2",
+    "at": "2026-10-06T09:08:14.820Z"
+  }
+}

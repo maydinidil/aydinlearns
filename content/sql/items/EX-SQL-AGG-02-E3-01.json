@@ -1,0 +1,119 @@
+{
+  "id": "EX-SQL-AGG-02-E3-01",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-02",
+    "group_by",
+    "ratio-of-sums",
+    "is-null",
+    "sales"
+  ],
+  "level": 2,
+  "source_ids": [
+    "01:SQL-AGG-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-AGG-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02"
+  ],
+  "template_id": "T-AGG-02-ratio-of-sums-per-group",
+  "template_params": {
+    "table": "sales",
+    "group_by": "parent_category",
+    "numerator": "net_revenue_eur",
+    "denominator": "units"
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_agg",
+  "prompt": "What is the average price paid per unit in each parent category? Define it as the category's total net revenue divided by its total units. Use the sales table, and count only order lines with a recorded net_revenue_eur, in both totals. Return two columns, in this order: parent_category and avg_unit_price_eur. Return one row per parent_category. Do not round. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "parent_category",
+        "type_class": "text"
+      },
+      {
+        "name": "avg_unit_price_eur",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per parent category"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "parent_category",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "avg_unit_price_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "parent_category"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the row filter that keeps only lines with a recorded net revenue. Then decide what one row stands for: one row per parent category.",
+    "Work out the two totals for each group and divide one by the other. An average of each line's own price would weight a 1-unit line the same as a 5-unit line."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 79,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 80,
+      "to": 90,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 91,
+      "to": 124,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 125,
+      "to": 149,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "Dividing the summed revenue by the summed units weights every unit equally; an average of per-line prices would weight every line equally instead."
+}

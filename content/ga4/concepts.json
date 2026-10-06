@@ -1,0 +1,252 @@
+{
+  "concepts": [
+    {
+      "id": "GA4-SETUP-01",
+      "parent_id": null,
+      "topic_id": "T-GA4-01",
+      "title": "Account, property and data stream structure",
+      "level": 1,
+      "verified": true
+    },
+    {
+      "id": "GA4-EVENTS-01",
+      "parent_id": null,
+      "topic_id": "T-GA4-01",
+      "title": "Tags and event types",
+      "level": 1,
+      "verified": true
+    },
+    {
+      "id": "GA4-EVENTS-02",
+      "parent_id": null,
+      "topic_id": "T-GA4-01",
+      "title": "Parameters, custom dimensions and metrics, user properties",
+      "level": 1,
+      "verified": true
+    },
+    {
+      "id": "GA4-EVENTS-03",
+      "parent_id": null,
+      "topic_id": "T-GA4-03",
+      "title": "Key events (formerly conversions)",
+      "level": null,
+      "verified": true
+    },
+    {
+      "id": "GA4-METRICS-01",
+      "parent_id": null,
+      "topic_id": "T-GA4-02",
+      "title": "Users, sessions and engagement metrics",
+      "level": 1,
+      "verified": true
+    },
+    {
+      "id": "GA4-REPORTS-01",
+      "parent_id": null,
+      "topic_id": "T-GA4-02",
+      "title": "Standard reports",
+      "level": null,
+      "verified": true
+    },
+    {
+      "id": "GA4-EXPLORE-01",
+      "parent_id": null,
+      "topic_id": "T-GA4-02",
+      "title": "Explorations",
+      "level": null,
+      "verified": true
+    },
+    {
+      "id": "GA4-AUDIENCE-01",
+      "parent_id": null,
+      "topic_id": "T-GA4-03",
+      "title": "Audiences",
+      "level": null,
+      "verified": false
+    },
+    {
+      "id": "GA4-ATTRIB-01",
+      "parent_id": null,
+      "topic_id": "T-GA4-03",
+      "title": "Attribution settings and models",
+      "level": null,
+      "verified": true
+    },
+    {
+      "id": "GA4-INTEG-01",
+      "parent_id": null,
+      "topic_id": "T-GA4-03",
+      "title": "Google Ads link",
+      "level": null,
+      "verified": true
+    },
+    {
+      "id": "GA4-INTEG-02",
+      "parent_id": null,
+      "topic_id": "T-GA4-04",
+      "title": "BigQuery, Data Import, Measurement Protocol",
+      "level": null,
+      "verified": true
+    },
+    {
+      "id": "GA4-PRIVACY-01",
+      "parent_id": null,
+      "topic_id": "T-GA4-05",
+      "title": "Consent mode",
+      "level": null,
+      "verified": true
+    },
+    {
+      "id": "GA4-PRIVACY-02",
+      "parent_id": null,
+      "topic_id": "T-GA4-05",
+      "title": "Data retention and data thresholds",
+      "level": null,
+      "verified": true
+    },
+    {
+      "id": "GA4-ADMIN-01",
+      "parent_id": null,
+      "topic_id": "T-GA4-05",
+      "title": "Data filters and internal traffic",
+      "level": null,
+      "verified": true
+    },
+    {
+      "id": "GA4-ADMIN-02",
+      "parent_id": null,
+      "topic_id": "T-GA4-05",
+      "title": "User roles and permissions",
+      "level": null,
+      "verified": true
+    },
+    {
+      "id": "GA4-DEBUG-01",
+      "parent_id": null,
+      "topic_id": "T-GA4-05",
+      "title": "DebugView and validation",
+      "level": null,
+      "verified": false
+    },
+    {
+      "id": "GA4-ADMIN-20",
+      "parent_id": "GA4-METRICS-01",
+      "topic_id": "T-GA4-02",
+      "title": "Reporting identity",
+      "level": null,
+      "verified": true
+    },
+    {
+      "id": "GA4-PRIVACY-20",
+      "parent_id": "GA4-PRIVACY-02",
+      "topic_id": "T-GA4-05",
+      "title": "Google signals after 2024",
+      "level": null,
+      "verified": true
+    },
+    {
+      "id": "GA4-REPORTS-20",
+      "parent_id": "GA4-PRIVACY-02",
+      "topic_id": "T-GA4-05",
+      "title": "Data thresholds",
+      "level": null,
+      "verified": true
+    },
+    {
+      "id": "GA4-PRIVACY-21",
+      "parent_id": "GA4-PRIVACY-02",
+      "topic_id": "T-GA4-05",
+      "title": "User-level vs event-level data retention",
+      "level": null,
+      "verified": true
+    },
+    {
+      "id": "GA4-ATTRIB-20",
+      "parent_id": "GA4-REPORTS-01",
+      "topic_id": "T-GA4-02",
+      "title": "Default channel group and AI Assistant channel",
+      "level": null,
+      "verified": true
+    },
+    {
+      "id": "GA4-ATTRIB-21",
+      "parent_id": "GA4-REPORTS-01",
+      "topic_id": "T-GA4-02",
+      "title": "Custom and primary channel groups",
+      "level": null,
+      "verified": true
+    },
+    {
+      "id": "GA4-ATTRIB-22",
+      "parent_id": "GA4-REPORTS-01",
+      "topic_id": "T-GA4-02",
+      "title": "UTM tagging vs Google Ads auto-tagging",
+      "level": null,
+      "verified": true
+    },
+    {
+      "id": "GA4-INTEG-20",
+      "parent_id": "GA4-INTEG-02",
+      "topic_id": "T-GA4-04",
+      "title": "Search Console link",
+      "level": null,
+      "verified": true
+    },
+    {
+      "id": "GA4-INTEG-21",
+      "parent_id": "GA4-INTEG-01",
+      "topic_id": "T-GA4-03",
+      "title": "Google Ads link",
+      "level": null,
+      "verified": true
+    },
+    {
+      "id": "GA4-INTEG-22",
+      "parent_id": "GA4-INTEG-02",
+      "topic_id": "T-GA4-04",
+      "title": "BigQuery Export basics",
+      "level": null,
+      "verified": true
+    },
+    {
+      "id": "GA4-SETUP-20",
+      "parent_id": "GA4-SETUP-01",
+      "topic_id": "T-GA4-01",
+      "title": "User-ID",
+      "level": null,
+      "verified": true
+    },
+    {
+      "id": "GA4-SETUP-21",
+      "parent_id": "GA4-SETUP-01",
+      "topic_id": "T-GA4-01",
+      "title": "User-provided data collection",
+      "level": null,
+      "verified": true
+    },
+    {
+      "id": "GA4-SETUP-22",
+      "parent_id": "GA4-SETUP-01",
+      "topic_id": "T-GA4-01",
+      "title": "Cross-domain measurement",
+      "level": null,
+      "verified": true
+    },
+    {
+      "id": "GA4-ADMIN-21",
+      "parent_id": "GA4-SETUP-01",
+      "topic_id": "T-GA4-04",
+      "title": "Analytics 360 limits and SLAs",
+      "level": null,
+      "verified": true
+    },
+    {
+      "id": "GA4-ADMIN-22",
+      "parent_id": "GA4-SETUP-01",
+      "topic_id": "T-GA4-04",
+      "title": "Subproperties and roll-up properties",
+      "level": null,
+      "verified": true
+    }
+  ]
+}

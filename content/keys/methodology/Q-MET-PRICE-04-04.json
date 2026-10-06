@@ -1,0 +1,13 @@
+{
+  "item_id": "Q-MET-PRICE-04-04",
+  "item_version": 1,
+  "correct_oid": "o119ddf5",
+  "explanation": "Voltmarkt's weekly series is zero-filled, so empty weeks count as 0 and the baseline averages over all 4 weeks. Skipping them divides the same units by 2 weeks instead of 4, which doubles the baseline and shrinks the uplift. The empty weeks do add no units to the sum, which is why the shortcut looks harmless, but they still count in the number of weeks the sum is divided by.",
+  "solver": {
+    "prompt_hash": "fe45e1793b253166",
+    "grader_version": "choice.1",
+    "chosen": "o119ddf5",
+    "typed": null,
+    "at": "2026-10-04T10:18:36.013Z"
+  }
+}

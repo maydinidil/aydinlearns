@@ -1,0 +1,124 @@
+{
+  "id": "EX-SQL-CASE-01-E2-04",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-02",
+    "case",
+    "segment-count",
+    "branch-order",
+    "group-by",
+    "sum",
+    "sales"
+  ],
+  "level": 2,
+  "source_ids": [
+    "01:SQL-CASE-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-CASE-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CASE-01"
+  ],
+  "template_id": "T-CASE-01-priority-segments",
+  "template_params": {
+    "table": "sales",
+    "first": "units >= 3",
+    "second": "net_revenue_eur >= 500",
+    "output": "line_type"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_case",
+  "prompt": "Voltmarkt splits its order lines into three types. line_type is the text 'bulk' when units is 3 or more, 'big_ticket' when net_revenue_eur is 500.00 or more, and 'regular' for every other line, including lines with a missing value. A line with 3 or more units that is also worth 500.00 or more counts as 'bulk' only. Use the sales table. Return three columns, in this order: line_type, n_lines, the number of order lines, and revenue_eur, the sum of net_revenue_eur. Return one row per line type. A missing net_revenue_eur adds nothing to the sum. Do not round. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "line_type",
+        "type_class": "text"
+      },
+      {
+        "name": "n_lines",
+        "type_class": "numeric"
+      },
+      {
+        "name": "revenue_eur",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per line type"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "line_type",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "n_lines",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "revenue_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "line_type"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the column line_type with its three branches, then the count and the total next to it.",
+    "A line can meet both tests, and CASE stops at the first true branch, so the bulk test goes first. Group by the line type so each label becomes one row."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 220,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 221,
+      "to": 231,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 232,
+      "to": 250,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 170000,
+  "why_this_works": "Putting the bulk test first gives a line that meets both tests the label 'bulk', so each line lands in exactly one type before the counts and sums are taken."
+}

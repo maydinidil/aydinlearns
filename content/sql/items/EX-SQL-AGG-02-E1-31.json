@@ -1,0 +1,132 @@
+{
+  "id": "EX-SQL-AGG-02-E1-31",
+  "version": 1,
+  "kind": "fix",
+  "tags": [
+    "sql",
+    "LVL-02",
+    "fix",
+    "group_by",
+    "two-columns",
+    "sales",
+    "date_range"
+  ],
+  "level": 2,
+  "source_ids": [
+    "01:SQL-AGG-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-AGG-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02"
+  ],
+  "template_id": "T-AGG-02-fix-missing-group-column",
+  "template_params": {
+    "table": "sales",
+    "group_by": "parent_category, channel",
+    "from": "2025-01-01",
+    "to": "2025-03-31",
+    "output": "units_sold"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_agg",
+  "prompt": "The query in the editor has one mistake. Fix it so that it answers this question: how many units of each parent category were sold through each channel in the first quarter of 2025 (order_date from 1 January 2025 to 31 March 2025, both days included)? Use the sales table. Return three columns, in this order: parent_category, channel and units_sold, the sum of units. Return one row per parent_category and channel combination. Order lines with missing units add nothing to the total. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "parent_category",
+        "type_class": "text"
+      },
+      {
+        "name": "channel",
+        "type_class": "text"
+      },
+      {
+        "name": "units_sold",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per parent_category and channel combination"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "parent_category",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "channel",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "units_sold",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "parent_category",
+      "channel"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, decide what one row stands for, then compare the plain columns in the SELECT list with the GROUP BY list.",
+    "Every column in the SELECT list that is not inside SUM must also be in GROUP BY. One of them is missing there, so the engine stops with an error."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 57,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 58,
+      "to": 68,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 69,
+      "to": 133,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 134,
+      "to": 167,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": "SELECT parent_category, channel, SUM(units) AS units_sold\nFROM sales\nWHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-03-31'\nGROUP BY parent_category",
+  "starter_error_id": "ERR-SEM-01",
+  "time_target_ms": 90000,
+  "why_this_works": "GROUP BY parent_category, channel makes one group per combination, so channel can stand next to the total."
+}

@@ -1,0 +1,13 @@
+{
+  "item_id": "Q-MET-PRICE-04-02",
+  "item_version": 1,
+  "value": 200,
+  "explanation": "Voltmarkt builds weekly units from a zero-filled product by week series, so the week without sales counts as 0 and the baseline is (18 + 22 + 20 + 0) / 4 = 15 units a week. The promotion averaged (39 + 51) / 2 = 45. Uplift = 100 x (45 - 15) / 15 = 200.0%. Averaging only the three weeks with rows gives a baseline of 20 and an uplift of 125.0%, which understates the effect.",
+  "solver": {
+    "prompt_hash": "b0fc5dfb290d4cd9",
+    "grader_version": "choice.1",
+    "chosen": null,
+    "typed": "200.0",
+    "at": "2026-10-04T10:18:36.011Z"
+  }
+}

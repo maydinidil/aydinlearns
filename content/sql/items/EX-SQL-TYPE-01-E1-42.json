@@ -1,0 +1,86 @@
+{
+  "id": "EX-SQL-TYPE-01-E1-42",
+  "version": 1,
+  "kind": "choose_query",
+  "tags": [
+    "sql",
+    "LVL-02",
+    "choose_query",
+    "division",
+    "round",
+    "share",
+    "sales"
+  ],
+  "level": 2,
+  "source_ids": [
+    "01:SQL-TYPE-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-TYPE-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-TYPE-01"
+  ],
+  "template_id": "T-TYPE-01-choose-share-rounded",
+  "template_params": {
+    "table": "sales"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_type",
+  "prompt": "What share of all order lines were sold on the web? web_share is the number of web lines divided by the number of all lines, as a share from 0 to 1, rounded to 3 decimals with ROUND(x, 3). Use the sales table, where channel is 'web' or 'store'. Which query returns web_share?",
+  "output_contract": null,
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [],
+  "subgoals": [],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 60000,
+  "why_this_works": "",
+  "options": [
+    {
+      "oid": "o4f5fc44",
+      "text": "SELECT ROUND(COUNT(*) FILTER (WHERE channel = 'web') // COUNT(*), 3) AS web_share\nFROM sales",
+      "misconception_id": "ERR-LOG-05"
+    },
+    {
+      "oid": "o497de7a",
+      "text": "SELECT ROUND(100.0 * COUNT(*) FILTER (WHERE channel = 'web') / COUNT(*), 3) AS web_share\nFROM sales",
+      "misconception_id": "ERR-LOG-21"
+    },
+    {
+      "oid": "o7e150fb",
+      "text": "SELECT ROUND(COUNT(*) FILTER (WHERE channel = 'web') * 1.0 / COUNT(*), 3) AS web_share\nFROM sales",
+      "misconception_id": null
+    },
+    {
+      "oid": "o57c2747",
+      "text": "SELECT ROUND(COUNT(*) FILTER (WHERE channel = 'web'), 3) * 1.0 / COUNT(*) AS web_share\nFROM sales",
+      "misconception_id": "ERR-LOG-19"
+    }
+  ]
+}

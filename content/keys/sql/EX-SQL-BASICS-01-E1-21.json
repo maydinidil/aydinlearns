@@ -1,0 +1,37 @@
+{
+  "item_id": "EX-SQL-BASICS-01-E1-21",
+  "item_version": 1,
+  "reference_sql": "SELECT category_id, category_name\nFROM categories",
+  "alternatives": [
+    "SELECT categories.category_id, categories.category_name\nFROM categories",
+    "SELECT c.category_id, c.category_name\nFROM categories AS c",
+    "SELECT \"category_id\", \"category_name\"\nFROM \"categories\""
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-SYN-02",
+      "sql": "SELECT category_id, category FROM categories"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-OUT-01",
+      "sql": "SELECT * FROM categories"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-SYN-04",
+      "sql": "SELECT category_id, 'category_name FROM categories"
+    }
+  ],
+  "hint3_partial": "SELECT category_id, ...\nFROM categories",
+  "solver": {
+    "prompt_hash": "28f7e7c7fc90941c",
+    "schema_version": "d9fba3510579",
+    "dataset_version": "506a9858f862fdfb",
+    "grader_version": "1b.3",
+    "query": "SELECT category_id, category_name FROM categories\n",
+    "at": "2026-10-04T14:33:17.385Z"
+  }
+}

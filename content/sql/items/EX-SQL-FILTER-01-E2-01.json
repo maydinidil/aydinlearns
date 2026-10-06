@@ -1,0 +1,116 @@
+{
+  "id": "EX-SQL-FILTER-01-E2-01",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-01",
+    "where",
+    "and_or_not"
+  ],
+  "level": 1,
+  "source_ids": [
+    "01:SQL-FILTER-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-02",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "lesson",
+  "target_concept_id": "SQL-FILTER-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01"
+  ],
+  "template_id": "T-FILTER-01-and-or-brackets",
+  "template_params": {
+    "table": "stores",
+    "conditions": 3
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_filter",
+  "prompt": "The Belgian area manager is planning visits to the two special store formats. From the stores table, list the stores in Belgium (country_code 'BE') whose store_type is 'flagship' or 'outlet'. Return three columns, in this order: store_code, city, store_type. Return one row per store. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "store_code",
+        "type_class": "text"
+      },
+      {
+        "name": "city",
+        "type_class": "text"
+      },
+      {
+        "name": "store_type",
+        "type_class": "text"
+      }
+    ],
+    "grain": "one row per store"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "store_code",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "city",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "store_type",
+        "type_class": "text",
+        "precision": "exact"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the row filter. Keep only the Belgian stores, and of those only the flagships and the outlets.",
+    "The WHERE clause mixes AND and OR. AND is applied before OR, so think about where brackets must go for the country condition to cover both store types."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 35,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 36,
+      "to": 47,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 48,
+      "to": 128,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": {
+    "stage1": 48,
+    "stage2": 36
+  },
+  "faded_shape": "SELECT store_code, city, store_type\nFROM stores\n",
+  "starter_sql": null,
+  "time_target_ms": 150000,
+  "why_this_works": "The brackets make OR choose between the two store types first, and AND then applies the Belgium condition to both of them."
+}

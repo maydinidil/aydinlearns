@@ -1,0 +1,105 @@
+{
+  "id": "EX-SQL-AGG-04-E1-01",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-02",
+    "conditional-aggregation",
+    "count-if",
+    "sales",
+    "missing-values"
+  ],
+  "level": 2,
+  "source_ids": [
+    "01:SQL-AGG-04"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pretest",
+  "target_concept_id": "SQL-AGG-04",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-AGG-01",
+    "SQL-CASE-01",
+    "SQL-AGG-04"
+  ],
+  "template_id": "T-AGG-04-count-if-total",
+  "template_params": {
+    "table": "sales",
+    "condition": "channel = 'web'",
+    "output": "web_lines"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_agg",
+  "prompt": "How many order lines are there in total, and how many of them were sold on the web? Use the sales table, where channel is 'web' for a webshop line and 'store' for a line sold in a store. Return two columns, in this order: n_lines, the number of order lines, and web_lines, the number of order lines whose channel is 'web'. Every order line counts, including lines with missing units or a missing net_revenue_eur. Return one row. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "n_lines",
+        "type_class": "numeric"
+      },
+      {
+        "name": "web_lines",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row in total"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "n_lines",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "web_lines",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the two counts: one for every order line, and one that counts only the web lines.",
+    "Inside SUM, a CASE can give 1 for a web line and 0 for any other line; adding those up counts the web lines."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 96,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 97,
+      "to": 107,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 90000,
+  "why_this_works": "The CASE turns each web line into a 1 and every other line into a 0, so SUM counts the web lines while COUNT(*) still counts every line, in one pass."
+}

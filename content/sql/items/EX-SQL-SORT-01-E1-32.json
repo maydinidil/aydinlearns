@@ -1,0 +1,128 @@
+{
+  "id": "EX-SQL-SORT-01-E1-32",
+  "version": 1,
+  "kind": "fix",
+  "tags": [
+    "sql",
+    "LVL-01",
+    "fix",
+    "order_by",
+    "calendar"
+  ],
+  "level": 1,
+  "source_ids": [
+    "01:SQL-SORT-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-SORT-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-SORT-01"
+  ],
+  "template_id": "T-SORT-01-fix-sort-direction",
+  "template_params": {
+    "table": "calendar",
+    "direction": "desc"
+  },
+  "sub_skill": "order_by",
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_sort",
+  "prompt": "The query in the editor has one mistake. Fix it so that it answers this question: on which dates did Black Friday and Cyber Monday fall, the most recent first? From the calendar table, list the days whose event is 'black_friday' or 'cyber_monday'. Return three columns, in this order: cal_date, weekday_name, event, with exactly these column names. Sort the rows by cal_date from newest to oldest. One row per day.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "cal_date",
+        "type_class": "temporal"
+      },
+      {
+        "name": "weekday_name",
+        "type_class": "text"
+      },
+      {
+        "name": "event",
+        "type_class": "text"
+      }
+    ],
+    "grain": "one row per day"
+  },
+  "rules": {
+    "order_matters": true,
+    "sort_keys": [
+      {
+        "column": "cal_date",
+        "desc": true
+      }
+    ],
+    "check_names": true,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "cal_date",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "weekday_name",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "event",
+        "type_class": "text",
+        "precision": "exact"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "cal_date"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the sort so the newest date comes first.",
+    "ORDER BY sorts from low to high unless it is told otherwise, and for dates low means oldest. One word after the sort column turns the direction round."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 36,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 37,
+      "to": 50,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 51,
+      "to": 105,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 106,
+      "to": 128,
+      "subgoal": "sort_limit"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": "SELECT cal_date, weekday_name, event\nFROM calendar\nWHERE event = 'black_friday' OR event = 'cyber_monday'\nORDER BY cal_date",
+  "starter_error_id": "ERR-LOG-18",
+  "time_target_ms": 90000,
+  "why_this_works": "ORDER BY cal_date DESC puts the newest date first; without DESC the sort runs from oldest to newest."
+}

@@ -1,0 +1,31 @@
+{
+  "item_id": "EX-SQL-FILTER-02-E1-06",
+  "item_version": 1,
+  "reference_sql": "SELECT category_id, category_name, parent_category\nFROM categories\nWHERE category_name ILIKE '%speakers'",
+  "alternatives": [
+    "SELECT category_id, category_name, parent_category\nFROM categories\nWHERE category_name ILIKE '%SPEAKERS'",
+    "SELECT category_id, category_name, parent_category\nFROM categories\nWHERE category_name ILIKE '%Speakers'"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "EX-SQL-FILTER-02-E1-06-PW1",
+      "error_id": "ERR-LOG-22",
+      "sql": "SELECT category_id, category_name, parent_category\nFROM categories\nWHERE category_name LIKE '%Speakers'"
+    },
+    {
+      "id": "EX-SQL-FILTER-02-E1-06-PW2",
+      "error_id": "ERR-LOG-22",
+      "sql": "SELECT category_id, category_name, parent_category\nFROM categories\nWHERE category_name ILIKE 'speakers'"
+    }
+  ],
+  "hint3_partial": "SELECT category_id, category_name, parent_category\nFROM categories\nWHERE category_name ILIKE ___",
+  "solver": {
+    "prompt_hash": "06be21ec5eaa772b",
+    "schema_version": "d9fba3510579",
+    "dataset_version": "9639f8ae1f71c2ef",
+    "grader_version": "1a.2",
+    "query": "SELECT category_id, category_name, parent_category FROM categories WHERE category_name ILIKE '%speakers'\n",
+    "at": "2026-10-03T13:08:02.690Z"
+  }
+}

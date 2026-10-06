@@ -1,0 +1,37 @@
+{
+  "item_id": "EX-SQL-BASICS-01-E1-06",
+  "item_version": 1,
+  "reference_sql": "SELECT *\nFROM promotions",
+  "alternatives": [
+    "SELECT promo_id, promo_code, promo_name, promo_type, start_date, end_date, discount_pct\nFROM promotions",
+    "SELECT promotions.*\nFROM promotions",
+    "SELECT p.*\nFROM promotions p"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "M1",
+      "error_id": "ERR-OUT-01",
+      "sql": "SELECT promo_id, promo_code, promo_name, promo_type, start_date, end_date FROM promotions"
+    },
+    {
+      "id": "M2",
+      "error_id": "ERR-SYN-02",
+      "sql": "SELECT * FROM promotion"
+    },
+    {
+      "id": "M3",
+      "error_id": "ERR-SYN-01",
+      "sql": "SELECT ALL FROM promotions"
+    }
+  ],
+  "hint3_partial": "SELECT ...   -- one symbol here means every column\nFROM promotions",
+  "solver": {
+    "prompt_hash": "358489515e959651",
+    "schema_version": "f0340f71a1f5",
+    "dataset_version": "9639f8ae1f71c2ef",
+    "grader_version": "1a.2",
+    "query": "SELECT promo_id, promo_code, promo_name, promo_type, start_date, end_date, discount_pct FROM promotions\n",
+    "at": "2026-10-03T13:08:01.952Z"
+  }
+}

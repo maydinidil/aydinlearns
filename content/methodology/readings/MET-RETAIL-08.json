@@ -1,0 +1,15 @@
+{
+  "concept_id": "MET-RETAIL-08",
+  "section": "methodology",
+  "version": 1,
+  "title": "Conversion rate",
+  "reading_md": "**What it measures.** The share of visits that end in a purchase. In a store, a visit is a person counted by the door counter and a purchase is a till transaction. In the webshop, a visit is a session and a purchase is an order. GA4's closest metric is the session key event rate: the percentage of sessions in which any key event was triggered.\n\n**Formula.**\n\nConversion rate = 100 × transactions / visits (store), or 100 × orders / sessions (web)\n\nGrain: store or channel × day or period. For a period, add up transactions and visits over all the days first, then divide.\n\n**Worked example.** In one week the Utrecht store's counter recorded 9,000 visits and the tills recorded 1,620 transactions: 100 × 1,620 / 9,000 = 18.0%. In the same week the webshop had 150,000 sessions and 3,300 orders: 100 × 3,300 / 150,000 = 2.2%. Walking into a store and opening a web page are different acts, so compare each store and the webshop with their own past, not with each other.\n\nOver several days, add up before dividing. Saturday: 3,000 visits and 600 transactions (20%). Monday: 1,000 visits and 100 transactions (10%). The two days together convert at 700 / 4,000 = 17.5%, not the 15% you get by averaging the two daily rates.\n\n**Common mistakes.**\n\n- Broken counters. A door counter that records 0 visits while the tills keep ringing makes the rate jump. Leave such days out of both the visits and the transactions.\n- Sessions versus users. One user can have several sessions, so orders per user is higher than orders per session. Say which one you used, and never compare one with the other.\n- Averaging daily rates instead of dividing the sums.\n- Mixing scales: 0.022 and 2.2% are the same rate. Say which scale you use.\n\n**What conversion rate does not answer.**\n\n- How much each order is worth: that is AOV. Revenue = visits × conversion rate (as a share) × AOV.\n- Why the rate moved. It rises when orders go up, but also when visits fall while orders stay flat, for example when a campaign that brought many low-intent visitors is paused. Always look at the numerator and the denominator.\n- Where in the journey people drop out: that needs funnel conversion by stage.\n\n**How managers ask for it.** \"Is the Amsterdam flagship converting its traffic?\" \"Why is web conversion down?\"",
+  "source_ids": [
+    "04:MET-RETAIL-08",
+    "04:§2.1",
+    "ERRATA:E-100",
+    "ERRATA:E-101"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04"
+}

@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-FILTER-02-E1-43",
+  "item_version": 1,
+  "correct_oid": "o072ba59",
+  "explanation": "ILIKE ignores upper and lower case, and a % on each side lets pro sit anywhere in the name. In DuckDB, LIKE matches case exactly, so '%pro%' misses Pro and PRO, and testing '%Pro%' and '%PRO%' still misses pro. Without the leading %, 'pro%' only matches names that start with pro.",
+  "solver": {
+    "prompt_hash": "1a8f33d77fa65a4e",
+    "grader_version": "choice.1",
+    "chosen": "o072ba59",
+    "typed": null,
+    "at": "2026-10-06T09:08:14.847Z"
+  }
+}

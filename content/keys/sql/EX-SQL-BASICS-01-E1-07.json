@@ -1,0 +1,37 @@
+{
+  "item_id": "EX-SQL-BASICS-01-E1-07",
+  "item_version": 1,
+  "reference_sql": "SELECT store_id, store_code, country_code\nFROM stores",
+  "alternatives": [
+    "SELECT stores.store_id, stores.store_code, stores.country_code\nFROM stores",
+    "SELECT s.store_id, s.store_code, s.country_code\nFROM stores AS s",
+    "SELECT \"store_id\", \"store_code\", \"country_code\"\nFROM \"stores\""
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "M1",
+      "error_id": "ERR-SYN-02",
+      "sql": "SELECT store_id, store_code, country FROM stores"
+    },
+    {
+      "id": "M2",
+      "error_id": "ERR-OUT-01",
+      "sql": "SELECT store_id, store_code country_code FROM stores"
+    },
+    {
+      "id": "M3",
+      "error_id": "ERR-SYN-01",
+      "sql": "SELECT store_id, store_code, country_code FRM stores"
+    }
+  ],
+  "hint3_partial": "SELECT store_id, ...\nFROM stores",
+  "solver": {
+    "prompt_hash": "85fda8db8dfb4f3c",
+    "schema_version": "9a8d01143702",
+    "dataset_version": "9639f8ae1f71c2ef",
+    "grader_version": "1a.2",
+    "query": "SELECT store_id, store_code, country_code FROM stores\n",
+    "at": "2026-10-03T13:08:01.966Z"
+  }
+}

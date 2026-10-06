@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-NULL-01-E2-42",
+  "item_version": 1,
+  "correct_oid": "o3edb4a8",
+  "explanation": "A missing store_type makes <> 'flagship' unknown, so WHERE drops that store; OR store_type IS NULL brings it back. NOT store_type = 'flagship' is unknown for a missing value too, so it drops the same stores. = NULL is never true, so adding it changes nothing.",
+  "solver": {
+    "prompt_hash": "54979c57c4163d80",
+    "grader_version": "choice.1",
+    "chosen": "o3edb4a8",
+    "typed": null,
+    "at": "2026-10-06T09:08:14.852Z"
+  }
+}

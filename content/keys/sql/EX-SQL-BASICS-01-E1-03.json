@@ -1,0 +1,37 @@
+{
+  "item_id": "EX-SQL-BASICS-01-E1-03",
+  "item_version": 1,
+  "reference_sql": "SELECT category_name, parent_category\nFROM categories",
+  "alternatives": [
+    "SELECT categories.category_name, categories.parent_category\nFROM categories",
+    "SELECT c.category_name, c.parent_category\nFROM categories AS c",
+    "SELECT \"category_name\", \"parent_category\"\nFROM \"categories\""
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "M1",
+      "error_id": "ERR-SYN-02",
+      "sql": "SELECT category_name, parent_category FROM category"
+    },
+    {
+      "id": "M2",
+      "error_id": "ERR-OUT-01",
+      "sql": "SELECT category_id, category_name, parent_category FROM categories"
+    },
+    {
+      "id": "M3",
+      "error_id": "ERR-SYN-04",
+      "sql": "SELECT \"category_name, parent_category FROM categories"
+    }
+  ],
+  "hint3_partial": "SELECT category_name, ...\nFROM categories",
+  "solver": {
+    "prompt_hash": "2ad26d69d14e7243",
+    "schema_version": "d9fba3510579",
+    "dataset_version": "9639f8ae1f71c2ef",
+    "grader_version": "1a.2",
+    "query": "SELECT category_name, parent_category FROM categories\n",
+    "at": "2026-10-03T13:08:01.902Z"
+  }
+}

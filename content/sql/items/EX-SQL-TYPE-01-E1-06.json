@@ -1,0 +1,130 @@
+{
+  "id": "EX-SQL-TYPE-01-E1-06",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-02",
+    "type",
+    "share-scale",
+    "division",
+    "round",
+    "conditional-aggregation",
+    "group-by",
+    "sales"
+  ],
+  "level": 2,
+  "source_ids": [
+    "01:SQL-TYPE-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-TYPE-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-AGG-04",
+    "SQL-TYPE-01"
+  ],
+  "template_id": "T-TYPE-01-share-per-group",
+  "template_params": {
+    "table": "sales",
+    "group_by": "parent_category",
+    "part": "lines with channel 'store'",
+    "whole": "lines",
+    "scale": "share",
+    "decimals": 3,
+    "from": "2025-01-01",
+    "to": "2025-12-31",
+    "output": "store_line_share"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_type",
+  "prompt": "What share of each parent category's 2025 order lines was sold in a store? Use the sales table and keep the order lines with an order_date from 2025-01-01 to 2025-12-31, both included. Return two columns, in this order: parent_category and store_line_share, the number of lines with channel 'store' divided by the number of all lines, as a share between 0 and 1 (so half is 0.5), rounded to 3 decimals with ROUND(x, 3). Return one row per parent_category. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "parent_category",
+        "type_class": "text"
+      },
+      {
+        "name": "store_line_share",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per parent_category"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "parent_category",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "store_line_share",
+        "type_class": "numeric",
+        "precision": "ratio",
+        "require_rounding": 3
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "parent_category"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, keep the 2025 lines and write the calculated column store_line_share: one count divided by another.",
+    "Count the store lines with a conditional count and divide by the count of all lines. Two counts are whole numbers, so make one a decimal first. The question asks for a share, not a percentage."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 119,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 120,
+      "to": 130,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 131,
+      "to": 195,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 196,
+      "to": 220,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "A conditional count over all lines gives the share, and the 1.0 stops the division of two counts from dropping to 0."
+}

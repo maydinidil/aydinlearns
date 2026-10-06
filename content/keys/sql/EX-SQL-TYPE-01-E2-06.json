@@ -1,0 +1,31 @@
+{
+  "item_id": "EX-SQL-TYPE-01-E2-06",
+  "item_version": 1,
+  "reference_sql": "SELECT quarter,\n       COUNT(*) AS n_days,\n       ROUND(100.0 * COUNT(*) FILTER (WHERE is_weekend) / COUNT(*), 1) AS weekend_pct\nFROM calendar\nWHERE cal_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\nGROUP BY quarter",
+  "alternatives": [
+    "SELECT quarter, COUNT(*) AS n_days, ROUND(100.0 * SUM(CASE WHEN is_weekend THEN 1 ELSE 0 END) / COUNT(*), 1) AS weekend_pct FROM calendar WHERE cal_date >= DATE '2025-01-01' AND cal_date <= DATE '2025-12-31' GROUP BY quarter",
+    "SELECT quarter, COUNT(*) AS n_days, ROUND(100 * AVG(CAST(is_weekend AS INTEGER)), 1) AS weekend_pct FROM calendar WHERE cal_date BETWEEN '2025-01-01' AND '2025-12-31' GROUP BY 1"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-05",
+      "sql": "SELECT quarter, COUNT(*) AS n_days, ROUND(100 * COUNT(*) FILTER (WHERE is_weekend) // COUNT(*), 1) AS weekend_pct FROM calendar WHERE cal_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31' GROUP BY quarter"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-21",
+      "sql": "SELECT quarter, COUNT(*) AS n_days, ROUND(COUNT(*) FILTER (WHERE is_weekend) * 1.0 / COUNT(*), 1) AS weekend_pct FROM calendar WHERE cal_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31' GROUP BY quarter"
+    }
+  ],
+  "hint3_partial": "SELECT quarter,\n       COUNT(*) AS n_days,\n       ROUND(100.0 * COUNT(*) FILTER (WHERE ___) / COUNT(*), 1) AS weekend_pct\nFROM calendar\nWHERE cal_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\nGROUP BY ___",
+  "solver": {
+    "prompt_hash": "dbf28a68e01faec0",
+    "schema_version": "0d8e15555347",
+    "dataset_version": "506a9858f862fdfb",
+    "grader_version": "1b.3",
+    "query": "SELECT quarter, COUNT(*) AS n_days, ROUND(100.0 * COUNT(*) FILTER (WHERE is_weekend) / COUNT(*), 1) AS weekend_pct FROM calendar WHERE cal_date BETWEEN '2025-01-01' AND '2025-12-31' GROUP BY quarter\n",
+    "at": "2026-10-04T10:06:52.599Z"
+  }
+}

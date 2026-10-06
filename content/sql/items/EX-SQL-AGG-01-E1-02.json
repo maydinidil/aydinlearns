@@ -1,0 +1,101 @@
+{
+  "id": "EX-SQL-AGG-01-E1-02",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-02",
+    "aggregate",
+    "sum_avg",
+    "sales",
+    "sum"
+  ],
+  "level": 2,
+  "source_ids": [
+    "01:SQL-AGG-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pretest",
+  "target_concept_id": "SQL-AGG-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-AGG-01"
+  ],
+  "template_id": "T-AGG-01-sum-filtered",
+  "template_params": {
+    "table": "sales",
+    "filter": "country_code = 'BE'",
+    "measure": "net_revenue_eur",
+    "output": "total_revenue_eur"
+  },
+  "sub_skill": "sum_avg",
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_agg",
+  "prompt": "What was the total net revenue of all order lines shipped to Belgium (country_code 'BE')? A line with a missing net revenue adds nothing to the total. Return one column, total_revenue_eur. Do not round. The result is a single row. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "total_revenue_eur",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row in total"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "total_revenue_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the total. Add up net_revenue_eur over the Belgian lines.",
+    "The total goes in the SELECT list, named total_revenue_eur with AS. Use the function that adds values up, not the one that averages or counts them."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 48,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 49,
+      "to": 59,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 60,
+      "to": 85,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 90000,
+  "why_this_works": "SUM adds net_revenue_eur over every line the WHERE clause keeps, and skips a missing value."
+}

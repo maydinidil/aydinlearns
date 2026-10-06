@@ -1,0 +1,124 @@
+{
+  "id": "EX-SQL-CASE-01-E2-21",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-02",
+    "case",
+    "segment-count",
+    "date-bands",
+    "group-by",
+    "promotions",
+    "drill"
+  ],
+  "level": 2,
+  "source_ids": [
+    "01:SQL-CASE-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-CASE-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CASE-01"
+  ],
+  "template_id": "T-CASE-01-period-count",
+  "template_params": {
+    "table": "promotions",
+    "source": "start_date",
+    "output": "half_year"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_case",
+  "prompt": "How many promotions started in each half of the year, and how deep were they on average? half_year is the text '2024-H1' when start_date is from 2024-01-01 to 2024-06-30, '2024-H2' when it is from 2024-07-01 to 2024-12-31, '2025-H1' when it is from 2025-01-01 to 2025-06-30, and '2025-H2' when it is from 2025-07-01 to 2025-12-31, both days included each time. Every promotion has a start_date in one of these periods. Use the promotions table. Return three columns, in this order: half_year, n_promotions, the number of promotions, and avg_discount_pct, the average discount_pct. Return one row per half_year that has at least one promotion. Do not round. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "half_year",
+        "type_class": "text"
+      },
+      {
+        "name": "n_promotions",
+        "type_class": "numeric"
+      },
+      {
+        "name": "avg_discount_pct",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per half year"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "half_year",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "n_promotions",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "avg_discount_pct",
+        "type_class": "numeric",
+        "precision": "ratio"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "half_year"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the calculated column half_year with one branch per half year, then count and average per half year.",
+    "Each half year ends on 30 June or 31 December and both ends count, so a promotion that starts on 30 June belongs to the first half. Group by the label you built."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 466,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 467,
+      "to": 482,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 483,
+      "to": 501,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 170000,
+  "why_this_works": "The CASE turns each start_date into its half year label, and grouping by that label counts and averages the promotions of each half."
+}

@@ -1,0 +1,37 @@
+{
+  "item_id": "EX-SQL-FILTER-01-E2-05",
+  "item_version": 1,
+  "reference_sql": "SELECT product_id, product_name, brand, launch_date\nFROM products\nWHERE (brand = 'Sonora' OR brand = 'Echoline') AND launch_date >= '2024-04-01'",
+  "alternatives": [
+    "SELECT product_id, product_name, brand, launch_date\nFROM products\nWHERE launch_date >= '2024-04-01' AND (brand = 'Echoline' OR brand = 'Sonora')",
+    "SELECT product_id, product_name, brand, launch_date\nFROM products\nWHERE (brand = 'Sonora' AND launch_date >= '2024-04-01') OR (brand = 'Echoline' AND launch_date >= '2024-04-01')",
+    "SELECT product_id, product_name, brand, launch_date\nFROM products\nWHERE (brand = 'Sonora' OR brand = 'Echoline') AND NOT launch_date < '2024-04-01'"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "M1",
+      "error_id": "ERR-LOG-13",
+      "sql": "SELECT product_id, product_name, brand, launch_date\nFROM products\nWHERE brand = 'Sonora' OR brand = 'Echoline' AND launch_date >= '2024-04-01'"
+    },
+    {
+      "id": "M2",
+      "error_id": "ERR-LOG-15",
+      "sql": "SELECT product_id, product_name, brand, launch_date\nFROM products\nWHERE (brand = 'Sonora' OR brand = 'Echoline') AND launch_date > '2024-04-01'"
+    },
+    {
+      "id": "M3",
+      "error_id": "ERR-SYN-07",
+      "sql": "SELECT product_id, product_name, brand, launch_date\nFROM products\nWHERE (brand = \"Sonora\" OR brand = 'Echoline') AND launch_date >= '2024-04-01'"
+    }
+  ],
+  "hint3_partial": "SELECT product_id, product_name, brand, launch_date\nFROM products\nWHERE (brand = 'Sonora' OR ...) AND ...",
+  "solver": {
+    "prompt_hash": "3617024f099ffe9a",
+    "schema_version": "d77fe1c31a0e",
+    "dataset_version": "9639f8ae1f71c2ef",
+    "grader_version": "1a.2",
+    "query": "SELECT product_id, product_name, brand, launch_date FROM products WHERE brand IN ('Sonora', 'Echoline') AND launch_date >= '2024-04-01'\n",
+    "at": "2026-10-03T13:08:02.548Z"
+  }
+}

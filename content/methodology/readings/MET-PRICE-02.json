@@ -1,0 +1,14 @@
+{
+  "concept_id": "MET-PRICE-02",
+  "section": "methodology",
+  "version": 1,
+  "title": "Average selling price (ASP)",
+  "reading_md": "**What it answers.** What one unit actually sold for, on average, after discounts. Typical questions: \"What's our average price per unit in headphones?\" and \"Did ASP go up after the list price increase?\"\n\n**Formula.**\n\nASP = net revenue / units sold = SUM(units x net price) / SUM(units)\n\nOn Voltmarkt's order lines, a line's net revenue is `quantity x unit_price_eur - line_discount_eur`, and its units are `quantity`. The grain is a product or a category over a period.\n\n**Worked example.** In September Voltmarkt sold 20 Earbuds Pro X at €129 and 80 Earbuds Lite at €49, with no discounts. Net revenue = 20 x 129 + 80 x 49 = 2,580 + 3,920 = €6,500 from 100 units, so ASP = €65.00.\n\nAveraging the two prices, (129 + 49) / 2 = €89.00, is wrong: it gives the 20 Pro X units the same say as the 80 Lite units. The same happens when you average the net unit price of each order line: a line with 1 unit counts as much as a line with 10.\n\nIn October the prices stay the same, but Voltmarkt sells 60 Pro X and 40 Lite. Net revenue = 7,740 + 1,960 = €9,700 from 100 units, so ASP = €97.00, up 49% with no price change at all. That is mix: the share of the dearer model rose.\n\n**Common mistakes.**\n- Averaging the net unit price per order line (unweighted) instead of dividing net revenue by units.\n- Reading an ASP rise as a price rise. A shift towards expensive models moves ASP even when no price changes, so check prices per model before claiming a price effect.\n- Using list price instead of the net price after line discounts.\n\n**What it does not answer.** Whether Voltmarkt is cheap or expensive against its rivals (price index), whether the units are profitable (gross margin, which needs unit costs), or how many units were sold. ASP is price per unit, not volume or profit.",
+  "source_ids": [
+    "04:MET-PRICE-02",
+    "ERRATA:E-100",
+    "ERRATA:E-101"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04"
+}

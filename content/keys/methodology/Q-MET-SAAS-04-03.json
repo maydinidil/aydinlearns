@@ -1,0 +1,13 @@
+{
+  "item_id": "Q-MET-SAAS-04-03",
+  "item_version": 1,
+  "correct_oid": "o23aa10f",
+  "explanation": "Logo churn asks what share of the starting customers left, so its denominator is the businesses active at the start of the month. The month-end count has already lost the cancellations and gained the new sign-ups, so it is the wrong base, and in a growing subscription it makes churn look lower than it is.",
+  "solver": {
+    "prompt_hash": "b82fdad32d36f24c",
+    "grader_version": "choice.1",
+    "chosen": "o23aa10f",
+    "typed": null,
+    "at": "2026-10-04T10:18:36.042Z"
+  }
+}

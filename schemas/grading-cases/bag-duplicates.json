@@ -1,0 +1,23 @@
+{
+  "id": "bag-duplicates",
+  "rule": "BAG",
+  "setup_sql": [
+    "CREATE SCHEMA g",
+    "CREATE TABLE g.b AS SELECT * FROM (VALUES (1),(1),(2)) v(x)"
+  ],
+  "key_sql": "SELECT x FROM g.b",
+  "learner_sql": "SELECT DISTINCT x FROM g.b",
+  "rules": {
+    "columns": [
+      {
+        "name": "x",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ]
+  },
+  "expect": {
+    "pass": false,
+    "missing": 1
+  }
+}

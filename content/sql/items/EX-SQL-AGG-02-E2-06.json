@@ -1,0 +1,123 @@
+{
+  "id": "EX-SQL-AGG-02-E2-06",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-02",
+    "group_by",
+    "count-distinct",
+    "month",
+    "order-by",
+    "sales"
+  ],
+  "level": 2,
+  "source_ids": [
+    "01:SQL-AGG-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-AGG-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02"
+  ],
+  "template_id": "T-AGG-02-count-distinct-per-month-sorted",
+  "template_params": {
+    "table": "sales",
+    "group_by": "order_month",
+    "metric": "store_code"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_agg",
+  "prompt": "In how many different stores did Voltmarkt sell something in each month? Use the sales table and its order_month column, the first day of the month the order was placed in. Return two columns, in this order: order_month and n_stores, the number of different store_code values with at least one order line in that month. Return one row per order_month, sorted by order_month from earliest to latest. The webshop, WEB-01, counts as a store, and every order line counts, including lines with missing units or a missing net_revenue_eur.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "order_month",
+        "type_class": "temporal"
+      },
+      {
+        "name": "n_stores",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per month"
+  },
+  "rules": {
+    "order_matters": true,
+    "sort_keys": [
+      {
+        "column": "order_month",
+        "desc": false
+      }
+    ],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "order_month",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "n_stores",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "order_month"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, decide what one row stands for: one row per month, with the stores counted inside each order_month.",
+    "A store with many lines in a month still counts once, so the count needs DISTINCT. Sort the months after grouping them."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 58,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 59,
+      "to": 69,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 70,
+      "to": 90,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 91,
+      "to": 111,
+      "subgoal": "sort_limit"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "GROUP BY order_month makes one group per month, COUNT(DISTINCT store_code) counts each store once inside it, and ORDER BY puts the months in date order."
+}

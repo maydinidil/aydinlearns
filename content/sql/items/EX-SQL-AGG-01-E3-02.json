@@ -1,0 +1,122 @@
+{
+  "id": "EX-SQL-AGG-01-E3-02",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-02",
+    "aggregate",
+    "count_distinct",
+    "sales",
+    "count_distinct",
+    "ratio",
+    "date_range"
+  ],
+  "level": 2,
+  "source_ids": [
+    "01:SQL-AGG-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-AGG-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-AGG-01"
+  ],
+  "template_id": "T-AGG-01-per-order-averages",
+  "template_params": {
+    "table": "sales",
+    "filter": "channel = 'web'",
+    "from": "2025-01-01",
+    "to": "2025-12-31"
+  },
+  "sub_skill": "count_distinct",
+  "difficulty": "E3",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_agg",
+  "prompt": "For web order lines (channel 'web') in 2025 (order_date from 1 January 2025 to 31 December 2025, both days included), return three columns, in this order: n_orders (the number of different orders), avg_lines_per_order (order lines per order) and avg_units_per_order (units sold per order). Every line counts as a line, even one with a missing units value, and a missing units value adds no units. Use exactly these column names. Do not round. The result is a single row. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "n_orders",
+        "type_class": "numeric"
+      },
+      {
+        "name": "avg_lines_per_order",
+        "type_class": "numeric"
+      },
+      {
+        "name": "avg_units_per_order",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row in total"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": true,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "n_orders",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "avg_lines_per_order",
+        "type_class": "numeric",
+        "precision": "ratio"
+      },
+      {
+        "name": "avg_units_per_order",
+        "type_class": "numeric",
+        "precision": "ratio"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the three columns. The number of orders is needed on its own and again as the bottom of both averages.",
+    "Each average is a total over the lines divided by the number of different orders, not by the number of lines; AVG(units) would give units per line."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 179,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 180,
+      "to": 190,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 191,
+      "to": 277,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 210000,
+  "why_this_works": "COUNT(DISTINCT order_id) is the number of orders, so dividing line and unit totals by it gives per-order averages."
+}

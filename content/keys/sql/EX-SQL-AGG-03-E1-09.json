@@ -1,0 +1,41 @@
+{
+  "item_id": "EX-SQL-AGG-03-E1-09",
+  "item_version": 1,
+  "reference_sql": "SELECT store_type, COUNT(*) AS n_stores\nFROM stores\nGROUP BY store_type\nHAVING COUNT(*) >= 2",
+  "alternatives": [
+    "SELECT store_type, COUNT(store_id) AS n_stores FROM stores GROUP BY store_type HAVING COUNT(store_id) >= 2",
+    "SELECT store_type, COUNT(*) AS n_stores FROM stores GROUP BY 1 HAVING COUNT(*) > 1"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-15",
+      "sql": "SELECT store_type, COUNT(*) AS n_stores FROM stores GROUP BY store_type HAVING COUNT(*) > 2"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-SYN-05",
+      "sql": "SELECT store_type, COUNT(*) AS n_stores FROM stores WHERE COUNT(*) >= 2 GROUP BY store_type"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-SYN-06",
+      "sql": "SELECT store_type, COUNT(*) AS n_stores FROM stores WHERE n_stores >= 2 GROUP BY store_type"
+    },
+    {
+      "id": "PW4",
+      "error_id": "ERR-LOG-07",
+      "sql": "SELECT store_type, COUNT(*) AS n_stores FROM stores GROUP BY store_type, country_code HAVING COUNT(*) >= 2"
+    }
+  ],
+  "hint3_partial": "SELECT store_type, COUNT(*) AS n_stores\nFROM stores\nGROUP BY store_type\nHAVING ___ 2",
+  "solver": {
+    "prompt_hash": "792946d7fef9ba82",
+    "schema_version": "9a8d01143702",
+    "dataset_version": "506a9858f862fdfb",
+    "grader_version": "1b.3",
+    "query": "SELECT store_type, COUNT(*) AS n_stores FROM stores GROUP BY store_type HAVING COUNT(*) >= 2\n",
+    "at": "2026-10-04T10:06:45.811Z"
+  }
+}

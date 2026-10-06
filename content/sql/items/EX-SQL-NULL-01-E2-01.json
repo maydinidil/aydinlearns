@@ -1,0 +1,119 @@
+{
+  "id": "EX-SQL-NULL-01-E2-01",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-01",
+    "is_null",
+    "not_equal_with_null",
+    "and_or_not"
+  ],
+  "level": 1,
+  "source_ids": [
+    "01:SQL-NULL-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-02",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "lesson",
+  "target_concept_id": "SQL-NULL-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-NULL-01",
+    "SQL-FILTER-01"
+  ],
+  "template_id": "T-NULL-01-not-equal-or-null",
+  "template_params": {
+    "table": "stores",
+    "null_column": "store_type",
+    "excluded": "standard"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_null",
+  "prompt": "The Dutch regional manager wants the special store formats. List the stores whose store_type is not 'standard' and that are in the Netherlands (country_code 'NL'). A store with no store_type recorded (NULL) is not known to be standard, so include it. Return three columns, in this order: store_code, city, store_type. Return one row per store. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "store_code",
+        "type_class": "text"
+      },
+      {
+        "name": "city",
+        "type_class": "text"
+      },
+      {
+        "name": "store_type",
+        "type_class": "text"
+      }
+    ],
+    "grain": "one row per store"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "store_code",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "city",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "store_type",
+        "type_class": "text",
+        "precision": "exact"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the row filter. Keep the Dutch stores whose store_type is anything other than 'standard', including a missing store_type.",
+    "On its own, a not-equal test drops the stores whose store_type is NULL. Pair it with a second test on store_type inside brackets, then add the country condition with AND."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 35,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 36,
+      "to": 47,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 48,
+      "to": 126,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": {
+    "stage1": 48,
+    "stage2": 36
+  },
+  "faded_shape": "SELECT store_code, city, store_type\nFROM stores\n",
+  "starter_sql": null,
+  "time_target_ms": 150000,
+  "why_this_works": "A store with no store_type makes store_type <> 'standard' unknown, not true, so only the extra OR store_type IS NULL keeps it."
+}

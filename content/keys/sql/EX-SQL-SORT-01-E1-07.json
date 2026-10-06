@@ -1,0 +1,32 @@
+{
+  "item_id": "EX-SQL-SORT-01-E1-07",
+  "item_version": 1,
+  "reference_sql": "SELECT category_name\nFROM categories\nORDER BY category_name",
+  "alternatives": [
+    "SELECT category_name FROM categories ORDER BY category_name ASC",
+    "SELECT category_name FROM categories ORDER BY 1",
+    "SELECT categories.category_name FROM categories ORDER BY categories.category_name"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "EX-SQL-SORT-01-E1-07-PW1",
+      "error_id": "ERR-LOG-18",
+      "sql": "SELECT category_name FROM categories"
+    },
+    {
+      "id": "EX-SQL-SORT-01-E1-07-PW2",
+      "error_id": "ERR-LOG-09",
+      "sql": "SELECT DISTINCT category_name FROM categories ORDER BY category_name"
+    }
+  ],
+  "hint3_partial": "SELECT category_name\nFROM categories\nORDER BY ___",
+  "solver": {
+    "prompt_hash": "82de4f815e2021fc",
+    "schema_version": "d9fba3510579",
+    "dataset_version": "9639f8ae1f71c2ef",
+    "grader_version": "1a.2",
+    "query": "SELECT category_name FROM categories ORDER BY category_name ASC\n",
+    "at": "2026-10-03T13:08:03.165Z"
+  }
+}

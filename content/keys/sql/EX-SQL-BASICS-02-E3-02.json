@@ -1,0 +1,37 @@
+{
+  "item_id": "EX-SQL-BASICS-02-E3-02",
+  "item_version": 1,
+  "reference_sql": "SELECT product_id,\n       unit_cost_eur * 1.25 AS list_price_eur,\n       unit_cost_eur * 1.25 * 0.90 AS sale_price_eur,\n       unit_cost_eur * 1.25 * 0.90 - unit_cost_eur AS profit_eur\nFROM products",
+  "alternatives": [
+    "SELECT product_id, unit_cost_eur * 1.25 AS list_price_eur, unit_cost_eur * 1.125 AS sale_price_eur, unit_cost_eur * 0.125 AS profit_eur FROM products",
+    "SELECT product_id, unit_cost_eur + unit_cost_eur * 0.25 AS list_price_eur, (unit_cost_eur + unit_cost_eur * 0.25) * 0.9 AS sale_price_eur, (unit_cost_eur + unit_cost_eur * 0.25) * 0.9 - unit_cost_eur AS profit_eur FROM products",
+    "SELECT product_id, unit_cost_eur * (1 + 25 / 100.0) AS list_price_eur, unit_cost_eur * (1 + 25 / 100.0) * (1 - 10 / 100.0) AS sale_price_eur, unit_cost_eur * (1 + 25 / 100.0) * (1 - 10 / 100.0) - unit_cost_eur AS profit_eur FROM products"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "EX-SQL-BASICS-02-E3-02-PW1",
+      "error_id": "ERR-LOG-00",
+      "sql": "SELECT product_id, unit_cost_eur * 1.25 AS list_price_eur, unit_cost_eur * 1.15 AS sale_price_eur, unit_cost_eur * 1.15 - unit_cost_eur AS profit_eur FROM products"
+    },
+    {
+      "id": "EX-SQL-BASICS-02-E3-02-PW2",
+      "error_id": "ERR-LOG-21",
+      "sql": "SELECT product_id, unit_cost_eur * 1.25 AS list_price_eur, unit_cost_eur * 1.25 * (1 - 10) AS sale_price_eur, unit_cost_eur * 1.25 * (1 - 10) - unit_cost_eur AS profit_eur FROM products"
+    },
+    {
+      "id": "EX-SQL-BASICS-02-E3-02-PW3",
+      "error_id": "ERR-OUT-01",
+      "sql": "SELECT product_id, unit_cost_eur * 1.25 * 0.90 AS sale_price_eur, unit_cost_eur * 1.25 * 0.90 - unit_cost_eur AS profit_eur FROM products"
+    }
+  ],
+  "hint3_partial": "SELECT product_id,\n       unit_cost_eur * 1.25 AS list_price_eur,\n       unit_cost_eur * 1.25 * ___ AS sale_price_eur,\n       ___ - unit_cost_eur AS profit_eur\nFROM products",
+  "solver": {
+    "prompt_hash": "c680f5acba2bc971",
+    "schema_version": "d77fe1c31a0e",
+    "dataset_version": "9639f8ae1f71c2ef",
+    "grader_version": "1a.2",
+    "query": "SELECT product_id, list_price_eur, list_price_eur - list_price_eur * 0.10 AS sale_price_eur, list_price_eur - list_price_eur * 0.10 - unit_cost_eur AS profit_eur FROM (SELECT product_id, unit_cost_eur, unit_cost_eur + unit_cost_eur * 0.25 AS list_price_eur FROM products) AS p\n",
+    "at": "2026-10-03T13:08:02.367Z"
+  }
+}

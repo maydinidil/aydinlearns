@@ -1,0 +1,155 @@
+{
+  "id": "EX-SQL-TYPE-01-E3-01",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-02",
+    "type",
+    "percent-scale",
+    "round",
+    "top-n",
+    "tie-break",
+    "group-by",
+    "order-by",
+    "limit",
+    "sales"
+  ],
+  "level": 2,
+  "source_ids": [
+    "01:SQL-TYPE-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-TYPE-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01"
+  ],
+  "template_id": "T-TYPE-01-topn-ratio",
+  "template_params": {
+    "table": "sales",
+    "group_by": "product_id, product_name",
+    "rank_by": "revenue_eur",
+    "n": 3,
+    "tie_break": "product_id",
+    "decimals": 1,
+    "output": "margin_pct"
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_type",
+  "prompt": "Which 3 products have the highest total net revenue, and what is their margin as a percentage? Use the sales table and all its order lines. Return four columns, in this order: product_id, product_name, revenue_eur, the sum of net_revenue_eur, and margin_pct. A line's margin is net_revenue_eur minus units times unit_cost_eur, and a line with a missing value has a missing margin that adds nothing. margin_pct is 100 times the sum of the line margins divided by revenue_eur, rounded to 1 decimal with ROUND(x, 1), so 15 percent is 15.0. A missing net_revenue_eur adds nothing to revenue_eur, and revenue_eur is not rounded. Sort by revenue_eur from highest to lowest, and when two products have the same revenue_eur, by product_id from low to high. Return only the first 3 rows, one row per product.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "product_name",
+        "type_class": "text"
+      },
+      {
+        "name": "revenue_eur",
+        "type_class": "numeric"
+      },
+      {
+        "name": "margin_pct",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per product"
+  },
+  "rules": {
+    "order_matters": true,
+    "sort_keys": [
+      {
+        "column": "revenue_eur",
+        "desc": true
+      },
+      {
+        "column": "product_id",
+        "desc": false
+      }
+    ],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "product_name",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "revenue_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "margin_pct",
+        "type_class": "numeric",
+        "precision": "ratio",
+        "require_rounding": 1
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "product_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, decide what one row stands for, write revenue_eur and margin_pct, then write the sort and the row limit.",
+    "margin_pct divides one SUM by another and needs the 100 before the division to reach the percent scale; round only that final value. For the order, the tie-break on product_id goes after revenue_eur in the same ORDER BY, low to high."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 183,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 184,
+      "to": 194,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 195,
+      "to": 228,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 229,
+      "to": 274,
+      "subgoal": "sort_limit"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "Dividing the summed margin by the summed revenue and multiplying by 100 first gives a weighted percentage, and the product_id tie-break decides which of two equal revenues makes the top 3."
+}

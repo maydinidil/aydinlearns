@@ -1,0 +1,32 @@
+{
+  "item_id": "EX-SQL-NULL-01-E1-02",
+  "item_version": 1,
+  "reference_sql": "SELECT product_id, product_name, brand, sister_product_id\nFROM products\nWHERE (brand = 'Sonora' OR brand = 'Echoline') AND sister_product_id IS NOT NULL",
+  "alternatives": [
+    "SELECT product_id, product_name, brand, sister_product_id\nFROM products\nWHERE brand IN ('Sonora', 'Echoline') AND sister_product_id IS NOT NULL",
+    "SELECT product_id, product_name, brand, sister_product_id\nFROM products\nWHERE sister_product_id IS NOT NULL AND (brand = 'Echoline' OR brand = 'Sonora')",
+    "SELECT product_id, product_name, brand, sister_product_id\nFROM products\nWHERE (brand = 'Sonora' OR brand = 'Echoline') AND NOT sister_product_id IS NULL"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "M1",
+      "error_id": "ERR-SEM-04",
+      "sql": "SELECT product_id, product_name, brand, sister_product_id\nFROM products\nWHERE (brand = 'Sonora' OR brand = 'Echoline') AND sister_product_id <> NULL"
+    },
+    {
+      "id": "M2",
+      "error_id": "ERR-LOG-13",
+      "sql": "SELECT product_id, product_name, brand, sister_product_id\nFROM products\nWHERE brand = 'Sonora' OR brand = 'Echoline' AND sister_product_id IS NOT NULL"
+    }
+  ],
+  "hint3_partial": "SELECT product_id, product_name, brand, sister_product_id\nFROM products\nWHERE (brand = 'Sonora' OR brand = 'Echoline') AND sister_product_id ...",
+  "solver": {
+    "prompt_hash": "5e6da710453ad3c3",
+    "schema_version": "d77fe1c31a0e",
+    "dataset_version": "9639f8ae1f71c2ef",
+    "grader_version": "1a.2",
+    "query": "SELECT product_id, product_name, brand, sister_product_id FROM products WHERE brand IN ('Sonora', 'Echoline') AND sister_product_id IS NOT NULL\n",
+    "at": "2026-10-03T13:08:02.853Z"
+  }
+}

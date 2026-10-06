@@ -1,0 +1,32 @@
+{
+  "item_id": "EX-SQL-SORT-01-E1-03",
+  "item_version": 2,
+  "reference_sql": "SELECT promo_name,\n       discount_pct\nFROM promotions\nORDER BY discount_pct DESC, promo_name",
+  "alternatives": [
+    "SELECT promo_name, discount_pct FROM promotions ORDER BY discount_pct DESC, promo_name ASC",
+    "SELECT promo_name, discount_pct FROM promotions ORDER BY 2 DESC, 1",
+    "SELECT promotions.promo_name, promotions.discount_pct FROM promotions ORDER BY promotions.discount_pct DESC, promotions.promo_name"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "EX-SQL-SORT-01-E1-03-PW1",
+      "error_id": "ERR-LOG-18",
+      "sql": "SELECT promo_name, discount_pct FROM promotions ORDER BY discount_pct, promo_name"
+    },
+    {
+      "id": "EX-SQL-SORT-01-E1-03-PW2",
+      "error_id": "ERR-LOG-09",
+      "sql": "SELECT DISTINCT promo_name, discount_pct FROM promotions ORDER BY discount_pct DESC, promo_name"
+    }
+  ],
+  "hint3_partial": "SELECT promo_name,\n       discount_pct\nFROM promotions\nORDER BY discount_pct ___, ___",
+  "solver": {
+    "prompt_hash": "cc6ca1697d787006",
+    "schema_version": "f0340f71a1f5",
+    "dataset_version": "9639f8ae1f71c2ef",
+    "grader_version": "1b.1",
+    "query": "SELECT promo_name, discount_pct FROM promotions ORDER BY discount_pct DESC, promo_name ASC\n",
+    "at": "2026-10-03T20:33:06.632Z"
+  }
+}

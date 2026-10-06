@@ -1,0 +1,115 @@
+{
+  "id": "EX-SQL-CASE-01-E1-08",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-02",
+    "case",
+    "flag",
+    "in-list",
+    "categories"
+  ],
+  "level": 2,
+  "source_ids": [
+    "01:SQL-CASE-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-CASE-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-02",
+    "SQL-CASE-01"
+  ],
+  "template_id": "T-CASE-01-flag-list",
+  "template_params": {
+    "table": "categories",
+    "tested": "parent_category",
+    "output": "big_ticket"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_case",
+  "prompt": "Flag the big-ticket categories. Use the categories table. Return three columns, in this order: category_name, parent_category and big_ticket. big_ticket is the text 'yes' when parent_category is 'TV & Video', 'Computing' or 'Phones', and 'no' for every other category. Return one row per category. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "category_name",
+        "type_class": "text"
+      },
+      {
+        "name": "parent_category",
+        "type_class": "text"
+      },
+      {
+        "name": "big_ticket",
+        "type_class": "text"
+      }
+    ],
+    "grain": "one row per category"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "category_name",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "parent_category",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "big_ticket",
+        "type_class": "text",
+        "precision": "exact"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "category_name"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the calculated column big_ticket, which says yes for three parent categories and no for the rest.",
+    "big_ticket is a CASE expression in the SELECT list. One WHEN test can check parent_category against a list of three names with IN, and ELSE gives every other category its label."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 151,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 152,
+      "to": 167,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 100000,
+  "why_this_works": "IN tests the three parent categories in one WHEN, and ELSE labels every other category 'no' instead of leaving it missing."
+}

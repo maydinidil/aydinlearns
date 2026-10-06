@@ -1,0 +1,82 @@
+{
+  "id": "EX-SQL-BASICS-01-E2-43",
+  "version": 1,
+  "kind": "which_table",
+  "tags": [
+    "sql",
+    "LVL-01",
+    "which_table",
+    "which_table",
+    "calendar",
+    "grain"
+  ],
+  "level": 1,
+  "source_ids": [
+    "01:SQL-BASICS-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-BASICS-01",
+  "concept_ids": [
+    "SQL-BASICS-01"
+  ],
+  "template_id": "T-BASICS-01-which-table-calendar",
+  "template_params": {},
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_basics",
+  "prompt": "Is 15 March 2025 a weekend day? Which table can answer this, with one row per date?",
+  "output_contract": null,
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [],
+  "subgoals": [],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 90000,
+  "why_this_works": "",
+  "options": [
+    {
+      "oid": "o274f8bf",
+      "text": "promotions",
+      "misconception_id": "ERR-SYN-02"
+    },
+    {
+      "oid": "ob1902bd",
+      "text": "calendar",
+      "misconception_id": null
+    },
+    {
+      "oid": "o5b24fcc",
+      "text": "sales",
+      "misconception_id": "ERR-LOG-07"
+    },
+    {
+      "oid": "o2fa99b9",
+      "text": "stores",
+      "misconception_id": "ERR-SYN-02"
+    }
+  ]
+}

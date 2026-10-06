@@ -1,0 +1,36 @@
+{
+  "item_id": "EX-SQL-AGG-01-E1-08",
+  "item_version": 1,
+  "reference_sql": "SELECT COUNT(*) AS n_lines\nFROM sales\nWHERE net_revenue_eur >= 499",
+  "alternatives": [
+    "SELECT COUNT(net_revenue_eur) AS n_lines FROM sales WHERE net_revenue_eur >= 499",
+    "SELECT COUNT(*) AS n_lines FROM sales WHERE NOT net_revenue_eur < 499"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "EX-SQL-AGG-01-E1-08-PW1",
+      "error_id": "ERR-LOG-15",
+      "sql": "SELECT COUNT(*) AS n_lines FROM sales WHERE net_revenue_eur > 499"
+    },
+    {
+      "id": "EX-SQL-AGG-01-E1-08-PW2",
+      "error_id": "ERR-LOG-04",
+      "sql": "SELECT COUNT(DISTINCT order_id) AS n_lines FROM sales WHERE net_revenue_eur >= 499"
+    },
+    {
+      "id": "EX-SQL-AGG-01-E1-08-PW3",
+      "error_id": "ERR-LOG-14",
+      "sql": "SELECT SUM(net_revenue_eur) AS n_lines FROM sales WHERE net_revenue_eur >= 499"
+    }
+  ],
+  "hint3_partial": "SELECT COUNT(*) AS n_lines\nFROM sales\nWHERE net_revenue_eur ___ 499",
+  "solver": {
+    "prompt_hash": "733b0f53c6f7ed48",
+    "schema_version": "cebf75df442f",
+    "dataset_version": "506a9858f862fdfb",
+    "grader_version": "1b.3",
+    "query": "SELECT COUNT(*) AS n_lines FROM sales WHERE net_revenue_eur >= 499\n",
+    "at": "2026-10-04T10:06:41.807Z"
+  }
+}

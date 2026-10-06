@@ -1,0 +1,37 @@
+{
+  "item_id": "EX-SQL-BASICS-01-E1-05",
+  "item_version": 1,
+  "reference_sql": "SELECT cal_date, weekday_name\nFROM calendar",
+  "alternatives": [
+    "SELECT calendar.cal_date, calendar.weekday_name\nFROM calendar",
+    "SELECT c.cal_date, c.weekday_name\nFROM calendar AS c",
+    "SELECT \"cal_date\", \"weekday_name\"\nFROM \"calendar\""
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "M1",
+      "error_id": "ERR-SYN-02",
+      "sql": "SELECT date, weekday_name FROM calendar"
+    },
+    {
+      "id": "M2",
+      "error_id": "ERR-OUT-01",
+      "sql": "SELECT * FROM calendar"
+    },
+    {
+      "id": "M3",
+      "error_id": "ERR-SYN-04",
+      "sql": "SELECT cal_date, 'weekday_name FROM calendar"
+    }
+  ],
+  "hint3_partial": "SELECT cal_date, ...\nFROM calendar",
+  "solver": {
+    "prompt_hash": "e1a606fdd4122211",
+    "schema_version": "0d8e15555347",
+    "dataset_version": "9639f8ae1f71c2ef",
+    "grader_version": "1a.2",
+    "query": "SELECT cal_date, weekday_name FROM calendar\n",
+    "at": "2026-10-03T13:08:01.932Z"
+  }
+}

@@ -1,0 +1,36 @@
+{
+  "item_id": "EX-SQL-FILTER-02-E2-02",
+  "item_version": 1,
+  "reference_sql": "SELECT product_id, product_name, unit_cost_eur, launch_date\nFROM products\nWHERE launch_date BETWEEN DATE '2024-03-01' AND DATE '2024-03-31'\n  AND unit_cost_eur >= 100",
+  "alternatives": [
+    "SELECT product_id, product_name, unit_cost_eur, launch_date\nFROM products\nWHERE launch_date >= DATE '2024-03-01'\n  AND launch_date < DATE '2024-04-01'\n  AND unit_cost_eur >= 100",
+    "SELECT product_id, product_name, unit_cost_eur, launch_date\nFROM products\nWHERE unit_cost_eur >= 100\n  AND launch_date BETWEEN '2024-03-01' AND '2024-03-31'"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "EX-SQL-FILTER-02-E2-02-PW1",
+      "error_id": "ERR-LOG-06",
+      "sql": "SELECT product_id, product_name, unit_cost_eur, launch_date\nFROM products\nWHERE launch_date BETWEEN DATE '2024-03-01' AND DATE '2024-04-01'\n  AND unit_cost_eur >= 100"
+    },
+    {
+      "id": "EX-SQL-FILTER-02-E2-02-PW2",
+      "error_id": "ERR-LOG-06",
+      "sql": "SELECT product_id, product_name, unit_cost_eur, launch_date\nFROM products\nWHERE launch_date >= DATE '2024-03-01'\n  AND launch_date < DATE '2024-03-31'\n  AND unit_cost_eur >= 100"
+    },
+    {
+      "id": "EX-SQL-FILTER-02-E2-02-PW3",
+      "error_id": "ERR-LOG-15",
+      "sql": "SELECT product_id, product_name, unit_cost_eur, launch_date\nFROM products\nWHERE launch_date BETWEEN DATE '2024-03-01' AND DATE '2024-03-31'\n  AND unit_cost_eur > 100"
+    }
+  ],
+  "hint3_partial": "SELECT product_id, product_name, unit_cost_eur, launch_date\nFROM products\nWHERE launch_date BETWEEN DATE ___ AND DATE ___\n  AND unit_cost_eur ___ 100",
+  "solver": {
+    "prompt_hash": "292e221f77a633a5",
+    "schema_version": "d77fe1c31a0e",
+    "dataset_version": "9639f8ae1f71c2ef",
+    "grader_version": "1a.2",
+    "query": "SELECT product_id, product_name, unit_cost_eur, launch_date FROM products WHERE launch_date BETWEEN '2024-03-01' AND '2024-03-31' AND unit_cost_eur >= 100\n",
+    "at": "2026-10-03T13:08:02.745Z"
+  }
+}

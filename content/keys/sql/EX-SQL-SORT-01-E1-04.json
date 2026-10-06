@@ -1,0 +1,37 @@
+{
+  "item_id": "EX-SQL-SORT-01-E1-04",
+  "item_version": 2,
+  "reference_sql": "SELECT product_id,\n       product_name,\n       launch_date\nFROM products\nORDER BY launch_date DESC, product_id\nLIMIT 5",
+  "alternatives": [
+    "SELECT product_id, product_name, launch_date FROM products ORDER BY launch_date DESC, product_id ASC LIMIT 5",
+    "SELECT product_id, product_name, launch_date FROM products ORDER BY 3 DESC, 1 LIMIT 5",
+    "SELECT products.product_id, products.product_name, products.launch_date FROM products ORDER BY products.launch_date DESC, products.product_id LIMIT 5"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "EX-SQL-SORT-01-E1-04-PW1",
+      "error_id": "ERR-LOG-16",
+      "sql": "SELECT product_id, product_name, launch_date FROM products ORDER BY launch_date DESC, product_id DESC LIMIT 5"
+    },
+    {
+      "id": "EX-SQL-SORT-01-E1-04-PW2",
+      "error_id": "ERR-LOG-16",
+      "sql": "SELECT product_id, product_name, launch_date FROM products ORDER BY launch_date, product_id LIMIT 5"
+    },
+    {
+      "id": "EX-SQL-SORT-01-E1-04-PW3",
+      "error_id": "ERR-LOG-16",
+      "sql": "SELECT product_id, product_name, launch_date FROM products LIMIT 5"
+    }
+  ],
+  "hint3_partial": "SELECT product_id,\n       product_name,\n       launch_date\nFROM products\nORDER BY launch_date ___, product_id\nLIMIT ___",
+  "solver": {
+    "prompt_hash": "1b9253626d48c085",
+    "schema_version": "d77fe1c31a0e",
+    "dataset_version": "9639f8ae1f71c2ef",
+    "grader_version": "1b.1",
+    "query": "SELECT product_id, product_name, launch_date FROM products WHERE launch_date IS NOT NULL ORDER BY launch_date DESC, product_id ASC LIMIT 5\n",
+    "at": "2026-10-03T20:33:06.652Z"
+  }
+}

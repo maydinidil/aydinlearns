@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-AGG-01-E2-42",
+  "item_version": 1,
+  "correct_oid": "o1c3cb00",
+  "explanation": "The question defines the number as one total divided by another, so SUM(net_revenue_eur) / SUM(units). Averaging each line's revenue per unit gives every line the same weight, so a line of one unit counts as much as a line of four. AVG(net_revenue_eur) and dividing by COUNT(*) both give revenue per line, not per unit.",
+  "solver": {
+    "prompt_hash": "9060366cb4c0c789",
+    "grader_version": "choice.1",
+    "chosen": "o1c3cb00",
+    "typed": null,
+    "at": "2026-10-06T09:08:14.810Z"
+  }
+}

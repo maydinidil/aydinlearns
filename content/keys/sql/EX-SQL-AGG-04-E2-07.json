@@ -1,0 +1,41 @@
+{
+  "item_id": "EX-SQL-AGG-04-E2-07",
+  "item_version": 1,
+  "reference_sql": "SELECT parent_category,\n       COUNT(*) FILTER (WHERE country_code = 'NL') AS nl_lines,\n       COUNT(*) FILTER (WHERE country_code = 'BE') AS be_lines,\n       COUNT(*) FILTER (WHERE country_code = 'LU') AS lu_lines\nFROM sales\nGROUP BY parent_category",
+  "alternatives": [
+    "SELECT parent_category, SUM(CASE WHEN country_code = 'NL' THEN 1 ELSE 0 END) AS nl_lines, SUM(CASE WHEN country_code = 'BE' THEN 1 ELSE 0 END) AS be_lines, SUM(CASE WHEN country_code = 'LU' THEN 1 ELSE 0 END) AS lu_lines FROM sales GROUP BY parent_category",
+    "SELECT parent_category, COUNT(CASE WHEN country_code = 'NL' THEN 1 END) AS nl_lines, COUNT(CASE WHEN country_code = 'BE' THEN 1 END) AS be_lines, COUNT(CASE WHEN country_code = 'LU' THEN 1 END) AS lu_lines FROM sales GROUP BY 1"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-04",
+      "sql": "SELECT parent_category, COUNT(units) FILTER (WHERE country_code = 'NL') AS nl_lines, COUNT(units) FILTER (WHERE country_code = 'BE') AS be_lines, COUNT(units) FILTER (WHERE country_code = 'LU') AS lu_lines FROM sales GROUP BY parent_category"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-14",
+      "sql": "SELECT parent_category, SUM(units) FILTER (WHERE country_code = 'NL') AS nl_lines, SUM(units) FILTER (WHERE country_code = 'BE') AS be_lines, SUM(units) FILTER (WHERE country_code = 'LU') AS lu_lines FROM sales GROUP BY parent_category"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-SYN-01",
+      "sql": "SELECT parent_category, COUNT(*) FILTER WHERE country_code = 'NL' AS nl_lines, COUNT(*) FILTER WHERE country_code = 'BE' AS be_lines, COUNT(*) FILTER WHERE country_code = 'LU' AS lu_lines FROM sales GROUP BY parent_category"
+    },
+    {
+      "id": "PW4",
+      "error_id": "ERR-LOG-07",
+      "sql": "SELECT parent_category, channel, COUNT(*) FILTER (WHERE country_code = 'NL') AS nl_lines, COUNT(*) FILTER (WHERE country_code = 'BE') AS be_lines, COUNT(*) FILTER (WHERE country_code = 'LU') AS lu_lines FROM sales GROUP BY parent_category, channel"
+    }
+  ],
+  "hint3_partial": "SELECT parent_category,\n       COUNT(*) FILTER (WHERE country_code = ___) AS nl_lines,\n       COUNT(*) FILTER (___) AS be_lines,\n       ___ AS lu_lines\nFROM sales\nGROUP BY parent_category",
+  "solver": {
+    "prompt_hash": "ab419de303e245b6",
+    "schema_version": "cebf75df442f",
+    "dataset_version": "506a9858f862fdfb",
+    "grader_version": "1b.3",
+    "query": "SELECT parent_category, COUNT(*) FILTER (WHERE country_code = 'NL') AS nl_lines, COUNT(*) FILTER (WHERE country_code = 'BE') AS be_lines, COUNT(*) FILTER (WHERE country_code = 'LU') AS lu_lines FROM sales WHERE country_code IN ('NL', 'BE', 'LU') GROUP BY parent_category\n",
+    "at": "2026-10-04T10:06:49.513Z"
+  }
+}

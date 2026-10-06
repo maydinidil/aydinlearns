@@ -1,0 +1,13 @@
+{
+  "item_id": "Q-MET-RETAIL-06-04",
+  "item_version": 1,
+  "correct_oid": "o1a9d9fd",
+  "explanation": "COUNT(*) counts order lines, and many baskets hold more than one line, so the denominator is too big and the result is revenue per line. Average order value needs COUNT(DISTINCT order_id). Guest orders are still rows of the table, so COUNT(*) does not leave them out.",
+  "solver": {
+    "prompt_hash": "646a5aeceadc5055",
+    "grader_version": "choice.1",
+    "chosen": "o1a9d9fd",
+    "typed": null,
+    "at": "2026-10-04T10:18:36.028Z"
+  }
+}

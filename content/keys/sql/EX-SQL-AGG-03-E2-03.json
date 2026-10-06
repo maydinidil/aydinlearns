@@ -1,0 +1,41 @@
+{
+  "item_id": "EX-SQL-AGG-03-E2-03",
+  "item_version": 2,
+  "reference_sql": "SELECT product_id, product_name, COUNT(DISTINCT store_code) AS n_stores\nFROM sales\nGROUP BY product_id, product_name\nHAVING COUNT(DISTINCT store_code) < 12",
+  "alternatives": [
+    "SELECT product_id, product_name, COUNT(DISTINCT store_code) AS n_stores FROM sales GROUP BY product_name, product_id HAVING COUNT(DISTINCT store_code) <= 11",
+    "SELECT product_id, product_name, COUNT(DISTINCT store_code) AS n_stores FROM sales GROUP BY 1, 2 HAVING 12 > COUNT(DISTINCT store_code)"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-SEM-01",
+      "sql": "SELECT product_id, product_name, COUNT(DISTINCT store_code) AS n_stores FROM sales GROUP BY product_id HAVING COUNT(DISTINCT store_code) < 12"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-04",
+      "sql": "SELECT product_id, product_name, COUNT(store_code) AS n_stores FROM sales GROUP BY product_id, product_name HAVING COUNT(store_code) < 12"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-15",
+      "sql": "SELECT product_id, product_name, COUNT(DISTINCT store_code) AS n_stores FROM sales GROUP BY product_id, product_name HAVING COUNT(DISTINCT store_code) <= 12"
+    },
+    {
+      "id": "PW4",
+      "error_id": "ERR-SYN-05",
+      "sql": "SELECT product_id, product_name, COUNT(DISTINCT store_code) AS n_stores FROM sales WHERE COUNT(DISTINCT store_code) < 12 GROUP BY product_id, product_name"
+    }
+  ],
+  "hint3_partial": "SELECT product_id, product_name, COUNT(DISTINCT store_code) AS n_stores\nFROM sales\nGROUP BY product_id, product_name\nHAVING ___",
+  "solver": {
+    "prompt_hash": "883e43b9f8373ffa",
+    "schema_version": "cebf75df442f",
+    "dataset_version": "506a9858f862fdfb",
+    "grader_version": "1b.3",
+    "query": "SELECT product_id, product_name, COUNT(DISTINCT store_code) AS n_stores FROM sales GROUP BY product_id, product_name HAVING COUNT(DISTINCT store_code) < 12",
+    "at": "2026-10-04T10:06:46.318Z"
+  }
+}

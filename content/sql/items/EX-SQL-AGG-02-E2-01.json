@@ -1,0 +1,124 @@
+{
+  "id": "EX-SQL-AGG-02-E2-01",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-02",
+    "group_by",
+    "sum",
+    "two-columns",
+    "sales"
+  ],
+  "level": 2,
+  "source_ids": [
+    "01:SQL-AGG-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "lesson",
+  "target_concept_id": "SQL-AGG-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02"
+  ],
+  "template_id": "T-AGG-02-sum-per-two-columns",
+  "template_params": {
+    "table": "sales",
+    "group_by": "country_code, channel",
+    "metric": "net_revenue_eur"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_agg",
+  "prompt": "What is the total net revenue for each combination of country and channel? Use the sales table, where country_code is the country an order ships to. Return three columns, in this order: country_code, channel and revenue_eur, the sum of net_revenue_eur. Return one row per country_code and channel combination. Order lines with a missing net_revenue_eur add nothing to the total. Do not round. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "country_code",
+        "type_class": "text"
+      },
+      {
+        "name": "channel",
+        "type_class": "text"
+      },
+      {
+        "name": "revenue_eur",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per ship-to country and channel combination"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "country_code",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "channel",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "revenue_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "country_code",
+      "channel"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, decide what one row stands for: one row for each pair of country and channel.",
+    "GROUP BY can list several columns, separated by commas. List every column that names a row of the answer."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 65,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 66,
+      "to": 76,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 77,
+      "to": 107,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": {
+    "stage1": 77,
+    "stage2": 66
+  },
+  "faded_shape": "SELECT country_code, channel, SUM(net_revenue_eur) AS revenue_eur\nFROM sales\n",
+  "starter_sql": null,
+  "time_target_ms": 150000,
+  "why_this_works": "Grouping by both columns makes one group per country and channel pair, so SUM adds up the revenue of each pair separately."
+}

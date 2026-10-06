@@ -1,0 +1,36 @@
+{
+  "item_id": "EX-SQL-TYPE-01-E2-21",
+  "item_version": 1,
+  "reference_sql": "SELECT store_code,\n       ROUND(100.0 * SUM(CASE WHEN units >= 3 THEN 1 ELSE 0 END) / COUNT(*), 1) AS bulk_line_pct\nFROM sales\nGROUP BY store_code",
+  "alternatives": [
+    "SELECT store_code, ROUND(100.0 * COUNT(*) FILTER (WHERE units >= 3) / COUNT(*), 1) AS bulk_line_pct FROM sales GROUP BY store_code",
+    "SELECT store_code, ROUND(CAST(COUNT(CASE WHEN units >= 3 THEN 1 END) AS DOUBLE) * 100 / COUNT(*), 1) AS bulk_line_pct FROM sales GROUP BY 1"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-05",
+      "sql": "SELECT store_code, ROUND(100 * SUM(CASE WHEN units >= 3 THEN 1 ELSE 0 END) // COUNT(*), 1) AS bulk_line_pct FROM sales GROUP BY store_code"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-21",
+      "sql": "SELECT store_code, ROUND(1.0 * SUM(CASE WHEN units >= 3 THEN 1 ELSE 0 END) / COUNT(*), 1) AS bulk_line_pct FROM sales GROUP BY store_code"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-15",
+      "sql": "SELECT store_code, ROUND(100.0 * SUM(CASE WHEN units > 3 THEN 1 ELSE 0 END) / COUNT(*), 1) AS bulk_line_pct FROM sales GROUP BY store_code"
+    }
+  ],
+  "hint3_partial": "SELECT store_code,\n       ROUND(___ * SUM(CASE WHEN units >= 3 THEN 1 ELSE 0 END) / ___, 1) AS bulk_line_pct\nFROM sales\nGROUP BY store_code",
+  "solver": {
+    "prompt_hash": "5ad7a07f89418b02",
+    "schema_version": "cebf75df442f",
+    "dataset_version": "506a9858f862fdfb",
+    "grader_version": "1b.3",
+    "query": "SELECT store_code, ROUND(100.0 * SUM(CASE WHEN units >= 3 THEN 1 ELSE 0 END) / COUNT(*), 1) AS bulk_line_pct\nFROM sales\nGROUP BY store_code\n",
+    "at": "2026-10-04T14:33:18.948Z"
+  }
+}

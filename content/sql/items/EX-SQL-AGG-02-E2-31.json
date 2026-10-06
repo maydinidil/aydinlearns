@@ -1,0 +1,123 @@
+{
+  "id": "EX-SQL-AGG-02-E2-31",
+  "version": 1,
+  "kind": "fix",
+  "tags": [
+    "sql",
+    "LVL-02",
+    "fix",
+    "group_by",
+    "grain",
+    "count-distinct",
+    "sales",
+    "date_range"
+  ],
+  "level": 2,
+  "source_ids": [
+    "01:SQL-AGG-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-AGG-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02"
+  ],
+  "template_id": "T-AGG-02-fix-extra-group-column",
+  "template_params": {
+    "table": "sales",
+    "group_by": "store_code",
+    "from": "2025-01-01",
+    "to": "2025-03-31",
+    "output": "n_products"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_agg",
+  "prompt": "The query in the editor has one mistake. Fix it so that it answers this question: how many different products did each store sell in the first quarter of 2025 (order_date from 1 January 2025 to 31 March 2025, both days included)? Use the sales table. Return two columns, in this order: store_code and n_products, the number of different product_id values the store sold. Return one row per store_code; the webshop, WEB-01, counts as a store. Every order line counts, including lines with missing units or a missing net_revenue_eur. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "store_code",
+        "type_class": "text"
+      },
+      {
+        "name": "n_products",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per store_code"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "store_code",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "n_products",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "store_code"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, decide what one row stands for, and check that the GROUP BY list says the same.",
+    "The result shows the same store_code on several rows. Each extra column in GROUP BY splits a store's group into smaller groups, here one for each month."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 59,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 60,
+      "to": 70,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 71,
+      "to": 135,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 136,
+      "to": 155,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": "SELECT store_code, COUNT(DISTINCT product_id) AS n_products\nFROM sales\nWHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-03-31'\nGROUP BY order_month, store_code",
+  "starter_error_id": "ERR-LOG-07",
+  "time_target_ms": 150000,
+  "why_this_works": "GROUP BY store_code alone gives one group per store; grouping by order_month too split each store into one row per month."
+}

@@ -1,0 +1,37 @@
+{
+  "item_id": "EX-SQL-FILTER-01-E2-03",
+  "item_version": 1,
+  "reference_sql": "SELECT cal_date, weekday_name\nFROM calendar\nWHERE (weekday_name = 'Friday' OR is_weekend = true) AND cal_date >= '2025-03-01' AND cal_date <= '2025-03-31'",
+  "alternatives": [
+    "SELECT cal_date, weekday_name\nFROM calendar\nWHERE cal_date >= '2025-03-01' AND cal_date <= '2025-03-31' AND (is_weekend OR weekday_name = 'Friday')",
+    "SELECT cal_date, weekday_name\nFROM calendar\nWHERE (weekday_name = 'Friday' OR weekday_name = 'Saturday' OR weekday_name = 'Sunday') AND cal_date >= '2025-03-01' AND cal_date < '2025-04-01'",
+    "SELECT cal_date, weekday_name\nFROM calendar\nWHERE (cal_date >= '2025-03-01' AND cal_date <= '2025-03-31' AND weekday_name = 'Friday') OR (cal_date >= '2025-03-01' AND cal_date <= '2025-03-31' AND is_weekend = true)"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "M1",
+      "error_id": "ERR-LOG-13",
+      "sql": "SELECT cal_date, weekday_name\nFROM calendar\nWHERE weekday_name = 'Friday' OR is_weekend = true AND cal_date >= '2025-03-01' AND cal_date <= '2025-03-31'"
+    },
+    {
+      "id": "M2",
+      "error_id": "ERR-LOG-15",
+      "sql": "SELECT cal_date, weekday_name\nFROM calendar\nWHERE (weekday_name = 'Friday' OR is_weekend = true) AND cal_date > '2025-03-01' AND cal_date <= '2025-03-31'"
+    },
+    {
+      "id": "M3",
+      "error_id": "ERR-SYN-07",
+      "sql": "SELECT cal_date, weekday_name\nFROM calendar\nWHERE (weekday_name = \"Friday\" OR is_weekend = true) AND cal_date >= '2025-03-01' AND cal_date <= '2025-03-31'"
+    }
+  ],
+  "hint3_partial": "SELECT cal_date, weekday_name\nFROM calendar\nWHERE (weekday_name = 'Friday' OR ...) AND cal_date >= ...",
+  "solver": {
+    "prompt_hash": "9530e67bbcba8749",
+    "schema_version": "0d8e15555347",
+    "dataset_version": "9639f8ae1f71c2ef",
+    "grader_version": "1a.2",
+    "query": "SELECT cal_date, weekday_name FROM calendar WHERE cal_date >= '2025-03-01' AND cal_date <= '2025-03-31' AND (weekday_name = 'Friday' OR is_weekend = true)\n",
+    "at": "2026-10-03T13:08:02.521Z"
+  }
+}

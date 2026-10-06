@@ -1,0 +1,123 @@
+{
+  "id": "EX-SQL-TYPE-01-E1-03",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-02",
+    "type",
+    "division",
+    "decimals",
+    "round",
+    "count-distinct",
+    "group-by",
+    "sales"
+  ],
+  "level": 2,
+  "source_ids": [
+    "01:SQL-TYPE-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "lesson",
+  "target_concept_id": "SQL-TYPE-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01"
+  ],
+  "template_id": "T-TYPE-01-ratio-per-group",
+  "template_params": {
+    "table": "sales",
+    "group_by": "channel",
+    "top": "SUM(units)",
+    "bottom": "COUNT(DISTINCT order_id)",
+    "decimals": 2,
+    "output": "units_per_order"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_type",
+  "prompt": "How many units does an order hold on average in each sales channel? Use the sales table and all its order lines. Return two columns, in this order: channel and units_per_order, the total of units divided by the number of different orders (order_id), rounded to 2 decimals with ROUND(x, 2). A missing units value adds nothing to the total. Return one row per channel. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "channel",
+        "type_class": "text"
+      },
+      {
+        "name": "units_per_order",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per channel"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "channel",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "units_per_order",
+        "type_class": "numeric",
+        "precision": "ratio",
+        "require_rounding": 2
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "channel"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the calculated column units_per_order: total units divided by the number of different orders.",
+    "Count each order once with COUNT(DISTINCT ...). Both sides of the division are whole numbers, so make one of them a decimal first, then round the whole result to 2 decimals."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 95,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 96,
+      "to": 106,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 107,
+      "to": 123,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": {
+    "stage1": 23,
+    "stage2": 23
+  },
+  "faded_shape": "SELECT channel,\n       ",
+  "faded_suffix": "\nFROM sales\nGROUP BY channel",
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "COUNT(DISTINCT order_id) counts each order once, and the 1.0 makes the division of two whole numbers keep its decimals on every engine."
+}

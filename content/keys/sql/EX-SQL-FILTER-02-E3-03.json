@@ -1,0 +1,36 @@
+{
+  "item_id": "EX-SQL-FILTER-02-E3-03",
+  "item_version": 2,
+  "reference_sql": "SELECT product_id, product_name\nFROM products\nWHERE product_name NOT LIKE '% ___'",
+  "alternatives": [
+    "SELECT product_id, product_name\nFROM products\nWHERE NOT product_name LIKE '% ___'",
+    "SELECT product_id, product_name\nFROM products\nWHERE product_name NOT ILIKE '% ___'"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "EX-SQL-FILTER-02-E3-03-PW1",
+      "error_id": "ERR-LOG-00",
+      "sql": "SELECT product_id, product_name\nFROM products\nWHERE product_name LIKE '% ___'"
+    },
+    {
+      "id": "EX-SQL-FILTER-02-E3-03-PW2",
+      "error_id": "ERR-LOG-22",
+      "sql": "SELECT product_id, product_name\nFROM products\nWHERE product_name NOT LIKE '%___'"
+    },
+    {
+      "id": "EX-SQL-FILTER-02-E3-03-PW3",
+      "error_id": "ERR-LOG-22",
+      "sql": "SELECT product_id, product_name\nFROM products\nWHERE product_name NOT LIKE '% ___%'"
+    }
+  ],
+  "hint3_partial": "SELECT product_id, product_name\nFROM products\nWHERE product_name NOT LIKE ___",
+  "solver": {
+    "prompt_hash": "06846c25b4c4d3a2",
+    "schema_version": "d77fe1c31a0e",
+    "dataset_version": "9639f8ae1f71c2ef",
+    "grader_version": "1b.1",
+    "query": "SELECT product_id, product_name FROM products WHERE length(product_name) < 4 OR substr(product_name, length(product_name) - 3, 1) <> ' '",
+    "at": "2026-10-03T20:33:06.567Z"
+  }
+}

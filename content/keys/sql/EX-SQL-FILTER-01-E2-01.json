@@ -1,0 +1,32 @@
+{
+  "item_id": "EX-SQL-FILTER-01-E2-01",
+  "item_version": 1,
+  "reference_sql": "SELECT store_code, city, store_type\nFROM stores\nWHERE country_code = 'BE' AND (store_type = 'flagship' OR store_type = 'outlet')",
+  "alternatives": [
+    "SELECT store_code, city, store_type\nFROM stores\nWHERE (store_type = 'flagship' OR store_type = 'outlet') AND country_code = 'BE'",
+    "SELECT store_code, city, store_type\nFROM stores\nWHERE (country_code = 'BE' AND store_type = 'flagship') OR (country_code = 'BE' AND store_type = 'outlet')",
+    "SELECT store_code, city, store_type\nFROM stores\nWHERE country_code = 'BE' AND (store_type = 'outlet' OR store_type = 'flagship')"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "M1",
+      "error_id": "ERR-LOG-13",
+      "sql": "SELECT store_code, city, store_type\nFROM stores\nWHERE country_code = 'BE' AND store_type = 'flagship' OR store_type = 'outlet'"
+    },
+    {
+      "id": "M2",
+      "error_id": "ERR-SYN-07",
+      "sql": "SELECT store_code, city, store_type\nFROM stores\nWHERE country_code = \"BE\" AND (store_type = 'flagship' OR store_type = 'outlet')"
+    }
+  ],
+  "hint3_partial": "SELECT store_code, city, store_type\nFROM stores\nWHERE country_code = 'BE' AND (store_type = ... OR ...)",
+  "solver": {
+    "prompt_hash": "ff27bff8c53a30aa",
+    "schema_version": "9a8d01143702",
+    "dataset_version": "9639f8ae1f71c2ef",
+    "grader_version": "1a.2",
+    "query": "SELECT store_code, city, store_type FROM stores WHERE country_code = 'BE' AND store_type IN ('flagship', 'outlet')\n",
+    "at": "2026-10-03T13:08:02.491Z"
+  }
+}

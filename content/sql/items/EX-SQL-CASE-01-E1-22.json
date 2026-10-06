@@ -1,0 +1,116 @@
+{
+  "id": "EX-SQL-CASE-01-E1-22",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-02",
+    "case",
+    "labels",
+    "in-list",
+    "promotions",
+    "drill"
+  ],
+  "level": 2,
+  "source_ids": [
+    "01:SQL-CASE-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-CASE-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-02",
+    "SQL-CASE-01"
+  ],
+  "template_id": "T-CASE-01-relabel-list",
+  "template_params": {
+    "table": "promotions",
+    "source": "promo_type",
+    "output": "promo_group"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_case",
+  "prompt": "Sort the promotions into two groups. Use the promotions table. Return three columns, in this order: promo_code, promo_type and promo_group. promo_group is the text 'price cut' when promo_type is 'percent_off' or 'clearance', and 'reward' when promo_type is 'loyalty' or 'bundle'. Every promotion has one of these four promo_type values, so every promotion gets a group. Return one row per promotion. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "promo_code",
+        "type_class": "text"
+      },
+      {
+        "name": "promo_type",
+        "type_class": "text"
+      },
+      {
+        "name": "promo_group",
+        "type_class": "text"
+      }
+    ],
+    "grain": "one row per promotion"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "promo_code",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "promo_type",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "promo_group",
+        "type_class": "text",
+        "precision": "exact"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "promo_code"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the calculated column promo_group: one branch for the two price cut types, and the reward label for the rest.",
+    "IN tests one column against a list of values. A CASE with no ELSE gives a missing value to every promotion that no branch matches."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 159,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 160,
+      "to": 175,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 100000,
+  "why_this_works": "IN lists the two price cut types in one branch, and ELSE gives the remaining types the label reward."
+}

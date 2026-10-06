@@ -1,0 +1,132 @@
+{
+  "id": "EX-SQL-CASE-01-E2-06",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-02",
+    "case",
+    "flag",
+    "and-or",
+    "in-list",
+    "sales"
+  ],
+  "level": 2,
+  "source_ids": [
+    "01:SQL-CASE-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-CASE-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-CASE-01"
+  ],
+  "template_id": "T-CASE-01-flag-compound",
+  "template_params": {
+    "table": "sales",
+    "tested": "country_code, net_revenue_eur",
+    "threshold": 100,
+    "output": "priority"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_case",
+  "prompt": "Voltmarkt gives priority handling to order lines that ship to Belgium or Luxembourg and are worth 100.00 euro or more. Use the sales table, where country_code is the country an order ships to, and keep the order lines of orders 1 to 10 (order_id from 1 to 10, both included). Return four columns, in this order: order_line_id, country_code, net_revenue_eur and priority. priority is the text 'yes' when country_code is 'BE' or 'LU' and net_revenue_eur is 100.00 or more, and 'no' for every other line, including a line whose net_revenue_eur is missing. Return one row per order line. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "order_line_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "country_code",
+        "type_class": "text"
+      },
+      {
+        "name": "net_revenue_eur",
+        "type_class": "numeric"
+      },
+      {
+        "name": "priority",
+        "type_class": "text"
+      }
+    ],
+    "grain": "one row per order line"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "order_line_id",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "country_code",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "net_revenue_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "priority",
+        "type_class": "text",
+        "precision": "exact"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "order_line_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the calculated column priority, whose WHEN test joins a country rule and a value rule.",
+    "AND binds before OR. If the test mixes them, put brackets around the two countries, or use IN for them, so the 100.00 rule applies to Belgium and Luxembourg alike."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 162,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 163,
+      "to": 173,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 174,
+      "to": 205,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 150000,
+  "why_this_works": "IN keeps the two countries together, so the 100.00 rule applies to both, and ELSE marks every other line, a missing value included, as no."
+}

@@ -1,0 +1,137 @@
+{
+  "id": "EX-SQL-BASICS-02-E3-01",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "calculated-column",
+    "promotions",
+    "margin",
+    "percent"
+  ],
+  "level": 1,
+  "source_ids": [
+    "01:SQL-BASICS-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-02",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-BASICS-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-TYPE-01"
+  ],
+  "template_id": "T-BASICS-02-margin",
+  "template_params": {
+    "table": "promotions",
+    "list_price_eur": 800,
+    "unit_cost_eur": 520
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_basics",
+  "prompt": "A TV lists at 800 euros and costs Voltmarkt 520 euros. For every promotion, return four columns in this order: promo_code; sale_price_eur, the TV's price after that promotion's discount_pct (a percentage such as 25 for 25% off); margin_eur, the sale price minus the 520-euro cost; and margin_pct, margin_eur as a percentage of sale_price_eur (such as 25 for 25%), rounded to 2 decimals with ROUND(x, 2). Round only margin_pct. Use exactly these column names. One row per promotion, every promotion included; a margin can be negative. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "promo_code",
+        "type_class": "text"
+      },
+      {
+        "name": "sale_price_eur",
+        "type_class": "numeric"
+      },
+      {
+        "name": "margin_eur",
+        "type_class": "numeric"
+      },
+      {
+        "name": "margin_pct",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per promotion"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": true,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "promo_code",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "sale_price_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "margin_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "margin_pct",
+        "type_class": "numeric",
+        "precision": "ratio",
+        "require_rounding": 2
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "promo_code"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the calculated columns. Work out sale_price_eur first; margin_eur and margin_pct are both built from it.",
+    "In the SELECT list, sale_price_eur is 800 times the share still paid. Repeat that expression inside margin_eur and margin_pct rather than reusing its alias, and bracket the subtraction before you divide by the sale price."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 18,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 26,
+      "to": 75,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 83,
+      "to": 134,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 142,
+      "to": 245,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 246,
+      "to": 261,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "Brackets set the order: price after discount, then margin, then margin divided by price, times 100, rounded once at the end."
+}

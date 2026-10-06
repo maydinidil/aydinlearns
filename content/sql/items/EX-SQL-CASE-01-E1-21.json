@@ -1,0 +1,123 @@
+{
+  "id": "EX-SQL-CASE-01-E1-21",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-02",
+    "case",
+    "flag",
+    "is-null",
+    "products",
+    "drill"
+  ],
+  "level": 2,
+  "source_ids": [
+    "01:SQL-CASE-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-CASE-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-NULL-01",
+    "SQL-CASE-01"
+  ],
+  "template_id": "T-CASE-01-flag-missing",
+  "template_params": {
+    "table": "products",
+    "filter": "brand = 'Energo'",
+    "flagged": "sister_product_id",
+    "output": "has_sister"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_case",
+  "prompt": "Mark which Energo products have a sister model. Use the products table and keep the products whose brand is 'Energo'. Return three columns, in this order: product_id, product_name and has_sister. has_sister is the text 'yes' when sister_product_id is recorded, and 'no' when sister_product_id is missing. Return one row per product. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "product_name",
+        "type_class": "text"
+      },
+      {
+        "name": "has_sister",
+        "type_class": "text"
+      }
+    ],
+    "grain": "one row per product"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "product_name",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "has_sister",
+        "type_class": "text",
+        "precision": "exact"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "product_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the calculated column has_sister, with one branch for a missing sister_product_id and one for every other product.",
+    "A comparison with = NULL is never true, so test for a missing value with IS NULL or IS NOT NULL. End the CASE with ELSE so every product gets a label."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 133,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 134,
+      "to": 147,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 148,
+      "to": 170,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 100000,
+  "why_this_works": "IS NULL finds the products with no sister recorded, and ELSE gives every other product the label yes."
+}

@@ -1,0 +1,105 @@
+{
+  "id": "EX-SQL-AGG-01-E1-31",
+  "version": 1,
+  "kind": "fix",
+  "tags": [
+    "sql",
+    "LVL-02",
+    "fix",
+    "aggregate",
+    "count_distinct",
+    "sales",
+    "date_range"
+  ],
+  "level": 2,
+  "source_ids": [
+    "01:SQL-AGG-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-AGG-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-AGG-01"
+  ],
+  "template_id": "T-AGG-01-fix-count-distinct",
+  "template_params": {
+    "table": "sales",
+    "channel": "store",
+    "from": "2025-01-01",
+    "to": "2025-03-31",
+    "output": "n_products"
+  },
+  "sub_skill": "count_distinct",
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_agg",
+  "prompt": "The query in the editor has one mistake. Fix it so that it answers this question: how many different products did Voltmarkt sell through its stores (channel 'store') in the first quarter of 2025 (order_date from 1 January 2025 to 31 March 2025, both days included)? A product sold on many lines counts once. Every line counts, including a line with a missing units or net_revenue_eur value. Return one column, n_products. The result is a single row. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "n_products",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row in total"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "n_products",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, look at the count in the SELECT list and ask what it counts: order lines or products.",
+    "A product that sold on 40 lines adds 40 to this count. The count must take each product_id once, which needs one more word inside its brackets."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 47,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 48,
+      "to": 58,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 59,
+      "to": 145,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": "SELECT COUNT(product_id) AS n_products\nFROM sales\nWHERE channel = 'store' AND order_date BETWEEN DATE '2025-01-01' AND DATE '2025-03-31'",
+  "starter_error_id": "ERR-LOG-04",
+  "time_target_ms": 90000,
+  "why_this_works": "COUNT(DISTINCT product_id) counts each product once; COUNT(product_id) counts every line that names a product."
+}

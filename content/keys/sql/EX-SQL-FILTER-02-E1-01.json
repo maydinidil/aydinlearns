@@ -1,0 +1,31 @@
+{
+  "item_id": "EX-SQL-FILTER-02-E1-01",
+  "item_version": 1,
+  "reference_sql": "SELECT store_code, city, country_code\nFROM stores\nWHERE country_code IN ('BE', 'LU')\n  AND store_type = 'standard'",
+  "alternatives": [
+    "SELECT store_code, city, country_code\nFROM stores\nWHERE store_type = 'standard'\n  AND country_code IN ('LU', 'BE')",
+    "SELECT store_code, city, country_code\nFROM stores\nWHERE (country_code = 'BE' OR country_code = 'LU')\n  AND store_type = 'standard'"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "EX-SQL-FILTER-02-E1-01-PW1",
+      "error_id": "ERR-LOG-13",
+      "sql": "SELECT store_code, city, country_code\nFROM stores\nWHERE country_code = 'BE' OR country_code = 'LU' AND store_type = 'standard'"
+    },
+    {
+      "id": "EX-SQL-FILTER-02-E1-01-PW2",
+      "error_id": "ERR-LOG-00",
+      "sql": "SELECT store_code, city, country_code\nFROM stores\nWHERE country_code NOT IN ('NL')\n  AND store_type = 'standard'"
+    }
+  ],
+  "hint3_partial": "SELECT store_code, city, country_code\nFROM stores\nWHERE country_code IN (___, ___)\n  AND store_type = ___",
+  "solver": {
+    "prompt_hash": "05c5db0b6b8ca569",
+    "schema_version": "9a8d01143702",
+    "dataset_version": "9639f8ae1f71c2ef",
+    "grader_version": "1a.2",
+    "query": "SELECT store_code, city, country_code FROM stores WHERE country_code IN ('BE', 'LU') AND store_type = 'standard'\n",
+    "at": "2026-10-03T13:08:02.617Z"
+  }
+}

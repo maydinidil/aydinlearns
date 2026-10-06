@@ -1,0 +1,48 @@
+{
+  "id": "Q-MET-PRICE-04-04",
+  "version": 1,
+  "kind": "mcq",
+  "section": "methodology",
+  "concept_id": "MET-PRICE-04",
+  "stem": "An analyst computes a promotion's baseline by averaging weekly units only over the weeks that have rows in the sales table. Two of the 4 baseline weeks had no sales at all. Compared with Voltmarkt's convention, what does this do to the reported uplift?",
+  "options": [
+    {
+      "oid": "o5b67bef",
+      "text": "Nothing changes, because weeks with no sales add no units to the sum",
+      "misconception_id": null
+    },
+    {
+      "oid": "o27d7fba",
+      "text": "The baseline comes out too low, so the uplift is overstated",
+      "misconception_id": null
+    },
+    {
+      "oid": "o119ddf5",
+      "text": "The baseline comes out too high, so the uplift is understated",
+      "misconception_id": null
+    },
+    {
+      "oid": "o2dc0910",
+      "text": "The uplift turns into a measure of revenue rather than volume",
+      "misconception_id": null
+    }
+  ],
+  "typed": null,
+  "held_out": true,
+  "enemy_group": null,
+  "status": "active",
+  "verified": true,
+  "level": 1,
+  "tags": [
+    "methodology",
+    "T-MET-PRICE"
+  ],
+  "source_ids": [
+    "04:MET-PRICE-04",
+    "ERRATA:E-011",
+    "ERRATA:E-101"
+  ],
+  "as_of": "2026-10-04",
+  "review_after": null,
+  "supersedes": []
+}

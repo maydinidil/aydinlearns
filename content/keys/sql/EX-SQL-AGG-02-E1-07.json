@@ -1,0 +1,37 @@
+{
+  "item_id": "EX-SQL-AGG-02-E1-07",
+  "item_version": 1,
+  "reference_sql": "SELECT promo_type, COUNT(*) AS n_promotions, AVG(discount_pct) AS avg_discount_pct\nFROM promotions\nGROUP BY promo_type",
+  "alternatives": [
+    "SELECT promo_type, COUNT(promo_id) AS n_promotions, AVG(discount_pct) AS avg_discount_pct FROM promotions GROUP BY promo_type",
+    "SELECT promo_type, COUNT(*) AS n_promotions, SUM(discount_pct) / COUNT(*) AS avg_discount_pct FROM promotions GROUP BY 1",
+    "SELECT promotions.promo_type, COUNT(*) AS n_promotions, AVG(promotions.discount_pct) AS avg_discount_pct FROM promotions GROUP BY promotions.promo_type"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-14",
+      "sql": "SELECT promo_type, COUNT(*) AS n_promotions, MAX(discount_pct) AS avg_discount_pct FROM promotions GROUP BY promo_type"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-SEM-01",
+      "sql": "SELECT promo_type, COUNT(*) AS n_promotions, AVG(discount_pct) AS avg_discount_pct FROM promotions GROUP BY promo_name"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-07",
+      "sql": "SELECT promo_type, COUNT(*) AS n_promotions, AVG(discount_pct) AS avg_discount_pct FROM promotions GROUP BY promo_type, promo_name"
+    }
+  ],
+  "hint3_partial": "SELECT promo_type, COUNT(*) AS n_promotions, AVG(discount_pct) AS avg_discount_pct\nFROM promotions\nGROUP BY ___",
+  "solver": {
+    "prompt_hash": "c1fde566807c6eb2",
+    "schema_version": "f0340f71a1f5",
+    "dataset_version": "506a9858f862fdfb",
+    "grader_version": "1b.3",
+    "query": "SELECT promo_type, COUNT(*) AS n_promotions, AVG(discount_pct) AS avg_discount_pct FROM promotions GROUP BY promo_type\n",
+    "at": "2026-10-04T10:06:43.280Z"
+  }
+}

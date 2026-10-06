@@ -1,0 +1,28 @@
+# Dependencies and build output
+node_modules/
+dist/
+.venv/
+__pycache__/
+
+# Generated company data, prepared real datasets and their raw downloads.
+# Regenerate from pipeline/ and the manifest; licences forbid redistributing some datasets.
+data/
+
+# Attempt log, reports and other learner data. Backed up to a folder outside the repo instead.
+logs/
+
+# DuckDB databases and their write-ahead logs, wherever they end up
+*.duckdb
+*.duckdb.wal
+*.duckdb.tmp/
+
+# Local environment
+.env
+.env.*
+
+# Spike scripts (throwaway) and local environments
+spike/
+tools/.solver-out/
+tools/.solver-view/
+pipeline/.venv/
+web/dist/

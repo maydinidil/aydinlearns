@@ -1,0 +1,130 @@
+{
+  "id": "EX-SQL-TYPE-01-E1-04",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-02",
+    "type",
+    "percent-scale",
+    "round",
+    "missing-values",
+    "line-level",
+    "sales"
+  ],
+  "level": 2,
+  "source_ids": [
+    "01:SQL-TYPE-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "lesson",
+  "target_concept_id": "SQL-TYPE-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-TYPE-01"
+  ],
+  "template_id": "T-TYPE-01-line-pct",
+  "template_params": {
+    "table": "sales",
+    "lines": "1-20",
+    "measure": "margin",
+    "decimals": 1,
+    "output": "margin_pct"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_type",
+  "prompt": "What share of each order line's net revenue is margin, as a percentage? Use the sales table and keep the order lines with an order_line_id from 1 to 20, both included. Return three columns, in this order: order_line_id, net_revenue_eur and margin_pct. margin_pct is 100 times the line's margin (net_revenue_eur minus units times unit_cost_eur) divided by net_revenue_eur, rounded to 1 decimal with ROUND(x, 1), so a margin of 15 percent is 15.0. A line with a missing net_revenue_eur, units or unit_cost_eur gets a missing margin_pct. Return one row per order line. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "order_line_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "net_revenue_eur",
+        "type_class": "numeric"
+      },
+      {
+        "name": "margin_pct",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per order line"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "order_line_id",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "net_revenue_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "margin_pct",
+        "type_class": "numeric",
+        "precision": "ratio",
+        "require_rounding": 1
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "order_line_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the calculated column margin_pct from the line's margin and its net revenue.",
+    "Work out the share first, multiply by 100 to reach the percent scale, and only then round the whole result to 1 decimal. Rounding the share before you multiply loses the decimals the question asks for."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 137,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 138,
+      "to": 148,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 149,
+      "to": 185,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": {
+    "stage1": 46,
+    "stage2": 46
+  },
+  "faded_shape": "SELECT order_line_id, net_revenue_eur,\n       ",
+  "faded_suffix": "\nFROM sales\nWHERE order_line_id BETWEEN 1 AND 20",
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "Multiplying by 100 before rounding puts the margin on the percent scale with its decimal intact, and arithmetic with a missing value gives a missing result."
+}

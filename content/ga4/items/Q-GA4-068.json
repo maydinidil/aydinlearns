@@ -1,0 +1,50 @@
+{
+  "id": "Q-GA4-068",
+  "version": 2,
+  "kind": "mcq",
+  "section": "ga4",
+  "concept_id": "GA4-SETUP-01",
+  "parent_id": null,
+  "topic_id": "T-GA4-01",
+  "legacy_id": "Q-GA4-68",
+  "stem": "A colleague who is used to Universal Analytics asks you to \"create a new view for the Dutch market\" in a standard GA4 property. What is the most accurate response?",
+  "options": [
+    {
+      "oid": "oc0ac11a",
+      "text": "GA4 has no views; use comparisons, filters in reports or explorations, or a separate property if the data truly must be separate",
+      "misconception_id": null
+    },
+    {
+      "oid": "o0198153",
+      "text": "Create a reporting view under the property in Admin, then add a view filter that keeps only sessions from the Netherlands",
+      "misconception_id": null
+    },
+    {
+      "oid": "o2dd7a2f",
+      "text": "Create a second web data stream for the Dutch market, which acts as a view with its own filters and report settings",
+      "misconception_id": null
+    },
+    {
+      "oid": "oe0cea29",
+      "text": "Create a subproperty for the Dutch market, which is how a standard GA4 property splits data the way views used to",
+      "misconception_id": null
+    }
+  ],
+  "typed": null,
+  "exam_relevance": "core",
+  "held_out": true,
+  "enemy_group": null,
+  "status": "active",
+  "verified": true,
+  "level": 1,
+  "tags": [
+    "ga4",
+    "T-GA4-01"
+  ],
+  "source_ids": [
+    "06:Q-GA4-68"
+  ],
+  "as_of": "2026-09-30",
+  "review_after": null,
+  "supersedes": []
+}

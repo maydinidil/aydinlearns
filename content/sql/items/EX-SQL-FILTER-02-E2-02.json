@@ -1,0 +1,128 @@
+{
+  "id": "EX-SQL-FILTER-02-E2-02",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-01",
+    "between",
+    "products"
+  ],
+  "level": 1,
+  "source_ids": [
+    "01:SQL-FILTER-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-02",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "lesson",
+  "target_concept_id": "SQL-FILTER-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02"
+  ],
+  "template_id": "T-FILTER-02-between-date",
+  "template_params": {
+    "table": "products",
+    "month": "2024-03"
+  },
+  "sub_skill": "between",
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_filter",
+  "prompt": "The buying team is reviewing the products launched in March 2024 that cost Voltmarkt at least 100 euros. From the products table, return four columns, in this order: product_id, product_name, unit_cost_eur, launch_date. Keep only the products whose launch_date is from 1 March 2024 to 31 March 2024, both days included, and whose unit_cost_eur is 100 or more. launch_date is a date with no time of day, and every product has one. Show unit_cost_eur exactly as stored, without rounding. Return one row per product. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "product_name",
+        "type_class": "text"
+      },
+      {
+        "name": "unit_cost_eur",
+        "type_class": "numeric"
+      },
+      {
+        "name": "launch_date",
+        "type_class": "temporal"
+      }
+    ],
+    "grain": "one row per product"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "product_name",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "unit_cost_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "launch_date",
+        "type_class": "temporal",
+        "precision": "exact"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "product_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the row filter. Keep a product when its launch_date falls in March 2024, first and last day included, and its cost is at least 100 euros.",
+    "A range test on launch_date keeps both of its end days, and the cost test joins it with AND. Write the dates as DATE values, and check how many days March has."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 59,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 60,
+      "to": 73,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 74,
+      "to": 166,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": {
+    "stage1": 74,
+    "stage2": 60
+  },
+  "faded_shape": "SELECT product_id, product_name, unit_cost_eur, launch_date\nFROM products\n",
+  "starter_sql": null,
+  "time_target_ms": 150000,
+  "why_this_works": "On a DATE column, BETWEEN the first and last day of March keeps the whole month, and >= 100 keeps a cost of exactly 100."
+}

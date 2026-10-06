@@ -1,0 +1,118 @@
+{
+  "id": "EX-SQL-BASICS-02-E1-04",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "calculated-column",
+    "products",
+    "markup"
+  ],
+  "level": 1,
+  "source_ids": [
+    "01:SQL-BASICS-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-02",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "lesson",
+  "target_concept_id": "SQL-BASICS-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02"
+  ],
+  "template_id": "T-BASICS-02-rate",
+  "template_params": {
+    "table": "products",
+    "markup_pct": 30
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_basics",
+  "prompt": "Voltmarkt's standard markup is 30% on top of the unit cost. For every product, return product_id, sku and target_price_eur (the unit cost plus 30% of it, in euros), in that order. Use exactly these column names and do not round. One row per product, every product included. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "sku",
+        "type_class": "text"
+      },
+      {
+        "name": "target_price_eur",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per product"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": true,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "sku",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "target_price_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "product_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the calculated column. target_price_eur is the unit cost grown by 30% on each row.",
+    "The new column goes after sku, named with AS. Growing a value by 30% keeps the whole value and adds 30% of it, which one multiplication can do."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 30,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 38,
+      "to": 78,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 79,
+      "to": 92,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": {
+    "stage1": 38,
+    "stage2": 38
+  },
+  "faded_shape": "SELECT product_id,\n       sku,\n       ",
+  "faded_suffix": "\nFROM products",
+  "starter_sql": null,
+  "time_target_ms": 90000,
+  "why_this_works": "Multiplying by 1.30 keeps the cost and adds 30% of it in one step."
+}

@@ -1,0 +1,118 @@
+{
+  "id": "EX-SQL-BASICS-02-E2-01",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "calculated-column",
+    "promotions",
+    "percent"
+  ],
+  "level": 1,
+  "source_ids": [
+    "01:SQL-BASICS-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-02",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "lesson",
+  "target_concept_id": "SQL-BASICS-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02"
+  ],
+  "template_id": "T-BASICS-02-percent-share",
+  "template_params": {
+    "table": "promotions",
+    "output": "share_paid"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_basics",
+  "prompt": "discount_pct holds each promotion's discount as a percentage, such as 25 for 25% off. For every promotion, return promo_code, discount_pct and share_paid (the share of the list price a customer still pays, as a fraction between 0 and 1: a 25% discount gives 0.75), in that order. Use exactly these column names and do not round. One row per promotion, every promotion included. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "promo_code",
+        "type_class": "text"
+      },
+      {
+        "name": "discount_pct",
+        "type_class": "numeric"
+      },
+      {
+        "name": "share_paid",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per promotion"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": true,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "promo_code",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "discount_pct",
+        "type_class": "numeric",
+        "precision": "ratio"
+      },
+      {
+        "name": "share_paid",
+        "type_class": "numeric",
+        "precision": "ratio"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "promo_code"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the calculated column. share_paid comes from discount_pct on each row, once the percentage is turned into a share.",
+    "The new column goes after discount_pct, named with AS. Turn the percentage into a share first, then work out what is left of 1, and check the order the operators run in."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 39,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 47,
+      "to": 83,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 84,
+      "to": 99,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": {
+    "stage1": 47,
+    "stage2": 47
+  },
+  "faded_shape": "SELECT promo_code,\n       discount_pct,\n       ",
+  "faded_suffix": "\nFROM promotions",
+  "starter_sql": null,
+  "time_target_ms": 150000,
+  "why_this_works": "Division runs before subtraction, so the percentage becomes a share first and is then taken away from 1."
+}

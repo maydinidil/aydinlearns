@@ -1,0 +1,24 @@
+/* web/src/styles/tokens.css: every colour, size, radius and font the app uses (visuals spec §3). Nothing else holds a raw value. */
+:root {
+  --ink: #18181B; --ink-2: #52525B; --muted: #71717A;
+  --canvas: #FAFAFB; --surface: #FFFFFF; --fill: #F4F4F5;
+  --line: #ECECEF; --control: #8A8A93; --focus: #2563EB;
+  --sql: #2563EB; --sql-text: #1D4ED8; --sql-soft: #EFF6FF;
+  --ga4: #D97706; --ga4-text: #B45309; --ga4-soft: #FFFBEB;
+  --met: #7C3AED; --met-text: #6D28D9; --met-soft: #F5F3FF;
+  --ok: #15803D; --bad: #B91C1C;
+  --chip-mastered-fg: #166534; --chip-mastered-bg: #DCFCE7;
+  --chip-practising-fg: #1D4ED8; --chip-practising-bg: #EFF6FF;
+  --chip-answered-fg: #92400E; --chip-answered-bg: #FEF3C7;
+  --s1: 4px; --s2: 8px; --s3: 12px; --s4: 16px; --s5: 24px; --s6: 32px;
+  --r1: 8px; --r2: 12px;
+  --t1: 12.5px; --t2: 13.5px; --t3: 14.5px; --t4: 17px; --t5: 21px;
+  --lh: 1.55; --read: 70ch;
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+  --font: "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+  --mono: "Cascadia Code", Consolas, "Cascadia Mono", monospace;
+  --section: var(--ink); --section-text: var(--ink); --section-soft: var(--fill);
+}
+[data-section="sql"] { --section: var(--sql); --section-text: var(--sql-text); --section-soft: var(--sql-soft); }
+[data-section="ga4"] { --section: var(--ga4); --section-text: var(--ga4-text); --section-soft: var(--ga4-soft); }
+[data-section="methodology"] { --section: var(--met); --section-text: var(--met-text); --section-soft: var(--met-soft); }

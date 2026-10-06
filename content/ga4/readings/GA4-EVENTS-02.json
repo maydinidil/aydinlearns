@@ -1,0 +1,18 @@
+{
+  "concept_id": "GA4-EVENTS-02",
+  "section": "ga4",
+  "version": 2,
+  "title": "Parameters, custom dimensions and metrics, user properties",
+  "reading_md": "## What it is\n\nEvery event carries parameters that describe it. `page_location` says which page an event happened on, and `value` says what an action was worth. Some parameters arrive automatically; you can also send your own with any event.\n\nSending is not reporting. A custom parameter you send does arrive in GA4, but you cannot choose it in reports or explorations until you register it as a custom definition, on the Custom definitions screen in Admin. Registration is not retroactive: a new custom dimension shows data from the moment you register it, and never earlier.\n\nThe scope says what the value describes.\n\n- **Event scope:** one action. Voltmarkt's webshop sends `stock_status` (\"in stock\" or \"backorder\") with each product page view, so it becomes an event-scoped custom dimension.\n- **User scope:** the person, carried onto their later activity. It starts as a user property, such as `preferred_store`, which you then register with user scope.\n- **Item scope:** one product inside an ecommerce event's list of items, such as an `energy_label` for each TV in an order.\n- **Custom metric:** a number you want to add up or average, such as a `discount_eur` parameter on the `purchase` event, registered as a custom metric rather than a dimension.\n\n**Limits.** For a standard property, with Analytics 360 in brackets: 50 (125) event-scoped custom dimensions, 25 (100) user-scoped custom dimensions, 10 (25) item-scoped custom dimensions, and 50 (125) custom metrics. These limits are one reason to register only the parameters you will actually report on.\n\n## What the exam asks\n\n- **Choosing the scope.** Ask what the value would describe if you read it on its own. A page, a click or an order points to event scope. A customer points to user scope. A product inside an order points to item scope.\n- **Why a parameter is missing from reports.** When a scenario says a parameter is being sent but cannot be found in reports, check three things in order. Was it registered as a custom definition? Was it registered with the right scope for what it describes? Was it registered only recently? Data from before registration never appears.\n\n## Common confusions\n\n- Sending a parameter is not the same as registering it.\n- A user property is about the person, not one action. An attribute of a single page view belongs in event scope, even when it looks like a property of the person.\n- Registering a dimension today does not fill in last month.\n- A custom metric holds numbers. A text value, such as a name or a label, is a custom dimension.\n- Avoid high-cardinality values, such as timestamps, that are different on nearly every event. Too many unique values make GA4 group the rare rows into a single \"(other)\" row.\n\n## In Skillshop\n\nCourse \"Google Analytics Certification (2026)\": the module \"Get Started Using Google Analytics\" for events and parameters, and the module \"Dive Deeper into GA Data and Reports\" for scopes (Unverified).",
+  "source_ids": [
+    "06:GA4-EVENTS-02",
+    "10:§6",
+    "ERRATA:E-118",
+    "06:§2.1",
+    "10:§7",
+    "ERRATA:E-116",
+    "ERRATA:E-122"
+  ],
+  "verified": true,
+  "as_of": "2026-10-05"
+}

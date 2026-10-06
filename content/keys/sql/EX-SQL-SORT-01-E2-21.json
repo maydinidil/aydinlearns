@@ -1,0 +1,37 @@
+{
+  "item_id": "EX-SQL-SORT-01-E2-21",
+  "item_version": 1,
+  "reference_sql": "SELECT product_id,\n       product_name,\n       unit_cost_eur\nFROM products\nWHERE launch_date >= DATE '2024-01-01'\nORDER BY unit_cost_eur, product_id\nLIMIT 2",
+  "alternatives": [
+    "SELECT product_id,\n       product_name,\n       unit_cost_eur\nFROM products\nWHERE launch_date >= '2024-01-01'\nORDER BY unit_cost_eur ASC, product_id ASC\nLIMIT 2",
+    "SELECT product_id,\n       product_name,\n       unit_cost_eur\nFROM products\nWHERE launch_date >= DATE '2024-01-01'\nORDER BY 3, 1\nLIMIT 2",
+    "SELECT product_id,\n       product_name,\n       unit_cost_eur\nFROM products\nWHERE NOT launch_date < DATE '2024-01-01'\nORDER BY unit_cost_eur NULLS LAST, product_id\nLIMIT 2"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-16",
+      "sql": "SELECT product_id, product_name, unit_cost_eur FROM products WHERE launch_date >= DATE '2024-01-01' ORDER BY unit_cost_eur, product_id DESC LIMIT 2"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-16",
+      "sql": "SELECT product_id, product_name, unit_cost_eur FROM products WHERE launch_date >= DATE '2024-01-01' ORDER BY unit_cost_eur DESC, product_id LIMIT 2"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-16",
+      "sql": "SELECT product_id, product_name, unit_cost_eur FROM products WHERE launch_date >= DATE '2024-01-01' ORDER BY unit_cost_eur NULLS FIRST, product_id LIMIT 2"
+    }
+  ],
+  "hint3_partial": "SELECT product_id,\n       product_name,\n       unit_cost_eur\nFROM products\nWHERE launch_date >= DATE '2024-01-01'\nORDER BY unit_cost_eur ___, product_id\nLIMIT ___",
+  "solver": {
+    "prompt_hash": "2f872f563bfd657f",
+    "schema_version": "d77fe1c31a0e",
+    "dataset_version": "506a9858f862fdfb",
+    "grader_version": "1b.3",
+    "query": "SELECT product_id, product_name, unit_cost_eur FROM products WHERE launch_date >= DATE '2024-01-01' AND unit_cost_eur IS NOT NULL ORDER BY unit_cost_eur ASC, product_id ASC LIMIT 2\n",
+    "at": "2026-10-04T14:33:18.493Z"
+  }
+}

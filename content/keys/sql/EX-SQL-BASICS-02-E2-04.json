@@ -1,0 +1,36 @@
+{
+  "item_id": "EX-SQL-BASICS-02-E2-04",
+  "item_version": 1,
+  "reference_sql": "SELECT promo_code,\n       1299 * discount_pct / 100 AS saving_eur,\n       1299 - 1299 * discount_pct / 100 AS sale_price_eur\nFROM promotions",
+  "alternatives": [
+    "SELECT promo_code, 12.99 * discount_pct AS saving_eur, 1299 * (1 - discount_pct / 100) AS sale_price_eur FROM promotions",
+    "SELECT promo_code, 1299 * (discount_pct / 100) AS saving_eur, 1299 * (100 - discount_pct) / 100 AS sale_price_eur FROM promotions"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "EX-SQL-BASICS-02-E2-04-PW1",
+      "error_id": "ERR-LOG-21",
+      "sql": "SELECT promo_code, 1299 * discount_pct AS saving_eur, 1299 - 1299 * discount_pct AS sale_price_eur FROM promotions"
+    },
+    {
+      "id": "EX-SQL-BASICS-02-E2-04-PW2",
+      "error_id": "ERR-LOG-00",
+      "sql": "SELECT promo_code, 1299 * discount_pct / 100 AS saving_eur, 1299 * 1 - discount_pct / 100 AS sale_price_eur FROM promotions"
+    },
+    {
+      "id": "EX-SQL-BASICS-02-E2-04-PW3",
+      "error_id": "ERR-OUT-01",
+      "sql": "SELECT promo_code, 1299 - 1299 * discount_pct / 100 AS sale_price_eur FROM promotions"
+    }
+  ],
+  "hint3_partial": "SELECT promo_code,\n       1299 * discount_pct / 100 AS saving_eur,\n       1299 - ___ AS sale_price_eur\nFROM promotions",
+  "solver": {
+    "prompt_hash": "fbf93a4996ef3d91",
+    "schema_version": "f0340f71a1f5",
+    "dataset_version": "9639f8ae1f71c2ef",
+    "grader_version": "1a.2",
+    "query": "SELECT promo_code, 1299 * discount_pct / 100.0 AS saving_eur, 1299 - 1299 * discount_pct / 100.0 AS sale_price_eur FROM promotions\n",
+    "at": "2026-10-03T13:08:02.314Z"
+  }
+}

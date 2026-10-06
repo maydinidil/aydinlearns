@@ -1,0 +1,191 @@
+{
+  "id": "EX-SQL-CASE-01-E2-41",
+  "version": 1,
+  "kind": "predict_result",
+  "tags": [
+    "sql",
+    "LVL-02",
+    "predict_result",
+    "case",
+    "branch_order",
+    "missing_else",
+    "stores"
+  ],
+  "level": 2,
+  "source_ids": [
+    "01:SQL-CASE-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-CASE-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-CASE-01"
+  ],
+  "template_id": "T-CASE-01-predict-result-case-first-true",
+  "template_params": {
+    "table": "stores"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_case",
+  "prompt": "Which result does this query return? Use the sample rows of stores in the tables panel, which hold stores 1 to 5. Rows may be in any order.",
+  "output_contract": null,
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [],
+  "subgoals": [],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 90000,
+  "why_this_works": "",
+  "shown_sql": "SELECT store_id,\n       CASE WHEN opened_on >= DATE '2012-01-01' THEN 'recent'\n            WHEN opened_on >= DATE '2014-01-01' THEN 'new'\n       END AS band\nFROM stores\nWHERE store_id <= 5",
+  "options": [
+    {
+      "oid": "o8d8cae0",
+      "text": "Stores 3 and 5 new, store 4 missing",
+      "misconception_id": "ERR-LOG-00",
+      "table": {
+        "columns": [
+          "store_id",
+          "band"
+        ],
+        "rows": [
+          [
+            1,
+            "recent"
+          ],
+          [
+            2,
+            "recent"
+          ],
+          [
+            3,
+            "new"
+          ],
+          [
+            4,
+            null
+          ],
+          [
+            5,
+            "new"
+          ]
+        ]
+      }
+    },
+    {
+      "oid": "o79ff9f2",
+      "text": "Four stores recent, store 4 missing",
+      "misconception_id": null,
+      "table": {
+        "columns": [
+          "store_id",
+          "band"
+        ],
+        "rows": [
+          [
+            1,
+            "recent"
+          ],
+          [
+            2,
+            "recent"
+          ],
+          [
+            3,
+            "recent"
+          ],
+          [
+            4,
+            null
+          ],
+          [
+            5,
+            "recent"
+          ]
+        ]
+      }
+    },
+    {
+      "oid": "o5cc5e22",
+      "text": "Four stores recent, no store 4",
+      "misconception_id": "ERR-LOG-00",
+      "table": {
+        "columns": [
+          "store_id",
+          "band"
+        ],
+        "rows": [
+          [
+            1,
+            "recent"
+          ],
+          [
+            2,
+            "recent"
+          ],
+          [
+            3,
+            "recent"
+          ],
+          [
+            5,
+            "recent"
+          ]
+        ]
+      }
+    },
+    {
+      "oid": "o47ee4b8",
+      "text": "Stores 3 and 5 new, no store 4",
+      "misconception_id": "ERR-LOG-00",
+      "table": {
+        "columns": [
+          "store_id",
+          "band"
+        ],
+        "rows": [
+          [
+            1,
+            "recent"
+          ],
+          [
+            2,
+            "recent"
+          ],
+          [
+            3,
+            "new"
+          ],
+          [
+            5,
+            "new"
+          ]
+        ]
+      }
+    }
+  ]
+}

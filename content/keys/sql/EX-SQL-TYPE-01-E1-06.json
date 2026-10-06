@@ -1,0 +1,31 @@
+{
+  "item_id": "EX-SQL-TYPE-01-E1-06",
+  "item_version": 1,
+  "reference_sql": "SELECT parent_category,\n       ROUND(COUNT(*) FILTER (WHERE channel = 'store') * 1.0 / COUNT(*), 3) AS store_line_share\nFROM sales\nWHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\nGROUP BY parent_category",
+  "alternatives": [
+    "SELECT parent_category, ROUND(SUM(CASE WHEN channel = 'store' THEN 1 ELSE 0 END) * 1.0 / COUNT(*), 3) AS store_line_share FROM sales WHERE order_date >= DATE '2025-01-01' AND order_date <= DATE '2025-12-31' GROUP BY parent_category",
+    "SELECT parent_category, ROUND(CAST(COUNT(CASE WHEN channel = 'store' THEN 1 END) AS DOUBLE) / COUNT(*), 3) AS store_line_share FROM sales WHERE order_date BETWEEN '2025-01-01' AND '2025-12-31' GROUP BY 1"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-05",
+      "sql": "SELECT parent_category, ROUND(COUNT(*) FILTER (WHERE channel = 'store') // COUNT(*), 3) AS store_line_share FROM sales WHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31' GROUP BY parent_category"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-21",
+      "sql": "SELECT parent_category, ROUND(100.0 * COUNT(*) FILTER (WHERE channel = 'store') / COUNT(*), 3) AS store_line_share FROM sales WHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31' GROUP BY parent_category"
+    }
+  ],
+  "hint3_partial": "SELECT parent_category,\n       ROUND(COUNT(*) FILTER (WHERE ___) * 1.0 / COUNT(*), 3) AS store_line_share\nFROM sales\nWHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\nGROUP BY ___",
+  "solver": {
+    "prompt_hash": "22edf079a07e2056",
+    "schema_version": "cebf75df442f",
+    "dataset_version": "506a9858f862fdfb",
+    "grader_version": "1b.3",
+    "query": "SELECT parent_category, ROUND(COUNT(*) FILTER (WHERE channel = 'store') * 1.0 / COUNT(*), 3) AS store_line_share FROM sales WHERE order_date BETWEEN '2025-01-01' AND '2025-12-31' GROUP BY parent_category\n",
+    "at": "2026-10-04T10:06:51.934Z"
+  }
+}

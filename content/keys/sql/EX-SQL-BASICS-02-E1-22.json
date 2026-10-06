@@ -1,0 +1,37 @@
+{
+  "item_id": "EX-SQL-BASICS-02-E1-22",
+  "item_version": 1,
+  "reference_sql": "SELECT product_id,\n       product_name,\n       unit_cost_eur * 6 AS box_cost_eur\nFROM products",
+  "alternatives": [
+    "SELECT product_id,\n       product_name,\n       6 * unit_cost_eur AS box_cost_eur\nFROM products",
+    "SELECT product_id,\n       product_name,\n       unit_cost_eur + unit_cost_eur * 5 AS box_cost_eur\nFROM products",
+    "SELECT p.product_id,\n       p.product_name,\n       p.unit_cost_eur * 6 AS box_cost_eur\nFROM products AS p"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-00",
+      "sql": "SELECT product_id, product_name, unit_cost_eur / 6 AS box_cost_eur FROM products"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-OUT-01",
+      "sql": "SELECT product_id, unit_cost_eur * 6 AS box_cost_eur FROM products"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-SYN-01",
+      "sql": "SELECT product_id, product_name, unit_cost_eur * 6 AS box cost FROM products"
+    }
+  ],
+  "hint3_partial": "SELECT product_id,\n       product_name,\n       unit_cost_eur ___ AS box_cost_eur\nFROM products",
+  "solver": {
+    "prompt_hash": "641f3c1da44aed28",
+    "schema_version": "d77fe1c31a0e",
+    "dataset_version": "506a9858f862fdfb",
+    "grader_version": "1b.3",
+    "query": "SELECT product_id, product_name, unit_cost_eur * 6 AS box_cost_eur FROM products\n",
+    "at": "2026-10-04T14:33:17.545Z"
+  }
+}

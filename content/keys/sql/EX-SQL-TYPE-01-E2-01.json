@@ -1,0 +1,36 @@
+{
+  "item_id": "EX-SQL-TYPE-01-E2-01",
+  "item_version": 1,
+  "reference_sql": "SELECT parent_category,\n       ROUND(SUM(net_revenue_eur) / SUM(units), 2) AS avg_price_eur\nFROM sales\nWHERE order_date BETWEEN DATE '2025-07-01' AND DATE '2025-12-31'\n  AND units IS NOT NULL\n  AND net_revenue_eur IS NOT NULL\nGROUP BY parent_category",
+  "alternatives": [
+    "SELECT parent_category, ROUND(SUM(net_revenue_eur) / CAST(SUM(units) AS DOUBLE), 2) AS avg_price_eur FROM sales WHERE order_date >= DATE '2025-07-01' AND order_date <= DATE '2025-12-31' AND units IS NOT NULL AND net_revenue_eur IS NOT NULL GROUP BY parent_category",
+    "SELECT parent_category, ROUND(SUM(net_revenue_eur) * 1.0 / SUM(units), 2) AS avg_price_eur FROM sales WHERE order_date BETWEEN '2025-07-01' AND '2025-12-31' AND NOT (units IS NULL OR net_revenue_eur IS NULL) GROUP BY 1"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-20",
+      "sql": "SELECT parent_category, ROUND(AVG(net_revenue_eur / units), 2) AS avg_price_eur FROM sales WHERE order_date BETWEEN DATE '2025-07-01' AND DATE '2025-12-31' AND units IS NOT NULL AND net_revenue_eur IS NOT NULL GROUP BY parent_category"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-05",
+      "sql": "SELECT parent_category, CAST(SUM(net_revenue_eur) / SUM(units) AS INTEGER) AS avg_price_eur FROM sales WHERE order_date BETWEEN DATE '2025-07-01' AND DATE '2025-12-31' AND units IS NOT NULL AND net_revenue_eur IS NOT NULL GROUP BY parent_category"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-17",
+      "sql": "SELECT parent_category, ROUND(SUM(net_revenue_eur) / SUM(units), 2) AS avg_price_eur FROM sales WHERE order_date BETWEEN DATE '2025-07-01' AND DATE '2025-12-31' GROUP BY parent_category"
+    }
+  ],
+  "hint3_partial": "SELECT parent_category,\n       ROUND(SUM(___) / SUM(___), 2) AS avg_price_eur\nFROM sales\nWHERE order_date BETWEEN DATE '2025-07-01' AND DATE '2025-12-31'\n  AND units IS NOT NULL\n  AND net_revenue_eur IS NOT NULL\nGROUP BY parent_category",
+  "solver": {
+    "prompt_hash": "ac4fd64cce361395",
+    "schema_version": "cebf75df442f",
+    "dataset_version": "506a9858f862fdfb",
+    "grader_version": "1b.3",
+    "query": "SELECT parent_category, ROUND(SUM(net_revenue_eur) / SUM(units), 2) AS avg_price_eur FROM sales WHERE order_date BETWEEN '2025-07-01' AND '2025-12-31' AND units IS NOT NULL AND net_revenue_eur IS NOT NULL GROUP BY parent_category\n",
+    "at": "2026-10-04T10:06:52.289Z"
+  }
+}

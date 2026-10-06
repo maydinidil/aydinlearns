@@ -1,0 +1,118 @@
+{
+  "id": "EX-SQL-AGG-01-E1-42",
+  "version": 1,
+  "kind": "predict_result",
+  "tags": [
+    "sql",
+    "LVL-02",
+    "predict_result",
+    "aggregate",
+    "count_column",
+    "null",
+    "stores"
+  ],
+  "level": 2,
+  "source_ids": [
+    "01:SQL-AGG-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-AGG-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-AGG-01"
+  ],
+  "template_id": "T-AGG-01-predict-result-count-star-vs-column",
+  "template_params": {
+    "table": "stores"
+  },
+  "sub_skill": "count_column",
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_agg",
+  "prompt": "Which result does this query return? Use the sample rows of stores in the tables panel, which hold stores 1 to 5.",
+  "output_contract": null,
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [],
+  "subgoals": [],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 60000,
+  "why_this_works": "",
+  "shown_sql": "SELECT COUNT(*) AS n_stores,\n       COUNT(close_date) AS n_with_close_date\nFROM stores\nWHERE store_id <= 5",
+  "options": [
+    {
+      "oid": "o701f3ee",
+      "text": "5 stores, 5 with a close date",
+      "misconception_id": "ERR-LOG-04",
+      "table": {
+        "columns": [
+          "n_stores",
+          "n_with_close_date"
+        ],
+        "rows": [
+          [
+            5,
+            5
+          ]
+        ]
+      }
+    },
+    {
+      "oid": "o66842ee",
+      "text": "5 stores, 0 with a close date",
+      "misconception_id": null,
+      "table": {
+        "columns": [
+          "n_stores",
+          "n_with_close_date"
+        ],
+        "rows": [
+          [
+            5,
+            0
+          ]
+        ]
+      }
+    },
+    {
+      "oid": "o663e5ea",
+      "text": "5 stores, a missing count",
+      "misconception_id": "ERR-LOG-17",
+      "table": {
+        "columns": [
+          "n_stores",
+          "n_with_close_date"
+        ],
+        "rows": [
+          [
+            5,
+            null
+          ]
+        ]
+      }
+    }
+  ]
+}

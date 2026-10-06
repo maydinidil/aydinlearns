@@ -1,0 +1,36 @@
+{
+  "item_id": "EX-SQL-CASE-01-E2-06",
+  "item_version": 1,
+  "reference_sql": "SELECT order_line_id, country_code, net_revenue_eur,\n       CASE WHEN country_code IN ('BE', 'LU') AND net_revenue_eur >= 100 THEN 'yes' ELSE 'no' END AS priority\nFROM sales\nWHERE order_id BETWEEN 1 AND 10",
+  "alternatives": [
+    "SELECT order_line_id, country_code, net_revenue_eur, CASE WHEN (country_code = 'BE' OR country_code = 'LU') AND net_revenue_eur >= 100 THEN 'yes' ELSE 'no' END AS priority FROM sales WHERE order_id >= 1 AND order_id <= 10",
+    "SELECT order_line_id, country_code, net_revenue_eur, CASE WHEN country_code NOT IN ('BE', 'LU') THEN 'no' WHEN net_revenue_eur >= 100 THEN 'yes' ELSE 'no' END AS priority FROM sales WHERE order_id BETWEEN 1 AND 10"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-13",
+      "sql": "SELECT order_line_id, country_code, net_revenue_eur, CASE WHEN country_code = 'BE' OR country_code = 'LU' AND net_revenue_eur >= 100 THEN 'yes' ELSE 'no' END AS priority FROM sales WHERE order_id BETWEEN 1 AND 10"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-15",
+      "sql": "SELECT order_line_id, country_code, net_revenue_eur, CASE WHEN country_code IN ('BE', 'LU') AND net_revenue_eur > 100 THEN 'yes' ELSE 'no' END AS priority FROM sales WHERE order_id BETWEEN 1 AND 10"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-03",
+      "sql": "SELECT order_line_id, country_code, net_revenue_eur, CASE WHEN country_code IN ('BE', 'LU') AND net_revenue_eur >= 100 THEN 'yes' END AS priority FROM sales WHERE order_id BETWEEN 1 AND 10"
+    }
+  ],
+  "hint3_partial": "SELECT order_line_id, country_code, net_revenue_eur,\n       CASE WHEN country_code ___ AND net_revenue_eur >= 100 THEN 'yes' ELSE ___ END AS priority\nFROM sales\nWHERE order_id BETWEEN 1 AND 10",
+  "solver": {
+    "prompt_hash": "8e3125300e60efbb",
+    "schema_version": "cebf75df442f",
+    "dataset_version": "506a9858f862fdfb",
+    "grader_version": "1b.3",
+    "query": "SELECT order_line_id, country_code, net_revenue_eur, CASE WHEN country_code IN ('BE', 'LU') AND net_revenue_eur >= 100.00 THEN 'yes' ELSE 'no' END AS priority FROM sales WHERE order_id BETWEEN 1 AND 10\n",
+    "at": "2026-10-04T10:06:50.975Z"
+  }
+}

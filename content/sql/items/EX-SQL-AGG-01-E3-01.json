@@ -1,0 +1,107 @@
+{
+  "id": "EX-SQL-AGG-01-E3-01",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-02",
+    "aggregate",
+    "sum_avg",
+    "sales",
+    "ratio_of_sums",
+    "margin",
+    "percent",
+    "null"
+  ],
+  "level": 2,
+  "source_ids": [
+    "01:SQL-AGG-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-04",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-AGG-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-TYPE-01"
+  ],
+  "template_id": "T-AGG-01-margin-pct",
+  "template_params": {
+    "table": "sales",
+    "filter": "parent_category = 'Audio'",
+    "output": "gross_margin_pct",
+    "decimals": 1
+  },
+  "sub_skill": "sum_avg",
+  "difficulty": "E3",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_agg",
+  "prompt": "What was the gross margin percentage on order lines in the Audio parent category (parent_category 'Audio')? The cost of a line is its units times its unit_cost_eur. The gross margin percentage is 100 times the gross margin (net revenue minus cost) divided by the net revenue, for the Audio lines as a whole. Leave out any line with a missing net revenue, units or unit_cost_eur. Round to 1 decimal with ROUND(x, 1). Return one column, gross_margin_pct. The result is a single row. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "gross_margin_pct",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row in total"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "gross_margin_pct",
+        "type_class": "numeric",
+        "precision": "ratio",
+        "require_rounding": 1
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the row filter. Keep the Audio lines, and leave out every line where net revenue, units or unit cost is missing.",
+    "Then build the percentage from totals: total revenue and total cost over all the kept lines, divided once and multiplied by 100, then rounded with ROUND. An average of each line's own margin weights small lines as much as big ones."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 117,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 118,
+      "to": 128,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 129,
+      "to": 250,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "Totals first, one division after: each line counts in proportion to its revenue, and the NULL filter keeps revenue and cost on the same lines."
+}
