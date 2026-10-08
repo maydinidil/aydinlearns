@@ -1,0 +1,13 @@
+{
+  "item_id": "Q-EXP-AB-08-06",
+  "item_version": 1,
+  "correct_oid": "o9df365f",
+  "explanation": "Each group should have 500,000 users, so χ² = 2 × 2,000² / 500,000 = 16.0, which is above 10.83: a sample ratio mismatch. With very large samples, chance keeps the split very close to 50%, so even a 0.2-point drift is a warning sign. Treating small differences in group size as always fine is the common mistake, and reweighting the groups hides the cause instead of finding it.",
+  "solver": {
+    "prompt_hash": "d2844692deaffc47",
+    "grader_version": "choice.2",
+    "chosen": "o9df365f",
+    "typed": null,
+    "at": "2026-10-08T18:33:21.629Z"
+  }
+}

@@ -1,0 +1,44 @@
+{
+  "item_id": "EX-SQL-JOIN-02-E2-07",
+  "item_version": 1,
+  "reference_sql": "SELECT a.variant, COUNT(DISTINCT a.customer_id) AS n_customers, COUNT(DISTINCT c.customer_id) AS n_converted,\n  ROUND(100.0 * COUNT(DISTINCT c.customer_id) / COUNT(DISTINCT a.customer_id), 2) AS conversion_rate_pct\nFROM ab_assignments a\nLEFT JOIN ab_conversions c ON c.test_id = a.test_id AND c.customer_id = a.customer_id AND c.converted_at >= a.assigned_at\nWHERE a.test_id = 'AB-2025-01'\nGROUP BY a.variant\nORDER BY a.variant",
+  "alternatives": [
+    "SELECT a.variant, COUNT(DISTINCT a.customer_id) AS n_customers, COUNT(DISTINCT CASE WHEN c.converted_at >= a.assigned_at THEN c.customer_id END) AS n_converted, ROUND(100.0 * COUNT(DISTINCT CASE WHEN c.converted_at >= a.assigned_at THEN c.customer_id END) / COUNT(DISTINCT a.customer_id), 2) AS conversion_rate_pct FROM ab_assignments a LEFT JOIN ab_conversions c ON c.test_id = a.test_id AND c.customer_id = a.customer_id WHERE a.test_id = 'AB-2025-01' GROUP BY a.variant ORDER BY a.variant",
+    "SELECT a.variant, COUNT(DISTINCT a.customer_id) AS n_customers, COUNT(DISTINCT c.customer_id) AS n_converted, ROUND(COUNT(DISTINCT c.customer_id) * 100.0 / COUNT(DISTINCT a.customer_id), 2) AS conversion_rate_pct FROM ab_conversions c RIGHT JOIN ab_assignments a ON a.customer_id = c.customer_id AND a.test_id = c.test_id AND a.assigned_at <= c.converted_at WHERE a.test_id = 'AB-2025-01' GROUP BY 1 ORDER BY 1"
+  ],
+  "other_way": {
+    "sql": "SELECT a.variant, COUNT(DISTINCT a.customer_id) AS n_customers, COUNT(DISTINCT CASE WHEN c.converted_at >= a.assigned_at THEN c.customer_id END) AS n_converted, ROUND(100.0 * COUNT(DISTINCT CASE WHEN c.converted_at >= a.assigned_at THEN c.customer_id END) / COUNT(DISTINCT a.customer_id), 2) AS conversion_rate_pct FROM ab_assignments a LEFT JOIN ab_conversions c ON c.test_id = a.test_id AND c.customer_id = a.customer_id WHERE a.test_id = 'AB-2025-01' GROUP BY a.variant ORDER BY a.variant",
+    "tradeoff": "Joining every conversion and keeping the later ones inside a CASE also works, but the join carries rows the count then ignores."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-10",
+      "sql": "SELECT a.variant, COUNT(DISTINCT a.customer_id) AS n_customers, COUNT(DISTINCT c.customer_id) AS n_converted, ROUND(100.0 * COUNT(DISTINCT c.customer_id) / COUNT(DISTINCT a.customer_id), 2) AS conversion_rate_pct FROM ab_assignments a LEFT JOIN ab_conversions c ON c.test_id = a.test_id AND c.customer_id = a.customer_id WHERE a.test_id = 'AB-2025-01' AND c.converted_at >= a.assigned_at GROUP BY a.variant ORDER BY a.variant"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-04",
+      "sql": "SELECT a.variant, COUNT(DISTINCT a.customer_id) AS n_customers, COUNT(c.customer_id) AS n_converted, ROUND(100.0 * COUNT(c.customer_id) / COUNT(DISTINCT a.customer_id), 2) AS conversion_rate_pct FROM ab_assignments a LEFT JOIN ab_conversions c ON c.test_id = a.test_id AND c.customer_id = a.customer_id AND c.converted_at >= a.assigned_at WHERE a.test_id = 'AB-2025-01' GROUP BY a.variant ORDER BY a.variant"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-15",
+      "sql": "SELECT a.variant, COUNT(DISTINCT a.customer_id) AS n_customers, COUNT(DISTINCT c.customer_id) AS n_converted, ROUND(100.0 * COUNT(DISTINCT c.customer_id) / COUNT(DISTINCT a.customer_id), 2) AS conversion_rate_pct FROM ab_assignments a LEFT JOIN ab_conversions c ON c.test_id = a.test_id AND c.customer_id = a.customer_id AND c.converted_at > a.assigned_at WHERE a.test_id = 'AB-2025-01' GROUP BY a.variant ORDER BY a.variant"
+    },
+    {
+      "id": "PW4",
+      "error_id": "ERR-LOG-21",
+      "sql": "SELECT a.variant, COUNT(DISTINCT a.customer_id) AS n_customers, COUNT(DISTINCT c.customer_id) AS n_converted, ROUND(1.0 * COUNT(DISTINCT c.customer_id) / COUNT(DISTINCT a.customer_id), 2) AS conversion_rate_pct FROM ab_assignments a LEFT JOIN ab_conversions c ON c.test_id = a.test_id AND c.customer_id = a.customer_id AND c.converted_at >= a.assigned_at WHERE a.test_id = 'AB-2025-01' GROUP BY a.variant ORDER BY a.variant"
+    }
+  ],
+  "hint3_partial": "SELECT a.variant, COUNT(DISTINCT a.customer_id) AS n_customers, ___ AS n_converted,\n  ___ AS conversion_rate_pct\nFROM ab_assignments a\nLEFT JOIN ab_conversions c ON ___\nWHERE a.test_id = 'AB-2025-01'\nGROUP BY a.variant\nORDER BY a.variant",
+  "solver": {
+    "prompt_hash": "f97d9d046768c77e",
+    "schema_version": "1284b2a2a3a2",
+    "dataset_version": "6de53e5dbeafe2d5",
+    "grader_version": "4c.1",
+    "query": "SELECT\n  a.variant,\n  COUNT(DISTINCT a.customer_id) AS n_customers,\n  COUNT(DISTINCT CASE WHEN c.customer_id IS NOT NULL THEN a.customer_id END) AS n_converted,\n  ROUND(100.0 * COUNT(DISTINCT CASE WHEN c.customer_id IS NOT NULL THEN a.customer_id END) / COUNT(DISTINCT a.customer_id), 2) AS conversion_rate_pct\nFROM ab_assignments a\nLEFT JOIN ab_conversions c\n  ON c.test_id = a.test_id\n AND c.customer_id = a.customer_id\n AND c.converted_at >= a.assigned_at\nWHERE a.test_id = 'AB-2025-01'\nGROUP BY a.variant\nORDER BY a.variant\n",
+    "at": "2026-10-08T19:03:04.518Z"
+  }
+}

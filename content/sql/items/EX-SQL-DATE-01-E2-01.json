@@ -1,6 +1,6 @@
 {
   "id": "EX-SQL-DATE-01-E2-01",
-  "version": 1,
+  "version": 2,
   "kind": "write",
   "tags": [
     "sql",
@@ -94,22 +94,22 @@
   "subgoals": [
     {
       "from": 0,
-      "to": 125,
+      "to": 139,
       "subgoal": "metrics"
     },
     {
-      "from": 126,
-      "to": 137,
+      "from": 140,
+      "to": 151,
       "subgoal": "source_grain"
     },
     {
-      "from": 138,
-      "to": 159,
+      "from": 152,
+      "to": 173,
       "subgoal": "row_filter"
     },
     {
-      "from": 160,
-      "to": 170,
+      "from": 174,
+      "to": 184,
       "subgoal": "output_grain"
     }
   ],

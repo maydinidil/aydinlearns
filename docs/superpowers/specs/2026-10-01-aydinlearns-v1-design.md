@@ -1557,6 +1557,11 @@ serves (§2.2). If a slice misses its date, the slip rule in §2.3 applies.
 | **7. SQL level 6, LedgerLoop, more real data** | Take-home patterns. LedgerLoop with opening balances, and the SaaS and MKT-05 cases. Olist and Maven Toy Store | Level 6 is completable. SaaS cases pass on LedgerLoop | 2026-12-07 |
 | **After the first applications** | v1: level 7 (BigQuery, craft), Noordkant and the retail cases, KKBox, the compare-with-others tiers, the other GA4 labs, GA4 bank growth, the optimiser path. Post-v1: the GA4-export bridge and TheLook, the remaining datasets, copying `core/` into aydindutch. Future update: PL-300 | | January onward |
 
+**Release numbers (D63, 2026-10-08).** The app was released as 1.0 (version 1.0.0) after sprint
+5a: slices 0 to 3 and the Methodology half of slice 4. The rest of the table above ships as 1.x
+releases, starting with slice 4's GA4 half as 1.1. What this design calls post-v1 becomes 2.0 or
+later. "v1" in this design still means the whole plan above, not release 1.0.
+
 ## 17. Testing
 
 **Grader test suite:**

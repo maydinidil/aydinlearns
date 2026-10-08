@@ -1,0 +1,15 @@
+{
+  "concept_id": "MET-RETAIL-09",
+  "section": "methodology",
+  "version": 1,
+  "title": "RFM segmentation",
+  "reading_md": "**What it does.** RFM scores each known customer from 1 to 5 on three measures, as of a chosen date and over a window such as the last 12 months:\n\n- Recency (R): days since the customer's last order. Fewer days is better.\n- Frequency (F): the number of orders in the window.\n- Monetary (M): the amount spent in the window.\n\nRules on the three scores sort customers into segments. High R, F and M marks the best customers. High F with low R marks customers who bought often and have stopped: the usual target of a win-back campaign.\n\n**How the scores are set (Voltmarkt's convention).**\n\n- R and M: quintiles. Rank the customers and split them into five equal groups with NTILE(5). For R, rank so the most recent buyers get 5: order by days since the last order, most days first. Add customer_id as a tie-breaker, so every run gives the same scores.\n- F: fixed bands on the number of orders, for example 1 order = 1, 2 = 2, 3 = 3, 4 to 5 = 4, 6 or more = 5. Most customers have only one order, and quintiles would split customers with the same count over different scores in an arbitrary order.\n- Only known customers count. A guest order has a missing customer_id and cannot be linked to anyone.\n- Grain: one row per customer, as of the chosen date.\n\n**Worked example.** As of 30 September 2026, over the past 12 months:\n\n- Customer A last ordered 9 days ago, ordered 7 times and spent €1,850. Say 9 days ranks in the most recent fifth and €1,850 in the top fifth of spend: A scores R 5, F 5 and M 5, one of the best customers.\n- Customer B last ordered 290 days ago and ordered 4 times. Say 290 days ranks in the oldest fifth: B scores R 1 and F 4, a frequent buyer who has gone quiet.\n\n**Scores are relative.** A quintile compares a customer with all the others. A customer whose orders did not change can drop from M 4 to M 3 when other customers spend more, so compare runs with care.\n\n**Common mistakes.**\n\n- Splitting ties arbitrarily: NTILE on the number of orders, or no tie-breaker on R and M.\n- Reversing recency, so the most recent buyers get 1.\n- Letting guest orders in. GROUP BY customer_id puts every missing customer_id into one group, which looks like a single customer with thousands of orders.\n\n**What it does not answer.**\n\n- What share of customers buy again: that is the repeat purchase rate.\n- Why customers stopped buying.\n\n**How managers ask for it.** \"Who are our best customers?\" \"Which loyal customers are slipping away?\"",
+  "source_ids": [
+    "04:MET-RETAIL-09",
+    "04:CASE-RETAIL-05",
+    "ERRATA:E-007",
+    "ERRATA:E-100"
+  ],
+  "verified": true,
+  "as_of": "2026-10-08"
+}

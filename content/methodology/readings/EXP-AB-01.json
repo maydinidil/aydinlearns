@@ -1,0 +1,16 @@
+{
+  "concept_id": "EXP-AB-01",
+  "section": "methodology",
+  "version": 1,
+  "title": "Control, treatment and randomisation",
+  "reading_md": "**What it is.** In an A/B test the control group sees the current experience and the treatment group sees the change. Who goes into which group is decided at random. Random assignment makes the two groups alike on average in everything, both the traits you know about and the ones you do not. So when their outcomes differ, the difference can be put down to the change, not to who chose it.\n\nRandomisation does not protect against everything. Bugs, uneven logging, samples that are too small, novelty effects and effects that spill over between the groups can still spoil a test. Prices can be tested too, but fairness, legal and brand risk and spillover often mean testing by store, region or time instead of by user.\n\n**How to work it out.**\n\nTreatment effect = outcome(treatment) - outcome(control)\n\nWorked example. Newsletter subscribers convert at 9% and non-subscribers at 4%, but people chose to subscribe.\n\n- Naive relative difference = (0.09 - 0.04) / 0.04 = 1.25, so 125%.\n- A randomised test of sending the newsletter gives 4.4% in treatment and 4.0% in control. Relative lift = (0.044 - 0.040) / 0.040 = 0.10, so 10%.\n\nRounding: whole percent. Most of the 125% gap comes from who subscribes, not from the newsletter.\n\n**In the interview.** \"Why not just compare customers who used a new feature with those who did not?\" A good answer: customers who adopt a feature differ from those who do not; they are often more engaged. The gap mixes the feature's effect with that selection, and randomisation removes the selection.\n\n**Common mistakes.**\n\n- Believing randomisation makes the groups identical in every sample. It balances them on average; with few units, such as 20 stores per group, chance gaps remain.\n- Comparing opt-in users with non-users and calling it a test.\n- Assuming a randomised test also proves the long-term effect. It measures the effect while the test runs, and an early effect can fade.",
+  "source_ids": [
+    "11:EXP-01",
+    "11:§2",
+    "ERRATA:E-174",
+    "ERRATA:E-175",
+    "ERRATA:E-177"
+  ],
+  "verified": true,
+  "as_of": "2026-10-08"
+}

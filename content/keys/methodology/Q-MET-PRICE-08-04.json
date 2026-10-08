@@ -1,0 +1,13 @@
+{
+  "item_id": "Q-MET-PRICE-08-04",
+  "item_version": 2,
+  "correct_oid": "o983c97b",
+  "explanation": "In Voltmarkt's bridge, mix has its own formula: SUM(V1 × M0) - SUM V1 × average M0. Computed that way, the effects add up exactly, which checks the work. Set as a plug, mix absorbs any error in price, cost or volume, and a wrong number looks like a shift in what customers bought. Mix can be non-zero with unchanged total units whenever the share of each product changes.",
+  "solver": {
+    "prompt_hash": "4dbcfcb5c6d27da5",
+    "grader_version": "choice.2",
+    "chosen": "o983c97b",
+    "typed": null,
+    "at": "2026-10-08T20:27:33.699Z"
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "item_id": "Q-STAT-BASIC-02-02",
+  "item_version": 1,
+  "value": 28.5,
+  "explanation": "Trimming drops a fixed number of values from each end, here €5 and €950, and averages the rest: 18 + 22 + 26 + 30 + 34 + 41 = 171, and 171 / 6 = €28.50. Dividing by 8 instead of 6 is the slip to avoid: the trimmed mean averages only the values that remain.",
+  "solver": {
+    "prompt_hash": "e003c76f62386050",
+    "grader_version": "choice.2",
+    "chosen": null,
+    "typed": "28.50",
+    "at": "2026-10-08T18:33:22.101Z"
+  }
+}

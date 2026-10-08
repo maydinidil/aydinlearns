@@ -1,0 +1,13 @@
+{
+  "item_id": "Q-EXP-AB-12-05",
+  "item_version": 1,
+  "correct_oid": "ob06b1bc",
+  "explanation": "Picking guardrails after seeing the results lets the metrics that got worse quietly drop out, so harm goes unreported. Guardrails and their tolerances are set in the plan, before the test, so the decision cannot be bent to fit the outcome.",
+  "solver": {
+    "prompt_hash": "80d5a37a08e784f4",
+    "grader_version": "choice.2",
+    "chosen": "ob06b1bc",
+    "typed": null,
+    "at": "2026-10-08T18:33:21.669Z"
+  }
+}

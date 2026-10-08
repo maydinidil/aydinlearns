@@ -199,6 +199,9 @@ export function mountMistakes(app: Hono, d: RouteDeps, today: TodayServing): voi
       for (const id of mistakeReviewQueue(d.state.current(now), now, d.settings.exam_date)) {
         const q = id === card_id ? null : parseMistakeCardId(id);
         if (!q) continue;
+        // Codex F26: this candidate's close may still be being written. Wait for it, then skip it if that review made it not due.
+        await d.servings.closeOf(id);
+        if (!mistakeReviewQueue(d.state.current(now), now, d.settings.exam_date).includes(id)) continue;
         const open = d.servings.openForCard(id);
         if (open) {
           const { serving: s } = open;

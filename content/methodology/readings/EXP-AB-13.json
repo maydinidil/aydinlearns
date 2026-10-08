@@ -1,0 +1,18 @@
+{
+  "concept_id": "EXP-AB-13",
+  "section": "methodology",
+  "version": 1,
+  "title": "Conversion rate, absolute lift and relative lift per variant",
+  "reading_md": "**What it is.** Three numbers describe a test's result on conversion: the conversion rate of each variant, the absolute lift in percentage points and the relative lift in percent. The metric itself, with its grain and pitfalls, is in the Conversion rate reading under retail metrics. In a test, the denominator is the users assigned (or exposed) to each variant, matching what was randomised, and only conversions after assignment count.\n\n**How to work it out.**\n\n- Conversion rate = converting users / assigned users\n- Absolute lift = treatment rate - control rate\n- Relative lift = (treatment rate - control rate) / control rate\n\nWorked example. Control: 10,000 users, 500 conversions. Treatment: 10,000 users, 560 conversions.\n\n- Control rate = 500 / 10,000 = 0.0500 (5.00%)\n- Treatment rate = 560 / 10,000 = 0.0560 (5.60%)\n- Absolute lift = 0.0060, so 0.60 percentage points\n- Relative lift = 0.006 / 0.05 = 0.12, so 12.0%\n\nRounding: 2 decimals for points, 1 decimal for percent.\n\n**In the interview.** \"Conversion went from 2% to 3%. What is the lift?\" A good answer: +1 percentage point absolute, which is +50% relative. Say which one you mean.\n\n**Common mistakes.**\n\n- Mixing up percentage points and percent.\n- Dividing by sessions when users were randomised.\n- Counting purchases from before a user was assigned: the variant cannot have caused them.\n\n**How to read an A/B test result.** A checklist to say aloud:\n\n- 1. \"First I check the setup: what was randomised, the split, the dates, and the one primary metric decided in advance.\"\n- 2. \"Then I check trust: sample ratio mismatch, users in two variants, and whether the planned sample size and full weeks were reached.\"\n- 3. \"I compute conversion per variant, the absolute lift in points and the relative lift in percent.\"\n- 4. \"I look at the p-value and the confidence interval of the difference, not just whether p is below 0.05.\"\n- 5. \"I ask if the effect is practically meaningful compared with the cost and the minimum detectable effect.\"\n- 6. \"I check guardrails such as margin, returns, load time and unsubscribes.\"\n- 7. \"I check the effect over time for novelty and treat segment wins as hypotheses unless corrected for multiple tests.\"\n- 8. \"I give a recommendation: ship, do not ship, or rerun with more power, and say what I am still unsure about.\"",
+  "source_ids": [
+    "11:EXP-13",
+    "11:§6",
+    "04:MET-RETAIL-08",
+    "ERRATA:E-174",
+    "ERRATA:E-175",
+    "ERRATA:E-176",
+    "ERRATA:E-183"
+  ],
+  "verified": true,
+  "as_of": "2026-10-08"
+}

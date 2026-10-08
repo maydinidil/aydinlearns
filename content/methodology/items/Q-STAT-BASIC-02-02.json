@@ -1,0 +1,31 @@
+{
+  "id": "Q-STAT-BASIC-02-02",
+  "version": 1,
+  "kind": "typed",
+  "section": "methodology",
+  "concept_id": "STAT-BASIC-02",
+  "stem": "Eight store visits produced baskets of €5, €18, €22, €26, €30, €34, €41 and €950. Compute the trimmed mean that drops the single lowest and the single highest basket. Give it in euros with 2 decimals.",
+  "options": [],
+  "typed": {
+    "precision": "money",
+    "scale": "eur",
+    "decimals": 2,
+    "unit_label": "€"
+  },
+  "held_out": true,
+  "enemy_group": null,
+  "status": "active",
+  "verified": true,
+  "level": null,
+  "tags": [
+    "methodology",
+    "T-MET-STAT"
+  ],
+  "source_ids": [
+    "11:STAT-02",
+    "ERRATA:E-182"
+  ],
+  "as_of": "2026-10-08",
+  "review_after": null,
+  "supersedes": []
+}

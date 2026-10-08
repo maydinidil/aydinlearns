@@ -1,7 +1,7 @@
 {
   "item_id": "EX-SQL-DATE-01-E1-03",
-  "item_version": 1,
-  "reference_sql": "SELECT date_trunc('quarter', order_date) AS order_quarter,\n       SUM(net_revenue_eur) AS net_revenue_eur\nFROM sales\nGROUP BY 1",
+  "item_version": 2,
+  "reference_sql": "SELECT CAST(date_trunc('quarter', order_date) AS DATE) AS order_quarter,\n       SUM(net_revenue_eur) AS net_revenue_eur\nFROM sales\nGROUP BY 1",
   "alternatives": [
     "SELECT CAST(date_trunc('quarter', order_date) AS DATE) AS order_quarter, SUM(net_revenue_eur) AS net_revenue_eur FROM sales GROUP BY date_trunc('quarter', order_date)",
     "SELECT make_date(year(order_date), 3 * quarter(order_date) - 2, 1) AS order_quarter, SUM(net_revenue_eur) AS net_revenue_eur FROM sales GROUP BY year(order_date), quarter(order_date)"
@@ -14,15 +14,15 @@
     {
       "id": "PW1",
       "error_id": "ERR-LOG-25",
-      "sql": "SELECT date_trunc('month', order_date) AS order_quarter, SUM(net_revenue_eur) AS net_revenue_eur FROM sales GROUP BY 1"
+      "sql": "SELECT CAST(date_trunc('month', order_date) AS DATE) AS order_quarter, SUM(net_revenue_eur) AS net_revenue_eur FROM sales GROUP BY 1"
     },
     {
       "id": "PW2",
       "error_id": "ERR-LOG-14",
-      "sql": "SELECT date_trunc('quarter', order_date) AS order_quarter, AVG(net_revenue_eur) AS net_revenue_eur FROM sales GROUP BY 1"
+      "sql": "SELECT CAST(date_trunc('quarter', order_date) AS DATE) AS order_quarter, AVG(net_revenue_eur) AS net_revenue_eur FROM sales GROUP BY 1"
     }
   ],
-  "hint3_partial": "SELECT date_trunc(___, order_date) AS order_quarter,\n       SUM(___) AS net_revenue_eur\nFROM sales\nGROUP BY 1",
+  "hint3_partial": "SELECT CAST(date_trunc(___, order_date) AS DATE) AS order_quarter,\n       SUM(___) AS net_revenue_eur\nFROM sales\nGROUP BY 1",
   "solver": {
     "prompt_hash": "63df567206878008",
     "schema_version": "cebf75df442f",

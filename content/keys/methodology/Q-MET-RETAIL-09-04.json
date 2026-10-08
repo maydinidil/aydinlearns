@@ -1,0 +1,13 @@
+{
+  "item_id": "Q-MET-RETAIL-09-04",
+  "item_version": 1,
+  "correct_oid": "o5bd8c8d",
+  "explanation": "NTILE gives score 1 to the first fifth in the ordering. Ordered from fewest to most days, the most recent buyers come first and get 1, so recency is reversed: active customers look lapsed and lapsed ones look active. Voltmarkt orders by days since the last order, most days first, so the most recent buyers get 5. Frequency is scored on its own and is not affected.",
+  "solver": {
+    "prompt_hash": "a0009e67a08710d2",
+    "grader_version": "choice.2",
+    "chosen": "o5bd8c8d",
+    "typed": null,
+    "at": "2026-10-08T18:33:21.887Z"
+  }
+}

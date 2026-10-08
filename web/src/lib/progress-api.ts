@@ -56,6 +56,12 @@ export const EXPLORE_LINK = 'Dataset explorer';
 export const PROGRESS_LINKS: readonly { href: string; text: string }[] = [
   { href: INBOX_HREF, text: INBOX_LINK }, { href: PORTFOLIO_HREF, text: PORTFOLIO_TITLE }, { href: EXPLORE_HREF, text: EXPLORE_LINK },
 ];
+/** The sections of the page, for the link row at the top (finding 21). The ids are the headings' ids on the screen. */
+export const PROGRESS_SECTIONS: readonly { id: string; text: string }[] = [
+  { id: 'progress-goals', text: 'Goals' }, { id: 'progress-board', text: 'Recruitment readiness' }, { id: 'progress-skills', text: 'Skill maps' },
+  { id: 'progress-trends', text: 'Trends' }, { id: 'progress-reveal', text: 'Answers shown' }, { id: 'progress-topics', text: 'Topic readiness' },
+  { id: 'progress-job-ready', text: 'Job-ready criteria' },
+];
 export const PROGRESS_INTRO = 'Your goals against their dates, what each recruitment stage asks, and how your practice is going. Nothing here is a gate.';
 export const SECTION_LABEL: Readonly<Record<'sql' | 'ga4' | 'methodology', string>> = { sql: 'SQL', ga4: 'GA4', methodology: 'Methodology' };
 export const STATE_LABEL: Readonly<Record<ConceptStateName, string>> = { new: 'New', learning: 'Learning', practised: 'Practised', mastered: 'Mastered', retained: 'Retained' };
@@ -104,14 +110,20 @@ export function titlesOf(v: Pick<ProgressView, 'skill_maps'>): Titles {
 export const shareText = (s: Share, none = 'No attempts'): string => (s.pct === null ? none : `${s.pct}% (${s.count} of ${s.total})`);
 
 export interface TrendRow { week: string; label: string; sql_first: string; sql_help: string; choice_first: string; choice_help: string }
-/** The trend table's rows, oldest first; the last week is this one. */
+const hasAttempts = (w: TrendWeek): boolean => w.sql.first_attempt.total > 0 || w.sql.help.total > 0 || w.choice.first_attempt.total > 0 || w.choice.help.total > 0;
+/**
+ * The trend table's rows, oldest first; the last week is this one. Weeks before the first attempt are left out (sprint 5a, finding 19),
+ * so a learner with no attempts sees this week only. An empty cell reads "No attempts".
+ */
 export function trendRows(weeks: readonly TrendWeek[], today: string): TrendRow[] {
+  const first = weeks.findIndex(hasAttempts);
+  const from = first === -1 ? Math.max(weeks.length - 1, 0) : first;
   return weeks.map((w, i) => ({
     week: w.week,
     label: `${i === weeks.length - 1 ? 'This week' : `Week ${Number(w.week.slice(-2))}`}, from ${formatDate(w.starts, today)}`,
-    sql_first: shareText(w.sql.first_attempt, 'None'), sql_help: shareText(w.sql.help, 'None'),
-    choice_first: shareText(w.choice.first_attempt, 'None'), choice_help: shareText(w.choice.help, 'None'),
-  }));
+    sql_first: shareText(w.sql.first_attempt), sql_help: shareText(w.sql.help),
+    choice_first: shareText(w.choice.first_attempt), choice_help: shareText(w.choice.help),
+  })).slice(from);
 }
 export function revealLine(r: RevealRate, today: string): string {
   const since = formatDate(r.from, today);

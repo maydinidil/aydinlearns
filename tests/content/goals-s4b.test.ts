@@ -30,7 +30,9 @@ test('S4B-20: only those two goals\' criteria changed; every goal keeps its id, 
     const { criteria, ...rest } = byId(now.goals, g.id);
     const { criteria: was, ...wasRest } = g;
     assert.deepEqual(rest, wasRest, g.id);
-    if (!CHANGED.includes(g.id)) assert.deepEqual(criteria, was, `${g.id} keeps its criteria`);
+    // Sprint 5a (D58): G-GA4-CERT keeps its criteria and gains one at the end.
+    if (g.id === 'G-GA4-CERT') assert.deepEqual(criteria.slice(0, was.length), was, 'G-GA4-CERT keeps its old criteria');
+    else if (!CHANGED.includes(g.id)) assert.deepEqual(criteria, was, `${g.id} keeps its criteria`);
     else assert.notDeepEqual(criteria, was, `${g.id} changed`);
   }
 });

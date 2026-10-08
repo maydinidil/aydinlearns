@@ -3,14 +3,14 @@
 Append-only log of findings raised by the Codex PR reviewer, each with an independent verdict.
 Newest review first.
 
-## PR #41: sprint 4c, the SQL learner-facing backlog (reviewed 2026-10-08)
+## PR #41: sprint 4c, the SQL learner-facing backlog (reviewed 2026-10-08, merged 2026-10-08)
 
 Codex left one line comment on commit `7e81096`, P2, before the merge. It is real. The owner chose
 to log it and merge; the fix follows with its own plan.
 
 ### F26: "Try again"'s fallback can serve a card whose close is still being written
 
-**P2 · `server/routes/mistakes.ts:202` · Verdict: CONFIRMED · Status: OPEN**
+**P2 · `server/routes/mistakes.ts:202` · Verdict: CONFIRMED · Status: FIXED 2026-10-08**
 
 The claim: when the requested due card has no servable trap item, sprint 4c's fallback (Task A5)
 walks the due queue and serves the next card. For each fallback card it checks
@@ -30,6 +30,13 @@ on screen says so.
 then re-read the state and skip a card that is no longer due, before `openForCard` and `pickFor`.
 Pin it with a test in `tests/server/mistakes-c2-today.test.ts` that holds a fallback card's close
 open, as F21's test does for the requested card.
+
+> **Update 2026-10-08:** Fixed in sprint 5a (Task A1). The fallback loop in `server/routes/mistakes.ts`
+> now waits for `d.servings.closeOf(id)` for each candidate card and reads the queue again, then
+> skips a card that is no longer due, before `openForCard` and `pickFor`. Pinned by the test
+> "F26: "Try again" on an unservable due card waits for the next candidate's pending close, then
+> skips it once it is reviewed" in `tests/server/mistakes-c2-today.test.ts`, which holds a
+> candidate's close open and checks that the reply waits and the card is not served again.
 
 ## PR #40: sprint 4b, cases, portfolio, Progress and screen mode (reviewed 2026-10-08, merged 2026-10-08)
 
@@ -270,7 +277,11 @@ where neither applies. The fix plan goes to the owner first.
 
 ### F18: The shared-repository check resolves both paths in the wrong directory
 
-**P1 · `tools/export-public.sh:27` · Verdict: CONFIRMED, with a correction · Status: FIXED 2026-10-06 (unverified against the real monorepo checkout and public clone)**
+**P1 · `tools/export-public.sh:27` · Verdict: CONFIRMED, with a correction · Status: FIXED 2026-10-06**
+
+> **Update 2026-10-08:** confirmed. The real export ran from `C:zehirlab`'s main checkout
+> into a fresh clone of `maydinidil/aydinlearns`, the check accepted the clone, and the result was
+> pushed (`477a8b0..fcb8f35`).
 
 `git rev-parse --git-common-dir` prints a path relative to the repository it runs in (`.git` for
 a plain clone or the main checkout), but `xargs realpath` resolves it in the script's current
@@ -293,7 +304,10 @@ export from `C:\zehirlab`'s main checkout.
 
 ### F19: The origin check is not anchored
 
-**P2 · `tools/export-public.sh:26` · Verdict: CONFIRMED · Status: FIXED 2026-10-06 (unverified against the real monorepo checkout and public clone)**
+**P2 · `tools/export-public.sh:26` · Verdict: CONFIRMED · Status: FIXED 2026-10-06**
+
+> **Update 2026-10-08:** confirmed. The same real export run accepted the public clone's
+> GitHub origin (push `477a8b0..fcb8f35`).
 
 `[[ "$origin" =~ github\.com[:/]$PUBLIC_REPO(\.git)?$ ]]` matches the end of the URL only, so
 `https://notgithub.com/maydinidil/aydinlearns` or a local path ending in

@@ -146,8 +146,8 @@ const cases: [string, CaseRecord, (r: Rec) => void, string][] = [
   ['a CP6 credits nothing', inboxCase, (r) => { cp(r, 'CP6').credits_concepts = ['SQL-AGG-01']; }, `${at(inboxCase, 'CP6')}.credits_concepts must be empty: CP6 credits nothing`],
   ['credits are a list of concept IDs', inboxCase, (r) => { delete cp(r, 'CP1').credits_concepts; }, `${at(inboxCase, 'CP1')}.credits_concepts must be a list of concept IDs`],
   // S4B-04: daily cases
-  ['a daily case has CP3 and CP4 only', dailyCase, (r) => { r.checkpoints.push({ id: 'CP6', kind: 'CP6', prompt: 'Write it.', credits_concepts: [] }); },
-    'a daily case has exactly two checkpoints, CP3 and CP4'],
+  ['a daily case has CP4', dailyCase, (r) => { r.checkpoints = r.checkpoints.filter((c: { id: string }) => c.id !== 'CP4'); },
+    'a daily case must have CP3 and CP4'],
   ['a daily case has difficulty 1', dailyCase, (r) => { r.difficulty = 2; }, 'a daily case has difficulty 1'],
   ['a daily case ID names its level', dailyCase, (r) => { r.level = 3; }, 'a daily case ID looks like CASE-DAILY-L3-01'],
   ['a daily case is asked by the cast', dailyCase, (r) => { r.persona = { name: 'Fleur', role: 'CFO' }; },
@@ -159,6 +159,24 @@ const cases: [string, CaseRecord, (r: Rec) => void, string][] = [
 for (const [name, base, patch, message] of cases) {
   test(`validateCaseRecord: ${name}`, () => assert.deepEqual(validateCaseRecord(patched(base, patch)), [message]));
 }
+
+// Ruling S5A-14 (D56, sprint 5a) amends S4B-04: a daily case must have CP3 and CP4 and may add CP1, CP2, CP5 and CP6.
+test('a daily case without CP3 is refused', () => {
+  const errs = validateCaseRecord(patched(dailyCase, (r) => { r.checkpoints = r.checkpoints.filter((c: { id: string }) => c.id !== 'CP3'); }));
+  assert.ok(errs.includes('a daily case must have CP3 and CP4'), errs.join('; '));
+});
+test('a daily case may add CP2, CP5 and CP6 to CP3 and CP4', () => {
+  const rec = patched(dailyCase, (r) => {
+    r.checkpoints = [
+      { id: 'CP2', kind: 'CP2', prompt: 'How many categories?', credits_concepts: ['SQL-AGG-01'], item_id: 'CASE-DAILY-L2-01:CP2', typed: count, truth_key: 'CASE-DAILY-L2-01:CP2' },
+      ...r.checkpoints,
+      { id: 'CP5', kind: 'CP5', prompt: 'Can Fleur conclude it worked?', credits_concepts: [], item_id: 'CASE-DAILY-L2-01:CP5',
+        options: options('CASE-DAILY-L2-01:CP5', ['Yes', 'No, the season changed too', 'Not without a control group']) },
+      { id: 'CP6', kind: 'CP6', prompt: 'Write the insight in 2 to 4 sentences.', credits_concepts: [] },
+    ];
+  });
+  assert.deepEqual(validateCaseRecord(rec), []);
+});
 
 test('an opener\'s sort may end as its CP3 item\'s prompt sorts (the level 1 and 2 openers keep their items, S4B-06)', () => {
   assert.deepEqual(validateCaseRecord(patched(goodCase, (r) => { r.expected_output.sort = [{ column: 'sale_price_eur', desc: true }]; })), []);

@@ -1,6 +1,6 @@
 {
   "item_id": "EX-SQL-NULL-01-E2-31",
-  "item_version": 2,
+  "item_version": 3,
   "reference_sql": "SELECT promo_code, promo_name, discount_pct\nFROM promotions\nWHERE (promo_name NOT LIKE '%Clearance%' OR promo_name IS NULL) AND discount_pct >= 20",
   "alternatives": [
     "SELECT promo_code, promo_name, discount_pct\nFROM promotions\nWHERE discount_pct >= 20 AND (promo_name IS NULL OR NOT promo_name LIKE '%Clearance%')",
@@ -29,11 +29,11 @@
   ],
   "hint3_partial": "SELECT promo_code, promo_name, discount_pct\nFROM promotions\nWHERE (promo_name NOT LIKE '%Clearance%' OR promo_name ___) AND discount_pct >= 20",
   "solver": {
-    "prompt_hash": "b3897bda8d42c456",
+    "prompt_hash": "70ef2174b8e7434c",
     "schema_version": "f0340f71a1f5",
-    "dataset_version": "7b5183c35ff26d5b",
+    "dataset_version": "6de53e5dbeafe2d5",
     "grader_version": "4c.1",
-    "query": "SELECT promo_code, promo_name, discount_pct\nFROM promotions\nWHERE (promo_name IS NULL OR promo_name NOT LIKE '%Clearance%') AND discount_pct >= 20",
-    "at": "2026-10-08T14:11:56.245Z"
+    "query": "SELECT promo_code, promo_name, discount_pct\nFROM promotions\nWHERE (promo_name IS NULL OR promo_name NOT LIKE '%Clearance%') AND discount_pct >= 20\n",
+    "at": "2026-10-08T19:03:04.616Z"
   }
 }

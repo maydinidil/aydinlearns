@@ -1,0 +1,13 @@
+{
+  "item_id": "Q-MET-MKT-14-05",
+  "item_version": 1,
+  "correct_oid": "o6202c4d",
+  "explanation": "Counted by event month, July's SQL dates include leads that became MQLs in June or earlier, so the two counts are different groups of leads. Group leads by the month they were created and count each cohort's leads at every stage. The step divides by the stage before, MQL, not by all leads.",
+  "solver": {
+    "prompt_hash": "0204a1e92d8f4be6",
+    "grader_version": "choice.2",
+    "chosen": "o6202c4d",
+    "typed": null,
+    "at": "2026-10-08T18:33:21.722Z"
+  }
+}

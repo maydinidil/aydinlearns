@@ -1,0 +1,46 @@
+{
+  "id": "Q-MET-MKT-13-05",
+  "version": 2,
+  "kind": "mcq",
+  "section": "methodology",
+  "concept_id": "MET-MKT-13",
+  "stem": "Voltmarkt's September report is one query and nothing more: the budget table LEFT JOIN the monthly actual spend, on channel and month. In September an affiliate test spent €2,000, and affiliates have no budget row. What does the report show for affiliates?",
+  "options": [
+    {
+      "oid": "o47136cf",
+      "text": "No affiliate row, so the report's total actual spend is €2,000 too low",
+      "misconception_id": null
+    },
+    {
+      "oid": "o2e4b5eb",
+      "text": "A row with actual €2,000 and a variance of +€2,000 against a budget of 0",
+      "misconception_id": null
+    },
+    {
+      "oid": "od9126fc",
+      "text": "A row with actual €2,000 and a missing budget, variance and variance %",
+      "misconception_id": null
+    },
+    {
+      "oid": "o704ab19",
+      "text": "An error, because the join needs a budget row for every channel with spend",
+      "misconception_id": null
+    }
+  ],
+  "typed": null,
+  "held_out": true,
+  "enemy_group": null,
+  "status": "active",
+  "verified": true,
+  "level": null,
+  "tags": [
+    "methodology",
+    "T-MET-MKT"
+  ],
+  "source_ids": [
+    "04:MET-MKT-13"
+  ],
+  "as_of": "2026-10-08",
+  "review_after": null,
+  "supersedes": []
+}

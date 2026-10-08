@@ -9,6 +9,8 @@ import { crumbParts } from '../lib/crumb.ts';
 import { formatDate } from '../lib/labels.ts';
 import { parseMarkdown, type Inline } from '../lib/markdown.ts';
 import { amsterdamDate } from '../../../core/time.ts';
+import { SqlCode } from '../components/SqlCode.tsx';
+import { looksLikeSql } from '../lib/polish-p2a.ts';
 
 /** Inline text with its badges. */
 function withBadges(text: string, key: string): ReactNode[] {
@@ -27,7 +29,7 @@ function ReadingText({ text }: { text: string }) {
     switch (b.kind) {
       case 'heading': return b.level === 1 ? <h2 key={k}>{inline(b.inlines, k)}</h2> : b.level === 2 ? <h3 key={k}>{inline(b.inlines, k)}</h3> : <h4 key={k}>{inline(b.inlines, k)}</h4>;
       case 'para': return <p key={k}>{inline(b.inlines, k)}</p>;
-      case 'code': return <pre key={k}><code>{b.text}</code></pre>;
+      case 'code': return looksLikeSql(b.text) ? <SqlCode key={k} sql={b.text} /> : <pre key={k}><code>{b.text}</code></pre>;
       case 'list': return <ul key={k}>{b.items.map((it, j) => <li key={j}>{inline(it, `${k}.${j}`)}</li>)}</ul>;
       case 'table': return <table key={k}><thead><tr>{b.header.map((h, j) => <th key={j}>{inline(h, `${k}.h${j}`)}</th>)}</tr></thead>
         <tbody>{b.rows.map((r, j) => <tr key={j}>{r.map((c, n) => <td key={n}>{inline(c, `${k}.${j}.${n}`)}</td>)}</tr>)}</tbody></table>;
@@ -109,8 +111,8 @@ export function ReadingScreen({ section, conceptId }: { section: ChoiceSection; 
   return (
     <section className="read-col">
       <Crumb section={section} crumb={crumbParts({ section, place: 'Reading', hideLabels: false })} />
-      <p><a href={mapHref(section)}>{SECTION_LABEL[section]} map</a></p>
       <ReadingPanel key={`${section}:${conceptId}`} section={section} conceptId={conceptId} asPage onPractice={() => { location.hash = practiceHref(section, conceptId); }} />
+      <p><a href={mapHref(section)}>{SECTION_LABEL[section]} map</a></p>
     </section>
   );
 }

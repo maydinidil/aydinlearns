@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
+import { goalCriterionProblems } from '../../core/goals.ts';
 
 const cur = JSON.parse(await readFile('content/sql/curriculum.json', 'utf8'));
 const ids = new Set(cur.concepts.map((c: any) => c.id));
@@ -58,6 +59,14 @@ test('every goal has an id, a title, an ISO target date and well-formed criteria
       const keys = required[c.kind];
       assert.ok(keys, `${x.id} has an unknown criterion kind ${c.kind}`);
       for (const k of keys) assert.ok(c[k] !== undefined, `${x.id}: ${c.kind} needs ${k}`);
+      assert.deepEqual(goalCriterionProblems(c), [], `${x.id}: ${c.kind}`);   // D58: concept_ids is exclusive with concept_id and level, never empty
     }
   }
+});
+test('D58: G-GA4-CERT names the twelve high-frequency Methodology concepts, and each is a concept of the file', async () => {
+  const g = JSON.parse(await readFile('content/goals.json', 'utf8'));
+  const c = g.goals.find((x: any) => x.id === 'G-GA4-CERT').criteria.find((x: any) => x.concept_ids);
+  assert.deepEqual([c.section, c.state, c.concept_ids.length], ['methodology', 'practised', 12]);
+  const ids = new Set(JSON.parse(await readFile('content/methodology/concepts.json', 'utf8')).concepts.map((x: any) => x.id));
+  for (const id of c.concept_ids) assert.ok(ids.has(id), `${id} is not a Methodology concept`);
 });

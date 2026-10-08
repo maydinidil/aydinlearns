@@ -1,0 +1,15 @@
+{
+  "concept_id": "STAT-BASIC-06",
+  "section": "methodology",
+  "version": 1,
+  "title": "Confidence intervals",
+  "reading_md": "**What it is.** A confidence interval is an estimate plus and minus a critical value times its standard error. For 95% the critical value is 1.96. The 95% describes the method: if you repeated the sampling many times, 95% of the intervals built this way would contain the true value. To read one:\n\n- A wider interval means less certainty. A larger sample, or a lower confidence level, narrows it.\n- An interval for a lift that crosses zero is inconclusive, not proof of no effect: the true lift could be negative or clearly positive.\n- Always say the unit. A lift of +0.5 to +3.0 percentage points is not the same as +0.5% to +3.0% relative.\n\n**How to work it out.**\n\nInterval for a share = p̂ ± 1.96 × √(p̂ × (1 - p̂) / n)\n\nWorked example. 400 of 2,000 survey respondents chose the new price plan.\n\n- p̂ = 400 / 2,000 = 0.20.\n- SE = √(0.2 × 0.8 / 2,000) = √0.00008 = 0.0089443.\n- Margin = 1.96 × 0.0089443 = 0.017531.\n- Interval = 18.25% to 21.75% (2 decimals, in percent).\n\n**In the interview.** \"The 95% interval for a test's lift in conversion runs from +0.5 to +3.0 percentage points. What do you recommend?\" A model answer: \"The whole interval is above zero, so the lift is positive and likely meaningful. Before shipping, I would check the guardrails and the cost.\"\n\n**Common mistakes.**\n\n- \"95% of the data fall in the interval.\" The interval is about the estimate, not single values.\n- Reading an interval that crosses zero as \"no effect\".\n- Ignoring the width: a narrow interval and a wide one with the same centre say very different things.",
+  "source_ids": [
+    "11:STAT-06",
+    "ERRATA:E-175",
+    "ERRATA:E-182",
+    "ERRATA:E-183"
+  ],
+  "verified": true,
+  "as_of": "2026-10-08"
+}

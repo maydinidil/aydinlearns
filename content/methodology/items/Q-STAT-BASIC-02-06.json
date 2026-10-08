@@ -1,0 +1,46 @@
+{
+  "id": "Q-STAT-BASIC-02-06",
+  "version": 1,
+  "kind": "mcq",
+  "section": "methodology",
+  "concept_id": "STAT-BASIC-02",
+  "stem": "Webshop data show 300 orders in one minute from the same IP address, each for a single USB cable. What should the analyst do first?",
+  "options": [
+    {
+      "oid": "obf9088a",
+      "text": "Find out whether it is a bot or a tracking bug",
+      "misconception_id": null
+    },
+    {
+      "oid": "oad9d298",
+      "text": "Keep the orders and winsorise them, since real values should stay in",
+      "misconception_id": null
+    },
+    {
+      "oid": "o3245c37",
+      "text": "Delete the orders without a note, since outliers are always errors",
+      "misconception_id": null
+    },
+    {
+      "oid": "od37ec08",
+      "text": "Report the plain mean with them in, since the mean uses every value",
+      "misconception_id": null
+    }
+  ],
+  "typed": null,
+  "held_out": false,
+  "enemy_group": null,
+  "status": "active",
+  "verified": true,
+  "level": null,
+  "tags": [
+    "methodology",
+    "T-MET-STAT"
+  ],
+  "source_ids": [
+    "11:STAT-02"
+  ],
+  "as_of": "2026-10-08",
+  "review_after": null,
+  "supersedes": []
+}

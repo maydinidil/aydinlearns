@@ -1,0 +1,48 @@
+{
+  "id": "Q-EXP-AB-02-06",
+  "version": 1,
+  "kind": "mcq",
+  "section": "methodology",
+  "concept_id": "EXP-AB-02",
+  "stem": "A test randomises users and analyses page views. In which case is the design effect DE = 1 + (m - 1) × ρ equal to 1, so that the page views can be treated as independent?",
+  "options": [
+    {
+      "oid": "oea94d28",
+      "text": "The test has more than 100,000 page views in each variant",
+      "misconception_id": null
+    },
+    {
+      "oid": "oac5e701",
+      "text": "The users were assigned to the variants by a random draw",
+      "misconception_id": null
+    },
+    {
+      "oid": "o558b87a",
+      "text": "Each user has one page view, or one user's views are uncorrelated",
+      "misconception_id": null
+    },
+    {
+      "oid": "oe0301c3",
+      "text": "The correlation of page views within a user is ρ = 1",
+      "misconception_id": null
+    }
+  ],
+  "typed": null,
+  "held_out": false,
+  "enemy_group": null,
+  "status": "active",
+  "verified": true,
+  "level": null,
+  "tags": [
+    "methodology",
+    "T-MET-EXP",
+    "common-mistake"
+  ],
+  "source_ids": [
+    "11:EXP-02",
+    "ERRATA:E-175"
+  ],
+  "as_of": "2026-10-08",
+  "review_after": null,
+  "supersedes": []
+}

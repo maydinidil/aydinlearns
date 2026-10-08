@@ -1,0 +1,13 @@
+{
+  "item_id": "Q-MET-PRICE-05-01",
+  "item_version": 1,
+  "value": 46,
+  "explanation": "Baselines: Lite (47 + 53 + 52 + 48) / 4 = 50, and Sport (12 + 10 + 14 + 0) / 4 = 9, because the week without sales counts as 0. During the deal Lite averaged 31 and Sport 5. Cannibalised units = (50 - 31) × 2 + (9 - 5) × 2 = 38 + 8 = 46. Averaging only Sport's three weeks with rows gives it a baseline of 12 and a total of 52, which overstates the loss.",
+  "solver": {
+    "prompt_hash": "14ca8ff3b72eccbf",
+    "grader_version": "choice.2",
+    "chosen": null,
+    "typed": "46",
+    "at": "2026-10-08T18:33:21.727Z"
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "item_id": "Q-MET-MKT-13-05",
+  "item_version": 2,
+  "correct_oid": "o47136cf",
+  "explanation": "A LEFT JOIN keeps every row of the table on its left, here the budget, and adds only the actual spend that matches one of them. Affiliates have no budget row, so their 2,000 euros never appear and the report's total actual spend is understated. A row with the actual and a missing variance is what a good report shows, but this query cannot make it: the unbudgeted spend has to be kept by another step, such as a FULL OUTER JOIN.",
+  "solver": {
+    "prompt_hash": "6b0ba81ce31b779e",
+    "grader_version": "choice.2",
+    "chosen": "o47136cf",
+    "typed": null,
+    "at": "2026-10-08T18:33:21.708Z"
+  }
+}

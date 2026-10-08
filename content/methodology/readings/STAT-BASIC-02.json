@@ -1,0 +1,13 @@
+{
+  "concept_id": "STAT-BASIC-02",
+  "section": "methodology",
+  "version": 1,
+  "title": "Outliers and honest treatment",
+  "reading_md": "**What it is.** Outliers are values far from the rest. Investigate them first: is it a tracking bug, a bot, a business buyer, or a real big spender? If the values are real, keep them, and add a robust summary:\n\n- Winsorise: cap every value above a cap that was set in advance.\n- Trim: drop a fixed number or share of values from each end.\n\nApply the same rule to every group you compare, and report the results with and without it.\n\n**How to work it out.**\n\nWinsorised mean = the mean after every value above the cap c is set to c\n\nTrimmed mean = the mean after dropping a fixed number or share of values from each end\n\nWorked example. The orders €20, €25, €30, €35, €40, €50 and €400, with a cap of €100, or with one value trimmed from each end.\n\n- Winsorised: 20 + 25 + 30 + 35 + 40 + 50 + 100 = 300, and 300 / 7 = €42.86 (2 decimals).\n- Trimmed: drop €20 and €400. 25 + 30 + 35 + 40 + 50 = 180, and 180 / 5 = €36.00.\n- The plain mean is €85.71. Winsorising keeps all 7 orders in the count; trimming leaves 5.\n\n**In the interview.** \"One customer in the treatment group bought €50,000 of goods. What do you do?\" A model answer: \"First I check that it is real: not a bug, a bot or a business account. If it is real, I keep it, and report the result both with a cap set in advance and without it, with the same cap in both groups. I never delete it silently.\"\n\n**Common mistakes.**\n\n- Deleting every inconvenient value.\n- Choosing the cap after seeing which choice makes the variant win. That lets you pick the answer you like.\n- Treating all outliers as errors. A real big spender is part of the business.\n- Capping only one group, which biases the comparison.",
+  "source_ids": [
+    "11:STAT-02",
+    "ERRATA:E-175"
+  ],
+  "verified": true,
+  "as_of": "2026-10-08"
+}

@@ -47,12 +47,15 @@ export function ExploreScreen() {
       {head}
       <p className="muted">{EXPLORE_INTRO}</p>
       <div className="exercise">
-        <div ref={host} data-explore-editor />
-        <p><button type="button" disabled={busy} onClick={() => void doRun()}>Run</button> <span className="muted">Ctrl+Enter also runs.</span></p>
-        {message && <p role="alert" className="notice" data-explore-error>{message}</p>}
-        {result && <ResultTable result={result} caption="Your result" />}
+        {/* P1 finding 5: the editor, Run and the result are one column, with the Tables card beside it as in an exercise. */}
+        <div className="explore-main">
+          <div ref={host} data-explore-editor />
+          <p><button type="button" disabled={busy} onClick={() => void doRun()}>Run</button> <span className="muted">Ctrl+Enter also runs.</span></p>
+          {message && <p role="alert" className="notice" data-explore-error>{message}</p>}
+          {result && <ResultTable result={result} caption="Your result" />}
+        </div>
+        <SchemaPanel notes={view.notes} />
       </div>
-      <SchemaPanel notes={view.notes} />
     </section>
   );
 }

@@ -1,0 +1,13 @@
+{
+  "item_id": "Q-MET-PRICE-12-06",
+  "item_version": 1,
+  "correct_oid": "o1877312",
+  "explanation": "The arc formula divides each change by the average of the two values, so going from €80 back to €100 gives the same -1.5. The start-point formula divides by whichever value comes first: from €100 to €80 it gives -2.0, and from €80 back to €100 about -1.14. The arc formula does not halve the changes; it divides them by the midpoints.",
+  "solver": {
+    "prompt_hash": "c218f086131c9834",
+    "grader_version": "choice.2",
+    "chosen": "o1877312",
+    "typed": null,
+    "at": "2026-10-08T18:33:21.821Z"
+  }
+}

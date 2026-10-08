@@ -1,0 +1,14 @@
+{
+  "concept_id": "EXP-AB-10",
+  "section": "methodology",
+  "version": 1,
+  "title": "Multiple testing",
+  "reading_md": "**What it is.** Testing many metrics, variants or segments raises the chance of at least one false positive. The simple correction is Bonferroni: divide α by the number of tests. The better habit is to name one primary metric in advance.\n\n**How to work it out.**\n\n- P(at least one false positive) = 1 - (1 - α)^k, for k independent tests\n- Bonferroni threshold = α / k\n\nWorked example. α = 0.05 and k = 10 metrics.\n\n- 0.95^10 = 0.5987\n- 1 - 0.5987 = 0.4013, so about 40.1%\n- Bonferroni threshold: 0.05 / 10 = 0.005\n\nSo there is about a 40.1% chance of at least one false positive, and each metric would need p < 0.005. Rounding: 1 decimal in percent.\n\n**In the interview.** \"We test four variants against control. What is the risk?\" A good answer: those are four comparisons. Correct for them, or the result of the \"best\" variant is likely overstated.\n\n**Common mistakes.**\n\n- Reporting the one significant metric out of twenty.\n- Slicing the results by segment until one wins. A segment win after an overall loss is a hypothesis to retest, not a result.\n- Thinking Bonferroni is always needed for every metric. Spotify's framework shows that guardrails tested for non-inferiority need no α adjustment, though their power must be adjusted.",
+  "source_ids": [
+    "11:EXP-10",
+    "ERRATA:E-174",
+    "ERRATA:E-175"
+  ],
+  "verified": true,
+  "as_of": "2026-10-08"
+}

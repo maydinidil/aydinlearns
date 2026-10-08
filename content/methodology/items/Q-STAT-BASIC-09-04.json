@@ -1,0 +1,46 @@
+{
+  "id": "Q-STAT-BASIC-09-04",
+  "version": 1,
+  "kind": "mcq",
+  "section": "methodology",
+  "concept_id": "STAT-BASIC-09",
+  "stem": "A model of weekly soundbar units was fitted on weeks with prices between €180 and €260. The category manager wants its prediction for a price of €90. What is the main risk?",
+  "options": [
+    {
+      "oid": "oe147fea",
+      "text": "€90 is far outside the prices seen, so the line may not hold there",
+      "misconception_id": null
+    },
+    {
+      "oid": "o682d181",
+      "text": "None, since a linear model holds at any price once it is fitted",
+      "misconception_id": null
+    },
+    {
+      "oid": "od4fa1c3",
+      "text": "The prediction will be too low, because the intercept ignores display",
+      "misconception_id": null
+    },
+    {
+      "oid": "o2c32232",
+      "text": "The model's R² will be negative at prices below €100",
+      "misconception_id": null
+    }
+  ],
+  "typed": null,
+  "held_out": false,
+  "enemy_group": null,
+  "status": "active",
+  "verified": true,
+  "level": null,
+  "tags": [
+    "methodology",
+    "T-MET-STAT"
+  ],
+  "source_ids": [
+    "11:STAT-09"
+  ],
+  "as_of": "2026-10-08",
+  "review_after": null,
+  "supersedes": []
+}

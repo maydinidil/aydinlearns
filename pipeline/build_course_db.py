@@ -11,6 +11,7 @@ import sys
 import duckdb
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+from voltmarkt import ab_test as ab  # noqa: E402
 from voltmarkt import generate as vm  # noqa: E402
 from voltmarkt import notes as vm_notes  # noqa: E402
 
@@ -101,6 +102,10 @@ def build(out: pathlib.Path, data_dir: pathlib.Path | None = None, keys_dir: pat
 
     tables, truth = vm.generate()
     truth["findings"] = vm.validate(tables, truth)
+    # Sprint 5a (Task B2, R37): the A/B test, after every existing table, from its own stream; it only reads the order data.
+    clean = tables["clean"]
+    ab_tables, truth["planted"]["ab_test"] = ab.generate(clean["orders"], clean["order_lines"])
+    truth["findings"]["ab_test"] = ab.validate(ab_tables, clean["orders"], clean["order_lines"])
 
     con = duckdb.connect(str(tmp), config=NO_NETWORK)
     con.execute("SET TimeZone = 'UTC'")
@@ -108,6 +113,10 @@ def build(out: pathlib.Path, data_dir: pathlib.Path | None = None, keys_dir: pat
     con.execute(DDL.read_text(encoding="utf-8").replace("{schema}", "voltmarkt"))
     for name in VOLTMARKT_TABLES:
         con.register("src", tables["clean"][name])
+        con.execute(f"INSERT INTO voltmarkt.{name} SELECT * FROM src")
+        con.unregister("src")
+    for name in ab.TABLES:                 # after every existing table; the join edge file copies their columns
+        con.register("src", ab_tables[name])
         con.execute(f"INSERT INTO voltmarkt.{name} SELECT * FROM src")
         con.unregister("src")
     for sql_file in sorted((ROOT / "pipeline" / "edge").glob("*.sql")):

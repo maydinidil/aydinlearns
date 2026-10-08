@@ -47,6 +47,14 @@ GRAINS = {
         fk("product_id", "products", "product_id"),
     ], 3),
 }
+# Sprint 5a (Task B2): the A/B test's tables, which pipeline/voltmarkt/ab_test.py builds, not generate(); so they are kept
+# apart from GRAINS (the tables generate() returns). They show from level 3, with the order tables. There is no customers
+# table, so customer_id links to nothing the panel shows.
+AB_GRAINS = {
+    "ab_assignments": ("one row per customer and variant of an A/B test", ["test_id", "customer_id", "variant"], [], 3),
+    "ab_conversions": ("one row per web order placed by a customer of an A/B test during the test",
+                       ["test_id", "customer_id", "converted_at"], [], 3),
+}
 # Design §10: the canonical beginner sales view. Its notes say the grain, so a learner sees that order_id
 # repeats (an order has one or more lines) and that every measure belongs to its line.
 VIEWS = {
@@ -69,6 +77,12 @@ COLUMN_NOTES = {
         "iso_week": "The ISO week number (a week starts on Monday), taken from the UTC time of the price check.",
         "avg_competitor_price_eur": "The average of the competitors' prices checked that week, in euros.",
         "competitors_seen": "How many different competitors were checked that week.",
+    },
+    # Sprint 5a: these two are UTC instants too, though their names do not end in _ts.
+    "ab_assignments": {"assigned_at": "A UTC instant: when the customer entered the test and first saw the variant."},
+    "ab_conversions": {
+        "converted_at": "A UTC instant: the time of the web order (order_ts in orders).",
+        "revenue_eur": "The web order's net revenue in euros: over its lines, quantity times unit price less the line discount.",
     },
 }
 
@@ -120,8 +134,10 @@ def note(con, schema: str, table: str, grain: str, pk: list[str], fks: list[dict
 
 
 def schema_notes(con, schema: str) -> list[dict]:
-    """The visible schema: its tables (level 1's, then level 3's), then the views (the server shows an item's schema's notes)."""
+    """The visible schema: its tables (level 1's, then level 3's, then the A/B test's), then the views (the server shows an
+    item's schema's notes)."""
     return ([note(con, schema, t, *spec, visible=True) for t, spec in GRAINS.items()]
+            + [note(con, schema, t, *spec, visible=True) for t, spec in AB_GRAINS.items()]
             + [note(con, schema, v, *spec, visible=True) for v, spec in VIEWS.items()]
             + [note(con, schema, "competitor_price_weekly", *WEEKLY_VIEW, visible=True)])
 

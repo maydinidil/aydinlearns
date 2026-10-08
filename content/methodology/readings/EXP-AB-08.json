@@ -1,0 +1,16 @@
+{
+  "concept_id": "EXP-AB-08",
+  "section": "methodology",
+  "version": 1,
+  "title": "Sample ratio mismatch",
+  "reading_md": "**What it is.** A sample ratio mismatch (SRM) means the observed split of users differs from the designed split by more than chance allows. It signals a bug in assignment, redirects, logging or filtering. Do not trust the result until the cause is found. The check is a chi-square goodness-of-fit test, and Microsoft uses p < 0.001 as the threshold.\n\n**How to work it out.**\n\nχ² = Σ (observed - expected)² / expected, with degrees of freedom = number of variants - 1\n\nFor two variants (1 degree of freedom), the critical value for p = 0.001 is 10.83.\n\nWorked example. A 50/50 design with 10,000 users in control and 9,500 in treatment.\n\n- Total 19,500, so 9,750 expected in each group\n- Each group adds 250² / 9,750 = 6.410\n- χ² = 12.82 (2 decimals)\n- 12.82 > 10.83, so p < 0.001: an SRM\n\nTypical causes are assignment bugs, redirects that lose users in one variant, bot filtering, logging failures and analysis filters that depend on the variant.\n\n**In the interview.** \"Treatment has 3% fewer users than control in a 50/50 test. Does it matter?\" A good answer: yes, if the chi-square test flags it. Whatever removed those users may be related to the outcome.\n\n**Common mistakes.**\n\n- \"Small differences in group size are always fine.\" With very large samples, even a 50.2% share can be an SRM: in a 2017 talk, Ron Kohavi showed 821,588 against 815,482 users, with p = 1.8e-6.\n- Fixing an SRM by reweighting the groups. The users who went missing may differ from the rest, so find the cause.\n- Checking the split on converted users only. Check it on all assigned users.",
+  "source_ids": [
+    "11:EXP-08",
+    "ERRATA:E-174",
+    "ERRATA:E-175",
+    "ERRATA:E-176",
+    "ERRATA:E-182"
+  ],
+  "verified": true,
+  "as_of": "2026-10-08"
+}

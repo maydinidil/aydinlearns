@@ -1,0 +1,13 @@
+{
+  "item_id": "Q-STAT-BASIC-02-06",
+  "item_version": 1,
+  "correct_oid": "obf9088a",
+  "explanation": "Outliers are investigated before they are treated. 300 identical orders in a minute from one address may be a bot or a tracking bug, which is excluded by a stated rule, while a real big buyer is kept. Winsorising straight away treats the orders as real before anyone has checked.",
+  "solver": {
+    "prompt_hash": "457494eed44d93d5",
+    "grader_version": "choice.2",
+    "chosen": "obf9088a",
+    "typed": null,
+    "at": "2026-10-08T18:33:22.116Z"
+  }
+}

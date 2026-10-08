@@ -1,0 +1,34 @@
+{
+  "id": "Q-EXP-AB-04-01",
+  "version": 1,
+  "kind": "typed",
+  "section": "methodology",
+  "concept_id": "EXP-AB-04",
+  "stem": "A test has a baseline conversion of 5% and 10,000 users per variant. Using the rearranged Lehr's rule, MDE (absolute) ≈ 4 × sqrt(p(1 - p) / n) with n users per variant (an approximation for 80% power and a two-sided 5% significance level), what is the MDE? Give it in percentage points with 2 decimals.",
+  "options": [],
+  "typed": {
+    "precision": "ratio",
+    "scale": "percent",
+    "decimals": 2,
+    "unit_label": "percentage points"
+  },
+  "held_out": false,
+  "enemy_group": null,
+  "status": "active",
+  "verified": true,
+  "level": null,
+  "tags": [
+    "methodology",
+    "T-MET-EXP",
+    "worked-example"
+  ],
+  "source_ids": [
+    "11:EXP-04",
+    "ERRATA:E-175",
+    "ERRATA:E-182",
+    "ERRATA:E-183"
+  ],
+  "as_of": "2026-10-08",
+  "review_after": null,
+  "supersedes": []
+}

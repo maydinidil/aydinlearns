@@ -1,0 +1,31 @@
+{
+  "id": "Q-STAT-BASIC-09-02",
+  "version": 1,
+  "kind": "typed",
+  "section": "methodology",
+  "concept_id": "STAT-BASIC-09",
+  "stem": "A regression for a phone charger gives: weekly units = 1,200 - 30 × price (€) + 400 × display, where display is 1 when the charger is on display and 0 when it is not. Week 1 has a price of €20 and no display. Week 2 has a price of €25 and the charger on display. How many more units does the model predict for week 2 than for week 1? Give a whole number of units.",
+  "options": [],
+  "typed": {
+    "precision": "count",
+    "scale": "plain",
+    "decimals": 0,
+    "unit_label": "units"
+  },
+  "held_out": false,
+  "enemy_group": null,
+  "status": "active",
+  "verified": true,
+  "level": null,
+  "tags": [
+    "methodology",
+    "T-MET-STAT"
+  ],
+  "source_ids": [
+    "11:STAT-09",
+    "ERRATA:E-182"
+  ],
+  "as_of": "2026-10-08",
+  "review_after": null,
+  "supersedes": []
+}

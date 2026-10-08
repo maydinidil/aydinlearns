@@ -1,0 +1,49 @@
+{
+  "item_id": "EX-CASE-DAILY-L3-03",
+  "item_version": 1,
+  "reference_sql": "WITH one_variant AS (\n  SELECT customer_id, MIN(variant) AS variant, MIN(assigned_at) AS assigned_at\n  FROM ab_assignments\n  WHERE test_id = 'AB-2025-01'\n  GROUP BY customer_id\n  HAVING COUNT(*) = 1\n)\nSELECT o.variant, COUNT(DISTINCT o.customer_id) AS n_customers, COUNT(DISTINCT c.customer_id) AS n_converted,\n  ROUND(100.0 * COUNT(DISTINCT c.customer_id) / COUNT(DISTINCT o.customer_id), 2) AS conversion_rate_pct,\n  ROUND(COALESCE(SUM(c.revenue_eur), 0) / COUNT(DISTINCT o.customer_id), 2) AS revenue_per_customer_eur\nFROM one_variant o\nLEFT JOIN ab_conversions c ON c.test_id = 'AB-2025-01' AND c.customer_id = o.customer_id AND c.converted_at >= o.assigned_at\nGROUP BY o.variant\nORDER BY o.variant",
+  "alternatives": [
+    "SELECT a.variant, COUNT(DISTINCT a.customer_id) AS n_customers, COUNT(DISTINCT c.customer_id) AS n_converted, ROUND(100.0 * COUNT(DISTINCT c.customer_id) / COUNT(DISTINCT a.customer_id), 2) AS conversion_rate_pct, ROUND(COALESCE(SUM(c.revenue_eur), 0) / COUNT(DISTINCT a.customer_id), 2) AS revenue_per_customer_eur FROM ab_assignments a LEFT JOIN ab_assignments other ON other.test_id = a.test_id AND other.customer_id = a.customer_id AND other.variant <> a.variant LEFT JOIN ab_conversions c ON c.test_id = a.test_id AND c.customer_id = a.customer_id AND c.converted_at >= a.assigned_at WHERE a.test_id = 'AB-2025-01' AND other.customer_id IS NULL GROUP BY a.variant ORDER BY a.variant",
+    "WITH both_variants AS (SELECT customer_id FROM ab_assignments WHERE test_id = 'AB-2025-01' GROUP BY customer_id HAVING COUNT(DISTINCT variant) > 1), per_customer AS (SELECT a.variant, a.customer_id, COUNT(c.customer_id) AS n_conv, SUM(c.revenue_eur) AS revenue FROM ab_assignments a LEFT JOIN both_variants b ON b.customer_id = a.customer_id LEFT JOIN ab_conversions c ON c.test_id = a.test_id AND c.customer_id = a.customer_id AND c.converted_at >= a.assigned_at WHERE a.test_id = 'AB-2025-01' AND b.customer_id IS NULL GROUP BY a.variant, a.customer_id) SELECT variant, COUNT(*) AS n_customers, COUNT(*) FILTER (WHERE n_conv > 0) AS n_converted, ROUND(100.0 * COUNT(*) FILTER (WHERE n_conv > 0) / COUNT(*), 2) AS conversion_rate_pct, ROUND(SUM(COALESCE(revenue, 0)) / COUNT(*), 2) AS revenue_per_customer_eur FROM per_customer GROUP BY variant ORDER BY variant"
+  ],
+  "other_way": {
+    "sql": "SELECT a.variant, COUNT(DISTINCT a.customer_id) AS n_customers, COUNT(DISTINCT c.customer_id) AS n_converted, ROUND(100.0 * COUNT(DISTINCT c.customer_id) / COUNT(DISTINCT a.customer_id), 2) AS conversion_rate_pct, ROUND(COALESCE(SUM(c.revenue_eur), 0) / COUNT(DISTINCT a.customer_id), 2) AS revenue_per_customer_eur FROM ab_assignments a LEFT JOIN ab_assignments other ON other.test_id = a.test_id AND other.customer_id = a.customer_id AND other.variant <> a.variant LEFT JOIN ab_conversions c ON c.test_id = a.test_id AND c.customer_id = a.customer_id AND c.converted_at >= a.assigned_at WHERE a.test_id = 'AB-2025-01' AND other.customer_id IS NULL GROUP BY a.variant ORDER BY a.variant",
+    "tradeoff": "Joining the table to itself and keeping rows with no other variant drops the two-variant customers without a CTE, but reads less clearly."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-10",
+      "sql": "WITH one_variant AS (SELECT customer_id, MIN(variant) AS variant, MIN(assigned_at) AS assigned_at FROM ab_assignments WHERE test_id = 'AB-2025-01' GROUP BY customer_id HAVING COUNT(*) = 1) SELECT o.variant, COUNT(DISTINCT o.customer_id) AS n_customers, COUNT(DISTINCT c.customer_id) AS n_converted, ROUND(100.0 * COUNT(DISTINCT c.customer_id) / COUNT(DISTINCT o.customer_id), 2) AS conversion_rate_pct, ROUND(COALESCE(SUM(c.revenue_eur), 0) / COUNT(DISTINCT o.customer_id), 2) AS revenue_per_customer_eur FROM one_variant o LEFT JOIN ab_conversions c ON c.test_id = 'AB-2025-01' AND c.customer_id = o.customer_id WHERE c.converted_at >= o.assigned_at GROUP BY o.variant ORDER BY o.variant"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-04",
+      "sql": "WITH one_variant AS (SELECT customer_id, MIN(variant) AS variant, MIN(assigned_at) AS assigned_at FROM ab_assignments WHERE test_id = 'AB-2025-01' GROUP BY customer_id HAVING COUNT(*) = 1) SELECT o.variant, COUNT(DISTINCT o.customer_id) AS n_customers, COUNT(c.customer_id) AS n_converted, ROUND(100.0 * COUNT(c.customer_id) / COUNT(DISTINCT o.customer_id), 2) AS conversion_rate_pct, ROUND(COALESCE(SUM(c.revenue_eur), 0) / COUNT(DISTINCT o.customer_id), 2) AS revenue_per_customer_eur FROM one_variant o LEFT JOIN ab_conversions c ON c.test_id = 'AB-2025-01' AND c.customer_id = o.customer_id AND c.converted_at >= o.assigned_at GROUP BY o.variant ORDER BY o.variant"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-15",
+      "sql": "WITH one_variant AS (SELECT customer_id, MIN(variant) AS variant, MIN(assigned_at) AS assigned_at FROM ab_assignments WHERE test_id = 'AB-2025-01' GROUP BY customer_id HAVING COUNT(*) = 1) SELECT o.variant, COUNT(DISTINCT o.customer_id) AS n_customers, COUNT(DISTINCT c.customer_id) AS n_converted, ROUND(100.0 * COUNT(DISTINCT c.customer_id) / COUNT(DISTINCT o.customer_id), 2) AS conversion_rate_pct, ROUND(COALESCE(SUM(c.revenue_eur), 0) / COUNT(DISTINCT o.customer_id), 2) AS revenue_per_customer_eur FROM one_variant o LEFT JOIN ab_conversions c ON c.test_id = 'AB-2025-01' AND c.customer_id = o.customer_id AND c.converted_at > o.assigned_at GROUP BY o.variant ORDER BY o.variant"
+    },
+    {
+      "id": "PW4",
+      "error_id": "ERR-LOG-17",
+      "sql": "WITH one_variant AS (SELECT customer_id, MIN(variant) AS variant, MIN(assigned_at) AS assigned_at FROM ab_assignments WHERE test_id = 'AB-2025-01' GROUP BY customer_id HAVING COUNT(*) = 1) SELECT o.variant, COUNT(DISTINCT o.customer_id) AS n_customers, COUNT(DISTINCT c.customer_id) AS n_converted, ROUND(100.0 * COUNT(DISTINCT c.customer_id) / COUNT(DISTINCT o.customer_id), 2) AS conversion_rate_pct, ROUND(SUM(c.revenue_eur) / COUNT(DISTINCT o.customer_id), 2) AS revenue_per_customer_eur FROM one_variant o LEFT JOIN ab_conversions c ON c.test_id = 'AB-2025-01' AND c.customer_id = o.customer_id AND c.converted_at >= o.assigned_at GROUP BY o.variant ORDER BY o.variant"
+    },
+    {
+      "id": "PW5",
+      "error_id": "ERR-LOG-14",
+      "sql": "WITH one_variant AS (SELECT customer_id, MIN(variant) AS variant, MIN(assigned_at) AS assigned_at FROM ab_assignments WHERE test_id = 'AB-2025-01' GROUP BY customer_id HAVING COUNT(*) = 1) SELECT o.variant, COUNT(DISTINCT o.customer_id) AS n_customers, COUNT(DISTINCT c.customer_id) AS n_converted, ROUND(100.0 * COUNT(DISTINCT c.customer_id) / COUNT(DISTINCT o.customer_id), 2) AS conversion_rate_pct, ROUND(COALESCE(AVG(c.revenue_eur), 0), 2) AS revenue_per_customer_eur FROM one_variant o LEFT JOIN ab_conversions c ON c.test_id = 'AB-2025-01' AND c.customer_id = o.customer_id AND c.converted_at >= o.assigned_at GROUP BY o.variant ORDER BY o.variant"
+    }
+  ],
+  "hint3_partial": "WITH one_variant AS (\n  SELECT customer_id, MIN(variant) AS variant, MIN(assigned_at) AS assigned_at\n  FROM ab_assignments\n  WHERE test_id = 'AB-2025-01'\n  GROUP BY customer_id\n  HAVING ___\n)\nSELECT o.variant, COUNT(DISTINCT o.customer_id) AS n_customers, ___ AS n_converted,\n  ___ AS conversion_rate_pct,\n  ___ AS revenue_per_customer_eur\nFROM one_variant o\nLEFT JOIN ab_conversions c ON ___\nGROUP BY o.variant\nORDER BY o.variant",
+  "solver": {
+    "prompt_hash": "7a5cf62e61c76b27",
+    "schema_version": "1284b2a2a3a2",
+    "dataset_version": "6de53e5dbeafe2d5",
+    "grader_version": "4c.1",
+    "query": "WITH a AS (SELECT customer_id, MIN(variant) AS variant, MIN(assigned_at) AS assigned_at FROM ab_assignments WHERE test_id = 'AB-2025-01' GROUP BY customer_id HAVING COUNT(DISTINCT variant) = 1),\nper AS (SELECT a.customer_id, a.variant, COUNT(c.customer_id) AS n_conv, COALESCE(SUM(c.revenue_eur), 0) AS rev FROM a LEFT JOIN ab_conversions c ON c.test_id = 'AB-2025-01' AND c.customer_id = a.customer_id AND c.converted_at >= a.assigned_at GROUP BY a.customer_id, a.variant)\nSELECT variant, COUNT(*) AS n_customers, COUNT(*) FILTER (WHERE n_conv > 0) AS n_converted,\nROUND(100.0 * COUNT(*) FILTER (WHERE n_conv > 0) / COUNT(*), 2) AS conversion_rate_pct,\nROUND(CAST(SUM(rev) AS DOUBLE) / COUNT(*), 2) AS revenue_per_customer_eur\nFROM per GROUP BY variant ORDER BY variant\n",
+    "at": "2026-10-08T19:03:03.943Z"
+  }
+}

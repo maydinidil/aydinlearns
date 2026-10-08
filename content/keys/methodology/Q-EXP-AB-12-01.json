@@ -1,0 +1,13 @@
+{
+  "item_id": "Q-EXP-AB-12-01",
+  "item_version": 1,
+  "value": 15,
+  "explanation": "Relative change = (23 - 20) / 20 = 0.15, so +15%. That is three times the +5% tolerance, so the guardrail is breached and the change should not ship as it is. Typing 3 would give the absolute change in contacts per 1,000 orders, not the relative change.",
+  "solver": {
+    "prompt_hash": "ea053368c7508e7f",
+    "grader_version": "choice.2",
+    "chosen": null,
+    "typed": "15",
+    "at": "2026-10-08T18:33:21.662Z"
+  }
+}

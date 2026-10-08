@@ -1,0 +1,13 @@
+{
+  "item_id": "Q-EXP-AB-06-03",
+  "item_version": 1,
+  "correct_oid": "of443525",
+  "explanation": "In Lehr's rule δ is the absolute difference: a 10% relative lift on a 4% baseline is 0.04 × 0.10 = 0.004. With δ = 0.10 the formula divides by 0.01 instead of 0.000016, so it returns about 61 users per variant instead of about 38,400. Using a relative MDE as if it were absolute is the common mistake.",
+  "solver": {
+    "prompt_hash": "d5a4f04fff1128d1",
+    "grader_version": "choice.2",
+    "chosen": "of443525",
+    "typed": null,
+    "at": "2026-10-08T18:33:21.605Z"
+  }
+}

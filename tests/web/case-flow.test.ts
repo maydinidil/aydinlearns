@@ -3,6 +3,8 @@
 // case types are checked against the routes' at type level, both ways (npm run typecheck).
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { cp4HintFor } from '../../web/src/lib/cp4-flow.ts';
+import type { TypedView } from '../../web/src/api.ts';
 import type {
   CaseCheckpointResult as ServerResult, CaseCheckpointServed as ServerServed, CaseListEntry as ServerEntry, CaseView as ServerView,
   InsightReply as ServerInsight, PlanReply as ServerPlan,
@@ -11,7 +13,7 @@ import type {
   CaseCheckpointResult, CaseCheckpointServed, CaseCheckpointView, CaseListEntry, CaseView, InsightReply, PlanReply,
 } from '../../web/src/lib/cases-api.ts';
 import {
-  INBOX_HREF, SAY_PROMPTS, actualRowCount, caseHref, caseIdFrom, caseSteps, choiceFeedback, countdown, firstStep, heldBackNote, inboxRow, kindLabel, lastLine,
+  INBOX_HREF, SAY_PROMPTS, SCORE_RULE, checkpointLabel, dataSourceLine, mainIsAnswer, actualRowCount, caseHref, caseIdFrom, caseSteps, choiceFeedback, countdown, firstStep, heldBackNote, inboxRow, kindLabel, lastLine,
   keepLines, modelAnswerOf, modelPlanOf, nextStep, rowCountLine, scoreText, sortText, statusChip, stepName, stepState, typedFeedback, viewScore,
 } from '../../web/src/lib/case-flow.ts';
 import { parseMarkdown } from '../../web/src/lib/markdown.ts';
@@ -58,8 +60,8 @@ test('S4B-07: the steps run plan, the checkpoints in the case\'s order, "say it 
   // The case's own order and only the checkpoints it lists: a daily case with CP3 and CP4.
   assert.deepEqual(ids(view({ kind: 'daily', checkpoints: [cp('CP3'), cp('CP4')] })), ['plan', 'CP3', 'CP4', 'say', 'score']);
   assert.deepEqual(ids(view({ checkpoints: [cp('CP4'), cp('CP3')] })), ['plan', 'CP4', 'CP3', 'say', 'score'], 'never re-sorted');
-  // Every step has a label for the strip; a checkpoint's names its kind.
-  assert.deepEqual(caseSteps(view()).map((s) => s.label), ['Plan', 'CP1 Scope', 'CP2 First number', 'CP3 Query', 'CP4 Headline number', 'CP5 Meaning', 'CP6 Insight', 'Say it in 60 seconds', 'Score']);
+  // Every step has a label for the strip; a checkpoint's names what it asks, with no code (finding 24).
+  assert.deepEqual(caseSteps(view()).map((s) => s.label), ['Plan', 'Scope', 'First number', 'Query', 'Headline number', 'Meaning', 'Insight', 'Say it in 60 seconds', 'Score']);
 });
 
 test('S4B-13: an opener without a passing CP3 starts with the sketch; once CP3 passes, only a logged sketch stays', () => {
@@ -89,10 +91,10 @@ test('which steps show as done: a logged self-check, an answered checkpoint (pas
   assert.equal(stepState('sketch', opener({ sketch: { ...SELF, fields: { one_row_per: 'store' } } }), NOT_SAID), 'done');
   // The strip's accessible name: the visible label first, then the state in words (never by colour alone).
   const steps = caseSteps(v);
-  assert.equal(stepName(steps[1]!, 'passed'), 'CP1 Scope, passed');
-  assert.equal(stepName(steps[2]!, 'failed'), 'CP2 First number, not passed');
+  assert.equal(stepName(steps[1]!, 'passed'), 'Scope, passed');
+  assert.equal(stepName(steps[2]!, 'failed'), 'First number, not passed');
   assert.equal(stepName(steps[0]!, 'done'), 'Plan, done');
-  assert.equal(stepName(steps[3]!, 'todo'), 'CP3 Query');
+  assert.equal(stepName(steps[3]!, 'todo'), 'Query');
 });
 
 test('the step a visit opens on: the first for a new case, the next open checkpoint, the first failed one, then the score once solved', () => {
@@ -156,7 +158,7 @@ test('S4B-12: an inbox row is the manager\'s message, its kind and level, the st
     brief: { decision: 'Which stores to visit', deadline: 'Friday' }, status: 'started', score: 0.5, checkpoints_passed: 2, checkpoints_total: 4,
   };
   assert.deepEqual(inboxRow(e), {
-    case_id: 'CASE-PRICE-01', href: '#/case/CASE-PRICE-01', title: 'Which stores gained', meta: 'From Sanne, Category manager · Inbox case · Level 3',
+    case_id: 'CASE-PRICE-01', href: '#/case/CASE-PRICE-01', title: 'Which stores gained', meta: 'From Sanne, Category manager · Case · Level 3',
     decision: 'Which stores to visit', deadline: 'Deadline: Friday', chip: { label: 'Started', tone: 'practising' }, score: 'Score: 2 of 4 checkpoints',
   });
   assert.equal(inboxRow({ ...e, kind: 'opener', level: null }).meta, 'From Sanne, Category manager · Level opener');
@@ -171,6 +173,28 @@ test('S4B-12: an inbox row is the manager\'s message, its kind and level, the st
   assert.deepEqual((['opener', 'inbox', 'daily'] as const).map(kindLabel), ['Level opener', 'Inbox case', 'Daily case']);
 });
 
+test('finding 24: no step label shows a checkpoint code, and the score text names no code range', () => {
+  const labels = caseSteps(view()).map((s) => s.label).concat((['CP1', 'CP2', 'CP3', 'CP4', 'CP5', 'CP6'] as const).map(checkpointLabel));
+  assert.ok(labels.every((l) => !/CP\d/.test(l)), labels.join(' | '));
+  assert.equal(SCORE_RULE, 'The case is solved once every checked step below has passed. The insight is scored by you and never decides it.');
+});
+
+test('finding 26: the data line puts the dataset first, and the CP4 hint drops what the prompt already says', () => {
+  assert.equal(dataSourceLine({ label: 'Fictional, generated data: Voltmarkt', licence: null }), 'Data: Voltmarkt, fictional and generated');
+  assert.equal(dataSourceLine({ label: 'Some real dataset', licence: 'CC BY 4.0' }), 'Data: Some real dataset, CC BY 4.0');
+  assert.equal(dataSourceLine({ label: 'Some real dataset', licence: null }), 'Data: Some real dataset');
+  const count: TypedView = { precision: 'count', scale: 'plain', decimals: 0, unit_label: 'standard stores' };
+  assert.equal(cp4HintFor('Count the stores. Type a whole number.', count), null);
+  assert.equal(cp4HintFor('Count the stores.', count), 'Type a whole number (standard stores).');
+  const percent: TypedView = { precision: 'ratio', scale: 'percent', decimals: 1, unit_label: '%' };
+  assert.equal(cp4HintFor('Give the rate. Type a percentage with 1 decimal.', percent), 'A decimal point or a decimal comma both work.');
+});
+
+test('finding 25: the main button is the one that moves on once a step has passed', () => {
+  assert.equal(mainIsAnswer({ passed: false }), true);
+  assert.equal(mainIsAnswer({ passed: true }), false);
+});
+
 test('the case screen\'s score counts the auto-graded CP1 to CP5 it lists (CP6 never decides it)', () => {
   const v = view({ checkpoints: [cp('CP1', answered(true)), cp('CP2', answered(false)), cp('CP3', answered(true)), cp('CP4'), cp('CP5'), cp('CP6')] });
   assert.deepEqual(viewScore(v), { passed: 2, total: 5 });
@@ -178,10 +202,10 @@ test('the case screen\'s score counts the auto-graded CP1 to CP5 it lists (CP6 n
 });
 
 test('a held-back grain or table list says what shows it (D1: the sketch and CP1, or a CP3 answer)', () => {
-  assert.equal(heldBackNote(opener()), 'Shown after your sketch, or once you submit CP3.');
-  assert.equal(heldBackNote(opener({ checkpoints: [cp('CP1'), cp('CP3')] })), 'Shown after your sketch and CP1, or once you submit CP3.');
-  assert.equal(heldBackNote(view()), 'Shown after CP1, or once you submit CP3.');
-  assert.equal(heldBackNote(view({ checkpoints: [cp('CP3')] })), 'Shown once you submit CP3.');
+  assert.equal(heldBackNote(opener()), 'Shown after your sketch, or once you submit your query.');
+  assert.equal(heldBackNote(opener({ checkpoints: [cp('CP1'), cp('CP3')] })), 'Shown after your sketch and the Scope step, or once you submit your query.');
+  assert.equal(heldBackNote(view()), 'Shown after the Scope step, or once you submit your query.');
+  assert.equal(heldBackNote(view({ checkpoints: [cp('CP3')] })), 'Shown once you submit your query.');
 });
 
 test('the output\'s sort reads in words; a checkpoint\'s last answer is a line, never the answer itself', () => {

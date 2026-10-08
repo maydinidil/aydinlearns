@@ -1,6 +1,6 @@
 {
   "id": "EX-OPENER-L2-01",
-  "version": 2,
+  "version": 3,
   "kind": "write",
   "tags": [
     "sql",
@@ -53,7 +53,7 @@
   "company": "voltmarkt",
   "schema": "voltmarkt",
   "edge_schema": "voltmarkt_edge_agg",
-  "prompt": "Marieke, the CFO, is preparing the board pack and asks which parent categories had an average order line above 150 euros in 2025, and how much of their revenue came through the web. Use the order lines in the sales table with an order_date from 2025-01-01 to 2025-12-31, both days included. Return four columns, in this order: parent_category; n_orders, the number of different orders (order_id) with at least one line in that parent category; revenue_eur, the sum of net_revenue_eur, not rounded; and web_revenue_pct, 100 times the net revenue of the lines with channel 'web' divided by revenue_eur, rounded to 1 decimal with ROUND(x, 1), so 15 percent is 15.0. A parent category with no web revenue has a web_revenue_pct of 0.0. A missing net_revenue_eur adds nothing to either total. Keep only the parent categories whose average net revenue per order line is above 150 euros; that average leaves out lines with a missing net_revenue_eur. Sort by revenue_eur from highest to lowest.",
+  "prompt": "Marieke, the CFO, is preparing the board pack and asks which parent categories had an average order line above 150 euros in 2025, and how much of their revenue came through the web. Use the order lines in the sales table with an order_date from 2025-01-01 to 2025-12-31, both days included. Return four columns, in this order: parent_category; n_orders, the number of different orders (order_id) with at least one line in that parent category; revenue_eur, the sum of net_revenue_eur, not rounded; and web_revenue_pct, 100 times the net revenue of the lines with channel 'web' divided by revenue_eur, rounded to 1 decimal with ROUND(x, 1), so 15 percent is 15.0. A parent category with no web revenue has a web_revenue_pct of 0.0. A missing net_revenue_eur adds nothing to either total. Keep only the parent categories whose average net revenue per order line is above 150 euros; that average leaves out lines with a missing net_revenue_eur, and a parent category whose lines all have a missing net_revenue_eur has no average, so it is not kept. Sort by revenue_eur from highest to lowest.",
   "output_contract": {
     "columns": [
       {

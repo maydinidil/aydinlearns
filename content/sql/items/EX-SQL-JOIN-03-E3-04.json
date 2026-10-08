@@ -1,0 +1,195 @@
+{
+  "id": "EX-SQL-JOIN-03-E3-04",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "ab_test",
+    "fan_out",
+    "cte",
+    "having",
+    "ab_assignments",
+    "ab_conversions"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-JOIN-03",
+    "11:EXP-AB-13"
+  ],
+  "verified": true,
+  "as_of": "2026-10-08",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-JOIN-03",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-SORT-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-AGG-03",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-JOIN-03"
+  ],
+  "template_id": "T-JOIN-03-ab-both-variants",
+  "template_params": {
+    "test_id": "AB-2025-01",
+    "from": "ab_assignments",
+    "join": "ab_conversions"
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_join",
+  "prompt": "In the checkout test AB-2025-01, each web shop customer should see only one variant, but a few customers were assigned to both. List those customers and how often they bought. Return one row for each customer assigned to more than one variant of the test, including a customer with no conversions. Return four columns, in this order: customer_id; first_assigned_at, the customer's earliest assigned_at in the test; last_assigned_at, the latest; and n_conversions, the number of the customer's conversions in the test, at any time, with 0 for a customer who has none. Sort by customer_id from low to high.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "customer_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "first_assigned_at",
+        "type_class": "temporal"
+      },
+      {
+        "name": "last_assigned_at",
+        "type_class": "temporal"
+      },
+      {
+        "name": "n_conversions",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": true,
+    "sort_keys": [
+      {
+        "column": "customer_id",
+        "desc": false
+      }
+    ],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "customer_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "first_assigned_at",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "last_assigned_at",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "n_conversions",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "customer_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, find the customers with more than one variant, one row each, before you bring in their conversions.",
+    "A customer in two variants has two assignment rows, so a join before counting repeats each conversion. Count the conversions per customer in their own step."
+  ],
+  "subgoals": [
+    {
+      "from": 18,
+      "to": 113,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 116,
+      "to": 135,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 138,
+      "to": 166,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 169,
+      "to": 189,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 192,
+      "to": 226,
+      "subgoal": "group_filter"
+    },
+    {
+      "from": 242,
+      "to": 287,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 290,
+      "to": 309,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 312,
+      "to": 340,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 343,
+      "to": 363,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 366,
+      "to": 474,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 475,
+      "to": 487,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 488,
+      "to": 537,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 538,
+      "to": 560,
+      "subgoal": "sort_limit"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "Counting conversions per customer before the join keeps one row per customer, so a customer's two assignments cannot double the count."
+}

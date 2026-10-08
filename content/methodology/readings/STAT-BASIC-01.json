@@ -1,0 +1,13 @@
+{
+  "concept_id": "STAT-BASIC-01",
+  "section": "methodology",
+  "version": 1,
+  "title": "Mean vs median",
+  "reading_md": "**What it is.** The mean is the sum of the values divided by how many there are. The median is the middle value once the values are sorted. Business data such as order values, revenue and session time are usually skewed: a few large values pull the mean towards the long tail. The median shows the typical case, but it ignores how big the large values are, and those matter for totals.\n\n- Use the median to describe a typical order or customer.\n- Use the mean for totals and forecasts: total revenue = mean order value × number of orders.\n\n**How to work it out.**\n\nMean = sum of the values / number of values\n\nMedian = the middle value of the sorted values. With an even number of values, it is the average of the two middle ones.\n\nWorked example. Seven orders: €20, €25, €30, €35, €40, €50 and €400.\n\n- Sum = 600.\n- Mean = 600 / 7 = €85.71 (2 decimals).\n- Sorted, the 4th of the 7 values is the median: €35.00.\n\nOne €400 order lifts the mean to more than twice the median.\n\n**In the interview.** \"The mean order value is far above the median. What does that tell you?\" A model answer: \"The data are right-skewed: a long tail of large orders pulls the mean up. I would quote the median as the typical order, and use the mean when I need totals.\"\n\n**Common mistakes.**\n\n- \"The median is always better.\" It drops the size of the big orders, which make up much of the revenue.\n- Assuming the mean equals the median in business data. Order values are usually right-skewed, so the mean sits above the median.\n- Comparing a mean in one period with a median in another. The change may come from switching statistic, not from customers.",
+  "source_ids": [
+    "11:STAT-01",
+    "ERRATA:E-175"
+  ],
+  "verified": true,
+  "as_of": "2026-10-08"
+}

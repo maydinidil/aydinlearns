@@ -1,0 +1,13 @@
+{
+  "item_id": "Q-EXP-AB-10-03",
+  "item_version": 1,
+  "correct_oid": "o886e288",
+  "explanation": "Bonferroni divides α by the number of comparisons, so each is tested at 0.05 / 3, which keeps the chance of any false positive at or below 5%. Testing only the variant that looks best at 0.05 is tempting, but choosing it after seeing the results is still three comparisons in disguise, so its result is likely overstated.",
+  "solver": {
+    "prompt_hash": "e6a07156884b459e",
+    "grader_version": "choice.2",
+    "chosen": "o886e288",
+    "typed": null,
+    "at": "2026-10-08T18:33:21.645Z"
+  }
+}

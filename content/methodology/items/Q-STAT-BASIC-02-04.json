@@ -1,0 +1,46 @@
+{
+  "id": "Q-STAT-BASIC-02-04",
+  "version": 1,
+  "kind": "mcq",
+  "section": "methodology",
+  "concept_id": "STAT-BASIC-02",
+  "stem": "After an A/B test ends, an analyst tries caps of €200, €500 and €1,000 on basket value, and reports the €500 cap because only that one makes the treatment significant. What is wrong with this?",
+  "options": [
+    {
+      "oid": "o28a7c3f",
+      "text": "Nothing, as long as the same cap is used for both groups",
+      "misconception_id": null
+    },
+    {
+      "oid": "o67eadd2",
+      "text": "The cap was picked for the result it gives, which biases the test",
+      "misconception_id": null
+    },
+    {
+      "oid": "o0436830",
+      "text": "A cap may only be applied to the control group, never to the treatment",
+      "misconception_id": null
+    },
+    {
+      "oid": "ob3506c2",
+      "text": "€500 is too high: a cap must sit below the median basket",
+      "misconception_id": null
+    }
+  ],
+  "typed": null,
+  "held_out": false,
+  "enemy_group": null,
+  "status": "active",
+  "verified": true,
+  "level": null,
+  "tags": [
+    "methodology",
+    "T-MET-STAT"
+  ],
+  "source_ids": [
+    "11:STAT-02"
+  ],
+  "as_of": "2026-10-08",
+  "review_after": null,
+  "supersedes": []
+}

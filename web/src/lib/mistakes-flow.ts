@@ -10,7 +10,18 @@ export const MISTAKES_HREF = '#/mistakes';
 export const MISTAKES_LINK = 'Mistakes and review';
 export const MISTAKES_TITLE = 'Mistakes and review';
 export const ALL_ERRORS = 'All errors';
-export const EMPTY_MISTAKES = 'No active mistake cards. A card appears when the same kind of error shows up in your answers again.';
+export const EMPTY_MISTAKES = 'No active mistake cards. A card appears when one of the common SQL errors shows up in your answers.';
+/** P1 finding 42: the empty page needs a way back. */
+export const TODAY_LINK = { href: '#/', text: 'Back to Today' } as const;
+
+/** P1 finding 43: the logged "1 missing, 1 extra" read as a sentence. Any other text is shown as logged. */
+export function diffSummaryText(s: string): string {
+  const m = /^(\d+) missing, (\d+) extra$/.exec(s);
+  if (!m) return s;
+  const part = (n: number, word: string): string | null => (n === 0 ? null : `${n} row${n === 1 ? '' : 's'} ${word}`);
+  const parts = [part(Number(m[1]), 'missing'), part(Number(m[2]), 'extra')].filter((x): x is string => x !== null);
+  return parts.length === 0 ? 'Your result had no missing or extra rows.' : `Your result had ${parts.join(' and ')}.`;
+}
 export const NO_ORIGINAL = 'The original attempt is not in the log.';
 export const NO_QUERY = 'No query text was logged for this attempt.';
 export const NO_DIFF = 'No difference summary was logged.';
@@ -33,7 +44,7 @@ export function cardRow(c: MistakeCardView, now: Date): CardRow {
     card_id: c.card_id, title: errorLabel(c), chip: STATE[c.state],
     dueText: c.is_due ? 'Due now' : `Due ${formatDate(amsterdamDate(new Date(c.due)), amsterdamDate(now))}`,
     occurrencesText: c.occurrences === 1 ? 'Made once' : `Made ${c.occurrences} times`,
-    original: c.original ? { query: c.original.query, diff: c.original.diff_summary } : null,
+    original: c.original ? { query: c.original.query, diff: c.original.diff_summary === null ? null : diffSummaryText(c.original.diff_summary) } : null,
     tryNote: tryNote(c),
   };
 }

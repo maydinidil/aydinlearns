@@ -24,7 +24,7 @@ const entry = (over: Partial<PortfolioCaseEntry> = {}): PortfolioCaseEntry => ({
 test('the links and the flagship line (S4B-19)', () => {
   assert.equal(PORTFOLIO_HREF, '#/portfolio');
   assert.equal(SETTINGS_HREF, '#/setup');
-  assert.equal(FLAGSHIP_LINE, 'Flagship pieces on real data arrive with the datasets in sprint 6.');
+  assert.equal(FLAGSHIP_LINE, 'Flagship pieces on real data come in a later version.');
 });
 
 test('a solved case\'s row: the kind, level and data source, when it was solved, and its last export date', () => {

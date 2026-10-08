@@ -1,0 +1,46 @@
+{
+  "id": "Q-STAT-BASIC-07-04",
+  "version": 1,
+  "kind": "mcq",
+  "section": "methodology",
+  "concept_id": "STAT-BASIC-07",
+  "stem": "To estimate the effect of a discount email on spend, an analyst compares customers who got the email with those who did not, controlling for the number of site visits in the week after the email. Why is this a problem?",
+  "options": [
+    {
+      "oid": "o22c6ad4",
+      "text": "The email drives some of those visits, so this hides part of its effect",
+      "misconception_id": null
+    },
+    {
+      "oid": "oe5b6ee6",
+      "text": "Site visits are a confounder here, so they must always be controlled for",
+      "misconception_id": null
+    },
+    {
+      "oid": "o9395e53",
+      "text": "Controlling for any extra variable always removes all bias",
+      "misconception_id": null
+    },
+    {
+      "oid": "o3c85152",
+      "text": "Site visits are a count, and counts cannot be used as controls",
+      "misconception_id": null
+    }
+  ],
+  "typed": null,
+  "held_out": false,
+  "enemy_group": null,
+  "status": "active",
+  "verified": true,
+  "level": null,
+  "tags": [
+    "methodology",
+    "T-MET-STAT"
+  ],
+  "source_ids": [
+    "11:STAT-07"
+  ],
+  "as_of": "2026-10-08",
+  "review_after": null,
+  "supersedes": []
+}

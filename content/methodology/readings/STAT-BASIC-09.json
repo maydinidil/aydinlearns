@@ -1,0 +1,13 @@
+{
+  "concept_id": "STAT-BASIC-09",
+  "section": "methodology",
+  "version": 1,
+  "title": "Regression intuition",
+  "reading_md": "**What it is.** Linear regression fits outcome = intercept + coefficients × predictors. A coefficient is the expected change in the outcome for a one-unit change in that predictor, holding the other predictors constant. \"Controlling for display\" means comparing weeks with the same display status, so display does not mix into the price effect. A high R² means the model fits the data well. It does not prove cause: a confounder left out of the model, or reverse causation, can still explain the pattern.\n\n**How to work it out.**\n\nŷ = b0 + b1 × x1 + b2 × x2\n\nWorked example. Weekly units = 1,000 - 50 × price (€) + 300 × display, where display is 1 when the product is on display and 0 when it is not. At a price of €8, on display:\n\n- 50 × 8 = 400.\n- 1,000 - 400 + 300 = 900 units predicted (whole units).\n- Each €1 price rise lowers predicted units by 50, holding display constant.\n\n**In the interview.** \"The model's R² is 0.9. Does that prove price drives sales?\" A model answer: \"No. R² measures fit, not cause. Promotions may be timed for weeks of high demand, so price and demand move together for other reasons.\"\n\n**Common mistakes.**\n\n- Reading R² as proof of cause.\n- Reading a coefficient without \"holding the others constant\".\n- Extrapolating far outside the observed prices: a straight line fitted on €6 to €10 says little about €2.\n- Trusting a positive price coefficient. It usually means something is missing, such as prices raised in peak season with season left out of the model.",
+  "source_ids": [
+    "11:STAT-09",
+    "ERRATA:E-175"
+  ],
+  "verified": true,
+  "as_of": "2026-10-08"
+}

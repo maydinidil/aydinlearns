@@ -1,6 +1,6 @@
 import { after, test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, readdir, rm, stat, writeFile } from 'node:fs/promises';
+import { mkdtemp, readdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { Hono } from 'hono';
@@ -71,6 +71,7 @@ test('status reports the versions and settings', async () => {
   assert.deepEqual([body.ok, body.degraded], [true, false]);
   assert.deepEqual(Object.keys(body.versions), ['dataset', 'duckdb', 'content', 'grader']);
   assert.equal(body.versions.content, content.contentVersion);
+  assert.equal(body.version, JSON.parse(await readFile(new URL('../../package.json', import.meta.url), 'utf8')).version);
   assert.deepEqual(body.settings, { backup_folder: null, exam_date: null, goal_dates: {} });
 });
 test('item responses never contain key text', async () => {

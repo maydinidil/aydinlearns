@@ -5,7 +5,7 @@ import { ApiError } from '../../web/src/api.ts';
 import { runFromRefusal } from '../../web/src/lib/drill-flow.ts';
 import { CODE_ONE_ANSWER, CODE_RUN_OVER } from '../../server/run.ts';
 import {
-  canMoveTo, canSaveAnswer, classifyRunRefusal, endNowText, entryLabel, flagsAfter, ga4RunFromRefusal, historyCells, HISTORY_COLUMNS, listRows,
+  canMoveTo, canSaveAnswer, classifyRunRefusal, endNowText, entryDetail, limitText, startLabel, verdictClass, flagsAfter, ga4RunFromRefusal, historyCells, HISTORY_COLUMNS, listRows,
   modeRules, questionView, recallSet, rememberSet, reviewRows, runHeading, runLine, scoreLine, timeLeft, topicLabel, topicRows, unansweredNumbers,
   recoveredLine, unseenLine,
 } from '../../web/src/lib/run-flow.ts';
@@ -73,17 +73,20 @@ test('flags toggle and the question list shows answered, flagged and current', (
   assert.match(rows[0]!.label, /answered/);
 });
 
-test('entries name the questions and the limit, and never lock', () => {
-  assert.equal(entryLabel('mini_drill', { questions: 20, minutes: 30 }), 'Mini drill (20 questions, 30 minutes)');
-  assert.equal(entryLabel('half_mock', { questions: 25, minutes: 37.5 }), 'Half-mock (25 questions, 37.5 minutes)');
-  assert.equal(entryLabel('half_mock', null), 'Half-mock (25 questions, 37.5 minutes)');
-  assert.equal(entryLabel('mini_drill', null), 'Mini drill (20 questions, 30 minutes)');
+test('finding 28: an entry says what it does, and its line gives the questions and the limit once; a limit never reads 37.5 minutes', () => {
+  assert.equal(startLabel('mini_drill'), 'Start a mini drill');
+  assert.equal(startLabel('half_mock'), 'Start a half-mock');
+  assert.equal(entryDetail('mini_drill', { questions: 20, minutes: 30 }), '20 questions, 30 minutes.');
+  assert.equal(entryDetail('half_mock', { questions: 25, minutes: 37.5 }), '25 questions, 37 minutes 30 seconds.');
+  assert.equal(entryDetail('half_mock', null), '25 questions, 37 minutes 30 seconds.');
+  assert.equal(entryDetail('mini_drill', null), '20 questions, 30 minutes.');
+  assert.deepEqual([1, 30, 37.5, 0.5].map(limitText), ['1 minute', '30 minutes', '37 minutes 30 seconds', '0 minutes 30 seconds']);
 });
 
 test('the run heading and line', () => {
   assert.equal(runHeading('mini_drill'), 'GA4 mini drill');
   assert.equal(runHeading('half_mock'), 'GA4 half-mock');
-  assert.match(runLine({ kind: 'half_mock', questions: 25, minutes: 37.5, pass_pct: 80, mode: 'exam' }), /25 questions, 37.5 minutes, pass at 80%.*One question at a time/);
+  assert.match(runLine({ kind: 'half_mock', questions: 25, minutes: 37.5, pass_pct: 80, mode: 'exam' }), /25 questions, 37 minutes 30 seconds, pass at 80%.*One question at a time/);
   assert.match(runLine({ kind: 'mini_drill', questions: 20, minutes: 30, pass_pct: 80, mode: 'practice' }), /Go back, flag/);
   // The HELP_LINE under it says where help opens, so the rule line does not say it twice.
   assert.doesNotMatch(runLine({ kind: 'mini_drill', questions: 20, minutes: 30, pass_pct: 80, mode: 'practice' }), /Help/);
@@ -92,8 +95,9 @@ test('the run heading and line', () => {
 test('the score line and the unseen line (S3-10, D27)', () => {
   assert.equal(scoreLine({ correct: 17, of: 20, pct: 85, pass: true, pass_pct: 80 }), 'Score: 17 of 20 (85%). Pass mark 80%. Passed.');
   assert.equal(scoreLine({ correct: 10, of: 25, pct: 40, pass: false, pass_pct: 80 }), 'Score: 10 of 25 (40%). Pass mark 80%. Not passed.');
-  assert.equal(unseenLine({ kind: 'half_mock', on_unseen: true }), 'On unseen items: yes.');
-  assert.equal(unseenLine({ kind: 'half_mock', on_unseen: false }), 'On unseen items: no.');
+  assert.equal(unseenLine({ kind: 'half_mock', on_unseen: true }), 'No question was shown in the last 21 days.');       // finding 27
+  assert.equal(unseenLine({ kind: 'half_mock', on_unseen: false }), 'Some questions were shown in the last 21 days.');
+  assert.deepEqual([verdictClass('Right'), verdictClass('Wrong'), verdictClass('Wrong (unanswered)')], ['ok', 'bad', 'bad']);
   assert.equal(unseenLine({ kind: 'mini_drill', unseen: 12, unseen_pct: 60 }), 'Unseen questions: 12 (60%).');
 });
 
@@ -125,7 +129,7 @@ test('history cells: date, kind, score, pass, unseen measure; never minutes', ()
   assert.deepEqual(HISTORY_COLUMNS, ['Date', 'Kind', 'Score', 'Passed', 'Unseen', 'By topic']);
   const cells = historyCells({ block_id: 'b', kind: 'half_mock', date: '2026-10-05', correct: 20, of: 25, pct: 80, pass: true, pass_pct: 80, on_unseen: true,
     by_topic: [{ topic: 'T-GA4-01', correct: 5, of: 6, pct: 83 }] });
-  assert.deepEqual(cells, ['2026-10-05', 'Half-mock', '20 of 25 (80%)', 'Yes', 'On unseen items: yes', 'Topic 1 5 of 6']);
+  assert.deepEqual(cells, ['2026-10-05', 'Half-mock', '20 of 25 (80%)', 'Yes', 'No question was shown in the last 21 days.', 'Topic 1 5 of 6']);
   const mini = historyCells({ block_id: 'c', kind: 'mini_drill', date: '2026-10-04', correct: 3, of: 20, pct: 15, pass: false, pass_pct: 80, unseen: 12, unseen_pct: 60, by_topic: [] });
   assert.deepEqual(mini.slice(1, 5), ['Mini drill', '3 of 20 (15%)', 'No', '12 of 20 unseen']);
   assert.ok(![...cells, ...mini].some((c) => /minute/i.test(c)));

@@ -1,0 +1,15 @@
+{
+  "concept_id": "MET-SAAS-08",
+  "section": "methodology",
+  "version": 1,
+  "title": "Cohort retention",
+  "reading_md": "**Setting.** The examples use Business Care, the device-support subscription Voltmarkt sells to small offices. A business is active in a month when it pays a fee above 0 for that month.\n\n**What it measures.** Of the businesses that first paid in one month (a cohort), the share still active a set number of months later. It counts businesses, not euros.\n\n**Formula.**\n\nretention in month k % = 100 × businesses of the cohort active in month k / cohort size\n\n- The cohort is the month a business first paid. A business that cancels and later comes back stays in its first cohort; it never starts a new one.\n- Month k is the cohort month plus k months: for the March cohort, month 3 is June. Month 0 is always 100%.\n- A business counts in month k if it is active that month, even if it left and came back in between.\n- Grain: cohort month × months since start.\n\n**Worked example.** 50 businesses first paid in January 2026. In April 2026, month 3, 41 of them were active, including 2 that had cancelled in February and returned in April.\n\n- Retention in month 3 = 100 × 41 / 50 = 82.0%.\n\n**The retention triangle.** Put cohorts in rows and months since start in columns. Younger cohorts have shorter rows: with data up to September 2026, the July cohort has months 0 to 2 only. Its month 6 is not 0%, it is missing, because January 2027 has not happened yet. This is called right-censoring. Compare cohorts only at months every one of them has reached, and leave missing cells out of any average.\n\n**When the data starts late.** If the data starts after some businesses joined, their first month in the data is not their first paid month. Take the cohort from the subscription's start date instead.\n\n**Common mistakes.**\n\n- Treating cells that cannot be observed yet as 0%.\n- Counting a returning business twice: in its first cohort and again as a new one.\n- Taking the cohort from the first month in the data when the data starts late.\n\n**What it does not answer.**\n\n- How much revenue a cohort kept: that is NRR or GRR.\n- What share of all businesses left this month: that is logo churn.\n\n**How managers ask for it.** \"Are newer cohorts sticking better?\" \"Show me the retention triangle.\"",
+  "source_ids": [
+    "04:MET-SAAS-08",
+    "04:CASE-SAAS-05",
+    "ERRATA:E-089",
+    "ERRATA:E-100"
+  ],
+  "verified": true,
+  "as_of": "2026-10-08"
+}

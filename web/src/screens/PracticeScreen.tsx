@@ -33,8 +33,8 @@ export function PracticeScreen({ section, conceptId }: { section: ChoiceSection;
 
   return (
     <section className="read-col">
-      <p><a href={mapHref(section)}>{SECTION_LABEL[section]} map</a>{hasReading && <>{' '}<a href={readingHref(section, conceptId)}>Reading</a></>}</p>
       <PageHead section={section} crumb={crumbParts({ section, place: 'Practice', hideLabels: false })} title={`Practice: ${conceptTitle(titles, conceptId)}`} />
+      <p className="page-links"><a href={mapHref(section)}>{SECTION_LABEL[section]} map</a>{hasReading && <>{' · '}<a href={readingHref(section, conceptId)}>Reading</a></>}</p>
       {error && <p role="alert">{error}</p>}
       {!served && !error && <p>Loading the question...</p>}
       {served && <ChoicePanel key={served.item_instance_id} itemId={served.item_id} section={section} instanceId={served.item_instance_id}

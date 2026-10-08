@@ -1,0 +1,14 @@
+{
+  "concept_id": "MET-RETAIL-12",
+  "section": "methodology",
+  "version": 1,
+  "title": "Inventory turnover",
+  "reading_md": "**What it measures.** How many times a category sells through its average stock in a period, usually a year. High turnover means stock moves fast; low turnover means money sits on the shelves.\n\n**Formula.**\n\ninventory turnover = units sold in the year / average units on hand\n\nor, in euros: cost of goods sold / average stock value at cost.\n\n- Average units on hand: the average of the daily closing stock over the year, not one day's stock.\n- Both parts in the same terms: units with units, or cost with cost. Never divide sales at selling prices by stock valued at cost.\n- Grain: category × year.\n\n**Worked example.** In 2025 Voltmarkt sold 36,000 earbuds, and the average daily stock of earbuds was 4,500 units.\n\n- Turnover = 36,000 / 4,500 = 8.0 times a year.\n- On average an earbud waited 52 / 8 = 6.5 weeks before it sold.\n\nIn euros: the earbuds' cost of goods sold was €1.8M and their stock was worth €225,000 at cost on average, so turnover is 8.0 again. Dividing net sales at selling prices, €2.7M, by the same stock gives 12.0: the margin inflates it.\n\n**Reading the number.**\n\n- Voltmarkt's stock peaks before Black Week and is low after the December rush. Stock on 31 December alone is below the year's average and makes turnover look higher; the daily average avoids that.\n- Higher is not automatically better. Cutting stock raises turnover but can empty shelves, so read it with the stockout rate.\n\n**Common mistakes.**\n\n- Mixing valuations: sales at selling prices divided by stock at cost.\n- Using one day's stock, such as the year end, as the average.\n\n**What it does not answer.**\n\n- How long one store's stock of a product will last from today: that is stock cover.\n- What share of a season's deliveries has sold: that is sell-through.\n- Whether the category makes money: that needs gross margin.\n\n**How managers ask for it.** \"How fast does stock turn in smart home?\" \"Are we carrying too much inventory?\"",
+  "source_ids": [
+    "04:MET-RETAIL-12",
+    "ERRATA:E-100",
+    "ERRATA:E-103"
+  ],
+  "verified": true,
+  "as_of": "2026-10-08"
+}

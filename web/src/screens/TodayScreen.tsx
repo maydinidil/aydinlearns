@@ -18,7 +18,7 @@ import { conceptTitle, loadTitles, type Titles } from '../lib/labels.ts';
 import { SqlCode } from '../components/SqlCode.tsx';
 import {
   ANOTHER_NEW_CONCEPT, LIST, MINIMUM_DAY, NOTHING_NOW, NOT_OPEN, NO_NOTICES, SECTIONS, SQL_LINKS, WHOLE_SESSION, afterChoice, afterItemClosed, afterSessionEnd,
-  actionName, anotherNewConcept, blockMemory, correctedQueryView, exerciseOf, newConceptAction, noticeLines, notices, resumeBlock, runChoice, runMixed, runServed, stepViews, wrapUp,
+  actionName, anotherNewConcept, nextReview, reviewHeading, startReviews, type ReviewPos, blockMemory, correctedQueryView, exerciseOf, newConceptAction, noticeLines, notices, resumeBlock, runChoice, runMixed, runServed, stepViews, wrapUp,
   type Mode, type NoticeEvent, type Running, type ServePurpose, type StepAction, type StepView,
 } from '../lib/today-flow.ts';
 import { ReadingPanel } from './ReadingScreen.tsx';
@@ -38,6 +38,7 @@ export function TodayScreen({ sessionEnds = 0 }: { sessionEnds?: number }) {
   const [note, setNote] = useState(NO_NOTICES);
   const say = (e: NoticeEvent): void => setNote((n) => notices(n, e));
   const [busy, setBusy] = useState(false);       // a step is being served: one request per click
+  const [reviewPos, setReviewPos] = useState<ReviewPos | null>(null);   // "Review 1 of 2" while a run of reviews is on screen (finding 32)
   const latest = useRef(0);
   const open = SECTIONS.find((s) => s.id === section)?.open ?? false;
   // A GA4 or Methodology section's concept titles and which concepts have a reading, from its map (read only).
@@ -74,6 +75,7 @@ export function TodayScreen({ sessionEnds = 0 }: { sessionEnds?: number }) {
   // end also ends an unfinished mixed block (the block memory counts session ends itself).
   useEffect(() => {
     setRunning(afterSessionEnd());
+    setReviewPos(null);
     setView(null);
     say({ kind: 'reset' });
     if (open) void refresh();
@@ -106,7 +108,11 @@ export function TodayScreen({ sessionEnds = 0 }: { sessionEnds?: number }) {
   async function start(a: StepAction): Promise<void> {
     if (a.kind === 'micro_lesson' || a.kind === 'refresher') { setRunning({ kind: 'reading', which: a.kind, concept_id: a.concept_id }); return; }
     if (a.kind === 'section_reading') { setRunning({ kind: 'section_reading', which: a.which, concept_id: a.concept_id }); return; }
-    if (a.kind === 'serve') { await serve(a.purpose, a.concept_id ? { concept_id: a.concept_id } : {}); return; }
+    if (a.kind === 'serve') {
+      if (a.purpose === 'review') setReviewPos(view ? startReviews(view.plan, mode) : null);
+      await serve(a.purpose, a.concept_id ? { concept_id: a.concept_id } : {});
+      return;
+    }
     if (a.kind === 'resume_mixed') { const p = blockMemory.paused(); setRunning(p ? resumeBlock(p) : LIST); return; }
     if (a.kind !== 'mixed') return;                                           // the lesson, the map and a case are links
     setBusy(true);
@@ -125,6 +131,7 @@ export function TodayScreen({ sessionEnds = 0 }: { sessionEnds?: number }) {
     const at = running;
     const v = await refresh();
     const next = afterItemClosed(at, r, v?.plan ?? null, mode);
+    setReviewPos(next.kind === 'serve_next' && next.purpose === 'review' ? nextReview(reviewPos) : null);
     if (next.kind === 'serve_next') await serve(next.purpose);
     else setRunning(next);
   }
@@ -134,6 +141,7 @@ export function TodayScreen({ sessionEnds = 0 }: { sessionEnds?: number }) {
     const at = running;
     const v = await refresh();
     const next = afterChoice(at, v?.plan ?? null, mode);
+    setReviewPos(next.kind === 'serve_next' && next.purpose === 'review' ? nextReview(reviewPos) : null);
     if (next.kind === 'serve_next') await serve(next.purpose, next.concept_id ? { concept_id: next.concept_id } : {});
     else setRunning(next);
   }
@@ -152,6 +160,7 @@ export function TodayScreen({ sessionEnds = 0 }: { sessionEnds?: number }) {
   /** Back to the list. An open exercise closes as it leaves the screen. */
   function back() {
     setRunning(LIST);
+    setReviewPos(null);
     void refresh();
   }
 
@@ -172,13 +181,13 @@ export function TodayScreen({ sessionEnds = 0 }: { sessionEnds?: number }) {
       <div>
         <p><button type="button" onClick={back}>Back to Today</button></p>
         {exercise && <ItemPanel key={exercise.key} itemId={exercise.item_id} phase={exercise.phase} instanceId={exercise.instance_id}
-          hideLabels={exercise.hide_labels} heading={exercise.heading} labels onClosed={(r) => void closed(r)} />}
+          hideLabels={exercise.hide_labels} heading={running.kind === 'item' && running.purpose === 'review' ? reviewHeading(reviewPos, exercise.heading) : exercise.heading} labels onClosed={(r) => void closed(r)} />}
         {running.kind === 'reading' && (
           <MicroLesson conceptId={running.concept_id} kind={running.which} title={conceptTitle(titles, running.concept_id)} onDone={back} />
         )}
         {running.kind === 'choice' && isChoice(running.section) && (
           <>
-            <h2>{running.heading}</h2>
+            <h2>{running.purpose === 'review' ? reviewHeading(reviewPos, running.heading) : running.heading}</h2>
             <ChoicePanel key={running.served.item_instance_id} itemId={running.served.item_id} section={running.section} instanceId={running.served.item_instance_id}
               onDone={() => answered()} onReopen={() => reserve(running)} />
           </>

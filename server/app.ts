@@ -19,6 +19,7 @@ import type { SqlItem } from '../schemas/item.ts';
 import type { SqlKey } from '../schemas/keys.ts';
 import type { AydinAttempt } from '../schemas/log-ext.ts';
 import { securityMiddleware } from './security.ts';
+import { APP_VERSION } from './version.ts';
 import { grade, revealReference, GRADER_VERSION } from './grader/grade.ts';
 import { curriculumStates, pendingRetests } from './progress.ts';
 import { backupLogs } from './backup.ts';
@@ -557,7 +558,7 @@ export function createApp(d: AppDeps): Hono {
     const checks = d.logger.writable ? d.checks : [...d.checks.filter((x) => x.name !== 'log writable'), LOG_FAILED];
     const bad = checks.some((x) => !x.ok);
     return c.json({
-      ok: !bad, degraded: bad, checks, settings: d.settings,
+      ok: !bad, degraded: bad, checks, settings: d.settings, version: APP_VERSION,
       versions: { dataset: d.manifest.dataset_version, duckdb: d.manifest.library_version, content: d.content.contentVersion, grader: GRADER_VERSION },
     });
   });

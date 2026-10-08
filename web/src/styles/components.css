@@ -142,3 +142,49 @@ ol.review-items > li + li { border-top: 1px solid var(--fill); }
 .progress-grid h3 { margin-top: 0; }
 .progress-grid caption { text-align: left; font-weight: 600; padding: var(--s2) var(--s3); }
 .progress-list .gap summary { cursor: pointer; color: var(--ink-2); }
+
+/* Polish pass, Task P2a (P1 findings 1, 9, 39, 40, 41, 44, 46). */
+@media (max-width: 700px) {
+  .shell { flex-wrap: wrap; gap: var(--s2) var(--s4); padding: var(--s2) var(--s4); }
+  .tabs { order: 3; flex-basis: 100%; overflow-x: auto; }
+  .tabs a { white-space: nowrap; }
+  .shell-end { gap: var(--s3); }
+  .shell-end a { white-space: nowrap; }
+  .by { display: none; }
+}
+.shell-end a[aria-current="page"] { color: var(--ink); font-weight: 600; text-decoration: none; border-bottom: 2px solid var(--ink); }
+.level > h2 { font-size: var(--t4); color: var(--ink); }
+.concept-list .row .marker { align-self: stretch; }
+.chip.learning { background: var(--section-soft); color: var(--section-text); }
+.topic-links { margin: 0 0 var(--s4); }
+.settings-card details > summary { cursor: pointer; font-weight: 600; }
+.lesson nav.steps { display: flex; flex-wrap: wrap; gap: var(--s1); padding: 3px; background: var(--fill); border-radius: 9px; width: fit-content; max-width: 100%; list-style: none; margin: 0 0 var(--s4); }
+.lesson nav.steps button { padding: 5px var(--s3); border: 0; border-radius: 7px; background: transparent; font-size: var(--t2); color: var(--ink-2); }
+.lesson nav.steps button[aria-current="step"] { background: var(--surface); color: var(--ink); box-shadow: var(--shadow); }
+
+/* Sprint 5a, Task P2b (P1 findings 5, 10, 11, 13, 17, 43) */
+.explore-main { min-width: 0; }
+.result .table-scroll { max-height: 28rem; overflow-y: auto; }
+.result thead th { position: sticky; top: 0; box-shadow: 0 1px 0 var(--line); }
+.schema-panel { align-self: start; }
+ul.checklist { list-style: none; padding-left: 0; }
+.drill-pick { min-width: 0; margin: 0 0 var(--s3); }
+.drill-pick legend { padding: 0 var(--s1); font-weight: 600; }
+@media (max-width: 600px) { .mistake-card .row { flex-wrap: wrap; } }
+
+/* Sprint 5a, Task P2c (P1 findings 21, 22, 27, 29, 30, 31, 33, 34, 37) */
+.progress-sections { margin: 0 0 var(--s3); color: var(--muted); }
+.page-links { margin: 0 0 var(--s3); }
+@media (max-width: 600px) {
+  .inbox-list .row { display: grid; grid-template-columns: auto minmax(0, 1fr); }
+  .inbox-list .row .marker { grid-row: 1 / span 2; }
+  .inbox-list .row .chip-col { grid-column: 2; flex-direction: row; flex-wrap: wrap; align-items: center; justify-content: flex-start; text-align: left; }
+  .inbox-list .row:not(:has(> .marker)) { display: flex; }
+  .inbox-list .row:not(:has(> .marker)) .chip-col { flex-direction: column; align-items: flex-end; text-align: right; }
+  .run-bar, .run-bar-text { display: contents; }
+  .run-timer { position: sticky; top: 0; z-index: 2; padding: var(--s2) 0; background: var(--surface); border-bottom: 1px solid var(--line); }
+}
+.q-card { max-width: var(--read); }
+.today-side .card > div:first-child > :first-child { margin-top: 0; }
+.today-steps .step-control a:not(.btn-main) { display: inline-block; padding: var(--s1) var(--s3); border: 1px solid var(--line); border-radius: var(--r1); background: var(--surface); color: var(--ink); font: 600 var(--t1)/var(--lh) var(--font); text-decoration: none; }
+.corrected-query pre { white-space: pre-wrap; overflow-wrap: anywhere; }

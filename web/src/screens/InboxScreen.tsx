@@ -29,7 +29,8 @@ export function InboxScreen() {
                 <div className="grow">
                   <a href={r.href}><strong>{r.title}</strong></a>
                   <p className="muted">{r.meta}</p>
-                  <p>{r.decision} <span className="muted">{r.deadline}</span></p>
+                  <p>{r.decision}</p>
+                  <p className="muted">{r.deadline}</p>
                 </div>
                 <span className="chip-col">
                   <span className={`chip ${r.chip.tone}`.trim()}>{r.chip.label}</span>

@@ -1,7 +1,7 @@
 {
   "item_id": "EX-SQL-DATE-01-E1-01",
-  "item_version": 1,
-  "reference_sql": "SELECT date_trunc('month', order_ts) AS order_month,\n       COUNT(*) AS orders\nFROM orders\nGROUP BY date_trunc('month', order_ts)",
+  "item_version": 2,
+  "reference_sql": "SELECT CAST(date_trunc('month', order_ts) AS DATE) AS order_month,\n       COUNT(*) AS orders\nFROM orders\nGROUP BY date_trunc('month', order_ts)",
   "alternatives": [
     "SELECT CAST(date_trunc('month', order_ts) AS DATE) AS order_month, COUNT(*) AS orders FROM orders GROUP BY 1",
     "SELECT make_date(year(order_ts), month(order_ts), 1) AS order_month, COUNT(order_id) AS orders FROM orders GROUP BY year(order_ts), month(order_ts)"
@@ -14,15 +14,15 @@
     {
       "id": "PW1",
       "error_id": "ERR-LOG-25",
-      "sql": "SELECT date_trunc('week', order_ts) AS order_month, COUNT(*) AS orders FROM orders GROUP BY date_trunc('week', order_ts)"
+      "sql": "SELECT CAST(date_trunc('week', order_ts) AS DATE) AS order_month, COUNT(*) AS orders FROM orders GROUP BY date_trunc('week', order_ts)"
     },
     {
       "id": "PW2",
       "error_id": "ERR-LOG-04",
-      "sql": "SELECT date_trunc('month', order_ts) AS order_month, COUNT(customer_id) AS orders FROM orders GROUP BY date_trunc('month', order_ts)"
+      "sql": "SELECT CAST(date_trunc('month', order_ts) AS DATE) AS order_month, COUNT(customer_id) AS orders FROM orders GROUP BY date_trunc('month', order_ts)"
     }
   ],
-  "hint3_partial": "SELECT date_trunc(___, order_ts) AS order_month,\n       COUNT(*) AS orders\nFROM orders\nGROUP BY ___",
+  "hint3_partial": "SELECT CAST(date_trunc(___, order_ts) AS DATE) AS order_month,\n       COUNT(*) AS orders\nFROM orders\nGROUP BY ___",
   "solver": {
     "prompt_hash": "3c05840099b78849",
     "schema_version": "7ed366279088",

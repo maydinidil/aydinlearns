@@ -4,7 +4,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import type { ProgressView as ServerView } from '../../server/routes/progress.ts';
 import {
-  EXPLORE_HREF, PROGRESS_HREF, PROGRESS_LINKS, PROGRESS_TITLE, countsLine, gapFold, gapLine, goalChip, goalDateLine, jobReadyChip, jobReadyLines, readyLine,
+  EXPLORE_HREF, PROGRESS_HREF, PROGRESS_LINKS, PROGRESS_SECTIONS, PROGRESS_TITLE, countsLine, gapFold, gapLine, goalChip, goalDateLine, jobReadyChip, jobReadyLines, readyLine,
   revealLine, shareText, stageLabel, stateChipClass, titlesOf, topicLabel, trendRows,
   type JobReadyCriterion, type ProgressGoal, type ProgressView, type SkillMap, type TrendWeek,
 } from '../../web/src/lib/progress-api.ts';
@@ -63,7 +63,7 @@ test('a skill map: how many concepts in each state, a state chip in words, and t
   assert.deepEqual(titles.get('SQL-BASICS-01'), { title: 'Tables, rows and your first SELECT', level: 1 });
 });
 
-test('shares and the trend table: a percentage with its counts, "None" for a week with no attempts, this week last', () => {
+test('shares and the trend table: a percentage with its counts, "No attempts" for a week with none, this week last (finding 19)', () => {
   assert.equal(shareText({ count: 2, total: 3, pct: 67 }), '67% (2 of 3)');
   assert.equal(shareText({ count: 0, total: 0, pct: null }), 'No attempts');
   assert.equal(shareText({ count: 0, total: 0, pct: null }, 'None'), 'None');
@@ -72,10 +72,21 @@ test('shares and the trend table: a percentage with its counts, "None" for a wee
     { week: '2026-W40', starts: '2026-09-28', sql: empty, choice: empty },
     { week: '2026-W41', starts: '2026-10-05', sql: { first_attempt: { count: 1, total: 3, pct: 33 }, help: { count: 2, total: 4, pct: 50 } }, choice: empty },
   ];
+  // The week before the first attempt is left out.
   assert.deepEqual(trendRows(weeks, TODAY), [
-    { week: '2026-W40', label: 'Week 40, from 28 September', sql_first: 'None', sql_help: 'None', choice_first: 'None', choice_help: 'None' },
-    { week: '2026-W41', label: 'This week, from 5 October', sql_first: '33% (1 of 3)', sql_help: '50% (2 of 4)', choice_first: 'None', choice_help: 'None' },
+    { week: '2026-W41', label: 'This week, from 5 October', sql_first: '33% (1 of 3)', sql_help: '50% (2 of 4)', choice_first: 'No attempts', choice_help: 'No attempts' },
   ]);
+  // A week after the first attempt with none stays, and says so.
+  const later: TrendWeek[] = [weeks[0]!, weeks[1]!, { week: '2026-W42', starts: '2026-10-12', sql: empty, choice: empty }];
+  assert.deepEqual(trendRows(later, TODAY).map((r) => [r.week, r.sql_first]), [['2026-W41', '33% (1 of 3)'], ['2026-W42', 'No attempts']]);
+  // No attempts at all: this week only.
+  assert.deepEqual(trendRows([weeks[0]!, { ...weeks[0]!, week: '2026-W41', starts: '2026-10-05' }], TODAY).map((r) => r.week), ['2026-W41']);
+  assert.deepEqual(trendRows([], TODAY), []);
+});
+
+test('Progress lists its sections for a link row at the top (finding 21)', () => {
+  assert.deepEqual(PROGRESS_SECTIONS.map((s) => s.id), ['progress-goals', 'progress-board', 'progress-skills', 'progress-trends', 'progress-reveal', 'progress-topics', 'progress-job-ready']);
+  assert.ok(PROGRESS_SECTIONS.every((s) => s.text !== '' && !s.text.includes('—')));
 });
 
 test('the reveal rate line and a topic\'s name', () => {

@@ -1,0 +1,15 @@
+{
+  "concept_id": "EXP-AB-03",
+  "section": "methodology",
+  "version": 1,
+  "title": "Null hypothesis and p-value",
+  "reading_md": "**What it is.** The null hypothesis says the change has no effect. The p-value is the probability, if the null were true, of seeing a difference at least as extreme as the one observed. It is not the probability that the null is true, and it does not measure how big or how important the effect is.\n\n**How to work it out.** The two-proportion z-test:\n\n- Pooled p = (x1 + x2) / (n1 + n2)\n- SE0 = sqrt(p(1 - p)(1/n1 + 1/n2))\n- z = (p2 - p1) / SE0\n\nWorked example. Control: 500 of 10,000 users converted (5.00%). Treatment: 560 of 10,000 (5.60%).\n\n- Pooled p = 1,060 / 20,000 = 0.053\n- SE0 = sqrt(0.053 × 0.947 × 0.0002) = sqrt(0.0000100382) = 0.0031683\n- z = 0.006 / 0.0031683 = 1.894, so 1.89 (2 decimals)\n- From a normal table, the two-sided p-value is about 0.058 (3 decimals)\n\nSo the result is not significant at α = 0.05. The app never asks you to look a p-value up in a table. Three reference points for a two-sided test are enough: |z| = 1.645 gives p = 0.10, 1.96 gives 0.05 and 2.58 gives 0.01.\n\n**In the interview.** \"Why not decide only on whether p < 0.05?\" A good answer: the American Statistical Association warns that decisions should not rest on a threshold alone. Weigh the effect size, the confidence interval, the cost and earlier evidence too.\n\n**Common mistakes.**\n\n- \"p is the probability that the null is true.\" A p of 0.03 means that, with no real effect, a gap this large or larger would appear about 3% of the time; it is not a 97% chance that the change works.\n- \"p > 0.05 proves there is no effect.\" The test may be too small to find it; look at the confidence interval.\n- \"A smaller p means a bigger effect.\" With very large samples, a tiny effect can get a tiny p.",
+  "source_ids": [
+    "11:EXP-03",
+    "ERRATA:E-174",
+    "ERRATA:E-175",
+    "ERRATA:E-182"
+  ],
+  "verified": true,
+  "as_of": "2026-10-08"
+}

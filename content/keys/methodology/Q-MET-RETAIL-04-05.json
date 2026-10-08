@@ -1,0 +1,13 @@
+{
+  "item_id": "Q-MET-RETAIL-04-05",
+  "item_version": 1,
+  "correct_oid": "o5910e1b",
+  "explanation": "The stockout rate weights every store-SKU-day the same, whatever the product sells. Store A's empty days were on models with many daily sales, so it missed far more units; the lost sales estimate measures that. Bestsellers do not count extra in the rate, and slow sellers can run out too.",
+  "solver": {
+    "prompt_hash": "54587c91d5e3286c",
+    "grader_version": "choice.2",
+    "chosen": "o5910e1b",
+    "typed": null,
+    "at": "2026-10-08T18:33:21.854Z"
+  }
+}

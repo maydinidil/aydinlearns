@@ -1,0 +1,13 @@
+{
+  "item_id": "Q-EXP-AB-12-06",
+  "item_version": 1,
+  "correct_oid": "oad7bcc0",
+  "explanation": "Guardrails protect against harm: they pass when they stay within their tolerance, but they are not the test's goal. The success metric, conversion, did not move, so the test gives no reason to ship. Treating a guardrail as a success metric, or swapping metrics after the results, are both common mistakes.",
+  "solver": {
+    "prompt_hash": "8cfdb1274546272c",
+    "grader_version": "choice.2",
+    "chosen": "oad7bcc0",
+    "typed": null,
+    "at": "2026-10-08T18:33:21.671Z"
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "concept_id": "ECON-PRICE-05",
+  "section": "methodology",
+  "version": 1,
+  "title": "Baselines and how they change measured uplift",
+  "reading_md": "**What it is.** The baseline is the estimate of sales without the promotion, and different baselines can give very different uplifts. The options:\n\n- the average of a pre-period;\n- the same period last year;\n- control stores or products without the promotion (difference-in-differences);\n- a model with seasonality.\n\nChoose the baseline before you look at the result. Voltmarkt's own uplift metric, with its 4-week pre-period and zero-filled weeks, is in the reading **Promo uplift vs baseline**.\n\n**How to work it out.**\n\nUplift = actual / baseline - 1\n\nControl-store baseline = test stores' pre-period × (control stores' promotion period / control stores' pre-period)\n\nWorked example. Test stores sell 1,300 units in the promotion week. Their pre-period average is 1,000, and the same week last year sold 1,100. Control stores go from 2,000 in the pre-period to 2,300 in the same week.\n\n- Pre-period: 1,300 / 1,000 - 1 = 30.0%.\n- Last year: 1,300 / 1,100 - 1 = 18.2%.\n- Control stores grew 2,300 / 2,000 = 1.15, so the baseline is 1,150 and the uplift is 1,300 / 1,150 - 1 = 13.0% (1 decimal).\n\nThe market grew 15% anyway, so the pre-period baseline overstates the uplift.\n\n**In the interview.** \"Which baseline would you use for a December promotion?\" A model answer: \"Control stores, or last year adjusted for trend. Not a November pre-period, which misses the December peak.\"\n\n**Common mistakes.**\n\n- A pre-period that contains a holiday or another promotion.\n- Ignoring market-wide trends.\n- Choosing the baseline that gives the best result.\n\n**Can we conclude the promotion worked?** Say these aloud:\n\n- What was the goal: units, revenue, contribution or new customers?\n- What is the baseline, and was it chosen before looking?\n- Was anything else going on: holidays, weather, competitor actions, other promotions, stock-outs?\n- What is the gross lift against that baseline?\n- How much was cannibalised from our own products or switched from other stores?\n- Is there a post-promotion dip showing pull-forward?\n- Is there a halo on other categories?\n- After the discount and any supplier funding, did contribution go up?\n- So: it worked, it did not, or we cannot tell. Next time, test with control stores.",
+  "source_ids": [
+    "11:ECON-05",
+    "11:§6",
+    "ERRATA:E-175",
+    "ERRATA:E-183",
+    "ERRATA:E-184",
+    "04:MET-PRICE-04"
+  ],
+  "verified": true,
+  "as_of": "2026-10-08"
+}

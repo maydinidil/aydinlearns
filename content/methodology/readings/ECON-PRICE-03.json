@@ -1,0 +1,15 @@
+{
+  "concept_id": "ECON-PRICE-03",
+  "section": "methodology",
+  "version": 1,
+  "title": "Cross-price elasticity, cannibalisation and halo",
+  "reading_md": "**What it is.** Cross-price elasticity is the percent change in the quantity of one product, A, divided by the percent change in the price of another product, B.\n\n- Positive: substitutes. A cut on B pulls sales from A: cannibalisation when both are yours, or brand switching.\n- Negative: complements. A cut on B lifts A: a halo.\n\nThe metrics that count these effects in units against a baseline have their own readings, **Cannibalisation** and **Halo effect**. Cross-price elasticity puts the direction and the strength in one number.\n\n**How to work it out.**\n\nE_AB = %ΔQ of A / %ΔP of B\n\nWorked example. A cheap USB-C cable, product B, drops from €5.00 to €4.50. A branded USB-C cable, product A, falls from 800 to 760 units a week.\n\n- %ΔP of B = -0.50 / 5.00 = -10%.\n- %ΔQ of A = -40 / 800 = -5%.\n- E_AB = -5 / -10 = +0.50 (2 decimals): substitutes. Part of B's bump is taken from A.\n\n**In the interview.** \"Why do a retailer and a manufacturer judge the same promotion differently?\" A model answer: \"Brand switching is incremental to the manufacturer but not to the retailer, who sells both brands. Store switching is the reverse: new sales for the retailer, but not for the manufacturer, whose product would have sold in another store.\"\n\n**Common mistakes.**\n\n- Mixing up what the sign means.\n- Ignoring cross effects when judging a promotion.\n- Assuming symmetry: the effect of B's price on A need not equal the effect of A's price on B.",
+  "source_ids": [
+    "11:ECON-03",
+    "ERRATA:E-175",
+    "04:MET-PRICE-05",
+    "04:MET-PRICE-06"
+  ],
+  "verified": true,
+  "as_of": "2026-10-08"
+}

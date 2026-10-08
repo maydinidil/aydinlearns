@@ -75,17 +75,26 @@ export const hiddenFlags = (count: number, index: number): boolean[] => Array.fr
 const DEFAULT_BLUEPRINT = { mini_drill: { questions: 20, minutes: 30 }, half_mock: { questions: 25, minutes: 37.5 } } as const;
 const KIND_LABEL: Record<RunKind, string> = { mini_drill: 'Mini drill', half_mock: 'Half-mock' };
 export const kindLabel = (k: RunKind): string => KIND_LABEL[k];
-/** The entry button: from the server's blueprint when it is known, else the shipped values. A time limit is a test rule, so it may show. */
-export function entryLabel(kind: RunKind, bp: { questions: number; minutes: number } | null): string {
-  const { questions, minutes: limit } = bp ?? DEFAULT_BLUEPRINT[kind];
-  return `${KIND_LABEL[kind]} (${questions} questions, ${limit} minutes)`;
+/** What an entry does (finding 28): the line under it carries the numbers, so the button does not repeat them. */
+export const startLabel = (kind: RunKind): string => `Start a ${KIND_LABEL[kind].toLowerCase()}`;
+/** A time limit in words (finding 28): 30 is "30 minutes", 37.5 is "37 minutes 30 seconds". A limit is a test rule, so it may show. */
+export function limitText(total: number): string {
+  const whole = Math.floor(total);
+  const secs = Math.round((total - whole) * 60);
+  const limit = `${whole} minute${whole === 1 ? '' : 's'}`;
+  return secs === 0 ? limit : `${limit} ${secs} second${secs === 1 ? '' : 's'}`;
+}
+/** The line under an entry: from the server's blueprint when it is known, else the shipped values. */
+export function entryDetail(kind: RunKind, bp: { questions: number; minutes: number } | null): string {
+  const { questions, minutes } = bp ?? DEFAULT_BLUEPRINT[kind];
+  return `${questions} questions, ${limitText(minutes)}.`;
 }
 export const unseenComesBack = (date: string): string => `Unseen questions come back on ${date}`;
 
 export const runHeading = (k: RunKind): string => `GA4 ${k === 'mini_drill' ? 'mini drill' : 'half-mock'}`;
 export function runLine(r: { kind: RunKind; questions: number; minutes: number; pass_pct: number; mode: RunMode }): string {
   const limit = r.minutes;          // a run's time limit is a test rule, so it may be shown
-  const head = `${r.questions} questions, ${limit} minutes, pass at ${r.pass_pct}%.`;
+  const head = `${r.questions} questions, ${limitText(limit)}, pass at ${r.pass_pct}%.`;
   return r.mode === 'exam'
     ? `${head} One question at a time, no going back, one answer each. Unanswered questions count as wrong.`
     : `${head} Go back, flag a question and change an answer at any time.`;
@@ -97,7 +106,7 @@ export function scoreLine(s: { correct: number; of: number; pct: number; pass: b
 }
 /** S3-10: a half-mock says whether it was on unseen items (D27); a mini drill gives the unseen share. */
 export function unseenLine(r: { kind: 'half_mock'; on_unseen: boolean | null | undefined } | { kind: 'mini_drill'; unseen: number | null | undefined; unseen_pct: number | null | undefined }): string {
-  if (r.kind === 'half_mock') return `On unseen items: ${r.on_unseen ? 'yes' : 'no'}.`;
+  if (r.kind === 'half_mock') return r.on_unseen ? 'No question was shown in the last 21 days.' : 'Some questions were shown in the last 21 days.';
   return `Unseen questions: ${r.unseen ?? 0} (${r.unseen_pct ?? 0}%).`;
 }
 
@@ -114,6 +123,8 @@ export const topicRows = (rows: readonly TopicScore[], names?: TopicNames): stri
 
 // ---- the review (S3-03, S3-12) ----------------------------------------------------------------------------------------------------
 
+/** The mark class for a verdict (finding 27): a right answer gets the tick, a wrong or unanswered one the cross. */
+export const verdictClass = (verdict: string): 'ok' | 'bad' => (verdict === 'Right' ? 'ok' : 'bad');
 export interface ReviewRow { n: number; topic: string; verdict: string; item_id?: string; item_instance_id?: string; chosen?: string | null }
 const verdictOf = (i: { answered: boolean; correct: boolean }): string => (i.correct ? 'Right' : i.answered ? 'Wrong' : 'Wrong (unanswered)');
 /**
@@ -132,7 +143,7 @@ export function reviewRows(kind: RunKind, items: readonly RunReviewItem[], names
 
 export const HISTORY_COLUMNS = ['Date', 'Kind', 'Score', 'Passed', 'Unseen', 'By topic'] as const;
 export function historyCells(r: RunHistoryRow, names?: TopicNames): string[] {
-  const unseen = r.kind === 'half_mock' ? `On unseen items: ${r.on_unseen ? 'yes' : 'no'}` : `${r.unseen ?? 0} of ${r.of} unseen`;
+  const unseen = r.kind === 'half_mock' ? (r.on_unseen ? 'No question was shown in the last 21 days.' : 'Some questions were shown in the last 21 days.') : `${r.unseen ?? 0} of ${r.of} unseen`;
   return [r.date, kindLabel(r.kind), `${r.correct} of ${r.of} (${r.pct}%)`, r.pass ? 'Yes' : 'No', unseen, r.by_topic.map((t) => `${topicLabel(t.topic, names)} ${t.correct} of ${t.of}`).join('; ')];
 }
 

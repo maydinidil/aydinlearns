@@ -120,16 +120,24 @@ export const nextGoalLine = (title: string, date: string, today: string): string
 export const dueTomorrowLine = (n: number): string => `Due tomorrow: ${n} review${n === 1 ? '' : 's'}`;
 
 const STATE_SUFFIX = / at (new|learning|practised|mastered|retained)$/;
-const LEVEL_LABEL = /\blevel \d+ at \w+$/;
+const LEVEL_LABEL = /\blevel \d+ \w+$/;
 const CONCEPT_LABEL = /^([A-Z][A-Z0-9]*(?:-[A-Z0-9]+)+) at (\w+)$/;
+const NAMED_LABEL = /^\d+ of \d+ named concepts at (\w+)((?: \(\d+ not yet available\))?)$/;
 /**
- * One goal criterion: "SQL level 2 at practised: 4 of 12 concepts", "GA4 level 1: not yet available", a concept by its title,
- * and "n of m" for a count, "done" or "not yet" for a single result.
+ * One goal criterion: "SQL level 2 practised: 4 of 12 concepts", "GA4 level 1: not yet available", "Named concepts practised: 0 of 12",
+ * a concept by its title, and "n of m" for a count, "done" or "not yet" for a single result. The state is a word after the name, never
+ * "at practised" (sprint 5a, finding 20).
  */
 export function criterionLine(c: CriterionResult, titles: Titles | null): string {
+  const named = NAMED_LABEL.exec(c.label);
+  if (named) {
+    const head = `Named concepts ${named[1]}`;
+    return c.available && c.done !== null && c.total !== null ? `${head}: ${c.done} of ${c.total}${named[2]}` : `${head}: not yet available`;
+  }
   const one = CONCEPT_LABEL.exec(c.label);
-  const label = one ? `${conceptTitle(titles, one[1]!)} at ${one[2]}` : c.label;
-  if (!c.available) return `${label.replace(STATE_SUFFIX, '')}: not yet available`;
+  const at = one ? `${conceptTitle(titles, one[1]!)} at ${one[2]}` : c.label;
+  if (!c.available) return `${at.replace(STATE_SUFFIX, '')}: not yet available`;
+  const label = at.replace(STATE_SUFFIX, ' $1');
   if (LEVEL_LABEL.test(label) && c.done !== null && c.total !== null) return `${label}: ${c.done} of ${c.total} concept${c.total === 1 ? '' : 's'}`;
   if (c.done !== null && c.total !== null && c.total > 1) return `${label}: ${c.done} of ${c.total}`;
   return `${label}: ${c.met ? 'done' : 'not yet'}`;

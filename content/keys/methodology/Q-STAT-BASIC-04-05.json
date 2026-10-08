@@ -1,0 +1,13 @@
+{
+  "item_id": "Q-STAT-BASIC-04-05",
+  "item_version": 1,
+  "correct_oid": "o515963c",
+  "explanation": "The distances are measured from the sample's own mean, which sits closer to the sample's values than the true mean does. Dividing by n therefore gives a variance that is too small on average, and n - 1 corrects that bias. It is not about making results look safer or dropping a value.",
+  "solver": {
+    "prompt_hash": "e82a15a87ea7896d",
+    "grader_version": "choice.2",
+    "chosen": "o515963c",
+    "typed": null,
+    "at": "2026-10-08T18:33:22.160Z"
+  }
+}

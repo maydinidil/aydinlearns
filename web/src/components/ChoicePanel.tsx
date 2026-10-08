@@ -7,6 +7,7 @@ import type { TableNote } from '../../../schemas/schema-notes.ts';
 import type { Phase } from '../../../core/envelope.ts';
 import type { OptionTable } from '../../../schemas/choice-types.ts';
 import { isClosedError } from '../lib/exercise.ts';
+import { ANSWER_FIRST, typedValueText } from '../lib/cp4-flow.ts';
 import { createBusyGate } from '../lib/busy-gate.ts';
 import { canSaveAnswer, classifyRunRefusal, modeRules, runMayBeGone, shownAtAfter, type RunMode } from '../lib/run-flow.ts';
 import { itemBadges } from '../lib/choice-flow.ts';
@@ -57,7 +58,7 @@ function typedHint(t: TypedView): string {
   const scale = t.scale === 'percent' ? 'a percentage' : t.scale === 'eur' ? 'an amount in euros' : 'a number';
   return `Type ${scale} with ${decimalsText(t.decimals)}. A decimal point or a decimal comma both work.`;
 }
-const withUnit = (value: number | undefined, t: TypedView | null): string => `${value ?? ''}${t?.unit_label ? ` ${t.unit_label}` : ''}`;
+const withUnit = typedValueText;           // finding 36: the item's decimals, no space before %
 
 function ChoicePanelInner({ itemId, section, phase: asked, schemaNotes, instanceId, onDone, onReopen, run }: Props) {
   const instance = useRef(instanceId ?? crypto.randomUUID());
@@ -205,6 +206,7 @@ function ChoicePanelInner({ itemId, section, phase: asked, schemaNotes, instance
           <label>Your answer <input type="text" inputMode="decimal" value={typed} disabled={locked || busy} onChange={(e) => setTyped(e.target.value)} /> {item.typed?.unit_label}</label>
         </div>
       )}
+      {!run && !answered && !sendable && <p className="muted">{item.kind === 'mcq' ? ANSWER_FIRST.mcq : ANSWER_FIRST.typed}</p>}
       {sendable && (run && !run.confidence
         ? <p><button type="button" disabled={busy} onClick={() => void send(null)}>Save answer</button></p>
         : <ConfidenceRow busy={busy} onPick={(c) => void send(c)} note={run ? 'Your answer is saved when you pick one. The result comes in the review.' : undefined} />)}

@@ -74,7 +74,7 @@ export function LessonScreen({ conceptId }: { conceptId: string }) {
   const stage = stageFor(block);
   const retest = retests.find((r) => r.conceptId === conceptId);
   return (
-    <section>
+    <section className="lesson">
       <PageHead section="sql" title={title} crumb={crumbParts({ section: 'sql', level: titles?.get(conceptId)?.level ?? null, concept: null, place: null, hideLabels: false })} />
       <nav className="steps" aria-label="Lesson steps">{STEPS.map(([s, label]) => (
         <button key={s} type="button" aria-current={step === s ? 'step' : undefined} onClick={() => setStep(s)}>{step === s ? <strong>{label}</strong> : label}</button>
@@ -88,8 +88,8 @@ export function LessonScreen({ conceptId }: { conceptId: string }) {
           <button type="button" onClick={() => setPretestStarted(true)}>Start the pretest</button>{' '}
           <button type="button" onClick={() => setStep('reading')}>Skip the pretest</button></p>
       ) : (
-        <div className="read-col">
-          <p>Question {pretest.length + 1} of 2. <button type="button" onClick={() => setStep('reading')}>Skip the pretest</button></p>
+        <div>
+          <p className="read-col">Question {pretest.length + 1} of 2. <button type="button" onClick={() => setStep('reading')}>Skip the pretest</button></p>
           <ItemPanel key={lesson.pretest_item_ids[pretest.length]} itemId={lesson.pretest_item_ids[pretest.length]!} phase="pretest" onClosed={pretestClosed} />
         </div>
       ))}

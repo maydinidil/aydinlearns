@@ -1,0 +1,14 @@
+{
+  "concept_id": "MET-SAAS-13",
+  "section": "methodology",
+  "version": 1,
+  "title": "Sales velocity",
+  "reading_md": "**Setting.** Voltmarkt's business sales team sells Business Care contracts to larger offices. A deal's amount is the contract's first-year value.\n\n**What it measures.** How many euros of won business the pipeline produces per day. It combines four levers into one number.\n\n**Formula.**\n\nsales velocity (€ a day) = open opportunities × average deal size × win rate / average sales cycle in days\n\n- Open opportunities: the qualified deals in the pipeline now.\n- Average deal size: the average amount of won deals.\n- Win rate: won / (won + lost) among recently closed deals, as a fraction. Open deals never enter it.\n- Average sales cycle: days from an opportunity's creation to its close, for won deals. Not from the first contact with a lead.\n- Grain: segment × period.\n\n**Worked example.** The pipeline holds 40 open opportunities. Last quarter the won deals averaged €2,400 and took 60 days from creation to close, and the win rate was 30%.\n\n- Velocity = 40 × 2,400 × 0.30 / 60 = €480 a day.\n- Shortening the cycle by 10 days, to 50: 40 × 2,400 × 0.30 / 50 = €576 a day, 20% more.\n- Measuring the cycle from the first lead contact, 90 days, gives €320 a day: it counts time before the deal was an opportunity.\n\n**Reading the number.** Each lever moves velocity in proportion. 10% more opportunities, 10% bigger deals or a 10% higher win rate each add 10%; a cycle 10% shorter adds about 11%, because the cycle divides. Velocity shows which lever is worth pulling; it is not a revenue forecast.\n\n**Common mistakes.**\n\n- A win rate from the open pipeline, which counts open deals as lost.\n- A cycle measured from the lead instead of the opportunity.\n\n**What it does not answer.**\n\n- Which segment wins most of its closed deals: that is the win rate by segment.\n- How soon acquisition spend comes back: that is CAC payback.\n\n**How managers ask for it.** \"How fast does pipeline turn into revenue?\" \"What happens to velocity if we shorten the cycle 10 days?\"",
+  "source_ids": [
+    "04:MET-SAAS-13",
+    "04:MET-SAAS-12",
+    "ERRATA:E-100"
+  ],
+  "verified": true,
+  "as_of": "2026-10-08"
+}

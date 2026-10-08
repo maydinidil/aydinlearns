@@ -1,6 +1,6 @@
 {
   "id": "EX-CASE-DAILY-L2-02",
-  "version": 2,
+  "version": 3,
   "kind": "write",
   "tags": [
     "sql",
@@ -47,7 +47,7 @@
   "company": "voltmarkt",
   "schema": "voltmarkt",
   "edge_schema": "voltmarkt_edge_agg",
-  "prompt": "Marieke, the CFO, is closing the 2025 books and asks which products Voltmarkt sold below cost over the year as a whole. Use the order lines in the sales table with an order_date from 2025-01-01 to 2025-12-31, both days included, and use only the lines where net_revenue_eur, units and unit_cost_eur are all present: leave out a line with any of them missing. For each product, its revenue is the sum of net_revenue_eur and its cost is the sum of units times unit_cost_eur. Keep only the products whose cost is greater than their revenue. Return five columns, in this order: product_id, product_name, parent_category, revenue_eur and loss_eur, the cost minus the revenue. Do not round. Return one row for each product. Sort by parent_category from A to Z; when products have the same parent_category, sort them by product_id from low to high.",
+  "prompt": "Marieke, the CFO, is closing the 2025 books and asks which products Voltmarkt sold below cost over the year as a whole. Use the order lines in the sales table with an order_date from 2025-01-01 to 2025-12-31, both days included, and use only the lines where net_revenue_eur, units and unit_cost_eur are all present: leave out a line with any of them missing. For each product, its revenue is the sum of net_revenue_eur and its cost is the sum of units times unit_cost_eur. A product has the same product_name and parent_category on every one of its lines. Keep only the products whose cost is greater than their revenue. Return five columns, in this order: product_id, product_name, parent_category, revenue_eur and loss_eur, the cost minus the revenue. Do not round. Return one row for each product. Sort by parent_category from A to Z; when products have the same parent_category, sort them by product_id from low to high.",
   "output_contract": {
     "columns": [
       {

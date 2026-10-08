@@ -1,7 +1,7 @@
 {
   "item_id": "EX-SQL-DATE-01-E2-05",
-  "item_version": 1,
-  "reference_sql": "SELECT date_trunc('week', order_date) AS week_start,\n       SUM(net_revenue_eur) AS net_revenue_eur\nFROM sales\nWHERE order_date BETWEEN DATE '2025-12-01' AND DATE '2025-12-31'\nGROUP BY date_trunc('week', order_date)",
+  "item_version": 2,
+  "reference_sql": "SELECT CAST(date_trunc('week', order_date) AS DATE) AS week_start,\n       SUM(net_revenue_eur) AS net_revenue_eur\nFROM sales\nWHERE order_date BETWEEN DATE '2025-12-01' AND DATE '2025-12-31'\nGROUP BY date_trunc('week', order_date)",
   "alternatives": [
     "SELECT order_week AS week_start, SUM(net_revenue_eur) AS net_revenue_eur FROM sales WHERE order_date >= DATE '2025-12-01' AND order_date < DATE '2026-01-01' GROUP BY order_week",
     "SELECT CAST(date_trunc('week', order_date) AS DATE) AS week_start, SUM(net_revenue_eur) AS net_revenue_eur FROM sales WHERE year(order_date) = 2025 AND month(order_date) = 12 GROUP BY 1"
@@ -14,15 +14,15 @@
     {
       "id": "PW1",
       "error_id": "ERR-LOG-25",
-      "sql": "SELECT date_trunc('month', order_date) AS week_start, SUM(net_revenue_eur) AS net_revenue_eur FROM sales WHERE order_date BETWEEN DATE '2025-12-01' AND DATE '2025-12-31' GROUP BY 1"
+      "sql": "SELECT CAST(date_trunc('month', order_date) AS DATE) AS week_start, SUM(net_revenue_eur) AS net_revenue_eur FROM sales WHERE order_date BETWEEN DATE '2025-12-01' AND DATE '2025-12-31' GROUP BY 1"
     },
     {
       "id": "PW2",
       "error_id": "ERR-LOG-23",
-      "sql": "SELECT date_trunc('week', order_date) AS week_start, SUM(net_revenue_eur) AS net_revenue_eur FROM sales WHERE order_date > DATE '2025-12-01' AND order_date < DATE '2025-12-31' GROUP BY 1"
+      "sql": "SELECT CAST(date_trunc('week', order_date) AS DATE) AS week_start, SUM(net_revenue_eur) AS net_revenue_eur FROM sales WHERE order_date > DATE '2025-12-01' AND order_date < DATE '2025-12-31' GROUP BY 1"
     }
   ],
-  "hint3_partial": "SELECT date_trunc(___, order_date) AS week_start,\n       SUM(net_revenue_eur) AS net_revenue_eur\nFROM sales\nWHERE order_date BETWEEN DATE '2025-12-01' AND DATE '2025-12-31'\nGROUP BY ___",
+  "hint3_partial": "SELECT CAST(date_trunc(___, order_date) AS DATE) AS week_start,\n       SUM(net_revenue_eur) AS net_revenue_eur\nFROM sales\nWHERE order_date BETWEEN DATE '2025-12-01' AND DATE '2025-12-31'\nGROUP BY ___",
   "solver": {
     "prompt_hash": "307ecbdad34cfb19",
     "schema_version": "cebf75df442f",

@@ -1,0 +1,48 @@
+{
+  "id": "Q-EXP-AB-06-03",
+  "version": 1,
+  "kind": "mcq",
+  "section": "methodology",
+  "concept_id": "EXP-AB-06",
+  "stem": "A planner wants to detect a 10% relative lift on a 4% baseline conversion and puts δ = 0.10 into Lehr's rule, n per variant ≈ 16 × p(1 - p) / δ². What goes wrong?",
+  "options": [
+    {
+      "oid": "o11d59fa",
+      "text": "Nothing: Lehr's rule takes the relative lift as δ, so 0.10 is the right value",
+      "misconception_id": null
+    },
+    {
+      "oid": "of443525",
+      "text": "δ must be the absolute difference, 0.004, so 0.10 gives a sample far too small",
+      "misconception_id": null
+    },
+    {
+      "oid": "od6b20e2",
+      "text": "δ = 0.10 gives a sample far too large, so the test would run for far too long",
+      "misconception_id": null
+    },
+    {
+      "oid": "o8cf278d",
+      "text": "δ must be the baseline itself, 0.04, so 0.10 is too large a value for the rule",
+      "misconception_id": null
+    }
+  ],
+  "typed": null,
+  "held_out": false,
+  "enemy_group": null,
+  "status": "active",
+  "verified": true,
+  "level": null,
+  "tags": [
+    "methodology",
+    "T-MET-EXP",
+    "common-mistake"
+  ],
+  "source_ids": [
+    "11:EXP-06",
+    "ERRATA:E-175"
+  ],
+  "as_of": "2026-10-08",
+  "review_after": null,
+  "supersedes": []
+}

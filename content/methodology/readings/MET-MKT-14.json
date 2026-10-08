@@ -1,0 +1,14 @@
+{
+  "concept_id": "MET-MKT-14",
+  "section": "methodology",
+  "version": 1,
+  "title": "Lead lifecycle conversion",
+  "reading_md": "**Setting.** The examples use leads for Business Care, the support subscription Voltmarkt sells to small offices. A lead moves through five stages: Lead → MQL (marketing qualified lead) → SQL (sales qualified lead) → Opportunity → Customer. What qualifies a lead for each stage is set by each company.\n\n**What it measures.** The share of leads that move on from one stage to the next, per source channel and cohort.\n\n**Formula.**\n\nStage conversion % = 100 × leads reaching stage n / leads reaching stage n - 1\n\n- Each lead has a date for every stage it reached: an MQL date, an SQL date, an opportunity date and a won date. A lead counts at a stage when that date is filled in, even if it skipped an earlier stage.\n- Leads are grouped into cohorts by the month they were created. Each stage counts the cohort's leads that reached it, whenever that happened.\n- Grain: source channel × cohort month.\n\n**Worked example.** Leads created in June 2025 from webinars:\n\n| Stage | Leads | Conversion from the stage before |\n|---|---|---|\n| Lead | 400 | |\n| MQL | 140 | 35.0% |\n| SQL | 56 | 40.0% |\n| Opportunity | 28 | 50.0% |\n| Customer | 10 | 35.7% |\n\nOverall, 100 × 10 / 400 = 2.5% of the cohort became customers.\n\n**Young cohorts look worse.** On 5 October the September cohort may show 20 SQLs but only 2 customers. Most of those deals are still open, and an open lead is not a failure yet. Compare cohorts only once they have had the same time to mature.\n\n**Common mistakes.**\n\n- Counting by event month. Dividing the SQL dates recorded in July by the MQL dates recorded in July mixes leads from different cohorts.\n- Comparing rates across companies, whose MQL and SQL criteria differ.\n- Treating open leads as lost.\n\n**What it does not answer.** What a lead or a customer cost (CPA or CAC), or how much the new customers pay.\n\n**How managers ask for it.** \"How many MQLs turned into SQLs last quarter?\" \"Is the webinar channel giving sales good leads?\"",
+  "source_ids": [
+    "04:MET-MKT-14",
+    "04:§2.1",
+    "ERRATA:E-100"
+  ],
+  "verified": true,
+  "as_of": "2026-10-08"
+}

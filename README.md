@@ -12,9 +12,9 @@ saying "wrong".
 
 | Section | Content |
 |---|---|
-| SQL | Levels 1 to 3, 20 concepts from the first SELECT to aggregation, CASE, types, dates, joins, CTEs and set operations: lessons with worked examples, 565 exercises (write the query, fix the query, predict the result, choose the query), timed drills, an opener case for levels 1 and 2, mistake cards for the mistakes that keep coming back, and "other ways to write this" after a pass |
+| SQL | Levels 1 to 3, 20 concepts from the first SELECT to aggregation, CASE, types, dates, joins, CTEs and set operations: lessons with worked examples, 568 exercises (write the query, fix the query, predict the result, choose the query), timed drills, 12 cases in an inbox (an opener for each level, seven daily cases and two pricing cases), mistake cards for the mistakes that keep coming back, "other ways to write this" after a pass, a dataset explorer and a portfolio export |
 | GA4 | 16 lessons on the foundations and 123 questions: 73 for practice and 20-question mini drills, 50 held out for 25-question half-mocks |
-| Methodology | 30 metrics (marketing, retail, pricing and SaaS), each with a reading, and 190 questions |
+| Methodology | 78 concepts, each with a reading: 51 metrics (marketing, retail, pricing and SaaS), 13 on experiments and A/B testing, 9 on statistics and 5 on pricing economics. 478 questions, 93 of them held out for mocks |
 
 ## How it teaches
 
@@ -55,18 +55,20 @@ A lesson reading: [docs/screenshots/lesson.png](docs/screenshots/lesson.png).
 Aydin designed and directed the project and built it with AI coding agents (Claude Code), from a
 written design, sprint plans and test-first tasks, with a review per task and an outside review
 of every pull request. Lessons and exercises are generated from a research bank by agents and
-checked before they ship: 7,781 automated content checks, and a blind solver (a fresh agent
+checked before they ship: 14,952 automated content checks, and a blind solver (a fresh agent
 that solves every exercise without seeing its answer key). The design, the plans, every ruling
 and the review logs are in `docs/`.
 
-Today: 1,193 automated tests, 7,781 content checks and a 37-row browser smoke test, all passing.
+Today: 1,778 automated tests, 96 data pipeline tests, 14,952 content checks and a 58-row browser smoke test, all passing.
 
 ## Status
 
-Built: SQL levels 1 to 3 with the scheduler, Today, drills, level openers for levels 1 and 2,
-mistake cards and the Mistakes and review screen; GA4 lessons, mini drills and half-mocks; 30
-Methodology metrics; the visual design. Next (sprint 4b): the level 3 opener, cases and an inbox,
-a portfolio export and a progress screen. See `docs/planning/roadmap.md`.
+Version 1.0 (2026-10-08). Built: SQL levels 1 to 3 with the scheduler, Today, drills, level
+openers, cases and the inbox, mistake cards, the portfolio export, the Progress screen, the
+dataset explorer and screen mode; GA4 lessons, mini drills and half-mocks; Methodology complete.
+Next is 1.1: GA4 complete (the remaining lessons, full mocks, the readiness check and the
+interview labs). Later 1.x releases add SQL levels 4 to 7, more companies and real datasets, and
+the recruiter mocks. See `docs/planning/roadmap.md` and `CHANGELOG.md`.
 
 It runs on Windows 11; other systems are untested.
 

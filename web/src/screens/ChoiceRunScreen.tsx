@@ -14,9 +14,9 @@ import { crumbParts } from '../lib/crumb.ts';
 import { createBusyGate } from '../lib/busy-gate.ts';
 import { EndGuard, endWithRetry, remainingSeconds } from '../lib/drill-flow.ts';
 import {
-  HELP_LINE, TOPIC_COLUMNS, canMoveTo, endNowText, endReasonLine, endRefusalNote, entryLabel, flagsAfter, ga4RunFromRefusal, hiddenFlags, listRows, modeRules, overConfirmed, reachedEnd,
-  questionsShown, questionView, recallIndex, recallSet, rememberIndex, rememberSet, resumeIndex, recoveredLine, reviewRows, runHeading, runLine, scoreLine, timeLeft,
-  topicRows, unansweredNumbers, unlistedLine, unseenComesBack, unseenLine, type ReviewRow, type TopicNames,
+  HELP_LINE, TOPIC_COLUMNS, canMoveTo, endNowText, endReasonLine, endRefusalNote, flagsAfter, ga4RunFromRefusal, hiddenFlags, listRows, modeRules, overConfirmed, reachedEnd,
+  questionsShown, questionView, recallIndex, recallSet, rememberIndex, rememberSet, resumeIndex, recoveredLine, reviewRows, runHeading, runLine, scoreLine, startLabel, timeLeft,
+  topicRows, unansweredNumbers, unlistedLine, unseenComesBack, unseenLine, verdictClass, type ReviewRow, type TopicNames,
 } from '../lib/run-flow.ts';
 
 type State = 'choose' | 'running' | 'review';
@@ -234,7 +234,7 @@ export function ChoiceRunScreen({ block = null }: { block?: string | null }) {
             <div className="table-scroll card">
               <table>
                 <thead><tr><th scope="col">Question</th><th scope="col">Topic</th><th scope="col">Result</th></tr></thead>
-                <tbody>{rows.map((r) => <tr key={r.n}><td>{r.n}</td><td>{r.topic}</td><td>{r.verdict}</td></tr>)}</tbody>
+                <tbody>{rows.map((r) => <tr key={r.n}><td>{r.n}</td><td>{r.topic}</td><td className={verdictClass(r.verdict)}>{r.verdict}</td></tr>)}</tbody>
               </table>
             </div>
           </>
@@ -258,7 +258,7 @@ export function ChoiceRunScreen({ block = null }: { block?: string | null }) {
       {message && <p role="alert" className="notice">{message}</p>}
       <ul>{KINDS.map((k) => (
         <li key={k}>
-          <button type="button" disabled={busy} onClick={() => void start(k)}>{entryLabel(k, blueprints?.[k] ?? null)}</button>
+          <button type="button" disabled={busy} onClick={() => void start(k)}>{startLabel(k)}</button>
           {blueprints && <><br /><span className="muted">{runLine({ kind: k, ...blueprints[k] })}</span></>}
         </li>
       ))}</ul>

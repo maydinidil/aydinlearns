@@ -18,6 +18,14 @@
 -- which does not sell; in the earbuds category (16), products 2 and 3 sell at different ratios to the rivals' price
 -- and in different units, so the average of the line ratios is not the unit-weighted index.
 -- Line prices follow E-103: the list price on the order date, less the promotion's discount (half up).
+-- Sprint 5a (Task B2): the A/B test AB-2025-01 (1 to 14 September 2025, UTC), for the A/B SQL items, at the end of
+-- this file. Its customers (3001 to 3011) stand alone: none of them has an order here. Planted:
+--   treatment (3006 to 3009, and 3010) has no conversion at all, so an inner join loses the variant;
+--   control (3001 to 3005, 3011, and 3010) converts 3 of its 6 customers who are in one variant only: 3001, 3002, 3005;
+--   3001 converts twice after its assignment (count customers, not rows);
+--   3002 converts at exactly its assigned_at (it counts); 3003 converts only before its assigned_at (it does not);
+--   3005's conversion has no revenue (revenue_eur missing), and it still counts;
+--   3010 is in both variants, with no conversion.
 CREATE SCHEMA voltmarkt_edge_join;
 CREATE TABLE voltmarkt_edge_join.calendar AS SELECT * FROM voltmarkt.calendar
   WHERE cal_date BETWEEN DATE '2025-02-24' AND DATE '2025-03-16';
@@ -110,3 +118,24 @@ INSERT INTO voltmarkt_edge_join.competitor_prices VALUES
   (3, 'Stroomhuis', TIMESTAMP '2025-03-13 07:40:00', 54.99),
   (6, 'Bliksem', TIMESTAMP '2025-03-14 06:25:00', 474.99),
   (4, 'Bliksem', TIMESTAMP '2025-03-16 06:10:00', 304.99);
+CREATE TABLE voltmarkt_edge_join.ab_assignments AS SELECT * FROM voltmarkt.ab_assignments LIMIT 0;
+INSERT INTO voltmarkt_edge_join.ab_assignments VALUES
+  ('AB-2025-01', 3001, 'control', TIMESTAMP '2025-09-01 10:15:00'),
+  ('AB-2025-01', 3006, 'treatment', TIMESTAMP '2025-09-01 11:30:00'),
+  ('AB-2025-01', 3010, 'control', TIMESTAMP '2025-09-02 13:05:00'),
+  ('AB-2025-01', 3002, 'control', TIMESTAMP '2025-09-02 19:40:00'),
+  ('AB-2025-01', 3007, 'treatment', TIMESTAMP '2025-09-03 14:45:00'),
+  ('AB-2025-01', 3003, 'control', TIMESTAMP '2025-09-04 08:05:00'),
+  ('AB-2025-01', 3004, 'control', TIMESTAMP '2025-09-05 12:00:00'),
+  ('AB-2025-01', 3008, 'treatment', TIMESTAMP '2025-09-06 09:20:00'),
+  ('AB-2025-01', 3005, 'control', TIMESTAMP '2025-09-08 20:10:00'),
+  ('AB-2025-01', 3010, 'treatment', TIMESTAMP '2025-09-09 16:30:00'),
+  ('AB-2025-01', 3009, 'treatment', TIMESTAMP '2025-09-10 18:00:00'),
+  ('AB-2025-01', 3011, 'control', TIMESTAMP '2025-09-11 09:30:00');
+CREATE TABLE voltmarkt_edge_join.ab_conversions AS SELECT * FROM voltmarkt.ab_conversions LIMIT 0;
+INSERT INTO voltmarkt_edge_join.ab_conversions VALUES
+  ('AB-2025-01', 3001, TIMESTAMP '2025-09-01 10:31:00', 129.99),
+  ('AB-2025-01', 3002, TIMESTAMP '2025-09-02 19:40:00', 299.00),
+  ('AB-2025-01', 3003, TIMESTAMP '2025-09-03 21:30:00', 12.99),
+  ('AB-2025-01', 3001, TIMESTAMP '2025-09-07 15:02:00', 59.00),
+  ('AB-2025-01', 3005, TIMESTAMP '2025-09-08 20:26:00', NULL);

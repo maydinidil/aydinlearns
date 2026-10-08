@@ -1,0 +1,13 @@
+{
+  "concept_id": "STAT-BASIC-04",
+  "section": "methodology",
+  "version": 1,
+  "title": "Variance and standard deviation",
+  "reading_md": "**What it is.** Variance is the average squared distance from the mean. The standard deviation (SD) is its square root, so it is in the same units as the data. Squaring stops positive and negative distances from cancelling out. A sample variance divides by n - 1 instead of n. That corrects the downward bias that comes from measuring distances from a mean estimated on the same sample.\n\n**How to work it out.**\n\nSample variance s² = Σ(x - mean)² / (n - 1), and the SD is s = √s²\n\nFor a whole population, divide by n instead.\n\nWorked example. Daily orders, in thousands: 2, 4, 4, 4, 5, 5, 7, 9.\n\n- Mean = 40 / 8 = 5.\n- Squared distances: 9, 1, 1, 1, 0, 0, 4, 16, which sum to 32.\n- Population variance = 32 / 8 = 4, so the SD is 2.00.\n- Sample variance = 32 / 7 = 4.571, so the SD is 2.14 (2 decimals).\n\n**In the interview.** \"Two stores both average 500 orders a day. One has an SD of 20, the other 150. Why should you care?\" A model answer: \"The second store is far less predictable. It needs more buffer stock, and more data before a real change in its orders stands out from the day-to-day noise.\"\n\n**Common mistakes.**\n\n- Confusing the SD with the standard error. The SD is the spread of single values; the standard error is the uncertainty of an estimate.\n- Reporting variance to business users. It is in squared units, such as euros squared; give the SD.\n- Thinking the SD shrinks as you collect more data. It settles near the spread of the population.",
+  "source_ids": [
+    "11:STAT-04",
+    "ERRATA:E-175"
+  ],
+  "verified": true,
+  "as_of": "2026-10-08"
+}

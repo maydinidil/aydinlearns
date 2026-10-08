@@ -1,0 +1,16 @@
+{
+  "concept_id": "EXP-AB-04",
+  "section": "methodology",
+  "version": 1,
+  "title": "Statistical vs practical significance and minimum detectable effect",
+  "reading_md": "**What it is.**\n\n- Statistical significance: the effect is unlikely to be noise.\n- Practical significance: the effect is large enough to matter for the business.\n- The minimum detectable effect (MDE): the smallest true effect that a test of a given size can reliably detect, usually at 80% power and a two-sided α of 0.05.\n\nA result can be statistically significant and still too small to be worth its cost.\n\n**How to work it out.** Lehr's rule, rearranged, gives an approximate MDE for 80% power and a two-sided 5% level:\n\nMDE (absolute) ≈ 4 × sqrt(p(1 - p) / n), with p the baseline rate and n the users per variant\n\nWorked example. Baseline conversion 5%, 10,000 users per variant.\n\n- p(1 - p) = 0.05 × 0.95 = 0.0475\n- 0.0475 / 10,000 = 0.00000475; square root = 0.0021794\n- × 4 = 0.0087178, so the MDE is about 0.87 percentage points\n- Relative to the baseline: 0.0087178 / 0.05 = 0.1744, about 17.4%\n\nRounding: 2 decimals in points, 1 decimal in percent. Exact power calculators give slightly different numbers.\n\n**In the interview.** \"What MDE would you choose?\" A good answer: the smallest effect that would pay back the cost of the change. Then check whether the traffic allows a test that can detect it.\n\n**Common mistakes.**\n\n- Treating significant as important. A very large test can make a tiny lift significant.\n- Setting the MDE by what the traffic allows instead of by what matters to the business.\n- Reading a non-significant result from an underpowered test as proof of no effect. If a test could only detect lifts of about 17% relative, a non-significant result says only that the effect is probably not huge.",
+  "source_ids": [
+    "11:EXP-04",
+    "ERRATA:E-174",
+    "ERRATA:E-175",
+    "ERRATA:E-178",
+    "ERRATA:E-183"
+  ],
+  "verified": true,
+  "as_of": "2026-10-08"
+}

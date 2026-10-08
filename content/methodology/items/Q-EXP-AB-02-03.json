@@ -1,0 +1,47 @@
+{
+  "id": "Q-EXP-AB-02-03",
+  "version": 1,
+  "kind": "mcq",
+  "section": "methodology",
+  "concept_id": "EXP-AB-02",
+  "stem": "A test randomises users but reports click-through per page view, and the analyst tests it as if every page view were independent. What is the problem?",
+  "options": [
+    {
+      "oid": "o9eb775b",
+      "text": "None: users were randomised, so their page views count as independent",
+      "misconception_id": null
+    },
+    {
+      "oid": "of544124",
+      "text": "Views from one user are correlated, so the test is too confident",
+      "misconception_id": null
+    },
+    {
+      "oid": "odce8e47",
+      "text": "The test is too cautious, so it tends to miss effects that are real",
+      "misconception_id": null
+    },
+    {
+      "oid": "obb00fa5",
+      "text": "Click-through cannot be computed per page view in a user-level test",
+      "misconception_id": null
+    }
+  ],
+  "typed": null,
+  "held_out": false,
+  "enemy_group": null,
+  "status": "active",
+  "verified": true,
+  "level": null,
+  "tags": [
+    "methodology",
+    "T-MET-EXP"
+  ],
+  "source_ids": [
+    "11:EXP-02",
+    "ERRATA:E-175"
+  ],
+  "as_of": "2026-10-08",
+  "review_after": null,
+  "supersedes": []
+}

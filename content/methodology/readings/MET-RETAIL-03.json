@@ -1,0 +1,16 @@
+{
+  "concept_id": "MET-RETAIL-03",
+  "section": "methodology",
+  "version": 1,
+  "title": "Stock cover (weeks)",
+  "reading_md": "**What it measures.** How many weeks the stock a store holds today will last if the product keeps selling at its normal pace. Planners use it to see where a store will run out before the next delivery.\n\n**Formula (Voltmarkt's convention).**\n\nweeks of cover = units on hand today / average weekly units sold\n\n- Units on hand: the closing stock on the snapshot date. Stock is counted at the end of each day, after that day's sales.\n- Average weekly units: 7 × units sold on in-stock days / number of in-stock days, over the last 28 days. An in-stock day is a day that closed with stock above 0.\n- Grain: store × SKU × snapshot date.\n\n**Worked example.** On 29 September a Voltmarkt store has 42 Earbuds Pro X on hand. In the 28 days before, the earbuds closed with stock on 21 days and sold 63 units on those days. On the other 7 days the shelf was empty and nothing sold.\n\n- Average weekly units = 7 × 63 / 21 = 21 units a week.\n- Cover = 42 / 21 = 2.0 weeks.\n- Averaging over all 4 weeks gives 63 / 4 = 15.75 units a week and 2.7 weeks of cover. The empty week pulls the rate down, so the stock seems to last longer than it will.\n\n**Reading the number.** Compare cover with the weeks until the next delivery. Two weeks of cover with a delivery due in 3 weeks means about a week with an empty shelf, unless stock already on order, or a transfer from another store, lands sooner. Before Black Week and Sinterklaas, sales are about to rise, so cover based on the last 4 weeks looks better than it will turn out.\n\n**Common mistakes.**\n\n- A sales rate pulled down by out-of-stock days.\n- Ignoring stock already on order that arrives before the shelf runs empty.\n- Trusting a recent rate when demand is about to change, for example before a promotion or the December peak.\n\n**What it does not answer.**\n\n- How often the shelf was empty: that is the stockout rate.\n- How many sales were missed while it was empty: that is the lost sales estimate.\n- How many times stock turns over in a year: that is inventory turnover.\n\n**How managers ask for it.** \"How many weeks of stock do we have on gaming headsets?\" \"Where will we run out before the next delivery?\"",
+  "source_ids": [
+    "04:MET-RETAIL-03",
+    "04:§2.1",
+    "04:CASE-RETAIL-04",
+    "ERRATA:E-100",
+    "ERRATA:E-103"
+  ],
+  "verified": true,
+  "as_of": "2026-10-08"
+}

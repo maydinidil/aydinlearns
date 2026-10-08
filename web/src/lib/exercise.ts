@@ -132,17 +132,26 @@ export function rulesBadge(r: GradingRules): string[] {
   return out;
 }
 
-export function checklist(p: PartialScore): { label: string; points: number; max: number; ok: boolean; shown: string }[] {
+/**
+ * `text` is the whole line the learner reads (P1 finding 13): "Values match: 1 of 60 rows (1 of 40 points)", never rows and points mixed
+ * in one fraction.
+ */
+export function checklist(p: PartialScore): { label: string; points: number; max: number; ok: boolean; shown: string; text: string }[] {
   const rows = [
-    { label: 'Right columns', points: p.shape, max: 20, ok: p.shape === 20 },
-    { label: 'One row per thing asked for', points: p.grain, max: 20, ok: p.grain === 20 },
-    { label: `Values match (${p.valuesDetail.matched} of ${p.valuesDetail.of} rows)`, points: p.values, max: 40, ok: p.values === 40 },
-    { label: 'Works on the hidden test data', points: p.edge, max: 20, ok: p.edge === 20 },
-  ].map((r) => ({ ...r, shown: `${r.points}/${r.max}` }));
+    { label: 'Right columns', points: p.shape, max: 20, ok: p.shape === 20, text: '' },
+    { label: 'One row per thing asked for', points: p.grain, max: 20, ok: p.grain === 20, text: '' },
+    { label: 'Values match', points: p.values, max: 40, ok: p.values === 40, text: '' },
+    { label: 'Works on the hidden test data', points: p.edge, max: 20, ok: p.edge === 20, text: '' },
+  ].map((r) => {
+    const points = `${r.points} of ${r.max} points`;
+    return { ...r, shown: `${r.points}/${r.max}`, text: r.label === 'Values match' ? `${r.label}: ${p.valuesDetail.matched} of ${p.valuesDetail.of} rows (${points})` : `${r.label}: ${points}` };
+  });
   // The order line is a penalty, not a part out of 100, so it shows as "−20".
-  if (p.orderWrong) rows.push({ label: 'Rows in the order asked for', points: -20, max: 0, ok: false, shown: '−20' });
+  if (p.orderWrong) rows.push({ label: 'Rows in the order asked for', points: -20, max: 0, ok: false, shown: '−20', text: 'Rows in the order asked for: 20 points taken off' });
   return rows;
 }
+/** The line under the checklist (P1 finding 13). */
+export const partialScoreLine = (total: number): string => `Partial score: ${total} of 100. Only a full pass counts for your reviews.`;
 
 const OUTCOME: Record<GradeOutcome, string> = {
   pass: 'Correct', fail: 'Not yet', engine_error: 'The query has an error', timeout: 'Stopped: took too long',

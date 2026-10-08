@@ -1,0 +1,48 @@
+{
+  "id": "Q-EXP-AB-10-04",
+  "version": 1,
+  "kind": "mcq",
+  "section": "methodology",
+  "concept_id": "EXP-AB-10",
+  "stem": "A test tracks 20 metrics. One shows p = 0.03; the other 19 are not significant. The team wants to report the test as a win on that metric. What is the problem?",
+  "options": [
+    {
+      "oid": "o863c6a9",
+      "text": "There is none: p = 0.03 is below 0.05, so the win on that metric is real",
+      "misconception_id": null
+    },
+    {
+      "oid": "o32b0c94",
+      "text": "With 20 metrics, about one falls below 0.05 by chance, so it may be noise",
+      "misconception_id": null
+    },
+    {
+      "oid": "o092414a",
+      "text": "The other 19 metrics show that the change does harm, so the test is a loss",
+      "misconception_id": null
+    },
+    {
+      "oid": "o4c95c14",
+      "text": "p = 0.03 means a 97% chance that the change really improved that metric",
+      "misconception_id": null
+    }
+  ],
+  "typed": null,
+  "held_out": false,
+  "enemy_group": null,
+  "status": "active",
+  "verified": true,
+  "level": null,
+  "tags": [
+    "methodology",
+    "T-MET-EXP",
+    "common-mistake"
+  ],
+  "source_ids": [
+    "11:EXP-10",
+    "ERRATA:E-175"
+  ],
+  "as_of": "2026-10-08",
+  "review_after": null,
+  "supersedes": []
+}

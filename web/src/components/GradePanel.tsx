@@ -1,7 +1,8 @@
 // web/src/components/GradePanel.tsx
 import type { ReactNode } from 'react';
 import type { PublicGrade } from '../api.ts';
-import { checklist, diffTotals, gradeHeading, sampleCount } from '../lib/exercise.ts';
+import { checklist, diffTotals, gradeHeading, partialScoreLine, sampleCount } from '../lib/exercise.ts';
+import { feedbackText } from '../lib/polish-p2b.ts';
 import { ResultTable } from './ResultTable.tsx';
 import { cell } from '../lib/cell.ts';
 import { parseInline } from '../lib/markdown.ts';
@@ -27,9 +28,9 @@ export function GradePanel({ grade, onDispute, disputing = false, otherWay = nul
       {pass && otherWay}
       {grade.diagnosis && !pass && (
         <div className="diagnosis">
-          <p>{grade.diagnosis.feedback.assumed}</p>
-          <p>{grade.diagnosis.feedback.why}</p>
-          <p><strong>Try:</strong> {grade.diagnosis.feedback.model}</p>
+          <p>{inline(feedbackText(grade.diagnosis.feedback.assumed))}</p>
+          <p>{inline(feedbackText(grade.diagnosis.feedback.why))}</p>
+          <p><strong>Try:</strong> {inline(feedbackText(grade.diagnosis.feedback.model))}</p>
           <p className="muted">{grade.diagnosis.errorId}</p>
         </div>
       )}
@@ -51,8 +52,8 @@ export function GradePanel({ grade, onDispute, disputing = false, otherWay = nul
       )}
       {grade.partial && !pass && (
         <ul className="checklist">
-          {checklist(grade.partial).map((c) => <li key={c.label} className={c.ok ? 'ok' : 'bad'}>{c.label}: {c.shown}</li>)}
-          <li>Score: {grade.partial.total}/100 (shown only; reviews need a full pass)</li>
+          {checklist(grade.partial).map((c) => <li key={c.label} className={c.ok ? 'ok' : 'bad'}>{c.text}</li>)}
+          <li>{partialScoreLine(grade.partial.total)}</li>
         </ul>
       )}
       {grade.portabilityNotes.length > 0 && (

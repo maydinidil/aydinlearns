@@ -1,0 +1,13 @@
+{
+  "concept_id": "STAT-BASIC-03",
+  "section": "methodology",
+  "version": 1,
+  "title": "Distributions an analyst meets",
+  "reading_md": "**What it is.** Data come in a few shapes, and the shape decides which summary and which test fit.\n\n- Roughly normal: averages of many observations, thanks to the central limit theorem. The theorem is about the average, not the data themselves.\n- Skewed with a long right tail: order values, revenue, time on site.\n- Zero-inflated: revenue per visitor, where most visitors buy nothing.\n- Discrete and bounded: counts such as orders per hour (whole numbers, 0 or more) and rates such as conversion (between 0% and 100%).\n\n**How to work it out.**\n\nRevenue per visitor = conversion rate × average order value\n\nWorked example. 1,000 visitors, 30 buyers, an average order of €80.\n\n- Revenue = 30 × 80 = €2,400.\n- Revenue per visitor = 2,400 / 1,000 = €2.40 (2 decimals). The same as 3% × €80.\n- Share of visitors with zero revenue = 970 / 1,000 = 97%.\n\nAveraging only over the 30 buyers gives €80, the average order value, not revenue per visitor.\n\n**In the interview.** \"Why is revenue per visitor harder to test than conversion rate?\" A model answer: \"It is skewed and mostly zeros, so its variance is high and a test needs more data to detect the same change. I would split it into conversion rate and average order value, and test each.\"\n\n**Common mistakes.**\n\n- Assuming revenue is normally distributed.\n- Believing the central limit theorem makes the data normal. On large samples it makes the mean roughly normal; the order values stay skewed.\n- Ignoring the zeros when averaging.",
+  "source_ids": [
+    "11:STAT-03",
+    "ERRATA:E-175"
+  ],
+  "verified": true,
+  "as_of": "2026-10-08"
+}

@@ -1,0 +1,13 @@
+{
+  "item_id": "Q-EXP-AB-02-03",
+  "item_version": 1,
+  "correct_oid": "of544124",
+  "explanation": "Page views from the same user tend to move together, so they carry less independent information than their count suggests. A test that treats them as independent underestimates the variance, which makes p-values too small and false positives more common. The fix is to aggregate per user or to use the delta method. Randomisation makes users independent of each other, not the views within one user.",
+  "solver": {
+    "prompt_hash": "4aabc392d807d5bb",
+    "grader_version": "choice.2",
+    "chosen": "of544124",
+    "typed": null,
+    "at": "2026-10-08T18:33:21.572Z"
+  }
+}

@@ -22,7 +22,7 @@ import type { ContentStore } from '../content.ts';
 import { goalProgress, goalSummary, readGoalView } from '../goal-view.ts';
 import { pendingRetests } from '../progress.ts';
 import {
-  choicePool, composerInput, dailyCase, isChoiceSection, lessonWindowEnds, loadPairs, mistakeReviewQueue, mixedBlock, nextPracticeConcept, openerInputs, openerItem,
+  choicePool, composerInput, dailyCase, isChoiceSection, lessonWindowEnds, lessonWindowOpen, loadPairs, mistakeReviewQueue, mixedBlock, nextPracticeConcept, openerInputs, openerItem,
   openerLevel, pickChoiceItem, pickItem, pickRetest, pickTrapItem, poolOf, pretestItemIds, seenIn, wheelSpinningItem, wheelSpinningSteps, withSqlSteps, type PairEntry,
   type TodayPlanView, type WheelSpinningStep,
 } from '../session-composer.ts';
@@ -192,7 +192,9 @@ export function mountToday(app: Hono, d: RouteDeps, liveRuns: () => readonly See
       // S4-15: a concept whose questions are all in the live timed run waits its turn.
       const ids = step?.concept_ids ?? [];
       const open = ids.filter((c) => poolFor(c).length > 0);
-      concept = nextPracticeConcept(open.length ? open : ids, poolFor, seen(), now);
+      // D59: a concept still inside its lesson window goes after every other candidate.
+      const inWindow = lessonWindowOpen(section, { replay: d.state.current(), records: await d.logger.readAll('attempts'), cardOf: (c) => d.state.catalog().cardOf(c), now, windowMs: LESSON_WINDOW_MS });
+      concept = nextPracticeConcept(open.length ? open : ids, poolFor, seen(), now, inWindow);
       if (concept === null) throw refuse(404, 'Practice starts once you have begun a concept. Pick one on the map.');
     }
     const pick = pickChoiceItem({ now, pool: poolFor(concept), seen: seen() });

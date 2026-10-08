@@ -1,0 +1,16 @@
+{
+  "concept_id": "MET-PRICE-10",
+  "section": "methodology",
+  "version": 1,
+  "title": "Price realisation",
+  "reading_md": "**What it measures.** The share of list value Voltmarkt actually keeps after every deduction: the discounts on the invoice and the rebates paid outside it. The price left after both is the pocket price.\n\n**Setting.** The examples use Voltmarkt's sales to business customers. They pay the invoice price, and some earn a volume rebate that Voltmarkt pays after the quarter.\n\n**Formula.**\n\npocket price = net price on the invoice - off-invoice rebate per unit\n\nPrice realisation % = 100 × SUM(units × pocket price) / SUM(units × list price)\n\n- The price waterfall: list price, minus on-invoice discounts, gives the invoice price; minus off-invoice items such as rebates, it gives the pocket price.\n- Sum the euros first, then divide. Do not average customers' percentages.\n- Grain: customer, product or category × period.\n\n**Worked example.** In Q3 an office reseller bought 50 laptops listed at €1,000. The invoice price was €900, and after the quarter Voltmarkt paid a rebate of €40 per laptop.\n\n- Pocket price = 900 - 40 = €860.\n- Realisation = 100 × 50 × 860 / (50 × 1,000) = 86.0%.\n- On invoice prices alone the result is 90.0%, 4 points too high.\n\nA second customer bought 20 laptops at the same list price for €950 each, with no rebate: 95.0%. Together: 100 × (43,000 + 19,000) / 70,000 = 88.6%. The simple average of 86.0% and 95.0%, 90.5%, gives the small customer the same weight as the large one.\n\n**Realisation and discount depth.** Discount depth is the share of list value given away on the invoice. So realisation = 100 - discount depth - rebates as a percentage of list value. For the reseller: 100 - 10 - 4 = 86%.\n\n**Common mistakes.**\n\n- Forgetting off-invoice rebates: the gap between the invoice price and the pocket price.\n- Using invoice prices only.\n- Averaging customers' percentages instead of summing euros.\n\n**What it does not answer.**\n\n- Profit: realisation stops at price, and costs are in gross margin.\n- Whether a customer's terms are worth it: a large customer may earn a large rebate for good reason.\n\n**How managers ask for it.** \"How much of list price do we actually pocket?\" \"Which customers have the worst price realisation?\"",
+  "source_ids": [
+    "04:MET-PRICE-10",
+    "04:§2.1",
+    "04:MET-PRICE-03",
+    "ERRATA:E-100",
+    "ERRATA:E-101"
+  ],
+  "verified": true,
+  "as_of": "2026-10-08"
+}

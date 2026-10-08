@@ -3,10 +3,13 @@
 // else to click (smoke row 13).
 import type { ReactNode } from 'react';
 import { TABS, sectionOfTab, type Tab } from '../lib/nav.ts';
+import { isSetupHash } from '../lib/polish-p2a.ts';
 
 export function AppShell(p: { tab: Tab | null; degraded: boolean; ending: boolean; onEndSession: () => void; children: ReactNode }) {
   const current = p.tab;
   const word = <>aydin<span>learns</span></>;
+  // Setup mode shows Settings whatever the address says, so its link is the current page there too (P1 finding 46).
+  const onSetup = p.degraded || (typeof location !== 'undefined' && isSetupHash(location.hash));
   return (
     <>
       <header className="shell">
@@ -19,7 +22,7 @@ export function AppShell(p: { tab: Tab | null; degraded: boolean; ending: boolea
           ))}</nav>
         )}
         <div className="shell-end">
-          <a href="#/setup">Settings and setup</a>
+          <a href="#/setup" aria-current={onSetup ? 'page' : undefined}>Settings and setup</a>
           {!p.degraded && <button type="button" onClick={p.onEndSession} disabled={p.ending}>End session</button>}
           <span className="by">by Zehir Labs</span>
         </div>

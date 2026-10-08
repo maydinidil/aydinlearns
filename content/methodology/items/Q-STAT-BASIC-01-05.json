@@ -1,0 +1,46 @@
+{
+  "id": "Q-STAT-BASIC-01-05",
+  "version": 1,
+  "kind": "mcq",
+  "section": "methodology",
+  "concept_id": "STAT-BASIC-01",
+  "stem": "A dashboard shows the typical order value rising from €35 in Q1 to €58 in Q2. The query used the median for Q1 and the mean for Q2. Order values are right-skewed. What can you conclude about the rise?",
+  "options": [
+    {
+      "oid": "o6d481fd",
+      "text": "Little: in skewed data the mean sits above the median, so the switch alone can explain it",
+      "misconception_id": null
+    },
+    {
+      "oid": "od18266e",
+      "text": "Customers spent more in Q2, since both numbers describe the typical order",
+      "misconception_id": null
+    },
+    {
+      "oid": "oa01c4c6",
+      "text": "The rise is real, because the mean and the median of order values are usually about equal",
+      "misconception_id": null
+    },
+    {
+      "oid": "o1ab4c5e",
+      "text": "Order values fell, because a mean is always lower than a median",
+      "misconception_id": null
+    }
+  ],
+  "typed": null,
+  "held_out": false,
+  "enemy_group": null,
+  "status": "active",
+  "verified": true,
+  "level": null,
+  "tags": [
+    "methodology",
+    "T-MET-STAT"
+  ],
+  "source_ids": [
+    "11:STAT-01"
+  ],
+  "as_of": "2026-10-08",
+  "review_after": null,
+  "supersedes": []
+}

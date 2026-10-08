@@ -38,11 +38,11 @@ export function PortfolioScreen() {
   return (
     <section className="portfolio">
       {head}
-      <p className="muted">Each solved case exports as a markdown page, with a CSV of its full result beside it. The page says where the data comes from.</p>
+      <p className="muted">Each solved case exports as a Markdown page, with a CSV of its full result beside it. The page says where the data comes from.</p>
       {notice && <p role="status" className="notice">{notice}</p>}
       {error && <p role="alert" className="notice">{error}</p>}
       <p className={folder.ready ? undefined : 'callout'} data-folder={folder.ready ? 'ready' : 'not-ready'}>
-        {folder.text} <a href={SETTINGS_HREF}>{folder.link}</a>
+        {folder.text} <a href={SETTINGS_HREF}>{folder.link}</a>.
       </p>
       {view.cases.length === 0 ? <p>No solved case yet. Solve a case from the <a href={INBOX_HREF}>case inbox</a>, then export it here.</p> : (
         <ul className="inbox-list card">

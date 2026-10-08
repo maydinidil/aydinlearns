@@ -1,0 +1,13 @@
+{
+  "item_id": "Q-MET-RETAIL-09-05",
+  "item_version": 1,
+  "correct_oid": "o44d0701",
+  "explanation": "NTILE(5) makes five groups of equal size. With three quarters of the customers on 1 order, those customers fill the first three fifths and most of the fourth, so identical customers get F = 1, 2, 3 or 4 depending on the tie order. That is why Voltmarkt scores frequency with fixed bands on the number of orders. NTILE neither skips ties nor gives them a shared score.",
+  "solver": {
+    "prompt_hash": "fb182f838c3f450c",
+    "grader_version": "choice.2",
+    "chosen": "o44d0701",
+    "typed": null,
+    "at": "2026-10-08T18:33:21.891Z"
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "concept_id": "EXP-AB-07",
+  "section": "methodology",
+  "version": 1,
+  "title": "Peeking and stopping early",
+  "reading_md": "**What it is.** Peeking means checking a fixed-horizon test again and again and stopping as soon as p < 0.05. Each look is another chance for noise to cross the line, so the false positive rate rises well above 5%. A 1999 paper reports that with up to five looks it rose from 5% to about 14%. There are two fixes: commit to the sample size and the duration in advance, or use a sequential method with always-valid p-values, as Optimizely adopted.\n\n**How to work it out.**\n\nPlanned duration (days) = required n per variant / daily users per variant, rounded up to whole days, then up to whole weeks\n\nWorked example. The test needs 7,600 users per variant and gets 1,100 users per variant a day.\n\n- 7,600 / 1,100 = 6.909\n- Round up to 7 days\n- 7 days is one full week\n\nSo the test runs 7 days and is analysed once, at the end. Whole weeks matter because behaviour differs by weekday, and a partial week biases the mix.\n\n**In the interview.** \"The test was significant on day 3. Do we stop?\" A good answer: no, unless a sequential method was planned. Early swings are common, and peeking inflates false positives.\n\n**Common mistakes.**\n\n- Stopping as soon as significance appears.\n- Extending a test until it becomes significant.\n- Believing peeking only matters for small tests.\n- Watching nothing at all. Monitor guardrails for harm while the test runs, but make the success decision at the planned end.",
+  "source_ids": [
+    "11:EXP-07",
+    "ERRATA:E-174",
+    "ERRATA:E-175"
+  ],
+  "verified": true,
+  "as_of": "2026-10-08"
+}

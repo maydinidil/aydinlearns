@@ -1,0 +1,13 @@
+{
+  "concept_id": "MET-SAAS-12",
+  "section": "methodology",
+  "version": 1,
+  "title": "Pipeline win rate",
+  "reading_md": "**Setting.** Voltmarkt's business sales team sells Business Care contracts to larger offices. Each possible deal is an opportunity. It stays open until it is won or lost, and its close date is the day that is decided.\n\n**What it measures.** Of the opportunities that closed in a period, the share the team won.\n\n**Formula.**\n\nwin rate % = 100 × won / (won + lost)\n\n- Count opportunities by close date: those won or lost in the period.\n- Open opportunities stay out. They are not lost yet.\n- For a longer period, add up the won and lost deals first, then divide once.\n- Grain: segment × quarter.\n\n**Worked example.** In Q3 2026, 60 opportunities closed: 21 won and 39 lost. Another 25 are still open.\n\n- Win rate = 100 × 21 / (21 + 39) = 35.0%.\n- Counting the open ones as lost gives 100 × 21 / 85 = 24.7%, which counts deals still in progress as defeats.\n- Dividing the deals won in Q3 by the opportunities created in Q3 mixes two groups: many deals won in Q3 were created earlier, and many created in Q3 are still open. Keep both counts on close date.\n\n**Small numbers.** A segment with few closed deals swings a lot: 1 win out of 4 is 25%, and 2 out of 4 is 50%. Look at several quarters, or pool them, before saying a segment closes worse.\n\n**Common mistakes.**\n\n- Counting open deals as losses.\n- Mixing created-date and close-date groups.\n\n**What it does not answer.**\n\n- How many euros a day the pipeline turns into won business: that is sales velocity.\n- How long deals take to close: that is the sales cycle, one part of sales velocity.\n\n**How managers ask for it.** \"What's our win rate?\" \"Are large offices closing worse?\"",
+  "source_ids": [
+    "04:MET-SAAS-12",
+    "ERRATA:E-100"
+  ],
+  "verified": true,
+  "as_of": "2026-10-08"
+}

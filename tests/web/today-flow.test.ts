@@ -150,7 +150,7 @@ test('the wrap-up: the next goal and its criteria, then what is due tomorrow', (
   };
   assert.deepEqual(wrapUp(view, titles, now), {
     goal: 'Next goal: Starting knowledge in SQL, GA4 and metrics, by 16 October',
-    criteria: ['SQL level 2 at practised: 4 of 12 concepts', 'GA4 level 1: not yet available'],
+    criteria: ['SQL level 2 practised: 4 of 12 concepts', 'GA4 level 1: not yet available'],
     dueTomorrow: 'Due tomorrow: 5 reviews',
   });
   assert.deepEqual(wrapUp({ ...view, goal: null }, titles, now), { goal: null, criteria: [], dueTomorrow: 'Due tomorrow: 5 reviews' });
@@ -312,7 +312,7 @@ const caseView = (over: Partial<CaseView>): CaseView => ({ case_id: 'CASE-VOLT-L
 
 test('B2 review: the solve step opens the case screen at the first checkpoint with no pass (CP4 after a CP3 pass), never the CP3 item on Today', () => {
   const [label, detail, actionLabel, action] = row(solve);
-  assert.deepEqual([label, detail, actionLabel, action], ["Level opener: solve the manager's question", 'Next: CP4 Headline number', 'Open it',
+  assert.deepEqual([label, detail, actionLabel, action], ["Level opener: solve the manager's question", 'Next: Headline number', 'Open it',
     { kind: 'case', href: '#/opener/CASE-VOLT-L1?step=CP4' }]);
   // The case screen starts where the link asks: CP4 for the opener whose CP3 passed.
   const cp3Passed = caseView({ status: 'started', score: 0.5, checkpoints: [cpView('CP3', true), cpView('CP4', false)] });

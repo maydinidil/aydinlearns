@@ -1,0 +1,137 @@
+{
+  "case_id": "CASE-DAILY-L3-03",
+  "kind": "daily",
+  "level": 3,
+  "world": "MKT",
+  "company_id": "voltmarkt",
+  "title": "Checkout test readout",
+  "persona": {
+    "name": "Fleur",
+    "role": "Trade marketing"
+  },
+  "brief": {
+    "decision": "Whether to roll the new checkout out to every webshop customer",
+    "deadline": "The webshop meeting on Monday"
+  },
+  "data_needed": [
+    "ab_assignments",
+    "ab_conversions"
+  ],
+  "expected_output": {
+    "columns": [
+      "variant",
+      "n_customers",
+      "n_converted",
+      "conversion_rate_pct",
+      "revenue_per_customer_eur"
+    ],
+    "grain": "one row per variant of the test",
+    "sort": [
+      {
+        "column": "variant",
+        "desc": false
+      }
+    ]
+  },
+  "checkpoints": [
+    {
+      "id": "CP2",
+      "kind": "CP2",
+      "item_id": "CASE-DAILY-L3-03:CP2",
+      "credits_concepts": [
+        "SQL-AGG-01"
+      ],
+      "prompt": "In the checkout test AB-2025-01, leave out every customer assigned to both variants. How many of the remaining control customers converted? A customer converted when the customer has at least one conversion in the test at or after the customer's assigned_at, and a customer who converted more than once counts once. Type a whole number.",
+      "typed": {
+        "precision": "count",
+        "scale": "plain",
+        "decimals": 0,
+        "unit_label": "customers"
+      },
+      "truth_key": "CASE-DAILY-L3-03:CP2"
+    },
+    {
+      "id": "CP3",
+      "kind": "CP3",
+      "item_id": "EX-CASE-DAILY-L3-03",
+      "credits_concepts": [
+        "SQL-CTE-01",
+        "SQL-JOIN-02"
+      ],
+      "prompt": "Write the query that answers Fleur's question."
+    },
+    {
+      "id": "CP4",
+      "kind": "CP4",
+      "item_id": "CASE-DAILY-L3-03:CP4",
+      "credits_concepts": [],
+      "prompt": "Fleur's headline: what is the relative lift in conversion rate of treatment over control in the checkout test AB-2025-01? Leave out every customer assigned to both variants. A variant's conversion rate is the share of its customers with at least one conversion in the test at or after the customer's assigned_at. The relative lift is the treatment rate minus the control rate, divided by the control rate. Work it out from the unrounded rates, and type it in percent, rounded to 1 decimal, for example 12.5.",
+      "typed": {
+        "precision": "ratio",
+        "scale": "percent",
+        "decimals": 1,
+        "unit_label": "%"
+      },
+      "truth_key": "CASE-DAILY-L3-03:CP4"
+    },
+    {
+      "id": "CP5",
+      "kind": "CP5",
+      "item_id": "CASE-DAILY-L3-03:CP5",
+      "credits_concepts": [],
+      "prompt": "In Fleur's checkout test AB-2025-01, web shop customers were split 50/50 between the old checkout (control) and the new one (treatment) for two full weeks. The split shows no sample ratio mismatch, and the customers assigned to both variants are left out. Treatment converted a slightly larger share of its customers than control, and the 95% confidence interval of the difference in conversion rate, treatment minus control, runs from -0.18 to +1.11 percentage points. Can Fleur conclude that the new checkout raised conversion?",
+      "options": [
+        {
+          "oid": "o474f1ee",
+          "text": "Yes. Treatment converted a larger share of its customers than control, so the new checkout raised conversion."
+        },
+        {
+          "oid": "o8fba0ef",
+          "text": "No. The interval includes zero, which proves that the new checkout has no effect on conversion."
+        },
+        {
+          "oid": "o65d6813",
+          "text": "Not yet. The interval includes zero, so no effect is still plausible, and so is a gain of about one point; more data is needed before deciding."
+        },
+        {
+          "oid": "oa737312",
+          "text": "Yes. The split shows no sample ratio mismatch, so the test can be trusted and the higher rate in treatment is a real gain."
+        }
+      ]
+    },
+    {
+      "id": "CP6",
+      "kind": "CP6",
+      "credits_concepts": [],
+      "prompt": "Write 2 to 4 sentences for Fleur: how the two checkouts compared on conversion and on revenue per customer, whether the new checkout can be called a win yet, one caveat, and one next step before Monday's web shop meeting."
+    }
+  ],
+  "model_plan": "Metric formula: conversion_rate_pct is 100 times the customers with a conversion at or after their assigned_at, divided by the customers assigned, rounded to 2 decimals; revenue_per_customer_eur is the revenue_eur of those conversions, added up and divided by the customers assigned, rounded to 2 decimals.\nOutput grain: one row per variant.\nTables and keys: ab_assignments (one row per customer and variant) joined to ab_conversions on test_id and customer_id, keeping every assigned customer.\nFilters: test AB-2025-01, customers assigned to one variant only, and conversions at or after the customer's assigned_at.\nEdge cases: a customer who converted twice counts once, a conversion before assigned_at does not count but one at exactly assigned_at does, a missing revenue_eur adds nothing, and a variant with no conversions still shows, with 0.\nExpected row count: 2",
+  "model_answer_template": "The new checkout converted slightly better than the old one, a relative lift of {CP4} percent, and revenue per assigned customer moved the same way. The 95% interval of the difference in conversion still includes zero, so the gain could be chance, and the test cannot call the new checkout a win yet. The readout leaves out the customers assigned to both variants and counts only conversions after assignment, and the split itself looks clean. Next, extend the test or rerun it with enough customers to detect a lift this small, and check guardrails such as returns before deciding.",
+  "follow_up_question": "How many more customers would the test need to detect a lift of this size?",
+  "data_source": {
+    "label": "Fictional, generated data: Voltmarkt",
+    "real": false,
+    "licence": null
+  },
+  "difficulty": 1,
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-SORT-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-AGG-03",
+    "SQL-TYPE-01",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01"
+  ],
+  "metric_ids": [
+    "MET-RETAIL-08"
+  ],
+  "find_ids": [],
+  "uses_raw": false
+}

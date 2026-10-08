@@ -828,7 +828,7 @@ inside it.
 
 | Rule | Why | Checked by |
 |---|---|---|
-| Each kind at most once, and every case has a CP3. A daily case has exactly CP3 and CP4 | S4B-02, S4B-04 | `validateCaseRecord` |
+| Each kind at most once, and every case has a CP3. A daily case has CP3 and CP4 and may add CP1, CP2, CP5 and CP6 | S4B-02, S4B-04, S5A-14 | `validateCaseRecord` |
 | A CP1 or CP5 option holds only `oid` and `text`, and `oid` is `optionId("<case_id>:CP1", position)` (or `:CP5`) from `schemas/choice.ts`, position counting from 0 in file order (S2-60). No `correct` flag, no misconception ID: the correct option lives in the case key | Options are prompt content, like predict options; the oid hides the position | `validateCaseRecord`, C41 |
 | Never reorder options and never edit an oid by hand. To change a distractor, change its text in place | Every oid follows its option's position, and the key names an oid | C41 |
 | Every checkpoint prompt stands on its own: the blind solver sees only that checkpoint's prompt and its options or typed spec, never the brief, the other checkpoints or the CP3 item. Restate the scope a number needs (the period, the filter, what counts), as the level 1 opener's CP4 does | A prompt that leans on the screen around it can be read two ways | Blind solver |
@@ -895,7 +895,8 @@ number, its direction, one caveat, one next step and the planted driver (the rub
 
 ### Daily cases (S4B-04)
 
-`kind: "daily"`, CP3 and CP4 only, difficulty 1, ID `CASE-DAILY-L<level>-NN`, two per level from 1
+`kind: "daily"`, CP3 and CP4 always, and CP1, CP2, CP5 and CP6 when the case needs them (S5A-14,
+owner decision D56, sprint 5a: `CASE-DAILY-L3-03` asks "can we conclude it worked?" in its CP5), difficulty 1, ID `CASE-DAILY-L<level>-NN`, two or more per level from 1
 to 3, each asked by one of the five managers in their own role. A daily case credits only
 concepts of its level or below, so Today can offer it once those concepts are practised. Keep it
 small: one question a learner at that level answers in a few minutes, with CP4 its headline
@@ -908,7 +909,7 @@ number. Its CP3 item is `EX-CASE-DAILY-L<level>-NN`, `use: "case"`.
 | `CASE-VOLT-L3` | opener, level 3 | One of the five | CP1 to CP6. Its CP1 is the mid-level question (S4B-14): a scope question a learner halfway through level 3 can answer, which Today offers once half the level's concepts are practised | `EX-OPENER-L3-01` |
 | `CASE-PRICE-01` | inbox | Joost | CP1 to CP6, ported per ERRATA E-004 and design §7, re-dated to 2024 and 2025 | `EX-CASE-PRICE-01` |
 | `CASE-PRICE-02` | inbox | Sanne | CP1 to CP6, re-keyed for level 3: it reads `competitor_price_weekly` (one row per product and ISO week), so it needs only a join, GROUP BY and CASE | `EX-CASE-PRICE-02` |
-| `CASE-DAILY-L1-01` to `CASE-DAILY-L3-02` | daily | Any of the five | CP3 and CP4 | `EX-CASE-DAILY-L<level>-NN` |
+| `CASE-DAILY-L1-01` to `CASE-DAILY-L3-03` | daily | Any of the five | CP3 and CP4 (a daily case may add CP1, CP2, CP5 and CP6, S5A-14) | `EX-CASE-DAILY-L<level>-NN` |
 
 The level 1 and 2 openers keep their checkpoints and get no new one (S4B-06).
 

@@ -1,0 +1,15 @@
+{
+  "concept_id": "EXP-AB-11",
+  "section": "methodology",
+  "version": 1,
+  "title": "Holdouts and holdout groups",
+  "reading_md": "**What it is.** A holdout is a group kept without a feature, a campaign or a set of launches for a long time, to measure their cumulative or long-term effect. An A/B test decides on one change quickly; a holdout measures the sum of many changes over months. Netflix uses such holdbacks to measure long-term effects and to re-check its assumptions. The price is the value the holdout customers miss, so a holdout is kept small, but large enough to measure something.\n\n**How to work it out.**\n\nIncremental value = (metric treated - metric holdout) × treated population\n\nWorked example. 200,000 customers, with 5% kept as a holdout from all campaigns. Revenue per customer is €41.20 in the treated group and €40.00 in the holdout.\n\n- Holdout = 10,000; treated = 190,000\n- Difference = €1.20; relative = 1.20 / 40.00 = 3.0%\n- 1.20 × 190,000 = €228,000\n\nSo the campaigns brought €228,000 of incremental revenue, a 3.0% relative lift. Rounding: whole euro, 1 decimal in percent.\n\n**In the interview.** \"Why keep a holdout from all marketing emails?\" A good answer: to measure what the emails truly add, not what the people who get them would have bought anyway.\n\n**Common mistakes.**\n\n- Using a non-random \"holdout\", such as customers without an email address.\n- Making it so small that it cannot detect anything.\n- Letting it get contaminated over time: holdout customers must stay clear of the launches.",
+  "source_ids": [
+    "11:EXP-11",
+    "ERRATA:E-174",
+    "ERRATA:E-175",
+    "ERRATA:E-183"
+  ],
+  "verified": true,
+  "as_of": "2026-10-08"
+}

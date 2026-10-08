@@ -1,0 +1,13 @@
+{
+  "item_id": "Q-EXP-AB-05-01",
+  "item_version": 1,
+  "value": 1.22,
+  "explanation": "p1 = 0.05 and p2 = 0.056. The two variance terms are 0.05 × 0.95 / 10,000 = 0.0000047500 and 0.056 × 0.944 / 10,000 = 0.0000052864; their sum is 0.0000100364, whose square root is 0.0031680. The margin is 1.96 × 0.0031680 = 0.0062093, so the upper bound is 0.006 + 0.0062093 = 0.0122093, or 1.22 percentage points. The lower bound, -0.02 points, is the other end of the same interval.",
+  "solver": {
+    "prompt_hash": "7dbf6bd468dead56",
+    "grader_version": "choice.2",
+    "chosen": null,
+    "typed": "1.22",
+    "at": "2026-10-08T18:33:21.594Z"
+  }
+}

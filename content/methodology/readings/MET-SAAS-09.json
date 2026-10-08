@@ -1,0 +1,15 @@
+{
+  "concept_id": "MET-SAAS-09",
+  "section": "methodology",
+  "version": 1,
+  "title": "Average revenue per account (ARPA)",
+  "reading_md": "**Setting.** The examples use Business Care, the device-support subscription Voltmarkt sells to small offices.\n\n**What it measures.** The average MRR per active business in a month: what a paying business brings in per month, on average.\n\n**Formula.**\n\nARPA = MRR / active businesses\n\n- Both parts are for the same month. A business is active when it pays a fee above 0 for that month.\n- MRR counts a Business Care Year plan at a twelfth of its yearly fee.\n- Grain: month, optionally by segment. For several segments together, divide their total MRR by all their active businesses; do not average the segments' ARPAs.\n\n**Worked example.** In September 2026, 420 businesses paid €40 a month and 80 paid €65 a month. Another 150 businesses had subscribed in earlier years and cancelled.\n\n- MRR = 420 × 40 + 80 × 65 = 16,800 + 5,200 = €22,000.\n- ARPA = 22,000 / 500 = €44.00.\n- Dividing by all 650 businesses that ever subscribed gives €33.85. The 150 that left pay nothing, so they only drag the average down.\n\n**Why ARPA moves.** ARPA can rise with no price change at all:\n\n- businesses on cheap plans cancel, so those who stay pay more on average;\n- new businesses choose bigger plans than the ones before them;\n- existing businesses upgrade.\n\nSo before crediting a new plan or a price rise, split the change into MRR movements and look at the businesses that were active in both months.\n\n**Common mistakes.**\n\n- Dividing by every business that ever subscribed.\n- Averaging segment ARPAs instead of dividing total MRR by total businesses.\n- Reading a higher ARPA as a price effect without checking churn and the plan mix.\n\n**What it does not answer.**\n\n- How long a business stays, or what it is worth over its lifetime: that is LTV.\n- How much recurring revenue comes in in total: that is MRR.\n\n**How managers ask for it.** \"Average revenue per customer?\" \"Is ARPA going up with the new plans?\"",
+  "source_ids": [
+    "04:MET-SAAS-09",
+    "04:CASE-SAAS-01",
+    "ERRATA:E-100",
+    "ERRATA:E-161"
+  ],
+  "verified": true,
+  "as_of": "2026-10-08"
+}

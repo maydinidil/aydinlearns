@@ -1,0 +1,13 @@
+{
+  "item_id": "Q-EXP-AB-07-03",
+  "item_version": 1,
+  "correct_oid": "o38181a7",
+  "explanation": "Watching guardrails protects users from harm, while making the success decision only at the planned end keeps the false positive rate at the planned level. Stopping at the first p below 0.05, or extending until it gets there, gives noise many chances to cross the line. Ignoring harm until the end is not required: guardrails may be watched throughout.",
+  "solver": {
+    "prompt_hash": "9591c2e84d39e89b",
+    "grader_version": "choice.2",
+    "chosen": "o38181a7",
+    "typed": null,
+    "at": "2026-10-08T18:33:21.615Z"
+  }
+}

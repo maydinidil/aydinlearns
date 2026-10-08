@@ -1,0 +1,15 @@
+{
+  "concept_id": "MET-SAAS-02",
+  "section": "methodology",
+  "version": 1,
+  "title": "MRR movements",
+  "reading_md": "**Setting.** The examples use Business Care, the device-support subscription Voltmarkt sells to small offices, on a €40 or a €65 monthly plan. A business is active in a month when it pays a fee above 0 for that month.\n\n**What it measures.** Why MRR changed from one month to the next. The change is split, business by business, into five movements.\n\n**The five movements.** For each business, compare this month's MRR with last month's, taking 0 for a month without payment:\n\n| Movement | Last month | This month | Amount |\n|---|---|---|---|\n| New business | 0, and never paid before | above 0 | this month's MRR |\n| Reactivation | 0, but paid in an earlier month | above 0 | this month's MRR |\n| Expansion | above 0 | higher | the increase |\n| Contraction | above 0 | lower, still above 0 | the decrease |\n| Churn | above 0 | 0 | last month's MRR |\n\nThe bridge always closes: starting MRR + new + expansion + reactivation - contraction - churn = ending MRR. Grain: movement × month.\n\n**Worked example.** Business Care started October 2026 with €20,000 of MRR. During October:\n\n- 25 businesses subscribed for the first time at €40: new business €1,000.\n- 6 businesses moved from €40 to €65: expansion €150.\n- 3 businesses that had cancelled in the spring came back at €40: reactivation €120.\n- 4 businesses moved from €65 to €40: contraction €100.\n- 15 businesses on €40 cancelled: churn €600.\n\nEnding MRR = 20,000 + 1,000 + 150 + 120 - 100 - 600 = €20,570. MRR grew €570 although €1,000 of new business was signed, because churn and contraction took €700.\n\n**Gaps in the data.** A table with one row per business per month that pays has no row for a month without payment. Build a business × month grid and fill the gaps with 0 before comparing months. Otherwise last month's MRR is read from the business's previous row, which may be months old, and the churn and the return are both missed.\n\n**Common mistakes.**\n\n- Booking a returning business as new business instead of reactivation. That overstates acquisition, and with it anything built on new-business MRR, such as CAC payback.\n- Comparing with a business's previous row instead of the previous calendar month.\n\n**What it does not answer.**\n\n- What share of its MRR the existing base takes away: that is the gross MRR churn rate.\n- How a cohort's revenue developed over a year: that is NRR.\n\n**How managers ask for it.** \"Why did MRR only grow €570 when we signed €1,000 new?\" \"Break down MRR growth by movement.\"",
+  "source_ids": [
+    "04:MET-SAAS-02",
+    "04:§2.1",
+    "04:CASE-SAAS-03",
+    "ERRATA:E-100"
+  ],
+  "verified": true,
+  "as_of": "2026-10-08"
+}

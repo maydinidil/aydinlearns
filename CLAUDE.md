@@ -26,9 +26,9 @@ holds the evidence behind those changes.
 
 ## The state you will find it in
 
-**Slices 0, 1a, 1b, 2a and 2b and sprints 4a, 4b and 4c are built: SQL levels 1 to 3, GA4 and
-Methodology level 1 can be studied, with the scheduler, Today, drills, the level openers, mistake
-cards, cases, the portfolio export and the Progress screen.** Slice 2b (GA4 lessons, timed
+**Slices 0, 1a, 1b, 2a and 2b and sprints 4a, 4b, 4c and 5a are built: SQL levels 1 to 3, the
+GA4 foundations and all of Methodology can be studied, with the scheduler, Today, drills, the
+level openers, mistake cards, cases, the portfolio export and the Progress screen.** Slice 2b (GA4 lessons, timed
 GA4 mini drills and half-mocks, SQL choice items) reached `main` through PR #34. Sprint 3b gave
 every screen the direction C look (tokens, a top bar with section tabs, cards, a two-column
 Today), merged in PR #36; the spec is
@@ -39,14 +39,16 @@ Sprint 4a, the first part of slice 3, built SQL level 3, mistake cards with the 
 review screen, and "other ways to write this", merged in PR #38. Sprint 4b, the rest of slice 3,
 built cases and the inbox, the level 3 opener, the portfolio export, the Progress screen, the
 dataset explorer, screen mode and live reps, merged in PR #40 (2026-10-08). Sprint 4c, a cleanup of
-the SQL learner-facing backlog, is built on `feat/aydinlearns-sprint-4c`, with its pull request
-still to be merged. Open deferred work lives in
-[`docs/planning/backlog.md`](docs/planning/backlog.md). The next sprint is 5 (GA4 and Methodology
-complete); read the roadmap first.
+the SQL learner-facing backlog, merged in PR #41 (2026-10-08). Open deferred work lives in
+[`docs/planning/backlog.md`](docs/planning/backlog.md). Sprint 5 is split: 5a (Methodology
+complete, polish, release 1.0) is built on `feat/aydinlearns-sprint-5a`, with its pull request
+still to be merged, and 5b (GA4 complete, release 1.1) follows it; read the roadmap first. The
+app's version is in `package.json` (1.0.0); later sprints ship as 1.x releases (D63).
 - Slice 0: the domain-free types in `core/`, the app schemas in `schemas/`, the curriculum and
   error catalogue extracted into `content/sql/`, and the adjudicated fixes in
-  `knowledge/ERRATA.md`. `knowledge/` itself still holds the research bank: 11 files, plus an
-  index and a review.
+  `knowledge/ERRATA.md`. `knowledge/` itself still holds the research bank: 12 files (00 to 11), plus an index and a
+  review. File 11 (Methodology) arrived on 2026-10-08; its review is
+  `docs/planning/2026-10-08-kb11-review.md`.
 - Spike A checked the DuckDB and server facts on this laptop. Its findings,
   `docs/planning/2026-10-05-spike-a.md`, amended the design in place.
 - Slice 1a: the Voltmarkt course database (`pipeline/`), the locked SQL runner
@@ -90,6 +92,15 @@ complete); read the roadmap first.
   hardening, the division control re-run (grader `4c.1`), a memory-limit message, a skipped
   unservable mistake card and keyboard focus. Its rulings and deferred findings are in
   [`docs/planning/2026-10-08-sprint-4c-record.md`](docs/planning/2026-10-08-sprint-4c-record.md).
+- Sprint 5a (plan
+  [`docs/superpowers/plans/2026-10-08-aydinlearns-sprint-5a.md`](docs/superpowers/plans/2026-10-08-aydinlearns-sprint-5a.md)):
+  Methodology complete (78 concepts in seven topics, 478 items, 93 held out; IDs `EXP-AB-NN`,
+  `STAT-BASIC-NN`, `ECON-PRICE-NN` from knowledge file 11), the Voltmarkt A/B test tables
+  (`ab_assignments`, `ab_conversions`) with three SQL items and CASE-DAILY-L3-03, the `concept_ids`
+  goal criterion (`core/goals.ts`), the practice order after a reading (D59), Codex F26, a polish
+  pass over every screen, and version 1.0.0 (`server/version.ts`, shown in Settings). No log
+  change. Its rulings and deferred findings are in
+  [`docs/planning/2026-10-08-sprint-5a-record.md`](docs/planning/2026-10-08-sprint-5a-record.md).
 - Every check in the README's "Run and ship" passes, and so does the browser smoke test,
   `npm run test:e2e`. It runs its own server on `AYDINLEARNS_PORT` (default 5174) against an
   empty temporary logs folder, set through `AYDINLEARNS_LOGS_DIR`; never point a test at the real

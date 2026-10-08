@@ -19,6 +19,8 @@ ORDER_TABLES = {"price_history", "promotion_products", "orders", "order_lines"}
 LEVEL2_TABLES = LEVEL1_TABLES | ORDER_TABLES            # voltmarkt before sprint 4a, and each level 2 edge schema
 LEVEL3_TABLES = {"competitor_prices"}                   # sprint 4a (S4-02)
 VOLTMARKT_TABLES = LEVEL2_TABLES | LEVEL3_TABLES
+# Sprint 5a (Task B2): the A/B test's tables, in voltmarkt and in the join edge schema only (pipeline/tests/test_ab_test.py).
+AB_TABLES = {"ab_assignments", "ab_conversions"}
 VIEWS = {"sales"}
 WEEKLY = "competitor_price_weekly"                      # S4B-31: its own build step, only where competitor_prices exists
 WEEKLY_SCHEMAS = ["voltmarkt", "voltmarkt_edge_join", "voltmarkt_edge_date", "voltmarkt_edge_set"]
@@ -140,16 +142,18 @@ class CourseDb(unittest.TestCase):
         return tables, views
 
     def test_schemas_and_tables(self):
-        self.assertEqual(self.names("voltmarkt"), (VOLTMARKT_TABLES, VIEWS | {WEEKLY}))
+        self.assertEqual(self.names("voltmarkt"), (VOLTMARKT_TABLES | AB_TABLES, VIEWS | {WEEKLY}))
         for s in LEVEL1_EDGE_SCHEMAS:
             self.assertEqual(self.names(s), (LEVEL1_TABLES, set()), s)
             for t in LEVEL1_TABLES:
                 self.assertEqual(self.columns(s, t), self.columns("voltmarkt", t), f"{s}.{t} mirrors voltmarkt.{t}")
                 rows = self.one(f"SELECT count(*) FROM {s}.{t}")[0]
                 self.assertTrue(4 <= rows <= 8, f"{s}.{t} has {rows} rows, not 4-8")
-        # Level 2 edge schemas keep the names voltmarkt had when level 2 was written (no competitor_prices).
+        # Level 2 edge schemas keep the names voltmarkt had when level 2 was written (no competitor_prices); of the level 3
+        # ones, only the join edge schema holds the A/B test's tables (sprint 5a).
         for s, names, views in ([(s, LEVEL2_TABLES, VIEWS) for s in LEVEL2_EDGE_SCHEMAS]
-                                + [(s, VOLTMARKT_TABLES, VIEWS | {WEEKLY}) for s in LEVEL3_EDGE_SCHEMAS]):
+                                + [(s, VOLTMARKT_TABLES | (AB_TABLES if s == "voltmarkt_edge_join" else set()), VIEWS | {WEEKLY})
+                                   for s in LEVEL3_EDGE_SCHEMAS]):
             self.assertEqual(self.names(s), (names, views), f"{s} has the same table and view names as voltmarkt")
             for t in names | views:
                 self.assertEqual(self.columns(s, t), self.columns("voltmarkt", t), f"{s}.{t} mirrors voltmarkt.{t}")
@@ -213,8 +217,9 @@ class CourseDb(unittest.TestCase):
             self.assertEqual(self.manifest["tables"].get(name), entry, name)
         added = sorted(set(self.manifest["tables"]) - set(BEFORE_LEVEL3))
         expected = (["voltmarkt.competitor_prices", f"voltmarkt.{WEEKLY}"]
-                    + [f"{s}.{t}" for s in LEVEL3_EDGE_SCHEMAS for t in sorted(VOLTMARKT_TABLES | VIEWS | {WEEKLY})])
-        self.assertEqual(added, sorted(expected), "only competitor_prices, the weekly view and the level 3 edge schemas are new")
+                    + [f"{s}.{t}" for s in LEVEL3_EDGE_SCHEMAS for t in sorted(VOLTMARKT_TABLES | VIEWS | {WEEKLY})]
+                    + [f"{s}.{t}" for s in ("voltmarkt", "voltmarkt_edge_join") for t in sorted(AB_TABLES)])
+        self.assertEqual(added, sorted(expected), "only competitor_prices, the weekly view, the level 3 edge schemas and the A/B test are new")
 
     def test_manifest(self):
         m = self.manifest
@@ -253,7 +258,7 @@ class CourseDb(unittest.TestCase):
     def test_notes_truth_and_descriptions(self):
         notes = json.loads((self.dir / "schema-notes.json").read_text(encoding="utf-8"))
         visible = [n for n in notes if n["schema"] == "voltmarkt"]
-        self.assertEqual({n["table"] for n in visible}, LEVEL1_TABLES | set(LEVEL3_NOTES) | VIEWS | {WEEKLY})
+        self.assertEqual({n["table"] for n in visible}, LEVEL1_TABLES | set(LEVEL3_NOTES) | AB_TABLES | VIEWS | {WEEKLY})
         sales = {n["schema"]: n for n in notes if n["table"] == "sales"}
         self.assertEqual(set(sales), {"voltmarkt", *ORDER_EDGE_SCHEMAS}, "the view and every edge copy have notes")
         for s, n in sales.items():
@@ -301,8 +306,8 @@ class CourseDb(unittest.TestCase):
             self.assertNotIn("allowed_values", visible[table], table)
         # Levels 1 and 2 keep today's tables: every other note shows from level 1.
         for n in notes:
-            if n["table"] == WEEKLY:
-                self.assertEqual(n["from_level"], 3, "the weekly view shows from level 3 on, with competitor_prices")
+            if n["table"] == WEEKLY or n["table"] in AB_TABLES:
+                self.assertEqual(n["from_level"], 3, f"{n['table']} shows from level 3 on, with competitor_prices")
             elif n["table"] not in LEVEL3_NOTES:
                 self.assertEqual(n["from_level"], 1, f"{n['schema']}.{n['table']}")
         # Every foreign key of every note carries its referenced table and columns as data (Task B2 renders them).

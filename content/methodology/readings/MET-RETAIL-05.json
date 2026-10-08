@@ -1,0 +1,16 @@
+{
+  "concept_id": "MET-RETAIL-05",
+  "section": "methodology",
+  "version": 1,
+  "title": "Lost sales estimate",
+  "reading_md": "**What it estimates.** How many units a store failed to sell because a product was out of stock. Nobody records a sale that did not happen, so this is always an estimate, and it should be labelled as one.\n\n**Formula (Voltmarkt's convention).**\n\nlost units = stockout days × in-stock daily sales rate\n\n- Stockout day: a day that closed with 0 units on hand. Stock is counted at the end of each day, after that day's sales.\n- In-stock daily sales rate: units sold on in-stock days / number of in-stock days. It is the rate stock cover uses, per day instead of per week.\n- For euros, multiply the lost units by the product's average selling price, and label the result an estimate.\n- Grain: store × SKU × period.\n\n**Worked example.** In November (30 days) a Voltmarkt store sold 96 units of one Kestrel laptop model on the 24 days it had stock. On the other 6 days the model was sold out.\n\n- In-stock daily rate = 96 / 24 = 4 units a day.\n- Lost units = 6 × 4 = 24 laptops.\n- Using all 30 days gives 96 / 30 = 3.2 units a day and only 19.2 lost units. The sold-out days pull the rate down, so the loss is understated.\n\n**Why it is only an estimate.**\n\n- It assumes demand on the stockout days was like demand on the in-stock days. If the shelf emptied during a promotion or the December peak, the real loss may be larger.\n- Some customers bought another model or came back later, so not every lost unit is lost revenue.\n\n**Common mistakes.**\n\n- Taking the rate from all days, including the stockout days.\n- Reporting the estimate as a fact, with no label and no note of what it assumes.\n\n**What it does not answer.**\n\n- How often products were out of stock: that is the stockout rate.\n- How long today's stock will last: that is stock cover.\n\n**How managers ask for it.** \"How much did stockouts cost us?\" \"Is availability a bigger problem than price?\"",
+  "source_ids": [
+    "04:MET-RETAIL-05",
+    "04:MET-RETAIL-03",
+    "04:CASE-RETAIL-04",
+    "ERRATA:E-100",
+    "ERRATA:E-103"
+  ],
+  "verified": true,
+  "as_of": "2026-10-08"
+}

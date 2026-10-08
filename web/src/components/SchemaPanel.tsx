@@ -4,6 +4,7 @@
 import { columnNoteLines, foreignKeyLine, notesForLevel, shownForeignKeys, type TableNote } from '../../../schemas/schema-notes.ts';
 import { allowedValueLines } from '../lib/allowed-values.ts';
 import { cell } from '../lib/cell.ts';
+import { rowCountText } from '../lib/polish-p2b.ts';
 
 /** `level` is the item's level (`item.level`); without one every note shows, as before sprint 4a. */
 export function SchemaPanel({ notes, level }: { notes: TableNote[]; level?: number | null }) {
@@ -13,7 +14,7 @@ export function SchemaPanel({ notes, level }: { notes: TableNote[]; level?: numb
       <h3>Tables</h3>
       {shown.map((n) => (
         <details key={n.table}>
-          <summary><code>{n.table}</code>: <span className="muted">{n.grain}, {n.row_count} rows</span></summary>
+          <summary><code>{n.table}</code>: <span className="muted">{n.grain}, {rowCountText(n.row_count)}</span></summary>
           <p>Primary key: <code>{n.primary_key.join(', ')}</code> <span className="chip">key</span></p>
           {shownForeignKeys(n, shown).map((f) => {
             const line = foreignKeyLine(f);

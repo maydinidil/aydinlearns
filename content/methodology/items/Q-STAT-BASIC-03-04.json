@@ -1,0 +1,46 @@
+{
+  "id": "Q-STAT-BASIC-03-04",
+  "version": 1,
+  "kind": "mcq",
+  "section": "methodology",
+  "concept_id": "STAT-BASIC-03",
+  "stem": "An analyst writes: \"We have 2 million orders, so by the central limit theorem our order values are normally distributed.\" What is wrong with this?",
+  "options": [
+    {
+      "oid": "obf03098",
+      "text": "The theorem is about the mean's distribution, not the order values",
+      "misconception_id": null
+    },
+    {
+      "oid": "o2467481",
+      "text": "Nothing: with 2 million orders, the order values themselves are normal",
+      "misconception_id": null
+    },
+    {
+      "oid": "o5072221",
+      "text": "The theorem only starts to work above 10 million values",
+      "misconception_id": null
+    },
+    {
+      "oid": "o57bf3bb",
+      "text": "The theorem only applies to rates such as conversion, never to euros",
+      "misconception_id": null
+    }
+  ],
+  "typed": null,
+  "held_out": false,
+  "enemy_group": null,
+  "status": "active",
+  "verified": true,
+  "level": null,
+  "tags": [
+    "methodology",
+    "T-MET-STAT"
+  ],
+  "source_ids": [
+    "11:STAT-03"
+  ],
+  "as_of": "2026-10-08",
+  "review_after": null,
+  "supersedes": []
+}

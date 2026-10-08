@@ -1,0 +1,16 @@
+{
+  "concept_id": "MET-PRICE-11",
+  "section": "methodology",
+  "version": 1,
+  "title": "Promo share of sales",
+  "reading_md": "**What it measures.** How much of a category's revenue is sold under a promotion: a measure of how dependent sales are on deals.\n\n**Formula.**\n\nPromo share % = 100 × promotion net revenue / total net revenue\n\n- Promotion net revenue: the lines sold while a promotion ran on the product.\n- Total net revenue: every line in the category and period, at regular price, on promotion or at markdown.\n- Markdown lines, permanent clearance price cuts, are not promotion lines. They stay in the total but not in the promotion revenue.\n- Grain: category × period.\n\n**Worked example.** Headphones in Q4:\n\n| Price type | Net revenue |\n|---|---|\n| Regular | €600,000 |\n| Promotion | €300,000 |\n| Markdown | €100,000 |\n| Total | €1,000,000 |\n\nPromo share = 100 × 300,000 / 1,000,000 = 30.0%. Counting markdown as promotion gives 40.0%.\n\nIn Q1, promotion revenue stays at €300,000 and markdown at €100,000, but regular-price sales fall to €400,000. Promo share = 100 × 300,000 / 800,000 = 37.5%. The share rose without one extra deal, because regular sales fell. Read the share next to promotion and regular revenue in euros.\n\n**Common mistakes.**\n\n- Counting markdown as promotion.\n- Reading a rising share as more promotions, when regular sales fell.\n- Dividing by regular-price revenue instead of total net revenue.\n\n**What it does not answer.**\n\n- How deep the deals were: that is discount depth.\n- Whether the deals brought extra volume: that is promo uplift.\n- Whether they made money: that is gross margin.\n\n**How managers ask for it.** \"Are we addicted to promotions?\" \"What % of revenue is sold on deal?\"",
+  "source_ids": [
+    "04:MET-PRICE-11",
+    "04:MET-PRICE-09",
+    "ERRATA:E-009",
+    "ERRATA:E-100",
+    "ERRATA:E-101"
+  ],
+  "verified": true,
+  "as_of": "2026-10-08"
+}

@@ -1,6 +1,6 @@
 {
   "item_id": "EX-OPENER-L2-01",
-  "item_version": 2,
+  "item_version": 3,
   "reference_sql": "SELECT parent_category,\n       COUNT(DISTINCT order_id) AS n_orders,\n       SUM(net_revenue_eur) AS revenue_eur,\n       ROUND(100.0 * SUM(CASE WHEN channel = 'web' THEN net_revenue_eur ELSE 0 END) / SUM(net_revenue_eur), 1) AS web_revenue_pct\nFROM sales\nWHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\nGROUP BY parent_category\nHAVING AVG(net_revenue_eur) > 150\nORDER BY revenue_eur DESC",
   "alternatives": [
     "SELECT parent_category, COUNT(DISTINCT order_id) AS n_orders, SUM(net_revenue_eur) AS revenue_eur, ROUND(100.0 * COALESCE(SUM(net_revenue_eur) FILTER (WHERE channel = 'web'), 0) / SUM(net_revenue_eur), 1) AS web_revenue_pct FROM sales WHERE order_date >= DATE '2025-01-01' AND order_date < DATE '2026-01-01' GROUP BY 1 HAVING SUM(net_revenue_eur) / COUNT(net_revenue_eur) > 150 ORDER BY 3 DESC",
@@ -44,11 +44,11 @@
   ],
   "hint3_partial": "SELECT parent_category,\n       COUNT(___) AS n_orders,\n       SUM(net_revenue_eur) AS revenue_eur,\n       ROUND(100.0 * SUM(CASE WHEN ___ THEN net_revenue_eur ELSE 0 END) / SUM(net_revenue_eur), 1) AS web_revenue_pct\nFROM sales\nWHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\nGROUP BY parent_category\nHAVING ___\nORDER BY ___",
   "solver": {
-    "prompt_hash": "b2ae416d7d0bfdc0",
+    "prompt_hash": "821c3a91a8675cf7",
     "schema_version": "cebf75df442f",
-    "dataset_version": "7b5183c35ff26d5b",
+    "dataset_version": "6de53e5dbeafe2d5",
     "grader_version": "4c.1",
     "query": "SELECT parent_category,\n       COUNT(DISTINCT order_id) AS n_orders,\n       SUM(net_revenue_eur) AS revenue_eur,\n       ROUND(100 * COALESCE(SUM(CASE WHEN channel = 'web' THEN net_revenue_eur END), 0) / SUM(net_revenue_eur), 1) AS web_revenue_pct\nFROM sales\nWHERE order_date BETWEEN '2025-01-01' AND '2025-12-31'\nGROUP BY parent_category\nHAVING AVG(net_revenue_eur) > 150\nORDER BY revenue_eur DESC\n",
-    "at": "2026-10-08T14:11:56.228Z"
+    "at": "2026-10-08T19:03:04.366Z"
   }
 }

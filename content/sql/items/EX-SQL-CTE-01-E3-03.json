@@ -1,0 +1,164 @@
+{
+  "id": "EX-SQL-CTE-01-E3-03",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "ab_test",
+    "cte",
+    "lift",
+    "ratio",
+    "ab_assignments",
+    "ab_conversions"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-CTE-01",
+    "11:EXP-AB-13"
+  ],
+  "verified": true,
+  "as_of": "2026-10-08",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-CTE-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01"
+  ],
+  "template_id": "T-CTE-01-ab-lift-vs-control",
+  "template_params": {
+    "test_id": "AB-2025-01",
+    "from": "ab_assignments",
+    "join": "ab_conversions"
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_join",
+  "prompt": "For the checkout test AB-2025-01, compare the treatment variant with control. A customer converted in a variant when the customer has a conversion in the test at or after the customer's assigned_at for that variant; a customer who converted more than once counts once, and a customer assigned to both variants counts in each of them. A variant's conversion rate is 100 times its converted customers divided by its assigned customers. Return one row with four columns, in this order: control_rate_pct and treatment_rate_pct, the two conversion rates, each rounded to 2 decimals; abs_lift_pp, the absolute lift in percentage points, the treatment rate minus the control rate, rounded to 2 decimals; and rel_lift_pct, the relative lift in percent, 100 times the absolute lift divided by the control rate, rounded to 1 decimal. Work out both lifts from the unrounded rates. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "control_rate_pct",
+        "type_class": "numeric"
+      },
+      {
+        "name": "treatment_rate_pct",
+        "type_class": "numeric"
+      },
+      {
+        "name": "abs_lift_pp",
+        "type_class": "numeric"
+      },
+      {
+        "name": "rel_lift_pct",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "control_rate_pct",
+        "type_class": "numeric",
+        "precision": "ratio",
+        "require_rounding": 2
+      },
+      {
+        "name": "treatment_rate_pct",
+        "type_class": "numeric",
+        "precision": "ratio",
+        "require_rounding": 2
+      },
+      {
+        "name": "abs_lift_pp",
+        "type_class": "numeric",
+        "precision": "ratio",
+        "require_rounding": 2
+      },
+      {
+        "name": "rel_lift_pct",
+        "type_class": "numeric",
+        "precision": "ratio",
+        "require_rounding": 1
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, work out each variant's conversion rate in a first step, one row per variant.",
+    "Then put the control row and the treatment row side by side, so that one row can subtract and divide them."
+  ],
+  "subgoals": [
+    {
+      "from": 18,
+      "to": 117,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 120,
+      "to": 141,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 144,
+      "to": 265,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 268,
+      "to": 298,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 301,
+      "to": 319,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 322,
+      "to": 555,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 556,
+      "to": 570,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 571,
+      "to": 642,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "The first step gives one unrounded rate per variant, and pairing the control row with the treatment row turns both lifts into simple arithmetic on one row."
+}

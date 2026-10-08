@@ -1,0 +1,13 @@
+{
+  "item_id": "Q-MET-SAAS-05-04",
+  "item_version": 1,
+  "correct_oid": "ocda7c79",
+  "explanation": "Gross MRR churn counts only the MRR lost to cancellations and downgrades, so it is 0 or more. Subtracting upgrades gives a net figure, which can go below 0 when upgrades are large; that is a different metric and must be labelled. The start-of-month denominator is right, and new business never enters.",
+  "solver": {
+    "prompt_hash": "5483a0c8cb796bfb",
+    "grader_version": "choice.2",
+    "chosen": "ocda7c79",
+    "typed": null,
+    "at": "2026-10-08T18:33:21.973Z"
+  }
+}

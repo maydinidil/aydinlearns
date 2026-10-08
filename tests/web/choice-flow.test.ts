@@ -198,3 +198,19 @@ test('Methodology on Today: the steps are the same as GA4, and a new metric open
   assert.equal((r as { heading: string }).heading, 'Practice: Metric MET-MKT-05');
   assert.deepEqual(afterChoice(runChoice('review', 'methodology', served('Q-1', 'review'), mt, null), planOf([reviews], { section: 'methodology' }), 'full'), { kind: 'serve_next', purpose: 'review', concept_id: null });
 });
+
+test('sprint 5a: the Methodology map shows all seven topics with a label, never a raw topic ID, and a concept with no items yet does not break it', () => {
+  const topics = ['T-MET-RETAIL', 'T-MET-MKT', 'T-MET-PRICE', 'T-MET-SAAS', 'T-MET-EXP', 'T-MET-STAT', 'T-MET-ECON'];
+  const many = topics.flatMap((t, n) => [metric(`MET-${n}-01`, t), metric(`MET-${n}-02`, t, { hasReading: false, hasPractice: false, level: null })]);
+  const groups = mapGroups('methodology', many);
+  assert.deepEqual(groups.map((g) => g.label), ['Retail', 'Marketing', 'Pricing', 'SaaS', 'Experiments', 'Statistics', 'Pricing economics']);
+  assert.ok(groups.every((g) => !/^T-/.test(g.label) && g.rows.length === 2));
+  assert.deepEqual(groups[6]!.rows[1]!.practiceNote, 'No practice questions yet.');
+  assert.equal(groups[6]!.rows[1]!.readingHref, null);
+});
+
+test('sprint 5a: the Methodology map intro names the four areas', async () => {
+  const { readFile } = await import('node:fs/promises');
+  const src = await readFile('web/src/screens/MethodMapScreen.tsx', 'utf8');
+  assert.ok(src.includes('Metrics, experiments, statistics and pricing economics, grouped by topic. Everything is open: read a concept, then practise it, in any order.'));
+});

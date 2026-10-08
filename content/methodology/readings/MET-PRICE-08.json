@@ -1,0 +1,16 @@
+{
+  "concept_id": "MET-PRICE-08",
+  "section": "methodology",
+  "version": 1,
+  "title": "Margin bridge (price, volume, mix, cost)",
+  "reading_md": "**What it measures.** Why gross margin in euros changed between two periods, split into a price, a cost, a volume and a mix effect. It walks from last quarter's margin to this quarter's.\n\n**Formula (Voltmarkt's convention).** For each product: V = units, P = net price per unit, C = cost per unit and M = P - C, the margin per unit. Period 0 is the earlier period and period 1 the later one. For products sold in both periods:\n\n- Price effect = SUM((P1 - P0) × V1)\n- Cost effect = -SUM((C1 - C0) × V1)\n- Volume effect = (SUM V1 - SUM V0) × average M0, where average M0 = SUM(V0 × M0) / SUM V0\n- Mix effect = SUM(V1 × M0) - SUM V1 × average M0\n\nPrice and cost use the later period's units; volume and mix use the earlier period's margins. Products sold in only one period go to a separate new and discontinued line. Then margin 0 + price + cost + volume + mix + new and discontinued = margin 1, exactly. Grain: component × period pair.\n\n**Worked example.** Two products, Q2 to Q3:\n\n| Product | Q2 units | Q2 price | Q2 cost | Q3 units | Q3 price | Q3 cost |\n|---|---|---|---|---|---|---|\n| TV | 100 | €500 | €400 | 90 | €510 | €405 |\n| Soundbar | 100 | €200 | €140 | 150 | €200 | €150 |\n\nQ2 margin = 100 × 100 + 100 × 60 = €16,000, so average M0 = 16,000 / 200 = €80 a unit. Q3 margin = 90 × 105 + 150 × 50 = €16,950.\n\n- Price = (510 - 500) × 90 = +€900\n- Cost = -((405 - 400) × 90 + (150 - 140) × 150) = -€1,950\n- Volume = (240 - 200) × 80 = +€3,200\n- Mix = (90 × 100 + 150 × 60) - 240 × 80 = -€1,200\n\nCheck: 16,000 + 900 - 1,950 + 3,200 - 1,200 = €16,950. The story: Voltmarkt sold 40 more units, but the extra units were lower-margin soundbars, and costs rose faster than prices.\n\n**Common mistakes.**\n\n- Mix as a plug: computing price, cost and volume, then setting mix to whatever makes the bridge balance. Any error then hides in mix. Compute every effect with its formula and check that they add up.\n- Leaving new or discontinued products in the mix, which distorts it.\n- Mixing conventions, such as price at Q2 units or volume at Q3 margins. The effects then overlap or leave a gap, and the bridge stops adding up.\n\n**What it does not answer.** Why customers bought a different mix, or whether a price rise cost volume: that is elasticity.\n\n**How managers ask for it.** \"Why is gross margin down €200k versus last quarter?\" \"Walk me from Q1 margin to Q2 margin.\"",
+  "source_ids": [
+    "04:MET-PRICE-08",
+    "04:§2.1",
+    "04:CASE-PRICE-05",
+    "ERRATA:E-100",
+    "ERRATA:E-101"
+  ],
+  "verified": true,
+  "as_of": "2026-10-08"
+}

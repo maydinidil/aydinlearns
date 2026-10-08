@@ -1,6 +1,6 @@
 {
   "id": "EX-SQL-NULL-01-E2-31",
-  "version": 2,
+  "version": 3,
   "kind": "fix",
   "tags": [
     "sql",
@@ -40,7 +40,7 @@
   "company": "voltmarkt",
   "schema": "voltmarkt",
   "edge_schema": "voltmarkt_edge_null",
-  "prompt": "The query in the editor has one mistake. Fix it so that it answers this question: which promotions with a discount of at least 20 percent were not clearance campaigns? From the promotions table, list the promotions whose promo_name does not contain the word Clearance and whose discount_pct is 20 or more. A promotion with no promo_name recorded (NULL) is not known to be a clearance campaign, so include it. A promotion with no discount_pct recorded does not count. Return three columns, in this order: promo_code, promo_name, discount_pct. Return one row per promotion. Any row order is fine. The visible data may not show the mistake; the hidden checks do.",
+  "prompt": "The query in the editor has one mistake. Fix it so that it answers this question: which promotions with a discount of at least 20 percent were not clearance campaigns? From the promotions table, list the promotions whose promo_name does not contain the word Clearance, written exactly like that with a capital C (a lower-case clearance does not count), and whose discount_pct is 20 or more. A promotion with no promo_name recorded (NULL) is not known to be a clearance campaign, so include it. A promotion with no discount_pct recorded does not count. Return three columns, in this order: promo_code, promo_name, discount_pct. Return one row per promotion. Any row order is fine. The visible data may not show the mistake; the hidden checks do.",
   "output_contract": {
     "columns": [
       {

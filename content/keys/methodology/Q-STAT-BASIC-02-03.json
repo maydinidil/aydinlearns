@@ -1,0 +1,13 @@
+{
+  "item_id": "Q-STAT-BASIC-02-03",
+  "item_version": 1,
+  "correct_oid": "o84fb19b",
+  "explanation": "A winsorised mean caps the largest baskets at a value chosen in advance but keeps every customer in the count, so a few huge baskets cannot decide the result. A trimmed mean is also robust, but it drops customers from both ends, which the question rules out, and leaving out the business buyers deletes real customers.",
+  "solver": {
+    "prompt_hash": "522b850b1f7968c3",
+    "grader_version": "choice.2",
+    "chosen": "o84fb19b",
+    "typed": null,
+    "at": "2026-10-08T18:33:22.105Z"
+  }
+}

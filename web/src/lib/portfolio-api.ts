@@ -31,7 +31,7 @@ export const PORTFOLIO_HREF = '#/portfolio';
 export const SETTINGS_HREF = '#/setup';
 export const PORTFOLIO_TITLE = 'Portfolio';
 /** S4B-19. */
-export const FLAGSHIP_LINE = 'Flagship pieces on real data arrive with the datasets in sprint 6.';
+export const FLAGSHIP_LINE = 'Flagship pieces on real data come in a later version.';
 
 export interface PortfolioRow { case_id: string; href: string; title: string; meta: string; solved: string; exported: string }
 /** A solved case as the screen lists it: the kind, level and data source, when it was solved and when it was last exported. */

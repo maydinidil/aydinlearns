@@ -1,0 +1,31 @@
+{
+  "id": "Q-STAT-BASIC-08-02",
+  "version": 1,
+  "kind": "typed",
+  "section": "methodology",
+  "concept_id": "STAT-BASIC-08",
+  "stem": "Last year, Voltmarkt's North region had 1,000 orders with an average basket of €60, and the South region 1,000 orders averaging €40. This year the North had 1,000 orders averaging €62, and the South 3,000 orders averaging €42. What is this year's average basket across both regions? Give it in euros with 2 decimals.",
+  "options": [],
+  "typed": {
+    "precision": "money",
+    "scale": "eur",
+    "decimals": 2,
+    "unit_label": "€"
+  },
+  "held_out": true,
+  "enemy_group": null,
+  "status": "active",
+  "verified": true,
+  "level": null,
+  "tags": [
+    "methodology",
+    "T-MET-STAT"
+  ],
+  "source_ids": [
+    "11:STAT-08",
+    "ERRATA:E-182"
+  ],
+  "as_of": "2026-10-08",
+  "review_after": null,
+  "supersedes": []
+}

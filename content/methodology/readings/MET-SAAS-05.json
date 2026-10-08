@@ -1,0 +1,15 @@
+{
+  "concept_id": "MET-SAAS-05",
+  "section": "methodology",
+  "version": 1,
+  "title": "Gross MRR churn rate",
+  "reading_md": "**Setting.** The examples use Business Care, the device-support subscription Voltmarkt sells to small offices.\n\n**What it measures.** The share of the MRR at the start of a month that existing businesses took away during the month, by cancelling (churn) or by moving to a cheaper plan (contraction). Upgrades do not offset it.\n\n**Formula.**\n\ngross MRR churn % = 100 × (churn MRR + contraction MRR) / MRR at the start of the month\n\n- MRR at the start of the month is last month's MRR, before any movement.\n- Churn and contraction come from the MRR movements.\n- New business, reactivation and expansion stay out of both parts.\n- Grain: month.\n\n**Worked example.** Business Care started September 2026 with €20,000 of MRR. In September, cancellations removed €500 and downgrades €100, upgrades added €300, and new businesses added €900.\n\n- Gross MRR churn = 100 × (500 + 100) / 20,000 = 3.0%.\n- Subtracting the upgrades gives 100 × (500 + 100 - 300) / 20,000 = 1.5%. That is a net figure, a different metric: label it if you report it. A net figure can fall below 0 when upgrades are large; gross churn never can.\n\n**MRR churn and logo churn.** Logo churn counts businesses; gross MRR churn counts euros. Losing a few large accounts barely moves logo churn but can push gross MRR churn up sharply, and losing many small businesses does the opposite. Report both.\n\n**Common mistakes.**\n\n- Netting expansion into gross churn.\n- Dividing by the MRR at the end of the month, or adding new business to the denominator. Both include businesses that were not there at the start.\n\n**What it does not answer.**\n\n- How many businesses left: that is logo churn.\n- How a cohort's revenue developed over 12 months: that is GRR or NRR.\n\n**How managers ask for it.** \"How much revenue leaked from existing customers?\" \"Gross churn % last quarter?\"",
+  "source_ids": [
+    "04:MET-SAAS-05",
+    "04:MET-SAAS-02",
+    "04:MET-SAAS-04",
+    "ERRATA:E-100"
+  ],
+  "verified": true,
+  "as_of": "2026-10-08"
+}

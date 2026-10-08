@@ -34,7 +34,7 @@ test('the rules badge names every graded rule that differs from the default', ()
 test('the partial-score checklist', () => {
   const rows = checklist({ shape: 20, grain: 0, values: 20, edge: 0, total: 40, valuesDetail: { matched: 5, of: 10 } });
   assert.deepEqual(rows.map((r) => [r.label, r.points, r.ok]), [
-    ['Right columns', 20, true], ['One row per thing asked for', 0, false], ['Values match (5 of 10 rows)', 20, false], ['Works on the hidden test data', 0, false]]);
+    ['Right columns', 20, true], ['One row per thing asked for', 0, false], ['Values match', 20, false], ['Works on the hidden test data', 0, false]]);
 });
 test('a wrong row order adds a penalty line to the checklist', () => {
   const rows = checklist({ shape: 20, grain: 20, values: 40, edge: 20, total: 80, valuesDetail: { matched: 10, of: 10 }, orderWrong: true });

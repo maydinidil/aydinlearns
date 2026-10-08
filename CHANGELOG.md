@@ -7,16 +7,28 @@ The project's first commit landed on `main` through PR #28 on 2026-10-03. Dates 
 from the files themselves (frontmatter, review dates and the knowledge-bank index); later dates
 come from git.
 
-There is no released version yet. Slices 0 and 1a are the first application code; the entries
-before them are research and planning.
+1.0.0 is the first release. Slices 0 and 1a are the first application code; the entries before
+them are research and planning.
 
-## Unreleased
+## 1.0.0 (2026-10-08)
+
+The first release. aydinlearns 1.0 can be studied end to end in three sections:
+
+| Section | What 1.0 has |
+|---|---|
+| SQL | Levels 1 to 3 (20 concepts, 568 exercises): lessons, spaced reviews, timed drills, 12 cases with an inbox, mistake cards, "other ways to write this", a dataset explorer and a portfolio export |
+| GA4 | The foundations: 16 lessons and 123 questions, with mini drills and half-mocks on held-out questions |
+| Methodology | Complete: 78 concepts (metrics, A/B testing, statistics and pricing economics), each with a reading, and 478 questions |
+
+Today plans each session; Progress shows each goal against its date. Version 1.1 (sprint 5b)
+completes GA4: the remaining lessons, full mocks, the readiness check and the interview labs.
 
 ### Known issues
 
-- F26 (Codex, PR #41): when "Try again" falls back to another due mistake card while that card's
-  previous review is still being saved, it can serve that card a second time, and the card is then
-  rated twice. Rare in practice; the fix is planned.
+- Sprint 5a: on Today's GA4 and Methodology tabs, the wrap-up's "Next goal" is the next goal
+  overall, which can be an SQL goal. Picking a goal per section needs a route change (backlog).
+- Sprint 5a: the drill review does not mark each question right or wrong; it shows the total only.
+  Per-question marks need the drill route to return each outcome (backlog).
 - F13 (Codex, PR #34), won't fix: after the app restarts in the middle of a GA4 run, the run's
   review numbers its questions in the order they were answered, not their order in the run. This
   is known and deliberate: the review says so, and exact numbering would need the run's order in
@@ -33,6 +45,25 @@ before them are research and planning.
 
 ### Added
 
+- **Sprint 5a: Methodology complete, an A/B test, version 1.0** (2026-10-08; plan
+  `docs/superpowers/plans/2026-10-08-aydinlearns-sprint-5a.md`, record
+  `docs/planning/2026-10-08-sprint-5a-record.md`):
+  - **48 Methodology concepts.** The 21 remaining metrics from knowledge file 04 (6 pricing, 3
+    marketing, 5 retail, 7 SaaS) and the 27 concepts of knowledge file 11 (13 on experiments, 9 on
+    statistics, 5 on pricing economics), each with a reading and practice: 288 new questions, 48
+    of them held out for mocks. Methodology now has 78 concepts in seven topics and 478 questions,
+    93 held out. File 11 was reviewed (grade A-); its fixes are ERRATA E-174 to E-184. Every new or
+    changed question passed the blind solver and a content review.
+  - **A Voltmarkt A/B test.** Two tables, `ab_assignments` and `ab_conversions` (a checkout test
+    over two weeks of 2025, with edge rows; ERRATA E-185), three level 3 SQL exercises on them,
+    and a daily case, CASE-DAILY-L3-03 "Checkout test readout", whose CP5 asks whether the test
+    can be called a win. The new items plant three more mistakes on SQL-JOIN-02 and SQL-CTE-01, so
+    an older failed attempt that made one of them can now show up as a mistake card.
+  - **G-GA4-CERT** gains a line: the 12 Methodology concepts asked most in interviews, at
+    practised ("0 of 12"). It uses a new goal criterion, `concept_ids`.
+  - **Cold answers stay cold.** When Today's practice step picks the next GA4 or Methodology
+    concept, one whose reading or lesson was opened in the last 15 minutes comes last.
+  - **Version 1.0.0** in `package.json`. The status route returns it and Settings shows it.
 - **Sprint 4b: cases, portfolio, progress and screen mode** (2026-10-08):
   - **Cases and the inbox.** A case screen runs a manager's request: an optional plan first, then
     checkpoints CP1 to CP6 in the order the case lists them, "say it in 60 seconds" (four prompts and
@@ -315,6 +346,28 @@ before them are research and planning.
 
 ### Fixed
 
+- **Sprint 5a: polish for 1.0 and content fixes** (2026-10-08):
+  - F26 (Codex, PR #41). When "Try again" falls back to another due mistake card, it now waits
+    for that card's previous review to finish saving, and skips the card if that review made it
+    not due. A card is no longer served and rated twice.
+  - **Every screen, at laptop and phone width.** A screen-by-screen pass found 49 findings; the
+    46 small ones are fixed. Among them: the top bar and pages fit a 390 px screen; build words
+    such as "slice 5" are gone; a level with no drill no longer offers "Start drill"; the
+    exercise, lesson and explorer layouts use the full width, and a long result scrolls in a box;
+    feedback shows code as code; a drill runs with the same timer bar and question strip as a GA4
+    run; case steps are named, not coded; Progress has section links and leaves out the weeks
+    before the first attempt; Settings folds its system checks into one line; inputs share one
+    style; row counts have thousands separators. After the final review: the case's "held back"
+    note names the step that shows the tables, a half-mock says whether any question was shown in
+    the last 21 days instead of calling every question new, and two Methodology items (EXP-AB-11,
+    MET-PRICE-08) are clearer.
+  - **SQL content.** Six SQL-DATE-01 references return a DATE where the prompt asks for a date
+    (EX-SQL-DATE-01-E1-01, -E1-03, -E1-05, -E1-08, -E2-01, -E2-05). Feedback for `ERR-LOG-17`,
+    `ERR-OUT-02`, `ERR-LOG-06` and `ERR-LOG-23` is clearer. EX-SQL-NULL-01-E2-31,
+    EX-OPENER-L2-01 and EX-CASE-DAILY-L2-02 are reworded where the blind solver found them
+    ambiguous, and solved again.
+  - **Methodology content.** Items on MET-MKT-02, MET-MKT-12 and MET-RETAIL-10 fixed from the
+    backlog.
 - **Sprint 4c: the SQL learner-facing backlog** (2026-10-08; plan
   `docs/superpowers/plans/2026-10-08-aydinlearns-sprint-4c.md`, record
   `docs/planning/2026-10-08-sprint-4c-record.md`):
@@ -450,6 +503,11 @@ before them are research and planning.
 
 ### Changed
 
+- **Sprint 5a.** `GRADER_VERSION` stays `4c.1`, `CHOICE_GRADER_VERSION` `choice.2`, and the log
+  format version 4. A daily case may now add CP1, CP2, CP5 and CP6 to its CP3 and CP4 (rule S4B-04,
+  amended by D56). Every changed item has its `version` raised and was solved again.
+- **Test counts:** `npm test` is 1778 tests, the pipeline tests 96, the smoke test 58 rows, the
+  content checks 14952.
 - **`GRADER_VERSION` is `4c.1`** (the division control re-run). `CHOICE_GRADER_VERSION` stays
   `choice.2`. The log format stays version 4: no new record, event or field.
 - **Sprint 4c content versions:** every item whose prompt, key or plants changed has its `version`

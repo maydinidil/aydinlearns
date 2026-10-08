@@ -2,7 +2,7 @@
 // screen (Task E1) evaluate goals on (design §2; S2-38, D12, S4B-08, S4B-20, S4B-26; sprint 4b, Task D3). Built from replay and the
 // logs: each concept's state, the solved cases with whether a case_export event names them, the live reps (server/drill.ts), and the
 // external results. No mock is built yet, so none has passed. It only reads.
-import { effectiveDate, evaluateGoal, type CriterionResult, type GoalView } from '../core/goal-eval.ts';
+import { effectiveDate, evaluateGoal, EVERY_LEVEL, type CriterionResult, type GoalView } from '../core/goal-eval.ts';
 import type { Goal } from '../core/goals.ts';
 import type { ReplayResult } from '../core/replay.ts';
 import type { ContentStore } from './content.ts';
@@ -13,7 +13,7 @@ export interface GoalViewSource { content: ContentStore; replay: ReplayResult; a
 
 /**
  * The goal view. `conceptsOf`: SQL's curriculum concepts of levels 1 to `maxLevel`; GA4's and Methodology's concepts with a level at or
- * below it (D12, D13: level 1 only; a section with no concepts file has none, so its criteria are "not yet available"). `casesSolved`
+ * below it (D12, D13: level 1 only; a level-less concept only when every level is asked for, D58; a section with no concepts file has none, so its criteria are "not yet available"). `casesSolved`
  * (S4B-08, S4B-20): every solved case in the store's case order, with its record's level and `exported` when a case_export event names
  * it. `liveReps` (S4B-26): one per closed `live-` block, with its Amsterdam date. `externals`: the GA4 exam and portfolio results.
  */
@@ -30,7 +30,7 @@ export function goalView(s: GoalViewSource): GoalView {
   return {
     conceptsOf: (section, maxLevel) => (section === 'sql'
       ? content.curriculum.concepts.filter((c) => c.level <= maxLevel).map((c) => c.id)
-      : (content.choiceConcepts?.(section) ?? []).filter((c) => c.level !== null && c.level <= maxLevel).map((c) => c.id)),
+      : (content.choiceConcepts?.(section) ?? []).filter((c) => (c.level === null ? maxLevel === EVERY_LEVEL : c.level <= maxLevel)).map((c) => c.id)),
     stateOf: (id) => replay.concepts.get(id)?.state ?? 'new',
     externals,
     mocksPassed: new Set(),

@@ -1,0 +1,34 @@
+{
+  "id": "Q-MET-PRICE-05-02",
+  "version": 1,
+  "kind": "typed",
+  "section": "methodology",
+  "concept_id": "MET-PRICE-05",
+  "stem": "During a 3-week promotion, Voltmarkt's 65-inch TV averaged 50 units a week against a baseline of 20. In the same TV category, the 55-inch model fell from a baseline of 25 to an average of 16 units a week, and the 75-inch model from 10 to 8. A computer monitor, in the monitors category, fell from 6 to 4 units a week. None of these other products was on promotion. Voltmarkt's cannibalisation rate is 100 × the units lost by non-promoted products in the promoted product's own category / the promoted product's extra units, both counted over all the promotion weeks. What is the cannibalisation rate? Give a percentage with 1 decimal.",
+  "options": [],
+  "typed": {
+    "precision": "ratio",
+    "scale": "percent",
+    "decimals": 1,
+    "unit_label": "%"
+  },
+  "held_out": false,
+  "enemy_group": null,
+  "status": "active",
+  "verified": true,
+  "level": null,
+  "tags": [
+    "methodology",
+    "T-MET-PRICE"
+  ],
+  "source_ids": [
+    "04:MET-PRICE-05",
+    "04:§2.1",
+    "ERRATA:E-011",
+    "ERRATA:E-092",
+    "ERRATA:E-101"
+  ],
+  "as_of": "2026-10-08",
+  "review_after": null,
+  "supersedes": []
+}

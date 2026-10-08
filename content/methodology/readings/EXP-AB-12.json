@@ -1,0 +1,15 @@
+{
+  "concept_id": "EXP-AB-12",
+  "section": "methodology",
+  "version": 1,
+  "title": "Guardrail metrics",
+  "reading_md": "**What it is.** Guardrail metrics must not get worse beyond a tolerated margin, even when the success metric improves. Examples are load time, unsubscribes, returns, support contacts and margin. Spotify tests guardrails with non-inferiority tests in its decision rules. The guardrails and their tolerances are set before the test.\n\n**How to work it out.**\n\nRelative change = (treatment - control) / control, compared with the tolerance set in advance\n\nWorked example. Support contacts per 1,000 orders are 20 in control and 23 in treatment, and the tolerance is +5%.\n\n- Difference = 3\n- 3 / 20 = 0.15, so +15%\n\n+15% breaches the +5% guardrail, so the change should not ship as it is. Rounding: whole percent.\n\n**In the interview.** \"A discount banner raises conversion by 4% relative. What else would you check?\" A good answer: margin per order, average order value, returns and repeat purchases.\n\n**Common mistakes.**\n\n- Treating guardrails as success metrics. A guardrail only has to stay within its tolerance.\n- Reading \"not significantly worse\" as \"no harm\". If the test lacked power for the guardrail, show that it is non-inferior within the tolerance.\n- Choosing the guardrails after seeing the results.",
+  "source_ids": [
+    "11:EXP-12",
+    "ERRATA:E-174",
+    "ERRATA:E-175",
+    "ERRATA:E-183"
+  ],
+  "verified": true,
+  "as_of": "2026-10-08"
+}

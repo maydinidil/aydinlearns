@@ -44,7 +44,7 @@ test('a card row: the error, a state chip, when it is due, and how often it happ
 });
 
 test("the original attempt is the learner's own query and its logged diff summary, as the API sent them", () => {
-  assert.deepEqual(cardRow(card(), now).original, { query: 'SELECT * FROM t WHERE x = NULL', diff: '2 missing, 1 extra' });
+  assert.deepEqual(cardRow(card(), now).original, { query: 'SELECT * FROM t WHERE x = NULL', diff: 'Your result had 2 rows missing and 1 row extra.' });
   const none = cardRow(card({ original: { attempt_id: 'a', item_id: 'i', submitted_at: 'x', query: null, diff_summary: null } }), now);
   assert.deepEqual(none.original, { query: null, diff: null });
   assert.equal(cardRow(card({ original: null }), now).original, null);
@@ -78,6 +78,7 @@ test('the status line counts the cards, and an empty list says what to do', () =
   assert.equal(mistakesStatus(2, 2, 1), '2 active mistake cards, 1 due now');
   assert.equal(mistakesStatus(1, 2, 2), 'Showing 1 of 2 active mistake cards, 2 due now');
   assert.match(EMPTY_MISTAKES, /no active mistake cards/i);
+  assert.match(EMPTY_MISTAKES, /one of the common SQL errors/);
 });
 
 test('a served try opens the trap item as an exercise the panel can run, labels shown', () => {

@@ -1,0 +1,16 @@
+{
+  "concept_id": "MET-PRICE-12",
+  "section": "methodology",
+  "version": 1,
+  "title": "Arc price elasticity",
+  "reading_md": "**What it measures.** How strongly a product's volume responds to a change in its price: the percent change in units for each 1% change in price, between two periods.\n\n**Formula (arc, or midpoint).**\n\narc elasticity = [(Q1 - Q0) / ((Q1 + Q0) / 2)] / [(P1 - P0) / ((P1 + P0) / 2)]\n\n- Q = units sold in a period. P = the average net price in that period: net revenue / units. The two periods have the same length.\n- Each change is divided by the average of its two values, so the answer is the same whichever period you call the start.\n- Grain: product × period pair.\n\n**Reading it.** For most products it is negative: price up, units down. An elasticity of -2.5 means units move about 2.5% for each 1% the price moves, the other way. Below -1, as here, demand is elastic; between -1 and 0 it is inelastic.\n\n**Worked example.** A laptop's price fell from €800 to €720, and its units in two 4-week periods rose from 200 to 260.\n\n- Units: 60 / 230 = +26.09%.\n- Price: -80 / 760 = -10.53%.\n- Arc elasticity = 26.09 / -10.53 = -2.48.\n\n**Three measures, kept apart.**\n\n- The simple (start-point) percent change divides each change by the starting value: (60 / 200) / (-80 / 800) = -3.0 here. Going the other way, from €720 back to €800, gives -2.08, so the direction changes the answer.\n- The arc formula uses the averages, so both directions give -2.48.\n- Point elasticity is the value for a very small change at one price. It is never computed from two points far apart; with two observed prices, use arc.\n\n**Common mistakes.**\n\n- Other drivers changing at the same time. A price cut in Black Week also gets the season's extra demand, so the elasticity looks too large. Compare periods in which little else changed.\n- Tiny price changes. A TV going from €500 to €499 while its units drift from 100 to 104 by chance gives about -20: a huge, unstable number made of noise.\n- Dropping the minus sign and then misreading the direction.\n\n**What it does not answer.** Whether a price change raises revenue or profit. That also needs the margin per unit.\n\n**How managers ask for it.** \"If we raise price 5%, how much volume do we lose?\" \"Is this product price sensitive?\"",
+  "source_ids": [
+    "04:MET-PRICE-12",
+    "11:ECON-01",
+    "ERRATA:E-180",
+    "ERRATA:E-100",
+    "ERRATA:E-101"
+  ],
+  "verified": true,
+  "as_of": "2026-10-08"
+}

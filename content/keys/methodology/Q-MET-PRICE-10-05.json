@@ -1,0 +1,13 @@
+{
+  "item_id": "Q-MET-PRICE-10-05",
+  "item_version": 1,
+  "correct_oid": "o224b19a",
+  "explanation": "A rebate is money Voltmarkt pays the customer after the invoice, so the pocket price is the invoice price minus the rebate per unit, and the 92% is too high. That the rebate sits outside the invoice is exactly why invoice data misses it, and a rebate does not change the list value.",
+  "solver": {
+    "prompt_hash": "2a46640b256238ed",
+    "grader_version": "choice.2",
+    "chosen": "o224b19a",
+    "typed": null,
+    "at": "2026-10-08T18:33:21.785Z"
+  }
+}

@@ -35,6 +35,9 @@
 // Rows 4c-1 to 4c-3 (sprint 4c, Task F1): focus lands on the SQL map heading after Today, a live rep left unticked is ticked from the drill history, and the
 // 4b-2 export's CSV starts with the BOM once and holds no raw formula cell. Row G covers the real logs/ and manifest for all of them.
 //
+// Rows 5a-1 to 5a-5 (sprint 5a, Task F1) run last, on a server of their own over an empty logs folder: the Methodology map's new topics and EXP-AB-01's
+// reading, a typed item on a new concept, an A/B SQL item, G-GA4-CERT's new line on Progress, and the version in Settings.
+//
 // Key text is never printed. The one reference answer it submits is read from content/keys/ here and
 // only typed into the editor, and every line it prints is withheld if it holds key text.
 import { execFile, spawn, type ChildProcess } from 'node:child_process';
@@ -436,8 +439,8 @@ async function main(): Promise<number> {
       const opened = curriculum.concepts.filter((c) => withLesson.has(c.id)).map((c) => `#/lesson/${c.id}`);
       expect(JSON.stringify([...links].sort()) === JSON.stringify([...opened].sort()), `the lesson links (${links.join(', ')}) are not the ${opened.length} concepts with a lesson`);
       const later = curriculum.concepts.filter((c) => !withLesson.has(c.id)).length;
-      const coming = await page.locator('span.muted', { hasText: /content coming in slice \S+/ }).count();
-      expect(coming === later, `${coming} "content coming in slice N" notes for ${later} later concepts`);
+      const coming = await page.locator('span.muted', { hasText: /coming in a later version/ }).count();
+      expect(coming === later, `${coming} "coming in a later version" notes for ${later} later concepts`);
       const mapText = await page.locator('main').innerText();
       const disabled = await page.locator('main [disabled], main [aria-disabled="true"]').count();
       expect(!/\b(un)?lock(ed|s)?\b/i.test(mapText) && disabled === 0, 'something on the map is locked or disabled');
@@ -448,7 +451,7 @@ async function main(): Promise<number> {
         await page.getByRole('heading', { name: title, level: 1, exact: true }).waitFor();
         await page.getByRole('navigation', { name: 'Lesson steps' }).waitFor();
       }
-      return `7 levels; ${links.length} lesson links, each opening its lesson; ${coming} later concepts say "content coming in slice N"; no lock and no disabled control`;
+      return `7 levels; ${links.length} lesson links, each opening its lesson; ${coming} later concepts say "coming in a later version"; no lock and no disabled control`;
     });
 
     await row('14', `netstat -ano: listening on 127.0.0.1:${PORT} only`, async () => {
@@ -567,8 +570,8 @@ async function main(): Promise<number> {
       const captions = (await grade.locator('.diff p.muted').allInnerTexts()).filter((c) => /^✗ Rows (you are missing|that should not be there): /.test(c));
       expect(captions.length > 0, 'no diff table with an icon and words');
       const checklist = await grade.locator('ul.checklist li').allInnerTexts();
-      expect(checklist.length === 5 && /^Score: \d+\/100/.test(checklist[4]!), 'no checklist with a score');
-      return `diagnosis ${errorId} in three parts (assumed, why, "Try:"); diff: ${captions.join('; ')}; checklist: ${checklist.slice(0, 4).map((c) => c.split(': ').pop()).join(', ')}; ${checklist[4]!.split(' (')[0]}`;
+      expect(checklist.length === 5 && /^Partial score: \d+ of 100\./.test(checklist[4]!), 'no checklist with a score');
+      return `diagnosis ${errorId} in three parts (assumed, why, "Try:"); diff: ${captions.join('; ')}; checklist: ${checklist.slice(0, 4).map((c) => c.split(': ').pop()).join(', ')}; ${checklist[4]!.split('. ')[0]}`;
     });
 
     await row('6', 'hints 1, 2 and 3 (hint 1 double-clicked), then "Show answer": each shown once, the help note says it lowers the rating', async () => {
@@ -614,7 +617,7 @@ async function main(): Promise<number> {
       await outcome(page, 'Not yet');
       await page.getByText('Your query did not work on the hidden test data, which contains:').waitFor();
       const checklist = await page.locator('section.grade ul.checklist li').allInnerTexts();
-      expect(checklist.includes('Works on the hidden test data: 0/20'), 'the checklist does not show the hidden-data failure');
+      expect(checklist.includes('Works on the hidden test data: 0 of 20 points'), 'the checklist does not show the hidden-data failure');
       const a = await waitFor('the attempt', async () => (await attempts(logs)).find((r) => r.record === 'attempt' && r.item_id === NULL_ITEM));
       const [visible, edge] = a.payload!.per_dataset!;
       expect(visible!.passed && !edge!.passed, `per dataset: ${JSON.stringify(a.payload!.per_dataset)}`);
@@ -981,7 +984,7 @@ async function main(): Promise<number> {
       const s1 = (await (await served).json()) as Served;
       expect(s1.phase === 'review' && s1.hide_labels && s1.block_id === null, `served ${JSON.stringify({ ...s1, item_id: undefined })}`);
       expect((await item(s1.item_id)).target_concept_id === HISTORY.struggled, 'the first review is not the card with the lowest retrievability (the unrated fallback card)');
-      await page.getByRole('heading', { name: 'Review exercise', level: 2 }).waitFor();
+      await page.getByRole('heading', { name: 'Review 1 of 2', level: 2 }).waitFor();
       await page.locator('.cm-content').waitFor();
       const before = await page.locator('main').innerText();
       expect(!before.includes(s1.item_id) && (await page.locator('.item-labels').count()) === 0 && page.url().endsWith('/#/'), 'the review names its item before the submission (S2-39)');
@@ -1177,7 +1180,7 @@ async function main(): Promise<number> {
       page.on('pageerror', () => { pageErrors++; });
       await page.goto(`${BASE}/#/drill`);
       await page.getByRole('heading', { name: 'Drill', level: 1 }).waitFor();
-      await page.getByText('Level 1 drill: 10 questions, 20 minutes, pass at 90%.').waitFor();
+      await page.locator('ul.inbox-list li', { hasText: 'Level 1,' }).getByText('10 questions, 20 minutes, pass at 90%.').waitFor();
       const startedP = page.waitForResponse((r) => r.url().endsWith('/api/drill/start'));
       await page.getByRole('button', { name: 'Start drill: level 1' }).click();
       const run = (await (await startedP).json()) as DrillStarted;
@@ -1361,7 +1364,7 @@ async function main(): Promise<number> {
       await page2b.goto(`${BASE}/#/ga4/run`);
       await page2b.getByRole('heading', { name: 'GA4 timed runs', level: 1 }).waitFor();
       await shot(page2b, 'ga4-map');
-      await page2b.getByRole('button', { name: /^Mini drill \(/ }).click();
+      await page2b.getByRole('button', { name: 'Start a mini drill', exact: true }).click();
       const run = (await (await started).json()) as RunStarted;
       expect(run.kind === 'mini_drill' && run.mode === 'practice' && run.servings.length === 20, `the mini drill has ${run.servings.length} questions in mode ${run.mode}`);
       const instances = run.servings.map((x) => x.item_instance_id);
@@ -1429,7 +1432,7 @@ async function main(): Promise<number> {
       const started = page2b.waitForResponse(isStart);
       await page2b.goto(`${BASE}/#/ga4/run`);
       await page2b.getByRole('heading', { name: 'GA4 timed runs', level: 1 }).waitFor();
-      await page2b.getByRole('button', { name: /^Half-mock \(/ }).click();
+      await page2b.getByRole('button', { name: 'Start a half-mock', exact: true }).click();
       const run = (await (await started).json()) as RunStarted;
       mock = run;
       expect(run.kind === 'half_mock' && run.mode === 'exam' && run.servings.length === 25 && run.minutes === 37.5, `the half-mock has ${run.servings.length} questions, ${run.minutes} minutes, mode ${run.mode}`);
@@ -1483,7 +1486,7 @@ async function main(): Promise<number> {
       await page2b.getByRole('heading', { name: 'GA4 half-mock: review', level: 1 }).waitFor();
       const score = (await page2b.getByText(/^Score: /).innerText()).trim();
       expect(/^Score: \d+ of 25 \(\d+%\)\. Pass mark 80%\. (Passed|Not passed)\.$/.test(score), `the review shows "${score}"`);
-      await page2b.getByText('On unseen items: yes.', { exact: true }).waitFor();
+      await page2b.getByText('No question was shown in the last 21 days.', { exact: true }).waitFor();
       const topics = await tableRows(page2b, 'By topic');
       const names = new Set(Object.values(examCfg.topic_names));
       const total = topics.reduce((n, t) => n + Number(/(\d+) of (\d+)/.exec(t)?.[2] ?? 0), 0);
@@ -1499,7 +1502,7 @@ async function main(): Promise<number> {
       expect(!/item_id|item_instance_id|stem|explanation|correct_oid/.test(reviewJson) && run.servings.every((s) => !reviewJson.includes(s.item_id)), 'the review answer holds an item ID, a stem, an option, a key or an explanation');
       const all = (await attempts2b()).filter((r) => r.record === 'attempt' && run.servings.some((s) => s.item_instance_id === r.item_instance_id));
       expect(all.length === 3 && all.every((r) => r.confidence === null && r.phase === 'mock'), `${all.length} half-mock attempts, all with confidence null`);
-      return `25 held-out questions on empty logs (on unseen items: yes); one at a time, no Previous, no list, no flag, no confidence; Save answer locked the field, the second answer got 409 ONE_ANSWER and logged nothing; after 2 answers a second tab and a reload both opened at question 3 with no earlier question or stem; ended after 3 answers: "${score}", "On unseen items: yes.", by-topic rows add up to 25, 25 numbered rows with Right or Wrong only, no stem, option, key or explanation on screen or in the review JSON; 3 attempts logged with confidence null`;
+      return `25 held-out questions on empty logs (no question shown in the last 21 days); one at a time, no Previous, no list, no flag, no confidence; Save answer locked the field, the second answer got 409 ONE_ANSWER and logged nothing; after 2 answers a second tab and a reload both opened at question 3 with no earlier question or stem; ended after 3 answers: "${score}", "Every question was new to you.", by-topic rows add up to 25, 25 numbered rows with Right or Wrong only, no stem, option, key or explanation on screen or in the review JSON; 3 attempts logged with confidence null`;
     });
 
     await row('2b-4', 'a held-out GA4 ID through the practice and mini drill routes (and after its half-mock ended): 404 every time, and nothing is logged', async () => {
@@ -1709,7 +1712,9 @@ async function main(): Promise<number> {
         const shownId = (await grade.locator('.diagnosis p.muted').innerText()).trim();
         const fb = feedback4a[FAN_OUT]!;
         expect(shownId === FAN_OUT, `the starter's diagnosis is ${shownId}`);
-        expect(squash(parts[0] ?? '') === squash(fb.assumed) && squash(parts[1] ?? '') === squash(fb.why) && squash(parts[2] ?? '') === squash(`Try: ${fb.model}`),
+        // The screen draws the catalogue's `code` as code (no backticks) and writes "column(s)" as "columns" or "column" (P1 findings 12, 18).
+        const shownText = (t: string) => squash(t.replace(/`/g, '').replace(/(\d+) (\w+)\(s\)/g, (_m, n: string, w: string) => `${n} ${w}${n === '1' ? '' : 's'}`));
+        expect(squash(parts[0] ?? '') === shownText(fb.assumed) && squash(parts[1] ?? '') === shownText(fb.why) && squash(parts[2] ?? '') === shownText(`Try: ${fb.model}`),
           'the starter\'s feedback is not the catalogue text of ERR-LOG-01');
         const failed = await waitFor('the failed attempt', async () => (await b.attemptsOf()).find((r) => r.record === 'attempt' && r.item_id === id && r.outcome === 'fail'));
         expect((failed.error_ids as string[] | undefined)?.includes(FAN_OUT), 'the failed attempt does not log ERR-LOG-01');
@@ -1832,7 +1837,7 @@ async function main(): Promise<number> {
         expect(spec !== undefined && spec.pool_item_ids.length >= spec.questions, 'the level 3 drill has no pool');
         await p4.goto(`${BASE}/#/drill`);
         await p4.getByRole('heading', { name: 'Drill', level: 1, exact: true }).waitFor();
-        await p4.getByText(`Level 3 drill: ${spec.questions} questions, ${spec.minutes} minutes, pass at ${spec.pass_pct}%.`).waitFor();
+        await p4.locator('ul.inbox-list li', { hasText: 'Level 3,' }).getByText(`${spec.questions} questions, ${spec.minutes} minutes, pass at ${spec.pass_pct}%.`).waitFor();
         const startedP = p4.waitForResponse((r) => r.url().endsWith('/api/drill/start'));
         await p4.getByRole('button', { name: 'Start drill: level 3' }).click();
         const started = await startedP;
@@ -2360,7 +2365,10 @@ async function main(): Promise<number> {
         const box = p.getByTestId(`history-explained-${rep.block_id}`);
         await box.waitFor();
         const tr = p.locator('tbody tr').filter({ has: box });
-        const passedCell = async () => ((await tr.locator('td').nth(3).innerText()).trim());
+        const headers = await tr.locator('xpath=ancestor::table[1]').locator('thead th').allInnerTexts();
+        const passedAt = headers.map((h) => h.trim()).indexOf('Passed');
+        expect(passedAt >= 0, `the history has no Passed column (${headers.join(', ')})`);
+        const passedCell = async () => ((await tr.locator('td').nth(passedAt).innerText()).trim());
         expect((await passedCell()) === 'Logged only' && !(await box.isChecked()), `before the tick the rep's Passed cell reads "${await passedCell()}"`);
         expect(/^Explained aloud: live rep on /.test((await box.getAttribute('aria-label')) ?? ''), 'the history box has no "Explained aloud: live rep on <date>" label');
         await box.focus();
@@ -2375,6 +2383,103 @@ async function main(): Promise<number> {
         const focusedId = await p.evaluate(() => document.activeElement?.getAttribute('data-testid') ?? document.activeElement?.tagName ?? '');
         expect(focusedId === `history-explained-${rep.block_id}`, `after the tick was saved, focus is on ${focusedId}, not the history box`);
         return `a second live rep on ${itemId} ended unticked and the history row read "Logged only"; its "Explained aloud" box was clicked, the cell reads "Yes", the box is ticked, one explained_aloud self_check is logged and the history counts the rep as passed; ticked with the Space key, the box still holds keyboard focus`;
+      });
+
+      await browser.close();
+      browser = null;
+      await stopServer(server);
+      server = null;
+    }
+
+    // ---- sprint 5a rows (Task F1): the new Methodology topics, a typed item, an A/B SQL item, the certificate goal's new line, the version ----
+    // One server over an empty logs folder. A right answer is read from content/keys/ here and only typed into the page; messages name rows,
+    // steps and IDs, never an answer, a query or a held-out ID.
+    {
+      const dir = join(tmp, 'logs-5a');
+      await mkdir(dir);
+      server = await startServer(ROOT, dir);
+      browser = await chromium.launch();
+      const p = await newPage(browser, dialogs);
+      p.on('pageerror', () => { pageErrors++; });
+      const EXP = 'EXP-AB-01';
+      const NEW_TYPED = 'ECON-PRICE-01';
+      const heldOut5a = new Set((await readJson<{ item_ids: string[] }>(join(ROOT, 'content/methodology/held-out.json'))).item_ids);   // read now, never printed
+
+      await row('5a-1', 'the Methodology map shows Experiments, Statistics and Pricing economics; opening EXP-AB-01\'s reading logs one reading exposure', async () => {
+        await p.goto(`${BASE}/#/methodology`);
+        await p.getByRole('heading', { name: 'Methodology map', level: 1 }).waitFor();
+        for (const topic of ['Experiments', 'Statistics', 'Pricing economics']) {
+          await p.getByRole('heading', { name: topic, level: 2, exact: true }).waitFor();
+        }
+        const title = (await readJson<{ title: string }>(join(ROOT, 'content/methodology/readings', `${EXP}.json`))).title;
+        await p.getByRole('link', { name: `Reading: ${title}`, exact: true }).click();
+        await p.getByRole('heading', { name: title, level: 1, exact: true }).waitFor();
+        await waitFor(`the ${EXP} reading exposure`, async () => (await attempts(dir)).find((r) => r.record === 'exposure' && r.concept_id === EXP && r.kind === 'reading'));
+        const n = (await attempts(dir)).filter((r) => r.record === 'exposure' && r.concept_id === EXP && r.kind === 'reading').length;
+        expect(n === 1, `${n} reading exposures were logged for ${EXP}`);
+        return `the map lists the topics Experiments, Statistics and Pricing economics; ${EXP}'s reading opened from its Reading link and logged exactly one reading exposure`;
+      });
+
+      await row('5a-4', 'Progress shows G-GA4-CERT\'s named-concepts line at "0 of 12" on an empty log', async () => {
+        await p.goto(`${BASE}/#/progress`);
+        await p.locator('section.progress').waitFor();
+        const goal = p.locator('[data-progress="goals"] li[data-goal="G-GA4-CERT"]');
+        await goal.waitFor();
+        const lines = (await goal.locator('li[data-criterion-met]').allInnerTexts()).map((t) => (t.trim().split('\n')[0] ?? '').trim());   // the first line; a gap note may follow
+        const line = lines.find((t) => /^Named concepts practised/.test(t));
+        expect(line !== undefined, `G-GA4-CERT has no named-concepts line (it shows ${lines.length} criteria)`);
+        expect(/: 0 of 12$/.test(line), `G-GA4-CERT's named-concepts line reads "${line}"`);
+        return 'G-GA4-CERT shows its named-concepts line at "0 of 12" with nothing practised';
+      });
+
+      await row('5a-5', 'Settings shows version 1.0.0', async () => {
+        await p.goto(`${BASE}/#/setup`);
+        await p.getByRole('heading', { name: 'Settings and setup', level: 1 }).waitFor();
+        await p.getByText('Version 1.0.0', { exact: true }).waitFor();
+        return 'Settings and setup shows "Version 1.0.0"';
+      });
+
+      await row('5a-3', 'an A/B SQL item passes with its reference query', async () => {
+        const id = ['EX-SQL-JOIN-02-E2-07', 'EX-SQL-CTE-01-E3-03', 'EX-SQL-JOIN-03-E3-04'].find((x) => keys.has(x));
+        expect(id !== undefined, 'none of the three A/B SQL items has a key');
+        await openItem(p, id);
+        await replaceSql(p, keys.get(id)!.reference_sql);
+        await submit(p);
+        await outcome(p, 'Correct');
+        const att = await waitFor(`${id}'s attempt`, async () => (await attempts(dir)).find((r) => r.record === 'attempt' && r.item_id === id));
+        expect(att.outcome === 'pass', `${id}'s attempt is logged as ${String(att.outcome)}, not pass`);
+        return `${id}: its reference query was graded Correct and logged as a passed attempt`;
+      });
+
+      await row('5a-2', `a typed practice item on a new concept (${NEW_TYPED}) accepts its correct answer in the stated rounding`, async () => {
+        let typedItem = '';
+        for (let n = 0; n < 12 && typedItem === ''; n++) {
+          const serveP = p.waitForResponse(isServeCase);
+          if (n === 0) await p.goto(`${BASE}/#/practice/methodology/${NEW_TYPED}`);
+          else await p.getByRole('button', { name: 'Next', exact: true }).click();
+          const served = (await (await serveP).json()) as Served;
+          const it = await readJson<{ kind: string; typed?: { decimals: number } }>(join(ROOT, 'content/methodology/items', `${served.item_id}.json`));
+          const key = await readJson<{ value?: number }>(join(ROOT, 'content/keys/methodology', `${served.item_id}.json`));
+          expect(!heldOut5a.has(served.item_id), `${NEW_TYPED} practice served a held-out item`);
+          await p.getByRole('heading', { name: /^Practice: /, level: 1 }).waitFor();
+          const box = p.getByLabel('Your answer');
+          const radio = p.locator('fieldset input[type="radio"]').first();
+          await radio.or(box).first().waitFor();
+          if (it.kind === 'typed' && it.typed && key.value !== undefined) {
+            await box.fill(key.value.toFixed(it.typed.decimals));
+            typedItem = served.item_id;
+          } else {
+            await radio.check();
+          }
+          await p.getByRole('button', { name: '3: fairly sure', exact: true }).click();
+          await p.locator('.grade h3').filter({ hasText: /^(Right\.|Not quite\.)$/ }).waitFor();
+        }
+        expect(typedItem !== '', `no typed question came up in twelve questions of ${NEW_TYPED}`);
+        expect((await p.locator('p[role="alert"]').count()) === 0, 'the typed answer drew an alert');
+        expect((await p.locator('.grade h3').innerText()).trim() === 'Right.', `${typedItem}'s typed answer in the stated rounding was not graded Right.`);
+        const att = await waitFor('the typed attempt', async () => (await attempts(dir)).find((r) => r.record === 'attempt' && r.item_id === typedItem));
+        expect(att.outcome === 'pass' && att.item_kind === 'typed', `${typedItem}'s attempt is not logged as a passed typed attempt`);
+        return `${typedItem} (${NEW_TYPED}, typed): the key's value typed to the decimals the question states was graded Right. with no alert, and logged as a passed typed attempt`;
       });
 
       await browser.close();

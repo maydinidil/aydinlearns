@@ -1,0 +1,157 @@
+{
+  "id": "EX-SQL-JOIN-02-E2-07",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "ab_test",
+    "left_join",
+    "count_distinct",
+    "ab_assignments",
+    "ab_conversions"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-JOIN-02",
+    "11:EXP-AB-13"
+  ],
+  "verified": true,
+  "as_of": "2026-10-08",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-JOIN-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02"
+  ],
+  "template_id": "T-JOIN-02-ab-conversion-per-variant",
+  "template_params": {
+    "test_id": "AB-2025-01",
+    "from": "ab_assignments",
+    "join": "ab_conversions"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_join",
+  "prompt": "Voltmarkt's checkout test AB-2025-01 assigned web shop customers to two variants, control and treatment. Show how each variant converted. A customer converted in a variant when the customer has a conversion in the test at or after the customer's assigned_at for that variant: a conversion before it does not count, and a customer who converted more than once counts once. A customer assigned to both variants counts in each of them. Return one row for each variant, including a variant with no conversions. Return four columns, in this order: variant; n_customers, the customers assigned to the variant; n_converted, those of them who converted; and conversion_rate_pct, 100 times n_converted divided by n_customers, rounded to 2 decimals. Sort by variant, alphabetically.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "variant",
+        "type_class": "text"
+      },
+      {
+        "name": "n_customers",
+        "type_class": "numeric"
+      },
+      {
+        "name": "n_converted",
+        "type_class": "numeric"
+      },
+      {
+        "name": "conversion_rate_pct",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": true,
+    "sort_keys": [
+      {
+        "column": "variant",
+        "desc": false
+      }
+    ],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "variant",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "n_customers",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "n_converted",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "conversion_rate_pct",
+        "type_class": "numeric",
+        "precision": "ratio",
+        "require_rounding": 2
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "variant"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, keep every assigned customer and attach only the conversions that count.",
+    "Put the time rule in the join condition, not in WHERE, and count different customers, not rows."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 214,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 215,
+      "to": 236,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 237,
+      "to": 358,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 359,
+      "to": 389,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 390,
+      "to": 408,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 409,
+      "to": 427,
+      "subgoal": "sort_limit"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "The LEFT JOIN keeps every assigned customer, the time rule in ON drops only conversions before assignment, and COUNT(DISTINCT ...) counts each converter once."
+}

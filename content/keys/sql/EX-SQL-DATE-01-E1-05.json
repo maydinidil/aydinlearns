@@ -1,7 +1,7 @@
 {
   "item_id": "EX-SQL-DATE-01-E1-05",
-  "item_version": 1,
-  "reference_sql": "SELECT competitor,\n       date_trunc('month', observed_ts) AS check_month,\n       COUNT(*) AS checks\nFROM competitor_prices\nGROUP BY competitor, date_trunc('month', observed_ts)",
+  "item_version": 2,
+  "reference_sql": "SELECT competitor,\n       CAST(date_trunc('month', observed_ts) AS DATE) AS check_month,\n       COUNT(*) AS checks\nFROM competitor_prices\nGROUP BY competitor, date_trunc('month', observed_ts)",
   "alternatives": [
     "SELECT competitor, CAST(date_trunc('month', observed_ts) AS DATE) AS check_month, COUNT(*) AS checks FROM competitor_prices GROUP BY 1, 2",
     "SELECT competitor, CAST(strftime(observed_ts, '%Y-%m-01') AS DATE) AS check_month, COUNT(*) AS checks FROM competitor_prices GROUP BY 1, 2"
@@ -11,15 +11,15 @@
     {
       "id": "PW1",
       "error_id": "ERR-LOG-25",
-      "sql": "SELECT competitor, date_trunc('year', observed_ts) AS check_month, COUNT(*) AS checks FROM competitor_prices GROUP BY 1, 2"
+      "sql": "SELECT competitor, CAST(date_trunc('year', observed_ts) AS DATE) AS check_month, COUNT(*) AS checks FROM competitor_prices GROUP BY 1, 2"
     },
     {
       "id": "PW2",
       "error_id": "ERR-OUT-01",
-      "sql": "SELECT date_trunc('month', observed_ts) AS check_month, COUNT(*) AS checks FROM competitor_prices GROUP BY 1"
+      "sql": "SELECT CAST(date_trunc('month', observed_ts) AS DATE) AS check_month, COUNT(*) AS checks FROM competitor_prices GROUP BY 1"
     }
   ],
-  "hint3_partial": "SELECT competitor,\n       date_trunc(___, observed_ts) AS check_month,\n       COUNT(*) AS checks\nFROM competitor_prices\nGROUP BY ___",
+  "hint3_partial": "SELECT competitor,\n       CAST(date_trunc(___, observed_ts) AS DATE) AS check_month,\n       COUNT(*) AS checks\nFROM competitor_prices\nGROUP BY ___",
   "solver": {
     "prompt_hash": "cc1ce55194ff3003",
     "schema_version": "ffc6be9b2fbc",

@@ -176,3 +176,16 @@ control's own timeout reply. Commit `b0623ba`; npm test 1718/1718, e2e 53/53.
   attempt already logged on it.
 - M4 (owner call): `ERR-LOG-28` maps to SQL-SET-01, so JR-02 does not count it as a missing-value
   mistake. Not a regression.
+
+## After the merge
+
+PR #41 merged on 2026-10-08 (`2481fc2`). Codex left one finding, F26 ("Try again"'s fallback can
+serve a card whose close is still being written), logged in `docs/reviews/codex-findings.md` and
+fixed first in sprint 5a (D60). The public refresh of 2026-10-08 confirmed F18 and F19 on the real
+checkout and clone.
+
+The open owner questions were answered with sprint 5a's plan (D61), and their backlog rows closed:
+- The owner question (C4 review M5): `ERR-LOG-29` stays on all 9 items, 7 write and 2 choice. It
+  is the same mistake on all 9.
+- M3: accepted. CASE-DAILY-L3-01's CP3 is re-rated on replay with the corrected credit.
+- M4: JR-02 stays as is. `ERR-LOG-28` stays a set-operator mistake, outside JR-02.

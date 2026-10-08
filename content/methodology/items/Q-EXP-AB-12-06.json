@@ -1,0 +1,49 @@
+{
+  "id": "Q-EXP-AB-12-06",
+  "version": 1,
+  "kind": "mcq",
+  "section": "methodology",
+  "concept_id": "EXP-AB-12",
+  "stem": "A test's success metric is conversion. Its guardrail, average delivery time, fell by 3% relative, an improvement, while conversion did not move. A manager wants to ship because \"a metric improved\". What is wrong?",
+  "options": [
+    {
+      "oid": "o4a4d7b0",
+      "text": "Nothing: any metric that improves is a good enough reason to ship",
+      "misconception_id": null
+    },
+    {
+      "oid": "o99fbf79",
+      "text": "A guardrail that improves like this shows that the test must have a logging bug",
+      "misconception_id": null
+    },
+    {
+      "oid": "o929d38b",
+      "text": "Delivery time should now replace conversion as the success metric",
+      "misconception_id": null
+    },
+    {
+      "oid": "oad7bcc0",
+      "text": "A guardrail only has to stay within its tolerance; it is not a reason to ship",
+      "misconception_id": null
+    }
+  ],
+  "typed": null,
+  "held_out": false,
+  "enemy_group": null,
+  "status": "active",
+  "verified": true,
+  "level": null,
+  "tags": [
+    "methodology",
+    "T-MET-EXP",
+    "common-mistake"
+  ],
+  "source_ids": [
+    "11:EXP-12",
+    "ERRATA:E-175",
+    "ERRATA:E-183"
+  ],
+  "as_of": "2026-10-08",
+  "review_after": null,
+  "supersedes": []
+}

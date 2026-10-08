@@ -1,0 +1,13 @@
+{
+  "concept_id": "STAT-BASIC-05",
+  "section": "methodology",
+  "version": 1,
+  "title": "Standard error vs standard deviation",
+  "reading_md": "**What it is.** The standard deviation (SD) describes the spread of single values: how much one order differs from another. The standard error (SE) describes the uncertainty of an estimate, such as a mean or a share: how much it would move from one sample to the next. The SE shrinks as the sample grows. The SD does not, because it is a property of the customers. The SE, not the SD, goes into a confidence interval.\n\n**How to work it out.**\n\nSE of a mean = s / √n\n\nSE of a proportion = √(p × (1 - p) / n)\n\nWorked example. Order values have an SD of €30 over n = 900 orders, with a mean of €60.\n\n- √900 = 30.\n- SE = 30 / 30 = €1.00 (2 decimals).\n- 95% interval = 60 ± 1.96 × 1 = €58.04 to €61.96.\n\n**In the interview.** \"You collect 4 times more data. What happens to the SE, and to the SD?\" A model answer: \"The SE halves, because it divides by the square root of n, and √4 = 2. The SD stays roughly the same: more data does not make customers less varied.\"\n\n**Common mistakes.**\n\n- Using the SD instead of the SE in a confidence interval, which makes the interval far too wide.\n- Believing more data reduces customer variability.\n- Forgetting the square root: dividing by n instead of √n.",
+  "source_ids": [
+    "11:STAT-05",
+    "ERRATA:E-175"
+  ],
+  "verified": true,
+  "as_of": "2026-10-08"
+}

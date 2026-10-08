@@ -1,0 +1,13 @@
+{
+  "concept_id": "MET-MKT-01",
+  "section": "methodology",
+  "version": 1,
+  "title": "Marketing spend",
+  "reading_md": "**What it measures.** What Voltmarkt paid for advertising media in a period: the cost of the clicks, views and placements bought on each channel.\n\n**Formula.** Spend = SUM(daily spend) over the days in the period.\n\n- Grain: channel or campaign × day or month.\n- Month to date runs from the 1st of the month up to and including yesterday, the last complete day.\n\n**Worked example.** September 2025:\n\n| Channel | Spend |\n|---|---|\n| Paid search | €42,000 |\n| Paid social | €28,000 |\n| Display | €10,000 |\n| Total | €80,000 |\n\nAn agency runs paid social and display for a 10% fee. Add the fee to both channels, giving €30,800 and €11,000, or to neither, and say which. Adding it to paid social only makes social look dearer than display for the same media.\n\n**One source, one time zone.**\n\n- Ad platforms report spend as the ads run. Finance books invoices, which can arrive later and include fees and credits, so the two totals rarely match. Pick one source for a report, use it for every channel, and name it.\n- An ad platform exports days in the time zone its account is set to, which may be UTC. Voltmarkt reports in Amsterdam time, 1 hour ahead of UTC in winter and 2 in summer. Spend from 23:00 to midnight UTC on 30 November belongs to 1 December in Amsterdam. Convert every source to one time zone before you sum days into months.\n\n**Common mistakes.**\n\n- Mixing time zones.\n- Mixing ad-platform and finance figures across channels.\n- Including agency fees in one channel only.\n\n**What it does not answer.**\n\n- What the spend bought: that is cost per click, cost per acquisition or return on ad spend.\n- Whether the spend was on plan: that is budget vs actual variance.\n\n**How managers ask for it.** \"How much did we spend on paid social in September?\" \"Give me spend by channel month to date.\"",
+  "source_ids": [
+    "04:MET-MKT-01",
+    "ERRATA:E-100"
+  ],
+  "verified": true,
+  "as_of": "2026-10-08"
+}

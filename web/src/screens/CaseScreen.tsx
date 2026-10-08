@@ -15,12 +15,12 @@ import { Markdown } from '../components/Markdown.tsx';
 import { PageHead } from '../components/PageHead.tsx';
 import { amsterdamDate } from '../../../core/time.ts';
 import { crumbParts } from '../lib/crumb.ts';
-import { cp4Hint } from '../lib/cp4-flow.ts';
+import { cp4HintFor } from '../lib/cp4-flow.ts';
 import { isClosedError } from '../lib/exercise.ts';
 import { formatDate } from '../lib/labels.ts';
 import {
-  INBOX_HREF, INBOX_TITLE, SAY_PROMPTS, actualRowCount, allBlank, askedStep, caseSteps, checkpointLabel, choiceFeedback, countdown, fieldsFrom,
-  heldBackNote, keepLines, kindLabel, lastLine, modelAnswerOf, modelPlanOf, nextStep, rowCountLine, scoreText, sortText, startStep, statusChip, stepName, stepState,
+  INBOX_HREF, INBOX_TITLE, SAY_PROMPTS, SCORE_RULE, actualRowCount, allBlank, askedStep, caseSteps, checkpointLabel, choiceFeedback, countdown, dataSourceLine, fieldsFrom,
+  heldBackNote, keepLines, kindLabel, lastLine, mainIsAnswer, modelAnswerOf, modelPlanOf, nextStep, rowCountLine, scoreText, startStep, statusChip, stepName, stepState,
   typedFeedback, viewScore, type StepId, type StepState,
 } from '../lib/case-flow.ts';
 import {
@@ -80,7 +80,6 @@ export function CaseScreen({ caseId }: { caseId: string }) {
   const chip = statusChip(view.status);
   const rowLine = rowCountLine(view.plan?.fields?.expected_row_count, actualRows);
   const out = view.expected_output;
-  const sort = sortText(out.sort);
   function graded(g: Parameters<typeof actualRowCount>[0]): void {
     const n = actualRowCount(g);
     if (n !== null) setActualRows(n);
@@ -115,10 +114,12 @@ export function CaseScreen({ caseId }: { caseId: string }) {
         <p><strong>Tables:</strong> {view.data_needed === null ? <span className="muted">{heldBackNote(view)}</span>
           : view.data_needed.map((t, i) => <span key={t}>{i > 0 && ', '}<code>{t}</code></span>)}</p>
         {out.columns.length > 0 && (
-          <p><strong>Return:</strong> {out.columns.map((c, i) => <span key={c}>{i > 0 && ', '}<code>{c}</code></span>)}{sort && <>. {sort}</>}</p>
+          <p><strong>Return:</strong> {out.columns.map((c, i) => <span key={c}>{i > 0 && ', '}<code>{c}</code></span>)}{out.sort.length > 0 && <>. Sorted by {out.sort.map((k, i) => (
+            <span key={k.column}>{i > 0 && ', then '}<code>{k.column}</code>{k.desc && ' (highest first)'}</span>
+          ))}.</>}</p>
         )}
         <p><strong>Grain:</strong> {out.grain ?? <span className="muted">{heldBackNote(view)}</span>}</p>
-        {view.data_source && <p className="muted">Data: {view.data_source.label}{view.data_source.licence ? `, ${view.data_source.licence}` : ''}</p>}
+        {view.data_source && <p className="muted">{dataSourceLine(view.data_source)}</p>}
       </div>
       <nav className="steps" aria-label="Case steps">
         {steps.map((s) => {
@@ -135,7 +136,7 @@ export function CaseScreen({ caseId }: { caseId: string }) {
       {steps.map((s) => <div key={s.id} data-step={s.id} hidden={s.id !== shown}>{panel(s.id)}</div>)}
       {next && (
         <p className="toolbar">
-          <button type="button" data-next-step={next.id} onClick={() => go(next.id)}>{shownState === 'todo' ? `Skip to ${next.label}` : `Next: ${next.label}`}</button>
+          <button type="button" className={shownState === 'passed' || shownState === 'done' ? 'btn-main' : undefined} data-next-step={next.id} onClick={() => go(next.id)}>{shownState === 'todo' ? `Skip to ${next.label}` : `Next: ${next.label}`}</button>
         </p>
       )}
     </section>
@@ -206,7 +207,7 @@ function PlanStep({ caseId, view, onSaved }: { caseId: string; view: CaseView; o
   return (
     <section className="card case-step">
       <h2 tabIndex={-1}>Plan</h2>
-      <p className="muted">Optional. Plan before you write any SQL, then compare your plan with the model plan. Your expected row count is shown beside your query's count at CP3.</p>
+      <p className="muted">Optional. Plan before you write any SQL, then compare your plan with the model plan. Your expected row count is shown beside your query's count at the Query step.</p>
       <form className="case-form" onSubmit={(e) => { e.preventDefault(); void send(); }}>
         {view.plan_fields.map((p) => (
           <label key={p.id}>{p.label}
@@ -296,10 +297,11 @@ function CheckpointStep({ caseId, cp, active, onAnswered }: { caseId: string; cp
         {last && <p className={cp.last?.passed ? 'ok' : 'bad'}>{last}</p>}
         {message && <p role="alert">{message}</p>}
         {busy ? <p>Loading the question...</p>
-          : <p><button type="button" className="btn-main" data-serve={cp.kind} onClick={() => void serve()}>{cp.last ? 'Answer again' : 'Answer it'}</button></p>}
+          : <p><button type="button" className={mainIsAnswer(cp) ? 'btn-main' : undefined} data-serve={cp.kind} onClick={() => void serve()}>{cp.last ? 'Answer again' : 'Answer it'}</button></p>}
       </section>
     );
   }
+  const hint = served.typed ? cp4HintFor(served.prompt, served.typed) : null;
   const lines = result ? (served.typed ? typedFeedback(result, served.typed) : choiceFeedback(result)) : [];
   return (
     <section className="card case-step choice">
@@ -324,7 +326,7 @@ function CheckpointStep({ caseId, cp, active, onAnswered }: { caseId: string; cp
       ) : served.typed && (
         <>
           <p className="prompt">{served.prompt}</p>
-          <p className="muted">{cp4Hint(served.typed)}</p>
+          {hint && <p className="muted">{hint}</p>}
           <form onSubmit={(e) => { e.preventDefault(); if (typed.trim() !== '' && !busy && !result) setAsking(true); }}>
             <label>Your answer <input type="text" inputMode="decimal" value={typed} disabled={busy || asking || result !== null} onChange={(e) => setTyped(e.target.value)} /> {served.typed.unit_label}</label>
             {!result && !asking && <p><button type="submit" className="btn-main" disabled={busy || typed.trim() === ''}>Check</button></p>}
@@ -336,7 +338,7 @@ function CheckpointStep({ caseId, cp, active, onAnswered }: { caseId: string; cp
       {result && (
         <div aria-live="polite" className="grade">
           {lines.map((line, n) => (n === 0 ? <h3 key={n} className={result.correct ? 'ok' : 'bad'}>{line}</h3> : <p key={n}>{line}</p>))}
-          <p><button type="button" onClick={() => void serve()} disabled={busy}>Answer again</button></p>
+          <p><button type="button" className={mainIsAnswer({ passed: result.correct }) ? 'btn-main' : undefined} onClick={() => void serve()} disabled={busy}>Answer again</button></p>
         </div>
       )}
     </section>
@@ -371,7 +373,7 @@ function QueryStep({ caseId, cp, rowLine, onGraded, onClosed }: {
           <p className="muted">Concept names stay hidden until you submit.</p>
           {last && <p className={cp.last?.passed ? 'ok' : 'bad'}>{last}</p>}
           {message && <p role="alert">{message}</p>}
-          <p><button type="button" className="btn-main" data-serve="CP3" onClick={() => void start()} disabled={busy}>{cp.last ? 'Write it again' : 'Write the query'}</button></p>
+          <p><button type="button" className={mainIsAnswer(cp) ? 'btn-main' : undefined} data-serve="CP3" onClick={() => void start()} disabled={busy}>{cp.last ? 'Write it again' : 'Write the query'}</button></p>
         </div>
       )}
     </section>
@@ -475,7 +477,7 @@ function ScoreStep({ view, rowLine }: { view: CaseView; rowLine: string | null }
       <h2 tabIndex={-1}>Score</h2>
       <p><span className={`chip ${chip.tone}`.trim()}>{chip.label}</span> {scoreText(passed, total)}
         {view.solved_at && <span className="muted"> · Solved {dateOf(view.solved_at)}</span>}</p>
-      <p className="muted">The case is solved once each checkpoint from CP1 to CP5 it lists has passed. CP6 is scored by you and never decides it.</p>
+      <p className="muted">{SCORE_RULE}</p>
       <ul className="checklist">
         {graded.map((c) => {
           const s = stepState(c.kind, view, { said: false });

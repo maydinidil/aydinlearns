@@ -86,7 +86,7 @@
   },
   "ERR-LOG-06": {
     "assumed": "You probably expected your range to keep exactly the days the question names, from its first day to its last day, whatever the column holds.",
-    "why": "Each end of a range decides whole days. On a DATE column, `> '2025-03-01'` leaves out 1 March, `< '2025-03-31'` leaves out 31 March, and starting on 28 February or ending on 1 April adds a day; ending on the first day of the last month or year leaves out the rest of it. On a timestamp, a date means midnight at the start of that day, so `= '2025-03-31'` finds only midnight and `BETWEEN '2025-03-01' AND '2025-03-31'` misses everything later on 31 March. Period boundaries work the same way: a band for a month, quarter or half-year that ends with `<` its last day puts that day in the next period, and a filter on a week or month column keeps or drops whole weeks or months at the edges.",
+    "why": "This is about the day at each edge of the range. The question names a first and a last day, and every one of them must be in. On a DATE column, `> '2025-03-01'` leaves out 1 March, `< '2025-03-31'` leaves out 31 March, and starting on 28 February or ending on 1 April adds a day; ending on the first day of the last month or year leaves out the rest of it. On a timestamp, a date means midnight at the start of that day, so `= '2025-03-31'` finds only midnight and `BETWEEN '2025-03-01' AND '2025-03-31'` misses everything later on 31 March. Period boundaries work the same way: a band for a month, quarter or half-year that ends with `<` its last day puts that day in the next period, and a filter on a week or month column keeps or drops whole weeks or months at the edges. A word such as 'over' or 'at least' that you read the wrong way, or a BETWEEN with its ends reversed, is a different mistake: read the wording for each end.",
     "model": "Use a half-open range: on or after the first day, and before the day after the last one, as in `col >= '2025-03-01' AND col < '2025-04-01'` for all of March. It works the same on a DATE and on a timestamp. Filter on the date itself, not on a week or month column, unless the question asks for whole weeks or months. Then check the rows on the first and the last day."
   },
   "ERR-LOG-07": {
@@ -140,9 +140,9 @@
     "model": "Sort first, then cut: `ORDER BY` the ranking column with `DESC` for highest first or `ASC` for lowest first, add the question's tie-break as a second sort column, then `LIMIT n`."
   },
   "ERR-LOG-17": {
-    "assumed": "You probably expected a missing value (NULL) to count as 0 in your calculation, or the reverse.",
-    "why": "Arithmetic with NULL gives NULL, so `price + NULL` is NULL, and SUM, AVG and COUNT(col) skip NULL values completely. If the question treats a missing value as 0, those rows drop out of your average; if it says to leave them out, turning them into 0 pulls the average down.",
-    "model": "Read how the question treats missing values. If missing means 0, wrap the column in `COALESCE(col, 0)` before you calculate; if it says to ignore them, use the column as it is."
+    "assumed": "You probably expected a missing value (NULL) to be handled the way the question says: counted as 0, left out of the calculation, or left out while the rest of its line still counts.",
+    "why": "Arithmetic with NULL gives NULL, so `price + NULL` is NULL, and SUM, AVG and COUNT(col) skip NULL values completely. If the question treats a missing value as 0, those rows drop out of your average; if it says to leave them out, turning them into 0 pulls the average down. A filter such as `col IS NOT NULL` goes further than the totals do: it removes the whole line, so the other columns of that line stop counting too.",
+    "model": "Read how the question treats missing values. If missing means 0, wrap the column in `COALESCE(col, 0)` before you calculate; if it says to ignore them, use the column as it is. Do not filter a line away for one missing value: each total already skips its own missing values, and the line still counts in the other totals."
   },
   "ERR-LOG-18": {
     "assumed": "You probably expected the rows to come out in the order the question asks for, either without an ORDER BY or with one on a different column or in the other direction.",
@@ -171,8 +171,8 @@
   },
   "ERR-LOG-23": {
     "assumed": "You probably expected your range to keep exactly the values the question describes.",
-    "why": "BETWEEN low AND high keeps the values from low to high, both ends included, so `BETWEEN 20 AND 10` matches nothing at all. A range written with `>` or `<` leaves its end out and one written with `>=` or `<=` keeps it, so the wrong one drops or adds the rows that sit exactly on an end.",
-    "model": "Put the low end first, as in `discount_pct BETWEEN 10 AND 20`. Then read the wording for each end: 'from ... to', 'at least' and 'up to' keep the end, while 'over', 'under', 'after' and 'before' leave it out."
+    "why": "BETWEEN low AND high keeps the values from low to high, both ends included, so `BETWEEN 20 AND 10` matches nothing at all. A range written with `>` or `<` leaves its end out and one written with `>=` or `<=` keeps it, so the wrong one drops or adds the rows that sit exactly on an end. For dates, each end is a whole day, so a wrong end moves a whole day in or out.",
+    "model": "Put the low end first, as in `discount_pct BETWEEN 10 AND 20`. Then read the wording for each end: 'from ... to', 'at least' and 'up to' keep the end, while 'over', 'under', 'after' and 'before' leave it out. For a range of days, use `col >= first day AND col < day after the last day`, which cannot miss the last day."
   },
   "ERR-LOG-24": {
     "assumed": "You probably expected UNION to stack the two results exactly as they are.",
@@ -216,7 +216,7 @@
   },
   "ERR-OUT-02": {
     "assumed": "You probably expected a value to count as right whatever its type, for example the text '10' for the number 10, a date written as text, or a whole number written with decimals, such as 2.0 for 2.",
-    "why": "SQL keeps text, numbers and dates as different types: the text '10' never equals the number 10, and the engine stops when it cannot turn one type into another. Each column must have the type the output contract shows, in the place it shows it. In screen mode, as in an online SQL test, whole numbers and numbers with decimals are different types too: a count that comes back as 2.0, after `* 1.0` or a CAST to a decimal, does not match the whole number 2, and the reverse.",
+    "why": "SQL keeps text, numbers and dates as different types: the text '10' never equals the number 10, and the engine stops when it cannot turn one type into another. Each column must have the type the output contract shows, in the place it shows it. In screen mode, as in an online SQL test, whole numbers and numbers with decimals are different types too: a count that comes back as 2.0, after `* 1.0` or a CAST to a decimal, does not match the whole number 2.",
     "model": "Return each column in the contract's type and order: leave numbers and dates unformatted rather than casting them to text, and compare text columns with quoted text such as `'BE'` and number columns with plain numbers such as `10`. Return a count as a whole number: use `* 1.0` or a CAST to a decimal only on a value that has decimals, such as a rate."
   }
 }

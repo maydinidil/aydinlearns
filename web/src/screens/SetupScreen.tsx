@@ -1,8 +1,10 @@
 // web/src/screens/SetupScreen.tsx: settings and setup (design §14, minimal in 1a). In setup mode it is the only screen.
 import { useEffect, useState } from 'react';
 import { api, type StatusView } from '../api.ts';
+import { versionLine } from '../lib/version.ts';
 import type { Goal } from '../../../core/goals.ts';
 import { PORTFOLIO_HREF, portfolioApi } from '../lib/portfolio-api.ts';
+import { checksSummary } from '../lib/polish-p2a.ts';
 
 const OUTSIDE_SOURCES = ['SQLBolt', 'LeetCode', 'HackerRank', 'Skillshop', 'Monthly outside benchmark', 'Other'];
 const NO_REPORT = { item_id: '', text: '' };
@@ -53,14 +55,18 @@ export function SetupScreen() {
   return (
     <section>
       <h1>Settings and setup</h1>
+      {versionLine(status) && <p className="muted">{versionLine(status)}</p>}
       {notice && <p role="status" className="notice">{notice}</p>}
       {error && <p role="alert" className="notice">{error}</p>}
 
       <div className="card settings-card">
       <h2>Checks</h2>
       {status.degraded && <p className="callout">The app is in setup mode until every check below passes. Fix the first failing one, then restart the server.</p>}
-      <ul>{status.checks.map((c) => <li key={c.name} className={c.ok ? 'ok' : 'bad'}><strong>{c.name}</strong> {c.ok ? 'passes' : 'fails'}: {c.detail}</li>)}</ul>
-      {status.versions && <p className="muted">Versions: data {status.versions.dataset}, DuckDB {status.versions.duckdb}, content {status.versions.content}, grader {status.versions.grader}</p>}
+      <details open={status.checks.some((c) => !c.ok)}>
+        <summary>{checksSummary(status.checks)}</summary>
+        <ul>{status.checks.map((c) => <li key={c.name} className={c.ok ? 'ok' : 'bad'}><strong>{c.name}</strong> {c.ok ? 'passes' : 'fails'}: {c.detail}</li>)}</ul>
+        {status.versions && <p className="muted">Versions: data {status.versions.dataset}, DuckDB {status.versions.duckdb}, content {status.versions.content}, grader {status.versions.grader}</p>}
+      </details>
       </div>
 
       {!status.degraded && (
@@ -101,7 +107,7 @@ export function SetupScreen() {
           <div className="card settings-card">
           <h2>Report a content error</h2>
           <p><label>Exercise ID, if you know it <input value={report.item_id} onChange={(e) => setReport({ ...report, item_id: e.target.value })} /></label></p>
-          <p><label>What is wrong? <textarea value={report.text} onChange={(e) => setReport({ ...report, text: e.target.value })} /></label></p>
+          <p><label className="field">What is wrong? <textarea value={report.text} onChange={(e) => setReport({ ...report, text: e.target.value })} /></label></p>
           <button type="button" disabled={busy || !report.text.trim()}
             onClick={() => send(() => api.report(report.item_id.trim() || 'general', report.text), 'Reported. Thank you.', () => setReport(NO_REPORT))}>Send</button>
           </div>

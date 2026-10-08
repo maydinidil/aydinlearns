@@ -1,0 +1,48 @@
+{
+  "id": "Q-MET-RETAIL-09-05",
+  "version": 1,
+  "kind": "mcq",
+  "section": "methodology",
+  "concept_id": "MET-RETAIL-09",
+  "stem": "About three quarters of Voltmarkt's known customers have exactly 1 order in the last 12 months. If frequency is scored with NTILE(5) on the number of orders, what happens to these one-order customers?",
+  "options": [
+    {
+      "oid": "o5d94a74",
+      "text": "They all get F = 1, the lowest score, as the method intends",
+      "misconception_id": null
+    },
+    {
+      "oid": "o44d0701",
+      "text": "They are split over F = 1 to 4 in an arbitrary order",
+      "misconception_id": null
+    },
+    {
+      "oid": "o6b4c56a",
+      "text": "They are left out of the scores, since NTILE skips tied values",
+      "misconception_id": null
+    },
+    {
+      "oid": "o19f2253",
+      "text": "They all get F = 3, since NTILE gives tied values the middle score",
+      "misconception_id": null
+    }
+  ],
+  "typed": null,
+  "held_out": true,
+  "enemy_group": null,
+  "status": "active",
+  "verified": true,
+  "level": null,
+  "tags": [
+    "methodology",
+    "T-MET-RETAIL"
+  ],
+  "source_ids": [
+    "04:MET-RETAIL-09",
+    "04:CASE-RETAIL-05",
+    "ERRATA:E-007"
+  ],
+  "as_of": "2026-10-08",
+  "review_after": null,
+  "supersedes": []
+}

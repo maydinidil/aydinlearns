@@ -358,3 +358,25 @@ test('A5: "Try again" on an unservable due card serves the next due card; with n
     assert.match(await r.text(), /No review is due\./);
   } finally { clean(); }
 });
+
+// ---- Codex F26: the fallback waits for a candidate card's pending close --------------------------------------------------------------
+
+test('F26: "Try again" on an unservable due card waits for the next candidate\'s pending close, then skips it once it is reviewed', async () => {
+  try {
+    const { d, app, hide } = await twoCards(false);
+    hide();
+    let release!: () => void;
+    d.servings.closingCard(CARD, new Promise<void>((resolve) => { release = resolve; }));
+    let settled = false;
+    const reply = Promise.resolve(post(app, `/api/mistakes/${encodeURIComponent(CARD_Y)}/try`, {})).then((r: Response) => { settled = true; return r; });
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    assert.equal(settled, false, 'the reply waits while the candidate card\'s close is being written');
+    // The close lands: the candidate's review is logged (rated Good), so it is no longer due.
+    const at = iso(2 * 60_000);
+    await write(d, inst({ id: 'F26-REVIEWED', item: id(X, 'E2-15'), concept: X, phase: 'review', start: at, steps: [{ at: plus(at, 30), submit: 'pass' }], card: CARD }));
+    release();
+    const r = await reply;
+    assert.equal(r.status, 404, 'the candidate is not served a second time');
+    assert.match(await r.text(), /No review is due\./);
+  } finally { clean(); }
+});

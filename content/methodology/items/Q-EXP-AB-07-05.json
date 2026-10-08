@@ -1,0 +1,48 @@
+{
+  "id": "Q-EXP-AB-07-05",
+  "version": 1,
+  "kind": "mcq",
+  "section": "methodology",
+  "concept_id": "EXP-AB-07",
+  "stem": "A team wants to check a test's results every day and be allowed to stop early without inflating false positives. Which approach meets this need?",
+  "options": [
+    {
+      "oid": "o34557e2",
+      "text": "A fixed-horizon test, checked every day against p < 0.05",
+      "misconception_id": null
+    },
+    {
+      "oid": "ob5abcda",
+      "text": "A sequential method with always-valid p-values, planned ahead",
+      "misconception_id": null
+    },
+    {
+      "oid": "o4bceb13",
+      "text": "A Bonferroni correction across the success and guardrail metrics",
+      "misconception_id": null
+    },
+    {
+      "oid": "oc053d90",
+      "text": "A larger minimum detectable effect, so that the test ends sooner",
+      "misconception_id": null
+    }
+  ],
+  "typed": null,
+  "held_out": true,
+  "enemy_group": null,
+  "status": "active",
+  "verified": true,
+  "level": null,
+  "tags": [
+    "methodology",
+    "T-MET-EXP",
+    "which-one"
+  ],
+  "source_ids": [
+    "11:EXP-07",
+    "ERRATA:E-175"
+  ],
+  "as_of": "2026-10-08",
+  "review_after": null,
+  "supersedes": []
+}

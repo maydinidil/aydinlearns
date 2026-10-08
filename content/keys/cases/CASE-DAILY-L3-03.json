@@ -1,0 +1,13 @@
+{
+  "case_id": "CASE-DAILY-L3-03",
+  "truths": {
+    "CP2": "WITH one_variant AS (\n  SELECT customer_id, MIN(variant) AS variant, MIN(assigned_at) AS assigned_at\n  FROM ab_assignments\n  WHERE test_id = 'AB-2025-01'\n  GROUP BY customer_id\n  HAVING COUNT(*) = 1\n)\nSELECT COUNT(DISTINCT c.customer_id)\nFROM one_variant o\nJOIN ab_conversions c ON c.test_id = 'AB-2025-01' AND c.customer_id = o.customer_id AND c.converted_at >= o.assigned_at\nWHERE o.variant = 'control'",
+    "CP4": "WITH one_variant AS (\n  SELECT customer_id, MIN(variant) AS variant, MIN(assigned_at) AS assigned_at\n  FROM ab_assignments\n  WHERE test_id = 'AB-2025-01'\n  GROUP BY customer_id\n  HAVING COUNT(*) = 1\n),\nrates AS (\n  SELECT o.variant, 1.0 * COUNT(DISTINCT c.customer_id) / COUNT(DISTINCT o.customer_id) AS rate\n  FROM one_variant o\n  LEFT JOIN ab_conversions c ON c.test_id = 'AB-2025-01' AND c.customer_id = o.customer_id AND c.converted_at >= o.assigned_at\n  GROUP BY o.variant\n)\nSELECT ROUND(100.0 * (t.rate - k.rate) / k.rate, 1)\nFROM rates k\nJOIN rates t ON k.variant = 'control' AND t.variant = 'treatment'"
+  },
+  "choices": {
+    "CP5": {
+      "correct_oid": "o65d6813",
+      "explanation": "The interval of the difference runs from below zero to about one point, so the test cannot yet tell a small gain from no effect; a clean split makes the test trustworthy, but it does not make the gain real."
+    }
+  }
+}

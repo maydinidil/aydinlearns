@@ -1,0 +1,18 @@
+{
+  "concept_id": "MET-PRICE-05",
+  "section": "methodology",
+  "version": 1,
+  "title": "Cannibalisation",
+  "reading_md": "**What it measures.** The sales that other products in the same category lose while one product is on promotion. Shoppers who would have bought the 50-inch TV buy the discounted 55-inch instead, so part of the promoted product's extra volume is taken from its sister products rather than new to Voltmarkt. The classic Voltmarkt case is Earbuds Pro X on deal taking sales from Earbuds Lite.\n\n**Formula (Voltmarkt's convention).**\n\ncannibalised units = SUM over the sister products of (baseline - average weekly units during the promotion) × promotion weeks\n\ncannibalisation rate % = 100 × cannibalised units / incremental units of the promoted product\n\n- Sister products: every product in the promoted product's category that is not in the promotion. A product in the same promotion leaves the set.\n- Baseline, as for promo uplift: a product's average weekly units in the 4 weeks before the promotion starts.\n- Weekly units come from a zero-filled product by week series, so a week with no sales counts as 0.\n- Incremental units of the promoted product = (its average weekly units during the promotion - its baseline) × promotion weeks.\n- Every product is measured over the same stores and the same weeks.\n- Grain: one promotion.\n\n**Worked example.** A 2-week promotion on the 55-inch TV. It averaged 56 units a week against a baseline of 20, so its incremental units = (56 - 20) × 2 = 72.\n\n| Sister TV | Baseline | Average during the deal | Units lost |\n|---|---|---|---|\n| 50-inch | 15 | 9 | (15 - 9) × 2 = 12 |\n| 65-inch | 10 | 7 | (10 - 7) × 2 = 6 |\n\n- Cannibalised units = 12 + 6 = 18.\n- Cannibalisation rate = 100 × 18 / 72 = 25.0%: the sister TVs lost 1 unit for every 4 extra units of the 55-inch.\n- Net effect on the TV category = 72 - 18 = 54 extra units.\n\nThe rate is not a sister product's own drop: the 50-inch fell 40% below its baseline, which is a different number.\n\n**Common mistakes.**\n\n- Comparing different stores or weeks for different products.\n- Counting products from other categories. A monitor that sells less during a TV deal is not in the set.\n- Leaving another promoted product in the sister set.\n- Averaging only the weeks that had sales, which raises the baseline.\n\n**What it does not answer.**\n\n- Whether the promotion made money. A lost sale of a sister product may have earned more margin than the promoted sale that replaced it.\n- Sales won from rival shops, or pulled forward from later weeks.\n\n**How managers ask for it.** \"Did the Pro X deal just take sales from our other earbuds?\" \"What's the net category effect?\"",
+  "source_ids": [
+    "04:MET-PRICE-05",
+    "04:§2.1",
+    "04:CASE-PRICE-04",
+    "ERRATA:E-011",
+    "ERRATA:E-092",
+    "ERRATA:E-100",
+    "ERRATA:E-101"
+  ],
+  "verified": true,
+  "as_of": "2026-10-08"
+}

@@ -1,0 +1,14 @@
+{
+  "concept_id": "EXP-AB-06",
+  "section": "methodology",
+  "version": 1,
+  "title": "Power and sample size",
+  "reading_md": "**What it is.** Power is the probability that a test detects a true effect of a given size. Common defaults are 80% power and a two-sided significance level α of 0.05. A test with too little power often misses real effects, so the sample size is planned before the test starts.\n\n**How to work it out.** Lehr's rule, an approximation for 80% power and a two-sided α of 0.05:\n\nn per variant ≈ 16 × p(1 - p) / δ²\n\nHere p is the baseline rate and δ is the absolute difference to detect. A variant of the rule (van Belle's) uses the average of the two rates for p.\n\nWorked example. Baseline 5%, and the test should detect a rise to 6%, so δ = 0.01.\n\n- p(1 - p) = 0.0475\n- 16 × 0.0475 = 0.76\n- δ² = 0.0001\n- n = 0.76 / 0.0001 = 7,600 users per variant, 15,200 in total\n\nRounding: round up to the next whole user. Exact calculators give slightly different numbers, but the rule is close enough for planning.\n\n**In the interview.** \"Which inputs do you need for a sample size?\" A good answer: the baseline rate, the MDE, the significance level, the power and the split between the variants.\n\n**Common mistakes.**\n\n- Forgetting that the result is per variant: a two-variant test needs twice as many users in total.\n- Using a relative MDE as if it were absolute. A 10% relative lift on a 5% baseline is δ = 0.005, not 0.10.\n- Stopping mid-week as soon as the target is hit. Round the duration up to full weeks, so every weekday counts equally.",
+  "source_ids": [
+    "11:EXP-06",
+    "ERRATA:E-174",
+    "ERRATA:E-175"
+  ],
+  "verified": true,
+  "as_of": "2026-10-08"
+}

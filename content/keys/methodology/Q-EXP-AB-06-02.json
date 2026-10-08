@@ -1,0 +1,13 @@
+{
+  "item_id": "Q-EXP-AB-06-02",
+  "item_version": 1,
+  "value": 28800,
+  "explanation": "p(1 - p) = 0.10 × 0.90 = 0.09, and δ = 0.11 - 0.10 = 0.01, so δ² = 0.0001. n per variant = 16 × 0.09 / 0.0001 = 14,400. The rule gives users per variant, so the test needs 2 × 14,400 = 28,800 users in total. Stopping at 14,400 is the common mistake of forgetting that the formula is per variant.",
+  "solver": {
+    "prompt_hash": "fc961b08d1459ac1",
+    "grader_version": "choice.2",
+    "chosen": null,
+    "typed": "28800",
+    "at": "2026-10-08T18:33:21.604Z"
+  }
+}

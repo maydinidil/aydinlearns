@@ -1,0 +1,47 @@
+{
+  "id": "Q-EXP-AB-10-06",
+  "version": 1,
+  "kind": "mcq",
+  "section": "methodology",
+  "concept_id": "EXP-AB-10",
+  "stem": "A test has 1 primary metric named in advance and 8 secondary metrics shown for context. Which way of reading them avoids the multiple-testing trap?",
+  "options": [
+    {
+      "oid": "ob19c2f7",
+      "text": "Ship if any of the 9 metrics shows p < 0.05, since each one was measured",
+      "misconception_id": null
+    },
+    {
+      "oid": "od5b2708",
+      "text": "Pick the primary metric after the test, choosing the one that moved most",
+      "misconception_id": null
+    },
+    {
+      "oid": "o0e6b3e3",
+      "text": "Average the 9 p-values and ship if that average falls below 0.05",
+      "misconception_id": null
+    },
+    {
+      "oid": "o850c6f6",
+      "text": "Decide on the primary metric; treat secondary wins as hypotheses",
+      "misconception_id": null
+    }
+  ],
+  "typed": null,
+  "held_out": false,
+  "enemy_group": null,
+  "status": "active",
+  "verified": true,
+  "level": null,
+  "tags": [
+    "methodology",
+    "T-MET-EXP"
+  ],
+  "source_ids": [
+    "11:EXP-10",
+    "ERRATA:E-175"
+  ],
+  "as_of": "2026-10-08",
+  "review_after": null,
+  "supersedes": []
+}

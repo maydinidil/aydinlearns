@@ -1,0 +1,13 @@
+{
+  "item_id": "Q-MET-RETAIL-04-04",
+  "item_version": 1,
+  "correct_oid": "of41add4",
+  "explanation": "With this feed, a day that ended with no stock has no row at all, so no day ever shows 0 units and the numerator misses every stockout. Those days still sit in the denominator, so they count as in-stock days and the rate comes out too low, here even 0%. A missing row is not proof of stock: find out why it is missing before counting.",
+  "solver": {
+    "prompt_hash": "c3189c1a5818e519",
+    "grader_version": "choice.2",
+    "chosen": "of41add4",
+    "typed": null,
+    "at": "2026-10-08T18:33:21.851Z"
+  }
+}

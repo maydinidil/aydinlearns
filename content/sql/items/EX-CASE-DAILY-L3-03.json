@@ -1,0 +1,192 @@
+{
+  "id": "EX-CASE-DAILY-L3-03",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "case",
+    "daily",
+    "ab_test",
+    "cte",
+    "left_join",
+    "ab_assignments",
+    "ab_conversions"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-CTE-01",
+    "11:EXP-AB-13"
+  ],
+  "verified": true,
+  "as_of": "2026-10-08",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "case",
+  "target_concept_id": "SQL-CTE-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-SORT-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-AGG-03",
+    "SQL-TYPE-01",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01"
+  ],
+  "template_id": "T-CASE-DAILY-L3-ab-readout",
+  "template_params": {
+    "test_id": "AB-2025-01",
+    "from": "ab_assignments",
+    "join": "ab_conversions"
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_join",
+  "prompt": "Fleur, in trade marketing, needs the readout of the checkout test AB-2025-01 for Monday's web shop meeting: for each variant, how many customers it had, how many of them converted, and how much revenue each of its customers brought. Leave out every customer assigned to both variants. A customer converted when the customer has a conversion in the test at or after the customer's assigned_at: a conversion before it does not count, and a customer who converted more than once counts once. Return one row for each variant, including a variant with no conversions. Return five columns, in this order: variant; n_customers; n_converted; conversion_rate_pct, 100 times n_converted divided by n_customers, rounded to 2 decimals; and revenue_per_customer_eur, the revenue_eur of the conversions that count, added up and divided by n_customers, in euros rounded to 2 decimals. A missing revenue_eur adds nothing, and a variant with no conversions that count gets 0. Sort by variant, alphabetically.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "variant",
+        "type_class": "text"
+      },
+      {
+        "name": "n_customers",
+        "type_class": "numeric"
+      },
+      {
+        "name": "n_converted",
+        "type_class": "numeric"
+      },
+      {
+        "name": "conversion_rate_pct",
+        "type_class": "numeric"
+      },
+      {
+        "name": "revenue_per_customer_eur",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": true,
+    "sort_keys": [
+      {
+        "column": "variant",
+        "desc": false
+      }
+    ],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "variant",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "n_customers",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "n_converted",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "conversion_rate_pct",
+        "type_class": "numeric",
+        "precision": "ratio",
+        "require_rounding": 2
+      },
+      {
+        "name": "revenue_per_customer_eur",
+        "type_class": "numeric",
+        "precision": "money",
+        "require_rounding": 2
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "variant"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, set aside the customers assigned to both variants, so each remaining customer has one variant and one assigned_at.",
+    "Then attach only the conversions that count with a join that keeps every customer, count different customers, and add up the revenue."
+  ],
+  "subgoals": [
+    {
+      "from": 24,
+      "to": 100,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 103,
+      "to": 122,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 125,
+      "to": 153,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 156,
+      "to": 176,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 179,
+      "to": 198,
+      "subgoal": "group_filter"
+    },
+    {
+      "from": 201,
+      "to": 520,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 521,
+      "to": 539,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 540,
+      "to": 664,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 665,
+      "to": 683,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 684,
+      "to": 702,
+      "subgoal": "sort_limit"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "Leaving out the two-variant customers first gives each customer one variant, and the join that keeps every customer lets a variant with no conversions still show."
+}

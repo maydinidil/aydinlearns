@@ -351,6 +351,23 @@ export function lessonWindowEnds(section: ChoiceSection, a: LessonWindowArgs): M
   return ends;
 }
 
+/**
+ * D59: whether a concept's lesson window is open at `a.now`: its card is in lessonWindowEnds, or a reading or lesson exposure of
+ * the concept's card is less than the window old (the S2-62 rule the ratings use). The second test covers a concept read this
+ * session, which has no card in the replay yet.
+ */
+export function lessonWindowOpen(section: ChoiceSection, a: LessonWindowArgs): (conceptId: string) => boolean {
+  const ends = lessonWindowEnds(section, a);
+  const t = a.now.getTime();
+  const fresh = new Set<string>();
+  for (const x of a.records as { record?: unknown; kind?: unknown; concept_id?: unknown; ts?: unknown }[]) {
+    if (x.record !== 'exposure' || (x.kind !== 'reading' && x.kind !== 'lesson') || typeof x.concept_id !== 'string' || typeof x.ts !== 'string') continue;
+    const at = Date.parse(x.ts);
+    if (!Number.isNaN(at) && at <= t && t - at < a.windowMs) fresh.add(a.cardOf(x.concept_id));
+  }
+  return (conceptId) => { const card = a.cardOf(conceptId); return ends.has(card) || fresh.has(card); };
+}
+
 /** When an item was last seen, as [time, place in the seen list], so two servings in the same millisecond still have an order. */
 type Seen = readonly [number, number];
 const NEVER: Seen = [-Infinity, -1];
@@ -395,13 +412,16 @@ export function pickChoiceItem(p: ChoicePickInput): { item: ChoiceItem; repeat_e
 
 /**
  * Today's practice step for a choice section has no concept named: the step's concepts in turn, the least recently served card
- * first, ties in the step's order (newest first). Null when the step names none.
+ * first, ties in the step's order (newest first). D59: a concept whose lesson window is open (`inWindow`, from lessonWindowEnds)
+ * goes after every other candidate, so a practice answer is not wasted inside the window; among themselves the order is as above.
+ * Null when the step names none.
  */
 export function nextPracticeConcept(conceptIds: readonly string[], poolOf: (conceptId: string) => readonly ChoiceItem[],
-  seen: readonly { item_id: string; started_at: string }[], now: Date): string | null {
+  seen: readonly { item_id: string; started_at: string }[], now: Date, inWindow: (conceptId: string) => boolean = () => false): string | null {
   const last = lastSeenOf(seen, now);
   const age = (c: string): Seen => poolOf(c).reduce<Seen>((m, i) => { const s = last.get(i.id) ?? NEVER; return earlier(s, m) > 0 ? s : m; }, NEVER);
-  return [...conceptIds].map((c, n) => ({ c, n, age: age(c) })).sort((a, b) => earlier(a.age, b.age) || a.n - b.n)[0]?.c ?? null;
+  return [...conceptIds].map((c, n) => ({ c, n, age: age(c), open: inWindow(c) ? 1 : 0 }))
+    .sort((a, b) => a.open - b.open || earlier(a.age, b.age) || a.n - b.n)[0]?.c ?? null;
 }
 
 // ---- picking items (S2-35, S2-36) ---------------------------------------------------------------

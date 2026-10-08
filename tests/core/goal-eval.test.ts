@@ -2,7 +2,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { effectiveDate, evaluateGoal, nextGoal, type GoalView } from '../../core/goal-eval.ts';
-import type { Goal } from '../../core/goals.ts';
+import { goalCriterionProblems, type Goal } from '../../core/goals.ts';
 import type { Section } from '../../core/envelope.ts';
 import type { ConceptStateName } from '../../core/states.ts';
 import { amsterdamDate } from '../../core/time.ts';
@@ -154,4 +154,51 @@ test('S4B-26 live_rep: without a date, the window ends on today\'s Amsterdam dat
   const today = amsterdamDate(new Date());
   const r = evaluateGoal(LIVE, view({}, { liveReps: reps([today, true], [today, true], [today, true], [today, false]) }));
   assert.deepEqual(r.criteria[0], { label: LIVE_LABEL, met: true, available: true, done: 4, total: 4 });
+});
+
+// ---- Sprint 5a, Task B1 (D58): concept_state with a list of named concepts ---------------------------------------------------------
+
+const NAMED = ['EXP-AB-01', 'EXP-AB-03', 'STAT-BASIC-01'];
+const methView = (states: Record<string, ConceptStateName>, have: string[] = NAMED): GoalView =>
+  view(states, { conceptsOf: (s, n) => (s === 'methodology' ? (n >= 1 ? have : []) : view().conceptsOf(s, n)) });
+const named = (ids: string[] = NAMED): Goal => goal('G-N', '2026-11-13', [{ kind: 'concept_state', section: 'methodology', concept_ids: ids, state: 'practised' }]);
+
+test('D58: concept_ids is met when every named concept reaches the state; the label counts them', () => {
+  const none = evaluateGoal(named(), methView({}));
+  assert.deepEqual(none.criteria[0], { label: '0 of 3 named concepts at practised', met: false, available: true, done: 0, total: 3 });
+  const some = evaluateGoal(named(), methView({ 'EXP-AB-01': 'practised', 'EXP-AB-03': 'mastered', 'STAT-BASIC-01': 'learning' }));
+  assert.deepEqual(some.criteria[0], { label: '2 of 3 named concepts at practised', met: false, available: true, done: 2, total: 3 });
+  const all = evaluateGoal(named(), methView({ 'EXP-AB-01': 'practised', 'EXP-AB-03': 'mastered', 'STAT-BASIC-01': 'retained' }));
+  assert.deepEqual(all, { goal_id: 'G-N', met: true, criteria: [{ label: '3 of 3 named concepts at practised', met: true, available: true, done: 3, total: 3 }] });
+});
+
+test('D58: a named concept the content does not have is not reached and is "not yet available", never a crash', () => {
+  const states: Record<string, ConceptStateName> = { 'EXP-AB-01': 'practised', 'EXP-AB-03': 'practised', 'STAT-BASIC-01': 'practised' };
+  const partly = evaluateGoal(named(), methView(states, ['EXP-AB-01', 'EXP-AB-03']));
+  assert.deepEqual(partly.criteria[0], { label: '2 of 3 named concepts at practised (1 not yet available)', met: false, available: true, done: 2, total: 3 });
+  const noContent = evaluateGoal(named(), methView(states, []));
+  assert.deepEqual(noContent.criteria[0], { label: '0 of 3 named concepts at practised (3 not yet available)', met: false, available: false, done: null, total: null });
+});
+
+test('D58: criteria written before this change give the same results', () => {
+  const g = goal('G-OLD', '2026-10-16', [{ kind: 'concept_state', section: 'sql', level: 1, state: 'practised' },
+    { kind: 'concept_state', section: 'sql', concept_id: 'SQL-BASICS-01', state: 'practised' }, { kind: 'concept_state', section: 'methodology', level: 1, state: 'practised' },
+    { kind: 'mock_pass', mock: 'screen' }, { kind: 'case_solved', count: 1 }]);
+  assert.deepEqual(evaluateGoal(g, view({ 'SQL-BASICS-01': 'practised' })), { goal_id: 'G-OLD', met: false, criteria: [
+    { label: 'SQL level 1 at practised', met: false, available: true, done: 1, total: 6 },
+    { label: 'SQL-BASICS-01 at practised', met: true, available: true, done: 1, total: 1 },
+    { label: 'Methodology level 1 at practised', met: false, available: false, done: null, total: null },
+    { label: 'Screen mock passed', met: false, available: false, done: null, total: null },
+    { label: '1 case solved', met: false, available: true, done: 0, total: 1 }] });
+});
+
+test('D58: the validator refuses concept_ids with concept_id or level, and an empty list', () => {
+  const ok = { kind: 'concept_state', section: 'methodology', concept_ids: ['EXP-AB-01'], state: 'practised' };
+  assert.deepEqual(goalCriterionProblems(ok), []);
+  assert.match(goalCriterionProblems({ ...ok, concept_id: 'EXP-AB-01' }).join(), /concept_ids.*concept_id/);
+  assert.match(goalCriterionProblems({ ...ok, level: 1 }).join(), /concept_ids.*level/);
+  assert.match(goalCriterionProblems({ ...ok, concept_ids: [] }).join(), /empty/);
+  assert.match(goalCriterionProblems({ ...ok, concept_ids: ['A', 3] }).join(), /text/);
+  assert.match(goalCriterionProblems({ ...ok, concept_ids: ['A', 'A'] }).join(), /repeat/);
+  assert.deepEqual(goalCriterionProblems({ kind: 'concept_state', section: 'sql', level: 2, state: 'practised' }), []);
 });

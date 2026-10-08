@@ -1,0 +1,15 @@
+{
+  "concept_id": "MET-SAAS-03",
+  "section": "methodology",
+  "version": 1,
+  "title": "Annual recurring revenue (ARR)",
+  "reading_md": "**Setting.** The examples use Business Care, the device-support subscription Voltmarkt sells to small offices. It is billed monthly; Business Care Year is the same support paid for a year in advance.\n\n**What it measures.** The yearly run rate of recurring revenue: what a year of subscription revenue would come to if this month's MRR stayed the same for 12 months.\n\n**Formula.**\n\nARR = MRR × 12\n\n- Use the MRR of a complete month, with every active plan at its full monthly amount.\n- Business Care Year is in MRR at a twelfth of its yearly fee in every month it covers, so in ARR it counts once, at its yearly fee.\n- One-off fees stay out, as they do in MRR.\n- Grain: month.\n\n**Worked example.** In September 2026 Business Care had 420 businesses at €40 a month and 60 on Business Care Year at €420 a year.\n\n- MRR = 420 × 40 + 60 × 420 / 12 = 16,800 + 2,100 = €18,900.\n- ARR = 18,900 × 12 = €226,800.\n\nOn 15 October a dashboard shows October's MRR so far as €9,500, because only the businesses billed so far are in it. 9,500 × 12 = €114,000 is not a run rate. A month still in progress understates ARR: use September until October is complete.\n\n**What ARR is not.**\n\n- Revenue earned over the last 12 months. When MRR grows during the year, ARR is above last year's revenue.\n- Cash collected. A Business Care Year business pays for the whole year at once, but adds the same amount to ARR in every month its plan covers.\n- A forecast. It assumes nothing changes: no new businesses, no cancellations.\n\n**Common mistakes.**\n\n- Multiplying the MRR of a month that is not complete.\n- Counting a yearly plan's whole fee in MRR and then multiplying by 12.\n- Adding one-off fees.\n\n**What it does not answer.**\n\n- Whether existing customers stay and grow: that is NRR and GRR.\n- How many customers left: that is logo churn.\n\n**How managers ask for it.** \"What's our ARR run rate?\" \"Are we at €300,000 ARR yet?\"",
+  "source_ids": [
+    "04:MET-SAAS-03",
+    "04:MET-SAAS-01",
+    "ERRATA:E-100",
+    "ERRATA:E-161"
+  ],
+  "verified": true,
+  "as_of": "2026-10-08"
+}

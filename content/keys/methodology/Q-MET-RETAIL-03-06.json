@@ -1,0 +1,13 @@
+{
+  "item_id": "Q-MET-RETAIL-03-06",
+  "item_version": 1,
+  "correct_oid": "oa2c1ea5",
+  "explanation": "The stock on hand lasts 1.5 weeks, and the transfer lands after 1 week, while there is still stock. It adds 2 weeks of sales, so the stock lasts about 3.5 weeks, past the delivery in week 3. Cover itself counts only stock on hand, which is why a planner adds stock already on its way before calling a shortage.",
+  "solver": {
+    "prompt_hash": "3e4f667098628287",
+    "grader_version": "choice.2",
+    "chosen": "oa2c1ea5",
+    "typed": null,
+    "at": "2026-10-08T18:33:21.838Z"
+  }
+}

@@ -3,7 +3,7 @@
 // reading here is invented, except the last test, which validates the committed readings without printing them.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdir, mkdtemp, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { Hono } from 'hono';
@@ -205,5 +205,7 @@ test('every committed GA4 and Methodology reading passes the validator, and each
   assert.deepEqual(store.readingFaults?.().map((f) => f.file), [], 'faulty readings (file names only)');
   for (const id of ['GA4-SETUP-01', 'GA4-EVENTS-01', 'GA4-EVENTS-02', 'GA4-METRICS-01']) assert.ok(store.reading?.('ga4', id), `${id} has a reading (D12)`);
   assert.equal(store.readings?.('ga4').length, 16, 'a lesson for each of the 16 GA4 parents (S3-20)');
-  assert.equal(store.readings?.('methodology').length, 30, 'the ten D13 metrics and the twenty D24 metrics (S3-22)');
+  const conceptIds = (JSON.parse(await readFile('content/methodology/concepts.json', 'utf8')) as { concepts: { id: string }[] }).concepts.map((c) => c.id);
+  const readingIds = (store.readings?.('methodology') ?? []).map((r) => r.concept_id);
+  assert.deepEqual([...readingIds].sort(), [...conceptIds].sort(), 'each Methodology concept has exactly one reading, and no reading is without a concept');
 });

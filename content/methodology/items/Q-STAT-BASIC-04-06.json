@@ -1,0 +1,46 @@
+{
+  "id": "Q-STAT-BASIC-04-06",
+  "version": 1,
+  "kind": "mcq",
+  "section": "methodology",
+  "concept_id": "STAT-BASIC-04",
+  "stem": "An analyst tells the store director: \"The variance of daily basket value is 400.\" Why is this hard to use, and what would be better?",
+  "options": [
+    {
+      "oid": "oad3e787",
+      "text": "Variance is in euros squared; say instead that the SD is €20",
+      "misconception_id": null
+    },
+    {
+      "oid": "ocb9b659",
+      "text": "Variance is in percent; say instead that baskets vary by 400%",
+      "misconception_id": null
+    },
+    {
+      "oid": "oaac1554",
+      "text": "400 is too large for a variance; the query must contain an error",
+      "misconception_id": null
+    },
+    {
+      "oid": "o9ddae86",
+      "text": "Variance needs the mean beside it; say €400 above or below the mean",
+      "misconception_id": null
+    }
+  ],
+  "typed": null,
+  "held_out": false,
+  "enemy_group": null,
+  "status": "active",
+  "verified": true,
+  "level": null,
+  "tags": [
+    "methodology",
+    "T-MET-STAT"
+  ],
+  "source_ids": [
+    "11:STAT-04"
+  ],
+  "as_of": "2026-10-08",
+  "review_after": null,
+  "supersedes": []
+}

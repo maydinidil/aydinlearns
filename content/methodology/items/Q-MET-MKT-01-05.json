@@ -1,0 +1,46 @@
+{
+  "id": "Q-MET-MKT-01-05",
+  "version": 1,
+  "kind": "mcq",
+  "section": "methodology",
+  "concept_id": "MET-MKT-01",
+  "stem": "One ad platform exports daily spend in UTC, while Voltmarkt's other spend data uses Amsterdam time, which is 1 or 2 hours ahead of UTC. An analyst adds the two up by day without converting. What goes wrong?",
+  "options": [
+    {
+      "oid": "o7cda683",
+      "text": "Monthly totals stay right, because every day still has 24 hours in both time zones",
+      "misconception_id": null
+    },
+    {
+      "oid": "od0e203b",
+      "text": "Spend near midnight falls on another day, and at a month's end in another month",
+      "misconception_id": null
+    },
+    {
+      "oid": "ob2c06ab",
+      "text": "Clicks move to another day, but the spend stays on the day it was booked",
+      "misconception_id": null
+    },
+    {
+      "oid": "o64fc733",
+      "text": "Each day's spend is counted twice, once in each of the two time zones",
+      "misconception_id": null
+    }
+  ],
+  "typed": null,
+  "held_out": true,
+  "enemy_group": null,
+  "status": "active",
+  "verified": true,
+  "level": null,
+  "tags": [
+    "methodology",
+    "T-MET-MKT"
+  ],
+  "source_ids": [
+    "04:MET-MKT-01"
+  ],
+  "as_of": "2026-10-08",
+  "review_after": null,
+  "supersedes": []
+}

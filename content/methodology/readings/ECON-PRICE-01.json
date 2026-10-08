@@ -1,0 +1,15 @@
+{
+  "concept_id": "ECON-PRICE-01",
+  "section": "methodology",
+  "version": 1,
+  "title": "Own-price elasticity",
+  "reading_md": "**What it is.** Own-price elasticity is the percent change in a product's quantity divided by the percent change in its own price. It is negative for normal goods: price up, units down. Economists often quote the absolute value, so check the sign before you read the direction.\n\n- Elastic: |E| > 1. Units move by a larger percentage than price.\n- Inelastic: |E| < 1.\n- Unitary: |E| = 1.\n\nKeep three measures apart:\n\n- Simple (start-point) percent change: each change is divided by its starting value, so the answer depends on which end you start from.\n- Arc (midpoint): each change is divided by the average of the two points, so the answer is the same in both directions. Its formula and pitfalls are in the reading **Arc price elasticity**.\n- Point elasticity: the value for a very small change at one point of the demand curve. It is never computed from two points far apart.\n\nElasticity is not a constant: it changes along the demand curve and over time.\n\n**How to work it out.**\n\nSimple: E = (ΔQ / Q1) / (ΔP / P1)\n\nWorked example. Price €10 to €9; units 1,000 to 1,200.\n\n- Simple: (200 / 1,000) / (-1 / 10) = 0.20 / -0.10 = -2.0.\n- Arc: 200 / 1,100 = 0.18182 and -1 / 9.5 = -0.10526, so E = -1.73 (2 decimals).\n- Read from €9 back to €10, the simple formula gives (-200 / 1,200) / (1 / 9) = -1.5, while the arc stays -1.73.\n\nBoth measures say demand is elastic.\n\n**In the interview.** \"Why can two analysts get different elasticities from the same data?\" A model answer: \"One may use the simple formula and the other the arc formula, or they may use different baselines and periods. I would always say which formula and which period I used.\"\n\n**Common mistakes.**\n\n- Dropping the sign, then misreading the direction.\n- Treating a promotion week's response as the long-run elasticity. A short deal pulls purchases forward and draws deal seekers.\n- Believing \"elastic\" means \"price sensitive, so never raise the price\".",
+  "source_ids": [
+    "11:ECON-01",
+    "ERRATA:E-175",
+    "ERRATA:E-180",
+    "04:MET-PRICE-12"
+  ],
+  "verified": true,
+  "as_of": "2026-10-08"
+}

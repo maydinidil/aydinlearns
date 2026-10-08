@@ -1,0 +1,46 @@
+{
+  "id": "Q-STAT-BASIC-02-05",
+  "version": 1,
+  "kind": "mcq",
+  "section": "methodology",
+  "concept_id": "STAT-BASIC-02",
+  "stem": "Both groups of an A/B test have a few baskets above €1,000. The analyst caps baskets at €1,000 in the treatment group only, because the largest basket is there. What does this do to the comparison?",
+  "options": [
+    {
+      "oid": "oc9e5404",
+      "text": "It biases it against the treatment, whose large baskets alone are cut",
+      "misconception_id": null
+    },
+    {
+      "oid": "o2e38659",
+      "text": "It removes noise fairly, since a cap only touches a few rare baskets anyway",
+      "misconception_id": null
+    },
+    {
+      "oid": "ofa6f2e9",
+      "text": "It biases the comparison in favour of the treatment",
+      "misconception_id": null
+    },
+    {
+      "oid": "ob8d264f",
+      "text": "It changes the median basket of the treatment, but not its mean",
+      "misconception_id": null
+    }
+  ],
+  "typed": null,
+  "held_out": false,
+  "enemy_group": null,
+  "status": "active",
+  "verified": true,
+  "level": null,
+  "tags": [
+    "methodology",
+    "T-MET-STAT"
+  ],
+  "source_ids": [
+    "11:STAT-02"
+  ],
+  "as_of": "2026-10-08",
+  "review_after": null,
+  "supersedes": []
+}

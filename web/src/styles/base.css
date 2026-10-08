@@ -31,3 +31,11 @@ button:disabled { opacity: 0.55; cursor: default; }
 .option-code { white-space: pre-wrap; }
 .option-table table { margin-top: var(--s1); }
 .why-clause { margin-top: var(--s4); }
+
+/* Polish pass, Task P2a (P1 findings 2, 45, 48). */
+.badge { white-space: nowrap; }
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]), select, textarea { padding: var(--s1) var(--s2); border: 1px solid var(--control); border-radius: var(--r1); background: var(--surface); color: var(--ink); font: 400 var(--t3)/var(--lh) var(--font); }
+label.field textarea, details > textarea { min-height: 5em; }
+label.field { display: block; font-weight: 600; }
+label.field textarea { display: block; width: 100%; max-width: var(--read); margin-top: var(--s1); font-weight: 400; }
+@media (max-width: 600px) { main { padding: var(--s4); } }

@@ -68,8 +68,11 @@ export function mapRows(section: ChoiceSection, concepts: readonly ChoiceConcept
     children: c.children.map((x) => ({ id: x.id, title: x.title || x.id, badges: x.verified ? [] : [UNVERIFIED] })),
   }));
 }
-/** The Methodology topics' names (D13: four topics hold the ten metrics). A topic without a name shows its id. */
-export const TOPIC_LABEL: Readonly<Record<string, string>> = { 'T-MET-RETAIL': 'Retail', 'T-MET-MKT': 'Marketing', 'T-MET-PRICE': 'Pricing', 'T-MET-SAAS': 'SaaS' };
+/** The Methodology topics' names (D13 four, sprint 5a three more). A topic without a name shows its id. */
+export const TOPIC_LABEL: Readonly<Record<string, string>> = {
+  'T-MET-RETAIL': 'Retail', 'T-MET-MKT': 'Marketing', 'T-MET-PRICE': 'Pricing', 'T-MET-SAAS': 'SaaS',
+  'T-MET-EXP': 'Experiments', 'T-MET-STAT': 'Statistics', 'T-MET-ECON': 'Pricing economics',
+};
 export interface MapGroup { topic_id: string; label: string; rows: MapRow[] }
 /** The map's rows under their topics, in the order each topic first appears (Methodology: one level, no children). */
 export function mapGroups(section: ChoiceSection, concepts: readonly ChoiceConceptView[]): MapGroup[] {

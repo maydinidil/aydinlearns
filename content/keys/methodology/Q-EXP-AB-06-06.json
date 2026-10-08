@@ -1,0 +1,13 @@
+{
+  "item_id": "Q-EXP-AB-06-06",
+  "item_version": 1,
+  "correct_oid": "o78cfa44",
+  "explanation": "Behaviour differs by weekday, so a test should cover whole weeks: stopping on the Wednesday of the second week over-weights some days. Running to day 14 covers two full weeks. Stopping as soon as the target is hit mid-week is the common mistake, and stopping when p first drops below 0.05 is peeking.",
+  "solver": {
+    "prompt_hash": "f8d0c99d18289888",
+    "grader_version": "choice.2",
+    "chosen": "o78cfa44",
+    "typed": null,
+    "at": "2026-10-08T18:33:21.610Z"
+  }
+}

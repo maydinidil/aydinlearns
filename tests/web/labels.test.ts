@@ -123,17 +123,23 @@ test('dates for the goal line: day and month, with the year only when it is not 
 
 test('goal criteria: "n of m concepts", "not yet available", titles instead of concept IDs', () => {
   assert.equal(criterionLine({ label: 'SQL level 2 at practised', met: false, available: true, done: 4, total: 12 }, titles),
-    'SQL level 2 at practised: 4 of 12 concepts');
+    'SQL level 2 practised: 4 of 12 concepts');
   assert.equal(criterionLine({ label: 'GA4 level 1 at practised', met: false, available: false, done: null, total: null }, titles),
     'GA4 level 1: not yet available');
   assert.equal(criterionLine({ label: 'Methodology level 1 at practised', met: false, available: false, done: null, total: null }, titles),
     'Methodology level 1: not yet available');
   assert.equal(criterionLine({ label: 'SQL level 3 at practised', met: false, available: true, done: 0, total: 1 }, titles),
-    'SQL level 3 at practised: 0 of 1 concept');
+    'SQL level 3 practised: 0 of 1 concept');
   assert.equal(criterionLine({ label: 'SQL-FILTER-01 at practised', met: true, available: true, done: 1, total: 1 }, titles),
-    'WHERE with AND, OR, NOT at practised: done');
+    'WHERE with AND, OR, NOT practised: done');
   assert.equal(criterionLine({ label: 'SQL-NOTITLE-01 at practised', met: false, available: true, done: 0, total: 1 }, titles),
-    'SQL-NOTITLE-01 at practised: not yet');
+    'SQL-NOTITLE-01 practised: not yet');
+  // Finding 20: a named-concepts goal states its count once, and the state reads as a word, not "at practised".
+  assert.equal(criterionLine({ label: '0 of 12 named concepts at practised', met: false, available: true, done: 0, total: 12 }, titles), 'Named concepts practised: 0 of 12');
+  assert.equal(criterionLine({ label: '2 of 3 named concepts at practised (1 not yet available)', met: false, available: true, done: 2, total: 3 }, titles),
+    'Named concepts practised: 2 of 3 (1 not yet available)');
+  assert.equal(criterionLine({ label: '0 of 3 named concepts at practised (3 not yet available)', met: false, available: false, done: null, total: null }, titles),
+    'Named concepts practised: not yet available');
   assert.equal(criterionLine({ label: 'GA4 certificate exam passed', met: false, available: true, done: 0, total: 1 }, titles),
     'GA4 certificate exam passed: not yet');
   assert.equal(criterionLine({ label: '2 portfolio pieces, 1 on real data', met: false, available: true, done: 1, total: 2 }, titles),

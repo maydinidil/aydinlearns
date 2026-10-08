@@ -5,7 +5,7 @@
 import { useEffect, useState } from 'react';
 import { criterionLine, type Titles } from '../lib/labels.ts';
 import {
-  PROGRESS_INTRO, PROGRESS_LINKS, PROGRESS_TITLE, SECTION_LABEL, STATE_LABEL, countsLine, gapFold, gapLine, goalChip, goalDateLine, jobReadyChip, jobReadyLines,
+  PROGRESS_HREF, PROGRESS_INTRO, PROGRESS_LINKS, PROGRESS_SECTIONS, PROGRESS_TITLE, SECTION_LABEL, STATE_LABEL, countsLine, gapFold, gapLine, goalChip, goalDateLine, jobReadyChip, jobReadyLines,
   progressApi, readyLine, revealLine, shareText, stageLabel, stateChipClass, titlesOf, topicLabel, trendRows, type ProgressGoal, type ProgressView,
 } from '../lib/progress-api.ts';
 
@@ -34,6 +34,16 @@ function GoalRow(p: { g: ProgressGoal; today: string; titles: Titles; stage?: bo
   );
 }
 
+/** Finding 21: jumps to a section of this page. The address is a hash route, so a plain #id link would leave the screen. */
+function jump(e: { preventDefault: () => void }, id: string): void {
+  e.preventDefault();
+  const h = document.getElementById(id);
+  if (!h) return;
+  h.scrollIntoView();
+  h.setAttribute('tabindex', '-1');
+  h.focus();
+}
+
 export function ProgressScreen() {
   const [view, setView] = useState<ProgressView | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -48,6 +58,9 @@ export function ProgressScreen() {
       {head}
       <p className="muted">{PROGRESS_INTRO}</p>
       {links}
+      <nav className="progress-sections" aria-label="On this page">
+        {PROGRESS_SECTIONS.map((s, i) => <span key={s.id}>{i > 0 && ' · '}<a href={PROGRESS_HREF} onClick={(e) => jump(e, s.id)}>{s.text}</a></span>)}
+      </nav>
 
       <section aria-labelledby="progress-goals" data-progress="goals">
         <h2 id="progress-goals">Goals</h2>

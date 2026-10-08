@@ -24,7 +24,8 @@ export interface CaseStep { id: StepId; label: string }
 export type StepState = 'todo' | 'done' | 'passed' | 'failed';
 
 const CP_NAME: Record<CheckpointKind, string> = { CP1: 'Scope', CP2: 'First number', CP3: 'Query', CP4: 'Headline number', CP5: 'Meaning', CP6: 'Insight' };
-export const checkpointLabel = (kind: CheckpointKind): string => `${kind} ${CP_NAME[kind]}`;
+/** What a checkpoint asks, with no code in front of it (sprint 5a, finding 24). */
+export const checkpointLabel = (kind: CheckpointKind): string => CP_NAME[kind];
 const STEP_LABEL = { sketch: 'Sketch', plan: 'Plan', say: 'Say it in 60 seconds', score: 'Score' } as const;
 const STATE_WORD: Record<Exclude<StepState, 'todo'>, string> = { done: 'done', passed: 'passed', failed: 'not passed' };
 const AUTO_GRADED: readonly CheckpointKind[] = ['CP1', 'CP2', 'CP3', 'CP4', 'CP5'];
@@ -100,6 +101,16 @@ const STATUS: Record<CaseStatusName, { label: string; tone: '' | 'practising' | 
   new: { label: 'New', tone: '' }, started: { label: 'Started', tone: 'practising' }, solved: { label: 'Solved', tone: 'mastered' }, exported: { label: 'Exported', tone: 'mastered' },
 };
 export const statusChip = (s: CaseStatusName): { label: string; tone: '' | 'practising' | 'mastered' } => STATUS[s];
+/** The Score step's rule (finding 24): no checkpoint codes. */
+export const SCORE_RULE = 'The case is solved once every checked step below has passed. The insight is scored by you and never decides it.';
+/** Finding 25: once a step has passed, the button that moves on is the main one and "Answer again" is plain. */
+export const mainIsAnswer = (c: { passed: boolean }): boolean => !c.passed;
+/** Finding 26: "Data: Voltmarkt, fictional and generated"; any other label is shown as written, with its licence after it. */
+export function dataSourceLine(d: { label: string; licence: string | null }): string {
+  const fictional = /^Fictional, generated data: (.+)$/.exec(d.label);
+  const text = fictional ? `${fictional[1]}, fictional and generated` : d.label;
+  return `Data: ${text}${d.licence ? `, ${d.licence}` : ''}`;
+}
 export const scoreText = (passed: number, total: number): string =>
   (total === 0 ? 'No scored checkpoints' : `Score: ${passed} of ${total} checkpoint${total === 1 ? '' : 's'}`);
 /** The case screen's score: the auto-graded CP1 to CP5 it lists, and how many passed in any instance. CP6 never decides it. */
@@ -109,6 +120,8 @@ export function viewScore(v: Pick<CaseView, 'checkpoints'>): { passed: number; t
 }
 
 const KIND: Record<CaseKind, string> = { opener: 'Level opener', inbox: 'Inbox case', daily: 'Daily case' };
+/** The inbox's own kind words: it is the inbox, so an inbox case is just a case (finding 23). Everywhere else uses kindLabel. */
+const INBOX_KIND: Record<CaseKind, string> = { ...KIND, inbox: 'Case' };
 export const kindLabel = (k: CaseKind): string => KIND[k];
 export interface InboxRow {
   case_id: string; href: string; title: string; meta: string; decision: string; deadline: string;
@@ -116,7 +129,7 @@ export interface InboxRow {
 }
 /** S4B-12: a case as a manager's message: who asks, the kind and level, the decision and deadline, the status and the score. */
 export function inboxRow(e: CaseListEntry): InboxRow {
-  const meta = [`From ${e.persona.name}, ${e.persona.role}`, KIND[e.kind], e.level === null ? null : `Level ${e.level}`].filter((x): x is string => x !== null).join(' · ');
+  const meta = [`From ${e.persona.name}, ${e.persona.role}`, INBOX_KIND[e.kind], e.level === null ? null : `Level ${e.level}`].filter((x): x is string => x !== null).join(' · ');
   return { case_id: e.case_id, href: caseHref(e.case_id), title: e.title, meta, decision: e.brief.decision, deadline: `Deadline: ${e.brief.deadline}`,
     chip: statusChip(e.status), score: scoreText(e.checkpoints_passed, e.checkpoints_total) };
 }
@@ -130,8 +143,8 @@ export function inboxRow(e: CaseListEntry): InboxRow {
 export function heldBackNote(v: Pick<CaseView, 'kind' | 'sketch' | 'checkpoints'>): string {
   const needs: string[] = [];
   if (v.kind === 'opener' && v.sketch === null) needs.push('your sketch');
-  if (v.checkpoints.some((c) => c.kind === 'CP1' && c.last === null)) needs.push('CP1');
-  return needs.length === 0 ? 'Shown once you submit CP3.' : `Shown after ${needs.join(' and ')}, or once you submit CP3.`;
+  if (v.checkpoints.some((c) => c.kind === 'CP1' && c.last === null)) needs.push('the Scope step');
+  return needs.length === 0 ? 'Shown once you submit your query.' : `Shown after ${needs.join(' and ')}, or once you submit your query.`;
 }
 
 export function sortText(sort: readonly SortKey[]): string | null {

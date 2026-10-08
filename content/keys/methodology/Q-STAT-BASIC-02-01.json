@@ -1,0 +1,13 @@
+{
+  "item_id": "Q-STAT-BASIC-02-01",
+  "item_version": 1,
+  "value": 88.57,
+  "explanation": "Winsorising sets every value above the cap to the cap and keeps all customers: 30 + 45 + 60 + 75 + 90 + 120 + 200 = 620, and 620 / 7 = €88.57. Dropping the €1,500 customer instead gives (620 - 200) / 6 = €70.00, which removes a real customer from the count.",
+  "solver": {
+    "prompt_hash": "8f55fe7af5f06434",
+    "grader_version": "choice.2",
+    "chosen": null,
+    "typed": "88.57",
+    "at": "2026-10-08T18:33:22.097Z"
+  }
+}

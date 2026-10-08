@@ -1,13 +1,16 @@
 // web/src/lib/drill-flow.ts: the drill screen's wording, countdown and states, kept pure so they are testable (design §14;
 // rulings D9, D10, S2-42 to S2-44, S2-98; Task B16). The countdown is display only: the server is the clock.
 import { ApiError, type DrillHistoryRow, type DrillScoreView, type DrillStarted } from '../api.ts';
+import { amsterdamDate } from '../../../core/time.ts';
+import { formatDate } from './labels.ts';
+import { drillKindText } from './polish-p2b.ts';
 export type { DrillScoreView };
 
 export const HELP_LINE = 'Help opens in the end-of-run review.';
 export const TIME_UP = 'Time is up.';
 /** D50 (sprint 4c): the history's last column, where a live rep's row has its "explained aloud" box. */
 export const EXPLAINED_COLUMN = 'Explained aloud';
-export const HISTORY_COLUMNS = ['Date', 'Mode', 'Score', 'Passed', 'Unseen', EXPLAINED_COLUMN] as const;
+export const HISTORY_COLUMNS = ['Date', 'Drill', 'Mode', 'Score', 'Passed', 'Unseen', EXPLAINED_COLUMN] as const;
 
 /** S4B-22: the dialect banner over an exercise served in screen mode (design §6 "Screen mode"). */
 export const SCREEN_BANNER = 'Screen mode: no autocomplete, and types and rounding are checked as an online test does';
@@ -48,9 +51,12 @@ export function clockLeft(seconds: number): string {
 export const countdownText = (seconds: number): string => `Time left ${clockLeft(seconds)}`;
 
 /** A drill's time limit is a test rule, so it may be shown (Global Constraints, "Goals, not hours"). */
-export function levelLine(s: { level: number; questions: number; minutes: number; pass_pct: number }): string {
+export function levelRule(s: { questions: number; minutes: number; pass_pct: number }): string {
   const limit = `${s.minutes} minutes`;
-  return `Level ${s.level} drill: ${s.questions} questions, ${limit}, pass at ${s.pass_pct}%.`;
+  return `${s.questions} questions, ${limit}, pass at ${s.pass_pct}%.`;
+}
+export function levelLine(s: { level: number; questions: number; minutes: number; pass_pct: number }, title: string): string {
+  return `Level ${s.level}, ${title}. ${levelRule(s)}`;
 }
 
 const scoreText = (s: DrillScoreView): string => `${s.passed} of ${s.questions} (${s.pct}%)`;
@@ -76,8 +82,8 @@ export interface HistoryTick { block_id: string; checked: boolean; name: string 
 export const historyTickName = (date: string): string => `${EXPLAINED_COLUMN}: live rep on ${date}`;
 
 /** One row per run: the five text cells, then the box, which only a live rep's row has (D50). */
-export function historyRows(runs: HistoryRun[]): { key: string; cells: string[]; tick: HistoryTick | null }[] {
-  return runs.map((r) => ({ key: r.block_id, cells: [r.date, modeText(r), scoreText(r), passedText(r), `${r.unseen} of ${r.questions}`],
+export function historyRows(runs: HistoryRun[], today: string = amsterdamDate(new Date())): { key: string; cells: string[]; tick: HistoryTick | null }[] {
+  return runs.map((r) => ({ key: r.block_id, cells: [formatDate(r.date, today), drillKindText(r), modeText(r), scoreText(r), passedText(r), `${r.unseen} of ${r.questions}`],
     tick: r.kind === 'live_rep' ? { block_id: r.block_id, checked: r.explained_aloud === true, name: historyTickName(r.date) } : null }));
 }
 

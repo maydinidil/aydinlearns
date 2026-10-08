@@ -9,7 +9,7 @@ import { PageHead } from '../components/PageHead.tsx';
 import { SqlCode } from '../components/SqlCode.tsx';
 import { crumbParts } from '../lib/crumb.ts';
 import {
-  ALL_ERRORS, EMPTY_MISTAKES, MISTAKES_TITLE, NO_DIFF, NO_ORIGINAL, NO_QUERY, cardRow, filterCards, filterOptions, mistakesStatus, triedView, tryLabel, type TriedView,
+  ALL_ERRORS, EMPTY_MISTAKES, MISTAKES_TITLE, NO_DIFF, NO_ORIGINAL, NO_QUERY, TODAY_LINK, cardRow, filterCards, filterOptions, mistakesStatus, triedView, tryLabel, type TriedView,
 } from '../lib/mistakes-flow.ts';
 
 export function MistakesScreen() {
@@ -73,7 +73,7 @@ export function MistakesScreen() {
     <section className="mistakes">
       {head}
       {note && <p role="alert" className="notice">{note}</p>}
-      {data.cards.length === 0 ? <p>{EMPTY_MISTAKES}</p> : (
+      {data.cards.length === 0 ? <><p>{EMPTY_MISTAKES}</p><p><a href={TODAY_LINK.href}>{TODAY_LINK.text}</a></p></> : (
         <>
           <p className="muted" aria-live="polite">{mistakesStatus(shown.length, data.cards.length, due)}</p>
           <p>

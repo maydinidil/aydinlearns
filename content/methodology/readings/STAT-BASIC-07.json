@@ -1,0 +1,13 @@
+{
+  "concept_id": "STAT-BASIC-07",
+  "section": "methodology",
+  "version": 1,
+  "title": "Correlation vs causation and confounding",
+  "reading_md": "**What it is.** Correlation means two things move together. Causation means changing one changes the other. A confounder drives both: shopping frequency drives both app use and spend, so app users spend more even if the app changes nothing. Ways to separate them:\n\n- randomisation, as in an A/B test;\n- comparing within segments of similar customers;\n- control groups.\n\n**How to work it out.**\n\nWithin-segment difference = metric for group 1 in segment s - metric for group 2 in segment s\n\nWorked example. App users spend €60, other customers €40. Among heavy shoppers, app users spend €80 and others €78. Among light shoppers, €35 and €34.\n\n- Naive gap = 60 - 40 = €20.\n- Heavy-shopper gap = €2. Light-shopper gap = €1 (whole euros).\n- Most of the €20 comes from who uses the app: heavy shoppers use it more. Within segments the gap is only €1 to €2.\n\n**In the interview.** \"Name a confounder for 'stores with more staff sell more'.\" A model answer: \"Store size or footfall. Bigger, busier stores get more staff and also sell more, so staff and sales move together even if extra staff add no sales.\"\n\n**Common mistakes.**\n\n- Treating a strong correlation as proof of cause.\n- Controlling for a variable that the treatment itself changes, which hides part of the effect.\n- Assuming no correlation means no causation: two effects can cancel out.",
+  "source_ids": [
+    "11:STAT-07",
+    "ERRATA:E-175"
+  ],
+  "verified": true,
+  "as_of": "2026-10-08"
+}

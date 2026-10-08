@@ -303,6 +303,20 @@ export function afterItemClosed(r: Running, closed: { passed: boolean; failedGra
   return plan && stepsFor(plan, mode).some((s) => s.kind === kind) ? { kind: 'serve_next', purpose: r.purpose } : LIST;
 }
 
+// ---- "Review 1 of 2" (sprint 5a, finding 32) ---------------------------------------------------------------------------
+
+/** Where the learner is in a run of reviews: this one, of how many were due when the run began. */
+export interface ReviewPos { n: number; total: number }
+/** The run of reviews the plan lists, from its first; null when none are due (the plan's card IDs are the count). */
+export function startReviews(plan: TodayPlanView, mode: Mode): ReviewPos | null {
+  const due = stepsFor(plan, mode).flatMap((s) => (s.kind === 'reviews' ? s.card_ids.length : 0)).reduce((a, b) => a + b, 0);
+  return due > 0 ? { n: 1, total: due } : null;
+}
+/** The next review of the same run; a review that was not counted at the start never makes the total smaller than its place. */
+export const nextReview = (p: ReviewPos | null): ReviewPos | null => (p ? { n: p.n + 1, total: Math.max(p.total, p.n + 1) } : null);
+/** The heading of a review on screen: its place in the run, else the heading it already had. */
+export const reviewHeading = (p: ReviewPos | null, fallback: string): string => (p ? `Review ${p.n} of ${p.total}` : fallback);
+
 /** A session end closes what was served (Task B13), so Today drops it and shows a fresh plan. */
 export const afterSessionEnd = (): Running => LIST;
 

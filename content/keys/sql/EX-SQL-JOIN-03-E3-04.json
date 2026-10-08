@@ -1,0 +1,44 @@
+{
+  "item_id": "EX-SQL-JOIN-03-E3-04",
+  "item_version": 1,
+  "reference_sql": "WITH multi AS (\n  SELECT customer_id, MIN(assigned_at) AS first_assigned_at, MAX(assigned_at) AS last_assigned_at\n  FROM ab_assignments\n  WHERE test_id = 'AB-2025-01'\n  GROUP BY customer_id\n  HAVING COUNT(DISTINCT variant) > 1\n),\nconv AS (\n  SELECT customer_id, COUNT(*) AS n_conversions\n  FROM ab_conversions\n  WHERE test_id = 'AB-2025-01'\n  GROUP BY customer_id\n)\nSELECT m.customer_id, m.first_assigned_at, m.last_assigned_at, COALESCE(v.n_conversions, 0) AS n_conversions\nFROM multi m\nLEFT JOIN conv v ON v.customer_id = m.customer_id\nORDER BY m.customer_id",
+  "alternatives": [
+    "SELECT a.customer_id, MIN(a.assigned_at) AS first_assigned_at, MAX(a.assigned_at) AS last_assigned_at, COUNT(DISTINCT c.converted_at) AS n_conversions FROM ab_assignments a LEFT JOIN ab_conversions c ON c.test_id = a.test_id AND c.customer_id = a.customer_id WHERE a.test_id = 'AB-2025-01' GROUP BY a.customer_id HAVING COUNT(DISTINCT a.variant) > 1 ORDER BY a.customer_id",
+    "WITH multi AS (SELECT customer_id, MIN(assigned_at) AS first_assigned_at, MAX(assigned_at) AS last_assigned_at FROM ab_assignments WHERE test_id = 'AB-2025-01' GROUP BY customer_id HAVING COUNT(*) > 1) SELECT m.customer_id, m.first_assigned_at, m.last_assigned_at, COUNT(c.converted_at) AS n_conversions FROM multi m LEFT JOIN ab_conversions c ON c.customer_id = m.customer_id AND c.test_id = 'AB-2025-01' GROUP BY m.customer_id, m.first_assigned_at, m.last_assigned_at ORDER BY m.customer_id"
+  ],
+  "other_way": {
+    "sql": "SELECT a.customer_id, MIN(a.assigned_at) AS first_assigned_at, MAX(a.assigned_at) AS last_assigned_at, COUNT(DISTINCT c.converted_at) AS n_conversions FROM ab_assignments a LEFT JOIN ab_conversions c ON c.test_id = a.test_id AND c.customer_id = a.customer_id WHERE a.test_id = 'AB-2025-01' GROUP BY a.customer_id HAVING COUNT(DISTINCT a.variant) > 1 ORDER BY a.customer_id",
+    "tradeoff": "One join with COUNT(DISTINCT converted_at) also works, but only because a customer never has two conversions at the same moment."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-01",
+      "sql": "SELECT a.customer_id, MIN(a.assigned_at) AS first_assigned_at, MAX(a.assigned_at) AS last_assigned_at, COUNT(c.customer_id) AS n_conversions FROM ab_assignments a LEFT JOIN ab_conversions c ON c.test_id = a.test_id AND c.customer_id = a.customer_id WHERE a.test_id = 'AB-2025-01' GROUP BY a.customer_id HAVING COUNT(DISTINCT a.variant) > 1 ORDER BY a.customer_id"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-11",
+      "sql": "WITH multi AS (SELECT customer_id, MIN(assigned_at) AS first_assigned_at, MAX(assigned_at) AS last_assigned_at FROM ab_assignments WHERE test_id = 'AB-2025-01' GROUP BY customer_id HAVING COUNT(DISTINCT variant) > 1), conv AS (SELECT customer_id, COUNT(*) AS n_conversions FROM ab_conversions WHERE test_id = 'AB-2025-01' GROUP BY customer_id) SELECT m.customer_id, m.first_assigned_at, m.last_assigned_at, v.n_conversions FROM multi m JOIN conv v ON v.customer_id = m.customer_id ORDER BY m.customer_id"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-04",
+      "sql": "SELECT a.customer_id, MIN(a.assigned_at) AS first_assigned_at, MAX(a.assigned_at) AS last_assigned_at, COUNT(DISTINCT c.converted_at) AS n_conversions FROM ab_assignments a LEFT JOIN ab_conversions c ON c.test_id = a.test_id AND c.customer_id = a.customer_id WHERE a.test_id = 'AB-2025-01' GROUP BY a.customer_id HAVING COUNT(*) > 1 ORDER BY a.customer_id"
+    },
+    {
+      "id": "PW4",
+      "error_id": "ERR-LOG-17",
+      "sql": "WITH multi AS (SELECT customer_id, MIN(assigned_at) AS first_assigned_at, MAX(assigned_at) AS last_assigned_at FROM ab_assignments WHERE test_id = 'AB-2025-01' GROUP BY customer_id HAVING COUNT(DISTINCT variant) > 1), conv AS (SELECT customer_id, COUNT(*) AS n_conversions FROM ab_conversions WHERE test_id = 'AB-2025-01' GROUP BY customer_id) SELECT m.customer_id, m.first_assigned_at, m.last_assigned_at, v.n_conversions FROM multi m LEFT JOIN conv v ON v.customer_id = m.customer_id ORDER BY m.customer_id"
+    }
+  ],
+  "hint3_partial": "WITH multi AS (\n  SELECT customer_id, MIN(assigned_at) AS first_assigned_at, MAX(assigned_at) AS last_assigned_at\n  FROM ab_assignments\n  WHERE test_id = 'AB-2025-01'\n  GROUP BY customer_id\n  HAVING ___\n),\nconv AS (\n  ___\n)\nSELECT m.customer_id, m.first_assigned_at, m.last_assigned_at, ___ AS n_conversions\nFROM multi m\nLEFT JOIN conv v ON ___\nORDER BY m.customer_id",
+  "solver": {
+    "prompt_hash": "3d555cf629d7a30f",
+    "schema_version": "1284b2a2a3a2",
+    "dataset_version": "6de53e5dbeafe2d5",
+    "grader_version": "4c.1",
+    "query": "WITH d AS (\n  SELECT\n    customer_id,\n    MIN(assigned_at) AS first_assigned_at,\n    MAX(assigned_at) AS last_assigned_at\n  FROM ab_assignments\n  WHERE test_id = 'AB-2025-01'\n  GROUP BY customer_id\n  HAVING COUNT(DISTINCT variant) > 1\n)\nSELECT\n  d.customer_id,\n  d.first_assigned_at,\n  d.last_assigned_at,\n  COUNT(c.customer_id) AS n_conversions\nFROM d\nLEFT JOIN ab_conversions c\n  ON c.test_id = 'AB-2025-01'\n AND c.customer_id = d.customer_id\nGROUP BY d.customer_id, d.first_assigned_at, d.last_assigned_at\nORDER BY d.customer_id\n",
+    "at": "2026-10-08T19:03:04.587Z"
+  }
+}

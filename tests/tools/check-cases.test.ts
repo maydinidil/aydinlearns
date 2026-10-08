@@ -31,8 +31,8 @@ test('C41: the opener, the inbox case and the daily case pass, one result each, 
 });
 test('C41: a case record that does not validate fails on the validator\'s messages, and the check finishes', async () => {
   assert.match(await failing(INBOX_ID, { records: (r) => { r.inbox.persona = 3; } }), /persona needs a name and a role/);
-  assert.match(await failing(DAILY_ID, { records: (r) => { r.daily.checkpoints.push({ id: 'CP6', kind: 'CP6', prompt: 'Write it.', credits_concepts: [] }); } }),
-    /a daily case has exactly two checkpoints, CP3 and CP4/);
+  assert.match(await failing(DAILY_ID, { records: (r) => { r.daily.checkpoints = r.daily.checkpoints.filter((c: { id: string }) => c.id !== 'CP4'); } }),
+    /a daily case must have CP3 and CP4/);
   for (const broken of [(r: Record<string, any>) => { r.inbox.checkpoints.push(null); }, (r: Record<string, any>) => { delete r.inbox.checkpoints[2].credits_concepts; }]) {
     assert.match(await failing(INBOX_ID, { records: broken }), /checkpoints\[/);
   }

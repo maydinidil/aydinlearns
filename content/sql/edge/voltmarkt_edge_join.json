@@ -13,6 +13,10 @@
     "a category with no products, and a product that never sold",
     "a pair of sister products",
     "three competitor prices for one product in one week, two of them from the same rival, and products with no competitor price in a week they sold",
-    "a promotion week (ISO week 11, 10 to 16 March 2025) with sales on promotion, one of them on the Sunday, and a product the rivals checked that did not sell"
+    "a promotion week (ISO week 11, 10 to 16 March 2025) with sales on promotion, one of them on the Sunday, and a product the rivals checked that did not sell",
+    "an A/B test (AB-2025-01) whose treatment variant has no conversions",
+    "a customer assigned to both variants of the A/B test",
+    "a conversion at exactly the customer's assigned_at, and a customer whose only conversion is before the customer's assigned_at",
+    "a customer who converted twice, and a conversion with a missing revenue (revenue_eur missing)"
   ]
 }

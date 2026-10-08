@@ -1,0 +1,13 @@
+{
+  "concept_id": "MET-MKT-13",
+  "section": "methodology",
+  "version": 1,
+  "title": "Budget vs actual variance",
+  "reading_md": "**What it measures.** How far a channel's actual spend in a month is over or under its planned budget.\n\n**Formula (Voltmarkt's sign convention).**\n\n- Variance = actual spend - budget\n- Variance % = 100 × variance / budget\n- Positive means over budget, negative means under. Some teams write budget - actual instead, so a report says which convention it uses.\n- Grain: channel × month.\n\n**Match the grains first.** Budgets are set per channel and month, while spend arrives per day. Sum the daily spend to channel and month, then join it to the budget. Joining daily rows to a monthly budget copies the budget onto every day, and a sum then multiplies it by about 30.\n\n**Keep every channel.** Start from the budget, and count a budgeted channel with no spend as actual 0, not missing. Spend with no budget row, such as an affiliate test, must still appear, with its actual and a missing variance, since there is no budget to compare with. A report built only from the budget table drops it.\n\n**Worked example.** September:\n\n| Channel | Budget | Actual | Variance | Variance % |\n|---|---|---|---|---|\n| Paid search | €40,000 | €43,000 | +€3,000 | +7.5% |\n| Paid social | €30,000 | €27,600 | -€2,400 | -8.0% |\n| Display | €10,000 | €0 | -€10,000 | -100.0% |\n| Affiliates | none | €2,000 | missing | missing |\n\nDisplay was paused all month, so its actual is 0. For a quarter, add up the budgets and the actuals first, then divide. Averaging the monthly percentages gives a small month the same weight as a big one.\n\n**Common mistakes.**\n\n- Joining daily spend to a monthly budget.\n- Confusing the sign convention.\n- Dropping spend that has no budget.\n- Averaging monthly variance percentages for a quarter.\n\n**What it does not answer.** Whether the spend worked: that is CPA or ROAS. Under budget is not automatically good, and over budget is not automatically bad.\n\n**How managers ask for it.** \"Are we over budget on search?\" \"Show Q3 plan versus actual.\"",
+  "source_ids": [
+    "04:MET-MKT-13",
+    "ERRATA:E-100"
+  ],
+  "verified": true,
+  "as_of": "2026-10-08"
+}

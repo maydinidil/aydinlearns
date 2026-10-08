@@ -14,6 +14,9 @@ do, what it depends on, and when it is done. Written 2026-10-03, after sprint 1 
    The plan is reviewed by the owner before anything is built.
 5. Execute it subagent-driven, under the rules below.
 
+**Release numbers (D63, 2026-10-08):** sprint 5a is released as 1.0 (version 1.0.0). Later
+sprints ship as 1.x releases (5b is 1.1); the design's post-v1 updates become 2.0 or later.
+
 **Slip rule (design §2.3):** when a slice misses its date, the content listed after it is
 deferred (levels 6-7, later companies and datasets). The next slice is never compressed, and the
 learner's effort is never the lever. Every slice goes live before the goal it serves.
@@ -45,13 +48,14 @@ learner's effort is never the lever. Every slice goes live before the goal it se
 | 3b (done) | visuals | 2026-10-06 | All goals: a calm, finished look for long study sessions | Done: every screen uses the tokens and the shell ([visuals spec](../superpowers/specs/2026-10-06-aydinlearns-visuals-design.md)); merged in PR #36. See [the sprint 3b record](2026-10-06-sprint-3b-record.md) |
 | 4a (done) | 3 (part 1) | 2026-10-19 | G-SQL-LEVEL-3 (2026-11-06): joins, CTEs, dates | Done: SQL level 3 can be studied end to end, with its drill; mistake cards are scheduled and reviewed; merged in PR #38. See [the sprint 4a record](2026-10-07-sprint-4a-record.md) |
 | 4b (done) | 3 (part 2) | 2026-10-26 | G-SQL-LEVEL-3 (2026-11-06): first case exported | Done: cases and the inbox, the portfolio export, the Progress screen, the dataset explorer, screen mode and live reps are built; a solved case can be exported; merged in PR #40. See [the sprint 4b record](2026-10-07-sprint-4b-record.md) |
-| 4c (built) | 3 (cleanup) | 2026-10-08 | G-SQL-LEVEL-3 (2026-11-06): level 3 and its cases studied on clean content | Built on `feat/aydinlearns-sprint-4c`, pull request to be merged: the SQL learner-facing backlog (four mistake families with better feedback, clearer wording, case edge data, live reps, export hardening, the division control, focus). See [the sprint 4c record](2026-10-08-sprint-4c-record.md) |
-| 5 | 4 | 2026-11-02 | G-GA4-CERT (2026-11-13); Methodology for the knowledge interview | The GA4 readiness check can be taken; all Methodology areas can be practised |
+| 4c (done) | 3 (cleanup) | 2026-10-08 | G-SQL-LEVEL-3 (2026-11-06): level 3 and its cases studied on clean content | Done, merged in PR #41: the SQL learner-facing backlog (four mistake families with better feedback, clearer wording, case edge data, live reps, export hardening, the division control, focus). See [the sprint 4c record](2026-10-08-sprint-4c-record.md) |
+| 5a (built) | 4 (Methodology) | 2026-11-02 | G-GA4-CERT (2026-11-13); Methodology for the knowledge interview | Built on `feat/aydinlearns-sprint-5a`, pull request to be merged: all Methodology areas can be practised (78 concepts, 478 questions), an A/B test with a daily case, a polish pass, version 1.0.0; released as 1.0 after the merge. See [the sprint 5a record](2026-10-08-sprint-5a-record.md) |
+| 5b | 4 (GA4) | 2026-11-02 | G-GA4-CERT (2026-11-13) | The GA4 readiness check can be taken; released as 1.1 |
 | 6 | 5 | 2026-11-09 | G-SQL-LEVEL-4 (2026-11-27): level 4 and a first real-data analysis | Level 4 is completable; a first real-data analysis can be done |
 | 7 | 6 | 2026-11-20 | G-STAGE-2 to 5 and G-RECRUITMENT-READY (2026-12-11): the recruiter mocks; applications go out | Every recruiter mock runs end to end, and the readiness board shows all six stages |
 | 8 | 7 | 2026-12-07 | G-SQL-LEVEL-6 (2026-12-23): business patterns and SaaS cases | Level 6 is completable; SaaS cases pass on LedgerLoop |
 | 9+ | rest of v1 | January onward | G-SQL-LEVEL-7 (2027-01-29) | Not set in the design yet; set it when planning |
-| Future | post-v1 | no date | | |
+| Future | post-v1 (2.0 or later) | no date | | |
 
 ---
 
@@ -242,19 +246,31 @@ part moved to sprint 6 with RETAIL-03, PRICE-03 and PRICE-04 (E-169). Sprint 4 i
 Open deferred work, including the findings in [the sprint 4b record](2026-10-07-sprint-4b-record.md),
 lives in [`backlog.md`](backlog.md).
 
-**Status, 4c: built (2026-10-08).** The SQL learner-facing backlog is built on
-`feat/aydinlearns-sprint-4c`, with its pull request still to be merged: `ERR-LOG-28` and `ERR-LOG-29`
+**Status, 4c: done (2026-10-08).** The SQL learner-facing backlog merged in PR #41: `ERR-LOG-28` and `ERR-LOG-29`
 (ERRATA E-171 to E-173), clearer wording on a dozen items and five cases, edge data for
 CASE-PRICE-02 and CASE-VOLT-L3, live rep fallback and a history tick, export hardening, the
 division control re-run (`GRADER_VERSION` `4c.1`), the memory-limit message, a skipped unservable
 mistake card and keyboard focus. No new feature and no log change. Its findings are in
 [the sprint 4c record](2026-10-08-sprint-4c-record.md); open work lives in [`backlog.md`](backlog.md).
+Codex left one finding on PR #41, F26, fixed first in sprint 5a.
 
 ## Sprint 5: slice 4, GA4 complete, Methodology complete
 
-Live by 2026-11-02. **Needs first:** the owner runs the research prompt for
-`knowledge/11_methodology.md`, and it is reviewed like files 01-10 before any content comes from
-it. The Skillshop check and the exam date in Settings.
+Live by 2026-11-02. Split on 2026-10-08 (D53) into **5a**, Methodology complete (jobs 5 and the
+metrics), then polish and release 1.0, and **5b**, GA4 complete (jobs 1 to 4), release 1.1. The
+research file for 5a, `knowledge/11_methodology.md`, arrived and was reviewed on 2026-10-08
+(grade A-, ERRATA E-174 to E-184; [the review](2026-10-08-kb11-review.md)). 5a's plan is
+[`2026-10-08-aydinlearns-sprint-5a.md`](../superpowers/plans/2026-10-08-aydinlearns-sprint-5a.md).
+**5b needs first:** the Skillshop check and the exam date in Settings, and access to the GA4 demo
+account.
+
+**Status, 5a: built (2026-10-08).** Methodology complete, polish and version 1.0.0 are built on
+`feat/aydinlearns-sprint-5a`, with its pull request still to be merged: 48 new concepts (the 21
+remaining metrics and file 11's 27), each with a reading, 288 new questions with 48 held out, a
+Voltmarkt A/B test with three SQL items and CASE-DAILY-L3-03, G-GA4-CERT's interview-concepts line,
+Codex F26, the leftover SQL content fixes and 46 small screen fixes. No log change. Its rulings and
+findings are in [the sprint 5a record](2026-10-08-sprint-5a-record.md). Release 1.0 follows the
+merge: the public copy, a fresh-install test, the `v1.0.0` tag. Jobs 1 to 4 are sprint 5b.
 
 **Contents and jobs:**
 1. All remaining GA4 lessons.
@@ -266,7 +282,9 @@ it. The Skillshop check and the exam date in Settings.
    attribution, UTMs, audiences, consent), each checked by its answer policy.
 5. Methodology: A/B testing, statistics and pricing economics from file 11, the remaining metrics,
    about 25 held out; the EXP-*, STAT-* and ECON-* IDs minted from file 11.
-6. The promo case's CP5, "can we conclude it worked?".
+6. Moved to sprint 6 (D57, E-184): the promo case's CP5, "can we conclude it worked?", belongs to
+   CASE-PRICE-03 and -04, which moved there (E-169). 5a teaches the promotion checklist in a
+   reading and adds a checkout A/B test case with its own CP5.
 
 ERRATA with Slice = 4: OD-READY-01, E-023, E-128, E-129, E-130, E-136, E-140. **Done when:** the
 GA4 readiness check can be taken, and all Methodology areas can be practised.
@@ -287,6 +305,8 @@ late November.
 5. The dataset registry: 8 Week SQL Challenge, Online Retail II, Breakfast at the Frat, each with a
    prep script, its licence, and link-outs to public solutions. Data files are never committed.
 6. The cumulative levels 1-4 screen-mode drill; flagship portfolio support.
+7. CASE-PRICE-03 and -04 with RETAIL-03 (E-169), and the promo case's CP5, "can we conclude it
+   worked?" (from sprint 5, E-184).
 
 ERRATA with Slice = 5: 19 entries (E-005, E-025, E-026, E-028, E-062 to E-064, E-068, E-069,
 E-073 to E-076, E-078, E-081, E-086, E-098, E-102, E-107). Deferred findings that land here:
@@ -373,7 +393,7 @@ more than one user, audio, Dutch.
 | Now | Set a backup folder in Settings; delete `%USERPROFILE%\.duckdb\extensions\v1.5.6\`; start SQL level 1 |
 | Before sprint 2 | The decisions under "Sprint 2, Before starting" |
 | Before 2a's GA4 work | Review the slice 0 paper: E-115, E-022, E-010, E-009, Appendix B |
-| Before sprint 5 | Run the research prompt for `knowledge/11_methodology.md`; check Skillshop (question count, time limit, languages, 2026 features) and set the exam date |
+| Before sprint 5b | Check Skillshop (question count, time limit, languages, 2026 features), set the exam date, and confirm the GA4 demo account opens |
 | From sprint 6 | Trigger each dataset download; write the flagship pieces in late November |
 | Before sprint 9 | Check the Kaggle rules for KKBox |
 | From week 3 of use | Approve the weekly tune-up's fixes |

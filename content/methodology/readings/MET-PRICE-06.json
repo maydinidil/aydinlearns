@@ -1,0 +1,16 @@
+{
+  "concept_id": "MET-PRICE-06",
+  "section": "methodology",
+  "version": 1,
+  "title": "Halo effect",
+  "reading_md": "**What it measures.** The extra sales that products in a linked category make while a product is on promotion. A linked category holds products bought together with the promoted one: soundbars, wall mounts and HDMI cables go with TVs. It is the opposite of cannibalisation, which counts the sales that similar products in the same category lose.\n\n**Formula (Voltmarkt's convention).**\n\nhalo units = SUM over the linked category's products of (average weekly units during the promotion - baseline) × promotion weeks\n\n- Measured the same way as promo uplift and cannibalisation: the baseline is a product's average weekly units in the 4 weeks before the promotion starts, from a zero-filled product by week series, so a week with no sales counts as 0.\n- Only products that are not on promotion themselves count.\n- Every product is measured over the same stores and the same weeks.\n- Grain: one promotion.\n\n**Worked example.** A 2-week promotion on the 55-inch TV, with soundbars as the linked category:\n\n| Soundbar | Baseline | Average during the deal | Extra units |\n|---|---|---|---|\n| Compact | 8 | 13 | (13 - 8) × 2 = 10 |\n| Cinema | 5 | 9 | (9 - 5) × 2 = 8 |\n\nHalo = 10 + 8 = 18 soundbars. The TV itself sold 72 extra units, so about 1 extra soundbar for every 4 extra TVs.\n\n**Is it really the deal?** A rise in the same weeks does not prove that the promotion caused it.\n\n- Season and traffic. A deal that brings more shoppers lifts unrelated products too, and so does Black Week. Check a category with no link to TVs, such as laptops: if it rose as much, the soundbar rise may not be a halo at all.\n- Baskets. Check whether the extra soundbars sit in the same orders as the promoted TVs.\n\n**Common mistakes.**\n\n- Treating the rise as caused by the promotion: correlation is not causation.\n- Forgetting that extra traffic also lifts unrelated items.\n- Counting products that are on promotion themselves.\n- Averaging only the weeks that had sales.\n\n**What it does not answer.** Whether the extra soundbars paid for the TV discount. Halo counts units; margin needs prices and costs.\n\n**How managers ask for it.** \"Did the TV deal sell more soundbars?\" \"Is there a halo we can use to justify the deal?\"",
+  "source_ids": [
+    "04:MET-PRICE-06",
+    "04:§2.1",
+    "ERRATA:E-011",
+    "ERRATA:E-100",
+    "ERRATA:E-101"
+  ],
+  "verified": true,
+  "as_of": "2026-10-08"
+}

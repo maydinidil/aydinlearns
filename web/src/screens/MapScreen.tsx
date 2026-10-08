@@ -12,6 +12,7 @@ import { MISTAKES_HREF, MISTAKES_LINK } from '../lib/mistakes-flow.ts';
 import { INBOX_HREF, INBOX_LINK } from '../lib/case-flow.ts';
 import { PORTFOLIO_HREF, PORTFOLIO_TITLE } from '../lib/portfolio-api.ts';
 import { EXPLORE_HREF, EXPLORE_LINK } from '../lib/progress-api.ts';
+import { COMING_LATER_CHIP, COMING_LATER_NOTE } from '../lib/polish-p2a.ts';
 
 /** Level 3's opener is built in sprint 4b: until it ships the map says so, with no link. */
 export const LEVEL3_OPENER_NOTE = 'Level 3 opener: coming in sprint 4b';
@@ -47,16 +48,19 @@ export function MapScreen() {
           {r.ready && <>. <a href={`#/item/${r.itemId}?phase=retest`}>Start the re-test</a></>}</p>
       ))}
       {data.levels.map((level) => (
-        <div key={level.id} className="level card">
+        <div key={level.id} className="level card" data-section="sql">
           <h2>Level {level.number}: {level.title}</h2>
           {openersOfLevel(openers, level.number).map((o) => <p key={o.case_id}><a href={o.href}>{o.label}</a></p>)}
           {showLevel3Note(openers, level.number, openersFailed) && <p className="muted">{LEVEL3_OPENER_NOTE}</p>}
           <ol className="concept-list">
             {data.concepts.filter((c) => c.level === level.number).sort((a, b) => a.order - b.order).map((c) => (
               <li key={c.id} className="row">
+                <span className="marker" aria-hidden="true" />
                 {c.hasContent ? <a href={`#/lesson/${c.id}`}>{c.title}</a> : <span>{c.title}</span>}
-                {' '}<span className={`chip ${c.state === 'mastered' || c.state === 'retained' ? 'mastered' : c.state === 'practised' ? 'practising' : ''}`.trim()}>{STATE_LABEL[c.state]}</span>
-                {c.comingInSlice && <span className="muted"> (content coming in slice {c.comingInSlice})</span>}
+                {' '}{c.hasContent
+                  ? <span className={`chip ${c.state === 'mastered' || c.state === 'retained' ? 'mastered' : c.state === 'practised' ? 'practising' : c.state === 'learning' ? 'learning' : ''}`.trim()}>{STATE_LABEL[c.state]}</span>
+                  : <span className="chip">{COMING_LATER_CHIP}</span>}
+                {c.comingInSlice && <span className="muted"> {COMING_LATER_NOTE}</span>}
               </li>
             ))}
           </ol>

@@ -3,7 +3,7 @@
 // pure function over replay and the logs, which server/routes/progress.ts puts together for GET /api/progress. No part holds an amount
 // of time: windows are Amsterdam dates and ISO weeks, and every share is a count of instances or attempts ("Goals, not hours").
 import type { Phase, Section } from '../core/envelope.ts';
-import type { CriterionResult, GoalView } from '../core/goal-eval.ts';
+import { EVERY_LEVEL, type CriterionResult, type GoalView } from '../core/goal-eval.ts';
 import type { Goal, GoalCriterion } from '../core/goals.ts';
 import { SQL_RATING_RULES, summarise, type AttemptFact, type HelpFact, type InstanceSummary, type OverrideStatus, type RatingRules } from '../core/rating.ts';
 import type { ReplayResult } from '../core/replay.ts';
@@ -205,7 +205,10 @@ const RANK: Record<ConceptStateName, number> = { new: 0, learning: 1, practised:
 /** The concepts an unmet, available concept-state criterion still needs, in the view's order, with their titles and states. */
 function gapOf(def: GoalCriterion, result: CriterionResult, view: GoalView, titleOf: (id: string) => string): GapConcept[] {
   if (def.kind !== 'concept_state' || result.met || !result.available) return [];
-  const ids = def.concept_id !== undefined ? [def.concept_id] : def.level === undefined ? [] : view.conceptsOf(def.section, def.level);
+  const have = def.concept_ids === undefined ? null : new Set(view.conceptsOf(def.section, EVERY_LEVEL));
+  // D58: a named concept the content does not have cannot be practised yet, so it is not in the gap.
+  const ids = def.concept_ids !== undefined ? def.concept_ids.filter((id) => have!.has(id))
+    : def.concept_id !== undefined ? [def.concept_id] : def.level === undefined ? [] : view.conceptsOf(def.section, def.level);
   return ids.filter((id) => RANK[view.stateOf(id)] < RANK[def.state]).map((id) => ({ concept_id: id, title: titleOf(id), state: view.stateOf(id) }));
 }
 

@@ -155,13 +155,13 @@ function checkCheckpoint(c: unknown, i: number, x: Record<string, unknown>, kind
   }
 }
 
-/** S4B-04: a daily case has CP3 and CP4 only, difficulty 1, the ID CASE-DAILY-L<level>-NN, and one of the five managers. */
+/** S4B-04, amended by S5A-14 (D56): a daily case must have CP3 and CP4 and may add CP1, CP2, CP5 and CP6; difficulty 1, the ID CASE-DAILY-L<level>-NN, and one of the five managers. */
 function checkDaily(x: Record<string, unknown>, kinds: Set<string>, e: string[]): void {
   if (x.kind !== 'daily') {
     if (typeof x.case_id === 'string' && x.case_id.startsWith('CASE-DAILY-')) e.push('only a daily case may use a CASE-DAILY- ID');
     return;
   }
-  if (kinds.size !== 2 || !kinds.has('CP3') || !kinds.has('CP4')) e.push('a daily case has exactly two checkpoints, CP3 and CP4');
+  if (!kinds.has('CP3') || !kinds.has('CP4')) e.push('a daily case must have CP3 and CP4');
   if (x.difficulty !== 1) e.push('a daily case has difficulty 1');
   if (Number.isInteger(x.level) && !new RegExp(`^CASE-DAILY-L${String(x.level)}-\\d{2}$`).test(String(x.case_id))) {
     e.push(`a daily case ID looks like CASE-DAILY-L${String(x.level)}-01`);

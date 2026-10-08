@@ -1,0 +1,47 @@
+{
+  "id": "Q-EXP-AB-07-04",
+  "version": 1,
+  "kind": "mcq",
+  "section": "methodology",
+  "concept_id": "EXP-AB-07",
+  "stem": "Why does stopping a fixed-horizon test at the first p < 0.05 cause trouble?",
+  "options": [
+    {
+      "oid": "o465ba79",
+      "text": "Early data has fewer users, so the p-values it gives are always too high",
+      "misconception_id": null
+    },
+    {
+      "oid": "o4898eeb",
+      "text": "Each look gives noise another chance to cross 0.05, so false positives rise",
+      "misconception_id": null
+    },
+    {
+      "oid": "o17a5e91",
+      "text": "It only matters for small tests; with large traffic, frequent looks are harmless",
+      "misconception_id": null
+    },
+    {
+      "oid": "o18c1334",
+      "text": "It lowers the false positive rate below 5%, so real effects tend to be missed",
+      "misconception_id": null
+    }
+  ],
+  "typed": null,
+  "held_out": false,
+  "enemy_group": null,
+  "status": "active",
+  "verified": true,
+  "level": null,
+  "tags": [
+    "methodology",
+    "T-MET-EXP"
+  ],
+  "source_ids": [
+    "11:EXP-07",
+    "ERRATA:E-175"
+  ],
+  "as_of": "2026-10-08",
+  "review_after": null,
+  "supersedes": []
+}

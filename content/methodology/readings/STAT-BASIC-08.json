@@ -1,0 +1,13 @@
+{
+  "concept_id": "STAT-BASIC-08",
+  "section": "methodology",
+  "version": 1,
+  "title": "Simpson's paradox",
+  "reading_md": "**What it is.** A result can hold in every subgroup and reverse when the groups are combined, because the groups contain a different mix of subgroups. The classic case is Berkeley's graduate admissions in 1973. In the six largest departments, 44.5% of male and 30.4% of female applicants were admitted overall. Department by department there was a small bias in favour of women: women applied more often to the competitive departments.\n\n**How to work it out.**\n\nOverall rate = sum of the segment conversions / sum of the segment users\n\nAdd up the counts first; do not average the segment rates.\n\nWorked example. Variant A: desktop 400 of 4,000, mobile 20 of 1,000. Variant B: desktop 110 of 1,000, mobile 100 of 4,000.\n\n- Desktop: A 10.0%, B 11.0%.\n- Mobile: A 2.0%, B 2.5%.\n- Overall: A = 420 / 5,000 = 8.4%, B = 210 / 5,000 = 4.2% (1 decimal).\n\nB wins on both devices but loses overall, because most of B's traffic is mobile, where everyone converts less.\n\n**In the interview.** \"In a randomised A/B test, the device mix differs a lot between the variants. What do you suspect?\" A model answer: \"A bug or a sample ratio mismatch. Randomisation should balance the mix, so a big difference means the assignment or the tracking is broken.\"\n\n**Common mistakes.**\n\n- Trusting only the combined number.\n- Thinking the paradox means the maths is wrong. Both numbers are right; they answer different questions.\n- Assuming that splitting by segment always gives the causal answer. Other differences between the groups can remain.",
+  "source_ids": [
+    "11:STAT-08",
+    "ERRATA:E-175"
+  ],
+  "verified": true,
+  "as_of": "2026-10-08"
+}

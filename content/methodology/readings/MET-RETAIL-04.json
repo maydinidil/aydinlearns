@@ -1,0 +1,15 @@
+{
+  "concept_id": "MET-RETAIL-04",
+  "section": "methodology",
+  "version": 1,
+  "title": "Stockout rate",
+  "reading_md": "**What it measures.** How often products were out of stock: the share of store-SKU-days that ended with no stock. A store-SKU-day is one product in one store on one day.\n\n**Formula.**\n\nstockout rate % = 100 × store-SKU-days that closed with 0 units / all store-SKU-days in the period\n\n- Stock is counted at the end of each day, after that day's sales, so a stockout day is a day that closed at 0.\n- Count only products the store carries. A product outside a store's range has 0 units there every day, but no customer expected to find it on that shelf.\n- Grain: store × SKU, or category × period. For a category, add up the days of all its products first, then divide once.\n\n**Worked example.** A Voltmarkt store carries 3 smart speakers. In September (30 days) they closed at 0 units on 6, 0 and 3 days.\n\n- Stockout rate = 100 × (6 + 0 + 3) / (3 × 30) = 100 × 9 / 90 = 10.0%.\n- A fourth speaker is sold only on the webshop, yet the stock table has a row with 0 units for it in this store every day. Counting it gives 100 × 39 / 120 = 32.5%, a rate driven by a product the store never stocks.\n\n**Missing snapshot rows.** A missing row is not proof that the product was in stock. Some stock systems write no row when stock is 0, and a broken feed can skip a day. Find out why rows are missing before you count, and never let a missing day count as in stock.\n\n**Reading the number.** The rate weights every store-SKU-day the same. A 5% rate on bestsellers costs far more sales than 5% on slow lines, so check which products drive it.\n\n**Common mistakes.**\n\n- Treating missing snapshot rows as in stock, which hides stockouts.\n- Counting products the store does not carry, which inflates the rate.\n\n**What it does not answer.**\n\n- How many sales the empty shelves cost: that is the lost sales estimate.\n- How long today's stock will last: that is stock cover.\n\n**How managers ask for it.** \"How often are we out of stock on bestsellers?\" \"Which stores have the worst availability?\"",
+  "source_ids": [
+    "04:MET-RETAIL-04",
+    "04:MET-RETAIL-05",
+    "ERRATA:E-100",
+    "ERRATA:E-103"
+  ],
+  "verified": true,
+  "as_of": "2026-10-08"
+}

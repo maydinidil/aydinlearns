@@ -1,0 +1,13 @@
+{
+  "item_id": "Q-MET-MKT-01-05",
+  "item_version": 1,
+  "correct_oid": "od0e203b",
+  "explanation": "In winter an Amsterdam day starts at 23:00 UTC, so spend from 23:00 to midnight UTC on 30 November belongs to 1 December in Amsterdam. Added up unconverted, those hours land on a different day from the rest of Voltmarkt's data, and at the edge of a month in a different month, so monthly totals shift too. Convert every source to one time zone before summing.",
+  "solver": {
+    "prompt_hash": "fc8e146aceea88d8",
+    "grader_version": "choice.2",
+    "chosen": "od0e203b",
+    "typed": null,
+    "at": "2026-10-08T18:33:21.692Z"
+  }
+}

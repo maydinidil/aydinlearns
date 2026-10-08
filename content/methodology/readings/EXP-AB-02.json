@@ -1,0 +1,14 @@
+{
+  "concept_id": "EXP-AB-02",
+  "section": "methodology",
+  "version": 1,
+  "title": "Unit of randomisation vs unit of analysis",
+  "reading_md": "**What it is.** The randomisation unit is what gets assigned to a variant: a user, a session, a store or a region. The analysis unit is the denominator of the metric: per user, per page view or per transaction. The randomisation unit should be the same as the analysis unit or larger. If you analyse finer units, such as page views from randomised users, as if they were independent, the variance is underestimated and false positives rise.\n\nA larger unit costs power, but sometimes it is needed. When users interact, or prices must be the same locally, randomise by store or region.\n\n**How to work it out.** The design effect, from Leslie Kish's Survey Sampling (1965):\n\nDE = 1 + (m - 1) × ρ, and effective n = n / DE\n\nHere m is the number of observations per randomised unit and ρ is the correlation of outcomes within a unit.\n\nWorked example. 50,000 sessions from randomised users, with 5 sessions per user on average and ρ = 0.2.\n\n- DE = 1 + (5 - 1) × 0.2 = 1.8\n- Effective n = 50,000 / 1.8 = 27,777.8\n\nSo the data hold about 27,778 effective independent observations (nearest whole number), not 50,000. To analyse correctly, aggregate to one row per user or use the delta method.\n\n**In the interview.** \"A promotion is tested in 20 stores against 20 control stores, with 400,000 receipts. What is the sample size?\" A good answer: effectively 40 stores, not 400,000 receipts.\n\n**Common mistakes.**\n\n- Counting transactions as the sample when stores were randomised.\n- Randomising by session, so one user can see both variants.\n- Thinking that more rows always means more power.",
+  "source_ids": [
+    "11:EXP-02",
+    "ERRATA:E-174",
+    "ERRATA:E-175"
+  ],
+  "verified": true,
+  "as_of": "2026-10-08"
+}

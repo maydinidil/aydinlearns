@@ -10,11 +10,17 @@ import { drillFocusKey, focusHeading, shouldFocusDrill } from '../lib/focus-flow
 import { liveRepStart, tickExplainedAloud } from '../lib/live-rep-api.ts';
 import type { Level } from '../../../schemas/concepts.ts';
 import { ExercisePanel } from '../components/ExercisePanel.tsx';
+import { Crumb } from '../components/PageHead.tsx';
+import { crumbParts } from '../lib/crumb.ts';
+import { NO_DRILL_LINE } from '../lib/polish-p2b.ts';
 import {
-  EXPLAINED_ALOUD_LABEL, EndGuard, HELP_LINE, HISTORY_COLUMNS, LIVE_REP_HINT, LIVE_REP_LABEL, SCREEN_MODE_HINT, SCREEN_MODE_LABEL, TIME_UP, countdownText, endWithRetry, hiddenFlags, historyRows, levelLine, recallIndex,
+  EXPLAINED_ALOUD_LABEL, EndGuard, HELP_LINE, HISTORY_COLUMNS, LIVE_REP_HINT, LIVE_REP_LABEL, SCREEN_MODE_HINT, SCREEN_MODE_LABEL, TIME_UP, countdownText, endWithRetry, hiddenFlags, historyRows, levelRule, recallIndex,
   isLiveRun, historyTickDisabled, historyTickSaves, liveRepLine, remainingSeconds, rememberIndex, runFromRefusal, scoreLine, startBody, tickFromHistory, unseenLine,
   type DrillState, type HistoryRun,
 } from '../lib/drill-flow.ts';
+
+/** The crumb of every drill screen: labels stay hidden in a drill (S2-39), so it names the section and the place only. */
+const DRILL_CRUMB = crumbParts({ section: 'sql', place: 'Drill', hideLabels: true });
 
 export function DrillScreen() {
   const [state, setState] = useState<DrillState>({ kind: 'choose' });
@@ -165,8 +171,8 @@ export function DrillScreen() {
 
   const toggle = (id: string) => setChosen((c) => (c.includes(id) ? c.filter((x) => x !== id) : [...c, id]));
   const questionNav = run && (
-    <nav aria-label="Questions" className="steps">{run.servings.map((s, i) => (
-      <button key={s.item_instance_id} type="button" aria-current={i === index ? 'step' : undefined} onClick={() => goTo(i)}>{i === index ? <strong>Question {i + 1}</strong> : `Question ${i + 1}`}</button>
+    <nav aria-label="Questions" className="qstrip">{run.servings.map((s, i) => (
+      <button key={s.item_instance_id} type="button" aria-pressed={i === index} aria-label={`Question ${i + 1}`} onClick={() => goTo(i)}>{i === index ? <strong>{i + 1}</strong> : i + 1}</button>
     ))}</nav>
   );
   const serving = run?.servings[index];
@@ -175,9 +181,15 @@ export function DrillScreen() {
   if (state.kind === 'running' && run && serving) {
     return (
       <section>
+        <Crumb section="sql" crumb={DRILL_CRUMB} />
         <h1 ref={heading} tabIndex={-1}>{live ? LIVE_REP_LABEL : run.kind === 'level' ? `Level ${run.level} drill` : 'Drill on chosen concepts'}{run.screen_mode ? ` (${SCREEN_MODE_LABEL.toLowerCase()})` : ''}</h1>
-        <p><strong role="timer">{countdownText(left)}</strong> <span className="muted">{live ? 'One question.' : `${run.questions} questions, pass at ${run.pass_pct}%.`}</span></p>
-        <p className="muted">{HELP_LINE}</p>
+        <div className="card run-bar">
+          <div className="run-bar-text">
+            <p className="muted">{live ? 'One question.' : `${run.questions} questions, pass at ${run.pass_pct}%.`}</p>
+            <p className="muted">{HELP_LINE}</p>
+          </div>
+          <p className="run-timer"><strong role="timer">{countdownText(left)}</strong></p>
+        </div>
         {message && <p role="alert" className="notice">{message}</p>}
         {!live && questionNav}
         {/* Every question's panel stays mounted (hidden when not current), so a half-written answer is kept when moving between questions. */}
@@ -197,6 +209,7 @@ export function DrillScreen() {
   if (state.kind === 'review' && run && result && serving) {
     return (
       <section>
+        <Crumb section="sql" crumb={DRILL_CRUMB} />
         <h1 ref={heading} tabIndex={-1}>{live ? `${LIVE_REP_LABEL}: review` : run.kind === 'level' ? `Level ${run.level} drill: review` : 'Drill review'}</h1>
         {timeUp && <p role="status"><strong>{TIME_UP}</strong></p>}
         {live ? (
@@ -226,24 +239,32 @@ export function DrillScreen() {
 
   return (
     <section>
+      <Crumb section="sql" crumb={DRILL_CRUMB} />
       <h1 ref={heading} tabIndex={-1}>Drill</h1>
       <p className="muted">A timed run. Every level's drill is open at any time. {HELP_LINE}</p>
       {message && <p role="alert" className="notice">{message}</p>}
       <p><label><input type="checkbox" checked={screenMode} onChange={(e) => setScreenMode(e.target.checked)} /> {SCREEN_MODE_LABEL}</label>{' '}
         <span className="muted">{SCREEN_MODE_HINT}</span></p>
       <h2>Level drills</h2>
-      <ul>{levels.map(({ level, spec }) => (
-        <li key={level.id}>
-          <strong>{level.title}</strong>{' '}
-          {spec ? levelLine(spec) : 'No drill is written for this level yet.'}{' '}
-          <button type="button" className="btn-main" disabled={busy} aria-label={`Start drill: level ${level.number}`} onClick={() => void start({ level: level.number })}>Start drill</button>
+      {/* P1 findings 4 and 17: a level with no drill shows its line and no button; no button on this screen is the main one. */}
+      <ul className="inbox-list card">{levels.map(({ level, spec }) => (
+        <li key={level.id} className="row">
+          <div className="grow">
+            <strong>Level {level.number}, {level.title}</strong>
+            <p className="muted">{spec ? levelRule(spec) : NO_DRILL_LINE}</p>
+          </div>
+          {spec ? (
+            <span className="chip-col">
+              <button type="button" disabled={busy} aria-label={`Start drill: level ${level.number}`} onClick={() => void start({ level: level.number })}>Start drill</button>
+            </span>
+          ) : null}
         </li>
       ))}</ul>
       <h2>{LIVE_REP_LABEL}</h2>
       <p className="muted">{LIVE_REP_HINT}</p>
-      <p><button type="button" className="btn-main" data-testid="live-rep-start" disabled={busy} aria-label="Start a live rep" onClick={() => void startLive()}>Start live rep</button></p>
+      <p><button type="button" data-testid="live-rep-start" disabled={busy} aria-label="Start a live rep" onClick={() => void startLive()}>Start live rep</button></p>
       <h2>Choose your own</h2>
-      <fieldset>
+      <fieldset className="card drill-pick">
         <legend>Concepts for a chosen drill</legend>
         {concepts.length === 0 && <p className="muted">No concepts have exercises yet.</p>}
         {concepts.map((c) => (
@@ -253,7 +274,7 @@ export function DrillScreen() {
       <p><button type="button" disabled={busy || chosen.length === 0} aria-label={`Start chosen drill on ${chosen.length} ${chosen.length === 1 ? 'concept' : 'concepts'}`} onClick={() => void start({ concept_ids: chosen })}>Start chosen drill</button></p>
       <h2>History</h2>
       {history.length === 0 ? <p className="muted">No drills yet.</p> : (
-        <table>
+        <div className="table-scroll card"><table className="history-table">
           <thead><tr>{HISTORY_COLUMNS.map((c) => <th key={c} scope="col">{c}</th>)}</tr></thead>
           <tbody>{historyRows(history).map((r) => (
             <tr key={r.key}>
@@ -264,7 +285,7 @@ export function DrillScreen() {
               )}</td>
             </tr>
           ))}</tbody>
-        </table>
+        </table></div>
       )}
     </section>
   );

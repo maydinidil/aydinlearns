@@ -2,7 +2,7 @@
 // and in Today's GA4 wrap-up. Both runs are always offered: nothing is locked. The history never shows minutes.
 import { useEffect, useState } from 'react';
 import { api, type RunBlueprint, type RunHistoryRow, type RunKind, type RunPreview } from '../api.ts';
-import { HISTORY_COLUMNS, entryLabel, entryNote, historyCells, reviewHref, type TopicNames } from '../lib/run-flow.ts';
+import { HISTORY_COLUMNS, entryDetail, entryNote, startLabel, historyCells, reviewHref, type TopicNames } from '../lib/run-flow.ts';
 
 export const RUN_HREF = '#/ga4/run';
 const KINDS: readonly RunKind[] = ['mini_drill', 'half_mock'];
@@ -29,7 +29,7 @@ export function Ga4Runs({ history = false }: { history?: boolean }) {
       <h2>Timed runs</h2>
       <ul>{KINDS.map((k) => {
         const note = entryNote(k, preview);
-        return <li key={k}><a href={RUN_HREF}>{entryLabel(k, data?.blueprints[k] ?? null)}</a>{note && <span className="muted">{` ${note}`}</span>}</li>;
+        return <li key={k}><a href={RUN_HREF}>{startLabel(k)}</a><span className="muted">{` ${entryDetail(k, data?.blueprints[k] ?? null)}${note ? ` ${note}.` : ''}`}</span></li>;
       })}</ul>
       {history && <><h3>Run history</h3><div className="card"><RunHistoryTable runs={data?.runs ?? []} names={data?.topic_names} /></div></>}
     </div>

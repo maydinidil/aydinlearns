@@ -1,0 +1,15 @@
+{
+  "concept_id": "EXP-AB-09",
+  "section": "methodology",
+  "version": 1,
+  "title": "Novelty and primacy effects",
+  "reading_md": "**What it is.**\n\n- Novelty effect: users try something because it is new, so an early lift fades.\n- Primacy effect: users are used to the old version, so early results understate a change that grows as they adapt. It often shows after changes to familiar navigation: users struggle first, then adapt.\n\nSo check the treatment effect week by week, and for new against returning users.\n\n**How to work it out.**\n\nAverage weekly lift = sum of the weekly lifts / number of weeks. Compare it with the later, stable weeks.\n\nWorked example. Weekly relative lifts of 8%, 4%, 2% and 2%.\n\n- Sum = 16\n- 16 / 4 = 4.0%\n- Weeks 3 and 4 are stable at 2%\n\nThe average over the whole test is 4.0%, but the likely long-run lift is 2%. Rounding: 1 decimal.\n\n**In the interview.** \"How do you detect novelty?\" A good answer: plot the daily effect over time, and compare users who see the change for the first time with returning ones.\n\n**Common mistakes.**\n\n- Using the full-period average as the long-term effect.\n- Assuming every fading lift is novelty. A change of season can also change an effect.\n- Running one-week tests for habit-forming features.",
+  "source_ids": [
+    "11:EXP-09",
+    "ERRATA:E-174",
+    "ERRATA:E-175",
+    "ERRATA:E-183"
+  ],
+  "verified": true,
+  "as_of": "2026-10-08"
+}

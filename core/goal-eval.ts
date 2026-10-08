@@ -23,7 +23,8 @@ export interface CriterionResult { label: string; met: boolean; available: boole
 const SECTION: Record<Section, string> = { sql: 'SQL', ga4: 'GA4', methodology: 'Methodology' };
 const MOCK: Record<string, string> = { screen: 'Screen', knowledge: 'Knowledge', case_round: 'Case-round', take_home: 'Take-home', ga4_readiness: 'GA4 readiness' };
 const RANK: Record<ConceptStateName, number> = { new: 0, learning: 1, practised: 2, mastered: 3, retained: 4 };
-const EVERY_LEVEL = Number.MAX_SAFE_INTEGER;
+/** `conceptsOf` with this level asks for every concept of the section, including those with no level (D58). */
+export const EVERY_LEVEL = Number.MAX_SAFE_INTEGER;
 const DAY_MS = 86_400_000;
 const addDays = (date: string, days: number): string => new Date(Date.parse(`${date}T00:00:00Z`) + days * DAY_MS).toISOString().slice(0, 10);
 
@@ -40,6 +41,15 @@ function evaluateCriterion(c: GoalCriterion, view: GoalView, today: string): Cri
         if (!view.conceptsOf(c.section, EVERY_LEVEL).includes(c.concept_id)) return notYet(label);
         const done = reached(c.concept_id) ? 1 : 0;
         return { label, met: done === 1, available: true, done, total: 1 };
+      }
+      if (c.concept_ids !== undefined) {
+        // D58: every named concept at the state. A concept the content does not have is not reached, and the label says so.
+        const have = new Set(view.conceptsOf(c.section, EVERY_LEVEL));
+        const done = c.concept_ids.filter((id) => have.has(id) && reached(id)).length;
+        const missing = c.concept_ids.filter((id) => !have.has(id)).length;
+        const label = `${done} of ${c.concept_ids.length} named concepts at ${c.state}${missing ? ` (${missing} not yet available)` : ''}`;
+        if (missing === c.concept_ids.length) return notYet(label);
+        return { label, met: done === c.concept_ids.length, available: true, done, total: c.concept_ids.length };
       }
       const label = `${SECTION[c.section]} level ${c.level ?? '?'} at ${c.state}`;
       const ids = c.level === undefined ? [] : view.conceptsOf(c.section, c.level);

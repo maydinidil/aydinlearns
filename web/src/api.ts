@@ -15,7 +15,7 @@ export type ConceptView = Concept & { state: ConceptStateName; hasContent: boole
 export type PublicGrade = GradeResult & { attempt_id: string | null };
 export interface Check { name: string; ok: boolean; detail: string }
 export interface StatusView {
-  ok: boolean; degraded: boolean; checks: Check[];
+  ok: boolean; degraded: boolean; checks: Check[]; version?: string;
   versions?: { dataset: string; duckdb: string; content: string; grader: string };
   settings?: { backup_folder: string | null; exam_date: string | null; goal_dates: Record<string, string> };
 }

@@ -1,7 +1,7 @@
 {
   "item_id": "EX-SQL-DATE-01-E2-01",
-  "item_version": 1,
-  "reference_sql": "SELECT date_trunc('month', timezone('Europe/Amsterdam', timezone('UTC', order_ts))) AS order_month,\n       COUNT(*) AS orders\nFROM orders\nWHERE channel = 'web'\nGROUP BY 1",
+  "item_version": 2,
+  "reference_sql": "SELECT CAST(date_trunc('month', timezone('Europe/Amsterdam', timezone('UTC', order_ts))) AS DATE) AS order_month,\n       COUNT(*) AS orders\nFROM orders\nWHERE channel = 'web'\nGROUP BY 1",
   "alternatives": [
     "SELECT CAST(date_trunc('month', timezone('Europe/Amsterdam', timezone('UTC', order_ts))) AS DATE) AS order_month, COUNT(*) AS orders FROM orders WHERE channel = 'web' GROUP BY date_trunc('month', timezone('Europe/Amsterdam', timezone('UTC', order_ts)))",
     "SELECT make_date(year(timezone('Europe/Amsterdam', timezone('UTC', order_ts))), month(timezone('Europe/Amsterdam', timezone('UTC', order_ts))), 1) AS order_month, COUNT(*) AS orders FROM orders WHERE channel = 'web' GROUP BY 1"
@@ -14,15 +14,15 @@
     {
       "id": "PW1",
       "error_id": "ERR-LOG-26",
-      "sql": "SELECT date_trunc('month', order_ts) AS order_month, COUNT(*) AS orders FROM orders WHERE channel = 'web' GROUP BY 1"
+      "sql": "SELECT CAST(date_trunc('month', order_ts) AS DATE) AS order_month, COUNT(*) AS orders FROM orders WHERE channel = 'web' GROUP BY 1"
     },
     {
       "id": "PW2",
       "error_id": "ERR-LOG-26",
-      "sql": "SELECT date_trunc('month', order_ts AT TIME ZONE 'Europe/Amsterdam') AS order_month, COUNT(*) AS orders FROM orders WHERE channel = 'web' GROUP BY 1"
+      "sql": "SELECT CAST(date_trunc('month', order_ts AT TIME ZONE 'Europe/Amsterdam') AS DATE) AS order_month, COUNT(*) AS orders FROM orders WHERE channel = 'web' GROUP BY 1"
     }
   ],
-  "hint3_partial": "SELECT date_trunc('month', timezone(___, timezone(___, order_ts))) AS order_month,\n       COUNT(*) AS orders\nFROM orders\nWHERE channel = 'web'\nGROUP BY 1",
+  "hint3_partial": "SELECT CAST(date_trunc('month', timezone(___, timezone(___, order_ts))) AS DATE) AS order_month,\n       COUNT(*) AS orders\nFROM orders\nWHERE channel = 'web'\nGROUP BY 1",
   "solver": {
     "prompt_hash": "e29ae9855583c921",
     "schema_version": "7ed366279088",

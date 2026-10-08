@@ -28,8 +28,8 @@ test('the remaining seconds round up and never go below 0', () => {
 });
 
 test('the level line names the questions, the minutes and the pass mark', () => {
-  assert.equal(levelLine({ level: 1, questions: 10, minutes: 20, pass_pct: 90 }), 'Level 1 drill: 10 questions, 20 minutes, pass at 90%.');
-  assert.equal(levelLine({ level: 2, questions: 10, minutes: 25, pass_pct: 90 }), 'Level 2 drill: 10 questions, 25 minutes, pass at 90%.');
+  assert.equal(levelLine({ level: 1, questions: 10, minutes: 20, pass_pct: 90 }, 'Foundations: one table'), 'Level 1, Foundations: one table. 10 questions, 20 minutes, pass at 90%.');
+  assert.equal(levelLine({ level: 2, questions: 10, minutes: 25, pass_pct: 90 }, 'Joins'), 'Level 2, Joins. 10 questions, 25 minutes, pass at 90%.');
 });
 
 test('the score line at the 90% boundary', () => {
@@ -56,15 +56,15 @@ test('help is closed during the run and open in the review', () => {
   assert.equal(TIME_UP, 'Time is up.');
 });
 
-test('the history table has six columns, the mode (S4B-23) and "Explained aloud" (D50) among them, and one row per run', () => {
-  assert.deepEqual(HISTORY_COLUMNS, ['Date', 'Mode', 'Score', 'Passed', 'Unseen', 'Explained aloud']);
+test('the history table has seven columns, the mode (S4B-23) and "Explained aloud" (D50) among them, and one row per run', () => {
+  assert.deepEqual(HISTORY_COLUMNS, ['Date', 'Drill', 'Mode', 'Score', 'Passed', 'Unseen', 'Explained aloud']);
   const rows = historyRows([
     { block_id: 'b', kind: 'level', level: 1, date: '2026-10-03', screen_mode: false, ...score(9, 8) },
     { block_id: 's', kind: 'level', level: 1, date: '2026-10-04', screen_mode: true, ...score(10, 7) },
-  ]);
+  ], '2026-10-09');
   assert.deepEqual(rows, [
-    { key: 'b', cells: ['2026-10-03', 'Normal', '9 of 10 (90%)', 'Yes', '8 of 10'], tick: null },
-    { key: 's', cells: ['2026-10-04', 'Screen mode', '10 of 10 (100%)', 'Yes', '7 of 10'], tick: null },
+    { key: 'b', cells: ['3 October', 'Level 1', 'Normal', '9 of 10 (90%)', 'Yes', '8 of 10'], tick: null },
+    { key: 's', cells: ['4 October', 'Level 1', 'Screen mode', '10 of 10 (100%)', 'Yes', '7 of 10'], tick: null },
   ]);
 });
 
@@ -184,7 +184,7 @@ test('the explained-aloud request names the block and a boolean, nothing else', 
 test('the history lists a live rep as "Live rep", and passed, logged only or no', () => {
   const row = (block_id: string, run_passed: boolean, passed: number) => ({ block_id, kind: 'live_rep' as const, level: null, date: '2026-10-08', screen_mode: true,
     explained_aloud: run_passed, passed, questions: 1, pct: passed * 100, run_passed, unseen: 1, unseen_pct: 100, counts_for_level: false });
-  assert.deepEqual(historyRows([row('a', true, 1), row('b', false, 1), row('c', false, 0)]).map((r) => [r.cells[1], r.cells[3]]),
+  assert.deepEqual(historyRows([row('a', true, 1), row('b', false, 1), row('c', false, 0)]).map((r) => [r.cells[2], r.cells[4]]),
     [['Live rep', 'Yes'], ['Live rep', 'Logged only'], ['Live rep', 'No']]);
 });
 
@@ -219,15 +219,15 @@ test('D50: only a live rep\'s row has the box; it shows the server\'s tick and i
     null,
     { block_id: 'live-b', checked: true, name: 'Explained aloud: live rep on 2026-10-08' },
   ]);
-  assert.deepEqual(rows.map((r) => r.cells.length), [5, 5, 5], 'five text cells; the box is the sixth column');
-  assert.ok(historyTickName('2026-10-08').startsWith(HISTORY_COLUMNS[5]), 'the name starts with the visible column header (WCAG 2.5.3)');
+  assert.deepEqual(rows.map((r) => r.cells.length), [6, 6, 6], 'six text cells; the box is the seventh column');
+  assert.ok(historyTickName('2026-10-08').startsWith(HISTORY_COLUMNS[6]), 'the name starts with the visible column header (WCAG 2.5.3)');
   const noField = { ...liveRun('live-c', false, false) } as Partial<HistoryRun>;
   delete noField.explained_aloud;
   assert.equal(historyRows([noField as HistoryRun])[0]!.tick!.checked, false, 'a row without the field reads as not ticked');
 });
 
 test('D50: a tick flips the row\'s Passed cell from "Logged only" to "Yes", an untick takes it back; a failed exercise stays "No"', () => {
-  const passedCell = (runs: HistoryRun[], key: string) => historyRows(runs).find((r) => r.key === key)!.cells[3];
+  const passedCell = (runs: HistoryRun[], key: string) => historyRows(runs).find((r) => r.key === key)!.cells[4];
   const runs = [liveRun('live-a', true, false), levelRun, liveRun('live-f', false, false)];
   assert.equal(passedCell(runs, 'live-a'), 'Logged only');
   const ticked = applyTick(runs, 'live-a', true);
@@ -253,11 +253,11 @@ test('D50: ticking from the history posts one self-check for the row\'s block, a
   try {
     runs = (await tickFromHistory('live-a', true, tickExplainedAloud))(runs);
     assert.deepEqual(calls, [{ url: '/api/drill/self-check', method: 'POST', body: { block_id: 'live-a', ticked: true } }], 'one self-check, nothing else');
-    assert.equal(historyRows(runs)[0]!.cells[3], 'Yes');
+    assert.equal(historyRows(runs)[0]!.cells[4], 'Yes');
     assert.equal(historyRows(runs)[0]!.tick!.checked, true);
     runs = (await tickFromHistory('live-a', false, tickExplainedAloud))(runs);
     assert.deepEqual(calls[1]!.body, { block_id: 'live-a', ticked: false });
-    assert.equal(historyRows(runs)[0]!.cells[3], 'Logged only');
+    assert.equal(historyRows(runs)[0]!.cells[4], 'Logged only');
   } finally { globalThis.fetch = real; }
 });
 
