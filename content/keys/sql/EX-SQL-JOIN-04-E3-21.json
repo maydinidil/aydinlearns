@@ -1,0 +1,39 @@
+{
+  "item_id": "EX-SQL-JOIN-04-E3-21",
+  "item_version": 1,
+  "reference_sql": "SELECT p.product_name, a.list_price_eur, s.product_name AS sister_name, b.list_price_eur AS sister_price_eur\nFROM products p\nJOIN products s ON s.product_id = p.sister_product_id\nJOIN price_history a ON a.product_id = p.product_id AND DATE '2025-03-01' >= a.valid_from AND (a.valid_to IS NULL OR DATE '2025-03-01' <= a.valid_to)\nJOIN price_history b ON b.product_id = s.product_id AND DATE '2025-03-01' >= b.valid_from AND (b.valid_to IS NULL OR DATE '2025-03-01' <= b.valid_to)\nWHERE a.list_price_eur < b.list_price_eur",
+  "alternatives": [
+    "SELECT p.product_name, a.list_price_eur, s.product_name AS sister_name, b.list_price_eur AS sister_price_eur FROM products p JOIN products s ON s.product_id = p.sister_product_id JOIN price_history a ON a.product_id = p.product_id AND DATE '2025-03-01' BETWEEN a.valid_from AND COALESCE(a.valid_to, DATE '9999-12-31') JOIN price_history b ON b.product_id = s.product_id AND DATE '2025-03-01' BETWEEN b.valid_from AND COALESCE(b.valid_to, DATE '9999-12-31') WHERE a.list_price_eur < b.list_price_eur",
+    "WITH day_price AS (SELECT product_id, list_price_eur FROM price_history WHERE valid_from <= DATE '2025-03-01' AND (valid_to IS NULL OR valid_to >= DATE '2025-03-01')) SELECT p.product_name, a.list_price_eur, s.product_name AS sister_name, b.list_price_eur AS sister_price_eur FROM products p JOIN products s ON s.product_id = p.sister_product_id JOIN day_price a ON a.product_id = p.product_id JOIN day_price b ON b.product_id = s.product_id WHERE a.list_price_eur < b.list_price_eur"
+  ],
+  "other_way": {
+    "sql": "WITH day_price AS (SELECT product_id, list_price_eur FROM price_history WHERE valid_from <= DATE '2025-03-01' AND (valid_to IS NULL OR valid_to >= DATE '2025-03-01')) SELECT p.product_name, a.list_price_eur, s.product_name AS sister_name, b.list_price_eur AS sister_price_eur FROM products p JOIN products s ON s.product_id = p.sister_product_id JOIN day_price a ON a.product_id = p.product_id JOIN day_price b ON b.product_id = s.product_id WHERE a.list_price_eur < b.list_price_eur",
+    "tradeoff": "A CTE of each product's price on the day is used for both sides, so the range test is written once instead of twice."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-23",
+      "sql": "SELECT p.product_name, a.list_price_eur, s.product_name AS sister_name, b.list_price_eur AS sister_price_eur FROM products p JOIN products s ON s.product_id = p.sister_product_id JOIN price_history a ON a.product_id = p.product_id AND DATE '2025-03-01' > a.valid_from AND (a.valid_to IS NULL OR DATE '2025-03-01' <= a.valid_to) JOIN price_history b ON b.product_id = s.product_id AND DATE '2025-03-01' > b.valid_from AND (b.valid_to IS NULL OR DATE '2025-03-01' <= b.valid_to) WHERE a.list_price_eur < b.list_price_eur"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-03",
+      "sql": "SELECT p.product_name, a.list_price_eur, s.product_name AS sister_name, b.list_price_eur AS sister_price_eur FROM products p JOIN products s ON s.product_id = p.sister_product_id JOIN price_history a ON a.product_id = p.product_id AND DATE '2025-03-01' >= a.valid_from AND DATE '2025-03-01' <= a.valid_to JOIN price_history b ON b.product_id = s.product_id AND DATE '2025-03-01' >= b.valid_from AND DATE '2025-03-01' <= b.valid_to WHERE a.list_price_eur < b.list_price_eur"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-12",
+      "sql": "SELECT p.product_name, a.list_price_eur, s.product_name AS sister_name, b.list_price_eur AS sister_price_eur FROM products p JOIN products s ON s.product_id = p.sister_product_id JOIN price_history a ON a.product_id = p.product_id AND DATE '2025-03-01' >= a.valid_from AND (a.valid_to IS NULL OR DATE '2025-03-01' <= a.valid_to) JOIN price_history b ON b.product_id = p.product_id AND DATE '2025-03-01' >= b.valid_from AND (b.valid_to IS NULL OR DATE '2025-03-01' <= b.valid_to) WHERE a.list_price_eur < b.list_price_eur"
+    }
+  ],
+  "hint3_partial": "SELECT p.product_name, a.list_price_eur, s.product_name AS sister_name, b.list_price_eur AS sister_price_eur\nFROM products p\nJOIN products s ON s.product_id = p.sister_product_id\nJOIN price_history a ON a.product_id = p.product_id AND DATE '2025-03-01' >= a.valid_from AND (a.valid_to IS NULL OR DATE '2025-03-01' <= a.valid_to)\nJOIN price_history b ON ___\nWHERE a.list_price_eur < b.list_price_eur",
+  "solver": {
+    "prompt_hash": "fe9e1684543f01f3",
+    "schema_version": "c41fcd8f0eee",
+    "dataset_version": "e1545e4258743033",
+    "grader_version": "1b.3",
+    "query": "SELECT p.product_name, hp.list_price_eur, s.product_name AS sister_name, hs.list_price_eur AS sister_price_eur\nFROM products p\nJOIN products s ON s.product_id = p.sister_product_id\nJOIN price_history hp ON hp.product_id = p.product_id\n  AND hp.valid_from <= DATE '2025-03-01' AND (hp.valid_to IS NULL OR hp.valid_to >= DATE '2025-03-01')\nJOIN price_history hs ON hs.product_id = s.product_id\n  AND hs.valid_from <= DATE '2025-03-01' AND (hs.valid_to IS NULL OR hs.valid_to >= DATE '2025-03-01')\nWHERE hp.list_price_eur < hs.list_price_eur",
+    "at": "2026-10-07T10:41:41.611Z"
+  }
+}

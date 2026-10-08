@@ -1,0 +1,140 @@
+{
+  "id": "EX-SQL-CTE-01-E2-02",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "cte",
+    "avg",
+    "date_range",
+    "sales",
+    "grain"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-CTE-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "lesson",
+  "target_concept_id": "SQL-CTE-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CTE-01"
+  ],
+  "template_id": "T-CTE-01-avg-daily-per-group",
+  "template_params": {
+    "table": "sales",
+    "step_grain": "store and day",
+    "from": "2025-03-01",
+    "to": "2025-03-31"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_join",
+  "prompt": "In March 2025, what was each store's average daily net revenue, over the days on which the store sold something? Use the sales table and its order_date column, the UTC day of the order. Count lines with an order_date from 1 March 2025 to 31 March 2025, both days included. A day's revenue is the sum of net_revenue_eur on that day; days with no sales do not count. Return two columns, in this order: store_code and avg_daily_revenue_eur. Return one row for each store that sold something in March 2025. Do not round. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "store_code",
+        "type_class": "text"
+      },
+      {
+        "name": "avg_daily_revenue_eur",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per store"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "store_code",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "avg_daily_revenue_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "store_code"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the first step: one row per store and day of March 2025, with that day's revenue.",
+    "Put the March date test inside the first step, and group its lines by store and order_date."
+  ],
+  "subgoals": [
+    {
+      "from": 91,
+      "to": 157,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 160,
+      "to": 170,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 173,
+      "to": 237,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 240,
+      "to": 271,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 274,
+      "to": 334,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 335,
+      "to": 353,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 354,
+      "to": 373,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": {
+    "stage1": 65,
+    "stage2": 65
+  },
+  "faded_shape": "-- Step 1: one row per store and day. Step 2: one row per store.\n",
+  "faded_suffix": "\nSELECT store_code, AVG(revenue_eur) AS avg_daily_revenue_eur\nFROM daily_revenue\nGROUP BY store_code",
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "The step has one row per store and selling day, so AVG averages days, not single order lines."
+}

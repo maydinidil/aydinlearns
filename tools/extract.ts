@@ -53,17 +53,37 @@ export function buildCurriculum(j: { concepts: any[]; levels: any[] }): Curricul
   return { version: 1, source: '01', errata_applied: CURRICULUM_ERRATA, levels, concepts };
 }
 
-// New error IDs for levels 1-2 (design §12), recorded in ERRATA (E-142, E-143, E-152, E-153).
+// New error IDs for levels 1-3 (design §12), recorded in ERRATA (E-142, E-143, E-152, E-153, E-162, E-163, E-164, E-168, E-171, E-172; templates E-173).
 export const NEW_ERRORS: Omit<ErrorType, 'concept_id'>[] = [
   { id: 'ERR-LOG-20', category: 'LOG', name: 'Averaging ratios instead of dividing sums', detection_checks: ['CHK-MUTANT-MATCH'], feedback_template: '' },
   { id: 'ERR-LOG-21', category: 'LOG', name: 'Percent scale (0.15 vs 15)', detection_checks: ['CHK-MUTANT-MATCH'], feedback_template: '' },
   // R38 (ERRATA E-152, E-153): the LIKE and BETWEEN mistakes of SQL-FILTER-02, which fell back to ERR-LOG-00.
   { id: 'ERR-LOG-22', category: 'LOG', name: 'LIKE pattern: case sensitivity or a missing wildcard', detection_checks: ['CHK-MUTANT-MATCH'], feedback_template: '' },
   { id: 'ERR-LOG-23', category: 'LOG', name: 'BETWEEN with reversed bounds, or a wrong inclusive or exclusive range', detection_checks: ['CHK-MUTANT-MATCH'], feedback_template: '' },
+  // Sprint 4a Task B2 (ERRATA E-162, E-163, E-164): the level 3 traps of SQL-SET-01 and SQL-DATE-01 that had no ID.
+  { id: 'ERR-LOG-24', category: 'LOG', name: 'UNION where UNION ALL was needed', detection_checks: ['CHK-MUTANT-MATCH'], feedback_template: '' },
+  { id: 'ERR-LOG-25', category: 'LOG', name: 'Date truncation slip: the wrong period, or a month or week number without its year', detection_checks: ['CHK-MUTANT-MATCH'], feedback_template: '' },
+  { id: 'ERR-LOG-26', category: 'LOG', name: 'UTC day where the Amsterdam day was asked', detection_checks: ['CHK-MUTANT-MATCH'], feedback_template: '' },
+  // Sprint 4b Task C2 (ERRATA E-168): the set-operator mistakes of SQL-SET-01 that fell back to ERR-LOG-00.
+  { id: 'ERR-LOG-27', category: 'LOG', name: 'The wrong set operator, or EXCEPT the wrong way round', detection_checks: ['CHK-MUTANT-MATCH'], feedback_template: '' },
+  // Sprint 4c Task C1 (ERRATA E-171, owner decision D44): SQL-SET-01's missing-value plants, which fell back to ERR-LOG-00.
+  { id: 'ERR-LOG-28', category: 'LOG', name: 'A set operator treats missing values as equal', detection_checks: ['CHK-MUTANT-MATCH'],
+    feedback_template: 'UNION, INTERSECT and EXCEPT count two missing values as the same. Leave out the missing values in each query when the question does.' },
+  // Sprint 4c Task C1 (ERRATA E-172, owner decision D45): SQL-CASE-01's WHEN-order trap, which fell back to ERR-LOG-00.
+  { id: 'ERR-LOG-29', category: 'LOG', name: 'CASE branch order: an earlier WHEN catches rows meant for a later one', detection_checks: ['CHK-MUTANT-MATCH'],
+    feedback_template: 'CASE takes the first WHEN that is true. Put the narrower or more important test first.' },
 ];
 
+/**
+ * Owner decision D46 (sprint 4c Task C1, ERRATA E-173): ERR-LOG-06's template is widened from timestamps to DATE ranges and period boundaries
+ * such as weeks, as its refutation feedback is (`content/sql/error-feedback.json`). The knowledge file keeps 02's text.
+ */
+export const TEMPLATE_FIXES: Record<string, string> = {
+  'ERR-LOG-06': 'The rows you missed or added all fall on {boundary_date}, the first or last day of the range or of a period. For timestamps, DATE ranges and periods such as weeks, use >= the first day AND < the day after the last one.',
+};
+
 export function buildErrors(j: { error_types: any[] }, concepts: Record<string, string>): ErrorCatalog {
-  const all = [...j.error_types.map((e) => ({ id: e.id, category: e.category, name: e.name, detection_checks: e.detection_checks ?? [], feedback_template: e.feedback_template ?? '' })), ...NEW_ERRORS];
+  const all = [...j.error_types.map((e) => ({ id: e.id, category: e.category, name: e.name, detection_checks: e.detection_checks ?? [], feedback_template: TEMPLATE_FIXES[e.id] ?? e.feedback_template ?? '' })), ...NEW_ERRORS];
   const errors: ErrorType[] = all.map((e) => {
     const concept_id = concepts[e.id];
     if (!concept_id) throw new Error(`error-concepts.json has no concept for ${e.id}`);

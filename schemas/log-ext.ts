@@ -8,6 +8,8 @@ export interface SqlPayload {
   matched_mutant_id: string | null;
   diff_summary: string | null;
   portability_notes: string[];
+  /** Codex F24: the integer division re-run's outcome, on a pass only (DivisionCheck, server/grader/types.ts). */
+  division_check?: 'no_division' | 'same' | 'changed' | 'not_compared';
 }
 export interface McqPayload { kind: 'mcq'; shown_order: string[]; chosen: string | null; typed?: string }
 export interface FreeTextPayload { kind: 'free_text'; text: string }

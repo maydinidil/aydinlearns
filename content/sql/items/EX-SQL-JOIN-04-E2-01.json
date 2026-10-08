@@ -1,0 +1,139 @@
+{
+  "id": "EX-SQL-JOIN-04-E2-01",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "self-join",
+    "price_history",
+    "price-change"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-JOIN-04"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "lesson",
+  "target_concept_id": "SQL-JOIN-04",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-JOIN-01",
+    "SQL-JOIN-04"
+  ],
+  "template_id": "T-JOIN-04-self-join-price-changes",
+  "template_params": {
+    "from": "2025-03-01",
+    "to": "2025-03-31"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_join",
+  "prompt": "List every price change of March 2025: a new price version whose valid_from is from 1 to 31 March 2025, next to the version it replaced. A product's next price version always starts the day after its previous version's valid_to. Return four columns, in this order: product_id, changed_on (the new version's valid_from), old_price_eur and new_price_eur (the list_price_eur of the old and of the new version). Return one row for each price change. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "changed_on",
+        "type_class": "temporal"
+      },
+      {
+        "name": "old_price_eur",
+        "type_class": "numeric"
+      },
+      {
+        "name": "new_price_eur",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per price change"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "changed_on",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "old_price_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "new_price_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "product_id",
+      "changed_on"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, join price_history to itself, so each new version sits next to the version it replaced.",
+    "Match the same product, and match the new version's start to the day after the old version's valid_to."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 125,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 126,
+      "to": 148,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 149,
+      "to": 244,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 245,
+      "to": 313,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": {
+    "stage1": 149,
+    "stage2": 149
+  },
+  "faded_shape": "SELECT nxt.product_id, nxt.valid_from AS changed_on, old.list_price_eur AS old_price_eur, nxt.list_price_eur AS new_price_eur\nFROM price_history old\n",
+  "faded_suffix": "\nWHERE nxt.valid_from BETWEEN DATE '2025-03-01' AND DATE '2025-03-31'",
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "Two aliases of price_history let one row hold two versions; matching the product and the day after the old valid_to pairs each version with the one that replaced it."
+}

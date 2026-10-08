@@ -6,7 +6,10 @@
     "SELECT store_code, city, opened_on\nFROM stores\nWHERE opened_on >= DATE '2015-01-01'\n  AND opened_on < DATE '2018-01-01'",
     "SELECT store_code, city, opened_on\nFROM stores\nWHERE opened_on BETWEEN '2015-01-01' AND '2017-12-31'"
   ],
-  "other_way": null,
+  "other_way": {
+    "sql": "SELECT store_code, city, opened_on\nFROM stores\nWHERE opened_on >= DATE '2015-01-01'\n  AND opened_on < DATE '2018-01-01'",
+    "tradeoff": "A start date with an exclusive next date also works for timestamps, while BETWEEN is shorter for plain dates."
+  },
   "planted_wrong": [
     {
       "id": "EX-SQL-FILTER-02-E2-03-PW1",

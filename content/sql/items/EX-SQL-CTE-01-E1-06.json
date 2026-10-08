@@ -1,0 +1,127 @@
+{
+  "id": "EX-SQL-CTE-01-E1-06",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "cte",
+    "count",
+    "price_history",
+    "distribution"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-CTE-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-CTE-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CTE-01"
+  ],
+  "template_id": "T-CTE-01-count-of-counts",
+  "template_params": {
+    "table": "price_history",
+    "step_grain": "product",
+    "bucket": "n_versions"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_join",
+  "prompt": "How many products have had exactly one list price version, how many have had exactly two, and so on? Return two columns, in this order: n_versions, a number of price versions, and n_products, the number of products with exactly that many versions. Return one row for each number of versions that occurs. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "n_versions",
+        "type_class": "numeric"
+      },
+      {
+        "name": "n_products",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "n_versions",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "n_products",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "n_versions"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, count the price versions of each product in a first step.",
+    "A second step then counts the products for each number of versions."
+  ],
+  "subgoals": [
+    {
+      "from": 33,
+      "to": 74,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 77,
+      "to": 95,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 98,
+      "to": 117,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 120,
+      "to": 161,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 162,
+      "to": 187,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 188,
+      "to": 207,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "price_history has one row per price version, so the step counts versions per product and the final query counts products per number."
+}

@@ -4,20 +4,21 @@
 // this screen, never at an item URL, so neither the heading nor the URL names a review's concept or item (S2-39).
 // GA4 (Task C5): reviews due, the next concept's reading, then practice, each question served here and answered in the
 // ChoicePanel; the reading shows here too and logs its exposure once it is on the screen.
+// Sprint 4b (Task D3): the daily case and the opener's steps (its preview with the sketch, the mid-level question, solving it) are
+// links to the case screen, which runs every checkpoint; Today (SQL) links to the case inbox and the portfolio.
 import { useEffect, useRef, useState } from 'react';
 import { api, type ChoiceSection, type RetestView, type Section, type TodayView } from '../api.ts';
 import { ChoicePanel } from '../components/ChoicePanel.tsx';
-import { Cp4Panel } from '../components/Cp4Panel.tsx';
 import { type ClosedResult } from '../components/ExercisePanel.tsx';
 import { ItemPanel } from '../components/ItemPanel.tsx';
 import { Ga4Runs } from '../components/Ga4Runs.tsx';
 import { MicroLesson } from '../components/MicroLesson.tsx';
-import { OpenerPanel } from '../components/OpenerPanel.tsx';
 import { choiceTitles, mapHref, SECTION_LABEL } from '../lib/choice-flow.ts';
 import { conceptTitle, loadTitles, type Titles } from '../lib/labels.ts';
+import { SqlCode } from '../components/SqlCode.tsx';
 import {
-  ANOTHER_NEW_CONCEPT, LIST, MINIMUM_DAY, NOTHING_NOW, NOT_OPEN, NO_NOTICES, SECTIONS, WHOLE_SESSION, afterChoice, afterItemClosed, afterSessionEnd,
-  anotherNewConcept, blockMemory, exerciseOf, newConceptAction, noticeLines, notices, resumeBlock, runChoice, runMixed, runServed, stepViews, wrapUp,
+  ANOTHER_NEW_CONCEPT, LIST, MINIMUM_DAY, NOTHING_NOW, NOT_OPEN, NO_NOTICES, SECTIONS, SQL_LINKS, WHOLE_SESSION, afterChoice, afterItemClosed, afterSessionEnd,
+  actionName, anotherNewConcept, blockMemory, correctedQueryView, exerciseOf, newConceptAction, noticeLines, notices, resumeBlock, runChoice, runMixed, runServed, stepViews, wrapUp,
   type Mode, type NoticeEvent, type Running, type ServePurpose, type StepAction, type StepView,
 } from '../lib/today-flow.ts';
 import { ReadingPanel } from './ReadingScreen.tsx';
@@ -87,12 +88,12 @@ export function TodayScreen({ sessionEnds = 0 }: { sessionEnds?: number }) {
   }
 
   /** Serves one item for a step and runs it here. When nothing fits now (a 404), the server's reason stays on the list. */
-  async function serve(purpose: ServePurpose, extra: { concept_id?: string; case_id?: string } = {}): Promise<void> {
+  async function serve(purpose: ServePurpose, extra: { concept_id?: string } = {}): Promise<void> {
     setBusy(true);
     say({ kind: 'action_started' });
     try {
       const served = await api.serve({ section, purpose, ...extra });
-      setRunning(isChoice(section) ? runChoice(purpose, section, served, shownTitles, extra.concept_id ?? null) : runServed(purpose, served, titles, extra.concept_id ?? null, extra.case_id ?? null));
+      setRunning(isChoice(section) ? runChoice(purpose, section, served, shownTitles, extra.concept_id ?? null) : runServed(purpose, served, titles, extra.concept_id ?? null));
     } catch (e) {
       say({ kind: 'action_failed', message: (e as Error).message });
       setRunning(LIST);
@@ -105,11 +106,9 @@ export function TodayScreen({ sessionEnds = 0 }: { sessionEnds?: number }) {
   async function start(a: StepAction): Promise<void> {
     if (a.kind === 'micro_lesson' || a.kind === 'refresher') { setRunning({ kind: 'reading', which: a.kind, concept_id: a.concept_id }); return; }
     if (a.kind === 'section_reading') { setRunning({ kind: 'section_reading', which: a.which, concept_id: a.concept_id }); return; }
-    // The opener's question is only read (GET /api/openers); "Try it now" in the panel serves it.
-    if (a.kind === 'opener_preview') { setRunning({ kind: 'preview', case_id: a.case_id }); return; }
-    if (a.kind === 'serve') { await serve(a.purpose, { ...(a.concept_id ? { concept_id: a.concept_id } : {}), ...(a.case_id ? { case_id: a.case_id } : {}) }); return; }
+    if (a.kind === 'serve') { await serve(a.purpose, a.concept_id ? { concept_id: a.concept_id } : {}); return; }
     if (a.kind === 'resume_mixed') { const p = blockMemory.paused(); setRunning(p ? resumeBlock(p) : LIST); return; }
-    if (a.kind !== 'mixed') return;                                           // the lesson and the map are links
+    if (a.kind !== 'mixed') return;                                           // the lesson, the map and a case are links
     setBusy(true);
     say({ kind: 'action_started' });
     try {
@@ -159,9 +158,10 @@ export function TodayScreen({ sessionEnds = 0 }: { sessionEnds?: number }) {
   function control(s: StepView, cls?: string) {
     const a = s.action;
     if (!a || !s.actionLabel) return null;
-    if (a.kind === 'lesson') return <a className={cls} href={`#/lesson/${a.concept_id}`}>{s.actionLabel}</a>;
-    if (a.kind === 'map') return <a className={cls} href={mapHref(section)}>{s.actionLabel}</a>;
-    return <button type="button" className={cls} onClick={() => void start(a)} disabled={busy}>{s.actionLabel}</button>;
+    if (a.kind === 'lesson') return <a className={cls} href={`#/lesson/${a.concept_id}`} aria-label={actionName(s)}>{s.actionLabel}</a>;
+    if (a.kind === 'map') return <a className={cls} href={mapHref(section)} aria-label={actionName(s)}>{s.actionLabel}</a>;
+    if (a.kind === 'case') return <a className={cls} href={a.href} aria-label={actionName(s)}>{s.actionLabel}</a>;
+    return <button type="button" className={cls} aria-label={actionName(s)} onClick={() => void start(a)} disabled={busy}>{s.actionLabel}</button>;
   }
 
   const exercise = exerciseOf(running);
@@ -176,8 +176,6 @@ export function TodayScreen({ sessionEnds = 0 }: { sessionEnds?: number }) {
         {running.kind === 'reading' && (
           <MicroLesson conceptId={running.concept_id} kind={running.which} title={conceptTitle(titles, running.concept_id)} onDone={back} />
         )}
-        {running.kind === 'preview' && <OpenerPanel caseId={running.case_id} onDone={back} />}
-        {running.kind === 'cp4' && <Cp4Panel key={running.case_id} caseId={running.case_id} onDone={back} />}
         {running.kind === 'choice' && isChoice(running.section) && (
           <>
             <h2>{running.heading}</h2>
@@ -197,13 +195,14 @@ export function TodayScreen({ sessionEnds = 0 }: { sessionEnds?: number }) {
     const steps = stepViews(view.plan, mode, shownTitles, now, retests, blockMemory.paused(), readings);
     const w = wrapUp(view, titles, now);
     const another = anotherNewConcept(view.plan, shownTitles);
+    const corrected = section === 'sql' ? correctedQueryView(view, titles) : null;
     body = (
       <div className="today-grid">
         <div className="today-plan">
           <p><button type="button" onClick={() => setMode(mode === 'full' ? 'minimum' : 'full')}>{mode === 'full' ? MINIMUM_DAY : WHOLE_SESSION}</button></p>
           {steps.length === 0 ? <p>{NOTHING_NOW}</p> : (
             <ol className="today-steps card">{steps.map((s, i) => (
-              <li key={s.key} className="row">
+              <li key={s.key} className="row" data-today-step={s.key}>
                 <span className="marker" aria-hidden="true" />
                 <strong className="grow">{s.label}</strong>
                 {s.detail && <span className="muted step-detail">{s.detail}</span>}
@@ -221,6 +220,14 @@ export function TodayScreen({ sessionEnds = 0 }: { sessionEnds?: number }) {
             </div>
           )}
           <div className="card"><p>{w.dueTomorrow}</p></div>
+          {corrected && (
+            <div className="card corrected-query">
+              <h3>{corrected.heading}</h3>
+              <p className="muted">{corrected.about}</p>
+              <p>Your failed query</p><SqlCode sql={corrected.failed} />
+              <p>Your passing query</p><SqlCode sql={corrected.passed} />
+            </div>
+          )}
           {another.offered && another.concept_id !== null ? (
             <div className="card">
               <p><button type="button" onClick={() => startAnother(another.concept_id!)} disabled={busy}>{ANOTHER_NEW_CONCEPT}</button>{' '}
@@ -240,6 +247,9 @@ export function TodayScreen({ sessionEnds = 0 }: { sessionEnds?: number }) {
         <button key={s.id} type="button" aria-pressed={s.id === section} onClick={() => chooseSection(s.id)}>{s.id === section ? <strong>{s.label}</strong> : s.label}</button>
       ))}</nav>
       {isChoice(section) && open && <p><a href={mapHref(section)}>{SECTION_LABEL[section]} map</a></p>}
+      {section === 'sql' && (
+        <p className="today-links">{SQL_LINKS.map((l, i) => <span key={l.href}>{i > 0 && ' · '}<a href={l.href}>{l.text}</a></span>)}</p>
+      )}
       {noticeLines(note).map((m) => <p key={m} role="alert" className="notice">{m}</p>)}
       {body}
     </section>

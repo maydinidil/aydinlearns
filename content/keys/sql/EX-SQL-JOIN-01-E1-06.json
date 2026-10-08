@@ -1,0 +1,31 @@
+{
+  "item_id": "EX-SQL-JOIN-01-E1-06",
+  "item_version": 1,
+  "reference_sql": "SELECT p.product_name, cp.competitor, cp.observed_ts, cp.price_eur\nFROM competitor_prices cp\nJOIN products p ON p.product_id = cp.product_id\nWHERE p.brand = 'Vistara'\n  AND cp.observed_ts >= TIMESTAMP '2025-03-03 00:00:00' AND cp.observed_ts < TIMESTAMP '2025-03-10 00:00:00'",
+  "alternatives": [
+    "SELECT p.product_name, cp.competitor, cp.observed_ts, cp.price_eur FROM products p JOIN competitor_prices cp ON cp.product_id = p.product_id WHERE p.brand = 'Vistara' AND CAST(cp.observed_ts AS DATE) BETWEEN DATE '2025-03-03' AND DATE '2025-03-09'",
+    "SELECT p.product_name, cp.competitor, cp.observed_ts, cp.price_eur FROM competitor_prices cp JOIN products p ON p.product_id = cp.product_id AND p.brand = 'Vistara' AND cp.observed_ts >= TIMESTAMP '2025-03-03 00:00:00' AND cp.observed_ts < TIMESTAMP '2025-03-10 00:00:00'"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-12",
+      "sql": "SELECT p.product_name, cp.competitor, cp.observed_ts, cp.price_eur FROM competitor_prices cp JOIN products p ON p.category_id = cp.product_id WHERE p.brand = 'Vistara' AND cp.observed_ts >= TIMESTAMP '2025-03-03 00:00:00' AND cp.observed_ts < TIMESTAMP '2025-03-10 00:00:00'"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-SYN-03",
+      "sql": "SELECT product_name, competitor, observed_ts, price_eur FROM competitor_prices cp JOIN products p ON p.product_id = product_id WHERE brand = 'Vistara' AND observed_ts >= TIMESTAMP '2025-03-03 00:00:00' AND observed_ts < TIMESTAMP '2025-03-10 00:00:00'"
+    }
+  ],
+  "hint3_partial": "SELECT p.product_name, cp.competitor, cp.observed_ts, cp.price_eur\nFROM competitor_prices cp\nJOIN products p ON ___\nWHERE p.brand = 'Vistara'\n  AND ___",
+  "solver": {
+    "prompt_hash": "50608605dcfb246b",
+    "schema_version": "6cd8d6857bb2",
+    "dataset_version": "e1545e4258743033",
+    "grader_version": "1b.3",
+    "query": "SELECT p.product_name, cp.competitor, cp.observed_ts, cp.price_eur\nFROM competitor_prices cp\nJOIN products p ON p.product_id = cp.product_id\nWHERE p.brand = 'Vistara'\n  AND cp.observed_ts >= TIMESTAMP '2025-03-03 00:00:00' AND cp.observed_ts < TIMESTAMP '2025-03-10 00:00:00'",
+    "at": "2026-10-07T10:41:37.872Z"
+  }
+}

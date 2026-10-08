@@ -204,6 +204,11 @@ test('S2-07: a crash is never graded and is skipped when looking for the next su
   assert.deepEqual(ids(gradedAttempts([y, z], SQL_RATING_RULES)), ids([z]));
   assert.equal(ratingOf(facts([y, z])), 3);
 });
+test('S2-07: a rejected attempt is never graded', () => {
+  const a = attempt(0, 'rejected');
+  const b = fail(10_000);
+  assert.deepEqual(ids(gradedAttempts([a, b], SQL_RATING_RULES)), ids([b]));
+});
 test('S2-07: ERR-SEM errors and time-outs always count; the override attempt never does', () => {
   const a = sem(0);
   const b = pass(20_000);
@@ -297,6 +302,19 @@ test('checkpoint: a correct typed CP4 at confidence 1 or 2 is Hard for each cred
   assert.deepEqual(rateCp(cp4(2)).ratings, each(2));
   for (const c of [3, 4, null] as const) assert.deepEqual(rateCp(cp4(c)).ratings, each(3), `confidence ${c}`);
   assert.deepEqual(rateCp(checkpoint([pass(30 * S, { active_ms: 1, confidence: 1 })])).ratings, each(3), 'a CP3 item ignores confidence');
+});
+test('checkpoint: a correct CP1, CP2 or CP5 at confidence 1 or 2 is Hard too; at 3 it is Good (D16, every case checkpoint that asks confidence)', () => {
+  for (const cp of ['CP1', 'CP2', 'CP5'] as const) {
+    const at = (c: 1 | 2 | 3) => checkpoint([pass(30 * S, { active_ms: 1, confidence: c })], { item_id: `CASE-PRICE-01:${cp}` });
+    assert.deepEqual(rateCp(at(2)), { ratings: each(2), countsAsPass: true }, `${cp} at confidence 2`);
+    assert.deepEqual(rateCp(at(1)).ratings, each(2), `${cp} at confidence 1`);
+    assert.deepEqual(rateCp(at(3)).ratings, each(3), `${cp} at confidence 3`);
+  }
+  // CP4 is unchanged; an SQL item ID (a CP3) or an ID that only contains a checkpoint name still ignores confidence.
+  assert.deepEqual(rateCp(checkpoint([pass(30 * S, { active_ms: 1, confidence: 2 })], { item_id: 'CASE-PRICE-01:CP4' })).ratings, each(2));
+  for (const id of ['EX-CASE-PRICE-01', 'CASE-PRICE-01:CP3', 'CASE-PRICE-01:CP15']) {
+    assert.deepEqual(rateCp(checkpoint([pass(30 * S, { active_ms: 1, confidence: 2 })], { item_id: id })).ratings, each(3), id);
+  }
 });
 test('checkpoint: a failure is Again for the diagnosed concept only; with none, or one it does not credit, the first credited (S2-50)', () => {
   assert.deepEqual(rateCp(checkpoint([fail(10 * S)], { close_reason: 'left' })), { ratings: [{ concept_id: 'SQL-TEST-02', rating: 1 }], countsAsPass: false });

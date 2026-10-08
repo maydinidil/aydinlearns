@@ -1,0 +1,117 @@
+{
+  "id": "EX-SQL-JOIN-01-E1-07",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "join",
+    "group_by",
+    "products",
+    "categories"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-JOIN-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-JOIN-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-JOIN-01"
+  ],
+  "template_id": "T-JOIN-01-count-per-dimension",
+  "template_params": {
+    "from": "products",
+    "join": "categories",
+    "group": "parent_category"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_join",
+  "prompt": "How many products does each parent category hold? Return two columns, in this order: parent_category and n_products. Return one row for each parent category that has at least one product. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "parent_category",
+        "type_class": "text"
+      },
+      {
+        "name": "n_products",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "parent_category",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "n_products",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "parent_category"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, join each product to its category, then group.",
+    "The parent category sits in categories. Count the products after each one has its category's row."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 48,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 49,
+      "to": 64,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 65,
+      "to": 115,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 116,
+      "to": 142,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "Each product has one category, so after the join there is still one row per product, and COUNT(*) per parent category counts products."
+}

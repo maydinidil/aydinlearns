@@ -1,0 +1,147 @@
+{
+  "concept_id": "SQL-JOIN-03",
+  "version": 1,
+  "reading_md": "## Grain and join fan-out\n\nThe grain of a table is what one row stands for: one row per order in `orders`, one row per order line in `order_lines`. The schema panel shows each table's grain, and each link as \"`order_id` → `orders` (1:N)\": one order, many lines.\n\n### A join repeats rows\n\nA join returns one row for every matching pair. Join `orders` to `order_lines` and an order with three lines appears three times, once per line. The result has the grain of the many side: one row per line. That is fine when you add up line values, such as units. It goes wrong when you count or add up something that belongs to the one side:\n\n- `COUNT(*)` after the join counts lines, not orders;\n- a value stored once per order or once per product, added up after the join, is counted once per matching row.\n\nThis is fan-out. No error appears; the totals simply come out too big.\n\n### Where Voltmarkt fans out\n\n- `promotion_products` is a bridge table: a product can be in several promotions. Join order lines to it on product_id, and each line repeats once per promotion of its product.\n- `price_history` keeps one row per price version. Join on product_id alone, and each line repeats once per version.\n- `competitor_prices` has one row per price check, many per product. A join repeats each line once per check.\n\n### Check the row count\n\nBefore you add anything up, count the rows of the join and compare them with the table whose grain you expect. Lines joined to their order give exactly the number of lines; anything more means a repeat.\n\n### Three fixes\n\n1. **Add up first, then join.** Bring the many side down to one row per key in a named step, then join the step: `WITH order_units AS (SELECT order_id, SUM(quantity) AS units FROM order_lines GROUP BY order_id)`. Each order now meets one row.\n2. **Keep one row per key.** When only one row is wanted, filter to it: the current price is the version with a missing `valid_to`.\n3. **List each key once.** To ask \"is this product in any promotion?\", join a step that holds each product once: `SELECT DISTINCT product_id FROM promotion_products`.\n\n`COUNT(DISTINCT order_id)` repairs a count after a join, but not a sum. Never repair a sum with `SUM(DISTINCT ...)`: it drops values that are equal by chance, such as two different lines of 1 unit each.\n\n### Two many sides\n\nWhen a question needs two many-side tables of the same thing, such as the lines and the competitor checks of a product, joining both multiplies them: a product with 4 lines and 3 checks gives 12 rows. Add up each side in its own step, to one row per product, then join the steps.",
+  "syntax_md": "```sql\nWITH child_totals AS (                                    -- one row per parent key\n  SELECT parent_id, SUM(value_column) AS total_value        -- metrics\n  FROM child_table                                          -- source: the many side\n  GROUP BY parent_id                                        -- output grain: one row per key\n)\nSELECT p.parent_id, c.total_value                           -- metrics\nFROM parent_table p                                         -- source: the one side\nJOIN child_totals c ON c.parent_id = p.parent_id;           -- one match per parent row\n```\n\n- Check the grain of both sides before the join, and the row count after it.\n- Add up the many side first, then join.\n- One row per key: filter to it (the current price), or list each key once (the bridge table).\n- `COUNT(DISTINCT key)` repairs a count after a join; a repeated sum needs adding up first.",
+  "dialect_note": null,
+  "worked_examples": [
+    {
+      "title": "Units and competitor checks for each brand",
+      "prompt": "For each brand, how many units were sold, and how many competitor price checks were made of its products? Return brand, units and n_checks, one row for each brand with both.",
+      "clauses": [
+        {
+          "text": "WITH brand_units AS (SELECT p.brand, SUM(ol.quantity) AS units",
+          "subgoal": "metrics",
+          "why": "The first step adds up the lines on their own, before the checks are anywhere near them."
+        },
+        {
+          "text": "FROM order_lines ol JOIN products p ON p.product_id = ol.product_id",
+          "subgoal": "source_grain",
+          "why": "Each line has one product, so this join keeps one row per line."
+        },
+        {
+          "text": "GROUP BY p.brand),",
+          "subgoal": "output_grain",
+          "why": "The first step ends at one row per brand."
+        },
+        {
+          "text": "brand_checks AS (SELECT p.brand, COUNT(*) AS n_checks",
+          "subgoal": "metrics",
+          "why": "The second step counts the checks on their own, so no line repeats them."
+        },
+        {
+          "text": "FROM competitor_prices cp JOIN products p ON p.product_id = cp.product_id",
+          "subgoal": "source_grain",
+          "why": "One row per price check, each with its product's brand."
+        },
+        {
+          "text": "GROUP BY p.brand)",
+          "subgoal": "output_grain",
+          "why": "The second step also ends at one row per brand."
+        },
+        {
+          "text": "SELECT u.brand, u.units, c.n_checks",
+          "subgoal": "metrics",
+          "why": "Both numbers come from steps that already have one row per brand."
+        },
+        {
+          "text": "FROM brand_units u JOIN brand_checks c ON c.brand = u.brand",
+          "subgoal": "source_grain",
+          "why": "One row meets one row, so nothing repeats."
+        }
+      ]
+    },
+    {
+      "title": "Orders and units for each country",
+      "prompt": "For each country that orders ship to, how many orders with at least one line were there, and how many units did they hold? Return ship_to_country, n_orders and units.",
+      "clauses": [
+        {
+          "text": "WITH order_units AS (SELECT order_id, SUM(quantity) AS units",
+          "subgoal": "metrics",
+          "why": "Each order's units, added up before the join."
+        },
+        {
+          "text": "FROM order_lines",
+          "subgoal": "source_grain",
+          "why": "One row per line."
+        },
+        {
+          "text": "GROUP BY order_id)",
+          "subgoal": "output_grain",
+          "why": "One row per order: the grain of orders."
+        },
+        {
+          "text": "SELECT o.ship_to_country, COUNT(*) AS n_orders, SUM(u.units) AS units",
+          "subgoal": "metrics",
+          "why": "COUNT(*) now counts orders, because each order meets one row of order_units."
+        },
+        {
+          "text": "FROM orders o JOIN order_units u ON u.order_id = o.order_id",
+          "subgoal": "source_grain",
+          "why": "One order meets one row; orders with no lines drop out, as the question asks."
+        },
+        {
+          "text": "GROUP BY o.ship_to_country",
+          "subgoal": "output_grain",
+          "why": "One row per country."
+        }
+      ]
+    }
+  ],
+  "pretest_item_ids": [
+    "EX-SQL-JOIN-03-E1-01",
+    "EX-SQL-JOIN-03-E1-02"
+  ],
+  "lesson_item_ids": [
+    "EX-SQL-JOIN-03-E1-03",
+    "EX-SQL-JOIN-03-E1-04",
+    "EX-SQL-JOIN-03-E2-01",
+    "EX-SQL-JOIN-03-E2-02"
+  ],
+  "retest_item_id": "EX-SQL-JOIN-03-E1-05",
+  "pool_item_ids": [
+    "EX-SQL-JOIN-03-E1-06",
+    "EX-SQL-JOIN-03-E1-07",
+    "EX-SQL-JOIN-03-E1-08",
+    "EX-SQL-JOIN-03-E2-03",
+    "EX-SQL-JOIN-03-E2-04",
+    "EX-SQL-JOIN-03-E2-05",
+    "EX-SQL-JOIN-03-E2-06",
+    "EX-SQL-JOIN-03-E3-01",
+    "EX-SQL-JOIN-03-E3-02",
+    "EX-SQL-JOIN-03-E3-03",
+    "EX-SQL-JOIN-03-E1-31",
+    "EX-SQL-JOIN-03-E2-31",
+    "EX-SQL-JOIN-03-E2-32",
+    "EX-SQL-JOIN-03-E1-42",
+    "EX-SQL-JOIN-03-E2-41",
+    "EX-SQL-JOIN-03-E2-42"
+  ],
+  "source_ids": [
+    "01:SQL-JOIN-03"
+  ],
+  "why_clause": {
+    "clause": "GROUP BY p.brand",
+    "stem": "Why does the query add up the units in their own step instead of joining order_lines and competitor_prices to the products in one go?",
+    "options": [
+      {
+        "id": "a",
+        "text": "Joined together, every line would pair with every check of its product, so units and checks would both come out too big."
+      },
+      {
+        "id": "b",
+        "text": "COUNT(*) and SUM cannot be used in the same SELECT, so they need separate steps."
+      },
+      {
+        "id": "c",
+        "text": "order_lines and competitor_prices share no column, so they cannot be joined at all."
+      },
+      {
+        "id": "d",
+        "text": "A separate step is the only way to keep brands that have no competitor checks."
+      }
+    ],
+    "correct_id": "a",
+    "explanation": "A brand's lines and its checks are both many-side rows of its products. Joined in one go, every line pairs with every check, so the units are added once per check and the checks counted once per line. Adding up each side to one row per brand first stops the repeats. COUNT and SUM can share a SELECT, both tables have product_id, and the inner join here drops brands with no checks anyway."
+  }
+}

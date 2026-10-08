@@ -1,0 +1,120 @@
+{
+  "id": "EX-SQL-SET-01-E3-21",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "set",
+    "intersect",
+    "union",
+    "cte",
+    "cross-join",
+    "ratio",
+    "competitor_prices"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-SET-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-SET-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-AGG-01",
+    "SQL-TYPE-01",
+    "SQL-CTE-01",
+    "SQL-JOIN-05",
+    "SQL-SET-01"
+  ],
+  "template_id": "T-SET-01-overlap-share",
+  "template_params": {
+    "table": "competitor_prices",
+    "month": "2025-05"
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_set",
+  "prompt": "In May 2025, what share of the products that any competitor checked did both competitors check? Use the competitor_prices table, where competitor is 'Bliksem' or 'Stroomhuis'. observed_ts holds the time of the check in UTC, so take May in UTC: from 2025-05-01 00:00 up to but not including 2025-06-01 00:00. Count each product once. Return three columns, in this order: products_both, the number of products both competitors checked, products_any, the number of products at least one of them checked, and both_pct, 100 times products_both divided by products_any, rounded to 1 decimal with ROUND(x, 1). Return one row. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "products_both",
+        "type_class": "numeric"
+      },
+      {
+        "name": "products_any",
+        "type_class": "numeric"
+      },
+      {
+        "name": "both_pct",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "products_both",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "products_any",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "both_pct",
+        "type_class": "numeric",
+        "precision": "ratio",
+        "require_rounding": 1
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, combine the two one-row counts into one row and work out the percentage.",
+    "INTERSECT gives the products in both lists and UNION the products in either, each once. Each count is one row, so a CROSS JOIN puts them side by side; keep the decimals when you divide."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 1001,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 1002,
+      "to": 1044,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "INTERSECT and UNION each keep a product once, so their counts are products, not checks, and 100.0 keeps the decimals of the share."
+}

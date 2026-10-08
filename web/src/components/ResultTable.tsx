@@ -2,7 +2,6 @@
 import type { DisplayOk } from '../../../server/runner/protocol.ts';
 import { cell } from '../lib/cell.ts';
 
-
 /** `count` replaces the row count line, for a table that shows a sample of a known total (the diff). */
 export function ResultTable({ result, caption, count }: { result: DisplayOk; caption?: string; count?: string }) {
   return (

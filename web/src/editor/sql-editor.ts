@@ -1,4 +1,4 @@
-// CodeMirror 6 editor: Ctrl+Enter runs, Ctrl+Shift+Enter submits, at the highest precedence (design §11 UI).
+// CodeMirror 6 editor: Ctrl+Enter runs, Ctrl+Shift+Enter submits, at the highest precedence (design §11 UI). Screen mode has no autocomplete (S4B-22).
 // A faded item's visible prefix, and its suffix when it has one, are read-only, enforced with changeFilter.
 import { EditorState, Prec, type ChangeSpec, type Extension } from '@codemirror/state';
 import { Decoration, EditorView, keymap, lineNumbers } from '@codemirror/view';
@@ -62,7 +62,16 @@ export function editorLabel({ prefix, suffix }: Locked): string {
   return 'SQL editor';
 }
 
-export function createSqlEditor(o: { parent: HTMLElement; text: string; locked: Locked; schema: Record<string, string[]>; onRun: () => void; onSubmit: () => void }): SqlEditor {
+/**
+ * The SQL language and its autocomplete. Screen mode (design §6, S4B-22) turns autocomplete off, as an online test's editor
+ * has none: no completion list, and no table or column names. The language stays for highlighting. Exported for the tests.
+ */
+export function completionExtensions(o: { screenMode: boolean; schema: Record<string, string[]> }): Extension[] {
+  if (o.screenMode) return [sql({ dialect: DuckDBDialect, upperCaseKeywords: true })];
+  return [sql({ dialect: DuckDBDialect, schema: o.schema, upperCaseKeywords: true }), autocompletion()];
+}
+
+export function createSqlEditor(o: { parent: HTMLElement; text: string; locked: Locked; schema: Record<string, string[]>; onRun: () => void; onSubmit: () => void; screenMode?: boolean }): SqlEditor {
   const extensions: Extension[] = [
     Prec.highest(keymap.of([
       { key: 'Mod-Shift-Enter', run: () => { o.onSubmit(); return true; } },
@@ -71,8 +80,7 @@ export function createSqlEditor(o: { parent: HTMLElement; text: string; locked: 
     lineNumbers(),
     history(),
     keymap.of([...defaultKeymap, ...historyKeymap]),
-    sql({ dialect: DuckDBDialect, schema: o.schema, upperCaseKeywords: true }),
-    autocompletion(),
+    ...completionExtensions({ screenMode: o.screenMode === true, schema: o.schema }),
     EditorView.lineWrapping,
     EditorView.theme({
       '&': { backgroundColor: 'var(--surface)', border: '1px solid var(--control)', borderRadius: 'var(--r1)', fontSize: 'var(--t2)' },

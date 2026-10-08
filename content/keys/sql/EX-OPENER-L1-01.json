@@ -6,7 +6,10 @@
     "SELECT promo_code, promo_name, discount_pct, 400.00 * (1 - COALESCE(discount_pct, 0) / 100) AS sale_price_eur FROM promotions WHERE (promo_type = 'percent_off' OR promo_type = 'clearance') AND start_date >= DATE '2025-01-01' AND start_date <= DATE '2025-06-30' ORDER BY 4, 1",
     "SELECT promo_code, promo_name, discount_pct, COALESCE(400.00 - 4 * discount_pct, 400.00) AS sale_price_eur FROM promotions WHERE promo_type IN ('clearance', 'percent_off') AND start_date BETWEEN '2025-01-01' AND '2025-06-30' ORDER BY sale_price_eur ASC, promo_code ASC"
   ],
-  "other_way": null,
+  "other_way": {
+    "sql": "SELECT promo_code, promo_name, discount_pct, 400.00 * (1 - COALESCE(discount_pct, 0) / 100) AS sale_price_eur FROM promotions WHERE (promo_type = 'percent_off' OR promo_type = 'clearance') AND start_date >= DATE '2025-01-01' AND start_date <= DATE '2025-06-30' ORDER BY 4, 1",
+    "tradeoff": "Writing OR and two date comparisons avoids IN and BETWEEN, but the filter gets longer and harder to scan."
+  },
   "planted_wrong": [
     {
       "id": "EX-OPENER-L1-01-PW1",

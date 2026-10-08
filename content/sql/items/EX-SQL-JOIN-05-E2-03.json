@@ -1,0 +1,135 @@
+{
+  "id": "EX-SQL-JOIN-05-E2-03",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "cross-join",
+    "average",
+    "orders",
+    "stores"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-JOIN-05"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-JOIN-05",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-CTE-01",
+    "SQL-JOIN-01",
+    "SQL-JOIN-05"
+  ],
+  "template_id": "T-JOIN-05-cross-join-vs-average",
+  "template_params": {
+    "month": "2025-03",
+    "decimals": 1
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_join",
+  "prompt": "In March 2025, how far was each store's number of orders above or below the average number of orders per store? order_ts holds UTC time: use its UTC date, from 1 to 31 March 2025. Return three columns, in this order: store_code, n_orders and vs_avg, the store's n_orders minus the average n_orders over the stores that had orders in March 2025, rounded to 1 decimal. Return one row for each store with orders in March 2025. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "store_code",
+        "type_class": "text"
+      },
+      {
+        "name": "n_orders",
+        "type_class": "numeric"
+      },
+      {
+        "name": "vs_avg",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "store_code",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "n_orders",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "vs_avg",
+        "type_class": "numeric",
+        "precision": "ratio",
+        "require_rounding": 1
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "store_code"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, attach the one-row average to every store row with a join that needs no condition.",
+    "Work out the average of the per-store counts in its own step; it has one row, so pairing it with every store repeats nothing."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 222,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 223,
+      "to": 285,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 286,
+      "to": 364,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 365,
+      "to": 381,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 382,
+      "to": 402,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "avg_all has one row, so CROSS JOIN puts the same average next to every store, and the subtraction compares each store with it."
+}

@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-DATE-01-E1-21",
+  "item_version": 1,
+  "reference_sql": "SELECT year(order_ts) AS order_year,\n       COUNT(*) AS orders\nFROM orders\nWHERE channel = 'web'\nGROUP BY year(order_ts)",
+  "alternatives": [
+    "SELECT EXTRACT(year FROM order_ts) AS order_year, COUNT(order_id) AS orders FROM orders WHERE channel = 'web' GROUP BY 1",
+    "SELECT year(date_trunc('year', order_ts)) AS order_year, COUNT(*) AS orders FROM orders WHERE channel = 'web' GROUP BY date_trunc('year', order_ts)"
+  ],
+  "other_way": {
+    "sql": "SELECT year(date_trunc('year', order_ts)) AS order_year, COUNT(*) AS orders FROM orders WHERE channel = 'web' GROUP BY date_trunc('year', order_ts)",
+    "tradeoff": "Grouping by the first day of the year from date_trunc works too, but year() gives the number in one step."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-25",
+      "sql": "SELECT isoyear(order_ts) AS order_year, COUNT(*) AS orders FROM orders WHERE channel = 'web' GROUP BY 1"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-04",
+      "sql": "SELECT year(order_ts) AS order_year, COUNT(customer_id) AS orders FROM orders WHERE channel = 'web' GROUP BY 1"
+    }
+  ],
+  "hint3_partial": "SELECT ___(order_ts) AS order_year,\n       COUNT(*) AS orders\nFROM orders\nWHERE channel = 'web'\nGROUP BY ___",
+  "solver": {
+    "prompt_hash": "dfa7744840218071",
+    "schema_version": "7ed366279088",
+    "dataset_version": "e1545e4258743033",
+    "grader_version": "1b.3",
+    "query": "SELECT year(order_ts) AS order_year, COUNT(*) AS orders\nFROM orders\nWHERE channel = 'web'\nGROUP BY 1",
+    "at": "2026-10-07T10:41:36.562Z"
+  }
+}

@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import { api } from '../../web/src/api.ts';
 import {
   HELP_LINE, TIME_UP, clockLeft, countdownText, helpAllowed, levelLine, remainingSeconds, scoreLine, unseenLine, historyRows, HISTORY_COLUMNS,
-  type DrillScoreView,
+  SCREEN_BANNER, SCREEN_MODE_HINT, SCREEN_MODE_LABEL, startBody, type DrillScoreView,
 } from '../../web/src/lib/drill-flow.ts';
 
 const score = (passed: number, unseen: number, over: Partial<DrillScoreView> = {}): DrillScoreView => ({
@@ -56,10 +56,35 @@ test('help is closed during the run and open in the review', () => {
   assert.equal(TIME_UP, 'Time is up.');
 });
 
-test('the history table has the four columns and one row per run', () => {
-  assert.deepEqual(HISTORY_COLUMNS, ['Date', 'Score', 'Passed', 'Unseen']);
-  const rows = historyRows([{ block_id: 'b', kind: 'level', level: 1, date: '2026-10-03', ...score(9, 8) }]);
-  assert.deepEqual(rows, [{ key: 'b', cells: ['2026-10-03', '9 of 10 (90%)', 'Yes', '8 of 10'] }]);
+test('the history table has six columns, the mode (S4B-23) and "Explained aloud" (D50) among them, and one row per run', () => {
+  assert.deepEqual(HISTORY_COLUMNS, ['Date', 'Mode', 'Score', 'Passed', 'Unseen', 'Explained aloud']);
+  const rows = historyRows([
+    { block_id: 'b', kind: 'level', level: 1, date: '2026-10-03', screen_mode: false, ...score(9, 8) },
+    { block_id: 's', kind: 'level', level: 1, date: '2026-10-04', screen_mode: true, ...score(10, 7) },
+  ]);
+  assert.deepEqual(rows, [
+    { key: 'b', cells: ['2026-10-03', 'Normal', '9 of 10 (90%)', 'Yes', '8 of 10'], tick: null },
+    { key: 's', cells: ['2026-10-04', 'Screen mode', '10 of 10 (100%)', 'Yes', '7 of 10'], tick: null },
+  ]);
+});
+
+test('S4B-22: the screen mode banner and the choice offered at the start, in plain words', () => {
+  assert.equal(SCREEN_BANNER, 'Screen mode: no autocomplete, and types and rounding are checked as an online test does');
+  assert.equal(SCREEN_MODE_LABEL, 'Screen mode');
+  assert.ok(!/—/.test(SCREEN_BANNER + SCREEN_MODE_HINT), 'no em dash');
+  assert.match(SCREEN_MODE_HINT, /same questions, time limit and pass mark/);
+});
+
+test('S4B-23: a drill start sends screen_mode only when it is chosen', async (t) => {
+  const bodies: unknown[] = [];
+  t.mock.method(globalThis, 'fetch', async (_path: string, init: RequestInit) => {
+    bodies.push(JSON.parse(String(init.body)));
+    return new Response('{}', { status: 200 });
+  });
+  await api.drillStart(startBody({ level: 2 }, true));
+  await api.drillStart(startBody({ concept_ids: ['A'] }, true));
+  await api.drillStart(startBody({ level: 1 }, false));
+  assert.deepEqual(bodies, [{ level: 2, screen_mode: true }, { concept_ids: ['A'], screen_mode: true }, { level: 1 }]);
 });
 
 test('the drill calls use the drill routes', async (t) => {
@@ -122,4 +147,132 @@ test('the end retries a few times with a pause, then gives up with the error', a
   assert.equal(ok, 'done');
   assert.deepEqual(waits, [500, 1500]);
   await assert.rejects(endWithRetry(async () => { throw new Error('still down'); }, async () => {}), /still down/);
+});
+
+// ---- Task E4: live reps (S4B-26, D42) ----
+import {
+  EXPLAINED_ALOUD_LABEL, LIVE_REP_HINT, LIVE_REP_LABEL, isLiveRun, liveRepLine, liveSelfCheckBody,
+} from '../../web/src/lib/drill-flow.ts';
+import { liveRepStart, tickExplainedAloud } from '../../web/src/lib/live-rep-api.ts';
+
+test('S4B-26: a live block is told by its ID; the wording is plain and short', () => {
+  assert.equal(isLiveRun('live-3f2a'), true);
+  assert.equal(isLiveRun('3f2a-live-'), false);
+  assert.equal(LIVE_REP_LABEL, 'Live rep');
+  assert.match(LIVE_REP_HINT, /10 minutes/);
+  assert.match(LIVE_REP_HINT, /screen mode/i);
+  assert.equal(EXPLAINED_ALOUD_LABEL, 'I explained my answer aloud');
+  for (const t of [LIVE_REP_HINT, EXPLAINED_ALOUD_LABEL, liveRepLine(true, true), liveRepLine(true, false), liveRepLine(false, true)]) {
+    assert.ok(!t.includes('—'), 'no em dash');
+    assert.ok(!/\b(he|she|his|her)\b/i.test(t), 'no gendered pronoun');
+  }
+});
+
+test('D42: the end line says passed with the item passed and the tick, logged only without the tick, and not passed with the item failed', () => {
+  assert.equal(liveRepLine(true, true), 'Live rep passed.');
+  assert.match(liveRepLine(true, false), /^Logged only/);
+  assert.match(liveRepLine(true, false), /explained aloud/);
+  assert.match(liveRepLine(false, true), /^Logged\. The exercise was not passed/);
+  assert.match(liveRepLine(false, false), /not passed/);
+});
+
+test('the explained-aloud request names the block and a boolean, nothing else', () => {
+  assert.deepEqual(liveSelfCheckBody('live-1', true), { block_id: 'live-1', ticked: true });
+  assert.deepEqual(liveSelfCheckBody('live-1', false), { block_id: 'live-1', ticked: false });
+});
+
+test('the history lists a live rep as "Live rep", and passed, logged only or no', () => {
+  const row = (block_id: string, run_passed: boolean, passed: number) => ({ block_id, kind: 'live_rep' as const, level: null, date: '2026-10-08', screen_mode: true,
+    explained_aloud: run_passed, passed, questions: 1, pct: passed * 100, run_passed, unseen: 1, unseen_pct: 100, counts_for_level: false });
+  assert.deepEqual(historyRows([row('a', true, 1), row('b', false, 1), row('c', false, 0)]).map((r) => [r.cells[1], r.cells[3]]),
+    [['Live rep', 'Yes'], ['Live rep', 'Logged only'], ['Live rep', 'No']]);
+});
+
+test('the live rep calls go through apiCall to the drill module', async () => {
+  const calls: { url: string; method: string; body: unknown }[] = [];
+  const real = globalThis.fetch;
+  globalThis.fetch = (async (url: string, init: RequestInit) => {
+    calls.push({ url: String(url), method: init.method ?? 'GET', body: init.body ? JSON.parse(String(init.body)) : undefined });
+    return new Response('{"ok":true}', { status: 200, headers: { 'content-type': 'application/json' } });
+  }) as typeof fetch;
+  try {
+    await liveRepStart();
+    await tickExplainedAloud('live-9', true);
+  } finally { globalThis.fetch = real; }
+  assert.deepEqual(calls.map((c) => [c.method, c.url.replace(/^https?:\/\/[^/]+/, ''), c.body]),
+    [['POST', '/api/drill/live/start', {}], ['POST', '/api/drill/self-check', { block_id: 'live-9', ticked: true }]]);
+});
+
+// ---- Sprint 4c, Task B1: D50, the "Explained aloud" box on a live rep's history row ----
+import {
+  applyTick, historyTickDisabled, historyTickSaves, historyTickName, tickFromHistory, type HistoryRun,
+} from '../../web/src/lib/drill-flow.ts';
+
+const liveRun = (block_id: string, itemPassed: boolean, explained: boolean): HistoryRun => ({ block_id, kind: 'live_rep', level: null, date: '2026-10-08', screen_mode: true,
+  explained_aloud: explained, passed: itemPassed ? 1 : 0, questions: 1, pct: itemPassed ? 100 : 0, run_passed: itemPassed && explained, unseen: 1, unseen_pct: 100, counts_for_level: false });
+const levelRun: HistoryRun = { block_id: 'lvl', kind: 'level', level: 1, date: '2026-10-07', screen_mode: false, ...score(9, 8) };
+
+test('D50: only a live rep\'s row has the box; it shows the server\'s tick and is named by the column and the date', () => {
+  const rows = historyRows([liveRun('live-a', true, false), levelRun, liveRun('live-b', true, true)]);
+  assert.deepEqual(rows.map((r) => r.tick), [
+    { block_id: 'live-a', checked: false, name: 'Explained aloud: live rep on 2026-10-08' },
+    null,
+    { block_id: 'live-b', checked: true, name: 'Explained aloud: live rep on 2026-10-08' },
+  ]);
+  assert.deepEqual(rows.map((r) => r.cells.length), [5, 5, 5], 'five text cells; the box is the sixth column');
+  assert.ok(historyTickName('2026-10-08').startsWith(HISTORY_COLUMNS[5]), 'the name starts with the visible column header (WCAG 2.5.3)');
+  const noField = { ...liveRun('live-c', false, false) } as Partial<HistoryRun>;
+  delete noField.explained_aloud;
+  assert.equal(historyRows([noField as HistoryRun])[0]!.tick!.checked, false, 'a row without the field reads as not ticked');
+});
+
+test('D50: a tick flips the row\'s Passed cell from "Logged only" to "Yes", an untick takes it back; a failed exercise stays "No"', () => {
+  const passedCell = (runs: HistoryRun[], key: string) => historyRows(runs).find((r) => r.key === key)!.cells[3];
+  const runs = [liveRun('live-a', true, false), levelRun, liveRun('live-f', false, false)];
+  assert.equal(passedCell(runs, 'live-a'), 'Logged only');
+  const ticked = applyTick(runs, 'live-a', true);
+  assert.equal(passedCell(ticked, 'live-a'), 'Yes');
+  assert.equal(ticked.find((r) => r.block_id === 'live-a')!.explained_aloud, true);
+  assert.deepEqual(ticked[1], levelRun, 'other rows are untouched');
+  assert.equal(passedCell(applyTick(ticked, 'live-a', false), 'live-a'), 'Logged only');
+  const failed = applyTick(runs, 'live-f', true);
+  assert.equal(passedCell(failed, 'live-f'), 'No', 'D42: the exercise must pass too');
+  assert.equal(failed.find((r) => r.block_id === 'live-f')!.explained_aloud, true);
+  assert.deepEqual(applyTick(runs, 'lvl', true), runs, 'a level run has no tick');
+});
+
+test('D50: ticking from the history posts one self-check for the row\'s block, and the row follows the server\'s answer', async () => {
+  const calls: { url: string; method: string; body: unknown }[] = [];
+  const real = globalThis.fetch;
+  globalThis.fetch = (async (url: string, init: RequestInit) => {
+    const body = init.body ? JSON.parse(String(init.body)) : undefined;
+    calls.push({ url: String(url).replace(/^https?:\/\/[^/]+/, ''), method: init.method ?? 'GET', body });
+    return new Response(JSON.stringify(body), { status: 200, headers: { 'content-type': 'application/json' } });
+  }) as typeof fetch;
+  let runs = [liveRun('live-a', true, false), levelRun];
+  try {
+    runs = (await tickFromHistory('live-a', true, tickExplainedAloud))(runs);
+    assert.deepEqual(calls, [{ url: '/api/drill/self-check', method: 'POST', body: { block_id: 'live-a', ticked: true } }], 'one self-check, nothing else');
+    assert.equal(historyRows(runs)[0]!.cells[3], 'Yes');
+    assert.equal(historyRows(runs)[0]!.tick!.checked, true);
+    runs = (await tickFromHistory('live-a', false, tickExplainedAloud))(runs);
+    assert.deepEqual(calls[1]!.body, { block_id: 'live-a', ticked: false });
+    assert.equal(historyRows(runs)[0]!.cells[3], 'Logged only');
+  } finally { globalThis.fetch = real; }
+});
+
+test('D50: a refused tick changes no row', async () => {
+  const refused = async (): Promise<{ block_id: string; ticked: boolean }> => { throw new ApiError('The rep is still running. Tick this when it has ended.', 409); };
+  await assert.rejects(tickFromHistory('live-a', true, refused), /still running/);
+});
+
+test('D50: the box is disabled while a run is on or starting, and before the screen knows whether one is on; never while its own tick saves (F2 I1)', () => {
+  const free = { state: { kind: 'choose' } as const, runKnown: true, busy: false, saving: false };
+  assert.equal(historyTickDisabled(free), false);
+  assert.equal(historyTickDisabled({ ...free, state: { kind: 'running' } }), true, 'a rep runs');
+  assert.equal(historyTickDisabled({ ...free, busy: true }), true, 'a start is on its way');
+  assert.equal(historyTickDisabled({ ...free, runKnown: false }), true, 'the run in progress is not known yet');
+  assert.equal(historyTickDisabled({ ...free, saving: true }), false, 'a tick being saved keeps the box enabled, so it keeps keyboard focus');
+  assert.equal(historyTickSaves({ saving: false }), true);
+  assert.equal(historyTickSaves({ saving: true }), false, 'a second click while a tick saves is ignored');
 });

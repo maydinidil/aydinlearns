@@ -1,6 +1,6 @@
 {
   "item_id": "EX-SQL-CASE-01-E2-03",
-  "item_version": 1,
+  "item_version": 2,
   "reference_sql": "SELECT promo_type,\n       CASE WHEN discount_pct >= 40 THEN 'deep'\n            WHEN discount_pct >= 20 THEN 'medium'\n            ELSE 'light'\n       END AS depth,\n       COUNT(*) AS n_promotions\nFROM promotions\nGROUP BY promo_type, depth",
   "alternatives": [
     "SELECT promo_type, CASE WHEN discount_pct < 20 THEN 'light' WHEN discount_pct < 40 THEN 'medium' ELSE 'deep' END AS depth, COUNT(*) AS n_promotions FROM promotions GROUP BY 1, 2",
@@ -10,7 +10,7 @@
   "planted_wrong": [
     {
       "id": "PW1",
-      "error_id": "ERR-LOG-00",
+      "error_id": "ERR-LOG-29",
       "sql": "SELECT promo_type, CASE WHEN discount_pct >= 20 THEN 'medium' WHEN discount_pct >= 40 THEN 'deep' ELSE 'light' END AS depth, COUNT(*) AS n_promotions FROM promotions GROUP BY promo_type, depth"
     },
     {

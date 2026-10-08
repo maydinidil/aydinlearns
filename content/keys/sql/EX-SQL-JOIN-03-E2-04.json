@@ -1,0 +1,39 @@
+{
+  "item_id": "EX-SQL-JOIN-03-E2-04",
+  "item_version": 1,
+  "reference_sql": "WITH order_totals AS (\n  SELECT order_id, SUM(quantity * unit_price_eur - line_discount_eur) AS order_eur\n  FROM order_lines\n  GROUP BY order_id\n)\nSELECT s.store_code, COUNT(*) AS n_orders, AVG(t.order_eur) AS avg_order_eur\nFROM order_totals t\nJOIN orders o ON o.order_id = t.order_id\nJOIN stores s ON s.store_id = o.store_id\nGROUP BY s.store_code",
+  "alternatives": [
+    "SELECT s.store_code, COUNT(DISTINCT o.order_id) AS n_orders, SUM(ol.quantity * ol.unit_price_eur - ol.line_discount_eur) / COUNT(DISTINCT o.order_id) AS avg_order_eur FROM orders o JOIN order_lines ol ON ol.order_id = o.order_id JOIN stores s ON s.store_id = o.store_id GROUP BY s.store_code",
+    "WITH t AS (SELECT order_id, store_code, SUM(net_revenue_eur) AS order_eur FROM sales GROUP BY order_id, store_code) SELECT store_code, COUNT(*) AS n_orders, AVG(order_eur) AS avg_order_eur FROM t GROUP BY store_code"
+  ],
+  "other_way": {
+    "sql": "SELECT s.store_code, COUNT(DISTINCT o.order_id) AS n_orders, SUM(ol.quantity * ol.unit_price_eur - ol.line_discount_eur) / COUNT(DISTINCT o.order_id) AS avg_order_eur FROM orders o JOIN order_lines ol ON ol.order_id = o.order_id JOIN stores s ON s.store_id = o.store_id GROUP BY s.store_code",
+    "tradeoff": "A total divided by different orders works in one query, but AVG after that join would quietly average lines instead."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-01",
+      "sql": "SELECT s.store_code, COUNT(*) AS n_orders, AVG(ol.quantity * ol.unit_price_eur - ol.line_discount_eur) AS avg_order_eur FROM orders o JOIN order_lines ol ON ol.order_id = o.order_id JOIN stores s ON s.store_id = o.store_id GROUP BY s.store_code"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-01",
+      "sql": "SELECT s.store_code, COUNT(DISTINCT o.order_id) AS n_orders, AVG(ol.quantity * ol.unit_price_eur - ol.line_discount_eur) AS avg_order_eur FROM orders o JOIN order_lines ol ON ol.order_id = o.order_id JOIN stores s ON s.store_id = o.store_id GROUP BY s.store_code"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-11",
+      "sql": "WITH order_totals AS (SELECT order_id, SUM(quantity * unit_price_eur - line_discount_eur) AS order_eur FROM order_lines GROUP BY order_id) SELECT s.store_code, COUNT(t.order_id) AS n_orders, AVG(t.order_eur) AS avg_order_eur FROM stores s LEFT JOIN orders o ON o.store_id = s.store_id LEFT JOIN order_totals t ON t.order_id = o.order_id GROUP BY s.store_code"
+    }
+  ],
+  "hint3_partial": "WITH order_totals AS (\n  SELECT order_id, SUM(quantity * unit_price_eur - line_discount_eur) AS order_eur\n  FROM order_lines\n  GROUP BY order_id\n)\nSELECT s.store_code, COUNT(*) AS n_orders, AVG(___) AS avg_order_eur\nFROM order_totals t\nJOIN orders o ON ___\nJOIN stores s ON ___\nGROUP BY s.store_code",
+  "solver": {
+    "prompt_hash": "1f0021f057c05809",
+    "schema_version": "6ef9ff4e4ad1",
+    "dataset_version": "e1545e4258743033",
+    "grader_version": "1b.3",
+    "query": "WITH order_values AS (\n  SELECT o.order_id, o.store_id, SUM(l.quantity * l.unit_price_eur - l.line_discount_eur) AS value_eur\n  FROM orders o\n  JOIN order_lines l ON l.order_id = o.order_id\n  GROUP BY o.order_id, o.store_id\n)\nSELECT s.store_code, COUNT(*) AS n_orders, AVG(ov.value_eur) AS avg_order_eur\nFROM order_values ov\nJOIN stores s ON s.store_id = ov.store_id\nGROUP BY s.store_id, s.store_code",
+    "at": "2026-10-07T10:41:40.000Z"
+  }
+}

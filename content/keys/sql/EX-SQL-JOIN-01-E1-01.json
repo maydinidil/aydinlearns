@@ -1,0 +1,35 @@
+{
+  "item_id": "EX-SQL-JOIN-01-E1-01",
+  "item_version": 1,
+  "reference_sql": "SELECT p.product_name, c.parent_category\nFROM products p\nJOIN categories c ON c.category_id = p.category_id\nWHERE p.brand = 'Vistara'",
+  "alternatives": [
+    "SELECT products.product_name, categories.parent_category FROM categories JOIN products ON products.category_id = categories.category_id WHERE products.brand = 'Vistara'",
+    "SELECT p.product_name, c.parent_category FROM products p, categories c WHERE c.category_id = p.category_id AND p.brand = 'Vistara'",
+    "SELECT p.product_name, c.parent_category FROM products AS p INNER JOIN categories AS c USING (category_id) WHERE p.brand = 'Vistara'"
+  ],
+  "other_way": {
+    "sql": "SELECT p.product_name, c.parent_category FROM products p, categories c WHERE c.category_id = p.category_id AND p.brand = 'Vistara'",
+    "tradeoff": "Listing the tables with a comma and matching in WHERE also works, but a forgotten match then pairs every row."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-12",
+      "sql": "SELECT p.product_name, c.parent_category FROM products p JOIN categories c ON c.category_id = p.product_id WHERE p.brand = 'Vistara'"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-SEM-03",
+      "sql": "SELECT p.product_name, c.parent_category FROM products p, categories c WHERE p.brand = 'Vistara'"
+    }
+  ],
+  "hint3_partial": "SELECT p.product_name, c.parent_category\nFROM products p\nJOIN categories c ON ___\nWHERE p.brand = 'Vistara'",
+  "solver": {
+    "prompt_hash": "4280ee877cb8e4d4",
+    "schema_version": "81419b0500f4",
+    "dataset_version": "e1545e4258743033",
+    "grader_version": "1b.3",
+    "query": "SELECT p.product_name, c.parent_category\nFROM products p\nJOIN categories c ON c.category_id = p.category_id\nWHERE p.brand = 'Vistara'",
+    "at": "2026-10-07T10:41:37.777Z"
+  }
+}

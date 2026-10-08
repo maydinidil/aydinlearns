@@ -1,0 +1,123 @@
+{
+  "id": "EX-SQL-DATE-01-E2-31",
+  "version": 1,
+  "kind": "fix",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "date",
+    "fix",
+    "date_part",
+    "hour",
+    "time-zone",
+    "amsterdam",
+    "orders"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-DATE-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-DATE-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-DATE-01"
+  ],
+  "template_id": "T-DATE-01-fix-amsterdam-hour",
+  "template_params": {
+    "table": "orders",
+    "part": "hour",
+    "clock": "Europe/Amsterdam",
+    "channel": "web"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_date",
+  "prompt": "The query in the editor has one mistake. Fix it so that it answers this question: at which hours of the day, in Amsterdam time, do web orders come in? Use the orders table and keep the orders with channel 'web'. order_ts holds the time of the order in UTC: turn it into Amsterdam time first, then take the hour. Return two columns, in this order: order_hour, the Amsterdam hour from 0 to 23, and orders, the number of web orders. Return one row for each hour. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "order_hour",
+        "type_class": "numeric"
+      },
+      {
+        "name": "orders",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "order_hour",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "orders",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "order_hour"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, look at order_hour: it is the hour on a UTC clock, not on an Amsterdam clock.",
+    "Amsterdam is 1 or 2 hours ahead of UTC, depending on the season. Turn order_ts into Amsterdam time with the two timezone calls before you take the hour, in SELECT and in GROUP BY."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 102,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 103,
+      "to": 114,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 115,
+      "to": 136,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 137,
+      "to": 207,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": "SELECT hour(order_ts) AS order_hour, COUNT(*) AS orders\nFROM orders\nWHERE channel = 'web'\nGROUP BY hour(order_ts)",
+  "starter_error_id": "ERR-LOG-26",
+  "time_target_ms": 120000,
+  "why_this_works": "Converting order_ts to Amsterdam time before taking the hour puts every order at the hour an Amsterdam clock showed, in winter and in summer time."
+}

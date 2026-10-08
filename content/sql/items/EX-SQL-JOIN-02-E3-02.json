@@ -1,0 +1,133 @@
+{
+  "id": "EX-SQL-JOIN-02-E3-02",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "right_join",
+    "coalesce",
+    "count_zero",
+    "orders",
+    "order_lines",
+    "products"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-JOIN-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-JOIN-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02"
+  ],
+  "template_id": "T-JOIN-02-right-join-keep-all",
+  "template_params": {
+    "from": "orders",
+    "join": "order_lines, products",
+    "brand": "PlayBox",
+    "month": "2025-03"
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_join",
+  "prompt": "How many units of each product of the brand PlayBox were sold in orders placed in March 2025? order_ts holds UTC time: count orders from 1 March 2025 to 31 March 2025, UTC days, both included. Include every PlayBox product, with 0 for a product that sold nothing that month. Return two columns, in this order: product_id and units, the sum of quantity. Return one row for each PlayBox product. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "units",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "units",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "product_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, keep every PlayBox product while adding only the March order lines.",
+    "Join the lines to their March orders first, then bring in products so that none is dropped. A product with no line gets a missing sum."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 58,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 59,
+      "to": 72,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 73,
+      "to": 217,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 218,
+      "to": 270,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 271,
+      "to": 296,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 297,
+      "to": 318,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "The inner join keeps only March lines, RIGHT JOIN then keeps every product, and COALESCE turns a missing sum into 0."
+}

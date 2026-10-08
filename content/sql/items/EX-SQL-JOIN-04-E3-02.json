@@ -1,0 +1,144 @@
+{
+  "id": "EX-SQL-JOIN-04-E3-02",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "self-join",
+    "range-join",
+    "multi-table",
+    "order_lines",
+    "price_history",
+    "sister"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-JOIN-04"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-JOIN-04",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-NULL-01",
+    "SQL-TYPE-01",
+    "SQL-JOIN-01",
+    "SQL-JOIN-04"
+  ],
+  "template_id": "T-JOIN-04-sister-price-at-order",
+  "template_params": {
+    "from": "2025-03-03",
+    "to": "2025-03-09"
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_join",
+  "prompt": "For each order line of the orders placed from 3 to 9 March 2025 whose product has a sister product, what was the sister product's list price on the order's date? order_ts holds UTC time: use its UTC date. A product's sister_product_id holds the product_id of its sister, and a list price is in effect from its version's valid_from to its valid_to, both days included (valid_to is missing for the current price). Return three columns, in this order: order_line_id, sister_name (the sister's product_name) and sister_price_eur. Return one row for each such order line whose sister product had a list price on that date. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "order_line_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "sister_name",
+        "type_class": "text"
+      },
+      {
+        "name": "sister_price_eur",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "order_line_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "sister_name",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "sister_price_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "order_line_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, join products a second time for the sister, then price_history for the sister's price on the order's date.",
+    "The price must belong to the sister's product_id, not the line's own product, and its version's dates must contain the order's UTC date."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 93,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 94,
+      "to": 113,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 114,
+      "to": 155,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 156,
+      "to": 203,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 204,
+      "to": 257,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 258,
+      "to": 426,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 427,
+      "to": 509,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "The second alias of products finds the sister, and the range join on the sister's product_id picks the sister's list price in effect on the order's date."
+}

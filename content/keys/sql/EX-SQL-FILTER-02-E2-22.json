@@ -7,7 +7,10 @@
     "SELECT promo_code, promo_name, end_date, discount_pct\nFROM promotions\nWHERE discount_pct >= 20 AND end_date BETWEEN '2025-03-01' AND '2025-03-31'",
     "SELECT promo_code, promo_name, end_date, discount_pct\nFROM promotions\nWHERE end_date >= '2025-03-01' AND end_date <= '2025-03-31' AND NOT discount_pct < 20"
   ],
-  "other_way": null,
+  "other_way": {
+    "sql": "SELECT promo_code, promo_name, end_date, discount_pct\nFROM promotions\nWHERE end_date >= DATE '2025-03-01' AND end_date < DATE '2025-04-01' AND discount_pct >= 20",
+    "tradeoff": "A start date with an exclusive next date also works for timestamps, while BETWEEN is shorter for plain dates."
+  },
   "planted_wrong": [
     {
       "id": "PW1",

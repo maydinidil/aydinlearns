@@ -1,0 +1,131 @@
+{
+  "id": "EX-SQL-SET-01-E2-01",
+  "version": 2,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "set",
+    "intersect",
+    "cte",
+    "count",
+    "competitor_prices"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-SET-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "lesson",
+  "target_concept_id": "SQL-SET-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-AGG-01",
+    "SQL-CTE-01",
+    "SQL-SET-01"
+  ],
+  "template_id": "T-SET-01-intersect-count",
+  "template_params": {
+    "table": "competitor_prices",
+    "month": "2025-05"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_set",
+  "prompt": "How many products did both competitors check in May 2025? Use the competitor_prices table, where competitor is 'Bliksem' or 'Stroomhuis'. observed_ts holds the time of the check in UTC, so take May in UTC: from 2025-05-01 00:00 up to but not including 2025-06-01 00:00. A product counts once when Bliksem and Stroomhuis each checked it at least once in that month. Return one column, products, the number of products, in one row. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "products",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row for the whole month"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "products",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the second list inside the CTE, of the products Stroomhuis checked in May, and keep only the products in both lists.",
+    "INTERSECT keeps each row that both parts return, once, however often each competitor checked the product. The CTE then holds one row per product, ready to count."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 41,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 42,
+      "to": 66,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 67,
+      "to": 206,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 207,
+      "to": 238,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 239,
+      "to": 263,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 264,
+      "to": 408,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 409,
+      "to": 436,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 437,
+      "to": 453,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": {
+    "stage1": 206,
+    "stage2": 206
+  },
+  "faded_shape": "WITH both_rivals AS (\n  SELECT product_id\n  FROM competitor_prices\n  WHERE competitor = 'Bliksem'\n    AND observed_ts >= TIMESTAMP '2025-05-01 00:00:00'\n    AND observed_ts < TIMESTAMP '2025-06-01 00:00:00'",
+  "faded_suffix": "\n  FROM competitor_prices\n  WHERE competitor = 'Stroomhuis'\n    AND observed_ts >= TIMESTAMP '2025-05-01 00:00:00'\n    AND observed_ts < TIMESTAMP '2025-06-01 00:00:00'\n)\nSELECT COUNT(*) AS products\nFROM both_rivals",
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "INTERSECT leaves one row for each product both competitors checked in May, so COUNT(*) on the CTE counts each such product once."
+}

@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-SET-01-E2-42",
+  "item_version": 1,
+  "correct_oid": "o6382b66",
+  "explanation": "UNION ALL stacks every row of both tables, so COUNT(*) counts every list price version and every check. UNION and DISTINCT both drop price points that share a price. The join pairs every list price version with every check, so it counts the pairs, not the price points.",
+  "solver": {
+    "prompt_hash": "dc7c11de73465747",
+    "grader_version": "choice.2",
+    "chosen": "o6382b66",
+    "typed": null,
+    "at": "2026-10-07T09:58:58.615Z"
+  }
+}

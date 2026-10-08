@@ -1,0 +1,36 @@
+{
+  "item_id": "EX-SQL-JOIN-04-E1-08",
+  "item_version": 1,
+  "reference_sql": "SELECT p.product_name AS product_a, s.product_name AS product_b\nFROM products p\nJOIN products s ON s.product_id = p.sister_product_id\nWHERE p.product_id < s.product_id",
+  "alternatives": [
+    "SELECT p.product_name AS product_a, s.product_name AS product_b FROM products p JOIN products s ON s.product_id = p.sister_product_id AND s.product_id > p.product_id",
+    "SELECT s.product_name AS product_a, p.product_name AS product_b FROM products p JOIN products s ON s.product_id = p.sister_product_id WHERE s.product_id < p.product_id"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-01",
+      "sql": "SELECT p.product_name AS product_a, s.product_name AS product_b FROM products p JOIN products s ON s.product_id = p.sister_product_id"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-15",
+      "sql": "SELECT p.product_name AS product_a, s.product_name AS product_b FROM products p JOIN products s ON s.product_id = p.sister_product_id WHERE p.product_id > s.product_id"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-12",
+      "sql": "SELECT p.product_name AS product_a, s.product_name AS product_b FROM products p JOIN products s ON s.product_id = p.product_id WHERE p.sister_product_id > p.product_id"
+    }
+  ],
+  "hint3_partial": "SELECT p.product_name AS product_a, s.product_name AS product_b\nFROM products p\nJOIN products s ON s.product_id = p.sister_product_id\nWHERE ___",
+  "solver": {
+    "prompt_hash": "2ea90e427c2eb0be",
+    "schema_version": "d77fe1c31a0e",
+    "dataset_version": "e1545e4258743033",
+    "grader_version": "1b.3",
+    "query": "WITH pairs AS (\n  SELECT DISTINCT LEAST(product_id, sister_product_id) AS a_id, GREATEST(product_id, sister_product_id) AS b_id\n  FROM products\n  WHERE sister_product_id IS NOT NULL\n)\nSELECT a.product_name AS product_a, b.product_name AS product_b\nFROM pairs\nJOIN products a ON a.product_id = pairs.a_id\nJOIN products b ON b.product_id = pairs.b_id",
+    "at": "2026-10-07T10:41:41.024Z"
+  }
+}

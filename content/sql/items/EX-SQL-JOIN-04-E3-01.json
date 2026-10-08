@@ -1,0 +1,134 @@
+{
+  "id": "EX-SQL-JOIN-04-E3-01",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "range-join",
+    "multi-table",
+    "competitor_prices",
+    "price_history",
+    "categories"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-JOIN-04"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-JOIN-04",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-JOIN-01",
+    "SQL-JOIN-04"
+  ],
+  "template_id": "T-JOIN-04-undercut-checks-per-parent-category",
+  "template_params": {
+    "month": "2025-03"
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_join",
+  "prompt": "For each parent category, how many competitor price checks in March 2025 found a competitor price_eur below Voltmarkt's own list price on that day? observed_ts holds UTC time: use its UTC date, both for March (1 to 31 March 2025) and for the list price in effect, which runs from a price version's valid_from to its valid_to, both days included (valid_to is missing for the current price). Return two columns, in this order: parent_category and n_undercut_checks. Return one row for each parent category with at least one such check. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "parent_category",
+        "type_class": "text"
+      },
+      {
+        "name": "n_undercut_checks",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "parent_category",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "n_undercut_checks",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "parent_category"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, find the list price in effect on each check's UTC date with a range join to price_history.",
+    "Match the product and test the check's date against both ends of the version, keeping the current version whose valid_to is missing; then compare the two prices."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 55,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 56,
+      "to": 81,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 82,
+      "to": 259,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 260,
+      "to": 307,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 308,
+      "to": 358,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 359,
+      "to": 486,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 487,
+      "to": 513,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "The range join gives each check the one list price in effect on its date, so comparing the two prices counts each check once."
+}

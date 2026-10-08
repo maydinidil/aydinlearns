@@ -7,7 +7,10 @@
     "SELECT product_id, product_name, brand, category_raw\nFROM products\nWHERE brand NOT IN ('Basswell', 'Sonora') AND category_raw IN ('Speakers', 'Earbuds', 'Headphones')",
     "SELECT product_id, product_name, brand, category_raw\nFROM products\nWHERE category_raw IN ('Headphones', 'Earbuds', 'Speakers') AND NOT brand IN ('Sonora', 'Basswell')"
   ],
-  "other_way": null,
+  "other_way": {
+    "sql": "SELECT product_id, product_name, brand, category_raw\nFROM products\nWHERE (category_raw = 'Headphones' OR category_raw = 'Earbuds' OR category_raw = 'Speakers') AND brand <> 'Sonora' AND brand <> 'Basswell'",
+    "tradeoff": "Separate <> tests give the same rows, but NOT IN stays short as the list of values grows."
+  },
   "planted_wrong": [
     {
       "id": "PW1",

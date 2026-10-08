@@ -1,0 +1,36 @@
+{
+  "item_id": "EX-SQL-CTE-01-E1-02",
+  "item_version": 1,
+  "reference_sql": "WITH lines_per_order AS (\n  SELECT order_id, COUNT(*) AS n_lines\n  FROM order_lines\n  GROUP BY order_id\n)\nSELECT n_lines, COUNT(*) AS n_orders\nFROM lines_per_order\nGROUP BY n_lines",
+  "alternatives": [
+    "WITH lines_per_order AS (SELECT order_id, COUNT(order_line_id) AS n_lines FROM order_lines GROUP BY order_id) SELECT n_lines, COUNT(order_id) AS n_orders FROM lines_per_order GROUP BY 1",
+    "WITH c AS (SELECT order_id, COUNT(*) AS n_lines FROM sales GROUP BY order_id) SELECT n_lines, COUNT(*) AS n_orders FROM c GROUP BY n_lines"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-14",
+      "sql": "WITH lines_per_order AS (SELECT order_id, COUNT(*) AS n_lines FROM order_lines GROUP BY order_id) SELECT n_lines, SUM(n_lines) AS n_orders FROM lines_per_order GROUP BY n_lines"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-07",
+      "sql": "WITH lines_per_order AS (SELECT order_id, product_id, COUNT(*) AS n_lines FROM order_lines GROUP BY order_id, product_id) SELECT n_lines, COUNT(*) AS n_orders FROM lines_per_order GROUP BY n_lines"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-11",
+      "sql": "WITH lines_per_order AS (SELECT o.order_id, COUNT(ol.order_line_id) AS n_lines FROM orders o LEFT JOIN order_lines ol ON ol.order_id = o.order_id GROUP BY o.order_id) SELECT n_lines, COUNT(*) AS n_orders FROM lines_per_order GROUP BY n_lines"
+    }
+  ],
+  "hint3_partial": "WITH lines_per_order AS (\n  SELECT order_id, COUNT(*) AS n_lines\n  FROM order_lines\n  GROUP BY ___\n)\nSELECT n_lines, COUNT(*) AS n_orders\nFROM lines_per_order\nGROUP BY ___",
+  "solver": {
+    "prompt_hash": "77dacb27e49f5f5b",
+    "schema_version": "6c8fc3c0d3d4",
+    "dataset_version": "e1545e4258743033",
+    "grader_version": "1b.3",
+    "query": "WITH per_order AS (\n  SELECT order_id, COUNT(*) AS n_lines\n  FROM order_lines\n  GROUP BY order_id\n)\nSELECT n_lines, COUNT(*) AS n_orders\nFROM per_order\nGROUP BY n_lines",
+    "at": "2026-10-07T10:41:33.639Z"
+  }
+}

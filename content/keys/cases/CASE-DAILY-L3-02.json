@@ -1,0 +1,7 @@
+{
+  "case_id": "CASE-DAILY-L3-02",
+  "truths": {
+    "CP4": "SELECT COUNT(*)\nFROM orders\nWHERE CAST(timezone('Europe/Amsterdam', timezone('UTC', order_ts)) AS DATE) BETWEEN DATE '2025-12-01' AND DATE '2025-12-31'"
+  },
+  "choices": {}
+}

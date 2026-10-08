@@ -1,0 +1,135 @@
+{
+  "id": "EX-SQL-JOIN-05-E2-22",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "full-outer-join",
+    "reconcile",
+    "orders",
+    "competitor_prices",
+    "days"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-JOIN-05"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-JOIN-05",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-CTE-01",
+    "SQL-JOIN-01",
+    "SQL-JOIN-05"
+  ],
+  "template_id": "T-JOIN-05-full-outer-web-orders-vs-checks-per-day",
+  "template_params": {
+    "from": "2025-03-03",
+    "to": "2025-03-09"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_join",
+  "prompt": "For each day from 3 to 9 March 2025 that had a web order or a competitor price check, how many of each were there? order_ts and observed_ts hold UTC time: use their UTC dates. Return three columns, in this order: day, n_web_orders (orders whose channel is web) and n_checks, with 0 when there were none. Return one row for each day with at least one of the two. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "day",
+        "type_class": "temporal"
+      },
+      {
+        "name": "n_web_orders",
+        "type_class": "numeric"
+      },
+      {
+        "name": "n_checks",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "day",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "n_web_orders",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "n_checks",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "day"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, join the two daily counts so that a day found in only one of them keeps its row.",
+    "Count web orders per day and checks per day as two steps; the join must keep days from both sides, with the day taken from whichever side has it."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 218,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 219,
+      "to": 430,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 431,
+      "to": 545,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 546,
+      "to": 556,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 557,
+      "to": 591,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "FULL OUTER JOIN keeps the days of both counts, matched or not, and COALESCE takes the day from whichever side has it and turns a missing count into 0."
+}

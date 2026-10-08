@@ -1,0 +1,124 @@
+{
+  "id": "EX-SQL-JOIN-02-E1-08",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "left_join",
+    "count_zero",
+    "products",
+    "competitor_prices"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-JOIN-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-JOIN-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02"
+  ],
+  "template_id": "T-JOIN-02-count-keep-zero-filtered-left",
+  "template_params": {
+    "from": "products",
+    "join": "competitor_prices",
+    "brand": "Sonora"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_join",
+  "prompt": "How many competitor price checks has each product of the brand Sonora had? Include every Sonora product, with 0 for a product that has none. Return two columns, in this order: product_name and n_checks. Return one row for each Sonora product. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "product_name",
+        "type_class": "text"
+      },
+      {
+        "name": "n_checks",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "product_name",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "n_checks",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "product_name"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, join the price checks so that a Sonora product with none still counts.",
+    "The brand test is on products, the table you keep whole, so WHERE is fine for it. Count a column of the price checks."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 55,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 56,
+      "to": 71,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 72,
+      "to": 134,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 135,
+      "to": 159,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 160,
+      "to": 183,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "LEFT JOIN keeps each Sonora product, and counting a price-check column gives 0 for a product no competitor checked."
+}

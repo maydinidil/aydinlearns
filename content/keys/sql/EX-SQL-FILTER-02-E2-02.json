@@ -6,7 +6,10 @@
     "SELECT product_id, product_name, unit_cost_eur, launch_date\nFROM products\nWHERE launch_date >= DATE '2024-03-01'\n  AND launch_date < DATE '2024-04-01'\n  AND unit_cost_eur >= 100",
     "SELECT product_id, product_name, unit_cost_eur, launch_date\nFROM products\nWHERE unit_cost_eur >= 100\n  AND launch_date BETWEEN '2024-03-01' AND '2024-03-31'"
   ],
-  "other_way": null,
+  "other_way": {
+    "sql": "SELECT product_id, product_name, unit_cost_eur, launch_date\nFROM products\nWHERE launch_date >= DATE '2024-03-01'\n  AND launch_date < DATE '2024-04-01'\n  AND unit_cost_eur >= 100",
+    "tradeoff": "A start date with an exclusive next date also works for timestamps, while BETWEEN is shorter for plain dates."
+  },
   "planted_wrong": [
     {
       "id": "EX-SQL-FILTER-02-E2-02-PW1",

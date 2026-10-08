@@ -1,0 +1,111 @@
+{
+  "id": "EX-SQL-CTE-01-E1-01",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "cte",
+    "avg",
+    "order_lines",
+    "grain"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-CTE-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pretest",
+  "target_concept_id": "SQL-CTE-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CTE-01"
+  ],
+  "template_id": "T-CTE-01-avg-of-step",
+  "template_params": {
+    "table": "order_lines",
+    "step_grain": "order",
+    "metric": "avg_order_eur"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_join",
+  "prompt": "What is the average value of a Voltmarkt order? An order's value is the sum, over its order lines, of quantity times unit_price_eur minus line_discount_eur. Average over the orders that have at least one line; an order with no lines does not count. Return one column, avg_order_eur. Do not round. The result is a single row. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "avg_order_eur",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "avg_order_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, add up each order's lines into one value per order, then average those values.",
+    "The average needs one row per order, so a first step has to group the lines by order before AVG runs."
+  ],
+  "subgoals": [
+    {
+      "from": 25,
+      "to": 105,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 108,
+      "to": 124,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 127,
+      "to": 144,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 147,
+      "to": 185,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 186,
+      "to": 203,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "The named step has one row per order with its value, so AVG then weighs every order once, whatever its number of lines."
+}

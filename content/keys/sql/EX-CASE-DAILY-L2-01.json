@@ -1,0 +1,41 @@
+{
+  "item_id": "EX-CASE-DAILY-L2-01",
+  "item_version": 2,
+  "reference_sql": "SELECT product_id, product_name, SUM(units) AS units, SUM(CASE WHEN channel = 'store' THEN units ELSE 0 END) AS store_units\nFROM sales\nWHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-03-31'\nGROUP BY product_id, product_name\nORDER BY units DESC, product_id\nLIMIT 10",
+  "alternatives": [
+    "SELECT product_id, product_name, SUM(units) AS units, COALESCE(SUM(units) FILTER (WHERE channel = 'store'), 0) AS store_units FROM sales WHERE order_date >= DATE '2025-01-01' AND order_date <= DATE '2025-03-31' GROUP BY product_id, product_name ORDER BY 3 DESC, 1 LIMIT 10",
+    "SELECT product_id, product_name, SUM(units) AS units, SUM(CASE WHEN channel = 'store' THEN units ELSE 0 END) AS store_units FROM sales WHERE order_date BETWEEN '2025-01-01' AND '2025-03-31' GROUP BY 1, 2 ORDER BY SUM(units) DESC, product_id ASC LIMIT 10"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-14",
+      "sql": "SELECT product_id, product_name, COUNT(*) AS units, SUM(CASE WHEN channel = 'store' THEN 1 ELSE 0 END) AS store_units FROM sales WHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-03-31' GROUP BY product_id, product_name ORDER BY units DESC, product_id LIMIT 10"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-06",
+      "sql": "SELECT product_id, product_name, SUM(units) AS units, SUM(CASE WHEN channel = 'store' THEN units ELSE 0 END) AS store_units FROM sales WHERE order_date >= DATE '2025-01-01' AND order_date < DATE '2025-03-31' GROUP BY product_id, product_name ORDER BY units DESC, product_id LIMIT 10"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-SEM-01",
+      "sql": "SELECT product_id, product_name, SUM(units) AS units, SUM(CASE WHEN channel = 'store' THEN units ELSE 0 END) AS store_units FROM sales WHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-03-31' GROUP BY product_id ORDER BY units DESC, product_id LIMIT 10"
+    },
+    {
+      "id": "PW4",
+      "error_id": "ERR-LOG-16",
+      "sql": "SELECT product_id, product_name, SUM(units) AS units, SUM(CASE WHEN channel = 'store' THEN units ELSE 0 END) AS store_units FROM sales WHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-03-31' GROUP BY product_id, product_name ORDER BY units, product_id LIMIT 10"
+    }
+  ],
+  "hint3_partial": "SELECT product_id, product_name, SUM(units) AS units, SUM(CASE WHEN ___ THEN units ELSE 0 END) AS store_units\nFROM sales\nWHERE order_date BETWEEN ___ AND ___\nGROUP BY ___\nORDER BY ___\nLIMIT 10",
+  "solver": {
+    "prompt_hash": "8b8fabe46fde75ab",
+    "schema_version": "cebf75df442f",
+    "dataset_version": "7b5183c35ff26d5b",
+    "grader_version": "4c.1",
+    "query": "SELECT product_id, product_name,\n       SUM(units) AS units,\n       COALESCE(SUM(CASE WHEN channel = 'store' THEN units END), 0) AS store_units\nFROM sales\nWHERE order_date BETWEEN '2025-01-01' AND '2025-03-31'\nGROUP BY product_id, product_name\nORDER BY units DESC, product_id ASC\nLIMIT 10\n",
+    "at": "2026-10-08T14:11:55.520Z"
+  }
+}

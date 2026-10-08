@@ -1,0 +1,39 @@
+{
+  "item_id": "EX-SQL-SET-01-E1-02",
+  "item_version": 4,
+  "reference_sql": "SELECT customer_id\nFROM orders\nWHERE channel = 'web'\n  AND customer_id IS NOT NULL\n  AND order_ts >= TIMESTAMP '2025-05-12 00:00:00'\n  AND order_ts < TIMESTAMP '2025-05-19 00:00:00'\nINTERSECT\nSELECT customer_id\nFROM orders\nWHERE channel = 'store'\n  AND customer_id IS NOT NULL\n  AND order_ts >= TIMESTAMP '2025-05-12 00:00:00'\n  AND order_ts < TIMESTAMP '2025-05-19 00:00:00'",
+  "alternatives": [
+    "SELECT DISTINCT w.customer_id FROM orders w JOIN orders s ON s.customer_id = w.customer_id WHERE w.channel = 'web' AND s.channel = 'store' AND w.order_ts >= TIMESTAMP '2025-05-12 00:00:00' AND w.order_ts < TIMESTAMP '2025-05-19 00:00:00' AND s.order_ts >= TIMESTAMP '2025-05-12 00:00:00' AND s.order_ts < TIMESTAMP '2025-05-19 00:00:00'",
+    "WITH week_orders AS (SELECT customer_id, channel FROM orders WHERE customer_id IS NOT NULL AND order_ts >= TIMESTAMP '2025-05-12 00:00:00' AND order_ts < TIMESTAMP '2025-05-19 00:00:00') SELECT customer_id FROM week_orders WHERE channel = 'web' INTERSECT SELECT customer_id FROM week_orders WHERE channel = 'store'"
+  ],
+  "other_way": {
+    "sql": "SELECT DISTINCT w.customer_id FROM orders w JOIN orders s ON s.customer_id = w.customer_id WHERE w.channel = 'web' AND s.channel = 'store' AND w.order_ts >= TIMESTAMP '2025-05-12 00:00:00' AND w.order_ts < TIMESTAMP '2025-05-19 00:00:00' AND s.order_ts >= TIMESTAMP '2025-05-12 00:00:00' AND s.order_ts < TIMESTAMP '2025-05-19 00:00:00'",
+    "tradeoff": "A self-join on customer_id finds the same customers, but it pairs every web order with every store order before DISTINCT."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-SEM-04",
+      "sql": "SELECT customer_id FROM orders WHERE channel = 'web' AND customer_id <> NULL AND order_ts >= TIMESTAMP '2025-05-12 00:00:00' AND order_ts < TIMESTAMP '2025-05-19 00:00:00' INTERSECT SELECT customer_id FROM orders WHERE channel = 'store' AND customer_id <> NULL AND order_ts >= TIMESTAMP '2025-05-12 00:00:00' AND order_ts < TIMESTAMP '2025-05-19 00:00:00'"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-06",
+      "sql": "SELECT customer_id FROM orders WHERE channel = 'web' AND customer_id IS NOT NULL AND order_ts BETWEEN DATE '2025-05-12' AND DATE '2025-05-18' INTERSECT SELECT customer_id FROM orders WHERE channel = 'store' AND customer_id IS NOT NULL AND order_ts BETWEEN DATE '2025-05-12' AND DATE '2025-05-18'"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-28",
+      "sql": "SELECT customer_id FROM orders WHERE channel = 'web' AND order_ts >= TIMESTAMP '2025-05-12 00:00:00' AND order_ts < TIMESTAMP '2025-05-19 00:00:00' INTERSECT SELECT customer_id FROM orders WHERE channel = 'store' AND order_ts >= TIMESTAMP '2025-05-12 00:00:00' AND order_ts < TIMESTAMP '2025-05-19 00:00:00'"
+    }
+  ],
+  "hint3_partial": "SELECT customer_id\nFROM orders\nWHERE channel = 'web'\n  AND customer_id IS NOT NULL\n  AND order_ts >= TIMESTAMP '2025-05-12 00:00:00'\n  AND order_ts < TIMESTAMP '2025-05-19 00:00:00'\n___\nSELECT customer_id\nFROM orders\nWHERE channel = ___\n  AND ___",
+  "solver": {
+    "prompt_hash": "20486c46441fb27a",
+    "schema_version": "7ed366279088",
+    "dataset_version": "7f30f5a797e6a9ce",
+    "grader_version": "4b.1",
+    "query": "SELECT DISTINCT customer_id FROM orders\nWHERE channel = 'web' AND customer_id IS NOT NULL AND order_ts >= TIMESTAMP '2025-05-12 00:00:00' AND order_ts < TIMESTAMP '2025-05-19 00:00:00'\nINTERSECT\nSELECT DISTINCT customer_id FROM orders\nWHERE channel = 'store' AND customer_id IS NOT NULL AND order_ts >= TIMESTAMP '2025-05-12 00:00:00' AND order_ts < TIMESTAMP '2025-05-19 00:00:00'",
+    "at": "2026-10-07T22:25:32.616Z"
+  }
+}

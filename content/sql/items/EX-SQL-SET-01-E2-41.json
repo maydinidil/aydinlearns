@@ -1,0 +1,133 @@
+{
+  "id": "EX-SQL-SET-01-E2-41",
+  "version": 1,
+  "kind": "predict_result",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "set",
+    "predict_result",
+    "intersect",
+    "missing-values"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-SET-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-SET-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-02",
+    "SQL-NULL-01",
+    "SQL-SET-01"
+  ],
+  "template_id": "T-SET-01-predict-result-intersect-missing",
+  "template_params": {
+    "table": "orders"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_set",
+  "prompt": "In the orders table, order 1 has customer_id 106662, order 3 is a guest order with a missing customer_id, and order 5 has customer_id 47569. Which result does this query return?",
+  "output_contract": null,
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [],
+  "subgoals": [],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 90000,
+  "why_this_works": "",
+  "shown_sql": "SELECT customer_id FROM orders WHERE order_id IN (1, 3)\nINTERSECT\nSELECT customer_id FROM orders WHERE order_id IN (3, 5)",
+  "options": [
+    {
+      "oid": "of1772d7",
+      "text": "No rows",
+      "misconception_id": "ERR-SEM-04",
+      "table": {
+        "columns": [
+          "customer_id"
+        ],
+        "rows": []
+      }
+    },
+    {
+      "oid": "o3ab70c6",
+      "text": "One row with a missing customer_id",
+      "misconception_id": null,
+      "table": {
+        "columns": [
+          "customer_id"
+        ],
+        "rows": [
+          [
+            null
+          ]
+        ]
+      }
+    },
+    {
+      "oid": "o0f227cf",
+      "text": "Two rows: 106662 and 47569",
+      "misconception_id": null,
+      "table": {
+        "columns": [
+          "customer_id"
+        ],
+        "rows": [
+          [
+            106662
+          ],
+          [
+            47569
+          ]
+        ]
+      }
+    },
+    {
+      "oid": "o973e321",
+      "text": "Three rows: 106662, a missing value and 47569",
+      "misconception_id": "ERR-LOG-24",
+      "table": {
+        "columns": [
+          "customer_id"
+        ],
+        "rows": [
+          [
+            106662
+          ],
+          [
+            null
+          ],
+          [
+            47569
+          ]
+        ]
+      }
+    }
+  ]
+}

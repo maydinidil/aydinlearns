@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-CTE-01-E2-22",
+  "item_version": 1,
+  "reference_sql": "WITH order_units AS (\n  SELECT o.order_id, CAST(o.order_ts AS DATE) AS order_day, SUM(ol.quantity) AS units\n  FROM orders o\n  JOIN order_lines ol ON ol.order_id = o.order_id\n  GROUP BY o.order_id, CAST(o.order_ts AS DATE)\n)\nSELECT c.weekday_name, AVG(u.units) AS avg_units\nFROM order_units u\nJOIN calendar c ON c.cal_date = u.order_day\nGROUP BY c.weekday_name",
+  "alternatives": [
+    "WITH order_units AS (SELECT order_id, SUM(quantity) AS units FROM order_lines GROUP BY order_id) SELECT dayname(o.order_ts) AS weekday_name, AVG(u.units) AS avg_units FROM order_units u JOIN orders o ON o.order_id = u.order_id GROUP BY dayname(o.order_ts)",
+    "WITH order_units AS (SELECT o.order_id, CAST(o.order_ts AS DATE) AS order_day, SUM(ol.quantity) AS units FROM orders o JOIN order_lines ol ON ol.order_id = o.order_id GROUP BY 1, 2) SELECT c.weekday_name, SUM(u.units) * 1.0 / COUNT(*) AS avg_units FROM order_units u JOIN calendar c ON c.cal_date = u.order_day GROUP BY 1"
+  ],
+  "other_way": {
+    "sql": "WITH order_units AS (SELECT order_id, SUM(quantity) AS units FROM order_lines GROUP BY order_id) SELECT dayname(o.order_ts) AS weekday_name, AVG(u.units) AS avg_units FROM order_units u JOIN orders o ON o.order_id = u.order_id GROUP BY dayname(o.order_ts)",
+    "tradeoff": "dayname() saves the join to calendar, but other databases name that function differently, while a calendar join works anywhere."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-07",
+      "sql": "SELECT c.weekday_name, AVG(ol.quantity) AS avg_units FROM orders o JOIN order_lines ol ON ol.order_id = o.order_id JOIN calendar c ON c.cal_date = CAST(o.order_ts AS DATE) GROUP BY c.weekday_name"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-14",
+      "sql": "WITH order_units AS (SELECT o.order_id, CAST(o.order_ts AS DATE) AS order_day, SUM(ol.quantity) AS units FROM orders o JOIN order_lines ol ON ol.order_id = o.order_id GROUP BY o.order_id, CAST(o.order_ts AS DATE)) SELECT c.weekday_name, MAX(u.units) AS avg_units FROM order_units u JOIN calendar c ON c.cal_date = u.order_day GROUP BY c.weekday_name"
+    }
+  ],
+  "hint3_partial": "WITH order_units AS (\n  SELECT o.order_id, CAST(o.order_ts AS DATE) AS order_day, SUM(ol.quantity) AS units\n  FROM orders o\n  JOIN order_lines ol ON ol.order_id = o.order_id\n  GROUP BY ___\n)\nSELECT c.weekday_name, AVG(___) AS avg_units\nFROM order_units u\nJOIN calendar c ON ___\nGROUP BY c.weekday_name",
+  "solver": {
+    "prompt_hash": "bf38e9857a32e9c4",
+    "schema_version": "aaa80fbf4f40",
+    "dataset_version": "e1545e4258743033",
+    "grader_version": "1b.3",
+    "query": "WITH per_order AS (\n  SELECT o.order_id, dayname(o.order_ts) AS weekday_name, SUM(l.quantity) AS units\n  FROM orders o\n  JOIN order_lines l ON l.order_id = o.order_id\n  GROUP BY o.order_id, dayname(o.order_ts)\n)\nSELECT weekday_name, AVG(units) AS avg_units\nFROM per_order\nGROUP BY weekday_name",
+    "at": "2026-10-07T10:41:35.524Z"
+  }
+}

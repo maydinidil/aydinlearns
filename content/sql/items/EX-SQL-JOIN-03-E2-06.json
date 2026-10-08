@@ -1,0 +1,153 @@
+{
+  "id": "EX-SQL-JOIN-03-E2-06",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "fan_out",
+    "cte",
+    "distinct",
+    "competitor_prices",
+    "order_lines",
+    "left_join"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-JOIN-03"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-JOIN-03",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-SORT-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-JOIN-03"
+  ],
+  "template_id": "T-JOIN-03-key-list-then-join",
+  "template_params": {
+    "child_a": "competitor_prices",
+    "child_b": "order_lines",
+    "group_by": "competitor"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_join",
+  "prompt": "For each competitor, how many different products did it check, and how many units of those products did Voltmarkt sell in total? A checked product that never sold adds 0 units, and each order line counts once for a competitor, however often that competitor checked the product. Return three columns, in this order: competitor, n_products and units. Return one row for each competitor. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "competitor",
+        "type_class": "text"
+      },
+      {
+        "name": "n_products",
+        "type_class": "numeric"
+      },
+      {
+        "name": "units",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "competitor",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "n_products",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "units",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "competitor"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, list each competitor and product pair once, before anything is added up.",
+    "A product checked many times by one competitor has many check rows; joining its lines to every check would add its units again for each check."
+  ],
+  "subgoals": [
+    {
+      "from": 20,
+      "to": 58,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 61,
+      "to": 83,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 108,
+      "to": 149,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 152,
+      "to": 168,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 171,
+      "to": 190,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 193,
+      "to": 272,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 273,
+      "to": 344,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 345,
+      "to": 366,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "One row per competitor and product meets one row of units per product, so each product's units are added once per competitor."
+}

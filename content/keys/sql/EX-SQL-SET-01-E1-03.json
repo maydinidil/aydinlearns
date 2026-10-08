@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-SET-01-E1-03",
+  "item_version": 1,
+  "reference_sql": "SELECT 'Voltmarkt' AS source, COUNT(*) AS observations\nFROM price_history\nWHERE product_id = 2\nUNION ALL\nSELECT competitor, COUNT(*)\nFROM competitor_prices\nWHERE product_id = 2\nGROUP BY competitor",
+  "alternatives": [
+    "SELECT competitor AS source, COUNT(*) AS observations FROM competitor_prices WHERE product_id = 2 GROUP BY competitor UNION ALL SELECT 'Voltmarkt', COUNT(*) FROM price_history WHERE product_id = 2",
+    "WITH price_rows AS (SELECT 'Voltmarkt' AS source FROM price_history WHERE product_id = 2 UNION ALL SELECT competitor FROM competitor_prices WHERE product_id = 2) SELECT source, COUNT(*) AS observations FROM price_rows GROUP BY source"
+  ],
+  "other_way": {
+    "sql": "WITH price_rows AS (SELECT 'Voltmarkt' AS source FROM price_history WHERE product_id = 2 UNION ALL SELECT competitor FROM competitor_prices WHERE product_id = 2) SELECT source, COUNT(*) AS observations FROM price_rows GROUP BY source",
+    "tradeoff": "Stacking the raw rows in a CTE and counting once also works, but then UNION ALL must keep every row, or the counts drop."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-SEM-01",
+      "sql": "SELECT 'Voltmarkt' AS source, COUNT(*) AS observations FROM price_history WHERE product_id = 2 UNION ALL SELECT competitor, COUNT(*) FROM competitor_prices WHERE product_id = 2"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-04",
+      "sql": "SELECT 'Voltmarkt' AS source, COUNT(DISTINCT list_price_eur) AS observations FROM price_history WHERE product_id = 2 UNION ALL SELECT competitor, COUNT(DISTINCT price_eur) FROM competitor_prices WHERE product_id = 2 GROUP BY competitor"
+    }
+  ],
+  "hint3_partial": "SELECT 'Voltmarkt' AS source, COUNT(*) AS observations\nFROM price_history\nWHERE product_id = 2\n___\nSELECT competitor, ___\nFROM competitor_prices\nWHERE product_id = 2\nGROUP BY competitor",
+  "solver": {
+    "prompt_hash": "4364e0d256dbee02",
+    "schema_version": "a99c5902e699",
+    "dataset_version": "e1545e4258743033",
+    "grader_version": "1b.3",
+    "query": "SELECT 'Voltmarkt' AS source, COUNT(*) AS observations\nFROM price_history\nWHERE product_id = 2\nHAVING COUNT(*) > 0\nUNION ALL\nSELECT competitor AS source, COUNT(*) AS observations\nFROM competitor_prices\nWHERE product_id = 2\nGROUP BY competitor",
+    "at": "2026-10-07T10:41:42.582Z"
+  }
+}

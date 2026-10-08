@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-DATE-01-E1-22",
+  "item_version": 2,
+  "reference_sql": "SELECT CAST(date_trunc('month', order_date) AS DATE) AS order_month,\n       SUM(net_revenue_eur) AS net_revenue_eur\nFROM sales\nWHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\nGROUP BY date_trunc('month', order_date)",
+  "alternatives": [
+    "SELECT order_month, SUM(net_revenue_eur) AS net_revenue_eur FROM sales WHERE order_date >= DATE '2025-01-01' AND order_date < DATE '2026-01-01' GROUP BY order_month",
+    "SELECT CAST(date_trunc('month', order_date) AS DATE) AS order_month, SUM(net_revenue_eur) AS net_revenue_eur FROM sales WHERE year(order_date) = 2025 GROUP BY 1"
+  ],
+  "other_way": {
+    "sql": "SELECT order_month, SUM(net_revenue_eur) AS net_revenue_eur FROM sales WHERE order_date >= DATE '2025-01-01' AND order_date < DATE '2026-01-01' GROUP BY order_month",
+    "tradeoff": "The view's order_month column already holds each line's UTC month, but date_trunc works on any date column."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-25",
+      "sql": "SELECT CAST(date_trunc('week', order_date) AS DATE) AS order_month, SUM(net_revenue_eur) AS net_revenue_eur FROM sales WHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31' GROUP BY 1"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-23",
+      "sql": "SELECT CAST(date_trunc('month', order_date) AS DATE) AS order_month, SUM(net_revenue_eur) AS net_revenue_eur FROM sales WHERE order_date > DATE '2025-01-01' AND order_date < DATE '2025-12-31' GROUP BY 1"
+    }
+  ],
+  "hint3_partial": "SELECT CAST(date_trunc(___, order_date) AS DATE) AS order_month,\n       SUM(net_revenue_eur) AS net_revenue_eur\nFROM sales\nWHERE order_date BETWEEN ___ AND ___\nGROUP BY date_trunc('month', order_date)",
+  "solver": {
+    "prompt_hash": "4ff302ed406bafed",
+    "schema_version": "cebf75df442f",
+    "dataset_version": "e1545e4258743033",
+    "grader_version": "1b.3",
+    "query": "SELECT date_trunc('month', order_date)::DATE AS order_month, SUM(net_revenue_eur) AS net_revenue_eur\nFROM sales\nWHERE order_date >= DATE '2025-01-01' AND order_date <= DATE '2025-12-31'\nGROUP BY 1",
+    "at": "2026-10-07T10:41:36.635Z"
+  }
+}

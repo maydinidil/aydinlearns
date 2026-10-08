@@ -1,0 +1,128 @@
+{
+  "id": "EX-SQL-JOIN-04-E1-04",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "self-join",
+    "products",
+    "sister"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-JOIN-04"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "lesson",
+  "target_concept_id": "SQL-JOIN-04",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-JOIN-01",
+    "SQL-JOIN-04"
+  ],
+  "template_id": "T-JOIN-04-self-join-cheaper-than-sister",
+  "template_params": {
+    "table": "products",
+    "compare": "unit_cost_eur"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_join",
+  "prompt": "Which products have a lower unit_cost_eur than their sister product? A product's sister_product_id holds the product_id of its sister. Return three columns, in this order: product_name, sister_name (the sister product's product_name) and cost_gap_eur, the sister's unit_cost_eur minus the product's own. Return one row for each product that costs less than its sister. Do not round. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "product_name",
+        "type_class": "text"
+      },
+      {
+        "name": "sister_name",
+        "type_class": "text"
+      },
+      {
+        "name": "cost_gap_eur",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per product that costs less than its sister"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "product_name",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "sister_name",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "cost_gap_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "product_name"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, join products to itself, so each product sits next to its sister product.",
+    "The second copy of products needs its own alias, linked through the first copy's sister_product_id."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 103,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 104,
+      "to": 119,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 120,
+      "to": 173,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 174,
+      "to": 213,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": {
+    "stage1": 120,
+    "stage2": 120
+  },
+  "faded_shape": "SELECT p.product_name, s.product_name AS sister_name, s.unit_cost_eur - p.unit_cost_eur AS cost_gap_eur\nFROM products p\n",
+  "faded_suffix": "\nWHERE s.unit_cost_eur > p.unit_cost_eur",
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "The second alias of products is the sister, found through sister_product_id, so WHERE can compare the two costs in one row."
+}

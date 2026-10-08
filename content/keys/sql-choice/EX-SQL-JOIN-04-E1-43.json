@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-JOIN-04-E1-43",
+  "item_version": 1,
+  "correct_oid": "o4136c5e",
+  "explanation": "price_history keeps one row per product per price version, with the valid_from and valid_to of each, so a range join finds the price on any day. products holds a unit cost, not a list price over time; order_lines holds the price of lines that were sold; competitor_prices holds the rivals' prices.",
+  "solver": {
+    "prompt_hash": "941dfd2d323d3626",
+    "grader_version": "choice.2",
+    "chosen": "o4136c5e",
+    "typed": null,
+    "at": "2026-10-07T09:58:58.601Z"
+  }
+}

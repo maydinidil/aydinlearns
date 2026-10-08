@@ -1,5 +1,6 @@
-// core/session.ts: Today's recommended session (design §4 "A study day"; rulings S2-29 to S2-40, S2-51). A pure function of
-// what the caller passes in: the cards, the concepts, the review history's counts and the openers. Domain-free (design §15):
+// core/session.ts: Today's recommended session (design §4 "A study day"; rulings S2-29 to S2-40, S2-51; sprint 4b S4B-13 to S4B-15).
+// A pure function of what the caller passes in: the cards, the concepts, the review history's counts, the openers and the day's
+// daily case. Domain-free (design §15):
 // no SQL, no files, no app code. Sessions are defined by content, never by time: no step carries a duration (design §4).
 import type { Section } from './envelope.ts';
 import { amsterdamMidnightAfter } from './replay.ts';
@@ -16,8 +17,18 @@ export interface ComposerConcept {
  * `scheduledLast7`: the completed scheduled reviews of the last 7 Amsterdam dates, and how many were rated Hard, Good or Easy.
  */
 export interface ReviewStats { completedPerStudyDay: number[]; scheduledLast7: { passed: number; total: number } }
-/** A level's opener (S2-49, S2-51): `solved` once its CP3 checkpoint has a counted pass. */
-export interface ComposerOpener { case_id: string; level: number; solved: boolean }
+/**
+ * A level's opener (S2-49, S2-51). `solved` (S4B-08): every auto-graded checkpoint it lists has a pass. Sprint 4b (Task D3) adds what
+ * Today's opener steps say, each optional, absent meaning no or none: `sketch`, the preview offers the sketch (S4B-13: no passing CP3
+ * and no sketch logged); `cp1Unanswered`, it lists a CP1, the mid-level question, with no answer yet (S4B-14); `nextCheckpoint`, its
+ * first auto-graded checkpoint with no pass, in its own order, where the solve step opens the case screen (B2 review).
+ */
+export interface ComposerOpener {
+  case_id: string; level: number; solved: boolean;
+  sketch?: boolean; cp1Unanswered?: boolean; nextCheckpoint?: string | null;
+}
+/** S4B-15: the day's daily case (server/session-composer.ts dailyCase), and whether it is solved. */
+export interface ComposerDailyCase { case_id: string; done: boolean }
 export interface ComposerInput {
   section: Section; now: Date; cards: ComposerCard[]; concepts: ComposerConcept[]; stats: ReviewStats;
   newConceptsToday: number; dailyNewCap: number; pairs: [string, string][]; useIntakeGuard: boolean;
@@ -29,6 +40,8 @@ export interface ComposerInput {
   openers?: ComposerOpener[];
   /** Added in Task B13's fix round: the open session has done a mixed block, so the plan leaves it out. Starting another stays open. */
   sessionMixedDone?: boolean;
+  /** Sprint 4b (S4B-15): the day's daily case, SQL only. Absent or null: none. */
+  dailyCase?: ComposerDailyCase | null;
 }
 export type TodayStep =
   | { kind: 'micro_lesson'; concept_id: string }
@@ -39,7 +52,14 @@ export type TodayStep =
   | { kind: 'mixed'; concept_ids: string[] }
   | { kind: 'retest'; concept_id: string; item_id: string; ready: boolean; ready_at: string }
   | { kind: 'relearning'; card_ids: string[] }
-  | { kind: 'opener'; case_id: string; mode: 'preview' | 'solve' };
+  /** S2-51, S4B-13: read before the level's first concept; `sketch`, it offers the optional sketch. */
+  | { kind: 'opener'; case_id: string; mode: 'preview'; sketch: boolean }
+  /** S4B-14: the mid-level question, the opener's CP1. */
+  | { kind: 'opener'; case_id: string; mode: 'check' }
+  /** S2-51: recommended once the level is at Practised; `checkpoint` is where the case screen opens (null: the screen picks). */
+  | { kind: 'opener'; case_id: string; mode: 'solve'; checkpoint: string | null }
+  /** S4B-15: the day's daily case; `done` once it is solved, so solving it never brings a second one that day. */
+  | { kind: 'daily_case'; case_id: string; done: boolean };
 export interface TodayPlan {
   section: Section; steps: TodayStep[]; minimumDay: TodayStep[];
   anotherNewConcept: { offered: boolean; concept_id: string | null; reason: string | null }; dueTomorrow: number;
@@ -54,7 +74,8 @@ const INTAKE_FLOOR = 8;
 const SUCCESS_MIN_REVIEWS = 15;
 /** S2-32: "first exposed in the last 7 days", as Amsterdam dates, today included. */
 const RECENT_DATES = 7;
-const AT_LEAST_PRACTISED: ReadonlySet<ConceptStateName> = new Set(['practised', 'mastered', 'retained']);
+/** Practised or better: the states S2-51's solve step, S4B-14's mid-level question and S4B-15's daily case count. */
+export const AT_LEAST_PRACTISED: ReadonlySet<ConceptStateName> = new Set(['practised', 'mastered', 'retained']);
 const DAY_MS = 86_400_000;
 
 const addDays = (date: string, days: number): string => new Date(Date.parse(`${date}T00:00:00Z`) + days * DAY_MS).toISOString().slice(0, 10);
@@ -142,10 +163,11 @@ function firstOfLevel(concepts: readonly ComposerConcept[], level: number): Comp
 }
 
 /**
- * Today's plan (design §4; S2-40): micro-lessons, refreshers, reviews, the new concept, the mixed block, the re-test,
- * relearning; the wrap-up and "another new concept" follow the steps. An opener (S2-51) is read-only just before the new
- * concept that opens its level, and recommended for solving after the mixed block once its level is at Practised.
- * A step with nothing in it is left out.
+ * Today's plan (design §4; S2-40): micro-lessons, refreshers, reviews, the new concept, the mixed block, the daily case (S4B-15,
+ * design §4 block 4), the re-test, relearning; the wrap-up and "another new concept" follow the steps. An opener (S2-51) is read-only
+ * just before the new concept that opens its level, with the sketch when it offers one (S4B-13); after the daily case it is
+ * recommended for solving once its level is at Practised, or, before that, its CP1 is asked once half the level is (S4B-14).
+ * A step with nothing in it is left out. Every step recommends; none waits for another (nothing is locked).
  */
 export function planToday(input: ComposerInput): TodayPlan {
   const { now, concepts } = input;
@@ -171,7 +193,7 @@ export function planToday(input: ComposerInput): TodayPlan {
   const openers = input.openers ?? [];
   if (next && next.level !== null && firstOfLevel(concepts, next.level)?.id === next.id) {
     const o = openers.find((x) => x.level === next.level);
-    if (o) steps.push({ kind: 'opener', case_id: o.case_id, mode: 'preview' });
+    if (o) steps.push({ kind: 'opener', case_id: o.case_id, mode: 'preview', sketch: o.sketch === true });
   }
   const hold = next ? newConceptHold(input, due.length) : null;
   if (next && !input.sessionNewConceptDone) {
@@ -180,9 +202,13 @@ export function planToday(input: ComposerInput): TodayPlan {
 
   const mixed = input.sessionMixedDone ? [] : mixedConcepts(concepts, input.pairs, now);
   if (mixed.length) steps.push({ kind: 'mixed', concept_ids: mixed });
+  if (input.dailyCase) steps.push({ kind: 'daily_case', case_id: input.dailyCase.case_id, done: input.dailyCase.done });
   for (const o of [...openers].sort((a, b) => a.level - b.level)) {
     const level = concepts.filter((c) => c.level === o.level);
-    if (!o.solved && level.length && level.every((c) => AT_LEAST_PRACTISED.has(c.state))) steps.push({ kind: 'opener', case_id: o.case_id, mode: 'solve' });
+    if (!level.length) continue;
+    const practised = level.filter((c) => AT_LEAST_PRACTISED.has(c.state)).length;
+    if (!o.solved && practised === level.length) steps.push({ kind: 'opener', case_id: o.case_id, mode: 'solve', checkpoint: o.nextCheckpoint ?? null });
+    else if (o.cp1Unanswered === true && practised * 2 >= level.length) steps.push({ kind: 'opener', case_id: o.case_id, mode: 'check' });
   }
   if (input.retest) steps.push({ kind: 'retest', ...input.retest });
   if (relearning.length) steps.push({ kind: 'relearning', card_ids: relearning.map((c) => c.card_id) });

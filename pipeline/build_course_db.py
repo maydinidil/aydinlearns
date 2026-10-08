@@ -17,7 +17,7 @@ from voltmarkt import notes as vm_notes  # noqa: E402
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 DDL = ROOT / "pipeline" / "voltmarkt" / "ddl.sql"
 CASE_KEYS = ROOT / "content" / "keys" / "cases"
-VOLTMARKT_TABLES = vm.LEVEL1_TABLES + vm.ORDER_TABLES
+VOLTMARKT_TABLES = vm.LEVEL1_TABLES + vm.ORDER_TABLES + vm.LEVEL3_TABLES
 # Ruling R17: DuckDB must never download an extension. TimeZone is SET after opening, because a
 # TimeZone given at creation is rejected once autoloading is off.
 NO_NETWORK = {"autoinstall_known_extensions": False, "autoload_known_extensions": False}
@@ -42,20 +42,51 @@ def view_statements(schema: str) -> list[str]:
     return [s.strip().replace("{schema}", schema) for s in text.split(";") if s.strip().upper().startswith("CREATE VIEW")]
 
 
-def checkpoint_truth(con, keys_dir: pathlib.Path) -> dict:
-    """Task C7: each case's CP4 truth query (a key file, server-only) run on the visible schema; only its one value is kept.
+# S4B-31: one row per product and ISO week of competitor_prices. It is built here, not in ddl.sql, because the build
+# applies ddl.sql's views to every edge schema with order_lines, and three of those have no competitor_prices. The ISO
+# year and week come from the UTC timestamp (P-10), and no data literal is allowed in a view body.
+COMPETITOR_WEEKLY_SQL = """CREATE VIEW {schema}.competitor_price_weekly AS
+SELECT
+    product_id,
+    isoyear(observed_ts) AS iso_year,
+    week(observed_ts) AS iso_week,
+    avg(price_eur) AS avg_competitor_price_eur,
+    count(DISTINCT competitor) AS competitors_seen
+FROM {schema}.competitor_prices
+GROUP BY product_id, isoyear(observed_ts), week(observed_ts)"""
 
-    Keyed "<case_id>:<checkpoint_id>", in key file name order. A query that does not return exactly one number fails the
-    build, naming the case and never the query."""
+
+# S4B-02: the checkpoints whose value the build computes, in the order the truth file lists them.
+TRUTH_CHECKPOINTS = ("CP2", "CP4")
+
+
+def checkpoint_truth(con, keys_dir: pathlib.Path) -> dict:
+    """Task C7, S4B-02: each case key's CP2 and CP4 truth queries (server-only) run on the visible schema; only each one value
+    is kept.
+
+    A case key is {case_id, truths: {CP2?, CP4?}, choices: {CP1?, CP5?}}. Values are keyed "<case_id>:CP2" and
+    "<case_id>:CP4", in key file name order, CP2 before CP4. A key without truths (the old shape included), a truth for any
+    other checkpoint, or a query that does not return exactly one number fails the build, naming the case and never the
+    query."""
     values = {}
     for path in sorted(pathlib.Path(keys_dir).glob("*.json")) if pathlib.Path(keys_dir).is_dir() else []:
         key = json.loads(path.read_text(encoding="utf-8"))
-        name = f"{key['case_id']}:{key['checkpoint_id']}"
-        con.execute("SET search_path = 'voltmarkt'")
-        rows = con.execute(key["truth_query"]).fetchall()
-        if len(rows) != 1 or len(rows[0]) != 1 or rows[0][0] is None or isinstance(rows[0][0], (str, bool)):
-            raise ValueError(f"The truth query of {name} must return exactly one number.")
-        values[name] = float(rows[0][0])
+        case_id = key.get("case_id")
+        truths = key.get("truths")
+        if not isinstance(truths, dict):
+            raise ValueError(f"The key of {case_id} needs truths: an object of its CP2 and CP4 truth queries.")
+        other = sorted(set(truths) - set(TRUTH_CHECKPOINTS))
+        if other:
+            raise ValueError(f"The key of {case_id} has a truth for {', '.join(other)}; only CP2 and CP4 have one.")
+        for checkpoint in TRUTH_CHECKPOINTS:
+            if checkpoint not in truths:
+                continue
+            name = f"{case_id}:{checkpoint}"
+            con.execute("SET search_path = 'voltmarkt'")
+            rows = con.execute(truths[checkpoint]).fetchall()
+            if len(rows) != 1 or len(rows[0]) != 1 or rows[0][0] is None or isinstance(rows[0][0], (str, bool)):
+                raise ValueError(f"The truth query of {name} must return exactly one number.")
+            values[name] = float(rows[0][0])
     return values
 
 
@@ -81,15 +112,22 @@ def build(out: pathlib.Path, data_dir: pathlib.Path | None = None, keys_dir: pat
         con.unregister("src")
     for sql_file in sorted((ROOT / "pipeline" / "edge").glob("*.sql")):
         con.execute(sql_file.read_text(encoding="utf-8"))
-    # Level 2 edge schemas mirror the order tables too, so they get the same views as voltmarkt.
-    level2_edges = [r[0] for r in con.execute(
+    # Level 2 and 3 edge schemas mirror the order tables too, so they get the same views as voltmarkt.
+    order_edges = [r[0] for r in con.execute(
         "SELECT DISTINCT schema_name FROM duckdb_tables() WHERE schema_name LIKE 'voltmarkt_edge_%' "
         "AND table_name = 'order_lines' ORDER BY 1").fetchall()]
-    for schema in level2_edges:
+    for schema in order_edges:
         for statement in view_statements(schema):
             con.execute(statement)
 
-    truth["checkpoints"] = checkpoint_truth(con, keys_dir if keys_dir is not None else CASE_KEYS)
+    # The weekly competitor view goes in voltmarkt and in each edge schema that holds competitor_prices.
+    price_schemas = [r[0] for r in con.execute(
+        "SELECT DISTINCT schema_name FROM duckdb_tables() WHERE schema_name LIKE 'voltmarkt%' "
+        "AND table_name = 'competitor_prices' ORDER BY 1").fetchall()]
+    for schema in price_schemas:
+        con.execute(COMPETITOR_WEEKLY_SQL.replace("{schema}", schema))
+
+    truth["checkpoints"] =checkpoint_truth(con, keys_dir if keys_dir is not None else CASE_KEYS)
     con.execute("SET search_path = 'main'")
 
     meta = {}
@@ -105,7 +143,9 @@ def build(out: pathlib.Path, data_dir: pathlib.Path | None = None, keys_dir: pat
             else:
                 meta[q] = {"rows": rows, "sha256": table_sha(con, q)}
     library_version, source_id = con.execute("SELECT library_version, source_id FROM pragma_version()").fetchone()
-    notes = vm_notes.schema_notes(con, "voltmarkt") + [n for s in level2_edges for n in vm_notes.view_notes(con, s)]
+    notes = vm_notes.schema_notes(con, "voltmarkt") + [n for s in order_edges for n in vm_notes.view_notes(con, s)]
+    notes += [vm_notes.note(con, s, "competitor_price_weekly", *vm_notes.WEEKLY_VIEW, visible=False)
+              for s in price_schemas if s != "voltmarkt"]
     con.close()
     os.replace(tmp, out)
 

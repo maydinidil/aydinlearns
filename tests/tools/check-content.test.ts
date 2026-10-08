@@ -355,16 +355,40 @@ test('C19: only active items with use drill count', () => {
   assert.equal(checkDrillPools([lvl(['SQL-BASICS-01'], 2)], items)[0]!.ok, false);
   assert.equal(checkDrillPools([lvl(['SQL-BASICS-01'], 1)], items)[0]!.ok, true);
 });
+test('C19: a listed pool_item_ids names only active drill items of the concepts and level of the drill, once each, and keeps one per concept', () => {
+  const ok = [drillItem(1, 'SQL-BASICS-01'), drillItem(2, 'SQL-BASICS-01'), drillItem(3, 'SQL-FILTER-01'), drillItem(4, 'SQL-FILTER-01')];
+  const ids = ok.map((i) => i.id);
+  const run = (pool: string[], items: SqlItem[] = ok) => checkDrillPools([{ ...lvl(['SQL-BASICS-01', 'SQL-FILTER-01'], 2), pool_item_ids: pool }], items)[0]!;
+  assert.equal(run(ids).ok, true);
+  const unknown = run([...ids, 'EX-SQL-BASICS-01-E1-99']);
+  assert.equal(unknown.ok, false); assert.match(unknown.detail, /E1-99/);
+  const dup = run([ids[0]!, ids[0]!, ids[2]!]);
+  assert.equal(dup.ok, false); assert.match(dup.detail, /repeats/);
+  const notDrill = [...ok, drillItem(5, 'SQL-BASICS-01', 'pool')];
+  assert.match(run([...ids, notDrill[4]!.id], notDrill).detail, /E1-05/);
+  const retired = [...ok, drillItem(6, 'SQL-BASICS-01', 'drill', 'retired')];
+  assert.match(run([...ids, retired[4]!.id], retired).detail, /E1-06/);
+  const elsewhere = [...ok, drillItem(7, 'SQL-SORT-01')];
+  assert.match(run([...ids, elsewhere[4]!.id], elsewhere).detail, /E1-07/);
+  const level2 = [...ok, { ...drillItem(8, 'SQL-BASICS-01'), level: 2 } as SqlItem];
+  assert.match(run([...ids, level2[4]!.id], level2).detail, /E1-08/);
+  const bare = run([ids[0]!, ids[1]!]);
+  assert.equal(bare.ok, false); assert.match(bare.detail, /no item for SQL-FILTER-01/);
+});
 test('C19: a malformed drills entry is a failure, not a crash', () => {
   assert.equal(checkDrillPools([{ level: 1 } as never], [])[0]!.ok, false);
 });
 
+/** The case record fields of sprint 4b (S4B-01) for a level 1 opener; C29 validates them with the rest of the record. */
+const OPENER_FIELDS = { kind: 'opener', level: 1, data_needed: ['stores'], follow_up_question: 'Which store comes next?',
+  expected_output: { columns: ['store_code'], grain: 'one row per store', sort: [{ column: 'store_code', desc: false }] },
+  data_source: { label: 'Fictional, generated data: Voltmarkt', real: false, licence: null } };
 async function openerStore(patch: (rec: Record<string, any>, it: Record<string, any>) => void = () => {}) {
   const root = await makeContentFixture();
   await mkdir(join(root, 'sql/openers'), { recursive: true });
   const base = JSON.parse(await readFile(join(root, 'sql/items', `${lesson.pool_item_ids[0]}.json`), 'utf8'));
   const rec: Record<string, any> = {
-    case_id: 'CASE-VOLT-L1', world: 'voltmarkt', company_id: 'voltmarkt', title: 't', persona: { name: 'S', role: 'M' },
+    ...structuredClone(OPENER_FIELDS), case_id: 'CASE-VOLT-L1', world: 'voltmarkt', company_id: 'voltmarkt', title: 't', persona: { name: 'S', role: 'M' },
     brief: { decision: 'd', deadline: 'f' }, model_plan: 'p', model_answer_template: 'a', difficulty: 1, concept_ids: [FIXTURE_CONCEPT],
     metric_ids: [], find_ids: [], uses_raw: false,
     checkpoints: [{ id: 'CP3', kind: 'CP3', prompt: 'Write it.', credits_concepts: [FIXTURE_CONCEPT], item_id: 'EX-OPENER-L1-01' }],
@@ -387,6 +411,39 @@ test('C29: an invalid record, a missing CP3, a missing item and a wrong use all 
   assert.match(await detail((rec) => { rec.checkpoints[0].item_id = 'EX-OPENER-L1-02'; }), /EX-OPENER-L1-02/);
   assert.match(await detail((_rec, it) => { it.use = 'pool'; }), /use/);
   assert.match(await detail((_rec, it) => { it.output_contract.grain = 'one row per store'; }), /grain/);
+});
+
+test('C29: an opener item whose ID names another level than the opener fails (s2:L101)', async () => {
+  const r = checkOpeners(await openerStore((rec, it) => { rec.checkpoints[0].item_id = 'EX-OPENER-L2-01'; it.id = 'EX-OPENER-L2-01'; }));
+  assert.equal(r[0]!.ok, false); assert.match(r[0]!.detail, /EX-OPENER-L2-01.*level 2.*level 1/);
+});
+test('C29: an opener whose checkpoint lacks credits_concepts, or is not an object, fails C29 and the check finishes (Codex F22)', async () => {
+  for (const [patch, field] of [
+    [(rec: Record<string, any>) => { delete rec.checkpoints[0].credits_concepts; }, /checkpoints\[0\]\.credits_concepts/],
+    [(rec: Record<string, any>) => { rec.checkpoints.push(null); }, /checkpoints\[1\] must be an object/],
+  ] as const) {
+    const store = await openerStore(patch);
+    let r: CheckResult[] = [];
+    assert.doesNotThrow(() => { r = checkOpeners(store); });
+    assert.deepEqual(r.map((x) => [x.id, x.check, x.ok]), [['CASE-VOLT-L1', 'C29', false]]);
+    assert.match(r[0]!.detail, field);
+  }
+});
+test('C29: one item_id used by two openers fails on both (s2:L69)', async () => {
+  const root = await makeContentFixture();
+  await mkdir(join(root, 'sql/openers'), { recursive: true });
+  const base = JSON.parse(await readFile(join(root, 'sql/items', `${lesson.pool_item_ids[0]}.json`), 'utf8'));
+  const rec = (case_id: string) => ({
+    ...OPENER_FIELDS, case_id, world: 'voltmarkt', company_id: 'voltmarkt', title: 't', persona: { name: 'S', role: 'M' }, brief: { decision: 'd', deadline: 'f' }, model_plan: 'p',
+    model_answer_template: 'a', difficulty: 1, concept_ids: [FIXTURE_CONCEPT], metric_ids: [], find_ids: [], uses_raw: false,
+    checkpoints: [{ id: 'CP3', kind: 'CP3', prompt: 'Write it.', credits_concepts: [FIXTURE_CONCEPT], item_id: 'EX-OPENER-L1-01' }],
+  });
+  await writeFile(join(root, 'sql/items', 'EX-OPENER-L1-01.json'), JSON.stringify({ ...base, id: 'EX-OPENER-L1-01', use: 'opener', output_contract: { ...base.output_contract, grain: null } }));
+  await writeFile(join(root, 'sql/openers/CASE-VOLT-L1.json'), JSON.stringify(rec('CASE-VOLT-L1')));
+  await writeFile(join(root, 'sql/openers/CASE-VOLT-L1B.json'), JSON.stringify(rec('CASE-VOLT-L1B')));
+  const r = checkOpeners(await loadContent(root));
+  assert.deepEqual(r.map((x) => x.ok), [false, false]);
+  assert.match(r[0]!.detail, /EX-OPENER-L1-01.*CASE-VOLT-L1B/); assert.equal(r[1]!.detail, 'EX-OPENER-L1-01 is also used by CASE-VOLT-L1');
 });
 
 // ---- C30: the readings (Task C8) --------------------------------------------------------------------

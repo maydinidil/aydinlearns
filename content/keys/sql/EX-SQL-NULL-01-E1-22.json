@@ -7,7 +7,10 @@
     "SELECT cal_date, weekday_name, iso_week\nFROM calendar\nWHERE cal_date BETWEEN DATE '2025-12-01' AND DATE '2025-12-31' AND weekday_name IN ('Friday', 'Saturday') AND event IS NULL",
     "SELECT cal_date, weekday_name, iso_week\nFROM calendar\nWHERE cal_date >= DATE '2025-12-01' AND cal_date <= DATE '2025-12-31' AND (weekday_name = 'Friday' OR weekday_name = 'Saturday') AND NOT event IS NOT NULL"
   ],
-  "other_way": null,
+  "other_way": {
+    "sql": "SELECT cal_date, weekday_name, iso_week\nFROM calendar\nWHERE cal_date BETWEEN DATE '2025-12-01' AND DATE '2025-12-31' AND weekday_name IN ('Friday', 'Saturday') AND event IS NULL",
+    "tradeoff": "IN and BETWEEN shorten the filter, while the OR chain and two comparisons spell out every value and both ends."
+  },
   "planted_wrong": [
     {
       "id": "PW1",

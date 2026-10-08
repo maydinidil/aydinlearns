@@ -6,7 +6,10 @@
     "SELECT parent_category, COALESCE(SUM(CASE WHEN channel = 'web' THEN net_revenue_eur END), 0) / SUM(net_revenue_eur) AS web_share FROM sales GROUP BY parent_category",
     "SELECT parent_category, COALESCE(SUM(net_revenue_eur) FILTER (WHERE channel = 'web'), 0) / SUM(net_revenue_eur) AS web_share FROM sales GROUP BY 1"
   ],
-  "other_way": null,
+  "other_way": {
+    "sql": "SELECT parent_category, COALESCE(SUM(net_revenue_eur) FILTER (WHERE channel = 'web'), 0) / SUM(net_revenue_eur) AS web_share FROM sales GROUP BY 1",
+    "tradeoff": "Reads closer to plain English, but FILTER is not available in every SQL dialect."
+  },
   "planted_wrong": [
     {
       "id": "PW1",

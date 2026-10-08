@@ -1,0 +1,87 @@
+{
+  "case_id": "CASE-DAILY-L3-01",
+  "kind": "daily",
+  "level": 3,
+  "world": "PRICE",
+  "company_id": "voltmarkt",
+  "title": "TV & Video repricing in 2025",
+  "persona": {
+    "name": "Joost",
+    "role": "Pricing lead"
+  },
+  "brief": {
+    "decision": "Which TV & Video products get a calmer repricing rhythm next year",
+    "deadline": "The pricing review on Thursday"
+  },
+  "data_needed": [
+    "price_history",
+    "products",
+    "categories"
+  ],
+  "expected_output": {
+    "columns": [
+      "product_id",
+      "product_name",
+      "category_name",
+      "n_new_prices"
+    ],
+    "grain": "one row per product",
+    "sort": [
+      {
+        "column": "n_new_prices",
+        "desc": true
+      },
+      {
+        "column": "product_id",
+        "desc": false
+      }
+    ]
+  },
+  "checkpoints": [
+    {
+      "id": "CP3",
+      "kind": "CP3",
+      "prompt": "Write the query that answers Joost's question.",
+      "credits_concepts": [
+        "SQL-JOIN-01",
+        "SQL-JOIN-04"
+      ],
+      "item_id": "EX-CASE-DAILY-L3-01"
+    },
+    {
+      "id": "CP4",
+      "kind": "CP4",
+      "prompt": "Joost's headline: how many new list prices did the TV & Video range get in 2025 in total? Count every price version whose valid_from is from 2025-01-01 to 2025-12-31, both days included, for every product whose category has the parent_category 'TV & Video', not only the 10 products with the most. Type a whole number.",
+      "credits_concepts": [],
+      "item_id": "CASE-DAILY-L3-01:CP4",
+      "typed": {
+        "precision": "count",
+        "scale": "plain",
+        "decimals": 0,
+        "unit_label": "new list prices"
+      },
+      "truth_key": "CASE-DAILY-L3-01:CP4"
+    }
+  ],
+  "model_plan": "Metric formula: n_new_prices is the number of price versions with a valid_from in 2025.\nOutput grain: one row per product, cut to the 10 with the most new prices.\nTables and keys: price_history joined to products on product_id, and products joined to categories on category_id.\nFilters: parent_category 'TV & Video', and valid_from from 2025-01-01 to 2025-12-31, both days included.\nEdge cases: a product launched in 2025 counts its first price, a product with no new price in 2025 has no row, and equal counts are settled by product_id before the cut.\nExpected row count: 10",
+  "model_answer_template": "The TV & Video range got {CP4} new list prices in 2025, and its most repriced products changed price many times over the year. The top of the list mixes TVs, projectors and streaming devices, so frequent repricing is a habit of the whole range rather than of one category. A new price version can be a rise, a cut or a launch price, so the count alone does not show whether the changes helped. Next, compare each product's units in the weeks after a price change with the weeks before it, and agree a minimum time between changes.",
+  "follow_up_question": "Did the units sold of these products go up or down after each price change?",
+  "data_source": {
+    "label": "Fictional, generated data: Voltmarkt",
+    "real": false,
+    "licence": null
+  },
+  "difficulty": 1,
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-JOIN-01"
+  ],
+  "metric_ids": [],
+  "find_ids": [],
+  "uses_raw": false
+}

@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-DATE-01-E3-01",
+  "item_version": 1,
+  "reference_sql": "SELECT CASE WHEN isodow(order_date) >= 6 THEN 'weekend' ELSE 'weekday' END AS day_type,\n       ROUND(SUM(units) * 1.0 / COUNT(DISTINCT order_id), 2) AS units_per_order\nFROM sales\nGROUP BY 1",
+  "alternatives": [
+    "SELECT CASE WHEN dayofweek(order_date) IN (0, 6) THEN 'weekend' ELSE 'weekday' END AS day_type, ROUND(CAST(SUM(units) AS DOUBLE) / COUNT(DISTINCT order_id), 2) AS units_per_order FROM sales GROUP BY 1",
+    "SELECT CASE WHEN dayname(order_date) IN ('Saturday', 'Sunday') THEN 'weekend' ELSE 'weekday' END AS day_type, ROUND(SUM(units) * 1.0 / COUNT(DISTINCT order_id), 2) AS units_per_order FROM sales GROUP BY 1"
+  ],
+  "other_way": {
+    "sql": "SELECT CASE WHEN dayofweek(order_date) IN (0, 6) THEN 'weekend' ELSE 'weekday' END AS day_type, ROUND(CAST(SUM(units) AS DOUBLE) / COUNT(DISTINCT order_id), 2) AS units_per_order FROM sales GROUP BY 1",
+    "tradeoff": "dayofweek counts Sunday as 0, so it needs IN (0, 6); isodow keeps Monday 1 to Sunday 7, which is easier to read."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-04",
+      "sql": "SELECT CASE WHEN isodow(order_date) >= 6 THEN 'weekend' ELSE 'weekday' END AS day_type, ROUND(SUM(units) * 1.0 / COUNT(order_id), 2) AS units_per_order FROM sales GROUP BY 1"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-05",
+      "sql": "SELECT CASE WHEN isodow(order_date) >= 6 THEN 'weekend' ELSE 'weekday' END AS day_type, ROUND(SUM(units) // COUNT(DISTINCT order_id), 2) AS units_per_order FROM sales GROUP BY 1"
+    }
+  ],
+  "hint3_partial": "SELECT CASE WHEN ___(order_date) >= 6 THEN 'weekend' ELSE 'weekday' END AS day_type,\n       ROUND(SUM(units) * 1.0 / COUNT(___), 2) AS units_per_order\nFROM sales\nGROUP BY 1",
+  "solver": {
+    "prompt_hash": "b308dd878bf4b317",
+    "schema_version": "cebf75df442f",
+    "dataset_version": "e1545e4258743033",
+    "grader_version": "1b.3",
+    "query": "SELECT CASE WHEN isodow(order_date) >= 6 THEN 'weekend' ELSE 'weekday' END AS day_type,\n       ROUND(SUM(units) * 1.0 / COUNT(DISTINCT order_id), 2) AS units_per_order\nFROM sales\nGROUP BY 1",
+    "at": "2026-10-07T10:41:37.566Z"
+  }
+}

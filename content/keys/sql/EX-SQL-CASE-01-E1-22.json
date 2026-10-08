@@ -6,7 +6,10 @@
     "SELECT promo_code, promo_type, CASE WHEN promo_type IN ('loyalty', 'bundle') THEN 'reward' ELSE 'price cut' END AS promo_group FROM promotions",
     "SELECT promo_code, promo_type, CASE WHEN promo_type = 'percent_off' OR promo_type = 'clearance' THEN 'price cut' WHEN promo_type = 'loyalty' OR promo_type = 'bundle' THEN 'reward' END AS promo_group FROM promotions"
   ],
-  "other_way": null,
+  "other_way": {
+    "sql": "SELECT promo_code, promo_type, CASE WHEN promo_type = 'percent_off' OR promo_type = 'clearance' THEN 'price cut' WHEN promo_type = 'loyalty' OR promo_type = 'bundle' THEN 'reward' END AS promo_group FROM promotions",
+    "tradeoff": "An OR chain returns the same rows, but repeats the column for every value, while IN keeps the list short."
+  },
   "planted_wrong": [
     {
       "id": "PW1",

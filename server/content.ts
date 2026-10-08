@@ -7,7 +7,7 @@ import type { Lesson } from '../schemas/lesson.ts';
 import type { SqlItem } from '../schemas/item.ts';
 import type { SqlKey } from '../schemas/keys.ts';
 import type { EdgeDescription } from '../schemas/edge.ts';
-import type { CaseRecord } from '../schemas/case.ts';
+import type { CaseKey, CaseRecord } from '../schemas/case.ts';
 import type { Goal } from '../core/goals.ts';
 import { choiceTarget, type ChoiceConcept, type ChoiceConceptFile, type ChoiceItem, type ChoiceKey, type ChoiceSection, type HeldOutFile } from '../schemas/choice.ts';
 import { validateReading, type Reading } from '../schemas/reading.ts';
@@ -28,11 +28,25 @@ export interface ContentStore {
   /** The level openers (S2-49), in case ID order; none when content/sql/openers does not exist. */
   openers?(): CaseRecord[];
   opener?(caseId: string): CaseRecord | undefined;
-  /** The concepts a case checkpoint item credits (S2-49); undefined for an item no checkpoint names. */
+  /**
+   * Sprint 4b (S4B-01): every case, the level openers (content/sql/openers/) and the inbox and daily cases (content/sql/cases/), in
+   * case ID order. None when neither folder exists. Records are as loaded: content check C41 validates them.
+   */
+  cases?(): CaseRecord[];
+  /** Sprint 4b: any case by its ID, an opener included; the first one when a case ID repeats (C41 names that). */
+  case?(caseId: string): CaseRecord | undefined;
+  /**
+   * Sprint 4b (S4B-02): content/keys/cases/<case_id>.json by its case_id: the CP2 and CP4 truth queries (the build runs them) and the
+   * CP1 and CP5 correct options with their explanations. Server-side only, like key(): a correct option goes out only in the reply
+   * to the learner's logged answer (S4B-10).
+   */
+  caseKey?(caseId: string): CaseKey | undefined;
+  /** The concepts a case checkpoint item credits (S2-49): every case's CP1 to CP5. Undefined for an item no checkpoint names. */
   checkpointCredits?(itemId: string): string[] | undefined;
   /**
-   * Task C7: a CP4's true value, from "checkpoints" in the truth file the build wrote (data/truth/voltmarkt.json), by the
-   * checkpoint's truth_key. Undefined when the file or the value is missing. Server-side only: it goes out after an answer.
+   * Task C7 and S4B-02: a CP2's or CP4's true value, from "checkpoints" in the truth file the build wrote (data/truth/voltmarkt.json),
+   * by the checkpoint's truth_key (`<case_id>:CP2` or `<case_id>:CP4`). Undefined when the file or the value is missing. Server-side
+   * only: it goes out after an answer.
    */
   checkpointTruth?(truthKey: string): number | undefined;
   /** Task C1 adds it: a GA4 or Methodology concept's section, and the concept whose card it rates (E-110). */
@@ -137,13 +151,17 @@ export async function loadContent(root: string, options: LoadOptions = {}): Prom
   const keys = new Map((await readDir<SqlKey>('keys/sql')).map((k) => [k.item_id, k]));
   // Task C4: the SQL choice keys (S3-13), hashed with the rest. A folder that does not exist yet is no keys.
   const sqlChoiceKeys = new Map((await readDir<ChoiceKey>('keys/sql-choice')).map((k) => [k.item_id, k]));
-  const openers = (await readDir<CaseRecord>('sql/openers')).sort((a, b) => String(a.case_id).localeCompare(String(b.case_id)));
+  const byCaseId = (a: CaseRecord, b: CaseRecord): number => String(a.case_id).localeCompare(String(b.case_id));
+  const openers = (await readDir<CaseRecord>('sql/openers')).sort(byCaseId);
+  // Sprint 4b (S4B-01): the inbox and daily cases sit beside the openers. Every case's checkpoints credit through one map.
+  const cases = [...openers, ...(await readDir<CaseRecord>('sql/cases'))].sort(byCaseId);
   const credits = new Map<string, string[]>();
-  for (const o of openers) for (const c of Array.isArray(o.checkpoints) ? o.checkpoints : []) {
+  for (const o of cases) for (const c of Array.isArray(o?.checkpoints) ? o.checkpoints : []) {
     if (typeof c?.item_id === 'string' && Array.isArray(c.credits_concepts)) credits.set(c.item_id, c.credits_concepts);
   }
-  // Task C7: the case key files hold each CP4's truth query. They are hashed with the rest and never served: the build runs them.
-  await readDir('keys/cases');
+  // Task C7 and S4B-02: the case key files (truth queries and correct options). Hashed with the rest, kept server-side, never served.
+  const caseKeys = new Map<string, CaseKey>();
+  for (const k of await readDir<CaseKey>('keys/cases')) if (typeof k?.case_id === 'string' && !caseKeys.has(k.case_id)) caseKeys.set(k.case_id, k);
   const truth = await readTruth(options.truthFile);
   const edges = new Map((await readDir<EdgeDescription>('sql/edge')).map((e) => [e.schema, e]));
   // GA4 and Methodology (Task C1). A section with no files yet is empty content, and its files are hashed like the rest.
@@ -193,6 +211,9 @@ export async function loadContent(root: string, options: LoadOptions = {}): Prom
     edge: (s) => edges.get(s),
     openers: () => openers,
     opener: (caseId) => openers.find((o) => o.case_id === caseId),
+    cases: () => [...cases],
+    case: (caseId) => cases.find((c) => c.case_id === caseId),
+    caseKey: (caseId) => caseKeys.get(caseId),
     checkpointCredits: (itemId) => credits.get(itemId),
     checkpointTruth: (key) => truth.get(key),
     conceptsWithContent: () => new Set(lessons.keys()),

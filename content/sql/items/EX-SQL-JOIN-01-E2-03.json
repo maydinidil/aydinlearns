@@ -1,0 +1,125 @@
+{
+  "id": "EX-SQL-JOIN-01-E2-03",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "join",
+    "group_by",
+    "orders",
+    "stores",
+    "utc_day"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-JOIN-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-JOIN-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-JOIN-01"
+  ],
+  "template_id": "T-JOIN-01-count-per-dimension-month",
+  "template_params": {
+    "from": "orders",
+    "join": "stores",
+    "group": "store_type",
+    "month": "2025-03"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_join",
+  "prompt": "How many orders did each type of store take in March 2025? order_ts holds UTC time: count orders from 1 March 2025 to 31 March 2025, UTC days, both included. Return two columns, in this order: store_type and n_orders. Return one row for each store type that took at least one order. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "store_type",
+        "type_class": "text"
+      },
+      {
+        "name": "n_orders",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "store_type",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "n_orders",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "store_type"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, join each order to its store, keep March, then group by the store's type.",
+    "store_type belongs to the store. Keep order times from the first of March up to, but not including, the first of April."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 41,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 42,
+      "to": 55,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 56,
+      "to": 96,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 97,
+      "to": 197,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 198,
+      "to": 219,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "Each order has one store, so after the join each order still counts once, under its store's type."
+}

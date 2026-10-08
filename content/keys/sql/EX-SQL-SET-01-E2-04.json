@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-SET-01-E2-04",
+  "item_version": 1,
+  "reference_sql": "SELECT promo_id, product_id\nFROM promotion_products\nEXCEPT\nSELECT promo_id, product_id\nFROM order_lines\nWHERE promo_id IS NOT NULL",
+  "alternatives": [
+    "SELECT pp.promo_id, pp.product_id FROM promotion_products pp LEFT JOIN order_lines ol ON ol.promo_id = pp.promo_id AND ol.product_id = pp.product_id WHERE ol.order_line_id IS NULL",
+    "SELECT promo_id, product_id FROM promotion_products EXCEPT SELECT promo_id, product_id FROM order_lines"
+  ],
+  "other_way": {
+    "sql": "SELECT pp.promo_id, pp.product_id FROM promotion_products pp LEFT JOIN order_lines ol ON ol.promo_id = pp.promo_id AND ol.product_id = pp.product_id WHERE ol.order_line_id IS NULL",
+    "tradeoff": "A LEFT JOIN on both key columns with IS NULL finds the same pairs, but EXCEPT says the question more directly."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-11",
+      "sql": "SELECT DISTINCT pp.promo_id, pp.product_id FROM promotion_products pp JOIN order_lines ol ON ol.promo_id = pp.promo_id AND ol.product_id = pp.product_id"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-OUT-01",
+      "sql": "SELECT product_id FROM promotion_products EXCEPT SELECT product_id FROM order_lines WHERE promo_id IS NOT NULL"
+    }
+  ],
+  "hint3_partial": "SELECT promo_id, product_id\nFROM promotion_products\n___\nSELECT ___, ___\nFROM order_lines\nWHERE promo_id IS NOT NULL",
+  "solver": {
+    "prompt_hash": "bc08403fbb2825a7",
+    "schema_version": "8c8adf903d4b",
+    "dataset_version": "e1545e4258743033",
+    "grader_version": "1b.3",
+    "query": "SELECT promo_id, product_id\nFROM promotion_products\nEXCEPT\nSELECT promo_id, product_id\nFROM order_lines\nWHERE promo_id IS NOT NULL",
+    "at": "2026-10-07T10:41:42.788Z"
+  }
+}

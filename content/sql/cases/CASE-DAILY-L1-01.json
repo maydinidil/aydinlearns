@@ -1,0 +1,85 @@
+{
+  "case_id": "CASE-DAILY-L1-01",
+  "kind": "daily",
+  "level": 1,
+  "world": "RETAIL",
+  "company_id": "voltmarkt",
+  "title": "Dutch stores for the maintenance contract",
+  "persona": {
+    "name": "Yara",
+    "role": "Retail operations"
+  },
+  "brief": {
+    "decision": "Which Dutch stores the new maintenance contract must cover",
+    "deadline": "The contract renewal meeting on Friday"
+  },
+  "data_needed": [
+    "stores"
+  ],
+  "expected_output": {
+    "columns": [
+      "store_id",
+      "store_code",
+      "city",
+      "store_type",
+      "opened_on"
+    ],
+    "grain": "one row per store",
+    "sort": [
+      {
+        "column": "store_type",
+        "desc": false
+      },
+      {
+        "column": "store_id",
+        "desc": false
+      }
+    ]
+  },
+  "checkpoints": [
+    {
+      "id": "CP3",
+      "kind": "CP3",
+      "prompt": "Write the query that answers Yara's question.",
+      "credits_concepts": [
+        "SQL-NULL-01",
+        "SQL-BASICS-01",
+        "SQL-FILTER-01",
+        "SQL-SORT-01"
+      ],
+      "item_id": "EX-CASE-DAILY-L1-01"
+    },
+    {
+      "id": "CP4",
+      "kind": "CP4",
+      "prompt": "Yara has a follow-up: how many of the stores the maintenance contract must cover are standard stores? Count the stores in the stores table whose country_code is 'NL', whose store_type is 'standard' and whose close_date is missing, each store once. Type a whole number.",
+      "credits_concepts": [],
+      "item_id": "CASE-DAILY-L1-01:CP4",
+      "typed": {
+        "precision": "count",
+        "scale": "plain",
+        "decimals": 0,
+        "unit_label": "standard stores"
+      },
+      "truth_key": "CASE-DAILY-L1-01:CP4"
+    }
+  ],
+  "model_plan": "Metric formula: no calculation; each store with its code, city, type and opening date.\nOutput grain: one row per store.\nTables and keys: stores only, keyed by store_id; no join.\nFilters: country_code is 'NL', store_type is not 'web', and close_date is missing.\nEdge cases: the webshop is a row of stores with a Dutch country code, a store that has closed keeps its row, and an equals sign never matches a missing close_date.\nExpected row count: 13",
+  "model_answer_template": "Of the open Dutch stores the maintenance contract must cover, {CP4} are standard stores, and the others are the flagship and outlet stores. The list is shorter than the Dutch rows in the stores table, because the webshop also carries the country code NL and the Zwolle store has closed, so neither needs a maintenance visit. Openings and closures change this list, so rerun it from the stores table before every renewal. Next, ask the contractor for a price per store type, since the visit may differ between a standard, a flagship and an outlet store.",
+  "follow_up_question": "Which of these stores have been open the longest, so their equipment is the oldest?",
+  "data_source": {
+    "label": "Fictional, generated data: Voltmarkt",
+    "real": false,
+    "licence": null
+  },
+  "difficulty": 1,
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-SORT-01",
+    "SQL-NULL-01"
+  ],
+  "metric_ids": [],
+  "find_ids": [],
+  "uses_raw": false
+}

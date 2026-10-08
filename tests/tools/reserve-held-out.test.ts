@@ -411,6 +411,9 @@ test('extend refusals: a candidate not in the bank, held or short in number, or 
   await refusal(['ga4', '--extend', '--topic', 'T-GA4-05', '--count', '1', '--candidates', candidates, root], /only 0 candidates are of topic T-GA4-05/, root);
   // Not enough releasable items: a topic with none held.
   await refusal(['ga4', '--extend', '--topic', 'T-GA4-03', '--count', '6', '--release-from', 'T-GA4-99', '--candidates', candidates, root], /only 0 of 6 held items can be released/, root);
+  // A held-out ID that is not in the bank.
+  await writeFile(join(root, 'ga4/held-out.json'), JSON.stringify({ item_ids: [...pool, 'Q-GA4-99999'] }, null, 2) + '\n');
+  await refusal([...EXT, '--candidates', candidates, root], /1 held-out ID is not in the ga4 bank/, root);
 });
 
 test('extend: bad arguments print the usage and exit 1', async () => {
@@ -523,4 +526,12 @@ test('extend S2-103: a level 1 parent keeps its 5 own-topic core items; an add t
   const more = join(root, 'more.txt');
   await writeFile(more, idList(items.slice(3, 4)));
   await refusal(['ga4', '--extend', '--topic', 'T-GA4-01', '--count', '1', '--candidates', more, root], /only 0 of 1 candidates of topic T-GA4-01 can be added/, root);
+});
+
+test('extend --logs: a folder with no attempts file is refused, so a wrong folder cannot pass for a clean one (s3:L76)', async () => {
+  const { root, candidates } = await extendGa4Root();
+  const empty = await mkdtemp(join(tmpdir(), 'al-logs-'));
+  await refusal([...EXT, '--logs', empty, '--candidates', candidates, root], /no attempts files/, root);
+  await writeFile(join(empty, 'events-2026-10-05.jsonl'), '{"type":"event"}\n');
+  await refusal([...EXT, '--logs', empty, '--candidates', candidates, root], /no attempts files/, root);
 });

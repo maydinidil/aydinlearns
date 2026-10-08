@@ -1,5 +1,7 @@
 {
   "case_id": "CASE-VOLT-L1",
-  "checkpoint_id": "CP4",
-  "truth_query": "SELECT ROUND(AVG(400.00 - 400.00 * COALESCE(discount_pct, 0) / 100.0), 2)\nFROM promotions\nWHERE promo_type IN ('percent_off', 'clearance')\n  AND start_date BETWEEN DATE '2025-01-01' AND DATE '2025-06-30'"
+  "truths": {
+    "CP4": "SELECT ROUND(AVG(400.00 - 400.00 * COALESCE(discount_pct, 0) / 100.0), 2)\nFROM promotions\nWHERE promo_type IN ('percent_off', 'clearance')\n  AND start_date BETWEEN DATE '2025-01-01' AND DATE '2025-06-30'"
+  },
+  "choices": {}
 }

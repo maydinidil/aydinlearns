@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-SET-01-E1-07",
+  "item_version": 3,
+  "reference_sql": "SELECT store_id\nFROM stores\nWHERE store_type <> 'web'\nEXCEPT\nSELECT store_id\nFROM orders\nWHERE channel = 'store'\n  AND order_ts >= TIMESTAMP '2025-07-01 00:00:00'\n  AND order_ts < TIMESTAMP '2025-08-01 00:00:00'",
+  "alternatives": [
+    "SELECT s.store_id FROM stores s LEFT JOIN orders o ON o.store_id = s.store_id AND o.channel = 'store' AND o.order_ts >= TIMESTAMP '2025-07-01 00:00:00' AND o.order_ts < TIMESTAMP '2025-08-01 00:00:00' WHERE s.store_type <> 'web' AND o.order_id IS NULL",
+    "SELECT store_id FROM stores WHERE store_type IN ('flagship', 'outlet', 'standard') EXCEPT SELECT store_id FROM orders WHERE channel = 'store' AND year(order_ts) = 2025 AND month(order_ts) = 7"
+  ],
+  "other_way": {
+    "sql": "SELECT s.store_id FROM stores s LEFT JOIN orders o ON o.store_id = s.store_id AND o.channel = 'store' AND o.order_ts >= TIMESTAMP '2025-07-01 00:00:00' AND o.order_ts < TIMESTAMP '2025-08-01 00:00:00' WHERE s.store_type <> 'web' AND o.order_id IS NULL",
+    "tradeoff": "A LEFT JOIN with IS NULL finds the same stores and could show their store_code too, but EXCEPT is shorter."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-11",
+      "sql": "SELECT DISTINCT s.store_id FROM stores s JOIN orders o ON o.store_id = s.store_id WHERE s.store_type <> 'web' AND o.channel = 'store' AND o.order_ts >= TIMESTAMP '2025-07-01 00:00:00' AND o.order_ts < TIMESTAMP '2025-08-01 00:00:00'"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-00",
+      "sql": "SELECT store_id FROM stores EXCEPT SELECT store_id FROM orders WHERE channel = 'store' AND order_ts >= TIMESTAMP '2025-07-01 00:00:00' AND order_ts < TIMESTAMP '2025-08-01 00:00:00'"
+    }
+  ],
+  "hint3_partial": "SELECT store_id\nFROM stores\nWHERE store_type <> 'web'\n___\nSELECT store_id\nFROM orders\nWHERE channel = ___\n  AND order_ts >= TIMESTAMP '2025-07-01 00:00:00'\n  AND order_ts < TIMESTAMP '2025-08-01 00:00:00'",
+  "solver": {
+    "prompt_hash": "70fbf211df31acf3",
+    "schema_version": "b1c1a5d57d7d",
+    "dataset_version": "7f30f5a797e6a9ce",
+    "grader_version": "4b.1",
+    "query": "SELECT store_id FROM stores WHERE store_type <> 'web'\nEXCEPT\nSELECT store_id FROM orders\nWHERE channel = 'store' AND order_ts >= TIMESTAMP '2025-07-01 00:00:00' AND order_ts < TIMESTAMP '2025-08-01 00:00:00'",
+    "at": "2026-10-07T22:25:32.685Z"
+  }
+}

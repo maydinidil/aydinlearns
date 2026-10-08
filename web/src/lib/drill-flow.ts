@@ -5,7 +5,34 @@ export type { DrillScoreView };
 
 export const HELP_LINE = 'Help opens in the end-of-run review.';
 export const TIME_UP = 'Time is up.';
-export const HISTORY_COLUMNS = ['Date', 'Score', 'Passed', 'Unseen'] as const;
+/** D50 (sprint 4c): the history's last column, where a live rep's row has its "explained aloud" box. */
+export const EXPLAINED_COLUMN = 'Explained aloud';
+export const HISTORY_COLUMNS = ['Date', 'Mode', 'Score', 'Passed', 'Unseen', EXPLAINED_COLUMN] as const;
+
+/** S4B-22: the dialect banner over an exercise served in screen mode (design §6 "Screen mode"). */
+export const SCREEN_BANNER = 'Screen mode: no autocomplete, and types and rounding are checked as an online test does';
+/** S4B-23: the choice the drill screen offers when starting a level drill or a chosen drill, and the history's name for the mode. */
+export const SCREEN_MODE_LABEL = 'Screen mode';
+export const SCREEN_MODE_HINT = 'The same questions, time limit and pass mark, with no autocomplete, and types and rounding checked as an online test does.';
+/** S4B-23: a drill start's body, which names screen mode only when it is chosen. */
+export function startBody<T extends { level: number } | { concept_ids: string[] }>(target: T, screenMode: boolean): T & { screen_mode?: true } {
+  return screenMode ? { ...target, screen_mode: true } : target;
+}
+
+// ---- live reps (S4B-26, D42; Task E4) ----
+
+export const LIVE_REP_LABEL = 'Live rep';
+export const LIVE_REP_HINT = 'One new question in screen mode. The time limit is 10 minutes. Talk through your thinking as you write, as you would in the live interview.';
+export const EXPLAINED_ALOUD_LABEL = 'I explained my answer aloud';
+/** A live rep's block ID starts with "live-" (the server's rule; the screen tells a live run by it). */
+export const isLiveRun = (blockId: string): boolean => blockId.startsWith('live-');
+/** D42: a rep passes when the exercise passed and "explained aloud" is ticked; without the tick it is logged only. */
+export function liveRepLine(itemPassed: boolean, explainedAloud: boolean): string {
+  if (!itemPassed) return 'Logged. The exercise was not passed, so this rep is not passed.';
+  return explainedAloud ? 'Live rep passed.' : 'Logged only. Tick "explained aloud" when you have talked through your answer, and the rep counts as passed.';
+}
+/** The body of the "explained aloud" tick: the rep's block and the box. */
+export const liveSelfCheckBody = (blockId: string, ticked: boolean): { block_id: string; ticked: boolean } => ({ block_id: blockId, ticked });
 
 /** The drill screen: choosing, a run on (no help), or the end-of-run review (help open). */
 export type DrillState = { kind: 'choose' } | { kind: 'running' } | { kind: 'review' };
@@ -38,9 +65,46 @@ export function unseenLine(s: DrillScoreView, run: { kind: 'level' | 'chosen'; u
   return s.run_passed ? `${seen} This run counts toward level completion.` : `${seen} This run does not count toward level completion because it was not passed.`;
 }
 
-export function historyRows(runs: DrillHistoryRow[]): { key: string; cells: string[] }[] {
-  return runs.map((r) => ({ key: r.block_id, cells: [r.date, scoreText(r), r.run_passed ? 'Yes' : 'No', `${r.unseen} of ${r.questions}`] }));
+const modeText = (r: DrillHistoryRow): string => (r.kind === 'live_rep' ? LIVE_REP_LABEL : r.screen_mode ? SCREEN_MODE_LABEL : 'Normal');
+/** A live rep with its item passed but no "explained aloud" is logged only (D42). */
+const passedText = (r: DrillHistoryRow): string => (r.run_passed ? 'Yes' : r.kind === 'live_rep' && r.passed > 0 ? 'Logged only' : 'No');
+
+/** D50: a history row as the server sends it; a live rep's row also says whether "explained aloud" is ticked (its latest self-check). */
+export type HistoryRun = DrillHistoryRow & { explained_aloud?: boolean };
+/** D50: a live rep row's "Explained aloud" box: the rep's block, the server's tick, and a name that starts with the column header. */
+export interface HistoryTick { block_id: string; checked: boolean; name: string }
+export const historyTickName = (date: string): string => `${EXPLAINED_COLUMN}: live rep on ${date}`;
+
+/** One row per run: the five text cells, then the box, which only a live rep's row has (D50). */
+export function historyRows(runs: HistoryRun[]): { key: string; cells: string[]; tick: HistoryTick | null }[] {
+  return runs.map((r) => ({ key: r.block_id, cells: [r.date, modeText(r), scoreText(r), passedText(r), `${r.unseen} of ${r.questions}`],
+    tick: r.kind === 'live_rep' ? { block_id: r.block_id, checked: r.explained_aloud === true, name: historyTickName(r.date) } : null }));
 }
+
+/** D50: the rows once the server took a tick: the rep's row is explained aloud or not, and passed only when its exercise passed too (D42). */
+export function applyTick(runs: HistoryRun[], blockId: string, ticked: boolean): HistoryRun[] {
+  return runs.map((r) => (r.kind === 'live_rep' && r.block_id === blockId ? { ...r, explained_aloud: ticked, run_passed: r.passed > 0 && ticked } : r));
+}
+
+/**
+ * D50: the history's box posts the existing "explained aloud" self-check once through `post` (live-rep-api's tickExplainedAloud) and
+ * answers how the rows change, following the server's answer. A refused tick throws and changes nothing.
+ */
+export async function tickFromHistory(blockId: string, ticked: boolean, post: (blockId: string, ticked: boolean) => Promise<{ block_id: string; ticked: boolean }>):
+  Promise<(runs: HistoryRun[]) => HistoryRun[]> {
+  const r = await post(blockId, ticked);
+  return (runs) => applyTick(runs, r.block_id, r.ticked);
+}
+
+/**
+ * D50: the box waits while a run is on or starting, and until the screen knows whether a run is on. It stays enabled while its own tick
+ * saves: a focused control that becomes disabled loses keyboard focus (F2 I1). A second click then is ignored (historyTickSaves).
+ */
+export const historyTickDisabled = (s: { state: DrillState; runKnown: boolean; busy: boolean; saving?: boolean }): boolean =>
+  s.state.kind === 'running' || !s.runKnown || s.busy;
+
+/** F2 I1: a tick is posted only when none is being saved. */
+export const historyTickSaves = (s: { saving: boolean }): boolean => !s.saving;
 
 // ---- leaving and coming back, ending once (fix round 1) ----
 

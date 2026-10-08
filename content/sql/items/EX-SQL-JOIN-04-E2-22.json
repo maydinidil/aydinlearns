@@ -1,0 +1,135 @@
+{
+  "id": "EX-SQL-JOIN-04-E2-22",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "range-join",
+    "multi-table",
+    "order_lines",
+    "price_history"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-JOIN-04"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-JOIN-04",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-NULL-01",
+    "SQL-TYPE-01",
+    "SQL-JOIN-01",
+    "SQL-JOIN-04"
+  ],
+  "template_id": "T-JOIN-04-range-join-list-price-of-line",
+  "template_params": {
+    "day": "2025-03-06"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_join",
+  "prompt": "For each order line of the orders placed on 6 March 2025, what was the product's list price in effect on that day? order_ts holds UTC time: use its UTC date. A list price is in effect from its version's valid_from to its valid_to, both days included, and valid_to is missing for the current price. Return three columns, in this order: order_line_id, product_name and list_price_eur. Return one row for each order line. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "order_line_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "product_name",
+        "type_class": "text"
+      },
+      {
+        "name": "list_price_eur",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "order_line_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "product_name",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "list_price_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "order_line_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, join price_history with a range condition on the order's UTC date.",
+    "Match the line's product, then keep the version whose valid_from is on or before the day and whose valid_to is on or after it, or missing."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 58,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 59,
+      "to": 78,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 79,
+      "to": 120,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 121,
+      "to": 168,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 169,
+      "to": 338,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 339,
+      "to": 389,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "The range condition picks the single price version whose dates contain the order day, so each line gets exactly one list price."
+}

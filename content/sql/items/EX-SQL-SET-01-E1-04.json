@@ -1,0 +1,118 @@
+{
+  "id": "EX-SQL-SET-01-E1-04",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "set",
+    "union",
+    "promotion_products"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-SET-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "lesson",
+  "target_concept_id": "SQL-SET-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-SET-01"
+  ],
+  "template_id": "T-SET-01-union-distinct-list",
+  "template_params": {
+    "table": "promotion_products",
+    "promo_ids": "31, 32"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_set",
+  "prompt": "Which products were in promotion 31 or in promotion 32? Use the promotion_products table, where promo_id identifies the promotion. Return one column, product_id, and list each product once, even when it was in both promotions. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per product"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "product_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, add the products of promotion 32 to the list, so that each product appears once.",
+    "UNION stacks the two lists and removes duplicate rows, so a product in both promotions stays once. UNION ALL would keep it twice."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 17,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 18,
+      "to": 41,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 42,
+      "to": 61,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 62,
+      "to": 85,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 86,
+      "to": 109,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 110,
+      "to": 129,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": {
+    "stage1": 61,
+    "stage2": 61
+  },
+  "faded_shape": "SELECT product_id\nFROM promotion_products\nWHERE promo_id = 31",
+  "faded_suffix": "\nFROM promotion_products\nWHERE promo_id = 32",
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "UNION stacks both lists and keeps one row for each product, so a product in both promotions is listed once."
+}

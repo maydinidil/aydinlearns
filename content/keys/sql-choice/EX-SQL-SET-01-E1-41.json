@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-SET-01-E1-41",
+  "item_version": 1,
+  "value": 1,
+  "explanation": "Each part returns 'web' for each of its orders, five rows in all. UNION then removes duplicate rows across both parts and keeps one of each, so only one row, 'web', is left. UNION ALL would return all 5 rows.",
+  "solver": {
+    "prompt_hash": "3971390ba3e43e59",
+    "grader_version": "choice.2",
+    "chosen": null,
+    "typed": "1",
+    "at": "2026-10-07T09:58:58.610Z"
+  }
+}

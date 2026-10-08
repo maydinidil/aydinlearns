@@ -6,7 +6,10 @@
     "SELECT order_month, COUNT(DISTINCT order_id) AS n_orders, SUM(net_revenue_eur) / COUNT(DISTINCT order_id) AS avg_order_value_eur FROM sales WHERE order_date >= DATE '2025-01-01' AND order_date < DATE '2026-01-01' GROUP BY 1 HAVING SUM(net_revenue_eur) < 315 * COUNT(DISTINCT order_id) ORDER BY 1",
     "SELECT order_month, COUNT(DISTINCT order_id) AS n_orders, SUM(net_revenue_eur) * 1.0 / COUNT(DISTINCT order_id) AS avg_order_value_eur FROM sales WHERE order_date BETWEEN '2025-01-01' AND '2025-12-31' GROUP BY order_month HAVING SUM(net_revenue_eur) * 1.0 / COUNT(DISTINCT order_id) < 315 ORDER BY order_month ASC"
   ],
-  "other_way": null,
+  "other_way": {
+    "sql": "SELECT order_month, COUNT(DISTINCT order_id) AS n_orders, SUM(net_revenue_eur) / COUNT(DISTINCT order_id) AS avg_order_value_eur FROM sales WHERE order_date >= DATE '2025-01-01' AND order_date < DATE '2026-01-01' GROUP BY 1 HAVING SUM(net_revenue_eur) < 315 * COUNT(DISTINCT order_id) ORDER BY 1",
+    "tradeoff": "Compares revenue with the limit times orders, so no division, but it is harder to read as an average."
+  },
   "planted_wrong": [
     {
       "id": "PW1",

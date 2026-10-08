@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-SET-01-E3-21",
+  "item_version": 1,
+  "reference_sql": "WITH both_rivals AS (\n  SELECT product_id FROM competitor_prices WHERE competitor = 'Bliksem' AND observed_ts >= TIMESTAMP '2025-05-01 00:00:00' AND observed_ts < TIMESTAMP '2025-06-01 00:00:00'\n  INTERSECT\n  SELECT product_id FROM competitor_prices WHERE competitor = 'Stroomhuis' AND observed_ts >= TIMESTAMP '2025-05-01 00:00:00' AND observed_ts < TIMESTAMP '2025-06-01 00:00:00'\n),\nany_rival AS (\n  SELECT product_id FROM competitor_prices WHERE competitor = 'Bliksem' AND observed_ts >= TIMESTAMP '2025-05-01 00:00:00' AND observed_ts < TIMESTAMP '2025-06-01 00:00:00'\n  UNION\n  SELECT product_id FROM competitor_prices WHERE competitor = 'Stroomhuis' AND observed_ts >= TIMESTAMP '2025-05-01 00:00:00' AND observed_ts < TIMESTAMP '2025-06-01 00:00:00'\n),\ncounts_both AS (SELECT COUNT(*) AS products_both FROM both_rivals),\ncounts_any AS (SELECT COUNT(*) AS products_any FROM any_rival)\nSELECT b.products_both, a.products_any,\n       ROUND(100.0 * b.products_both / a.products_any, 1) AS both_pct\nFROM counts_both b\nCROSS JOIN counts_any a",
+  "alternatives": [
+    "WITH may_checks AS (SELECT product_id, COUNT(DISTINCT competitor) AS rivals FROM competitor_prices WHERE observed_ts >= TIMESTAMP '2025-05-01 00:00:00' AND observed_ts < TIMESTAMP '2025-06-01 00:00:00' GROUP BY product_id) SELECT COUNT(*) FILTER (WHERE rivals = 2) AS products_both, COUNT(*) AS products_any, ROUND(100.0 * COUNT(*) FILTER (WHERE rivals = 2) / COUNT(*), 1) AS both_pct FROM may_checks",
+    "WITH may_checks AS (SELECT competitor, product_id FROM competitor_prices WHERE observed_ts >= TIMESTAMP '2025-05-01 00:00:00' AND observed_ts < TIMESTAMP '2025-06-01 00:00:00'), both_rivals AS (SELECT product_id FROM may_checks WHERE competitor = 'Bliksem' INTERSECT SELECT product_id FROM may_checks WHERE competitor = 'Stroomhuis'), any_rival AS (SELECT DISTINCT product_id FROM may_checks), nb AS (SELECT COUNT(*) AS n FROM both_rivals), na AS (SELECT COUNT(*) AS n FROM any_rival) SELECT nb.n AS products_both, na.n AS products_any, ROUND(CAST(nb.n AS DOUBLE) * 100 / na.n, 1) AS both_pct FROM nb CROSS JOIN na"
+  ],
+  "other_way": {
+    "sql": "WITH may_checks AS (SELECT product_id, COUNT(DISTINCT competitor) AS rivals FROM competitor_prices WHERE observed_ts >= TIMESTAMP '2025-05-01 00:00:00' AND observed_ts < TIMESTAMP '2025-06-01 00:00:00' GROUP BY product_id) SELECT COUNT(*) FILTER (WHERE rivals = 2) AS products_both, COUNT(*) AS products_any, ROUND(100.0 * COUNT(*) FILTER (WHERE rivals = 2) / COUNT(*), 1) AS both_pct FROM may_checks",
+    "tradeoff": "Counting the competitors of each product once avoids both set operators and the CROSS JOIN, but it hides the two lists."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-08",
+      "sql": "WITH both_rivals AS (SELECT product_id FROM competitor_prices WHERE competitor = 'Bliksem' AND observed_ts >= TIMESTAMP '2025-05-01 00:00:00' AND observed_ts < TIMESTAMP '2025-06-01 00:00:00' INTERSECT SELECT product_id FROM competitor_prices WHERE competitor = 'Stroomhuis' AND observed_ts >= TIMESTAMP '2025-05-01 00:00:00' AND observed_ts < TIMESTAMP '2025-06-01 00:00:00'), any_rival AS (SELECT product_id FROM competitor_prices WHERE competitor = 'Bliksem' AND observed_ts >= TIMESTAMP '2025-05-01 00:00:00' AND observed_ts < TIMESTAMP '2025-06-01 00:00:00' UNION ALL SELECT product_id FROM competitor_prices WHERE competitor = 'Stroomhuis' AND observed_ts >= TIMESTAMP '2025-05-01 00:00:00' AND observed_ts < TIMESTAMP '2025-06-01 00:00:00'), counts_both AS (SELECT COUNT(*) AS products_both FROM both_rivals), counts_any AS (SELECT COUNT(*) AS products_any FROM any_rival) SELECT b.products_both, a.products_any, ROUND(100.0 * b.products_both / a.products_any, 1) AS both_pct FROM counts_both b CROSS JOIN counts_any a"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-05",
+      "sql": "WITH both_rivals AS (SELECT product_id FROM competitor_prices WHERE competitor = 'Bliksem' AND observed_ts >= TIMESTAMP '2025-05-01 00:00:00' AND observed_ts < TIMESTAMP '2025-06-01 00:00:00' INTERSECT SELECT product_id FROM competitor_prices WHERE competitor = 'Stroomhuis' AND observed_ts >= TIMESTAMP '2025-05-01 00:00:00' AND observed_ts < TIMESTAMP '2025-06-01 00:00:00'), any_rival AS (SELECT product_id FROM competitor_prices WHERE competitor = 'Bliksem' AND observed_ts >= TIMESTAMP '2025-05-01 00:00:00' AND observed_ts < TIMESTAMP '2025-06-01 00:00:00' UNION SELECT product_id FROM competitor_prices WHERE competitor = 'Stroomhuis' AND observed_ts >= TIMESTAMP '2025-05-01 00:00:00' AND observed_ts < TIMESTAMP '2025-06-01 00:00:00'), counts_both AS (SELECT COUNT(*) AS products_both FROM both_rivals), counts_any AS (SELECT COUNT(*) AS products_any FROM any_rival) SELECT b.products_both, a.products_any, ROUND(100 * b.products_both // a.products_any, 1) AS both_pct FROM counts_both b CROSS JOIN counts_any a"
+    }
+  ],
+  "hint3_partial": "WITH both_rivals AS (\n  SELECT product_id FROM competitor_prices WHERE competitor = 'Bliksem' AND observed_ts >= TIMESTAMP '2025-05-01 00:00:00' AND observed_ts < TIMESTAMP '2025-06-01 00:00:00'\n  ___\n  SELECT product_id FROM competitor_prices WHERE competitor = 'Stroomhuis' AND observed_ts >= TIMESTAMP '2025-05-01 00:00:00' AND observed_ts < TIMESTAMP '2025-06-01 00:00:00'\n),\nany_rival AS (\n  ___\n),\ncounts_both AS (SELECT COUNT(*) AS products_both FROM both_rivals),\ncounts_any AS (SELECT COUNT(*) AS products_any FROM any_rival)\nSELECT b.products_both, a.products_any,\n       ROUND(100.0 * b.products_both / a.products_any, 1) AS both_pct\nFROM counts_both b\nCROSS JOIN counts_any a",
+  "solver": {
+    "prompt_hash": "d37e4e67e6756504",
+    "schema_version": "ffc6be9b2fbc",
+    "dataset_version": "e1545e4258743033",
+    "grader_version": "1b.3",
+    "query": "WITH b AS (\n  SELECT DISTINCT product_id FROM competitor_prices\n  WHERE competitor = 'Bliksem' AND observed_ts >= TIMESTAMP '2025-05-01 00:00:00' AND observed_ts < TIMESTAMP '2025-06-01 00:00:00'\n), s AS (\n  SELECT DISTINCT product_id FROM competitor_prices\n  WHERE competitor = 'Stroomhuis' AND observed_ts >= TIMESTAMP '2025-05-01 00:00:00' AND observed_ts < TIMESTAMP '2025-06-01 00:00:00'\n), t AS (\n  SELECT\n    (SELECT COUNT(*) FROM (SELECT product_id FROM b INTERSECT SELECT product_id FROM s) x) AS products_both,\n    (SELECT COUNT(*) FROM (SELECT product_id FROM b UNION SELECT product_id FROM s) y) AS products_any\n)\nSELECT products_both, products_any, ROUND(100.0 * products_both / products_any, 1) AS both_pct\nFROM t",
+    "at": "2026-10-07T10:41:43.227Z"
+  }
+}

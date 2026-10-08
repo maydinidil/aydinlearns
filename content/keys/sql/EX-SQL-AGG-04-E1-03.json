@@ -6,7 +6,10 @@
     "SELECT country_code, COUNT(*) AS n_lines, COUNT(CASE WHEN units >= 2 THEN 1 END) AS multi_unit_lines FROM sales GROUP BY country_code",
     "SELECT country_code, COUNT(*) AS n_lines, COUNT(*) FILTER (WHERE units >= 2) AS multi_unit_lines FROM sales GROUP BY 1"
   ],
-  "other_way": null,
+  "other_way": {
+    "sql": "SELECT country_code, COUNT(*) AS n_lines, COUNT(*) FILTER (WHERE units >= 2) AS multi_unit_lines FROM sales GROUP BY 1",
+    "tradeoff": "Reads closer to plain English, but FILTER is not available in every SQL dialect."
+  },
   "planted_wrong": [
     {
       "id": "PW1",

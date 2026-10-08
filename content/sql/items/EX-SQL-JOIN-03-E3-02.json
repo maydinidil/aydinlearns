@@ -1,0 +1,159 @@
+{
+  "id": "EX-SQL-JOIN-03-E3-02",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "fan_out",
+    "cte",
+    "distinct",
+    "orders",
+    "order_lines",
+    "products",
+    "categories"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-JOIN-03"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-JOIN-03",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-AGG-04",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-JOIN-03"
+  ],
+  "template_id": "T-JOIN-03-key-list-then-join",
+  "template_params": {
+    "key_list": "orders with an Audio line",
+    "parent": "orders",
+    "group_by": "channel"
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_join",
+  "prompt": "For each channel, how many orders contain at least one product from the Audio parent category, and what is the total value of those whole orders? An order's value is the sum, over all its order lines, of quantity times unit_price_eur minus line_discount_eur, including lines from other categories. Count each order once, however many Audio lines it has. Return three columns, in this order: channel, n_orders and value_eur. Return one row for each channel with at least one such order. Do not round. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "channel",
+        "type_class": "text"
+      },
+      {
+        "name": "n_orders",
+        "type_class": "numeric"
+      },
+      {
+        "name": "value_eur",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "channel",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "n_orders",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "value_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "channel"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, list the orders that hold an Audio line, each order once, and add up every order's value in its own step.",
+    "An order with two Audio lines appears twice among the Audio lines; joining its whole value to each of them would count it twice."
+  ],
+  "subgoals": [
+    {
+      "from": 25,
+      "to": 52,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 55,
+      "to": 177,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 180,
+      "to": 213,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 237,
+      "to": 317,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 320,
+      "to": 336,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 339,
+      "to": 356,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 359,
+      "to": 428,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 429,
+      "to": 536,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 537,
+      "to": 555,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "The list holds each Audio order once and the totals step one row per order, so each whole order is counted and added once."
+}

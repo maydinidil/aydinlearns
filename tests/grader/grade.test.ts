@@ -2,11 +2,12 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { startRunner, type RunnerClient, type RunnerReq, type RunnerResult } from '../../server/runner/client.ts';
-import { GRADER_VERSION, grade, revealReference } from '../../server/grader/grade.ts';
+import { GRADER_VERSION, INT_DIVISION_NOTE, grade, revealReference } from '../../server/grader/grade.ts';
 import { DEFAULT_RULES, type GradingRules, type SqlItem } from '../../schemas/item.ts';
 import type { SqlKey } from '../../schemas/keys.ts';
 import type { RunnerError } from '../../server/runner/protocol.ts';
 import { makeFixtureDb, SHOP } from '../helpers/fixture-db.ts';
+import { integerDivisionCheck } from '../../server/grader/portability.ts';
 
 const db = await makeFixtureDb([...SHOP, 'CREATE SCHEMA edge',
   "CREATE TABLE edge.stores AS SELECT * FROM (VALUES (1,'NL-01',NULL,'NL'),(2,'BE-07','Gent','BE')) v(store_id, store_code, city, country_code)",
@@ -47,8 +48,8 @@ const stubRunner = (reply: (req: RunnerReq) => RunnerResult): RunnerClient => ({
   restarts: 0,
 });
 
-test('the grader version is 1b.3 (sprint 2: CHK-INT-TRUNC diagnoses ERR-LOG-05 when no planted query matches)', () => {
-  assert.equal(GRADER_VERSION, '1b.3');
+test('the grader version is 4c.1 (sprint 4c, D52: the integer division re-run is checked against a control run first)', () => {
+  assert.equal(GRADER_VERSION, '4c.1');
 });
 test('a correct query passes on both datasets', async () => {
   const r = await grade({ item, key, sql: 'select city from stores where city is not null;' }, deps);
@@ -160,6 +161,22 @@ test('an engine error that only the edge data raises is graded as an engine erro
   assert.equal(r.notes.length, 1);
   assert.match(r.notes[0]!, /no city here/);
   assert.doesNotMatch(r.notes[0]!, /\n/, 'only the first line of a composed statement\'s message is shown');
+});
+test('a memory-limit error on the hidden dataset reads as a plain message, never as values differ', async () => {
+  const cols = [{ name: 'city', type: 'VARCHAR' }];
+  const oom = 'Out of Memory Error: failed to allocate data of size 512.0 MiB (953.6 MiB/953.6 MiB used)\n\nLINE 1: SELECT secret';
+  const stub = stubRunner((req) => {
+    if (req.op === 'display') return { ok: true, data: { columns: cols, rows: [['Gent']], rowCount: 1, truncated: false } };
+    if (req.op === 'gate') return { ok: true, data: { columns: cols, tables: [], tableCheck: 'parse_tree' } };
+    if (req.op === 'one_row' && req.schema === 'edge') return { ok: false, error: { kind: 'engine', phase: 'runtime', message: oom } };
+    return { ok: true, data: { columns: [], rows: [[0, 0, 0, 1, 1, 1]] } };
+  });
+  const r = await grade({ item, key, sql: 'SELECT city FROM stores' }, { ...deps, runner: stub });
+  assert.deepEqual([r.outcome, r.graded], ['engine_error', true]);
+  const text = JSON.stringify([r.notes, r.diagnosis?.feedback]);
+  assert.match(text, /more memory than this exercise allows/);
+  assert.match(text, /range join/);
+  assert.doesNotMatch(text, /differ|LINE 1|secret/i);
 });
 test('a runner crash while grading is not graded', async () => {
   const cols = [{ name: 'city', type: 'VARCHAR' }];
@@ -327,3 +344,180 @@ test('show answer returns the reference query and its result', async () => {
   assert.equal(r.display?.rowCount, 3);
 });
 test.after(() => runner.close());
+
+// ---- Task E3: screen mode (D41, S4B-22) and the integer division re-run (S4B-24) ---------------------------------------
+
+/** One numeric or temporal column, compared exactly, on vis.stores (stores 1 to 3) and the edge copy. */
+const oneColumn = (id: string, type_class: 'numeric' | 'temporal', reference_sql: string, over: Partial<GradingRules> = {}) => variant({
+  id, reference_sql, rules: { columns: [{ name: 'v', type_class, precision: type_class === 'numeric' ? 'count' : 'exact' }], ...over },
+});
+/** The outcome in normal mode, then in screen mode. */
+const both = async (v: ReturnType<typeof variant>, sql: string) => [
+  (await grade({ ...v, sql }, deps)).outcome,
+  (await grade({ ...v, sql, screenMode: true }, deps)).outcome,
+];
+
+test('D41, S4B-22: screen mode fails an integer key column against a non-integer learner column, and the reverse; normal mode passes both', async () => {
+  const intKey = oneColumn('EX-SCR-INT', 'numeric', 'SELECT store_id AS v FROM stores');
+  for (const sql of ['SELECT store_id * 1.0 AS v FROM stores', 'SELECT CAST(store_id AS DOUBLE) AS v FROM stores']) {
+    assert.deepEqual(await both(intKey, sql), ['pass', 'fail'], sql);
+  }
+  const screen = await grade({ ...intKey, sql: 'SELECT store_id * 1.0 AS v FROM stores', screenMode: true }, deps);
+  assert.deepEqual([screen.graded, screen.diagnosis?.errorId, screen.diagnosis?.source], [true, 'ERR-OUT-02', 'shape'], 'a wrong kind of value');
+  const doubleKey = oneColumn('EX-SCR-DBL', 'numeric', 'SELECT CAST(store_id AS DOUBLE) AS v FROM stores');
+  assert.deepEqual(await both(doubleKey, 'SELECT store_id AS v FROM stores'), ['pass', 'fail'], 'the reverse');
+});
+
+test('D41: nothing finer than integer against non-integer: widths and decimal kinds still match in screen mode', async () => {
+  const intKey = oneColumn('EX-SCR-INT', 'numeric', 'SELECT store_id AS v FROM stores');
+  assert.deepEqual(await both(intKey, 'SELECT CAST(store_id AS BIGINT) AS v FROM stores'), ['pass', 'pass'], 'INTEGER against BIGINT');
+  assert.deepEqual(await both(intKey, 'SELECT CAST(store_id AS HUGEINT) AS v FROM stores'), ['pass', 'pass'], 'INTEGER against HUGEINT (a SUM)');
+  const money = oneColumn('EX-SCR-DEC', 'numeric', 'SELECT CAST(store_id AS DECIMAL(10,2)) AS v FROM stores');
+  assert.deepEqual(await both(money, 'SELECT CAST(store_id AS DOUBLE) AS v FROM stores'), ['pass', 'pass'], 'DECIMAL against DOUBLE');
+  const whole = oneColumn('EX-SCR-DEC0', 'numeric', 'SELECT CAST(store_id AS DECIMAL(10,0)) AS v FROM stores');
+  assert.deepEqual(await both(whole, 'SELECT store_id AS v FROM stores'), ['pass', 'pass'], 'a whole-number DECIMAL shows no decimals, as an integer does');
+  assert.deepEqual(await both(whole, 'SELECT CAST(store_id AS DOUBLE) AS v FROM stores'), ['pass', 'fail'], 'against a DOUBLE it is integer against non-integer');
+});
+
+test('D41, S4B-22: screen mode matches temporal subtypes strictly, as strict_temporal_type does; normal mode stays lenient', async () => {
+  const dateKey = oneColumn('EX-SCR-DATE', 'temporal', "SELECT DATE '2025-03-01' + store_id AS v FROM stores");
+  assert.deepEqual(await both(dateKey, "SELECT CAST(DATE '2025-03-01' + store_id AS TIMESTAMP) AS v FROM stores"), ['pass', 'fail'], 'DATE against TIMESTAMP');
+  assert.deepEqual(await both(dateKey, "SELECT DATE '2025-03-01' + store_id AS v FROM stores"), ['pass', 'pass'], 'DATE against DATE');
+  const strict = oneColumn('EX-SCR-STRICT', 'temporal', "SELECT DATE '2025-03-01' + store_id AS v FROM stores", { strict_temporal_type: true });
+  assert.deepEqual(await both(strict, "SELECT CAST(DATE '2025-03-01' + store_id AS TIMESTAMP) AS v FROM stores"), ['fail', 'fail'], 'strict_temporal_type in every mode');
+});
+
+test('D41: rounding needs nothing new in screen mode: require_rounding (G3) applies in both modes', async () => {
+  const rounded = variant({ id: 'EX-SCR-ROUND', schema: 'ads', edge_schema: 'ads_edge', reference_sql: 'SELECT campaign, clicks * 1.0 / views AS ctr FROM campaigns',
+    rules: { columns: [{ name: 'campaign', type_class: 'text', precision: 'exact' }, { name: 'ctr', type_class: 'numeric', precision: 'ratio', require_rounding: 2 }] } });
+  assert.deepEqual(await both(rounded, 'SELECT campaign, ROUND(clicks * 1.0 / views, 2) AS ctr FROM campaigns'), ['pass', 'pass']);
+  assert.deepEqual(await both(rounded, 'SELECT campaign, clicks * 1.0 / views AS ctr FROM campaigns'), ['fail', 'fail']);
+});
+
+/** The runner's requests, recorded, while the real runner answers them. */
+const recording = () => {
+  const reqs: RunnerReq[] = [];
+  const r: RunnerClient = { request: <T>(req: RunnerReq) => { reqs.push(req); return runner.request<T>(req); }, close: async () => {}, restarts: 0 };
+  return { runner: r, reruns: () => reqs.filter((q) => q.op === 'display' && q.integerDivision === true),
+    controls: () => reqs.filter((q) => q.op === 'display' && q.integerDivision === false) };
+};
+const CTR_SLASH = 'SELECT campaign, clicks / views AS ctr FROM campaigns';
+
+test('S4B-24: a passing query that divides two whole numbers gets the integer division note; a cast one gets none; neither changes the pass', async () => {
+  assert.equal(INT_DIVISION_NOTE, 'On PostgreSQL or SQL Server this division cuts off the decimals (7 / 2 = 3). Cast one side to a decimal.');
+  const truncating = await grade({ ...ctr(), sql: CTR_SLASH }, deps);
+  assert.deepEqual([truncating.outcome, truncating.graded, truncating.diagnosis], ['pass', true, null]);
+  assert.deepEqual([truncating.portabilityNotes, truncating.divisionCheck], [[INT_DIVISION_NOTE], 'changed'], 'Codex F24: the note exactly on changed');
+  assert.deepEqual(checksOf(truncating.notes), [], 'a note, never a check');
+  for (const sql of ['SELECT campaign, clicks * 1.0 / views AS ctr FROM campaigns', 'SELECT campaign, CAST(clicks AS DOUBLE) / views AS ctr FROM campaigns',
+    'SELECT campaign, clicks / CAST(views AS DECIMAL(10,2)) AS ctr FROM campaigns']) {
+    const cast = await grade({ ...ctr(), sql }, deps);
+    assert.deepEqual([cast.outcome, cast.portabilityNotes, cast.divisionCheck], ['pass', [], 'same'], sql);
+  }
+  const screen = await grade({ ...ctr(), sql: CTR_SLASH, screenMode: true }, deps);
+  assert.deepEqual([screen.outcome, screen.portabilityNotes, screen.divisionCheck], ['pass', [INT_DIVISION_NOTE], 'changed'], 'screen mode re-runs too');
+});
+
+test('S4B-24: the re-run happens only after a pass, only for a query with a / outside strings and comments, and only on the visible data', async () => {
+  const pass = recording();
+  await grade({ ...ctr(), sql: CTR_SLASH }, { ...deps, runner: pass.runner });
+  assert.deepEqual(pass.reruns().map((q) => [q.op, 'schema' in q ? q.schema : null]), [['display', 'ads']], 'one display, on the visible dataset');
+  const fail = recording();
+  const failed = await grade({ ...ctr(), sql: 'SELECT campaign, clicks / views * 100 AS ctr FROM campaigns' }, { ...deps, runner: fail.runner });
+  assert.deepEqual([failed.outcome, fail.reruns().length, 'divisionCheck' in failed], ['fail', 0, false], 'a fail is never re-run, and has no division check (Codex F24)');
+  const none = recording();
+  const plain = await grade({ item, key, sql: "SELECT city FROM stores WHERE city IS NOT NULL AND city <> 'a/b' /* x / y */ -- 7 / 2" }, { ...deps, runner: none.runner });
+  assert.deepEqual([plain.outcome, none.reruns().length, plain.portabilityNotes, plain.divisionCheck], ['pass', 0, [], 'no_division'],
+    'a / only in a string or a comment is no division');
+  const quoted = recording();
+  const named = await grade({ item, key, sql: 'SELECT city AS "a/b" FROM stores WHERE city IS NOT NULL' }, { ...deps, runner: quoted.runner });
+  assert.deepEqual([named.outcome, quoted.reruns().length], ['pass', 0], 'nor is one inside a quoted name');
+});
+
+test('S4B-24: a re-run that fails, times out or crashes gives no note and never fails the pass', async () => {
+  for (const error of [{ kind: 'timeout' }, { kind: 'crash', message: 'gone' }, { kind: 'engine', phase: 'runtime', message: 'Out of Range Error' },
+    { kind: 'gate', reason: 'not_select', message: 'no' }] as RunnerError[]) {
+    const flaky: RunnerClient = {
+      request: async <T>(req: RunnerReq) => (req.op === 'display' && req.integerDivision === true ? { ok: false, error } : await runner.request<T>(req)) as RunnerResult<T>,
+      close: async () => {}, restarts: 0,
+    };
+    const r = await grade({ ...ctr(), sql: CTR_SLASH }, { ...deps, runner: flaky });
+    assert.deepEqual([r.outcome, r.graded, r.portabilityNotes, r.divisionCheck], ['pass', true, [], 'not_compared'], error.kind);
+  }
+  // Codex F24: a request that throws is no comparison either.
+  const throwing: RunnerClient = {
+    request: async <T>(req: RunnerReq) => {
+      if (req.op === 'display' && req.integerDivision === true) throw new Error('runner exited');
+      return runner.request<T>(req);
+    },
+    close: async () => {}, restarts: 0,
+  };
+  const thrown = await grade({ ...ctr(), sql: CTR_SLASH }, { ...deps, runner: throwing });
+  assert.deepEqual([thrown.outcome, thrown.graded, thrown.portabilityNotes, thrown.divisionCheck], ['pass', true, [], 'not_compared'], 'a thrown re-run');
+});
+
+test('S4B-24: a re-run result over the display cap is not compared, so it gives no note', async () => {
+  // The visible display is capped at 1,000 rows; when either side is cut, rows that differ only in order could look different.
+  const big: RunnerClient = {
+    request: async <T>(req: RunnerReq) => {
+      const r = await runner.request<T>(req);
+      return (req.op === 'display' && req.integerDivision === true && r.ok ? { ok: true, data: { ...(r.data as object), truncated: true } } : r) as RunnerResult<T>;
+    },
+    close: async () => {}, restarts: 0,
+  };
+  const r = await grade({ ...ctr(), sql: CTR_SLASH }, { ...deps, runner: big });
+  assert.deepEqual([r.outcome, r.portabilityNotes, r.divisionCheck], ['pass', [], 'not_compared']);
+});
+
+test('E3-M2: when the shown result was cut at the cap, the division re-run does not run at all', async () => {
+  const rec = recording();
+  const cut = { columns: [{ name: 'ctr', type: 'DOUBLE' }], rows: [[1]], rowCount: 1, truncated: true };
+  assert.equal(await integerDivisionCheck(rec.runner, 'ads', CTR_SLASH, cut, 1000, 5000), 'not_compared', 'Codex F24: not compared, not clean');
+  assert.equal(rec.reruns().length, 0);
+  assert.equal(rec.controls().length, 0, 'D52: nor does the control');
+});
+
+test('Codex F24: only a pass carries a division check; a fail, an engine error and a rejection have none', async () => {
+  assert.equal((await grade({ ...ctr(), sql: 'SELECT campaign, clicks * 1.0 / views AS ctr FROM campaigns' }, deps)).divisionCheck, 'same');
+  for (const sql of ['SELECT campaign, clicks / views * 100 AS ctr FROM campaigns', 'SELECT campaign, nope / views AS ctr FROM campaigns',
+    'SELECT campaign, clicks / views AS ctr FROM campaigns; SELECT 1']) {
+    const r = await grade({ ...ctr(), sql }, deps);
+    assert.notEqual(r.outcome, 'pass', sql);
+    assert.equal('divisionCheck' in r, false, `${r.outcome}: ${sql}`);
+  }
+});
+
+// ---- Sprint 4c, Task B2, D52: the integer division re-run is checked against a control run with integer division off ----------
+
+test('D52: a passing query whose result does not repeat gets no integer division note: not_compared, and the pass stands', async () => {
+  // The `/` keeps the decimals, so integer division cannot change it; the noise is far inside the ratio tolerance, but not the same twice.
+  const rec = recording();
+  const r = await grade({ ...ctr(), sql: 'SELECT campaign, clicks * 1.0 / views + random() * 1e-7 AS ctr FROM campaigns' }, { ...deps, runner: rec.runner });
+  assert.deepEqual([r.outcome, r.graded, r.diagnosis, r.portabilityNotes, r.divisionCheck], ['pass', true, null, [], 'not_compared']);
+  assert.deepEqual([rec.controls().length, rec.reruns().length], [1, 0], 'the control ran; the integer division run did not');
+});
+test('D52: a deterministic ratio pass runs the control, then integer division, on the visible data within the item\'s one deadline', async () => {
+  const rec = recording();
+  const r = await grade({ ...ctr(), sql: CTR_SLASH }, { ...deps, runner: rec.runner });
+  assert.deepEqual([r.outcome, r.portabilityNotes, r.divisionCheck], ['pass', [INT_DIVISION_NOTE], 'changed']);
+  const [control] = rec.controls();
+  const [rerun] = rec.reruns();
+  assert.deepEqual(control, { op: 'display', schema: 'ads', allowedSchemas: [], sql: CTR_SLASH, cap: 1000, deadlineMs: 5000, integerDivision: false });
+  assert.ok(rerun?.op === 'display' && rerun.schema === 'ads' && rerun.deadlineMs > 0 && rerun.deadlineMs <= 5000, JSON.stringify(rerun));
+  const same = recording();
+  const cast = await grade({ ...ctr(), sql: 'SELECT campaign, clicks * 1.0 / views AS ctr FROM campaigns' }, { ...deps, runner: same.runner });
+  assert.deepEqual([cast.outcome, cast.portabilityNotes, cast.divisionCheck, same.controls().length, same.reruns().length], ['pass', [], 'same', 1, 1]);
+});
+test('D52: a control that times out gives not_compared and no note, and never fails the pass', async () => {
+  const reqs: RunnerReq[] = [];
+  const slow: RunnerClient = {
+    request: async <T>(req: RunnerReq) => {
+      reqs.push(req);
+      return (req.op === 'display' && req.integerDivision === false ? { ok: false, error: { kind: 'timeout' } } : await runner.request<T>(req)) as RunnerResult<T>;
+    },
+    close: async () => {}, restarts: 0,
+  };
+  const r = await grade({ ...ctr(), sql: CTR_SLASH }, { ...deps, runner: slow });
+  assert.deepEqual([r.outcome, r.graded, r.portabilityNotes, r.divisionCheck], ['pass', true, [], 'not_compared']);
+  assert.equal(reqs.filter((q) => q.op === 'display' && q.integerDivision === true).length, 0, 'no integer division run after a failed control');
+});

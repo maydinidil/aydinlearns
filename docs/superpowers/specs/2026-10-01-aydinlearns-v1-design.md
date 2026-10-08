@@ -1372,6 +1372,19 @@ feedback; 12 of its planted queries were remapped, and slice 1b's fix items need
 starter query. The slice 0 row above is `ERR-LOG-20` (averaging ratios, E-142) and `ERR-LOG-21`
 (percent scale, E-143).
 
+**(amended 2026-10-07, sprint 4a)** Level 3 added three IDs through ERRATA, detected the same way
+(`CHK-MUTANT-MATCH`, with feedback in `content/sql/error-feedback.json`):
+
+| ID | Name | Concept | ERRATA |
+|---|---|---|---|
+| `ERR-LOG-24` | UNION where UNION ALL was needed: legitimate duplicate rows removed | `SQL-SET-01` | E-162 |
+| `ERR-LOG-25` | Date truncation slip: the wrong period, or a month or week number without its year | `SQL-DATE-01` | E-163 |
+| `ERR-LOG-26` | UTC day where the Amsterdam day was asked: every `*_ts` column holds UTC | `SQL-DATE-01` | E-164 |
+
+`ERR-LOG-00` (values differ, unclassified) is the grader's fallback for any wrong result that
+matches no planted query, a timeout and an engine error it cannot name. It never makes a mistake
+card or a mistake candidate (sprint 4a ruling P-20): a card is named by a real error (§5).
+
 Feedback templates are written in refutation form.
 
 **Mental-model content** (T-06):

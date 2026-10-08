@@ -1,7 +1,7 @@
 // server/grader/plan.ts: column mapping and per-column comparison (design §6, G1-G4)
 import type { ColumnMeta } from '../runner/protocol.ts';
 import type { ColumnRule, GradingRules } from '../../schemas/item.ts';
-import { typeClassOf } from './typeclass.ts';
+import { isIntegerType, typeClassOf } from './typeclass.ts';
 
 export type ColumnCompare = 'exact' | { tol: number } | { rounded: number };
 export interface PlanColumn { norm: 'text' | 'numeric' | 'temporal' | 'boolean' | 'other'; trim: boolean; lower: boolean; compare: ColumnCompare }
@@ -12,6 +12,11 @@ export interface PlanColumn { norm: 'text' | 'numeric' | 'temporal' | 'boolean' 
  */
 export interface ComparePlan { learnerColCount: number; keyColCount: number; learnerOrder: number[]; keyOrder: number[]; columns: PlanColumn[] }
 export type PlanResult = { ok: true; plans: ComparePlan[] } | { ok: false; reason: 'column_count' | 'type_class'; detail: string };
+/**
+ * The grading mode (D41, Task E3). Screen mode adds two G4 checks, and only for an attempt served in screen mode: numeric columns
+ * match on integer against non-integer subtype, and temporal subtypes match strictly. Left out, a plan is built as before.
+ */
+export interface PlanMode { screenMode?: boolean }
 
 const MAX_PLANS = 6;
 const WRONG_KIND = 'a column has the wrong kind of value';
@@ -19,16 +24,19 @@ const WRONG_KIND = 'a column has the wrong kind of value';
 /** TIME and TIME WITH TIME ZONE: not TIMESTAMP, which `\b` keeps out. */
 const isTimeOnly = (type: string): boolean => /^TIME\b/i.test(type.trim());
 
-function compatible(learner: ColumnMeta, key: ColumnMeta, rules: GradingRules): boolean {
+function compatible(learner: ColumnMeta, key: ColumnMeta, rules: GradingRules, mode: PlanMode): boolean {
   const l = typeClassOf(learner.type);
   const k = typeClassOf(key.type);
   if (k === 'temporal' && l === 'temporal') {
-    if (rules.strict_temporal_type) return learner.type.toUpperCase() === key.type.toUpperCase();
+    // Screen mode matches temporal subtypes as strict_temporal_type does (S4B-22): DATE against TIMESTAMP fails.
+    if (rules.strict_temporal_type || mode.screenMode) return learner.type.toUpperCase() === key.type.toUpperCase();
     // Lenient across DATE and TIMESTAMP (G4). A time of day is a different kind of value, and
     // DuckDB cannot cast TIME to TIMESTAMP, so the comparison would fail to bind.
     return isTimeOnly(learner.type) === isTimeOnly(key.type);
   }
   if (isBooleanVsNumber(l, k)) return true;                     // boolean vs 0/1 (G4), either way round
+  // Screen mode's integer check (S4B-22): an integer key column against a non-integer learner column fails, and the reverse.
+  if (mode.screenMode && l === 'numeric' && k === 'numeric') return isIntegerType(learner.type) === isIntegerType(key.type);
   return l === k;
 }
 
@@ -74,13 +82,13 @@ function* permutations(n: number): Generator<number[]> {
   }
 }
 
-export function buildPlans(learner: ColumnMeta[], key: ColumnMeta[], rules: GradingRules): PlanResult {
+export function buildPlans(learner: ColumnMeta[], key: ColumnMeta[], rules: GradingRules, mode: PlanMode = {}): PlanResult {
   // Columns are built per plan: a boolean against a number normalises differently from a boolean against a boolean.
   const mk = (order: number[]): ComparePlan => ({
     learnerColCount: learner.length, keyColCount: key.length, learnerOrder: order, keyOrder: key.map((_, ki) => ki),
     columns: order.map((li, ki) => planColumn(learner[li]!, key[ki]!, rules.columns[ki], rules)),
   });
-  const fits = (order: number[]): boolean => order.every((li, ki) => compatible(learner[li]!, key[ki]!, rules));
+  const fits = (order: number[]): boolean => order.every((li, ki) => compatible(learner[li]!, key[ki]!, rules, mode));
   // A name match needs every key column name to appear exactly once among the learner's columns.
   const sameName = (a: string, b: string): boolean => a.toLowerCase() === b.toLowerCase();
   const byName = key.map((k) => {
@@ -139,18 +147,18 @@ export function buildPlans(learner: ColumnMeta[], key: ColumnMeta[], rules: Grad
  * kinds of value are compatible, as for a full plan. Key columns that do not pair, and learner columns left over,
  * are dropped. Null when no column pairs. The pairs are listed in key order.
  */
-export function partialPlan(learner: ColumnMeta[], key: ColumnMeta[], rules: GradingRules): ComparePlan | null {
+export function partialPlan(learner: ColumnMeta[], key: ColumnMeta[], rules: GradingRules, mode: PlanMode = {}): ComparePlan | null {
   const sameName = (a: string, b: string): boolean => a.toLowerCase() === b.toLowerCase();
   const hits = key.map((k) => learner.flatMap((l, i) => (sameName(l.name, k.name) ? [i] : [])));
   const pairs = new Map<number, number>();                  // key index -> learner index
   const taken = new Set<number>();
   key.forEach((k, ki) => {
     const li = hits[ki]!.length === 1 ? hits[ki]![0]! : -1;
-    if (li >= 0 && !taken.has(li) && compatible(learner[li]!, k, rules)) { pairs.set(ki, li); taken.add(li); }
+    if (li >= 0 && !taken.has(li) && compatible(learner[li]!, k, rules, mode)) { pairs.set(ki, li); taken.add(li); }
   });
   key.forEach((k, ki) => {
     if (hits[ki]!.length > 0 || ki >= learner.length || taken.has(ki)) return;
-    if (compatible(learner[ki]!, k, rules)) { pairs.set(ki, ki); taken.add(ki); }
+    if (compatible(learner[ki]!, k, rules, mode)) { pairs.set(ki, ki); taken.add(ki); }
   });
   if (!pairs.size) return null;
   const keyOrder = [...pairs.keys()].sort((a, b) => a - b);

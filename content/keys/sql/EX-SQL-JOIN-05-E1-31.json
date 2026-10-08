@@ -1,0 +1,39 @@
+{
+  "item_id": "EX-SQL-JOIN-05-E1-31",
+  "item_version": 1,
+  "reference_sql": "WITH feb AS (SELECT ol.product_id, SUM(ol.quantity) AS units FROM order_lines ol JOIN orders o ON o.order_id = ol.order_id JOIN stores s ON s.store_id = o.store_id WHERE s.store_code = 'NL-01' AND o.order_ts >= TIMESTAMP '2025-02-01' AND o.order_ts < TIMESTAMP '2025-03-01' GROUP BY ol.product_id),\nmar AS (SELECT ol.product_id, SUM(ol.quantity) AS units FROM order_lines ol JOIN orders o ON o.order_id = ol.order_id JOIN stores s ON s.store_id = o.store_id WHERE s.store_code = 'NL-01' AND o.order_ts >= TIMESTAMP '2025-03-01' AND o.order_ts < TIMESTAMP '2025-04-01' GROUP BY ol.product_id)\nSELECT COALESCE(f.product_id, m.product_id) AS product_id, COALESCE(f.units, 0) AS feb_units, COALESCE(m.units, 0) AS mar_units\nFROM feb f\nFULL OUTER JOIN mar m ON m.product_id = f.product_id",
+  "alternatives": [
+    "SELECT ol.product_id, COALESCE(SUM(ol.quantity) FILTER (WHERE o.order_ts < TIMESTAMP '2025-03-01'), 0) AS feb_units, COALESCE(SUM(ol.quantity) FILTER (WHERE o.order_ts >= TIMESTAMP '2025-03-01'), 0) AS mar_units FROM order_lines ol JOIN orders o ON o.order_id = ol.order_id JOIN stores s ON s.store_id = o.store_id WHERE s.store_code = 'NL-01' AND o.order_ts >= TIMESTAMP '2025-02-01' AND o.order_ts < TIMESTAMP '2025-04-01' GROUP BY ol.product_id",
+    "WITH feb AS (SELECT ol.product_id, SUM(ol.quantity) AS units FROM order_lines ol JOIN orders o ON o.order_id = ol.order_id JOIN stores s ON s.store_id = o.store_id WHERE s.store_code = 'NL-01' AND o.order_ts >= TIMESTAMP '2025-02-01' AND o.order_ts < TIMESTAMP '2025-03-01' GROUP BY ol.product_id), mar AS (SELECT ol.product_id, SUM(ol.quantity) AS units FROM order_lines ol JOIN orders o ON o.order_id = ol.order_id JOIN stores s ON s.store_id = o.store_id WHERE s.store_code = 'NL-01' AND o.order_ts >= TIMESTAMP '2025-03-01' AND o.order_ts < TIMESTAMP '2025-04-01' GROUP BY ol.product_id) SELECT COALESCE(m.product_id, f.product_id) AS product_id, COALESCE(f.units, 0) AS feb_units, COALESCE(m.units, 0) AS mar_units FROM mar m FULL JOIN feb f ON f.product_id = m.product_id"
+  ],
+  "other_way": {
+    "sql": "SELECT ol.product_id, COALESCE(SUM(ol.quantity) FILTER (WHERE o.order_ts < TIMESTAMP '2025-03-01'), 0) AS feb_units, COALESCE(SUM(ol.quantity) FILTER (WHERE o.order_ts >= TIMESTAMP '2025-03-01'), 0) AS mar_units FROM order_lines ol JOIN orders o ON o.order_id = ol.order_id JOIN stores s ON s.store_id = o.store_id WHERE s.store_code = 'NL-01' AND o.order_ts >= TIMESTAMP '2025-02-01' AND o.order_ts < TIMESTAMP '2025-04-01' GROUP BY ol.product_id",
+    "tradeoff": "Summing each month with FILTER in one GROUP BY avoids the join, but needs COALESCE because SUM over no rows is missing."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-11",
+      "sql": "WITH feb AS (SELECT ol.product_id, SUM(ol.quantity) AS units FROM order_lines ol JOIN orders o ON o.order_id = ol.order_id JOIN stores s ON s.store_id = o.store_id WHERE s.store_code = 'NL-01' AND o.order_ts >= TIMESTAMP '2025-02-01' AND o.order_ts < TIMESTAMP '2025-03-01' GROUP BY ol.product_id), mar AS (SELECT ol.product_id, SUM(ol.quantity) AS units FROM order_lines ol JOIN orders o ON o.order_id = ol.order_id JOIN stores s ON s.store_id = o.store_id WHERE s.store_code = 'NL-01' AND o.order_ts >= TIMESTAMP '2025-03-01' AND o.order_ts < TIMESTAMP '2025-04-01' GROUP BY ol.product_id) SELECT COALESCE(f.product_id, m.product_id) AS product_id, COALESCE(f.units, 0) AS feb_units, COALESCE(m.units, 0) AS mar_units FROM feb f LEFT JOIN mar m ON m.product_id = f.product_id"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-11",
+      "sql": "WITH feb AS (SELECT ol.product_id, SUM(ol.quantity) AS units FROM order_lines ol JOIN orders o ON o.order_id = ol.order_id JOIN stores s ON s.store_id = o.store_id WHERE s.store_code = 'NL-01' AND o.order_ts >= TIMESTAMP '2025-02-01' AND o.order_ts < TIMESTAMP '2025-03-01' GROUP BY ol.product_id), mar AS (SELECT ol.product_id, SUM(ol.quantity) AS units FROM order_lines ol JOIN orders o ON o.order_id = ol.order_id JOIN stores s ON s.store_id = o.store_id WHERE s.store_code = 'NL-01' AND o.order_ts >= TIMESTAMP '2025-03-01' AND o.order_ts < TIMESTAMP '2025-04-01' GROUP BY ol.product_id) SELECT COALESCE(f.product_id, m.product_id) AS product_id, COALESCE(f.units, 0) AS feb_units, COALESCE(m.units, 0) AS mar_units FROM feb f JOIN mar m ON m.product_id = f.product_id"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-17",
+      "sql": "WITH feb AS (SELECT ol.product_id, SUM(ol.quantity) AS units FROM order_lines ol JOIN orders o ON o.order_id = ol.order_id JOIN stores s ON s.store_id = o.store_id WHERE s.store_code = 'NL-01' AND o.order_ts >= TIMESTAMP '2025-02-01' AND o.order_ts < TIMESTAMP '2025-03-01' GROUP BY ol.product_id), mar AS (SELECT ol.product_id, SUM(ol.quantity) AS units FROM order_lines ol JOIN orders o ON o.order_id = ol.order_id JOIN stores s ON s.store_id = o.store_id WHERE s.store_code = 'NL-01' AND o.order_ts >= TIMESTAMP '2025-03-01' AND o.order_ts < TIMESTAMP '2025-04-01' GROUP BY ol.product_id) SELECT COALESCE(f.product_id, m.product_id) AS product_id, f.units AS feb_units, m.units AS mar_units FROM feb f FULL OUTER JOIN mar m ON m.product_id = f.product_id"
+    }
+  ],
+  "hint3_partial": "WITH feb AS (SELECT ol.product_id, SUM(ol.quantity) AS units FROM order_lines ol JOIN orders o ON o.order_id = ol.order_id JOIN stores s ON s.store_id = o.store_id WHERE s.store_code = 'NL-01' AND o.order_ts >= TIMESTAMP '2025-02-01' AND o.order_ts < TIMESTAMP '2025-03-01' GROUP BY ol.product_id),\nmar AS (SELECT ol.product_id, SUM(ol.quantity) AS units FROM order_lines ol JOIN orders o ON o.order_id = ol.order_id JOIN stores s ON s.store_id = o.store_id WHERE s.store_code = 'NL-01' AND o.order_ts >= TIMESTAMP '2025-03-01' AND o.order_ts < TIMESTAMP '2025-04-01' GROUP BY ol.product_id)\nSELECT COALESCE(f.product_id, m.product_id) AS product_id, COALESCE(f.units, 0) AS feb_units, COALESCE(m.units, 0) AS mar_units\nFROM feb f\n___ mar m ON m.product_id = f.product_id",
+  "solver": {
+    "prompt_hash": "42bb56358bab8fc3",
+    "schema_version": "6ef9ff4e4ad1",
+    "dataset_version": "e1545e4258743033",
+    "grader_version": "1b.3",
+    "query": "WITH feb AS (SELECT ol.product_id, SUM(ol.quantity) AS units FROM order_lines ol JOIN orders o ON o.order_id = ol.order_id JOIN stores s ON s.store_id = o.store_id WHERE s.store_code = 'NL-01' AND o.order_ts >= TIMESTAMP '2025-02-01' AND o.order_ts < TIMESTAMP '2025-03-01' GROUP BY ol.product_id),\nmar AS (SELECT ol.product_id, SUM(ol.quantity) AS units FROM order_lines ol JOIN orders o ON o.order_id = ol.order_id JOIN stores s ON s.store_id = o.store_id WHERE s.store_code = 'NL-01' AND o.order_ts >= TIMESTAMP '2025-03-01' AND o.order_ts < TIMESTAMP '2025-04-01' GROUP BY ol.product_id)\nSELECT COALESCE(f.product_id, m.product_id) AS product_id, COALESCE(f.units, 0) AS feb_units, COALESCE(m.units, 0) AS mar_units\nFROM feb f\nFULL OUTER JOIN mar m ON m.product_id = f.product_id",
+    "at": "2026-10-07T10:41:41.834Z"
+  }
+}

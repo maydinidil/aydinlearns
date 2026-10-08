@@ -33,9 +33,9 @@
 .today-side .card > :last-child { margin-bottom: 0; }
 ol.today-steps.card { padding: 0; list-style: none; margin: 0; }
 a.btn-main { display: inline-block; padding: var(--s1) var(--s3); border: 1px solid var(--ink); border-radius: var(--r1); font: 600 var(--t1)/var(--lh) var(--font); text-decoration: none; background: var(--ink); color: var(--surface); }
-.today nav.steps { display: flex; flex-wrap: wrap; gap: var(--s1); padding: 3px; background: var(--fill); border-radius: 9px; width: fit-content; list-style: none; margin: 0 0 var(--s4); }
-.today nav.steps button { padding: 5px var(--s3); border: 0; border-radius: 7px; background: transparent; font-size: var(--t2); color: var(--ink-2); }
-.today nav.steps button[aria-pressed="true"] { background: var(--surface); color: var(--ink); box-shadow: var(--shadow); }
+.today nav.steps, .case nav.steps { display: flex; flex-wrap: wrap; gap: var(--s1); padding: 3px; background: var(--fill); border-radius: 9px; width: fit-content; list-style: none; margin: 0 0 var(--s4); }
+.today nav.steps button, .case nav.steps button { padding: 5px var(--s3); border: 0; border-radius: 7px; background: transparent; font-size: var(--t2); color: var(--ink-2); }
+.today nav.steps button[aria-pressed="true"], .case nav.steps button[aria-current="step"] { background: var(--surface); color: var(--ink); box-shadow: var(--shadow); }
 .today-steps .row { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; column-gap: var(--s3); row-gap: 0; align-items: center; }
 .today-steps .row .marker { grid-column: 1; grid-row: 1 / span 2; align-self: stretch; }
 .today-steps .row .grow { grid-column: 2; grid-row: 1; }
@@ -106,3 +106,39 @@ nav.qstrip button[aria-pressed="true"] strong { font-weight: 700; }
 ol.review-items { list-style: none; margin: 0 0 var(--s3); padding: 0; }
 ol.review-items > li { padding: var(--s3) var(--s4); }
 ol.review-items > li + li { border-top: 1px solid var(--fill); }
+
+/* Mistakes and review (Task C3) */
+.mistake-list.card { padding: 0; list-style: none; margin: 0 0 var(--s3); }
+.mistake-card + .mistake-card { border-top: 1px solid var(--fill); }
+.mistake-detail { padding: 0 var(--s4) var(--s3); }
+.mistake-detail summary { cursor: pointer; color: var(--ink-2); }
+.corrected-query h3 { margin-top: 0; }
+
+/* Case inbox and case screen (sprint 4b, Task D2) */
+.inbox-list.card { padding: 0; list-style: none; margin: 0 0 var(--s3); }
+.inbox-list .row { align-items: flex-start; }
+.inbox-list .row p { margin: var(--s1) 0 0; }
+.inbox-list .chip-col { display: flex; flex-direction: column; align-items: flex-end; gap: var(--s1); text-align: right; }
+.case-status { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s2); }
+.case-brief { margin-bottom: var(--s4); }
+.case-brief p { margin: 0 0 var(--s1); }
+.case nav.steps { max-width: 100%; }
+.case-step.card { margin-bottom: var(--s3); }
+.case-step > h2 { margin-top: 0; }
+.case-form label { display: block; margin-bottom: var(--s3); font-weight: 600; }
+.case-form textarea, .case-form input[type="text"] { display: block; width: 100%; max-width: var(--read); margin-top: var(--s1); padding: var(--s1) var(--s2); border: 1px solid var(--control); border-radius: var(--r1); font: 400 var(--t3)/var(--lh) var(--font); color: var(--ink); background: var(--surface); }
+.case-model { border-top: 1px solid var(--line); margin-top: var(--s3); padding-top: var(--s2); }
+.case-ticks { border: 0; padding: 0; margin: 0 0 var(--s2); }
+.case-ticks label { display: block; padding: var(--s1) 0; }
+.say-timer { margin: var(--s2) 0; font-family: var(--mono); font-size: var(--t5); font-variant-numeric: tabular-nums; }
+
+/* Progress (sprint 4b, Task E1) */
+.progress > section { margin-top: var(--s5); }
+.progress-list.card { padding: 0; list-style: none; margin: 0 0 var(--s3); }
+.progress-list .row { align-items: flex-start; }
+.progress-list .row p { margin: var(--s1) 0 0; }
+.progress-list .criteria { margin: var(--s1) 0 0; padding-left: var(--s4); }
+.progress-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: var(--s3); align-items: start; }
+.progress-grid h3 { margin-top: 0; }
+.progress-grid caption { text-align: left; font-weight: 600; padding: var(--s2) var(--s3); }
+.progress-list .gap summary { cursor: pointer; color: var(--ink-2); }

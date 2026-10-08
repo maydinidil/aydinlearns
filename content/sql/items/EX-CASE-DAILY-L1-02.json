@@ -1,0 +1,155 @@
+{
+  "id": "EX-CASE-DAILY-L1-02",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-01",
+    "case",
+    "daily",
+    "products",
+    "calculated-column",
+    "and_or",
+    "order_by"
+  ],
+  "level": 1,
+  "source_ids": [
+    "01:SQL-SORT-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-07",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "case",
+  "target_concept_id": "SQL-SORT-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-SORT-01"
+  ],
+  "template_id": "T-CASE-DAILY-L1-shelf-price",
+  "template_params": {
+    "table": "products",
+    "categories": "15,16",
+    "max_unit_cost_eur": 40,
+    "markup_pct": 60
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_sort",
+  "prompt": "Sanne, the category manager, is planning a budget audio shelf and asks which headphones and earbuds could go on it, and at what price. From the products table, keep the headphones and earbuds (category_id 15 or 16) whose unit_cost_eur is under 40.00 euros; a product with a missing unit_cost_eur is left out. Return five columns, in this order: product_id, product_name, brand, unit_cost_eur and shelf_price_eur, the unit cost plus a 60 percent markup on it, so a product that costs 10.00 euros gets a shelf price of 16.00 euros. Do not round. Return one row per product. Sort by unit_cost_eur from lowest to highest; when products have the same unit_cost_eur, sort them by product_id from low to high.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "product_name",
+        "type_class": "text"
+      },
+      {
+        "name": "brand",
+        "type_class": "text"
+      },
+      {
+        "name": "unit_cost_eur",
+        "type_class": "numeric"
+      },
+      {
+        "name": "shelf_price_eur",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": true,
+    "sort_keys": [
+      {
+        "column": "unit_cost_eur",
+        "desc": false
+      },
+      {
+        "column": "product_id",
+        "desc": false
+      }
+    ],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "product_name",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "brand",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "unit_cost_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "shelf_price_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "product_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the row filter: two categories and a cost limit, kept together the way the question means them.",
+    "When a filter mixes OR and AND, AND is worked out first, so put brackets around the two categories. The shelf price is a calculated column with its own name."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 93,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 94,
+      "to": 107,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 108,
+      "to": 175,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 176,
+      "to": 210,
+      "subgoal": "sort_limit"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "Brackets keep the two categories together before the cost limit applies, and product_id orders the products that cost the same."
+}

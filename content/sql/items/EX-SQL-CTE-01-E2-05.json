@@ -1,0 +1,131 @@
+{
+  "id": "EX-SQL-CTE-01-E2-05",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "cte",
+    "ratio",
+    "filter",
+    "sales"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-CTE-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-CTE-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CASE-01",
+    "SQL-AGG-04",
+    "SQL-CTE-01"
+  ],
+  "template_id": "T-CTE-01-share-of-step",
+  "template_params": {
+    "table": "sales",
+    "step_grain": "order",
+    "group_by": "channel",
+    "condition": "n_lines > 1"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_join",
+  "prompt": "In each channel, what share of orders have more than one order line? Use the sales table, which has one row per order line. Count only orders with at least one line. Return two columns, in this order: channel and multi_line_share, the number of orders with two or more lines divided by the number of orders, as a fraction from 0 to 1. Return one row for each channel. Do not round. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "channel",
+        "type_class": "text"
+      },
+      {
+        "name": "multi_line_share",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "channel",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "multi_line_share",
+        "type_class": "numeric",
+        "precision": "ratio"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "channel"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, count the lines of each order in a first step, keeping the channel.",
+    "In the final query, count the step's orders with more than one line and divide by all of the channel's orders."
+  ],
+  "subgoals": [
+    {
+      "from": 30,
+      "to": 75,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 78,
+      "to": 88,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 91,
+      "to": 117,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 120,
+      "to": 208,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 209,
+      "to": 231,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 232,
+      "to": 248,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "The step has one row per order with its line count, so both counts in the final query count orders."
+}

@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-JOIN-03-E1-03",
+  "item_version": 1,
+  "reference_sql": "SELECT s.product_id, ph.list_price_eur, SUM(s.units) AS units\nFROM sales s\nJOIN price_history ph ON ph.product_id = s.product_id\nWHERE s.parent_category = 'Audio'\n  AND ph.valid_to IS NULL\nGROUP BY s.product_id, ph.list_price_eur",
+  "alternatives": [
+    "WITH current_prices AS (SELECT product_id, list_price_eur FROM price_history WHERE valid_to IS NULL), product_units AS (SELECT product_id, SUM(units) AS units FROM sales WHERE parent_category = 'Audio' GROUP BY product_id) SELECT u.product_id, c.list_price_eur, u.units FROM product_units u JOIN current_prices c ON c.product_id = u.product_id",
+    "SELECT s.product_id, ph.list_price_eur, SUM(s.units) AS units FROM sales s JOIN price_history ph ON ph.product_id = s.product_id AND ph.valid_to IS NULL WHERE s.parent_category = 'Audio' GROUP BY s.product_id, ph.list_price_eur"
+  ],
+  "other_way": {
+    "sql": "WITH current_prices AS (SELECT product_id, list_price_eur FROM price_history WHERE valid_to IS NULL), product_units AS (SELECT product_id, SUM(units) AS units FROM sales WHERE parent_category = 'Audio' GROUP BY product_id) SELECT u.product_id, c.list_price_eur, u.units FROM product_units u JOIN current_prices c ON c.product_id = u.product_id",
+    "tradeoff": "Two named steps at one row per product make each grain plain, but the single test on valid_to is shorter."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-01",
+      "sql": "SELECT s.product_id, MAX(ph.list_price_eur) AS list_price_eur, SUM(s.units) AS units FROM sales s JOIN price_history ph ON ph.product_id = s.product_id WHERE s.parent_category = 'Audio' GROUP BY s.product_id"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-07",
+      "sql": "SELECT s.product_id, ph.list_price_eur, SUM(s.units) AS units FROM sales s JOIN price_history ph ON ph.product_id = s.product_id WHERE s.parent_category = 'Audio' GROUP BY s.product_id, ph.list_price_eur"
+    }
+  ],
+  "hint3_partial": "SELECT s.product_id, ph.list_price_eur, SUM(s.units) AS units\nFROM sales s\nJOIN price_history ph ON ph.product_id = s.product_id\nWHERE s.parent_category = 'Audio'\n  AND ph.valid_to IS ___\nGROUP BY s.product_id, ph.list_price_eur",
+  "solver": {
+    "prompt_hash": "38f25491f0f117a4",
+    "schema_version": "7c26c5364765",
+    "dataset_version": "e1545e4258743033",
+    "grader_version": "1b.3",
+    "query": "WITH sold AS (\n  SELECT product_id, SUM(units) AS units\n  FROM sales\n  WHERE parent_category = 'Audio'\n  GROUP BY product_id\n)\nSELECT s.product_id, h.list_price_eur, s.units\nFROM sold s\nJOIN price_history h ON h.product_id = s.product_id AND h.valid_to IS NULL",
+    "at": "2026-10-07T10:41:39.217Z"
+  }
+}

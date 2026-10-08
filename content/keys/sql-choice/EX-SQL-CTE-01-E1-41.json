@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-CTE-01-E1-41",
+  "item_version": 2,
+  "value": 4,
+  "explanation": "The final query groups the rows of promo_counts by promo_type, so it returns one row per promotion type, whatever the first step's grain was. The panel lists four promo_type values: bundle, clearance, loyalty and percent_off. So the query returns 4 rows. The first step has one row per type and discount, which can be more rows, but the last GROUP BY decides the result's grain.",
+  "solver": {
+    "prompt_hash": "bba2104598a5c508",
+    "grader_version": "choice.2",
+    "chosen": null,
+    "typed": "4",
+    "at": "2026-10-08T14:13:17.823Z"
+  }
+}

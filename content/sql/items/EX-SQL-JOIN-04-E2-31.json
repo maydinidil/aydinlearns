@@ -1,0 +1,148 @@
+{
+  "id": "EX-SQL-JOIN-04-E2-31",
+  "version": 1,
+  "kind": "fix",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "fix",
+    "fan-out",
+    "cte",
+    "order_lines",
+    "competitor_prices",
+    "products"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-JOIN-04"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-JOIN-04",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-JOIN-03",
+    "SQL-JOIN-01",
+    "SQL-JOIN-04"
+  ],
+  "template_id": "T-JOIN-04-fix-fan-out-two-many-tables",
+  "template_params": {
+    "brand": "Sonora",
+    "month": "2025-03"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_join",
+  "prompt": "The query in the editor has one mistake. Fix it so that it answers this question: for each product of brand Sonora sold in March 2025, how many units were sold in March 2025, and how many competitor price checks of it were made in March 2025? order_ts and observed_ts hold UTC time: use their UTC dates, from 1 to 31 March 2025. Return three columns, in this order: product_name, units (the total quantity) and n_checks (0 when the product had no check that month). Return one row for each Sonora product with at least one order line in March 2025. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "product_name",
+        "type_class": "text"
+      },
+      {
+        "name": "units",
+        "type_class": "numeric"
+      },
+      {
+        "name": "n_checks",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "product_name",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "units",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "n_checks",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "product_name"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, add up the units and count the checks each in its own step, one row per product, before joining them to products.",
+    "Joining both the order lines and the competitor checks to the product repeats each line once per check and each check once per line, so both numbers grow."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 232,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 233,
+      "to": 412,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 413,
+      "to": 480,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 481,
+      "to": 496,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 497,
+      "to": 540,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 541,
+      "to": 590,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 591,
+      "to": 615,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": "SELECT p.product_name, SUM(ol.quantity) AS units, COUNT(cp.observed_ts) AS n_checks\nFROM products p\nJOIN order_lines ol ON ol.product_id = p.product_id\nJOIN orders o ON o.order_id = ol.order_id\nLEFT JOIN competitor_prices cp ON cp.product_id = p.product_id AND cp.observed_ts >= TIMESTAMP '2025-03-01' AND cp.observed_ts < TIMESTAMP '2025-04-01'\nWHERE p.brand = 'Sonora' AND o.order_ts >= TIMESTAMP '2025-03-01' AND o.order_ts < TIMESTAMP '2025-04-01'\nGROUP BY p.product_name",
+  "starter_error_id": "ERR-LOG-01",
+  "time_target_ms": 180000,
+  "why_this_works": "Each CTE brings one row per product, so joining them to products repeats nothing and both numbers keep their own grain."
+}

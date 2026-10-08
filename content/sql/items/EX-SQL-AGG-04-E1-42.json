@@ -1,6 +1,6 @@
 {
   "id": "EX-SQL-AGG-04-E1-42",
-  "version": 1,
+  "version": 2,
   "kind": "predict_rows",
   "tags": [
     "sql",
@@ -37,7 +37,7 @@
   "company": "voltmarkt",
   "schema": "voltmarkt",
   "edge_schema": "voltmarkt_edge_agg",
-  "prompt": "How many rows does this query return? Type the number. The tables panel lists the allowed values of each category-like column.",
+  "prompt": "How many rows does this query return? Type the number. The tables panel shows the Values of each category-like column.",
   "output_contract": null,
   "rules": {
     "order_matters": false,

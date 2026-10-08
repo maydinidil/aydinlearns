@@ -1,10 +1,14 @@
 {
   "version": 1,
-  "source": "design §5, Days and look-alikes: the confusable-pairs registry, slice 1 (levels 1-2)",
+  "source": "design §5, Days and look-alikes: the confusable-pairs registry, slice 1 (levels 1-2) and sprint 4a (level 3)",
   "pairs": [
     { "concepts": ["SQL-FILTER-01", "SQL-AGG-03"], "from_level": 2, "note": "WHERE vs HAVING" },
     { "concepts": ["SQL-SORT-01", "SQL-AGG-02"], "from_level": 2, "note": "DISTINCT vs GROUP BY" },
     { "concepts": ["SQL-FILTER-01", "SQL-CASE-01"], "from_level": 2, "note": "filtering rows vs labelling them" },
-    { "concepts": ["SQL-CASE-01", "SQL-AGG-04"], "from_level": 2, "note": "labelling rows vs counting them with a condition" }
+    { "concepts": ["SQL-CASE-01", "SQL-AGG-04"], "from_level": 2, "note": "labelling rows vs counting them with a condition" },
+    { "concepts": ["SQL-JOIN-01", "SQL-JOIN-02"], "from_level": 3, "note": "INNER vs LEFT: which rows survive a missing match" },
+    { "concepts": ["SQL-SET-01", "SQL-JOIN-02"], "from_level": 3, "note": "EXCEPT vs an anti-join" },
+    { "concepts": ["SQL-JOIN-01", "SQL-JOIN-03"], "from_level": 3, "note": "a join that works vs one that repeats rows: check the grain after the join" },
+    { "concepts": ["SQL-AGG-02", "SQL-CTE-01"], "from_level": 3, "note": "one GROUP BY vs a step grouped again: which level you average over" }
   ]
 }

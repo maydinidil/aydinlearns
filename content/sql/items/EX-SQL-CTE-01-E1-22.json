@@ -1,0 +1,130 @@
+{
+  "id": "EX-SQL-CTE-01-E1-22",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "cte",
+    "max",
+    "join",
+    "orders",
+    "order_lines",
+    "drill"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-CTE-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-CTE-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-JOIN-01",
+    "SQL-CTE-01"
+  ],
+  "template_id": "T-CTE-01-max-of-step-per-group",
+  "template_params": {
+    "step_table": "order_lines",
+    "join_table": "orders",
+    "group_by": "ship_to_country"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_join",
+  "prompt": "For each country that orders ship to, what is the largest number of units in a single order? An order's units are the quantity summed over its lines, and ship_to_country is the order's country. Orders with no lines do not count. Return two columns, in this order: ship_to_country and max_units. Return one row for each country. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "ship_to_country",
+        "type_class": "text"
+      },
+      {
+        "name": "max_units",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "ship_to_country",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "max_units",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "ship_to_country"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, add up the units of each order in a first step, keeping the order's country.",
+    "One line's quantity is not an order's units: the largest value has to be taken over the step's rows."
+  ],
+  "subgoals": [
+    {
+      "from": 24,
+      "to": 87,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 90,
+      "to": 153,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 156,
+      "to": 194,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 197,
+      "to": 244,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 245,
+      "to": 261,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 262,
+      "to": 286,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "The step has one row per order with its units, so MAX compares whole orders within each country."
+}

@@ -6,7 +6,10 @@
     "SELECT store_code, city, store_type\nFROM stores\nWHERE store_type IN ('flagship', 'outlet')",
     "SELECT store_code, city, store_type\nFROM stores\nWHERE store_type = 'outlet'\n   OR store_type = 'flagship'"
   ],
-  "other_way": null,
+  "other_way": {
+    "sql": "SELECT store_code, city, store_type\nFROM stores\nWHERE store_type = 'outlet'\n   OR store_type = 'flagship'",
+    "tradeoff": "An OR chain returns the same rows, but repeats the column for every value, while IN keeps the list short."
+  },
   "planted_wrong": [
     {
       "id": "EX-SQL-FILTER-02-E1-08-PW1",

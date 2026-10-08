@@ -85,6 +85,8 @@ test('the run heading and line', () => {
   assert.equal(runHeading('half_mock'), 'GA4 half-mock');
   assert.match(runLine({ kind: 'half_mock', questions: 25, minutes: 37.5, pass_pct: 80, mode: 'exam' }), /25 questions, 37.5 minutes, pass at 80%.*One question at a time/);
   assert.match(runLine({ kind: 'mini_drill', questions: 20, minutes: 30, pass_pct: 80, mode: 'practice' }), /Go back, flag/);
+  // The HELP_LINE under it says where help opens, so the rule line does not say it twice.
+  assert.doesNotMatch(runLine({ kind: 'mini_drill', questions: 20, minutes: 30, pass_pct: 80, mode: 'practice' }), /Help/);
 });
 
 test('the score line and the unseen line (S3-10, D27)', () => {

@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-CTE-01-E1-03",
+  "item_version": 1,
+  "reference_sql": "-- Step 1: one row per order. Step 2: one row per channel.\nWITH order_line_counts AS (\n  SELECT order_id, channel, COUNT(*) AS n_lines\n  FROM sales\n  GROUP BY order_id, channel\n)\nSELECT channel, AVG(n_lines) AS avg_lines\nFROM order_line_counts\nGROUP BY channel",
+  "alternatives": [
+    "SELECT channel, COUNT(*) * 1.0 / COUNT(DISTINCT order_id) AS avg_lines FROM sales GROUP BY channel",
+    "WITH c AS (SELECT order_id, channel, COUNT(order_line_id) AS n_lines FROM sales GROUP BY order_id, channel) SELECT channel, SUM(n_lines) * 1.0 / COUNT(*) AS avg_lines FROM c GROUP BY channel"
+  ],
+  "other_way": {
+    "sql": "SELECT channel, COUNT(*) * 1.0 / COUNT(DISTINCT order_id) AS avg_lines FROM sales GROUP BY channel",
+    "tradeoff": "Lines divided by different orders gives the answer in one step, but hides the per-order counts you could check."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-07",
+      "sql": "WITH order_line_counts AS (SELECT order_id, channel, product_id, COUNT(*) AS n_lines FROM sales GROUP BY order_id, channel, product_id) SELECT channel, AVG(n_lines) AS avg_lines FROM order_line_counts GROUP BY channel"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-14",
+      "sql": "WITH order_line_counts AS (SELECT order_id, channel, COUNT(*) AS n_lines FROM sales GROUP BY order_id, channel) SELECT channel, SUM(n_lines) AS avg_lines FROM order_line_counts GROUP BY channel"
+    }
+  ],
+  "hint3_partial": "-- Step 1: one row per order. Step 2: one row per channel.\nWITH order_line_counts AS (\n  SELECT order_id, channel, COUNT(*) AS n_lines\n  FROM sales\n  GROUP BY ___\n)\nSELECT channel, AVG(n_lines) AS avg_lines\nFROM order_line_counts\nGROUP BY channel",
+  "solver": {
+    "prompt_hash": "e4a1420ced7b9553",
+    "schema_version": "cebf75df442f",
+    "dataset_version": "e1545e4258743033",
+    "grader_version": "1b.3",
+    "query": "WITH per_order AS (\n  SELECT order_id, channel, COUNT(*) AS n_lines\n  FROM sales\n  GROUP BY order_id, channel\n)\nSELECT channel, AVG(n_lines) AS avg_lines\nFROM per_order\nGROUP BY channel",
+    "at": "2026-10-07T10:41:33.886Z"
+  }
+}

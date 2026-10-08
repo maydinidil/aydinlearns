@@ -192,15 +192,15 @@ test('the mixed block leaves the plan once the session has done one (fix round 1
 test('S2-51: the opener is read-only when the level\'s first concept is next, and recommended for solving once the level is at Practised', () => {
   const openers = [{ case_id: 'CASE-VOLT-L1', level: 1, solved: false }, { case_id: 'CASE-VOLT-L2', level: 2, solved: false }];
   const fresh = planToday(input({ openers }));
-  assert.deepEqual(fresh.steps.filter((s) => s.kind === 'opener'), [{ kind: 'opener', case_id: 'CASE-VOLT-L1', mode: 'preview' }]);
+  assert.deepEqual(fresh.steps.filter((s) => s.kind === 'opener'), [{ kind: 'opener', case_id: 'CASE-VOLT-L1', mode: 'preview', sketch: false }]);
   const midLevel = planToday(input({ openers, concepts: concepts({ 'SQL-BASICS-01': learnt('practised', daysAgo(9)) }) }));
   assert.deepEqual(midLevel.steps.filter((s) => s.kind === 'opener'), [], 'the next new concept is not the level\'s first');
   const level1 = Object.fromEntries(IDS.slice(0, 6).map((id) => [id, learnt(id === 'SQL-NULL-01' ? 'retained' : 'practised', daysAgo(20))]));
   const both = planToday(input({ openers, concepts: concepts(level1) }));
   assert.deepEqual(both.steps.filter((s) => s.kind === 'opener'),
-    [{ kind: 'opener', case_id: 'CASE-VOLT-L2', mode: 'preview' }, { kind: 'opener', case_id: 'CASE-VOLT-L1', mode: 'solve' }]);
+    [{ kind: 'opener', case_id: 'CASE-VOLT-L2', mode: 'preview', sketch: false }, { kind: 'opener', case_id: 'CASE-VOLT-L1', mode: 'solve', checkpoint: null }]);
   const solved = planToday(input({ openers: [{ ...openers[0]!, solved: true }, openers[1]!], concepts: concepts(level1) }));
-  assert.deepEqual(solved.steps.filter((s) => s.kind === 'opener'), [{ kind: 'opener', case_id: 'CASE-VOLT-L2', mode: 'preview' }], 'a solved opener is not recommended again');
+  assert.deepEqual(solved.steps.filter((s) => s.kind === 'opener'), [{ kind: 'opener', case_id: 'CASE-VOLT-L2', mode: 'preview', sketch: false }], 'a solved opener is not recommended again');
 });
 
 // ---- interleave (RULE-11, S2-32) ----------------------------------------------------------------

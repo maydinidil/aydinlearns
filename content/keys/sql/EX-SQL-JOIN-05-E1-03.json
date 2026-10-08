@@ -1,0 +1,39 @@
+{
+  "item_id": "EX-SQL-JOIN-05-E1-03",
+  "item_version": 1,
+  "reference_sql": "SELECT s.store_code, c.cal_date, COUNT(o.order_id) AS n_orders\nFROM stores s\nCROSS JOIN calendar c\nLEFT JOIN orders o ON o.store_id = s.store_id AND CAST(o.order_ts AS DATE) = c.cal_date\nWHERE s.country_code = 'BE' AND c.cal_date BETWEEN DATE '2025-03-03' AND DATE '2025-03-09'\nGROUP BY s.store_code, c.cal_date",
+  "alternatives": [
+    "WITH day_orders AS (SELECT store_id, CAST(order_ts AS DATE) AS order_date, COUNT(*) AS n_orders FROM orders GROUP BY store_id, CAST(order_ts AS DATE)) SELECT s.store_code, c.cal_date, COALESCE(d.n_orders, 0) AS n_orders FROM stores s CROSS JOIN calendar c LEFT JOIN day_orders d ON d.store_id = s.store_id AND d.order_date = c.cal_date WHERE s.country_code = 'BE' AND c.cal_date BETWEEN DATE '2025-03-03' AND DATE '2025-03-09'",
+    "SELECT s.store_code, c.cal_date, COUNT(o.order_id) AS n_orders FROM calendar c CROSS JOIN stores s LEFT JOIN orders o ON o.store_id = s.store_id AND o.order_ts >= c.cal_date AND o.order_ts < c.cal_date + 1 WHERE s.country_code = 'BE' AND c.cal_date BETWEEN DATE '2025-03-03' AND DATE '2025-03-09' GROUP BY s.store_code, c.cal_date"
+  ],
+  "other_way": {
+    "sql": "WITH day_orders AS (SELECT store_id, CAST(order_ts AS DATE) AS order_date, COUNT(*) AS n_orders FROM orders GROUP BY store_id, CAST(order_ts AS DATE)) SELECT s.store_code, c.cal_date, COALESCE(d.n_orders, 0) AS n_orders FROM stores s CROSS JOIN calendar c LEFT JOIN day_orders d ON d.store_id = s.store_id AND d.order_date = c.cal_date WHERE s.country_code = 'BE' AND c.cal_date BETWEEN DATE '2025-03-03' AND DATE '2025-03-09'",
+    "tradeoff": "Counting orders per store and day in a CTE first keeps the grid join small, but needs COALESCE to show the zeros."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-11",
+      "sql": "SELECT s.store_code, c.cal_date, COUNT(o.order_id) AS n_orders FROM stores s CROSS JOIN calendar c JOIN orders o ON o.store_id = s.store_id AND CAST(o.order_ts AS DATE) = c.cal_date WHERE s.country_code = 'BE' AND c.cal_date BETWEEN DATE '2025-03-03' AND DATE '2025-03-09' GROUP BY s.store_code, c.cal_date"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-04",
+      "sql": "SELECT s.store_code, c.cal_date, COUNT(*) AS n_orders FROM stores s CROSS JOIN calendar c LEFT JOIN orders o ON o.store_id = s.store_id AND CAST(o.order_ts AS DATE) = c.cal_date WHERE s.country_code = 'BE' AND c.cal_date BETWEEN DATE '2025-03-03' AND DATE '2025-03-09' GROUP BY s.store_code, c.cal_date"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-23",
+      "sql": "SELECT s.store_code, c.cal_date, COUNT(o.order_id) AS n_orders FROM stores s CROSS JOIN calendar c LEFT JOIN orders o ON o.store_id = s.store_id AND CAST(o.order_ts AS DATE) = c.cal_date WHERE s.country_code = 'BE' AND c.cal_date > DATE '2025-03-03' AND c.cal_date <= DATE '2025-03-09' GROUP BY s.store_code, c.cal_date"
+    }
+  ],
+  "hint3_partial": "SELECT s.store_code, c.cal_date, COUNT(o.order_id) AS n_orders\nFROM stores s\n___ calendar c\nLEFT JOIN orders o ON o.store_id = s.store_id AND CAST(o.order_ts AS DATE) = c.cal_date\nWHERE s.country_code = 'BE' AND c.cal_date BETWEEN DATE '2025-03-03' AND DATE '2025-03-09'\nGROUP BY s.store_code, c.cal_date",
+  "solver": {
+    "prompt_hash": "ff59118523fc991c",
+    "schema_version": "4164178cf568",
+    "dataset_version": "e1545e4258743033",
+    "grader_version": "1b.3",
+    "query": "SELECT s.store_code, c.cal_date, COUNT(o.order_id) AS n_orders\nFROM stores s\nCROSS JOIN calendar c\nLEFT JOIN orders o ON o.store_id = s.store_id AND CAST(o.order_ts AS DATE) = c.cal_date\nWHERE s.country_code = 'BE'\n  AND c.cal_date >= DATE '2025-03-03' AND c.cal_date <= DATE '2025-03-09'\nGROUP BY s.store_id, s.store_code, c.cal_date",
+    "at": "2026-10-07T10:41:41.669Z"
+  }
+}

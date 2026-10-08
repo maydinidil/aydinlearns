@@ -1,0 +1,175 @@
+{
+  "id": "EX-SQL-JOIN-05-E2-41",
+  "version": 1,
+  "kind": "predict_result",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "predict_result",
+    "full-outer-join",
+    "stores"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-JOIN-05"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-JOIN-05",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-NULL-01",
+    "SQL-CTE-01",
+    "SQL-JOIN-05"
+  ],
+  "template_id": "T-JOIN-05-predict-result-full-outer",
+  "template_params": {
+    "table": "stores"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_join",
+  "prompt": "Which result does this query return? The sample rows of stores in the tables panel are the stores with store_id 1 to 5. Rows may be in any order.",
+  "output_contract": null,
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [],
+  "subgoals": [],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 90000,
+  "why_this_works": "",
+  "shown_sql": "WITH a AS (SELECT store_id, city FROM stores WHERE store_id <= 2),\nb AS (SELECT store_id, opened_on FROM stores WHERE store_id BETWEEN 2 AND 3)\nSELECT COALESCE(a.store_id, b.store_id) AS store_id, a.city, b.opened_on\nFROM a\nFULL OUTER JOIN b ON b.store_id = a.store_id",
+  "options": [
+    {
+      "oid": "o09be513",
+      "text": "Only store 2, with its city and opening date",
+      "misconception_id": "ERR-LOG-11",
+      "table": {
+        "columns": [
+          "store_id",
+          "city",
+          "opened_on"
+        ],
+        "rows": [
+          [
+            2,
+            "Rotterdam",
+            "2013-05-15"
+          ]
+        ]
+      }
+    },
+    {
+      "oid": "of71f393",
+      "text": "Stores 1, 2 and 3, each missing what the other side lacks",
+      "misconception_id": null,
+      "table": {
+        "columns": [
+          "store_id",
+          "city",
+          "opened_on"
+        ],
+        "rows": [
+          [
+            1,
+            "Amsterdam",
+            null
+          ],
+          [
+            2,
+            "Rotterdam",
+            "2013-05-15"
+          ],
+          [
+            3,
+            null,
+            "2014-02-01"
+          ]
+        ]
+      }
+    },
+    {
+      "oid": "of0f29e2",
+      "text": "Stores 1 and 2 only",
+      "misconception_id": "ERR-LOG-11",
+      "table": {
+        "columns": [
+          "store_id",
+          "city",
+          "opened_on"
+        ],
+        "rows": [
+          [
+            1,
+            "Amsterdam",
+            null
+          ],
+          [
+            2,
+            "Rotterdam",
+            "2013-05-15"
+          ]
+        ]
+      }
+    },
+    {
+      "oid": "o7c8e203",
+      "text": "Every city paired with every opening date",
+      "misconception_id": "ERR-SEM-03",
+      "table": {
+        "columns": [
+          "store_id",
+          "city",
+          "opened_on"
+        ],
+        "rows": [
+          [
+            1,
+            "Amsterdam",
+            "2013-05-15"
+          ],
+          [
+            1,
+            "Amsterdam",
+            "2014-02-01"
+          ],
+          [
+            2,
+            "Rotterdam",
+            "2013-05-15"
+          ],
+          [
+            2,
+            "Rotterdam",
+            "2014-02-01"
+          ]
+        ]
+      }
+    }
+  ]
+}

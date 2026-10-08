@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-JOIN-01-E1-42",
+  "item_version": 1,
+  "correct_oid": "obbb8229",
+  "explanation": "In order_lines, order_id is a foreign key: one order has many lines (1:N), so the same order_id repeats on each of its lines. The column that makes a line unique is order_line_id.",
+  "solver": {
+    "prompt_hash": "bba56c061249377b",
+    "grader_version": "choice.2",
+    "chosen": "obbb8229",
+    "typed": null,
+    "at": "2026-10-07T09:58:58.582Z"
+  }
+}

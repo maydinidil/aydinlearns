@@ -1,0 +1,148 @@
+{
+  "concept_id": "SQL-SET-01",
+  "version": 1,
+  "reading_md": "# UNION ALL, UNION, EXCEPT, INTERSECT\n\nA set operator combines the results of two complete queries. Two of them stack results, and two compare them.\n\n| Operator | Returns |\n|---|---|\n| `UNION ALL` | Every row of both queries, repeats included |\n| `UNION` | Every different row of both queries, each once |\n| `INTERSECT` | The rows both queries return, each once |\n| `EXCEPT` | The rows of the first query that the second does not return, each once |\n\n## The rules for both parts\n\nBoth queries must return the same number of columns, in the same order, with types that fit together. The columns are matched by position, not by name, and the result takes its column names from the first query. So write the columns in the same order in both parts, and give the aliases in the first.\n\nEach part is a full query with its own FROM, WHERE and GROUP BY. An ORDER BY at the very end sorts the whole result.\n\n## UNION ALL or UNION?\n\nUNION ALL stacks the rows as they are. It is usually what you want: two order lines with the same values are still two order lines, and a price seen in two weeks was seen twice. UNION also removes duplicate rows across the whole result, so counts and sums made from it come out too low. Use UNION only when the question asks for a list of different values, each once. To tell the stacked rows apart, add a label column such as `'Voltmarkt' AS source`.\n\n## INTERSECT and EXCEPT\n\nINTERSECT finds the rows that are in both results: customers who ordered on the web and in a store. EXCEPT finds the rows of the first result that are missing from the second: customers who ordered in May but not in June. For EXCEPT the order of the parts matters. Both remove duplicates, so a customer with five orders appears once.\n\nEXCEPT is another way to write an anti-join. A `LEFT JOIN ... WHERE ... IS NULL` gives the same rows and can return more columns.\n\n## Missing values\n\nSet operators compare whole rows and treat two missing values as equal, unlike `=` in WHERE. A guest order's missing customer_id in both lists survives an INTERSECT. When a question leaves out guest orders, filter them with `IS NOT NULL` in each part.\n\n## Counting a combined result\n\nTo count or add up stacked rows, put the set operation in a CTE and aggregate from it:\n\n```sql\nWITH price_points AS (\n  SELECT list_price_eur AS price_eur FROM price_history WHERE product_id = 2\n  UNION ALL\n  SELECT price_eur FROM competitor_prices WHERE product_id = 2\n)\nSELECT COUNT(*) AS price_points FROM price_points\n```\n\n## How to answer a set question\n\n1. Write each list as its own query and check its rows.\n2. Line up the columns: the same number, order and types.\n3. Choose the operator: every row (UNION ALL), each value once (UNION), in both (INTERSECT), or in the first only (EXCEPT).\n4. To count or sum the result, wrap it in a CTE.",
+  "syntax_md": "```sql\nSELECT 'Voltmarkt' AS source, list_price_eur AS price_eur   -- metrics: the first part names the columns\nFROM price_history                                          -- source and grain: one row per price version\nWHERE product_id = 2                                        -- row filter of the first part\nUNION ALL                                                   -- stack: keep every row of both parts\nSELECT competitor, price_eur                                -- the same number and order of columns\nFROM competitor_prices                                      -- source and grain: one row per price check\nWHERE product_id = 2;                                       -- row filter of the second part\n```\n\n- `q1 UNION ALL q2`: every row, repeats kept. `q1 UNION q2`: each different row once.\n- `q1 INTERSECT q2`: rows in both, each once. `q1 EXCEPT q2`: rows of q1 not in q2, each once.\n- Columns match by position; names come from q1. Types must fit together.\n- A missing value matches a missing value in a set operation.\n- To aggregate the result: `WITH s AS (q1 UNION ALL q2) SELECT COUNT(*) FROM s`.",
+  "dialect_note": null,
+  "worked_examples": [
+    {
+      "title": "Every price seen for product 5",
+      "prompt": "Build one list of every price seen for product 5: each list price version in price_history and each competitor price check in competitor_prices. Return source, 'Voltmarkt' or the competitor's name, and price_eur, one row for each version or check, repeats included.",
+      "clauses": [
+        {
+          "text": "SELECT 'Voltmarkt' AS source, list_price_eur AS price_eur",
+          "subgoal": "metrics",
+          "why": "The first part names the output columns: a fixed label and the price."
+        },
+        {
+          "text": "FROM price_history",
+          "subgoal": "source_grain",
+          "why": "One row per list price version."
+        },
+        {
+          "text": "WHERE product_id = 5",
+          "subgoal": "row_filter",
+          "why": "Only product 5."
+        },
+        {
+          "text": "UNION ALL",
+          "subgoal": "metrics",
+          "why": "Stack the second result under the first and keep every row, repeated prices included."
+        },
+        {
+          "text": "SELECT competitor, price_eur",
+          "subgoal": "metrics",
+          "why": "The same two columns in the same order: the label first, then the price."
+        },
+        {
+          "text": "FROM competitor_prices",
+          "subgoal": "source_grain",
+          "why": "One row per price check."
+        },
+        {
+          "text": "WHERE product_id = 5",
+          "subgoal": "row_filter",
+          "why": "Each part has its own filter."
+        }
+      ]
+    },
+    {
+      "title": "Customers who ordered in June 2025 but not in July 2025",
+      "prompt": "How many customers ordered in June 2025 but not in July 2025, in UTC, leaving out guest orders? Return customers, in one row.",
+      "clauses": [
+        {
+          "text": "WITH june_not_july AS (",
+          "subgoal": "source_grain",
+          "why": "The CTE holds the set operation, so its result can be counted."
+        },
+        {
+          "text": "  SELECT customer_id FROM orders",
+          "subgoal": "metrics",
+          "why": "The first list: every customer_id of an order."
+        },
+        {
+          "text": "  WHERE customer_id IS NOT NULL AND order_ts >= TIMESTAMP '2025-06-01 00:00:00' AND order_ts < TIMESTAMP '2025-07-01 00:00:00'",
+          "subgoal": "row_filter",
+          "why": "June orders only, without guest orders."
+        },
+        {
+          "text": "  EXCEPT",
+          "subgoal": "metrics",
+          "why": "Keep the customers of the first list that the second list does not hold, each once."
+        },
+        {
+          "text": "  SELECT customer_id FROM orders",
+          "subgoal": "metrics",
+          "why": "The second list, with the same single column."
+        },
+        {
+          "text": "  WHERE order_ts >= TIMESTAMP '2025-07-01 00:00:00' AND order_ts < TIMESTAMP '2025-08-01 00:00:00'",
+          "subgoal": "row_filter",
+          "why": "July orders."
+        },
+        {
+          "text": ")",
+          "subgoal": "source_grain",
+          "why": "The CTE now has one row per customer who did not come back."
+        },
+        {
+          "text": "SELECT COUNT(*) AS customers FROM june_not_july",
+          "subgoal": "metrics",
+          "why": "Count the rows of the CTE."
+        }
+      ]
+    }
+  ],
+  "pretest_item_ids": [
+    "EX-SQL-SET-01-E1-01",
+    "EX-SQL-SET-01-E1-02"
+  ],
+  "lesson_item_ids": [
+    "EX-SQL-SET-01-E1-03",
+    "EX-SQL-SET-01-E1-04",
+    "EX-SQL-SET-01-E2-01",
+    "EX-SQL-SET-01-E2-02"
+  ],
+  "retest_item_id": "EX-SQL-SET-01-E1-05",
+  "pool_item_ids": [
+    "EX-SQL-SET-01-E1-06",
+    "EX-SQL-SET-01-E1-07",
+    "EX-SQL-SET-01-E2-03",
+    "EX-SQL-SET-01-E2-04",
+    "EX-SQL-SET-01-E2-05",
+    "EX-SQL-SET-01-E2-06",
+    "EX-SQL-SET-01-E3-01",
+    "EX-SQL-SET-01-E3-02",
+    "EX-SQL-SET-01-E2-31",
+    "EX-SQL-SET-01-E1-42",
+    "EX-SQL-SET-01-E2-41",
+    "EX-SQL-SET-01-E2-42"
+  ],
+  "source_ids": [
+    "01:SQL-SET-01"
+  ],
+  "why_clause": {
+    "clause": "UNION ALL",
+    "stem": "Why does this query use UNION ALL and not UNION?",
+    "options": [
+      {
+        "id": "a",
+        "text": "UNION ALL runs the two parts at the same time, which makes it faster."
+      },
+      {
+        "id": "b",
+        "text": "UNION would drop a price that appears twice, so a price seen in two weeks would count once."
+      },
+      {
+        "id": "c",
+        "text": "UNION needs the same column names in both parts, and UNION ALL does not."
+      },
+      {
+        "id": "d",
+        "text": "UNION ALL sorts the result by source, and UNION does not."
+      }
+    ],
+    "correct_id": "b",
+    "explanation": "The question wants every list price version and every check. UNION removes duplicate rows across the whole result, so two rows with the same source and price would become one. UNION ALL keeps them. Neither operator needs matching names: the columns are matched by position, and neither sorts the result."
+  }
+}

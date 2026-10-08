@@ -1,0 +1,17 @@
+{
+  "case_id": "CASE-VOLT-L3",
+  "truths": {
+    "CP2": "SELECT COUNT(*)\nFROM order_lines AS ol\nJOIN promotions AS pr ON pr.promo_id = ol.promo_id\nWHERE pr.start_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\n  AND pr.discount_pct >= 30",
+    "CP4": "SELECT ROUND(100.0 * SUM(ol.quantity * ol.unit_price_eur - ol.line_discount_eur - ol.quantity * p.unit_cost_eur)\n             / SUM(ol.quantity * ol.unit_price_eur - ol.line_discount_eur), 1)\nFROM order_lines AS ol\nJOIN promotions AS pr ON pr.promo_id = ol.promo_id\nJOIN products AS p ON p.product_id = ol.product_id\nWHERE pr.start_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\n  AND pr.discount_pct >= 30"
+  },
+  "choices": {
+    "CP1": {
+      "correct_oid": "o6d464ba",
+      "explanation": "Each step ends at one row per promotion, so nothing repeats; joining the product list and the lines in one query repeats every line once per product."
+    },
+    "CP5": {
+      "correct_oid": "o2263101",
+      "explanation": "The result covers only the promoted lines with no comparison to normal weeks, so it shows the margin given up, not whether a promotion paid off or how many units it sold."
+    }
+  }
+}

@@ -9,15 +9,19 @@
 // Task C4 (S3-13): an active SQL choice item's view goes to <out>/sql/<target concept>/<item_id>.json. It holds what the
 // learner sees: `id`, `kind`, `prompt` and `schema`, plus the kind's own fields: `shown_sql` (predict kinds), `options`
 // ({ oid, text } and a predict_result option's `table`, in a seeded shuffled order), `typed` (predict_rows) and `unique_check`
-// (is_unique). Never the key, the misconceptions, the edge schema, hints or difficulty. The .json
-// files of an earlier export are removed first. The default out-dir sits inside tools/.solver-view/ (git-ignored), and the
-// SQL export, which clears only the .json files at its own top level, leaves it alone. Prints counts only.
+// (is_unique). Never the key, the misconceptions, the edge schema, hints or difficulty.
+// Sprint 4b (Task B2): every case's CP1 and CP5 (`id`, `prompt` and `options` in a seeded shuffled order) and CP2 and CP4 (`id`,
+// `prompt` and `typed`) go to <out>/case/<case_id>/<case_id>-<CP>.json, from content/sql/openers/ and content/sql/cases/. The
+// case's CP3 is an SQL item, in export:solver-view. Never the case key, the brief, the credits, the model plan or the model answer.
+// The .json files of an earlier export are removed first. The default out-dir sits inside tools/.solver-view/ (git-ignored), and
+// the SQL export, which clears only the .json files at its own top level, leaves it alone. Prints counts only.
 // Usage: node tools/export-choice-view.ts [content-root] [out-dir] [--seed <text>]
 //        (defaults: content/, tools/.solver-view/choice/, seed choice-view-1)
 import { createHash } from 'node:crypto';
 import { mkdir, readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { isAbsolute, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import type { CaseRecord, Checkpoint } from '../schemas/case.ts';
 import type { ChoiceItem, ChoiceSection, OptionTable, TypedSpec } from '../schemas/choice.ts';
 import { isSqlChoiceKind, type SqlItem } from '../schemas/item.ts';
 import { shuffle } from '../server/routes/choice.ts';
@@ -31,8 +35,14 @@ export interface SqlChoiceView {
   id: string; kind: string; prompt: string; schema: string; shown_sql?: string; options?: { oid: string; text: string; table?: OptionTable }[];
   typed?: TypedSpec; unique_check?: { table: string; column: string };
 }
-/** The folders under the output: each choice section, and `sql` for the SQL choice items (Task C4). */
-export type ViewSection = ChoiceSection | 'sql';
+/**
+ * Sprint 4b (Task B2): a case checkpoint's view, what the learner sees of that checkpoint: CP1 and CP5 the prompt and the options
+ * (S4B-02: prompt content, like predict options), CP2 and CP4 the prompt and the typed spec. Never the case key, the credits, the
+ * truth key, the brief, the model plan or the model answer, so each prompt must stand on its own (docs/content/generator-brief.md).
+ */
+export interface CaseCheckpointView { id: string; prompt: string; options?: { oid: string; text: string }[]; typed?: TypedSpec }
+/** The folders under the output: each choice section, `sql` for the SQL choice items (Task C4), and `case` for case checkpoints. */
+export type ViewSection = ChoiceSection | 'sql' | 'case';
 export interface ExportedGroup { section: ViewSection; group: string; ids: string[] }
 
 /** A folder or file name this tool writes: an ID such as T-GA4-01, MET-RETAIL-06 or Q-GA4-001. */
@@ -91,6 +101,19 @@ export function sqlChoiceView(item: SqlItem, seed: string): SqlChoiceView {
   return view;
 }
 
+/** Sprint 4b: a CP1, CP2, CP4 or CP5 checkpoint's view, or null for CP3 (an SQL item: export:solver-view) and CP6 (never graded). */
+export function caseCheckpointView(cp: Checkpoint, seed: string): CaseCheckpointView | null {
+  if (typeof cp?.item_id !== 'string' || typeof cp.prompt !== 'string') return null;
+  if ((cp.kind === 'CP1' || cp.kind === 'CP5') && Array.isArray(cp.options)) {
+    return { id: cp.item_id, prompt: cp.prompt, options: seededOrder(cp.options, seed, cp.item_id).map((o) => ({ oid: o.oid, text: o.text })) };
+  }
+  if ((cp.kind === 'CP2' || cp.kind === 'CP4') && cp.typed) {
+    const { precision, scale, decimals, unit_label } = cp.typed;
+    return { id: cp.item_id, prompt: cp.prompt, typed: { precision, scale, decimals, unit_label } };
+  }
+  return null;
+}
+
 /**
  * Task C4: the prompt hash of what a solver saw in one exported SQL choice view, the same hash sqlChoicePromptHash gives the
  * item it was exported from, or null when the value is not an SQL choice view.
@@ -124,11 +147,12 @@ export async function exportChoiceView(contentRoot: string, outDir: string, seed
   const root = resolve(contentRoot);
   const out = resolve(outDir);
   if (inside(out, root) || inside(root, out)) throw new Refused('the output folder must be outside the content folder, and must not hold it');
-  const groups = new Map<string, { section: ViewSection; group: string; views: { id: string; view: unknown }[] }>();
-  const add = (section: ViewSection, raw: unknown, id: string, view: unknown): void => {
+  const groups = new Map<string, { section: ViewSection; group: string; views: { id: string; file: string; view: unknown }[] }>();
+  /** `file` is the view's file name without .json: the ID, or for a case checkpoint `<case_id>-<CP>` (a file name holds no colon). */
+  const add = (section: ViewSection, raw: unknown, id: string, view: unknown, file: string = id): void => {
     const group = typeof raw === 'string' && SAFE_NAME.test(raw) ? raw : UNSORTED;
     const g = groups.get(`${section}/${group}`) ?? { section, group, views: [] };
-    g.views.push({ id, view });
+    g.views.push({ id, file, view });
     groups.set(`${section}/${group}`, g);
   };
   for (const section of SECTIONS) {
@@ -154,8 +178,23 @@ export async function exportChoiceView(contentRoot: string, outDir: string, seed
     if (item?.status !== 'active' || !isSqlChoiceKind(item.kind) || typeof item.id !== 'string' || !SAFE_ID.test(item.id) || typeof item.prompt !== 'string') continue;
     add('sql', item.target_concept_id, item.id, sqlChoiceView(item, seed));
   }
+  // Sprint 4b (Task B2): every case's CP1, CP2, CP4 and CP5, the openers and content/sql/cases/ alike, grouped by case. The case
+  // record is read for its checkpoints only; the case key is never opened.
+  for (const folder of ['openers', 'cases']) {
+    let names: string[] = [];
+    try { names = (await readdir(join(root, 'sql', folder))).filter((n) => n.endsWith('.json')).sort(); }
+    catch (e) { if ((e as NodeJS.ErrnoException).code !== 'ENOENT') throw e; }
+    for (const n of names) {
+      const record = JSON.parse(await readFile(join(root, 'sql', folder, n), 'utf8')) as CaseRecord;
+      if (typeof record?.case_id !== 'string' || !SAFE_NAME.test(record.case_id) || !Array.isArray(record.checkpoints)) continue;
+      for (const cp of record.checkpoints) {
+        const view = caseCheckpointView(cp, seed);
+        if (view && view.id === `${record.case_id}:${cp.kind}`) add('case', record.case_id, view.id, view, `${record.case_id}-${cp.kind}`);
+      }
+    }
+  }
   // Clear an earlier export: only .json files, only in group folders this tool names.
-  for (const section of [...SECTIONS, 'sql']) {
+  for (const section of [...SECTIONS, 'sql', 'case']) {
     const sectionDir = join(out, section);
     let subs: string[];
     try { subs = (await readdir(sectionDir, { withFileTypes: true })).filter((d) => d.isDirectory() && SAFE_NAME.test(d.name)).map((d) => d.name); }
@@ -166,7 +205,7 @@ export async function exportChoiceView(contentRoot: string, outDir: string, seed
   for (const { section, group, views } of [...groups.values()].sort((a, b) => `${a.section}/${a.group}`.localeCompare(`${b.section}/${b.group}`))) {
     const dir = join(out, section, group);
     await mkdir(dir, { recursive: true });
-    for (const { id, view } of views) await writeFile(join(dir, `${id}.json`), JSON.stringify(view, null, 2) + '\n');
+    for (const { file, view } of views) await writeFile(join(dir, `${file}.json`), JSON.stringify(view, null, 2) + '\n');
     written.push({ section, group, ids: views.map((v) => v.id).sort() });
   }
   return written;

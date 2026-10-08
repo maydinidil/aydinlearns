@@ -1,8 +1,10 @@
-// core/goal-eval.ts: goals and their criteria (design §2 goal timeline, §4 wrap-up; rulings S2-38, D12). Pure: the caller
-// passes a view of the concept states, the external results and the passed mocks. Domain-free (design §15).
+// core/goal-eval.ts: goals and their criteria (design §2 goal timeline, §4 wrap-up; rulings S2-38, D12, S4B-20, S4B-26). Pure
+// once the caller passes the date: the caller passes a view of the concept states, the external results, the passed mocks, the
+// solved cases and the live reps. Domain-free (design §15).
 import type { Section } from './envelope.ts';
 import type { Goal, GoalCriterion } from './goals.ts';
 import type { ConceptStateName } from './states.ts';
+import { amsterdamDate } from './time.ts';
 
 export interface GoalView {
   /** The concepts of levels 1 to `maxLevel` that this build can evaluate; [] while a section has no content (D12). */
@@ -10,6 +12,10 @@ export interface GoalView {
   stateOf(conceptId: string): ConceptStateName;
   externals: { kind: 'ga4_exam' | 'portfolio_piece'; data: unknown }[];
   mocksPassed: Set<string>;
+  /** S4B-20: every solved case (replay, S4B-08) with its level, and whether a case_export event names it. */
+  casesSolved: { case_id: string; level: number; exported: boolean }[];
+  /** S4B-26: one entry per live rep (a closed `live-` block): its Amsterdam date, and whether it passed. */
+  liveReps: { local_date: string; passed: boolean }[];
 }
 /** `available` false: the build cannot evaluate it yet ("not yet available"); it counts as unmet (S2-38). */
 export interface CriterionResult { label: string; met: boolean; available: boolean; done: number | null; total: number | null }
@@ -18,12 +24,14 @@ const SECTION: Record<Section, string> = { sql: 'SQL', ga4: 'GA4', methodology: 
 const MOCK: Record<string, string> = { screen: 'Screen', knowledge: 'Knowledge', case_round: 'Case-round', take_home: 'Take-home', ga4_readiness: 'GA4 readiness' };
 const RANK: Record<ConceptStateName, number> = { new: 0, learning: 1, practised: 2, mastered: 3, retained: 4 };
 const EVERY_LEVEL = Number.MAX_SAFE_INTEGER;
+const DAY_MS = 86_400_000;
+const addDays = (date: string, days: number): string => new Date(Date.parse(`${date}T00:00:00Z`) + days * DAY_MS).toISOString().slice(0, 10);
 
 const notYet = (label: string): CriterionResult => ({ label, met: false, available: false, done: null, total: null });
 const isRecord = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object' && !Array.isArray(v);
 const plural = (n: number, one: string, many: string): string => `${n} ${n === 1 ? one : many}`;
 
-function evaluateCriterion(c: GoalCriterion, view: GoalView): CriterionResult {
+function evaluateCriterion(c: GoalCriterion, view: GoalView, today: string): CriterionResult {
   switch (c.kind) {
     case 'concept_state': {
       const reached = (id: string): boolean => RANK[view.stateOf(id)] >= RANK[c.state];
@@ -54,14 +62,31 @@ function evaluateCriterion(c: GoalCriterion, view: GoalView): CriterionResult {
       const label = `${plural(c.count, 'portfolio piece', 'portfolio pieces')}${c.real_data_min ? `, ${c.real_data_min} on real data` : ''}`;
       return { label, met: data.length >= c.count && real >= (c.real_data_min ?? 0), available: true, done: data.length, total: c.count };
     }
-    case 'live_rep':
-      // Live SQL reps are logged from a later slice; nothing records them yet.
-      return notYet(`Live SQL: ${c.min_logged} sessions logged in ${c.window_weeks} weeks, ${c.min_passed} passed`);
+    case 'live_rep': {
+      // S4B-26: the reps whose Amsterdam date is one of the last window_weeks * 7 dates, today included.
+      const from = addDays(today, 1 - 7 * c.window_weeks);
+      const reps = view.liveReps.filter((r) => r.local_date >= from && r.local_date <= today);
+      const passed = reps.filter((r) => r.passed).length;
+      // done: the reps that count toward the requirement. At most min_logged, of which at most min_logged - min_passed may be
+      // unpassed, so done reaches total exactly when the criterion is met.
+      const done = Math.min(reps.length, passed + c.min_logged - c.min_passed, c.min_logged);
+      const label = `Live SQL: ${c.min_logged} sessions logged in ${c.window_weeks} weeks, ${c.min_passed} passed`;
+      return { label, met: reps.length >= c.min_logged && passed >= c.min_passed, available: true, done, total: c.min_logged };
+    }
+    case 'case_solved': {
+      const solved = view.casesSolved.filter((s) => (c.level_min === undefined || s.level >= c.level_min) && (!c.exported || s.exported));
+      const label = `${plural(c.count, 'case', 'cases')}${c.level_min !== undefined ? ` of level ${c.level_min} or above` : ''} solved${c.exported ? ' and exported' : ''}`;
+      return { label, met: solved.length >= c.count, available: true, done: solved.length, total: c.count };
+    }
+    case 'real_data_analysis':
+      // The dataset registry arrives in sprint 6; until then nothing can record an analysis on a real dataset.
+      return notYet(`${plural(c.count, 'analysis', 'analyses')} on a real dataset`);
   }
 }
 
-export function evaluateGoal(goal: Goal, view: GoalView): { goal_id: string; met: boolean; criteria: CriterionResult[] } {
-  const criteria = goal.criteria.map((c) => evaluateCriterion(c, view));
+/** `today` is the Amsterdam date the live_rep window ends on (S4B-26); left out, it is today's. */
+export function evaluateGoal(goal: Goal, view: GoalView, today: string = amsterdamDate(new Date())): { goal_id: string; met: boolean; criteria: CriterionResult[] } {
+  const criteria = goal.criteria.map((c) => evaluateCriterion(c, view, today));
   return { goal_id: goal.id, met: criteria.every((c) => c.met), criteria };
 }
 

@@ -18,6 +18,7 @@
     "export:solver-view": "node tools/export-solver-view.ts",
     "export:choice-view": "node tools/export-choice-view.ts",
     "record:choice-solver": "node tools/record-choice-solver.ts",
+    "report:window": "node tools/report-window.ts",
     "build:data": "pipeline\\.venv\\Scripts\\python.exe pipeline/build_course_db.py",
     "dev:server": "node --watch server/main.ts --dev",
     "dev:web": "vite --config web/vite.config.ts",

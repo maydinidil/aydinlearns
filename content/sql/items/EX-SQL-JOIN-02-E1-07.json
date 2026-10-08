@@ -1,0 +1,120 @@
+{
+  "id": "EX-SQL-JOIN-02-E1-07",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "left_join",
+    "filter_in_on",
+    "min",
+    "stores",
+    "orders"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-JOIN-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-JOIN-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02"
+  ],
+  "template_id": "T-JOIN-02-first-or-missing",
+  "template_params": {
+    "from": "stores",
+    "join": "orders",
+    "year": 2025
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_join",
+  "prompt": "When did each store take its first order of 2025? order_ts holds UTC time: count orders from 1 January 2025 to 31 December 2025, UTC days, both included. Include every store; first_order_ts is missing for a store with no order in 2025. Return two columns, in this order: store_code and first_order_ts. Return one row for each store. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "store_code",
+        "type_class": "text"
+      },
+      {
+        "name": "first_order_ts",
+        "type_class": "temporal"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "store_code",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "first_order_ts",
+        "type_class": "temporal",
+        "precision": "exact"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "store_code"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, join the 2025 orders so that a store with none still shows.",
+    "The 2025 test belongs in ON. In WHERE it would remove a store whose order time is missing."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 54,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 55,
+      "to": 68,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 69,
+      "to": 213,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 214,
+      "to": 235,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "With the year test in ON, a store with no 2025 order keeps one row with a missing time, so MIN gives a missing value."
+}

@@ -7,7 +7,10 @@
     "SELECT store_code, city, country_code, store_type\nFROM stores\nWHERE (NOT country_code = 'NL' OR country_code IS NULL) AND (NOT store_type = 'outlet' OR store_type IS NULL)",
     "SELECT store_code, city, country_code, store_type\nFROM stores\nWHERE COALESCE(country_code, '') <> 'NL' AND COALESCE(store_type, '') <> 'outlet'"
   ],
-  "other_way": null,
+  "other_way": {
+    "sql": "SELECT store_code, city, country_code, store_type\nFROM stores\nWHERE COALESCE(country_code, '') <> 'NL' AND COALESCE(store_type, '') <> 'outlet'",
+    "tradeoff": "COALESCE swaps missing values for empty text first, which is short but hides the missing-value test."
+  },
   "planted_wrong": [
     {
       "id": "PW1",

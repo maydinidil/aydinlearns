@@ -1,0 +1,177 @@
+{
+  "case_id": "CASE-PRICE-02",
+  "kind": "inbox",
+  "level": 3,
+  "world": "PRICE",
+  "company_id": "voltmarkt",
+  "title": "Price index against the rivals by category",
+  "persona": {
+    "name": "Sanne",
+    "role": "Category manager"
+  },
+  "brief": {
+    "decision": "Which categories to flag for a price check against the two rivals",
+    "deadline": "Thursday's category review"
+  },
+  "data_needed": [
+    "sales",
+    "calendar",
+    "competitor_price_weekly",
+    "products"
+  ],
+  "expected_output": {
+    "columns": [
+      "category_id",
+      "category_name",
+      "iso_week",
+      "products_matched",
+      "price_index",
+      "position"
+    ],
+    "grain": "one row per category and ISO week with at least one product compared, in ISO weeks 9 to 11 of 2025",
+    "sort": [
+      {
+        "column": "iso_week",
+        "desc": false
+      },
+      {
+        "column": "price_index",
+        "desc": true
+      },
+      {
+        "column": "category_id",
+        "desc": false
+      }
+    ]
+  },
+  "checkpoints": [
+    {
+      "id": "CP1",
+      "kind": "CP1",
+      "item_id": "CASE-PRICE-02:CP1",
+      "credits_concepts": [],
+      "prompt": "Sanne wants a price index for each category in one week: 100 times what Voltmarkt's customers paid, divided by what the same units would have cost at the rivals' average price for that product in that week. Which products should the index include?",
+      "options": [
+        {
+          "oid": "o8e3dc81",
+          "text": "Every product that sold that week; one with no competitor price counts as if the rivals charged Voltmarkt's price"
+        },
+        {
+          "oid": "o642c525",
+          "text": "Every product the rivals checked that week, whether or not it sold at Voltmarkt that week"
+        },
+        {
+          "oid": "of2acb45",
+          "text": "Every product in the category, sold or not, so that the whole range of the category is covered"
+        },
+        {
+          "oid": "o0ae7812",
+          "text": "Only the products that sold that week and also have a competitor price for that same week"
+        }
+      ]
+    },
+    {
+      "id": "CP2",
+      "kind": "CP2",
+      "item_id": "CASE-PRICE-02:CP2",
+      "credits_concepts": [
+        "SQL-AGG-01"
+      ],
+      "prompt": "How many different products sold at Voltmarkt in ISO week 11 of 2025, the week from Monday 2025-03-10 to Sunday 2025-03-16, with days in UTC, and also have an average competitor price for that same ISO week? Type a whole number.",
+      "typed": {
+        "precision": "count",
+        "scale": "plain",
+        "decimals": 0,
+        "unit_label": "products"
+      },
+      "truth_key": "CASE-PRICE-02:CP2"
+    },
+    {
+      "id": "CP3",
+      "kind": "CP3",
+      "item_id": "EX-CASE-PRICE-02",
+      "credits_concepts": [
+        "SQL-JOIN-01",
+        "SQL-AGG-01",
+        "SQL-AGG-02",
+        "SQL-CASE-01",
+        "SQL-TYPE-01"
+      ],
+      "prompt": "Write the query that answers Sanne's question."
+    },
+    {
+      "id": "CP4",
+      "kind": "CP4",
+      "item_id": "CASE-PRICE-02:CP4",
+      "credits_concepts": [
+        "SQL-JOIN-01",
+        "SQL-AGG-01"
+      ],
+      "prompt": "Sanne has a follow-up. Across all categories together, what was Voltmarkt's price index in ISO week 11 of 2025, the week from Monday 2025-03-10 to Sunday 2025-03-16, with days in UTC? Use only the products that sold that week and have an average competitor price for that same ISO week. The index is 100 times the net revenue of those products' order lines that week, divided by the sum over the same lines of units times the product's average competitor price for the week. Type the index with 1 decimal, for example 101.3.",
+      "typed": {
+        "precision": "ratio",
+        "scale": "plain",
+        "decimals": 1,
+        "unit_label": "index"
+      },
+      "truth_key": "CASE-PRICE-02:CP4"
+    },
+    {
+      "id": "CP5",
+      "kind": "CP5",
+      "item_id": "CASE-PRICE-02:CP5",
+      "credits_concepts": [],
+      "prompt": "A price index is 100 times what Voltmarkt's customers paid, divided by what the same units would have cost at the rivals' average price for that product in that week. In ISO week 11 of 2025, the Spring Audio Deals promotion took 25% off some audio products, and Sanne sees an audio category with a price index well below 98 that week. Can Sanne conclude that Voltmarkt's regular prices in that category are below the rivals'?",
+      "options": [
+        {
+          "oid": "o3d971dd",
+          "text": "Yes. An index below 98 shows that Voltmarkt's regular prices in that category are lower than the rivals'"
+        },
+        {
+          "oid": "o2697a3b",
+          "text": "No. The index uses what customers paid that week, promotion included, so the promotion alone can pull it below 98"
+        },
+        {
+          "oid": "o71cd58c",
+          "text": "No. An index below 98 means Voltmarkt is more expensive, because a lower index stands for a higher own price"
+        },
+        {
+          "oid": "of98b265",
+          "text": "Yes, as long as more than half of the category's products had a competitor price that week"
+        }
+      ]
+    },
+    {
+      "id": "CP6",
+      "kind": "CP6",
+      "credits_concepts": [],
+      "prompt": "Write 2 to 4 sentences for Sanne: where Voltmarkt stood against the rivals in ISO week 11 of 2025, which categories drove it and why, one caveat, and one next step before Thursday's category review."
+    }
+  ],
+  "model_plan": "Metric formula: price index = 100 times the net revenue of the compared lines, divided by the sum of their units times the product's average competitor price for the ISO week of the line, rounded to 1 decimal; position from the rounded index: above 102.0 premium, below 98.0 discount, otherwise parity.\nOutput grain: one row per category and ISO week with at least one compared product.\nTables and keys: sales (one row per order line) joined to calendar on order_date for the line's ISO year and week, to competitor_price_weekly (one row per product and ISO week) on product_id and that ISO year and week, and to products on product_id for category_id.\nFilters: sales lines with an order date from 2025-02-24 to 2025-03-16 in UTC, which are ISO weeks 9 to 11 of 2025.\nEdge cases: a product sold with no competitor price that week drops out of the inner join; joining on product_id alone would repeat each line once for every week the product was checked; categories in the same week with the same rounded index are sorted by category_id.\nExpected row count: 120",
+  "model_answer_template": "In ISO week 11 of 2025, Voltmarkt's overall price index was {CP4}, so customers paid less than the same units would have cost at the rivals' average prices. The audio categories drove it: each sat close to the rivals in weeks 9 and 10, then fell to a discount in week 11, when the Spring Audio Deals cut what customers paid. The index uses what customers paid, promotion included, so it mixes the promotion with the regular price level; before changing any regular audio price, compare Voltmarkt's list prices for those products with the rivals' prices.",
+  "follow_up_question": "Where did the audio categories sit against the rivals once the Spring Audio Deals had ended?",
+  "data_source": {
+    "label": "Fictional, generated data: Voltmarkt",
+    "real": false,
+    "licence": null
+  },
+  "difficulty": 2,
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CASE-01",
+    "SQL-TYPE-01",
+    "SQL-JOIN-01"
+  ],
+  "metric_ids": [
+    "MET-PRICE-01"
+  ],
+  "find_ids": [],
+  "uses_raw": false
+}

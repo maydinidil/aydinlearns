@@ -1,0 +1,160 @@
+{
+  "id": "EX-SQL-JOIN-03-E3-03",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "fan_out",
+    "cte",
+    "bridge",
+    "promotion_products",
+    "order_lines",
+    "categories",
+    "left_join"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-JOIN-03"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-JOIN-03",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-SORT-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-JOIN-03"
+  ],
+  "template_id": "T-JOIN-03-two-children",
+  "template_params": {
+    "parent": "parent_category",
+    "child_a": "promotion_products",
+    "child_b": "order_lines"
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_join",
+  "prompt": "For each parent category, how many different promotions list at least one of its products, and how many units of its products were sold with a promotion? A unit counts as sold with a promotion when its order line has a promo_id, even if that promotion is not in the promotions table. A parent category with no such units shows 0. Return three columns, in this order: parent_category, n_promotions and promo_units. Return one row for each parent category that has at least one product listed in a promotion. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "parent_category",
+        "type_class": "text"
+      },
+      {
+        "name": "n_promotions",
+        "type_class": "numeric"
+      },
+      {
+        "name": "promo_units",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "parent_category",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "n_promotions",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "promo_units",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "parent_category"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, plan two steps, each at one row per parent category: one for the promotions, one for the promotion units.",
+    "A product in two promotions pairs each of its lines with two bridge rows, so the units must be added up without the bridge table in the same join."
+  ],
+  "subgoals": [
+    {
+      "from": 28,
+      "to": 97,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 100,
+      "to": 229,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 232,
+      "to": 258,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 284,
+      "to": 341,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 344,
+      "to": 466,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 469,
+      "to": 498,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 501,
+      "to": 527,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 530,
+      "to": 616,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 617,
+      "to": 711,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "The bridge rows and the order lines are added up in separate steps at one row per parent category, so neither repeats the other."
+}

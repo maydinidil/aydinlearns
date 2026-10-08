@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-CTE-01-E1-42",
+  "item_version": 1,
+  "correct_oid": "o5898915",
+  "explanation": "The first step has one row per store type, four rows, and each holds that type's number of stores. The final query has no GROUP BY, so it returns one row: COUNT(*) counts the step's rows, the 4 types, and SUM adds up their store counts, the 26 stores. Counting 26 would count stores, not the step's rows, and the four-row table is the first step's own result, not the final one.",
+  "solver": {
+    "prompt_hash": "19de0238d996ec4e",
+    "grader_version": "choice.2",
+    "chosen": "o5898915",
+    "typed": null,
+    "at": "2026-10-07T09:58:58.570Z"
+  }
+}

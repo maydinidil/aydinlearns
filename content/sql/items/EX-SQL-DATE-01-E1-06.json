@@ -1,0 +1,118 @@
+{
+  "id": "EX-SQL-DATE-01-E1-06",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "date",
+    "date_part",
+    "year",
+    "products"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-DATE-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-DATE-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-DATE-01"
+  ],
+  "template_id": "T-DATE-01-count-per-year",
+  "template_params": {
+    "table": "products",
+    "column": "launch_date",
+    "from": "2020-01-01"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_date",
+  "prompt": "How many products did Voltmarkt launch in each year from 2020 on? Use the products table, where launch_date is the day a product was launched, and keep the products launched on or after 2020-01-01. Return two columns, in this order: launch_year, the calendar year as a number, and products, the number of products. Return one row for each year. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "launch_year",
+        "type_class": "numeric"
+      },
+      {
+        "name": "products",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "launch_year",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "products",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "launch_year"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the calculated column launch_year: the calendar year of each launch date.",
+    "year() gives the calendar year. isoyear() gives the year of the ISO week instead, which can differ for a few days around New Year."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 68,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 69,
+      "to": 82,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 83,
+      "to": 121,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 122,
+      "to": 148,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "year(launch_date) gives the calendar year of each launch, and the filter keeps the launches from 2020-01-01 on."
+}

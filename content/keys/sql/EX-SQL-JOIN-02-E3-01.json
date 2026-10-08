@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-JOIN-02-E3-01",
+  "item_version": 1,
+  "reference_sql": "SELECT c.category_name, COUNT(o.order_id) AS n_lines\nFROM categories c\nLEFT JOIN products p ON p.category_id = c.category_id\nLEFT JOIN order_lines l ON l.product_id = p.product_id\nLEFT JOIN orders o ON o.order_id = l.order_id AND o.order_ts >= TIMESTAMP '2025-03-03 00:00:00' AND o.order_ts < TIMESTAMP '2025-03-10 00:00:00'\nWHERE c.parent_category = 'Accessories'\nGROUP BY c.category_name",
+  "alternatives": [
+    "SELECT c.category_name, COUNT(l.order_line_id) AS n_lines FROM orders o JOIN order_lines l ON l.order_id = o.order_id AND o.order_ts >= TIMESTAMP '2025-03-03 00:00:00' AND o.order_ts < TIMESTAMP '2025-03-10 00:00:00' JOIN products p ON p.product_id = l.product_id RIGHT JOIN categories c ON c.category_id = p.category_id WHERE c.parent_category = 'Accessories' GROUP BY c.category_name",
+    "SELECT c.category_name, COUNT(*) FILTER (WHERE o.order_ts >= TIMESTAMP '2025-03-03 00:00:00' AND o.order_ts < TIMESTAMP '2025-03-10 00:00:00') AS n_lines FROM categories c LEFT JOIN products p ON p.category_id = c.category_id LEFT JOIN order_lines l ON l.product_id = p.product_id LEFT JOIN orders o ON o.order_id = l.order_id WHERE c.parent_category = 'Accessories' GROUP BY 1"
+  ],
+  "other_way": {
+    "sql": "SELECT c.category_name, COUNT(l.order_line_id) AS n_lines FROM orders o JOIN order_lines l ON l.order_id = o.order_id AND o.order_ts >= TIMESTAMP '2025-03-03 00:00:00' AND o.order_ts < TIMESTAMP '2025-03-10 00:00:00' JOIN products p ON p.product_id = l.product_id RIGHT JOIN categories c ON c.category_id = p.category_id WHERE c.parent_category = 'Accessories' GROUP BY c.category_name",
+    "tradeoff": "Joining the week's lines first and keeping every category with RIGHT JOIN avoids a chain of LEFT JOINs, but reads backwards."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-10",
+      "sql": "SELECT c.category_name, COUNT(o.order_id) AS n_lines FROM categories c LEFT JOIN products p ON p.category_id = c.category_id LEFT JOIN order_lines l ON l.product_id = p.product_id LEFT JOIN orders o ON o.order_id = l.order_id WHERE c.parent_category = 'Accessories' AND o.order_ts >= TIMESTAMP '2025-03-03 00:00:00' AND o.order_ts < TIMESTAMP '2025-03-10 00:00:00' GROUP BY c.category_name"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-04",
+      "sql": "SELECT c.category_name, COUNT(*) AS n_lines FROM categories c LEFT JOIN products p ON p.category_id = c.category_id LEFT JOIN order_lines l ON l.product_id = p.product_id LEFT JOIN orders o ON o.order_id = l.order_id AND o.order_ts >= TIMESTAMP '2025-03-03 00:00:00' AND o.order_ts < TIMESTAMP '2025-03-10 00:00:00' WHERE c.parent_category = 'Accessories' GROUP BY c.category_name"
+    }
+  ],
+  "hint3_partial": "SELECT c.category_name, COUNT(o.order_id) AS n_lines\nFROM categories c\nLEFT JOIN products p ON ___\nLEFT JOIN order_lines l ON ___\nLEFT JOIN orders o ON ___\nWHERE c.parent_category = 'Accessories'\nGROUP BY c.category_name",
+  "solver": {
+    "prompt_hash": "ccc19e0350a7b541",
+    "schema_version": "f148bc911bb7",
+    "dataset_version": "e1545e4258743033",
+    "grader_version": "1b.3",
+    "query": "SELECT c.category_name, COUNT(sl.order_line_id) AS n_lines\nFROM categories c\nLEFT JOIN (\n  SELECT l.order_line_id, p.category_id\n  FROM order_lines l\n  JOIN orders o ON o.order_id = l.order_id\n  JOIN products p ON p.product_id = l.product_id\n  WHERE o.order_ts >= TIMESTAMP '2025-03-03 00:00:00' AND o.order_ts < TIMESTAMP '2025-03-10 00:00:00'\n) sl ON sl.category_id = c.category_id\nWHERE c.parent_category = 'Accessories'\nGROUP BY c.category_id, c.category_name",
+    "at": "2026-10-07T10:41:38.723Z"
+  }
+}

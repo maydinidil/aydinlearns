@@ -1,0 +1,7 @@
+{
+  "case_id": "CASE-DAILY-L3-01",
+  "truths": {
+    "CP4": "SELECT COUNT(*)\nFROM price_history ph\nJOIN products p ON p.product_id = ph.product_id\nJOIN categories c ON c.category_id = p.category_id\nWHERE c.parent_category = 'TV & Video'\n  AND ph.valid_from BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'"
+  },
+  "choices": {}
+}

@@ -1,0 +1,133 @@
+{
+  "id": "EX-SQL-CTE-01-E3-01",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "cte",
+    "ratio",
+    "case",
+    "sales"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-CTE-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-CTE-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CASE-01",
+    "SQL-AGG-04",
+    "SQL-JOIN-01",
+    "SQL-CTE-01"
+  ],
+  "template_id": "T-CTE-01-share-of-step-value",
+  "template_params": {
+    "table": "sales",
+    "step_grain": "order",
+    "group_by": "channel",
+    "threshold": 1000
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_join",
+  "prompt": "For each channel, what share of net revenue came from orders worth more than 1,000 EUR? Use the sales table; an order's value is the sum of its lines' net_revenue_eur, and an order counts as big when its value is above 1000. Return two columns, in this order: channel and big_order_share, the net revenue of the channel's big orders divided by all of the channel's net revenue, as a fraction from 0 to 1. Return one row for each channel. Do not round. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "channel",
+        "type_class": "text"
+      },
+      {
+        "name": "big_order_share",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "channel",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "big_order_share",
+        "type_class": "numeric",
+        "precision": "ratio"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "channel"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, add up each order's value in a first step, keeping the channel.",
+    "In the final query, add up only the big orders' values on top, all orders' values below, and divide once per channel."
+  ],
+  "subgoals": [
+    {
+      "from": 25,
+      "to": 84,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 87,
+      "to": 97,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 100,
+      "to": 126,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 129,
+      "to": 238,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 239,
+      "to": 256,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 257,
+      "to": 273,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "The step gives each order its full value, so the test on 1,000 EUR is about whole orders and both sums cover the same orders."
+}

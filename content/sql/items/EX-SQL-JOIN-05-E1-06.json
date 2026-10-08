@@ -1,0 +1,116 @@
+{
+  "id": "EX-SQL-JOIN-05-E1-06",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "cross-join",
+    "stores",
+    "categories",
+    "checklist"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-JOIN-05"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-JOIN-05",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-JOIN-01",
+    "SQL-JOIN-05"
+  ],
+  "template_id": "T-JOIN-05-cross-join-store-category-checklist",
+  "template_params": {
+    "country_code": "BE",
+    "parent_category": "Gaming"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_join",
+  "prompt": "A buyer wants a checklist with one line for every combination of a store located in Belgium (country_code BE) and a category whose parent_category is Gaming. Return two columns, in this order: store_code and category_name. Return one row for each store and category. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "store_code",
+        "type_class": "text"
+      },
+      {
+        "name": "category_name",
+        "type_class": "text"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "store_code",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "category_name",
+        "type_class": "text",
+        "precision": "exact"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "store_code",
+      "category_name"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, pair the Belgian stores with the Gaming categories, every store with every category.",
+    "No key links a store to a category: the checklist wants all pairs, so the join has no condition."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 36,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 37,
+      "to": 50,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 51,
+      "to": 74,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 75,
+      "to": 135,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "CROSS JOIN pairs every Belgian store with every Gaming category, which is exactly a checklist of all combinations."
+}

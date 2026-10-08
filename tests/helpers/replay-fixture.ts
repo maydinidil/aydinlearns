@@ -35,6 +35,7 @@ export const testCatalog: ReplayCatalog = {
   creditsOf: (id) => (id.startsWith('EX-OPENER-') ? [A, C] : null),
   conceptForError: (e) => ({ 'ERR-LOG-13': C, 'ERR-LOG-00': A } as Record<string, string>)[e] ?? null,   // as content/sql/error-concepts.json
   pretestCount: 2,
+  trapItemsFor: () => false,                                // no trap items: a test that needs one passes its own (Task C1)
 };
 
 export const options = (over: Partial<ReplayOptions> = {}): ReplayOptions =>
@@ -205,7 +206,8 @@ export function growLeech(concept: string, items: string[], start: string, catal
 }
 
 /** A replay result with every Map turned into its entries, so deepEqual also checks the order. */
-export const snapshot = (r: ReplayResult) => ({ ...r, cards: [...r.cards], instances: [...r.instances], concepts: [...r.concepts], blocks: [...r.blocks] });
+export const snapshot = (r: ReplayResult) => ({ ...r, cards: [...r.cards], instances: [...r.instances], concepts: [...r.concepts], blocks: [...r.blocks],
+  mistakeCards: [...r.mistakeCards], cases: [...r.cases] });
 
 /** Every card review of one card in a result, at item closes and block closes, in time order. */
 export function reviewsOf(r: ReplayResult, card_id: string): { at: string; rating: number; config: string }[] {

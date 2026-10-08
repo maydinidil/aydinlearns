@@ -6,7 +6,10 @@
     "SELECT country_code, COUNT(DISTINCT order_id) AS n_orders, ROUND(CAST(SUM(units) AS DOUBLE) / COUNT(DISTINCT order_id), 2) AS units_per_order, ROUND(100.0 * SUM(net_revenue_eur) FILTER (WHERE units >= 3) / SUM(net_revenue_eur), 1) AS bulk_revenue_pct FROM sales WHERE order_date >= DATE '2025-10-01' AND order_date < DATE '2026-01-01' GROUP BY country_code",
     "SELECT country_code, COUNT(DISTINCT order_id) AS n_orders, ROUND(SUM(COALESCE(units, 0)) / CAST(COUNT(DISTINCT order_id) AS DOUBLE), 2) AS units_per_order, ROUND(SUM(CASE WHEN units >= 3 THEN net_revenue_eur END) * 100.0 / SUM(net_revenue_eur), 1) AS bulk_revenue_pct FROM sales WHERE order_date BETWEEN '2025-10-01' AND '2025-12-31' GROUP BY 1"
   ],
-  "other_way": null,
+  "other_way": {
+    "sql": "SELECT country_code, COUNT(DISTINCT order_id) AS n_orders, ROUND(CAST(SUM(units) AS DOUBLE) / COUNT(DISTINCT order_id), 2) AS units_per_order, ROUND(100.0 * SUM(net_revenue_eur) FILTER (WHERE units >= 3) / SUM(net_revenue_eur), 1) AS bulk_revenue_pct FROM sales WHERE order_date >= DATE '2025-10-01' AND order_date < DATE '2026-01-01' GROUP BY country_code",
+    "tradeoff": "Reads closer to plain English, but FILTER is not available in every SQL dialect."
+  },
   "planted_wrong": [
     {
       "id": "PW1",

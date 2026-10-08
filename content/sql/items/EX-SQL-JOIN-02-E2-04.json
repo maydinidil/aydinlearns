@@ -1,0 +1,125 @@
+{
+  "id": "EX-SQL-JOIN-02-E2-04",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "left_join",
+    "count_zero",
+    "products",
+    "promotion_products",
+    "bridge"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-JOIN-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-JOIN-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02"
+  ],
+  "template_id": "T-JOIN-02-count-keep-zero-filtered-left",
+  "template_params": {
+    "from": "products",
+    "join": "promotion_products",
+    "brand": "Cablemate"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_join",
+  "prompt": "How many promotions cover each product of the brand Cablemate? Include every Cablemate product, with 0 for a product no promotion covers. Return two columns, in this order: product_name and n_promotions. Return one row for each Cablemate product. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "product_name",
+        "type_class": "text"
+      },
+      {
+        "name": "n_promotions",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "product_name",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "n_promotions",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "product_name"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, join the bridge table so that a product with no promotion still counts.",
+    "promotion_products has one row per promotion and product. Count one of its columns, which is missing for an uncovered product."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 57,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 58,
+      "to": 73,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 74,
+      "to": 137,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 138,
+      "to": 165,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 166,
+      "to": 189,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "Each bridge row is one promotion for the product, so counting a bridge column after a LEFT JOIN counts promotions, with 0 for none."
+}

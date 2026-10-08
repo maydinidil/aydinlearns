@@ -6,7 +6,10 @@
     "SELECT store_code, city, country_code\nFROM stores\nWHERE store_type = 'standard'\n  AND country_code IN ('LU', 'BE')",
     "SELECT store_code, city, country_code\nFROM stores\nWHERE (country_code = 'BE' OR country_code = 'LU')\n  AND store_type = 'standard'"
   ],
-  "other_way": null,
+  "other_way": {
+    "sql": "SELECT store_code, city, country_code\nFROM stores\nWHERE (country_code = 'BE' OR country_code = 'LU')\n  AND store_type = 'standard'",
+    "tradeoff": "An OR chain returns the same rows, but repeats the column for every value, while IN keeps the list short."
+  },
   "planted_wrong": [
     {
       "id": "EX-SQL-FILTER-02-E1-01-PW1",

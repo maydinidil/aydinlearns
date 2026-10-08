@@ -1,16 +1,19 @@
 {
   "item_id": "EX-SQL-CASE-01-E2-01",
-  "item_version": 1,
+  "item_version": 2,
   "reference_sql": "SELECT order_line_id, net_revenue_eur,\n       CASE WHEN net_revenue_eur IS NULL THEN 'unknown'\n            WHEN net_revenue_eur >= 500 THEN 'high'\n            WHEN net_revenue_eur >= 100 THEN 'mid'\n            ELSE 'low'\n       END AS value_band\nFROM sales\nWHERE order_line_id BETWEEN 1 AND 20",
   "alternatives": [
     "SELECT order_line_id, net_revenue_eur, CASE WHEN net_revenue_eur >= 500 THEN 'high' WHEN net_revenue_eur >= 100 THEN 'mid' WHEN net_revenue_eur < 100 THEN 'low' ELSE 'unknown' END AS value_band FROM sales WHERE order_line_id >= 1 AND order_line_id <= 20",
     "SELECT order_line_id, net_revenue_eur, CASE WHEN net_revenue_eur < 100 THEN 'low' WHEN net_revenue_eur < 500 THEN 'mid' WHEN net_revenue_eur >= 500 THEN 'high' ELSE 'unknown' END AS value_band FROM sales WHERE order_line_id BETWEEN 1 AND 20"
   ],
-  "other_way": null,
+  "other_way": {
+    "sql": "SELECT order_line_id, net_revenue_eur, CASE WHEN net_revenue_eur >= 500 THEN 'high' WHEN net_revenue_eur >= 100 THEN 'mid' WHEN net_revenue_eur < 100 THEN 'low' ELSE 'unknown' END AS value_band FROM sales WHERE order_line_id >= 1 AND order_line_id <= 20",
+    "tradeoff": "Two comparisons give the same rows, but BETWEEN states the range in one short test."
+  },
   "planted_wrong": [
     {
       "id": "PW1",
-      "error_id": "ERR-LOG-00",
+      "error_id": "ERR-LOG-29",
       "sql": "SELECT order_line_id, net_revenue_eur, CASE WHEN net_revenue_eur IS NULL THEN 'unknown' WHEN net_revenue_eur >= 100 THEN 'mid' WHEN net_revenue_eur >= 500 THEN 'high' ELSE 'low' END AS value_band FROM sales WHERE order_line_id BETWEEN 1 AND 20"
     },
     {

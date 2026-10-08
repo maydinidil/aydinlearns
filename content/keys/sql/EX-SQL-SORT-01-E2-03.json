@@ -7,7 +7,10 @@
     "SELECT category_id, brand, unit_cost_eur FROM products WHERE category_id IN (15, 16) ORDER BY 1, 2, 3 DESC",
     "SELECT category_id, brand, unit_cost_eur FROM products WHERE category_id BETWEEN 15 AND 16 ORDER BY category_id ASC, brand ASC, unit_cost_eur DESC NULLS LAST"
   ],
-  "other_way": null,
+  "other_way": {
+    "sql": "SELECT category_id, brand, unit_cost_eur FROM products WHERE category_id = 15 OR category_id = 16 ORDER BY category_id, brand, unit_cost_eur DESC",
+    "tradeoff": "An OR chain returns the same rows, but repeats the column for every value, while IN keeps the list short."
+  },
   "planted_wrong": [
     {
       "id": "EX-SQL-SORT-01-E2-03-PW1",

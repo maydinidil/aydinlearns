@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-JOIN-02-E2-22",
+  "item_version": 1,
+  "reference_sql": "SELECT pr.promo_code, COUNT(p.product_id) AS n_sonora_products\nFROM promotions pr\nLEFT JOIN promotion_products pp ON pp.promo_id = pr.promo_id\nLEFT JOIN products p ON p.product_id = pp.product_id AND p.brand = 'Sonora'\nWHERE pr.start_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\nGROUP BY pr.promo_code",
+  "alternatives": [
+    "SELECT pr.promo_code, SUM(CASE WHEN p.brand = 'Sonora' THEN 1 ELSE 0 END) AS n_sonora_products FROM promotions pr LEFT JOIN promotion_products pp ON pp.promo_id = pr.promo_id LEFT JOIN products p ON p.product_id = pp.product_id WHERE pr.start_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31' GROUP BY 1",
+    "SELECT pr.promo_code, COUNT(p.product_id) AS n_sonora_products FROM products p JOIN promotion_products pp ON pp.product_id = p.product_id AND p.brand = 'Sonora' RIGHT JOIN promotions pr ON pr.promo_id = pp.promo_id WHERE pr.start_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31' GROUP BY pr.promo_code"
+  ],
+  "other_way": {
+    "sql": "SELECT pr.promo_code, COUNT(p.product_id) AS n_sonora_products FROM products p JOIN promotion_products pp ON pp.product_id = p.product_id AND p.brand = 'Sonora' RIGHT JOIN promotions pr ON pr.promo_id = pp.promo_id WHERE pr.start_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31' GROUP BY pr.promo_code",
+    "tradeoff": "Joining Sonora products to the bridge first and keeping every promotion with RIGHT JOIN needs no CASE, but reads backwards."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-10",
+      "sql": "SELECT pr.promo_code, COUNT(p.product_id) AS n_sonora_products FROM promotions pr LEFT JOIN promotion_products pp ON pp.promo_id = pr.promo_id LEFT JOIN products p ON p.product_id = pp.product_id WHERE p.brand = 'Sonora' AND pr.start_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31' GROUP BY pr.promo_code"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-04",
+      "sql": "SELECT pr.promo_code, COUNT(*) AS n_sonora_products FROM promotions pr LEFT JOIN promotion_products pp ON pp.promo_id = pr.promo_id LEFT JOIN products p ON p.product_id = pp.product_id AND p.brand = 'Sonora' WHERE pr.start_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31' GROUP BY pr.promo_code"
+    }
+  ],
+  "hint3_partial": "SELECT pr.promo_code, COUNT(p.product_id) AS n_sonora_products\nFROM promotions pr\nLEFT JOIN promotion_products pp ON ___\nLEFT JOIN products p ON ___\nWHERE ___\nGROUP BY pr.promo_code",
+  "solver": {
+    "prompt_hash": "48393094aa012524",
+    "schema_version": "e2dd1715d8ff",
+    "dataset_version": "e1545e4258743033",
+    "grader_version": "1b.3",
+    "query": "SELECT pr.promo_code, COUNT(sp.product_id) AS n_sonora_products\nFROM promotions pr\nLEFT JOIN (\n  SELECT pp.promo_id, pp.product_id\n  FROM promotion_products pp\n  JOIN products p ON p.product_id = pp.product_id\n  WHERE p.brand = 'Sonora'\n) sp ON sp.promo_id = pr.promo_id\nWHERE pr.start_date >= DATE '2025-01-01' AND pr.start_date <= DATE '2025-12-31'\nGROUP BY pr.promo_id, pr.promo_code",
+    "at": "2026-10-07T10:41:38.656Z"
+  }
+}

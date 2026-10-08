@@ -1,0 +1,127 @@
+{
+  "concept_id": "SQL-JOIN-01",
+  "version": 1,
+  "reading_md": "## INNER JOIN: combine tables on a key\n\nUntil now each query read one table. Most questions need columns from several: the time of an order sits in `orders`, the name of a product in `products`, the units on `order_lines`. A join puts matching rows side by side.\n\n### Keys\n\n- A **primary key** makes one row unique: `order_id` in `orders`, `order_line_id` in `order_lines`. Some tables need two columns: `promotion_products` is unique on `promo_id` and `product_id` together.\n- A **foreign key** is a column that points at another table's primary key. `order_lines.order_id` points at `orders.order_id`.\n\n### Reading the tables panel\n\nThe panel shows a foreign key as \"`order_id` → `orders` (1:N)\". Read it as: each `order_lines` row points at one order, and one order can have many lines. Joining the two gives one row per line, with the order's columns repeated on each of its lines.\n\n### Fact and dimension tables\n\n- **Fact tables** record events, with many rows and the numbers: `orders`, `order_lines`, `competitor_prices`.\n- **Dimension tables** describe what the facts are about: `stores`, `products`, `categories`, `promotions`, `calendar`.\n\nA typical query starts from a fact table and joins the dimensions it needs.\n\n### The bridge table\n\nA promotion covers many products, and a product can be in several promotions. `promotion_products` holds one row per promotion and product and links the two. Joining through it can repeat rows: a product in two promotions appears twice.\n\n### INNER JOIN\n\n`FROM order_lines l JOIN products p ON p.product_id = l.product_id`\n\n`JOIN`, or `INNER JOIN`, keeps only the pairs of rows where the ON condition is true. A row with no match on the other side disappears. The short names `l` and `p` are table aliases. You may also meet the comma spelling, `FROM order_lines l, products p WHERE p.product_id = l.product_id`: with the match in WHERE it returns the same rows as the JOIN. In an inner join, a test such as `p.brand = 'Sonora'` keeps the same rows whether it sits in ON or in WHERE; the next concept, LEFT JOIN, shows where the two differ.\n\n### Choose the path first\n\nBefore writing, find the table that holds each column you need, then follow the foreign keys between them: `order_lines` to `orders` to `stores` for the city of the store, `order_lines` to `products` to `categories` for the category.\n\n### sales is these tables joined\n\nThe `sales` view is `order_lines` joined to `orders`, `stores`, `products` and `categories`, one row per order line. You can now build it yourself.\n\n### Three mistakes\n\n1. **A missing join condition.** `FROM products p, categories c` with no match pairs every product with every category.\n2. **The wrong key.** `ON o.order_id = l.order_line_id` runs, but matches unrelated rows. Join a foreign key to the primary key it points at.\n3. **An ambiguous column.** When both tables have `order_id`, a bare `order_id` stops with \"Ambiguous reference to column name\". Write `o.order_id`.",
+  "syntax_md": "```sql\nSELECT a.column_1, b.column_2                  -- metrics\nFROM table_a a                                 -- source and grain\nJOIN table_b b ON b.key_column = a.key_column  -- source and grain: one match per row\nWHERE row_condition                            -- row filter\nGROUP BY a.column_1                            -- output grain\n```\n\n- `JOIN` and `INNER JOIN` are the same.\n- ON names the columns that must match: usually a foreign key and the primary key it points at.\n- Give each table a short alias and put it in front of every column.\n- Add more tables with one JOIN ... ON each.",
+  "dialect_note": null,
+  "worked_examples": [
+    {
+      "title": "The order lines of one order, with product names",
+      "prompt": "List the order lines of order 10 with the product each one sold. Return order_line_id, product_name and quantity, one row for each order line.",
+      "clauses": [
+        {
+          "text": "SELECT l.order_line_id, p.product_name, l.quantity",
+          "subgoal": "metrics",
+          "why": "The columns come from two tables, so each one has its table's alias."
+        },
+        {
+          "text": "FROM order_lines l",
+          "subgoal": "source_grain",
+          "why": "order_lines has one row per order line, the grain the question asks for."
+        },
+        {
+          "text": "JOIN products p ON p.product_id = l.product_id",
+          "subgoal": "source_grain",
+          "why": "Each line's product_id points at one product, so the join keeps one row per line."
+        },
+        {
+          "text": "WHERE l.order_id = 10",
+          "subgoal": "row_filter",
+          "why": "Keeps the lines of one order."
+        }
+      ]
+    },
+    {
+      "title": "Units per store city on one day",
+      "prompt": "How many units did the stores of each city sell on 1 March 2025, taking the day in UTC? Return city and units, one row for each city.",
+      "clauses": [
+        {
+          "text": "SELECT s.city, SUM(l.quantity) AS units",
+          "subgoal": "metrics",
+          "why": "The city comes from stores, the units from the lines."
+        },
+        {
+          "text": "FROM order_lines l",
+          "subgoal": "source_grain",
+          "why": "Start from the fact table that holds the units: one row per line."
+        },
+        {
+          "text": "JOIN orders o ON o.order_id = l.order_id",
+          "subgoal": "source_grain",
+          "why": "Each line points at one order, which holds the time and the store."
+        },
+        {
+          "text": "JOIN stores s ON s.store_id = o.store_id",
+          "subgoal": "source_grain",
+          "why": "Each order points at one store, so the grain stays one row per line."
+        },
+        {
+          "text": "WHERE o.order_ts >= TIMESTAMP '2025-03-01 00:00:00' AND o.order_ts < TIMESTAMP '2025-03-02 00:00:00'",
+          "subgoal": "row_filter",
+          "why": "order_ts holds UTC time; this keeps the UTC day."
+        },
+        {
+          "text": "GROUP BY s.city",
+          "subgoal": "output_grain",
+          "why": "One output row per city."
+        }
+      ]
+    }
+  ],
+  "pretest_item_ids": [
+    "EX-SQL-JOIN-01-E1-01",
+    "EX-SQL-JOIN-01-E1-02"
+  ],
+  "lesson_item_ids": [
+    "EX-SQL-JOIN-01-E1-03",
+    "EX-SQL-JOIN-01-E1-04",
+    "EX-SQL-JOIN-01-E2-01",
+    "EX-SQL-JOIN-01-E2-02"
+  ],
+  "retest_item_id": "EX-SQL-JOIN-01-E1-05",
+  "pool_item_ids": [
+    "EX-SQL-JOIN-01-E1-06",
+    "EX-SQL-JOIN-01-E1-07",
+    "EX-SQL-JOIN-01-E1-08",
+    "EX-SQL-JOIN-01-E2-03",
+    "EX-SQL-JOIN-01-E2-04",
+    "EX-SQL-JOIN-01-E2-05",
+    "EX-SQL-JOIN-01-E2-06",
+    "EX-SQL-JOIN-01-E3-01",
+    "EX-SQL-JOIN-01-E3-02",
+    "EX-SQL-JOIN-01-E3-03",
+    "EX-SQL-JOIN-01-E1-31",
+    "EX-SQL-JOIN-01-E2-31",
+    "EX-SQL-JOIN-01-E2-32",
+    "EX-SQL-JOIN-01-E1-42",
+    "EX-SQL-JOIN-01-E2-41",
+    "EX-SQL-JOIN-01-E2-42"
+  ],
+  "source_ids": [
+    "01:SQL-JOIN-01"
+  ],
+  "why_clause": {
+    "clause": "JOIN products p ON p.product_id = l.product_id",
+    "stem": "Why does the join match l.product_id to p.product_id?",
+    "options": [
+      {
+        "id": "a",
+        "text": "Both columns are numbers, and a join needs two number columns."
+      },
+      {
+        "id": "b",
+        "text": "The line's product_id is a foreign key that points at the product's primary key."
+      },
+      {
+        "id": "c",
+        "text": "product_id is the first column of products, so a join must use it."
+      },
+      {
+        "id": "d",
+        "text": "Matching any two ID columns of the tables gives the same rows."
+      }
+    ],
+    "correct_id": "b",
+    "explanation": "order_lines.product_id points at products.product_id, so each line meets exactly the product it sold. Matching other ID columns would still run, but would pair lines with unrelated products."
+  }
+}

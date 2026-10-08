@@ -1,0 +1,130 @@
+{
+  "id": "EX-SQL-SET-01-E2-31",
+  "version": 1,
+  "kind": "fix",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "set",
+    "fix",
+    "union_all",
+    "cte",
+    "count",
+    "price_history",
+    "competitor_prices"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-SET-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-SET-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-AGG-01",
+    "SQL-CTE-01",
+    "SQL-SET-01"
+  ],
+  "template_id": "T-SET-01-fix-union-all",
+  "template_params": {
+    "tables": "price_history, competitor_prices",
+    "product_id": 5
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_set",
+  "prompt": "The query in the editor has one mistake. Fix it so that it answers this question: how many price points does product 5 have? Every list price version of product 5 in price_history and every competitor price check of product 5 in competitor_prices is one price point, even when two of them have the same price. Return one column, price_points, the number of price points, in one row. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "price_points",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "price_points",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, look at the set operator inside the CTE: the count is lower than the number of rows in the two tables together.",
+    "UNION removes duplicate rows, so two price points with the same price count once. The question counts every row of both tables."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 59,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 60,
+      "to": 80,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 81,
+      "to": 103,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 104,
+      "to": 134,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 135,
+      "to": 159,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 160,
+      "to": 184,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 185,
+      "to": 216,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 217,
+      "to": 234,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": "WITH price_points AS (\n  SELECT list_price_eur AS price_eur\n  FROM price_history\n  WHERE product_id = 5\n  UNION\n  SELECT price_eur\n  FROM competitor_prices\n  WHERE product_id = 5\n)\nSELECT COUNT(*) AS price_points\nFROM price_points",
+  "starter_error_id": "ERR-LOG-24",
+  "time_target_ms": 120000,
+  "why_this_works": "UNION ALL keeps the price points that share a price, so COUNT(*) counts every list price version and every check."
+}

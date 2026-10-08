@@ -5,6 +5,7 @@ import { effectiveDate, evaluateGoal, nextGoal, type GoalView } from '../../core
 import type { Goal } from '../../core/goals.ts';
 import type { Section } from '../../core/envelope.ts';
 import type { ConceptStateName } from '../../core/states.ts';
+import { amsterdamDate } from '../../core/time.ts';
 
 const SQL_L1 = ['SQL-BASICS-01', 'SQL-BASICS-02', 'SQL-FILTER-01', 'SQL-FILTER-02', 'SQL-SORT-01', 'SQL-NULL-01'];
 const SQL_L2 = ['SQL-AGG-01', 'SQL-AGG-02', 'SQL-AGG-03', 'SQL-CASE-01', 'SQL-AGG-04', 'SQL-TYPE-01'];
@@ -14,7 +15,7 @@ function view(states: Record<string, ConceptStateName> = {}, over: Partial<GoalV
   return {
     conceptsOf: (section: Section, maxLevel: number) => (section !== 'sql' ? [] : [...SQL_L1, ...(maxLevel >= 2 ? SQL_L2 : [])]),
     stateOf: (id) => states[id] ?? 'new',
-    externals: [], mocksPassed: new Set(), ...over,
+    externals: [], mocksPassed: new Set(), casesSolved: [], liveReps: [], ...over,
   };
 }
 const goal = (id: string, target_date: string, criteria: Goal['criteria'] = []): Goal => ({ id, title: `Goal ${id}`, target_date, stage: null, criteria });
@@ -32,7 +33,7 @@ test('"n of m concepts at practised": levels 1 to N, Practised or better', () =>
   assert.deepEqual(evaluateGoal(one, view(states)), { goal_id: 'G-ONE', met: true, criteria: [{ label: 'SQL-BASICS-01 at practised', met: true, available: true, done: 1, total: 1 }] });
 });
 
-test('"not yet available": GA4 and Methodology level 1 until their content exists, mocks and live reps until they are built; each counts as unmet', () => {
+test('"not yet available": GA4 and Methodology level 1 until their content exists, mocks until they are built; each counts as unmet', () => {
   const all = Object.fromEntries([...SQL_L1, ...SQL_L2].map((id) => [id, 'practised' as ConceptStateName]));
   const g = goal('G-STARTING-KNOWLEDGE', '2026-10-16', [{ kind: 'concept_state', section: 'sql', level: 2, state: 'practised' },
     { kind: 'concept_state', section: 'ga4', level: 1, state: 'practised' }, { kind: 'concept_state', section: 'methodology', level: 1, state: 'practised' }]);
@@ -44,7 +45,8 @@ test('"not yet available": GA4 and Methodology level 1 until their content exist
   const later = goal('G-R', '2026-12-11', [{ kind: 'mock_pass', mock: 'screen' }, { kind: 'live_rep', window_weeks: 4, min_logged: 4, min_passed: 3 }]);
   assert.deepEqual(evaluateGoal(later, view()).criteria, [
     { label: 'Screen mock passed', met: false, available: false, done: null, total: null },
-    { label: 'Live SQL: 4 sessions logged in 4 weeks, 3 passed', met: false, available: false, done: null, total: null }]);
+    // S4B-26 (Task B1): live reps are counted from the view now, so a learner with none has 0 of 4, not "not yet available".
+    { label: 'Live SQL: 4 sessions logged in 4 weeks, 3 passed', met: false, available: true, done: 0, total: 4 }]);
   assert.deepEqual(evaluateGoal(later, view({}, { mocksPassed: new Set(['screen']) })).criteria[0], { label: 'Screen mock passed', met: true, available: true, done: null, total: null });
   // Once the content exists (C8), the same criterion counts.
   const ga4 = view({ 'GA4-SETUP-01': 'practised' }, { conceptsOf: (s, n) => (s === 'ga4' ? ['GA4-SETUP-01', 'GA4-EVENTS-01'] : view().conceptsOf(s, n)) });
@@ -80,4 +82,76 @@ test('S2-38: the next goal is the unmet goal with the earliest effective date on
   assert.equal(nextGoal(goals, {}, '2026-12-01', none), null, 'every date has passed');
   assert.equal(effectiveDate(goals[1]!, { 'G-B': '2026-10-20' }), '2026-10-20');
   assert.equal(effectiveDate(goals[1]!, {}), '2026-10-16');
+});
+
+// ---- Sprint 4b (Task B1): case_solved, real_data_analysis (S4B-20) and live_rep counted from the view (S4B-26) -------------
+const SOLVED: GoalView['casesSolved'] = [
+  { case_id: 'CASE-VOLT-L1', level: 1, exported: false },
+  { case_id: 'CASE-PRICE-01', level: 3, exported: true },
+  { case_id: 'CASE-DAILY-L2-01', level: 2, exported: true },
+];
+
+test('S4B-20 case_solved: met and missed on the solved cases; `exported` counts only exported ones', () => {
+  const g = goal('G-SQL-LEVEL-3', '2026-11-06', [{ kind: 'case_solved', count: 1, exported: true }]);
+  assert.deepEqual(evaluateGoal(g, view()), { goal_id: 'G-SQL-LEVEL-3', met: false, criteria: [{ label: '1 case solved and exported', met: false, available: true, done: 0, total: 1 }] },
+    'no case solved: missed, and available');
+  assert.deepEqual(evaluateGoal(g, view({}, { casesSolved: [SOLVED[0]!] })).criteria[0], { label: '1 case solved and exported', met: false, available: true, done: 0, total: 1 },
+    'solved but never exported: missed');
+  assert.deepEqual(evaluateGoal(g, view({}, { casesSolved: SOLVED })), { goal_id: 'G-SQL-LEVEL-3', met: true, criteria: [{ label: '1 case solved and exported', met: true, available: true, done: 2, total: 1 }] });
+  const any = goal('G-ANY', '2026-11-06', [{ kind: 'case_solved', count: 3 }]);
+  assert.deepEqual(evaluateGoal(any, view({}, { casesSolved: SOLVED })).criteria[0], { label: '3 cases solved', met: true, available: true, done: 3, total: 3 }, 'without `exported`, every solved case counts');
+  assert.deepEqual(evaluateGoal(any, view({}, { casesSolved: SOLVED.slice(1) })).criteria[0], { label: '3 cases solved', met: false, available: true, done: 2, total: 3 });
+});
+
+test('S4B-20 case_solved: `level_min` counts only cases of that level or above', () => {
+  const two = goal('G-L2', '2026-11-27', [{ kind: 'case_solved', count: 2, level_min: 2 }]);
+  assert.deepEqual(evaluateGoal(two, view({}, { casesSolved: SOLVED })).criteria[0], { label: '2 cases of level 2 or above solved', met: true, available: true, done: 2, total: 2 });
+  const three = goal('G-L3', '2026-11-27', [{ kind: 'case_solved', count: 2, level_min: 3, exported: true }]);
+  assert.deepEqual(evaluateGoal(three, view({}, { casesSolved: SOLVED })).criteria[0], { label: '2 cases of level 3 or above solved and exported', met: false, available: true, done: 1, total: 2 });
+});
+
+test('S4B-20 real_data_analysis: "not yet available" until the dataset registry (sprint 6), whatever else is logged; it counts as unmet', () => {
+  const g = goal('G-SQL-LEVEL-4', '2026-11-27', [{ kind: 'real_data_analysis', count: 1 }]);
+  const busy = view({}, { casesSolved: SOLVED, externals: [{ kind: 'portfolio_piece', data: { title: 'C', data_source: 'UCI Online Retail', real_data: true } }] });
+  assert.deepEqual(evaluateGoal(g, busy), { goal_id: 'G-SQL-LEVEL-4', met: false, criteria: [{ label: '1 analysis on a real dataset', met: false, available: false, done: null, total: null }] });
+  assert.equal(evaluateGoal(goal('G-2', '2026-12-07', [{ kind: 'real_data_analysis', count: 2 }]), view()).criteria[0]!.label, '2 analyses on a real dataset');
+});
+
+// The live_rep window (S4B-26): the last `window_weeks` weeks of Amsterdam dates ending today, today included. With 4 weeks and
+// today 2026-12-07, that is the 28 dates 2026-11-10 to 2026-12-07.
+const TODAY = '2026-12-07';
+const LIVE = goal('G-STAGE-6', '2026-12-07', [{ kind: 'live_rep', window_weeks: 4, min_logged: 4, min_passed: 3 }]);
+const LIVE_LABEL = 'Live SQL: 4 sessions logged in 4 weeks, 3 passed';
+const reps = (...r: [string, boolean][]): GoalView['liveReps'] => r.map(([local_date, passed]) => ({ local_date, passed }));
+const live = (liveReps: GoalView['liveReps'], today = TODAY) => evaluateGoal(LIVE, view({}, { liveReps }), today).criteria[0];
+
+test('S4B-26 live_rep: met with 4 reps logged and 3 of them passed inside the window; missed on too few of either', () => {
+  const four = reps(['2026-11-12', true], ['2026-11-20', false], ['2026-11-28', true], ['2026-12-05', true]);
+  assert.deepEqual(live(four), { label: LIVE_LABEL, met: true, available: true, done: 4, total: 4 });
+  assert.deepEqual(live(reps(['2026-11-12', true], ['2026-11-20', false], ['2026-11-28', false], ['2026-12-05', true])),
+    { label: LIVE_LABEL, met: false, available: true, done: 3, total: 4 }, '4 logged but 2 passed: one rep short of the requirement');
+  assert.deepEqual(live(reps(['2026-11-12', true], ['2026-11-20', true], ['2026-11-28', true])),
+    { label: LIVE_LABEL, met: false, available: true, done: 3, total: 4 }, '3 passed but only 3 logged');
+  assert.deepEqual(live([...four, ...reps(['2026-12-06', false], ['2026-12-06', true])]), { label: LIVE_LABEL, met: true, available: true, done: 4, total: 4 },
+    'done stops at the requirement');
+  assert.deepEqual(live([]), { label: LIVE_LABEL, met: false, available: true, done: 0, total: 4 });
+});
+
+test('S4B-26 live_rep window: the first date of the window and today count; the day before the window and a later date do not', () => {
+  const three = reps(['2026-11-20', true], ['2026-11-28', true], ['2026-12-05', true]);
+  assert.equal(live([...three, ...reps(['2026-11-10', false])])!.met, true, 'today minus 27 days is the window\'s first date');
+  assert.equal(live([...three, ...reps(['2026-11-09', false])])!.met, false, 'today minus 28 days is outside');
+  assert.equal(live([...three, ...reps([TODAY, false])])!.met, true, 'today is inside');
+  assert.equal(live([...three, ...reps(['2026-12-08', false])])!.met, false, 'a date after today is outside');
+  assert.equal(live([...three, ...reps(['2026-11-09', false])], '2026-12-06')!.met, true, 'the window moves with today');
+  // A window across the end of summer time (2026-10-25) still holds 28 dates.
+  const autumn = reps(['2026-10-06', true], ['2026-10-20', true], ['2026-10-26', true], ['2026-11-02', false]);
+  assert.equal(live(autumn, '2026-11-02')!.met, true, '2026-10-06 is the first of the 28 dates ending 2026-11-02');
+  assert.equal(live(autumn, '2026-11-03')!.met, false, 'a day later it falls out');
+});
+
+test('S4B-26 live_rep: without a date, the window ends on today\'s Amsterdam date', () => {
+  const today = amsterdamDate(new Date());
+  const r = evaluateGoal(LIVE, view({}, { liveReps: reps([today, true], [today, true], [today, true], [today, false]) }));
+  assert.deepEqual(r.criteria[0], { label: LIVE_LABEL, met: true, available: true, done: 4, total: 4 });
 });

@@ -1,0 +1,143 @@
+{
+  "id": "EX-SQL-JOIN-04-E1-02",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "multi-table",
+    "order_lines",
+    "orders",
+    "stores",
+    "products"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-JOIN-04"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pretest",
+  "target_concept_id": "SQL-JOIN-04",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-JOIN-01",
+    "SQL-JOIN-04"
+  ],
+  "template_id": "T-JOIN-04-chain-units-city-brand",
+  "template_params": {
+    "month": "2025-03"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_join",
+  "prompt": "How many units did each store city sell of each brand in March 2025? order_ts holds UTC time: an order counts when its UTC date is from 1 to 31 March 2025. Return three columns, in this order: city, brand and units, the total quantity sold. Return one row for each city and brand with at least one order line in March 2025. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "city",
+        "type_class": "text"
+      },
+      {
+        "name": "brand",
+        "type_class": "text"
+      },
+      {
+        "name": "units",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per city and brand"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "city",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "brand",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "units",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "city",
+      "brand"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, follow the links from each order line to its order and on to the store, and from the line to its product.",
+    "Each JOIN needs its own ON with the two ID columns of that one link: the line's order, the order's store, and the line's product."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 49,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 50,
+      "to": 69,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 70,
+      "to": 111,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 112,
+      "to": 152,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 153,
+      "to": 200,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 201,
+      "to": 283,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 284,
+      "to": 308,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "The line links to its order and the order to its store for the city, while the line also links to its product for the brand, so every line carries both labels before SUM adds the units."
+}

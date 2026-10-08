@@ -1,0 +1,39 @@
+{
+  "item_id": "EX-SQL-JOIN-04-E2-04",
+  "item_version": 1,
+  "reference_sql": "SELECT p.product_name, nxt.valid_from AS changed_on, old.list_price_eur AS old_price_eur, nxt.list_price_eur AS new_price_eur\nFROM price_history old\nJOIN price_history nxt ON nxt.product_id = old.product_id AND nxt.valid_from = old.valid_to + 1\nJOIN products p ON p.product_id = old.product_id\nWHERE nxt.valid_from BETWEEN DATE '2025-01-01' AND DATE '2025-12-31' AND nxt.list_price_eur < 0.9 * old.list_price_eur",
+  "alternatives": [
+    "SELECT p.product_name, nxt.valid_from AS changed_on, old.list_price_eur AS old_price_eur, nxt.list_price_eur AS new_price_eur FROM products p JOIN price_history old ON old.product_id = p.product_id JOIN price_history nxt ON nxt.product_id = old.product_id AND old.valid_to = nxt.valid_from - 1 WHERE year(nxt.valid_from) = 2025 AND nxt.list_price_eur / old.list_price_eur < 0.9",
+    "WITH next_start AS (SELECT a.product_id, a.valid_from, MIN(b.valid_from) AS next_from FROM price_history a JOIN price_history b ON b.product_id = a.product_id AND b.valid_from > a.valid_from GROUP BY a.product_id, a.valid_from) SELECT p.product_name, n.next_from AS changed_on, old.list_price_eur AS old_price_eur, nxt.list_price_eur AS new_price_eur FROM next_start n JOIN price_history old ON old.product_id = n.product_id AND old.valid_from = n.valid_from JOIN price_history nxt ON nxt.product_id = n.product_id AND nxt.valid_from = n.next_from JOIN products p ON p.product_id = n.product_id WHERE n.next_from BETWEEN DATE '2025-01-01' AND DATE '2025-12-31' AND nxt.list_price_eur < 0.9 * old.list_price_eur"
+  ],
+  "other_way": {
+    "sql": "WITH next_start AS (SELECT a.product_id, a.valid_from, MIN(b.valid_from) AS next_from FROM price_history a JOIN price_history b ON b.product_id = a.product_id AND b.valid_from > a.valid_from GROUP BY a.product_id, a.valid_from) SELECT p.product_name, n.next_from AS changed_on, old.list_price_eur AS old_price_eur, nxt.list_price_eur AS new_price_eur FROM next_start n JOIN price_history old ON old.product_id = n.product_id AND old.valid_from = n.valid_from JOIN price_history nxt ON nxt.product_id = n.product_id AND nxt.valid_from = n.next_from JOIN products p ON p.product_id = n.product_id WHERE n.next_from BETWEEN DATE '2025-01-01' AND DATE '2025-12-31' AND nxt.list_price_eur < 0.9 * old.list_price_eur",
+    "tradeoff": "Finding the next start with MIN avoids adding a day to a date, but needs a CTE and two more joins."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-01",
+      "sql": "SELECT p.product_name, nxt.valid_from AS changed_on, old.list_price_eur AS old_price_eur, nxt.list_price_eur AS new_price_eur FROM price_history old JOIN price_history nxt ON nxt.product_id = old.product_id AND nxt.valid_from > old.valid_from JOIN products p ON p.product_id = old.product_id WHERE nxt.valid_from BETWEEN DATE '2025-01-01' AND DATE '2025-12-31' AND nxt.list_price_eur < 0.9 * old.list_price_eur"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-15",
+      "sql": "SELECT p.product_name, nxt.valid_from AS changed_on, old.list_price_eur AS old_price_eur, nxt.list_price_eur AS new_price_eur FROM price_history old JOIN price_history nxt ON nxt.product_id = old.product_id AND nxt.valid_from = old.valid_to + 1 JOIN products p ON p.product_id = old.product_id WHERE nxt.valid_from BETWEEN DATE '2025-01-01' AND DATE '2025-12-31' AND nxt.list_price_eur > 0.9 * old.list_price_eur"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-12",
+      "sql": "SELECT p.product_name, nxt.valid_from AS changed_on, old.list_price_eur AS old_price_eur, nxt.list_price_eur AS new_price_eur FROM price_history old JOIN price_history nxt ON nxt.product_id = old.product_id AND nxt.valid_from = old.valid_to JOIN products p ON p.product_id = old.product_id WHERE nxt.valid_from BETWEEN DATE '2025-01-01' AND DATE '2025-12-31' AND nxt.list_price_eur < 0.9 * old.list_price_eur"
+    }
+  ],
+  "hint3_partial": "SELECT p.product_name, nxt.valid_from AS changed_on, old.list_price_eur AS old_price_eur, nxt.list_price_eur AS new_price_eur\nFROM price_history old\nJOIN price_history nxt ON nxt.product_id = old.product_id AND ___\nJOIN products p ON p.product_id = old.product_id\nWHERE nxt.valid_from BETWEEN DATE '2025-01-01' AND DATE '2025-12-31' AND ___",
+  "solver": {
+    "prompt_hash": "d285f3b797e1ee52",
+    "schema_version": "c41fcd8f0eee",
+    "dataset_version": "e1545e4258743033",
+    "grader_version": "1b.3",
+    "query": "SELECT p.product_name, n.valid_from AS changed_on, o.list_price_eur AS old_price_eur, n.list_price_eur AS new_price_eur\nFROM price_history n\nJOIN price_history o ON o.product_id = n.product_id AND o.valid_to + 1 = n.valid_from\nJOIN products p ON p.product_id = n.product_id\nWHERE n.valid_from >= DATE '2025-01-01' AND n.valid_from <= DATE '2025-12-31'\n  AND n.list_price_eur < 0.9 * o.list_price_eur",
+    "at": "2026-10-07T10:41:41.160Z"
+  }
+}

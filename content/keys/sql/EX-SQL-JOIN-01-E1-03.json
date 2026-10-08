@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-JOIN-01-E1-03",
+  "item_version": 1,
+  "reference_sql": "SELECT pr.promo_code, pr.discount_pct, pp.product_id\nFROM promotion_products pp\nJOIN promotions pr ON pr.promo_id = pp.promo_id",
+  "alternatives": [
+    "SELECT promotions.promo_code, promotions.discount_pct, promotion_products.product_id FROM promotions JOIN promotion_products ON promotion_products.promo_id = promotions.promo_id",
+    "SELECT pr.promo_code, pr.discount_pct, pp.product_id FROM promotion_products pp, promotions pr WHERE pr.promo_id = pp.promo_id"
+  ],
+  "other_way": {
+    "sql": "SELECT pr.promo_code, pr.discount_pct, pp.product_id FROM promotion_products pp, promotions pr WHERE pr.promo_id = pp.promo_id",
+    "tradeoff": "The comma form with the match in WHERE gives the same rows, but the join is easier to miss when reading."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-12",
+      "sql": "SELECT pr.promo_code, pr.discount_pct, pp.product_id FROM promotion_products pp JOIN promotions pr ON pr.promo_id = pp.product_id"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-SEM-03",
+      "sql": "SELECT pr.promo_code, pr.discount_pct, pp.product_id FROM promotion_products pp, promotions pr"
+    }
+  ],
+  "hint3_partial": "SELECT pr.promo_code, pr.discount_pct, pp.product_id\nFROM promotion_products pp\nJOIN promotions pr ON ___",
+  "solver": {
+    "prompt_hash": "8fdd7b57fda3b16d",
+    "schema_version": "12e1ed68031d",
+    "dataset_version": "e1545e4258743033",
+    "grader_version": "1b.3",
+    "query": "SELECT pr.promo_code, pr.discount_pct, pp.product_id\nFROM promotions pr\nJOIN promotion_products pp ON pp.promo_id = pr.promo_id",
+    "at": "2026-10-07T10:41:37.816Z"
+  }
+}

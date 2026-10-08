@@ -1,0 +1,39 @@
+{
+  "item_id": "EX-SQL-SET-01-E1-01",
+  "item_version": 1,
+  "reference_sql": "SELECT 'Voltmarkt' AS source, list_price_eur AS price_eur\nFROM price_history\nWHERE product_id = 2\nUNION ALL\nSELECT competitor, price_eur\nFROM competitor_prices\nWHERE product_id = 2",
+  "alternatives": [
+    "WITH price_points AS (SELECT product_id, 'Voltmarkt' AS source, list_price_eur AS price_eur FROM price_history UNION ALL SELECT product_id, competitor, price_eur FROM competitor_prices) SELECT source, price_eur FROM price_points WHERE product_id = 2",
+    "SELECT competitor AS source, price_eur FROM competitor_prices WHERE product_id = 2 UNION ALL SELECT 'Voltmarkt', list_price_eur FROM price_history WHERE product_id = 2"
+  ],
+  "other_way": {
+    "sql": "WITH price_points AS (SELECT product_id, 'Voltmarkt' AS source, list_price_eur AS price_eur FROM price_history UNION ALL SELECT product_id, competitor, price_eur FROM competitor_prices) SELECT source, price_eur FROM price_points WHERE product_id = 2",
+    "tradeoff": "Stacking every product in a CTE and filtering once needs only one WHERE, but it stacks rows the question never uses."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-24",
+      "sql": "SELECT 'Voltmarkt' AS source, list_price_eur AS price_eur FROM price_history WHERE product_id = 2 UNION SELECT competitor, price_eur FROM competitor_prices WHERE product_id = 2"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-OUT-01",
+      "sql": "SELECT 'Voltmarkt' AS source, list_price_eur AS price_eur, valid_from AS seen_on FROM price_history WHERE product_id = 2 UNION ALL SELECT competitor, price_eur, CAST(observed_ts AS DATE) FROM competitor_prices WHERE product_id = 2"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-09",
+      "sql": "SELECT 'Voltmarkt' AS source, list_price_eur AS price_eur FROM price_history WHERE product_id = 2 UNION ALL SELECT DISTINCT competitor, price_eur FROM competitor_prices WHERE product_id = 2"
+    }
+  ],
+  "hint3_partial": "SELECT 'Voltmarkt' AS source, list_price_eur AS price_eur\nFROM price_history\nWHERE product_id = 2\n___\nSELECT ___, price_eur\nFROM competitor_prices\nWHERE product_id = 2",
+  "solver": {
+    "prompt_hash": "51861e2dc846085f",
+    "schema_version": "a99c5902e699",
+    "dataset_version": "e1545e4258743033",
+    "grader_version": "1b.3",
+    "query": "SELECT 'Voltmarkt' AS source, list_price_eur AS price_eur\nFROM price_history\nWHERE product_id = 2\nUNION ALL\nSELECT competitor AS source, price_eur\nFROM competitor_prices\nWHERE product_id = 2",
+    "at": "2026-10-07T10:41:42.539Z"
+  }
+}

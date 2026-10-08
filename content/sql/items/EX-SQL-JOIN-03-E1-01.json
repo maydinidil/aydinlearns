@@ -1,0 +1,125 @@
+{
+  "id": "EX-SQL-JOIN-03-E1-01",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "fan_out",
+    "count_distinct",
+    "left_join",
+    "orders",
+    "order_lines"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-JOIN-03"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pretest",
+  "target_concept_id": "SQL-JOIN-03",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-JOIN-03"
+  ],
+  "template_id": "T-JOIN-03-count-parent-after-join",
+  "template_params": {
+    "parent": "orders",
+    "child": "order_lines",
+    "group_by": "store_id"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_join",
+  "prompt": "How many orders did each store take, and how many units did those orders hold? Count every order, including an order with no lines; units are the quantity summed over the orders' lines. Return three columns, in this order: store_id, n_orders and units. Return one row for each store that took at least one order; the webshop, store_id 99, counts as a store. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "store_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "n_orders",
+        "type_class": "numeric"
+      },
+      {
+        "name": "units",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per store with orders"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "store_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "n_orders",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "units",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "store_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, decide what the join does to the orders: each order now appears once per line.",
+    "After the join, a plain row count counts lines; count each order_id once, and keep the orders that have no lines."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 84,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 85,
+      "to": 151,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 152,
+      "to": 171,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "The join repeats each order once per line, so the orders are counted by their distinct order_id, and LEFT JOIN keeps the orders with no lines."
+}

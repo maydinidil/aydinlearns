@@ -5,22 +5,29 @@ import type { SqlItem } from '../../schemas/item.ts';
 import type { SqlKey } from '../../schemas/keys.ts';
 import type { EdgeDescription } from '../../schemas/edge.ts';
 import type { DatasetResult, Diagnosis, DiffSample, GradeResult, PartialScore } from './types.ts';
-import { buildPlans, partialPlan, type ComparePlan } from './plan.ts';
+import { buildPlans, partialPlan, type ComparePlan, type PlanMode } from './plan.ts';
 import { composeDiffSql, composeGrainSql, composeOrderSql, composeWitnessSql } from './sql.ts';
 import { classifyEngineError } from './engine-errors.ts';
 import { extraColumnIsGroupingKey, fill, matchMutant, type Feedback } from './diagnose.ts';
 import { partialScore } from './partial.ts';
 import { INT_TRUNC_NOTE, intTruncated } from './int-trunc.ts';
-import { portabilityNotes } from './portability.ts';
+import { INT_DIVISION_NOTE, integerDivisionCheck, portabilityNotes } from './portability.ts';
 import type { TableNote } from '../../schemas/schema-notes.ts';
 
 export type { Feedback } from './diagnose.ts';
+export { INT_DIVISION_NOTE } from './portability.ts';
 // 1b.1 (sprint 2): the partial score after a shape failure counts the columns that map (design §5).
 // 1b.2 (sprint 2, Task B9): CHK-INT-TRUNC (E-055) is logged after a failed comparison; require_rounding rounds the
 // key in its own type; G2's bounds allow for DOUBLE rounding, so a value exactly half a cent off passes.
 // 1b.3 (sprint 2, Task B10): CHK-INT-TRUNC is also an error signature: with no planted query matched, it diagnoses
 // ERR-LOG-05 (E-146) before the ERR-LOG-00 fallback (design §6 step 7).
-export const GRADER_VERSION = '1b.3';
+// 4b.1 (sprint 4b, Task E3, D41): screen mode, only for an attempt served in it, adds G4's integer check and matches temporal
+// subtypes strictly (S4B-22); after a pass, a query with a `/` is re-run with integer division for a note (S4B-24); the lint
+// grows (S4B-25). Normal mode grades exactly as 1b.3 did.
+// 4c.1 (sprint 4c, Task B2, D52): the integer division re-run first runs the query again with integer division off, as a control;
+// a control that differs from the shown result, or cannot be compared, gives not_compared and no note. Both runs share the item's
+// deadline. Outcomes are graded exactly as 4b.1 did.
+export const GRADER_VERSION = '4c.1';
 const DISPLAY_CAP = 1000;
 const DIFF_LIMIT = 10;
 const KEY_FAILED = 'This exercise could not be checked. Please report it.';
@@ -32,6 +39,9 @@ const result = (over: Partial<GradeResult>): GradeResult => ({
   edgeDescription: null, matchedMutantId: null, keyIndexUsed: null, notes: [], rejectMessage: null, portabilityNotes: [], ...over,
 });
 
+/** Shown when a query runs into the runner's memory limit (a range join over a month can). */
+const MEMORY_LIMIT_NOTE = 'Your query used more memory than this exercise allows.';
+const MEMORY_LIMIT_FEEDBACK = { assumed: MEMORY_LIMIT_NOTE, why: 'A range join over a long period can create far too many rows at once.', model: 'Narrow the join, or aggregate first and join the smaller result.' };
 /**
  * A runner failure on the learner's own query, or on a statement the grader composed around it.
  * Every gate reason, 'table_check_unavailable' included, is a rejection, and a crash is not graded
@@ -44,6 +54,10 @@ function fromRunnerError(e: RunnerError, sql: string, deps: Deps, composed: bool
   if (e.kind === 'timeout') {
     return result({ outcome: 'timeout', notes: ['CHK-TIMEOUT'], diagnosis: { errorId: 'ERR-LOG-00', source: 'engine',
       feedback: { assumed: 'Your query ran past the time limit.', why: 'Your query may be multiplying rows.', model: 'Check each join and filter, then run it again.' } } });
+  }
+  // DuckDB's memory limit (the runner's 1 GB) is not a wrong result. Say so plainly; no new error ID.
+  if (/Out of Memory Error/i.test(e.message)) {
+    return result({ outcome: 'engine_error', notes: [MEMORY_LIMIT_NOTE], diagnosis: { errorId: 'ERR-LOG-00', source: 'engine', feedback: MEMORY_LIMIT_FEEDBACK } });
   }
   const c = classifyEngineError(e.message, sql);
   return result({ outcome: 'engine_error', notes: [composed ? e.message.split('\n')[0]! : e.message],
@@ -73,10 +87,10 @@ function keyColumn(item: SqlItem, keyCols: ColumnMeta[], name: string): number {
  * nothing maps, or a runner call fails, the score is 0 as before (build record, Task 14: runner failures after a
  * fail degrade quietly).
  */
-async function shapePartial(deps: Deps, item: SqlItem, sql: string, keySql: string, learnerCols: ColumnMeta[], keyCols: ColumnMeta[], learnerRowCount: number): Promise<PartialScore> {
+async function shapePartial(deps: Deps, item: SqlItem, sql: string, keySql: string, learnerCols: ColumnMeta[], keyCols: ColumnMeta[], learnerRowCount: number, mode: PlanMode): Promise<PartialScore> {
   // keyRows 1 keeps this zero score off the empty rule: no values were compared.
   const none = partialScore({ shapeOk: false, rowsEqual: false, keysUnique: false, matched: 0, learnerRows: learnerRowCount, keyRows: 1, edgePassed: false });
-  const plan = partialPlan(learnerCols, keyCols, item.rules);
+  const plan = partialPlan(learnerCols, keyCols, item.rules, mode);
   if (!plan) return none;
   const deadlineMs = item.rules.timeout_ms;
   const w = await witness(deps, item.schema, sql, keySql, plan, deadlineMs);
@@ -95,18 +109,29 @@ async function shapePartial(deps: Deps, item: SqlItem, sql: string, keySql: stri
   return partialScore({ shapeOk: false, rowsEqual: learnerRows === keyRows, keysUnique, matched, learnerRows, keyRows, edgePassed: false });
 }
 
-export async function grade(input: { item: SqlItem; key: SqlKey; sql: string }, deps: Deps): Promise<GradeResult> {
+/**
+ * One graded submission. `screenMode` (D41, S4B-22) is true only for an attempt the server served in screen mode; left out, the
+ * attempt grades in normal mode, exactly as before.
+ */
+export async function grade(input: { item: SqlItem; key: SqlKey; sql: string; screenMode?: boolean }, deps: Deps): Promise<GradeResult> {
   const { item, sql } = input;
   const display = await deps.runner.request<DisplayOk>({ op: 'display', schema: item.schema, allowedSchemas: [], sql, cap: DISPLAY_CAP, deadlineMs: item.rules.timeout_ms });
   if (!display.ok) return fromRunnerError(display.error, sql, deps, false);
   const r = await compare(input, deps, display.data);
-  // S2-53: the learner's query ran, so a graded result carries its portability notes, on a pass and on a fail.
-  return r.graded ? { ...r, portabilityNotes: await portabilityNotes(deps.runner, item.schema, sql, deps.schemaNotes ?? []) } : r;
+  if (!r.graded) return r;
+  // S2-53: the learner's query ran, so a graded result carries its portability notes, on a pass and on a fail. S4B-24: after a
+  // pass, the integer division re-run adds its note when the result changed; it never changes the outcome. Codex F24: a pass also
+  // carries the re-run's outcome, for JR-04; a fail has none.
+  const lint = await portabilityNotes(deps.runner, item.schema, sql, deps.schemaNotes ?? []);
+  if (r.outcome !== 'pass') return { ...r, portabilityNotes: lint };
+  const divisionCheck = await integerDivisionCheck(deps.runner, item.schema, sql, display.data, DISPLAY_CAP, item.rules.timeout_ms);
+  return { ...r, portabilityNotes: divisionCheck === 'changed' ? [...lint, INT_DIVISION_NOTE] : lint, divisionCheck };
 }
 
 /** Everything after the learner's query has run and been shown: the key's shape, the comparisons and the diagnosis. */
-async function compare(input: { item: SqlItem; key: SqlKey; sql: string }, deps: Deps, shown: DisplayOk): Promise<GradeResult> {
+async function compare(input: { item: SqlItem; key: SqlKey; sql: string; screenMode?: boolean }, deps: Deps, shown: DisplayOk): Promise<GradeResult> {
   const { item, key, sql } = input;
+  const mode: PlanMode = { screenMode: input.screenMode === true };
   const deadlineMs = item.rules.timeout_ms;
   /** A runner failure after the learner's query has run, keeping what was shown and compared so far. */
   const stopped = (e: RunnerError, datasets: DatasetResult[] = []): GradeResult => ({ ...fromRunnerError(e, sql, deps, true), display: shown, datasets });
@@ -120,7 +145,7 @@ async function compare(input: { item: SqlItem; key: SqlKey; sql: string }, deps:
   }
   const learnerCols = shown.columns;
   const keyCols = keyMeta.data.columns;
-  const plans = buildPlans(learnerCols, keyCols, item.rules);
+  const plans = buildPlans(learnerCols, keyCols, item.rules, mode);
 
   if (!plans.ok) {
     const errorId = plans.reason === 'type_class' ? 'ERR-OUT-02' : extraColumnIsGroupingKey(sql, learnerCols, keyCols) ? 'ERR-LOG-07' : 'ERR-OUT-01';
@@ -128,7 +153,7 @@ async function compare(input: { item: SqlItem; key: SqlKey; sql: string }, deps:
       display: shown,
       diagnosis: { errorId, source: 'shape', feedback: fill(deps.feedback, errorId, { expected_columns: keyCols.length, actual_columns: learnerCols.length }) },
       // Grain and Values on the columns that still map (design §5, sprint 2).
-      partial: await shapePartial(deps, item, sql, key.reference_sql, learnerCols, keyCols, shown.rowCount),
+      partial: await shapePartial(deps, item, sql, key.reference_sql, learnerCols, keyCols, shown.rowCount, mode),
     });
   }
 

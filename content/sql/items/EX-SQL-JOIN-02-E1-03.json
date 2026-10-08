@@ -1,0 +1,120 @@
+{
+  "id": "EX-SQL-JOIN-02-E1-03",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "left_join",
+    "categories",
+    "products"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-JOIN-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "lesson",
+  "target_concept_id": "SQL-JOIN-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02"
+  ],
+  "template_id": "T-JOIN-02-keep-unmatched",
+  "template_params": {
+    "from": "categories",
+    "join": "products",
+    "parent": "Accessories"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_join",
+  "prompt": "List every category of the parent category Accessories with the names of its products. Keep a category that has no products: product_name is missing for it. Return two columns, in this order: category_name and product_name. Return one row for each product, plus one row for each Accessories category with no products. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "category_name",
+        "type_class": "text"
+      },
+      {
+        "name": "product_name",
+        "type_class": "text"
+      }
+    ],
+    "grain": "one row per product, plus one per category with no products"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "category_name",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "product_name",
+        "type_class": "text",
+        "precision": "exact"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "category_name",
+      "product_name"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, join the products so that every Accessories category stays, even one with no products.",
+    "An inner join keeps only the categories that have products. The join type you need keeps every row of the table written first; the parent test is about categories, so WHERE is fine for it."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 38,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 39,
+      "to": 56,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 57,
+      "to": 110,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 111,
+      "to": 150,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": {
+    "stage1": 57,
+    "stage2": 57
+  },
+  "faded_shape": "SELECT c.category_name, p.product_name\nFROM categories c\n",
+  "faded_suffix": "\nWHERE c.parent_category = 'Accessories'",
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "LEFT JOIN keeps every category; where no product matches, the product columns come back missing, and WHERE then keeps the Accessories categories."
+}

@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-CTE-01-E1-07",
+  "item_version": 1,
+  "reference_sql": "WITH stores_per_customer AS (\n  SELECT customer_id, COUNT(DISTINCT store_id) AS n_stores\n  FROM orders\n  WHERE customer_id IS NOT NULL\n  GROUP BY customer_id\n)\nSELECT COUNT(*) AS n_customers\nFROM stores_per_customer\nWHERE n_stores > 1",
+  "alternatives": [
+    "WITH multi_store AS (SELECT customer_id FROM orders WHERE customer_id IS NOT NULL GROUP BY customer_id HAVING COUNT(DISTINCT store_id) > 1) SELECT COUNT(*) AS n_customers FROM multi_store",
+    "WITH stores_per_customer AS (SELECT customer_id, COUNT(DISTINCT store_id) AS n_stores FROM orders WHERE customer_id IS NOT NULL GROUP BY customer_id) SELECT COUNT(*) FILTER (WHERE n_stores > 1) AS n_customers FROM stores_per_customer"
+  ],
+  "other_way": {
+    "sql": "WITH multi_store AS (SELECT customer_id FROM orders WHERE customer_id IS NOT NULL GROUP BY customer_id HAVING COUNT(DISTINCT store_id) > 1) SELECT COUNT(*) AS n_customers FROM multi_store",
+    "tradeoff": "HAVING keeps only the customers you want inside the step, but you can no longer look at every customer's store count."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-04",
+      "sql": "WITH stores_per_customer AS (SELECT customer_id, COUNT(store_id) AS n_stores FROM orders WHERE customer_id IS NOT NULL GROUP BY customer_id) SELECT COUNT(*) AS n_customers FROM stores_per_customer WHERE n_stores > 1"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-15",
+      "sql": "WITH stores_per_customer AS (SELECT customer_id, COUNT(DISTINCT store_id) AS n_stores FROM orders WHERE customer_id IS NOT NULL GROUP BY customer_id) SELECT COUNT(*) AS n_customers FROM stores_per_customer WHERE n_stores >= 1"
+    }
+  ],
+  "hint3_partial": "WITH stores_per_customer AS (\n  SELECT customer_id, COUNT(___) AS n_stores\n  FROM orders\n  WHERE customer_id IS NOT NULL\n  GROUP BY customer_id\n)\nSELECT COUNT(*) AS n_customers\nFROM stores_per_customer\nWHERE ___",
+  "solver": {
+    "prompt_hash": "a1d486934abd1e4a",
+    "schema_version": "7ed366279088",
+    "dataset_version": "e1545e4258743033",
+    "grader_version": "1b.3",
+    "query": "WITH per_customer AS (\n  SELECT customer_id, COUNT(DISTINCT store_id) AS n_stores\n  FROM orders\n  WHERE customer_id IS NOT NULL\n  GROUP BY customer_id\n)\nSELECT COUNT(*) AS n_customers\nFROM per_customer\nWHERE n_stores > 1",
+    "at": "2026-10-07T10:41:34.256Z"
+  }
+}

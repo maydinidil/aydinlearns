@@ -19,6 +19,11 @@ export interface DiffSample {
   firstDiff: { column: string; expected: unknown; actual: unknown } | null;
 }
 export type GradeOutcome = 'pass' | 'fail' | 'engine_error' | 'timeout' | 'crash' | 'rejected';
+/**
+ * Codex F24: what the integer division re-run found after a pass (S4B-24). 'no_division': no `/`, so nothing can change;
+ * 'same' or 'changed': the two results were compared; 'not_compared': it did not run, failed, or could not be compared.
+ */
+export type DivisionCheck = 'no_division' | 'same' | 'changed' | 'not_compared';
 export interface GradeResult {
   outcome: GradeOutcome;
   graded: boolean;                      // false for rejected and crash
@@ -34,4 +39,6 @@ export interface GradeResult {
   rejectMessage: string | null;         // why an attempt was not graded: the gate's reason, or a key that failed (CHK-KEY-FAILED)
   /** Notes about other databases (design §6, S2-53): on every graded result whose query ran, never a check, never a fail. */
   portabilityNotes: string[];
+  /** Codex F24: the integer division re-run's outcome, set only on a pass. */
+  divisionCheck?: DivisionCheck;
 }

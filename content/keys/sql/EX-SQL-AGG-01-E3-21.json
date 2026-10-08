@@ -6,7 +6,10 @@
     "SELECT MIN(order_date) AS first_order_date, MAX(order_date) AS last_order_date, MAX(units) AS max_units, MAX(net_revenue_eur) AS max_line_revenue_eur FROM sales WHERE (store_code = 'BE-01' OR store_code = 'LU-01') AND order_date >= DATE '2025-01-01' AND order_date < DATE '2025-03-01'",
     "SELECT MIN(order_date) AS first_order_date, MAX(order_date) AS last_order_date, MAX(units) AS max_units, MAX(net_revenue_eur) AS max_line_revenue_eur FROM sales WHERE order_date BETWEEN '2025-01-01' AND '2025-02-28' AND store_code IN ('LU-01', 'BE-01')"
   ],
-  "other_way": null,
+  "other_way": {
+    "sql": "SELECT MIN(order_date) AS first_order_date, MAX(order_date) AS last_order_date, MAX(units) AS max_units, MAX(net_revenue_eur) AS max_line_revenue_eur FROM sales WHERE (store_code = 'BE-01' OR store_code = 'LU-01') AND order_date >= DATE '2025-01-01' AND order_date < DATE '2025-03-01'",
+    "tradeoff": "Stays correct if the column later holds times of day, but you must write the day after the end date."
+  },
   "planted_wrong": [
     {
       "id": "PW1",

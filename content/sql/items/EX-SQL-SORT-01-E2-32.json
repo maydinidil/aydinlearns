@@ -1,6 +1,6 @@
 {
   "id": "EX-SQL-SORT-01-E2-32",
-  "version": 1,
+  "version": 2,
   "kind": "fix",
   "tags": [
     "sql",
@@ -41,7 +41,7 @@
   "company": "voltmarkt",
   "schema": "voltmarkt",
   "edge_schema": "voltmarkt_edge_sort",
-  "prompt": "The query in the editor has one mistake. Fix it so that it answers this question: which 3 products in category 3 (TVs 65 inch and up) have the highest unit cost? Return product_id, product_name and unit_cost_eur, in that order, with exactly these column names, most expensive first. When products tie on unit_cost_eur, the one whose product_name comes first from A to Z wins the place. Products with no unit cost do not count. Return exactly 3 rows.",
+  "prompt": "The query in the editor has one mistake. Fix it so that it answers this question: which 3 products in category 3 (TVs 65 inch and up) have the highest unit cost? Return product_id, product_name and unit_cost_eur, in that order, with exactly these column names, most expensive first. When products tie on unit_cost_eur, the one whose product_name comes first from A to Z wins the place. Products with no unit cost do not count. Return exactly 3 rows. The visible data may not show the mistake; the hidden checks do.",
   "output_contract": {
     "columns": [
       {

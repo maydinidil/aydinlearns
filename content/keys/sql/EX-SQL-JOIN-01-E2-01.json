@@ -1,0 +1,31 @@
+{
+  "item_id": "EX-SQL-JOIN-01-E2-01",
+  "item_version": 1,
+  "reference_sql": "SELECT c.category_name, p.product_name, ph.list_price_eur\nFROM products p\nJOIN categories c ON c.category_id = p.category_id\nJOIN price_history ph ON ph.product_id = p.product_id\nWHERE c.parent_category = 'Audio'\n  AND ph.valid_to IS NULL",
+  "alternatives": [
+    "SELECT c.category_name, p.product_name, ph.list_price_eur FROM price_history ph JOIN products p ON p.product_id = ph.product_id AND ph.valid_to IS NULL JOIN categories c ON c.category_id = p.category_id AND c.parent_category = 'Audio'",
+    "SELECT c.category_name, p.product_name, ph.list_price_eur FROM products p, categories c, price_history ph WHERE c.category_id = p.category_id AND ph.product_id = p.product_id AND c.parent_category = 'Audio' AND ph.valid_to IS NULL"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-SEM-04",
+      "sql": "SELECT c.category_name, p.product_name, ph.list_price_eur FROM products p JOIN categories c ON c.category_id = p.category_id JOIN price_history ph ON ph.product_id = p.product_id WHERE c.parent_category = 'Audio' AND ph.valid_to = NULL"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-12",
+      "sql": "SELECT c.category_name, p.product_name, ph.list_price_eur FROM products p JOIN categories c ON c.category_id = p.category_id JOIN price_history ph ON ph.product_id = p.category_id WHERE c.parent_category = 'Audio' AND ph.valid_to IS NULL"
+    }
+  ],
+  "hint3_partial": "SELECT c.category_name, p.product_name, ph.list_price_eur\nFROM products p\nJOIN categories c ON c.category_id = p.category_id\nJOIN price_history ph ON ___\nWHERE c.parent_category = 'Audio'\n  AND ph.valid_to IS NULL",
+  "solver": {
+    "prompt_hash": "40dde6f0c32a0eab",
+    "schema_version": "0072f9d3b7cc",
+    "dataset_version": "e1545e4258743033",
+    "grader_version": "1b.3",
+    "query": "SELECT c.category_name, p.product_name, h.list_price_eur\nFROM products p\nJOIN categories c ON c.category_id = p.category_id\nJOIN price_history h ON h.product_id = p.product_id\nWHERE c.parent_category = 'Audio' AND h.valid_to IS NULL",
+    "at": "2026-10-07T10:41:37.987Z"
+  }
+}

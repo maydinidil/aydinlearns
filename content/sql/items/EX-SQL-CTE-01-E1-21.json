@@ -1,0 +1,119 @@
+{
+  "id": "EX-SQL-CTE-01-E1-21",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "cte",
+    "count",
+    "order_lines",
+    "drill"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-CTE-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-CTE-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-AGG-03",
+    "SQL-AGG-04",
+    "SQL-CTE-01"
+  ],
+  "template_id": "T-CTE-01-count-filtered-step",
+  "template_params": {
+    "table": "order_lines",
+    "step_grain": "order",
+    "condition": "n_lines >= 3"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_join",
+  "prompt": "How many orders have three or more order lines? Return one column, n_orders. The result is a single row. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "n_orders",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "n_orders",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, count the lines of each order in a first step.",
+    "Then count the rows of that step whose line count is at least three."
+  ],
+  "subgoals": [
+    {
+      "from": 28,
+      "to": 64,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 67,
+      "to": 83,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 86,
+      "to": 103,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 106,
+      "to": 133,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 134,
+      "to": 154,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 155,
+      "to": 173,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "The step has one row per order with its line count, so the final filter and COUNT(*) work on orders."
+}

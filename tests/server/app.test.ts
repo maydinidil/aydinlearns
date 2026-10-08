@@ -20,6 +20,7 @@ import { replay } from '../../core/replay.ts';
 import { LearnerState, buildCatalog, replayOptions } from '../../server/state.ts';
 import { Servings } from '../../server/servings.ts';
 import { exposure, growLeech, instance, plus } from '../helpers/replay-fixture.ts';
+import { folderProblem } from '../../server/routes/portfolio.ts';
 
 const content = await loadContent(await makeContentFixture());
 const lesson = content.lesson(FIXTURE_CONCEPT)!;
@@ -356,8 +357,8 @@ test('after a restart, every instance from before stays closed, and recovery clo
   assert.equal(((await log.readAll('attempts')) as any[]).filter((r) => r.record === 'item_close').length, 3, 'no second close');
   assert.equal((await post(app2, '/api/hint', { item_id, item_instance_id: 'I-4', level: 1, phase: 'free' })).status, 200, 'a new instance id works');
 });
-test('D4: SCHEMA_VERSION is 2, every record the app writes carries it, and help records name their item', async () => {
-  assert.equal(SCHEMA_VERSION, 2);
+test('D4: SCHEMA_VERSION (4 since D35 and D38) is on every record the app writes, and help records name their item', async () => {
+  assert.equal(SCHEMA_VERSION, 4);
   const d = await deps({ runner });
   const app = createApp(d);
   const item_id = lesson.pool_item_ids[0]!;
@@ -371,7 +372,7 @@ test('D4: SCHEMA_VERSION is 2, every record the app writes carries it, and help 
   assert.deepEqual(recs.map((r) => r.record), ['exposure', 'hint_opened', 'solution_opened', 'attempt', 'item_close']);
   const all = [...recs, ...(await d.logger.readAll('events')), ...(await d.logger.readAll('reports'))] as any[];
   assert.equal(all.length, 8, 'five attempt-file records, a session start, a setting change and a session end');
-  assert.deepEqual([...new Set(all.map((r) => r.schema_version))], [2]);
+  assert.deepEqual([...new Set(all.map((r) => r.schema_version))], [SCHEMA_VERSION]);
   const help = recs.filter((r) => r.record === 'hint_opened' || r.record === 'solution_opened');
   assert.deepEqual(help.map((r) => [r.record, r.item_id, r.target_concept_id, r.phase]),
     [['hint_opened', item_id, FIXTURE_CONCEPT, 'free'], ['solution_opened', item_id, FIXTURE_CONCEPT, 'free']]);
@@ -397,9 +398,9 @@ test('D4: recovery closes a help-only instance from its version 2 help records, 
   const records = await log.readAll('attempts');
   const help = (records as any[]).filter((r) => r.record !== 'attempt');
   assert.deepEqual(help.map((r) => [r.record, r.schema_version, r.item_instance_id, r.item_id, r.target_concept_id, r.phase]), [
-    ['hint_opened', 2, 'H-1', item_id, FIXTURE_CONCEPT, 'free'],
-    ['solution_opened', 2, 'H-1', item_id, FIXTURE_CONCEPT, 'lesson_block'],
-    ['hint_opened', 2, 'H-2', item_id, FIXTURE_CONCEPT, 'free']]);
+    ['hint_opened', SCHEMA_VERSION, 'H-1', item_id, FIXTURE_CONCEPT, 'free'],
+    ['solution_opened', SCHEMA_VERSION, 'H-1', item_id, FIXTURE_CONCEPT, 'lesson_block'],
+    ['hint_opened', SCHEMA_VERSION, 'H-2', item_id, FIXTURE_CONCEPT, 'free']]);
   const d2 = await deps({ runner, closedInstances: loggedInstanceIds(records) }, log);
   await recoverLogs(d2.logger, d2.session, records, await log.readAll('events'), d2.state);
   const closes = ((await log.readAll('attempts')) as any[]).filter((r) => r.record === 'item_close');
@@ -411,7 +412,7 @@ test('D4: recovery closes a help-only instance from its version 2 help records, 
   assert.equal(h1.ts, end.ts, 'help records name no session: the close is stamped with the recovered end of the session whose window holds them (S2-85)');
   assert.deepEqual(h1.raw_outcome, { graded_attempts: 0, passed: false, first_attempt_pass: false, max_hint_level: 1,
     revealed_before_attempt: true, active_ms: Date.parse(end.ts) - Date.parse(help[0].ts) });
-  assert.deepEqual([h1.schema_version, h1.instance_rating, h1.card_reviews], [2, null, []], 'closes are rated from Task B7');
+  assert.deepEqual([h1.schema_version, h1.instance_rating, h1.card_reviews], [SCHEMA_VERSION, null, []], 'closes are rated from Task B7');
   // Apart from the time stamps, the recovered closes say what the live session end said.
   const same = (xs: any[]) => [...xs].sort((a, b) => a.item_instance_id.localeCompare(b.item_instance_id))
     .map((c) => ({ ...c, ts: null, raw_outcome: { ...c.raw_outcome, active_ms: null } }));
@@ -864,4 +865,14 @@ test('B15: after an idle session end, a reopened review or mixed exercise names 
   await browserInstance(app, 'R-mixed', 'mixed', 3);
   assert.deepEqual(await phasesOf(d, 'R-review'), [['attempt', 'free', null], ['item_close', 'free', null]]);
   assert.deepEqual(await phasesOf(d, 'R-mixed'), [['attempt', 'free', null], ['item_close', 'free', null]]);
+});
+test('F2 I2: a UNC portfolio folder is refused when it is saved in Settings, with the message the export gives, and nothing is logged', async () => {
+  const d = await deps({ runner });
+  const app = createApp(d);
+  for (const unc of ['\\\\server\\share', '//server/share', '\\\\?\\C:\\Portfolio']) {
+    const r = await post(app, '/api/settings', { key: 'portfolio_folder', value: unc });
+    assert.equal(r.status, 400, unc);
+    assert.equal((await r.json()).error, await folderProblem(unc, d.logger.dir), unc);
+  }
+  assert.equal(((await d.logger.readAll('events')) as any[]).filter((e) => e.event === 'setting_change').length, 0);
 });

@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-JOIN-05-E1-43",
+  "item_version": 1,
+  "value": 5,
+  "explanation": "total has exactly one row, so CROSS JOIN pairs each store with that one row and repeats nothing. WHERE keeps the stores with store_id 1 to 5, so the result has 5 rows.",
+  "solver": {
+    "prompt_hash": "0e1727ef15e171b1",
+    "grader_version": "choice.2",
+    "chosen": null,
+    "typed": "5",
+    "at": "2026-10-07T09:58:58.607Z"
+  }
+}

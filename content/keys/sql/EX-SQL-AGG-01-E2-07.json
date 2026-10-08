@@ -6,7 +6,10 @@
     "SELECT COUNT(*) AS n_lines FROM sales WHERE order_date >= DATE '2025-02-01' AND order_date < DATE '2025-03-01' AND units > 1",
     "SELECT COUNT(units) AS n_lines FROM sales WHERE units >= 2 AND order_date BETWEEN '2025-02-01' AND '2025-02-28'"
   ],
-  "other_way": null,
+  "other_way": {
+    "sql": "SELECT COUNT(*) AS n_lines FROM sales WHERE order_date >= DATE '2025-02-01' AND order_date < DATE '2025-03-01' AND units > 1",
+    "tradeoff": "Stays correct if the column later holds times of day, but you must write the day after the end date."
+  },
   "planted_wrong": [
     {
       "id": "EX-SQL-AGG-01-E2-07-PW1",

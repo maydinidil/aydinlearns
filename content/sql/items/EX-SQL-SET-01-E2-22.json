@@ -1,0 +1,125 @@
+{
+  "id": "EX-SQL-SET-01-E2-22",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "set",
+    "union_all",
+    "price_history",
+    "competitor_prices"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-SET-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-SET-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SET-01"
+  ],
+  "template_id": "T-SET-01-stack-with-source",
+  "template_params": {
+    "tables": "price_history, competitor_prices",
+    "product_id": 3,
+    "year": 2025
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_set",
+  "prompt": "Build one list of the prices set or seen for product 3 in 2025: each list price version in price_history whose valid_from is from 2025-01-01 to 2025-12-31, and each competitor price check in competitor_prices made in 2025. observed_ts holds the time of the check in UTC, so take 2025 in UTC: from 2025-01-01 00:00 up to but not including 2026-01-01 00:00. Return two columns, in this order: source, the text 'Voltmarkt' for a list price version or the competitor's name for a check, and price_eur. Return one row for each list price version and one for each check, so a repeated price appears every time. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "source",
+        "type_class": "text"
+      },
+      {
+        "name": "price_eur",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "source",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "price_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, stack the 2025 price checks under the 2025 list price versions, with the same two columns in the same order.",
+    "UNION ALL keeps every row, repeats included. valid_from is a date and observed_ts a time, so the end of 2025 needs a different test in each part."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 57,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 58,
+      "to": 76,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 77,
+      "to": 162,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 163,
+      "to": 201,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 202,
+      "to": 224,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 225,
+      "to": 350,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "UNION ALL keeps every 2025 list price version and check, and the half-open range on observed_ts keeps the checks of 31 December."
+}

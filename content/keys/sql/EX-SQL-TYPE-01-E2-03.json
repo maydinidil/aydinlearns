@@ -6,7 +6,10 @@
     "SELECT parent_category, ROUND(SUM(net_revenue_eur - unit_cost_eur * units)) AS margin_eur FROM sales WHERE order_date >= DATE '2025-01-01' AND order_date <= DATE '2025-12-31' GROUP BY parent_category",
     "SELECT parent_category, ROUND(SUM(CASE WHEN net_revenue_eur IS NOT NULL AND units IS NOT NULL AND unit_cost_eur IS NOT NULL THEN net_revenue_eur - units * unit_cost_eur END), 0) AS margin_eur FROM sales WHERE order_date BETWEEN '2025-01-01' AND '2025-12-31' GROUP BY 1"
   ],
-  "other_way": null,
+  "other_way": {
+    "sql": "SELECT parent_category, ROUND(SUM(net_revenue_eur - unit_cost_eur * units)) AS margin_eur FROM sales WHERE order_date >= DATE '2025-01-01' AND order_date <= DATE '2025-12-31' GROUP BY parent_category",
+    "tradeoff": "Two comparisons give the same rows, but BETWEEN states the range in one short test."
+  },
   "planted_wrong": [
     {
       "id": "PW1",

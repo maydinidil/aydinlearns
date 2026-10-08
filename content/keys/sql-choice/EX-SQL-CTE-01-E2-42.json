@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-CTE-01-E2-42",
+  "item_version": 1,
+  "correct_oid": "o4bcfd5c",
+  "explanation": "The step adds up the units of each order, one row per order with its channel, and AVG then averages those orders within each channel. Averaging units straight from sales averages lines, so a three-line order counts three times. COUNT(*) in the step counts lines instead of adding up units, and a step grouped by channel alone already holds one total per channel, so its average is just that total.",
+  "solver": {
+    "prompt_hash": "1e70d7ba51020bf2",
+    "grader_version": "choice.2",
+    "chosen": "o4bcfd5c",
+    "typed": null,
+    "at": "2026-10-07T09:58:58.573Z"
+  }
+}

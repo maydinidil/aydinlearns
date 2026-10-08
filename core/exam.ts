@@ -222,8 +222,8 @@ export function scoreRun(answers: readonly { topic: string; correct: boolean | n
 }
 
 /**
- * D27: the first Amsterdam date on which at least n pool items are unseen, or null when that never happens without an
- * opening's item. Assumes no further showings or openings. `today` is the run's Amsterdam date; `dateOf` as in `isUnseen`.
+ * D27: the first Amsterdam date on which at least n pool items are unseen, or null when that never happens: an opening holds an
+ * item seen for good (until it is shown again), or fewer than n pool items ever become unseen. Assumes no further showings or openings. `today` is the run's Amsterdam date; `dateOf` as in `isUnseen`.
  */
 export function nextUnseenDate(pool: readonly string[], h: ExamHistory, n: number, today: string, retakeDays: number,
   dateOf: (d: Date) => string): string | null {

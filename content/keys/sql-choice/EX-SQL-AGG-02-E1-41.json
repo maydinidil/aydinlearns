@@ -1,13 +1,13 @@
 {
   "item_id": "EX-SQL-AGG-02-E1-41",
-  "item_version": 1,
+  "item_version": 2,
   "value": 4,
   "explanation": "GROUP BY store_type makes one group, and one output row, for each different store_type. The stores panel lists four types: flagship, outlet, standard and web. So the result has 4 rows, each with the number of stores of that type.",
   "solver": {
-    "prompt_hash": "074f884c2bd2744a",
-    "grader_version": "choice.1",
+    "prompt_hash": "9a745ce97fe8f358",
+    "grader_version": "choice.2",
     "chosen": null,
     "typed": "4",
-    "at": "2026-10-06T09:08:14.812Z"
+    "at": "2026-10-08T14:13:17.817Z"
   }
 }

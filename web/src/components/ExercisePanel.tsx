@@ -4,14 +4,17 @@ import type { TableNote } from '../../../schemas/schema-notes.ts';
 import type { Phase } from '../../../core/envelope.ts';
 import type { DisplayOk, RunnerError } from '../../../server/runner/protocol.ts';
 import { createSqlEditor, type SqlEditor } from '../editor/sql-editor.ts';
+import { completionSchema } from '../editor/completion-schema.ts';
 import { editorStart, type Stage } from '../lib/lesson-flow.ts';
-import { afterGrade, afterRun, beforeSubmit, canDispute, closeReason, closesOnUnmount, isClosedError, keyFailed, newInstance, overrideOrReopen, retryIfClosed, rulesBadge, sessionEndsSeen, showsRunTable, type Instance, type ResultArea } from '../lib/exercise.ts';
+import { afterGrade, afterRun, beforeSubmit, canDispute, closeReason, closesOnUnmount, grainLine, isClosedError, keyFailed, newInstance, overrideOrReopen, retryIfClosed, rulesBadge, sessionEndsSeen, showsRunTable, type Instance, type ResultArea } from '../lib/exercise.ts';
 import { FIX_INTRO, fixStarter, itemLabels, labelsVisible, loadTitles, type Titles } from '../lib/labels.ts';
-import { HELP_LINE, stopHandler } from '../lib/drill-flow.ts';
+import { SCREEN_BANNER, stopHandler } from '../lib/drill-flow.ts';
 import { SchemaPanel } from './SchemaPanel.tsx';
 import { ResultTable } from './ResultTable.tsx';
 import { GradePanel } from './GradePanel.tsx';
 import { SqlCode } from './SqlCode.tsx';
+import { OtherWay } from './OtherWay.tsx';
+import { otherWayOffered } from '../lib/other-way.ts';
 
 export interface ClosedResult { passed: boolean; failedGraded: number; helped: boolean }
 
@@ -32,6 +35,17 @@ type Props = {
   run?: { onStopped: () => void };
   /** The end-of-run review is for help: no Run and no Submit (a submit on a closed drill instance would reopen a stray free attempt). */
   reviewOnly?: boolean;
+  /** Task D1: called when this instance passes, so the drill screen can offer "other ways" on it in the review (S4-12). */
+  onPassed?: () => void;
+  /** Task D1: this instance passed earlier in the run, which the review panel (a new mount) cannot see for itself. */
+  passedBefore?: boolean;
+  /**
+   * S4B-22: the instance was served in screen mode (the server grades it so from its serving): the dialect banner shows and the
+   * editor has no autocomplete.
+   */
+  screenMode?: boolean;
+  /** Sprint 4b, Task D2: each grade as it comes back, so the case screen can set CP3's row count beside the plan's prediction (S4B-10). */
+  onGraded?: (g: PublicGrade) => void;
 };
 
 const REOPENED = 'Your session ended, so this exercise was reopened. Your query is kept.';
@@ -43,7 +57,7 @@ export function ExercisePanel(props: Props) {
   return <ExercisePanelInner key={`${props.itemId}:${props.stage ?? ''}:${props.phase}:${props.instanceId ?? ''}`} {...props} />;
 }
 
-function ExercisePanelInner({ itemId, phase, stage = 3, onClosed, instanceId, hideLabels = false, heading, labels = false, run, reviewOnly = false }: Props) {
+function ExercisePanelInner({ itemId, phase, stage = 3, onClosed, instanceId, hideLabels = false, heading, labels = false, run, reviewOnly = false, onPassed, passedBefore = false, screenMode = false, onGraded }: Props) {
   const [data, setData] = useState<{ item: ItemView; schemaNotes: TableNote[] } | null>(null);
   // A fix item's own query, run when the item opens (S2-48), so the learner sees the wrong result it gives.
   const [starter, setStarter] = useState<{ result: DisplayOk | null; error: string | null } | null>(null);
@@ -96,10 +110,10 @@ function ExercisePanelInner({ itemId, phase, stage = 3, onClosed, instanceId, hi
     if (!data || !editorHost.current) return;
     // A faded item opens as its locked prefix and suffix with the blank between them; Run and Submit send the whole text.
     const start = editorStart(data.item, stage);
-    const schema = Object.fromEntries(data.schemaNotes.map((n) => [n.table, n.sample.columns]));
-    editor.current = createSqlEditor({ parent: editorHost.current, text: start.text, locked: start.locked, schema, onRun: () => keys.current.run(), onSubmit: () => keys.current.submit() });
+    const schema = completionSchema(data.schemaNotes, data.item.level);
+    editor.current = createSqlEditor({ parent: editorHost.current, text: start.text, locked: start.locked, schema, screenMode, onRun: () => keys.current.run(), onSubmit: () => keys.current.submit() });
     return () => editor.current?.destroy();
-  }, [data, stage]);
+  }, [data, stage, screenMode]);
 
   useEffect(() => {
     const sql = data ? fixStarter(data.item) : null;
@@ -157,7 +171,8 @@ function ExercisePanelInner({ itemId, phase, stage = 3, onClosed, instanceId, hi
       const { i, g } = await submitted;
       setResults(afterGrade(g));
       setSubmitted(true);
-      if (g.outcome === 'pass') i.passed = true;
+      onGraded?.(g);
+      if (g.outcome === 'pass') { i.passed = true; onPassed?.(); }
       else if (g.graded) i.failed++;
     } catch (e) { setMessage((e as Error).message); } finally { setBusy(false); }
   }
@@ -208,6 +223,9 @@ function ExercisePanelInner({ itemId, phase, stage = 3, onClosed, instanceId, hi
   const { item, schemaNotes } = data;
   const grade = results.grade;
   const fix = fixStarter(item) !== null;
+  // S4-12: after a pass, outside a running timed run. The review panel is a new mount, so the screen tells it what passed in the run.
+  const otherWayOn = otherWayOffered({ hasOtherWay: item.has_other_way, passed: instance.current.passed || passedBefore, inRun: run !== undefined });
+  const otherWay = otherWayOn ? <OtherWay itemId={itemId} instanceId={instance.current.id} phase={phase} /> : null;
   const shown = labels && labelsVisible(hideLabels, submitted) ? itemLabels(item, titles) : null;
   // When the exercise's own answer key failed, the report form opens right under the grade, so reporting it is the obvious next step.
   const keyFault = grade !== null && keyFailed(grade);
@@ -227,10 +245,11 @@ function ExercisePanelInner({ itemId, phase, stage = 3, onClosed, instanceId, hi
             {shown.level && <> <span className="badge">{shown.level}</span></>} Exercise <code>{shown.itemId}</code></p>
         )}
         <div className="card exercise-card">
+        {screenMode && <p className="notice" role="note">{SCREEN_BANNER}</p>}
         <p className="prompt">{item.prompt}</p>
         {item.output_contract && (
           <p className="contract">Return: {item.output_contract.columns.map((c) => `${c.name} (${c.type_class})`).join(', ')}
-            {item.output_contract.grain && (item.level ?? 1) <= 2 ? `. ${item.output_contract.grain[0]!.toUpperCase()}${item.output_contract.grain.slice(1)}.` : ''}</p>
+            {grainLine(item.output_contract)}</p>
         )}
         <ul className="badge-list">{rulesBadge(item.rules).map((b) => <li key={b}>{b}</li>)}</ul>
         {fix && (
@@ -253,19 +272,21 @@ function ExercisePanelInner({ itemId, phase, stage = 3, onClosed, instanceId, hi
         </div>
         </div>
         {message && <p role="alert">{message}</p>}
-        {grade && <GradePanel grade={grade} onDispute={canDispute(grade, overridden) ? (r) => alertOnError(dispute(grade, r)) : null} disputing={disputing} />}
+        {grade && <GradePanel grade={grade} onDispute={canDispute(grade, overridden) ? (r) => alertOnError(dispute(grade, r)) : null} disputing={disputing} otherWay={otherWay} />}
         {keyFault && reportForm}
         {showsRunTable(results) && <ResultTable result={results.run} caption="Your result" />}
-        {run ? <p className="muted help">{HELP_LINE}</p> : <div className="help">
+        {/* The drill's header shows the help line once (s3b:L35), so a run's panel shows none. */}
+        {run ? null : <div className="help">
           <p className="muted">Help is always here. Using it lowers this item's rating.</p>
           {hints.map((h, i) => <p key={i}><strong>Hint {i + 1}:</strong> {i === 2 ? <code>{h}</code> : h}</p>)}
           {hints.length < 3 && <button type="button" className="link-quiet" onClick={() => alertOnError(nextHint())} disabled={hintBusy}>{hints.length === 2 ? 'Show part of the answer (hint 3)' : `Hint ${hints.length + 1}`}</button>}
           {!answer && <button type="button" className="link-quiet" onClick={() => alertOnError(showAnswer())}>Show answer</button>}
           {answer && <div><p><strong>One correct answer:</strong></p><SqlCode sql={answer.sql} />{answer.display && <ResultTable result={answer.display} caption="Its result" />}</div>}
         </div>}
+        {reviewOnly && passedBefore && otherWay}
         {!keyFault && reportForm}
       </section>
-      <SchemaPanel notes={schemaNotes} />
+      <SchemaPanel notes={schemaNotes} level={item.level} />
     </div>
   );
 }

@@ -88,7 +88,7 @@ export function runLine(r: { kind: RunKind; questions: number; minutes: number; 
   const head = `${r.questions} questions, ${limit} minutes, pass at ${r.pass_pct}%.`;
   return r.mode === 'exam'
     ? `${head} One question at a time, no going back, one answer each. Unanswered questions count as wrong.`
-    : `${head} Go back, flag a question and change an answer at any time. Help opens in the review.`;
+    : `${head} Go back, flag a question and change an answer at any time.`;
 }
 export const HELP_LINE = 'Help opens in the end-of-run review.';
 

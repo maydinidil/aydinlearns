@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-JOIN-01-E2-41",
+  "item_version": 1,
+  "correct_oid": "ocb8d5f2",
+  "explanation": "The line's product_id points at the product it sold, so matching it to products.product_id gives each line its own product name. Matching the order ID or the line ID to product_id picks unrelated products, and leaving out the match pairs each line with every product.",
+  "solver": {
+    "prompt_hash": "93467df17304bd85",
+    "grader_version": "choice.2",
+    "chosen": "ocb8d5f2",
+    "typed": null,
+    "at": "2026-10-07T09:58:58.583Z"
+  }
+}

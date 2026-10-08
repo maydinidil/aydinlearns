@@ -7,7 +7,10 @@
     "SELECT promo_type, promo_name, discount_pct FROM promotions WHERE promo_type IN ('loyalty', 'clearance') ORDER BY 1, 3 DESC, 2",
     "SELECT promo_type, promo_name, discount_pct FROM promotions WHERE promo_type IN ('clearance', 'loyalty') ORDER BY promo_type ASC, discount_pct DESC, promo_name ASC"
   ],
-  "other_way": null,
+  "other_way": {
+    "sql": "SELECT promo_type, promo_name, discount_pct FROM promotions WHERE promo_type = 'clearance' OR promo_type = 'loyalty' ORDER BY promo_type, discount_pct DESC, promo_name",
+    "tradeoff": "An OR chain returns the same rows, but repeats the column for every value, while IN keeps the list short."
+  },
   "planted_wrong": [
     {
       "id": "EX-SQL-SORT-01-E2-05-PW1",

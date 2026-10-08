@@ -1,0 +1,142 @@
+{
+  "id": "EX-SQL-JOIN-05-E3-01",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "full-outer-join",
+    "calendar",
+    "amsterdam-day",
+    "reconcile"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-JOIN-05"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-JOIN-05",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-DATE-01",
+    "SQL-CTE-01",
+    "SQL-JOIN-01",
+    "SQL-JOIN-05"
+  ],
+  "template_id": "T-JOIN-05-full-outer-calendar-vs-order-days",
+  "template_params": {
+    "from": "2025-02-24",
+    "to": "2026-01-01",
+    "tz": "Europe/Amsterdam"
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_join",
+  "prompt": "Check that calendar covers every day with orders. For every day from 24 February 2025 to 1 January 2026 that is in calendar or has at least one order, return three columns, in this order: day, weekday_name (from calendar, missing when calendar does not have the day) and n_orders, the number of orders placed that day, 0 when none. Count each order on its Amsterdam day: order_ts holds UTC time, so convert it to Amsterdam time before taking the date. Return one row for each day. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "day",
+        "type_class": "temporal"
+      },
+      {
+        "name": "weekday_name",
+        "type_class": "text"
+      },
+      {
+        "name": "n_orders",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "day",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "weekday_name",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "n_orders",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "day"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, join the calendar days and the order days so that a day missing from either side keeps its row.",
+    "An order can fall on a day the calendar may lack, and a calendar day can have no orders; only a join that keeps unmatched rows from both sides shows both."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 224,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 225,
+      "to": 341,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 342,
+      "to": 456,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 457,
+      "to": 557,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 558,
+      "to": 568,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 569,
+      "to": 617,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "FULL OUTER JOIN keeps calendar days without orders and order days without a calendar row, such as 1 January 2026 in Amsterdam, and COALESCE takes the day from whichever side has it."
+}

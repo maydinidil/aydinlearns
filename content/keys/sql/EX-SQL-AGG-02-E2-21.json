@@ -6,7 +6,10 @@
     "SELECT store_code, COUNT(DISTINCT order_date) AS n_days, COUNT(*) AS n_lines FROM sales WHERE order_date >= DATE '2025-01-01' AND order_date < DATE '2026-01-01' GROUP BY 1",
     "SELECT store_code, COUNT(DISTINCT order_date) AS n_days, COUNT(order_line_id) AS n_lines FROM sales WHERE order_date BETWEEN '2025-01-01' AND '2025-12-31' GROUP BY store_code"
   ],
-  "other_way": null,
+  "other_way": {
+    "sql": "SELECT store_code, COUNT(DISTINCT order_date) AS n_days, COUNT(*) AS n_lines FROM sales WHERE order_date >= DATE '2025-01-01' AND order_date < DATE '2026-01-01' GROUP BY 1",
+    "tradeoff": "Stays correct if the column later holds times of day, but you must write the day after the end date."
+  },
   "planted_wrong": [
     {
       "id": "PW1",

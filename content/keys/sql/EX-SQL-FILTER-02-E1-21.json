@@ -7,7 +7,10 @@
     "SELECT product_id, product_name, brand, launch_date\nFROM products\nWHERE launch_date >= DATE '2025-01-01' AND brand IN ('Hivo', 'Echoline')",
     "SELECT product_id, product_name, brand, launch_date\nFROM products\nWHERE brand IN ('Echoline', 'Hivo') AND NOT launch_date < DATE '2025-01-01'"
   ],
-  "other_way": null,
+  "other_way": {
+    "sql": "SELECT product_id, product_name, brand, launch_date\nFROM products\nWHERE (brand = 'Echoline' OR brand = 'Hivo') AND launch_date >= '2025-01-01'",
+    "tradeoff": "An OR chain returns the same rows, but repeats the column for every value, while IN keeps the list short."
+  },
   "planted_wrong": [
     {
       "id": "PW1",

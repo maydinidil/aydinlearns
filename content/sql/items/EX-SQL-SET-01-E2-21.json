@@ -1,0 +1,131 @@
+{
+  "id": "EX-SQL-SET-01-E2-21",
+  "version": 2,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "set",
+    "except",
+    "cte",
+    "count",
+    "customers",
+    "orders"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-SET-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-SET-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-CTE-01",
+    "SQL-SET-01"
+  ],
+  "template_id": "T-SET-01-except-count",
+  "template_params": {
+    "table": "orders",
+    "month": "2025-05",
+    "in": "store",
+    "not_in": "web"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_set",
+  "prompt": "How many customers placed a store order in May 2025 but no web order in May 2025? Use the orders table, where channel is 'web' or 'store'. order_ts holds the time of the order in UTC, so take May in UTC: from 2025-05-01 00:00 up to but not including 2025-06-01 00:00. Leave out guest orders, whose customer_id is missing, and count each customer once. Return one column, customers, the number of customers, in one row. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "customers",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "customers",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the list of May web customers inside the CTE and take it away from the May store customers.",
+    "EXCEPT keeps the rows of the first part that the second part does not return, each once, so the store list comes first."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 41,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 42,
+      "to": 55,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 56,
+      "to": 216,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 217,
+      "to": 246,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 247,
+      "to": 260,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 261,
+      "to": 389,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 390,
+      "to": 418,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 419,
+      "to": 434,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "EXCEPT keeps each May store customer that the May web list does not hold, once, so COUNT(*) counts the store-only customers."
+}

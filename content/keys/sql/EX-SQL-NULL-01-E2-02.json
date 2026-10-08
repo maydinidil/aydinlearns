@@ -7,7 +7,10 @@
     "SELECT cal_date, weekday_name, event\nFROM calendar\nWHERE (event <> 'black_friday' OR event IS NULL) AND cal_date >= '2025-11-01' AND cal_date < '2025-12-01'",
     "SELECT cal_date, weekday_name, event\nFROM calendar\nWHERE cal_date BETWEEN DATE '2025-11-01' AND DATE '2025-11-30' AND (NOT event = 'black_friday' OR event IS NULL)"
   ],
-  "other_way": null,
+  "other_way": {
+    "sql": "SELECT cal_date, weekday_name, event\nFROM calendar\nWHERE cal_date BETWEEN '2025-11-01' AND '2025-11-30' AND (event IS NULL OR event <> 'black_friday')",
+    "tradeoff": "BETWEEN is shorter and keeps both ends, while two comparisons make it easy to turn one end into exclusive."
+  },
   "planted_wrong": [
     {
       "id": "M1",

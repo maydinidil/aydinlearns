@@ -22,6 +22,8 @@ project folder.
 
 ## Deferred findings
 
+Triaged on 2026-10-07: what is still open is in [`backlog.md`](backlog.md); the closed ones are in the section at the end.
+
 None blocks studying.
 
 - Today's step rows now read label, detail, control in the page order (the control used to follow the label). Screen readers read the detail before the button.
@@ -33,3 +35,23 @@ None blocks studying.
 ## Noticed, not this sprint's
 
 - The mini drill's header says "Help opens in the review." twice: once in the run's rule line and once in the help line below it. The text predates sprint 3b, which changed no text. Fix it in sprint 4.
+
+## Closed on 2026-10-07 (backlog cleanup)
+
+Every deferred finding in this record was triaged on 2026-10-07. The ones still open are in
+[`backlog.md`](backlog.md). These tables hold the rest.
+
+### Fixed in the hygiene PR
+
+| Item | Fix |
+|---|---|
+| mini drill header says "Help opens in the review." twice | The drill help line shows once, in the drill header |
+
+### Won't do
+
+| Item | Reason |
+|---|---|
+| Today step rows read detail before the control for screen readers | Deliberate page-order change; no problem reported. |
+| literal pixel values beside spacing tokens | Plan-mandated values; cosmetic. |
+| worked example code block carries the shown-sql class | Recorded as harmless; removing may change styling. |
+| deliberate text and role additions, numbered lists lost visible numbers | A deliberate listed choice. |

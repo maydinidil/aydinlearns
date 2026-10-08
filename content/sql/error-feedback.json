@@ -39,6 +39,11 @@
     "why": "After GROUP BY, each group becomes one row. A column that is neither in GROUP BY nor inside an aggregate can hold many different values within one group, and SQL will not pick one for you.",
     "model": "Add the column to GROUP BY if the question wants one row per that column too (this changes the grain), or wrap it in an aggregate such as `MAX(...)` if one value per group is enough. If the column is only read by a CASE label, group by the label instead (its name, its position or the whole CASE). If it sits in a HAVING test on single rows, move that test to WHERE."
   },
+  "ERR-SEM-03": {
+    "assumed": "You probably expected the tables to pair up on their shared ID by themselves.",
+    "why": "Without a condition that links a key in one table to the same key in the other, SQL pairs every row of the first table with every row of the second. That gives far more rows than either table has, and every total comes out much too big.",
+    "model": "Give every JOIN an ON condition that matches the link the schema panel shows, as in `FROM order_lines ol JOIN orders o ON o.order_id = ol.order_id`. Then check the row count: an inner join along a 1:N link never returns more rows than the N side has."
+  },
   "ERR-SEM-04": {
     "assumed": "You probably expected `= NULL` to find the missing values.",
     "why": "In SQL, a comparison with NULL is unknown, not true, so `= NULL` and `<> NULL` keep no rows.",
@@ -53,6 +58,11 @@
     "assumed": "You probably expected this query to answer the question as it is written.",
     "why": "The app could not match this answer to one common mistake, so the details shown with it, either the rows that differ from the expected result or the engine's message, are the best clue.",
     "model": "Check each clause against the question in the order SQL runs them: the table (FROM), the rows to keep (WHERE), one row per what (GROUP BY), the group filter (HAVING), the columns and numbers (SELECT), then the order and cut-off (ORDER BY, LIMIT). If you have a result, compare one missing row with one extra row to see which clause is off."
+  },
+  "ERR-LOG-01": {
+    "assumed": "You probably expected a join to keep each row of the first table once.",
+    "why": "A join repeats a row once for every matching row on the other side. An order with three lines appears three times after a join to `order_lines`, so a value stored once per order and summed after the join is counted three times. A product in two promotions, or with several price versions or competitor prices, repeats in the same way.",
+    "model": "Check the grain of both tables in the schema panel before you join. Add up the \"many\" side first, to one row per key, in a CTE, then join that result: `WITH line_totals AS (SELECT order_id, SUM(quantity) AS units FROM order_lines GROUP BY order_id)`. Compare the row counts before and after the join."
   },
   "ERR-LOG-02": {
     "assumed": "You probably expected WHERE and HAVING to do the same job, so the condition went into the wrong one.",
@@ -75,9 +85,9 @@
     "model": "Make one side a decimal before you divide, for example `clicks * 1.0 / views`. This works the same way on every engine. To round, wrap the final result in `ROUND(x, n)` instead of casting it to INTEGER."
   },
   "ERR-LOG-06": {
-    "assumed": "You probably expected the end date of your range to include that whole day.",
-    "why": "`BETWEEN` includes both ends, but on a timestamp the end date means midnight at the start of that day, so anything later on the last day falls outside. A `>` where `>=` was needed, or a `<=` where `<` was needed, moves a whole day in or out of the range in the same way.",
-    "model": "Use a half-open range: on or after the first day, and before the day after the last one, for example `ts >= '2025-03-01' AND ts < '2025-04-01'` for all of March."
+    "assumed": "You probably expected your range to keep exactly the days the question names, from its first day to its last day, whatever the column holds.",
+    "why": "Each end of a range decides whole days. On a DATE column, `> '2025-03-01'` leaves out 1 March, `< '2025-03-31'` leaves out 31 March, and starting on 28 February or ending on 1 April adds a day; ending on the first day of the last month or year leaves out the rest of it. On a timestamp, a date means midnight at the start of that day, so `= '2025-03-31'` finds only midnight and `BETWEEN '2025-03-01' AND '2025-03-31'` misses everything later on 31 March. Period boundaries work the same way: a band for a month, quarter or half-year that ends with `<` its last day puts that day in the next period, and a filter on a week or month column keeps or drops whole weeks or months at the edges.",
+    "model": "Use a half-open range: on or after the first day, and before the day after the last one, as in `col >= '2025-03-01' AND col < '2025-04-01'` for all of March. It works the same on a DATE and on a timestamp. Filter on the date itself, not on a week or month column, unless the question asks for whole weeks or months. Then check the rows on the first and the last day."
   },
   "ERR-LOG-07": {
     "assumed": "You probably expected your GROUP BY to give one row per thing the question asks about.",
@@ -93,6 +103,21 @@
     "assumed": "You probably expected DISTINCT to remove only true copies of the same record.",
     "why": "DISTINCT keeps one row from each set of identical rows, and inside an aggregate it keeps one of each value, even when those rows are different records. Two products with the same cost are still two products, but `SUM(DISTINCT unit_cost_eur)` counts that cost only once.",
     "model": "Remove DISTINCT unless the question asks for different values. To count unique things, apply DISTINCT to their ID, as in `COUNT(DISTINCT product_id)`."
+  },
+  "ERR-LOG-10": {
+    "assumed": "You probably expected a LEFT JOIN to keep every row of the left table, whatever WHERE says.",
+    "why": "WHERE runs after the join. On a left row with no match, every column of the right table is missing, so a condition on a right-table column, such as `p.promo_type = 'clearance'`, is not true there and WHERE drops the row. The LEFT JOIN then works like an INNER JOIN.",
+    "model": "Put a condition on the right table into the ON clause, as in `LEFT JOIN promotions p ON p.promo_id = ol.promo_id AND p.promo_type = 'clearance'`, so it decides which rows match without removing left rows. Keep WHERE for conditions on the left table, or for `IS NULL` when you want the rows with no match."
+  },
+  "ERR-LOG-11": {
+    "assumed": "You probably expected the join type to change only the columns you get, not the rows.",
+    "why": "An INNER JOIN keeps only rows with a match on both sides, so a store with no orders or a product that never sold disappears. A LEFT JOIN keeps every row of the left table and leaves the right side missing where nothing matches, and a FULL OUTER JOIN keeps the rows with no match from both sides. The wrong one drops rows the question wants, or keeps rows it does not.",
+    "model": "Ask whether the question wants rows with no match. \"Every store, including those with no orders\" needs the stores on the left: `FROM stores s LEFT JOIN orders o ON o.store_id = s.store_id`. \"Orders with their store\" needs only matches, so an INNER JOIN. Then count the rows with no match to check."
+  },
+  "ERR-LOG-12": {
+    "assumed": "You probably expected any two columns that look alike to make a good join.",
+    "why": "A join pairs rows wherever the ON condition is true, whatever the columns mean. Joining `order_lines.product_id` to `promotions.promo_id`, or joining on a name instead of an ID, pairs rows that have nothing to do with each other, or none at all, and the numbers come out wrong with no error.",
+    "model": "Join along a link the schema panel shows: a foreign key on one side and the primary key it points to on the other, such as `order_lines.order_id` to `orders.order_id`. When the key has two columns, as in `price_history`, match every column the question needs."
   },
   "ERR-LOG-13": {
     "assumed": "You probably expected SQL to read your conditions from left to right.",
@@ -149,14 +174,49 @@
     "why": "BETWEEN low AND high keeps the values from low to high, both ends included, so `BETWEEN 20 AND 10` matches nothing at all. A range written with `>` or `<` leaves its end out and one written with `>=` or `<=` keeps it, so the wrong one drops or adds the rows that sit exactly on an end.",
     "model": "Put the low end first, as in `discount_pct BETWEEN 10 AND 20`. Then read the wording for each end: 'from ... to', 'at least' and 'up to' keep the end, while 'over', 'under', 'after' and 'before' leave it out."
   },
+  "ERR-LOG-24": {
+    "assumed": "You probably expected UNION to stack the two results exactly as they are.",
+    "why": "UNION also removes duplicate rows across both parts and keeps one of each, so two order lines with the same values, or a product in both parts, count once. Counts and sums made from the result then come out too low.",
+    "model": "Use UNION ALL to stack results and keep every row: `SELECT product_id FROM ... UNION ALL SELECT product_id FROM ...`. Use UNION only when the question asks for a list of different values, each once."
+  },
+  "ERR-LOG-25": {
+    "assumed": "You probably expected a month or week number to stand for one period.",
+    "why": "`month(order_ts)` gives 3 for March of every year, so grouping by it merges March 2024 with March 2025. A week number repeats in the same way, and ISO week 1 can start in late December: paired with the calendar year, 29 December 2025 lands in week 1 of 2025 instead of 2026. Truncating to another unit, such as the week where the question asks for the month, gives other periods than the question asks for.",
+    "model": "Group by the start of each period with `date_trunc('month', order_ts)`, which keeps the year. For ISO weeks, use `date_trunc('week', order_ts)`, whose weeks start on Monday, or pair `isoyear(order_ts)` with `week(order_ts)`, never `year(...)` with a week number."
+  },
+  "ERR-LOG-26": {
+    "assumed": "You probably expected `order_ts` to show Amsterdam time.",
+    "why": "Every `_ts` column holds the moment in UTC. Amsterdam is 1 hour ahead in winter and 2 hours ahead in summer, so an order at 23:30 UTC is already the next day in Amsterdam. Taking the date, week or month straight from the column puts those late-evening orders on the day before.",
+    "model": "Turn the UTC moment into Amsterdam time first, then take the date: `CAST(timezone('Europe/Amsterdam', timezone('UTC', order_ts)) AS DATE)`. A single `order_ts AT TIME ZONE 'Europe/Amsterdam'` is not enough: it reads the stored value as Amsterdam time and moves it the wrong way."
+  },
+  "ERR-LOG-27": {
+    "assumed": "You probably expected the set operator you chose to keep the rows the question describes.",
+    "why": "Each set operator answers a different question. UNION and UNION ALL stack both results, INTERSECT keeps only the rows in both, and EXCEPT keeps the rows of the first query that are missing from the second. EXCEPT also depends on the order: A EXCEPT B and B EXCEPT A give different rows, so writing the two queries the wrong way round answers the opposite question.",
+    "model": "Say in words what you need, then pick the operator: 'in both' is INTERSECT, 'in either' is UNION, and 'in A but not in B' is `A EXCEPT B`, with A first. Then check one row you expect in the result and one you expect to be left out."
+  },
+  "ERR-LOG-28": {
+    "assumed": "You probably expected a set operator to treat a missing value as `=` does, as never matching anything.",
+    "why": "UNION, INTERSECT and EXCEPT compare whole rows, and unlike `=` they count two missing values as the same. So when both queries return a row with a missing value, INTERSECT keeps one such row and EXCEPT removes it from the first query. A WHERE test or a join's ON never matches a missing value, so the same rows behave differently there.",
+    "model": "Read whether the question counts rows with no value. When it leaves them out, filter them out in each query before the set operator, as in `WHERE col IS NOT NULL` in both parts. Then look for a row with a missing value in your result: keep it only when the question wants it."
+  },
+  "ERR-LOG-29": {
+    "assumed": "You probably expected CASE to give each row the label of the branch that fits it best, whatever order the WHEN branches come in.",
+    "why": "CASE tests its WHEN branches from top to bottom and stops at the first one that is true. When an earlier test is wider, such as `units >= 2` before `units >= 5`, every row that passes the later test passes the earlier one too, so it takes the earlier label and the later branch never runs. Two rules that overlap work the same way: the one written first wins.",
+    "model": "Order the branches so each row meets its own branch first: for bands, the highest cut-off first, as in `CASE WHEN units >= 5 THEN 'large' WHEN units >= 2 THEN 'medium' ELSE 'single' END`; for rules, the one that must win first, such as a test for a missing value. Then pick one row that passes two tests and check which label it gets."
+  },
+  "ERR-CMP-02": {
+    "assumed": "You probably expected to need every table that sounds related to the question.",
+    "why": "Your result is right, but one joined table adds no column and no filter the question needs. An extra join makes the query slower and harder to read, and on a 1:N link it can repeat rows when the query changes later.",
+    "model": "Before you add a join, name the column or the filter it brings. When the table you start from already holds every column the question asks for, as `order_lines` holds `product_id`, leave the other table out."
+  },
   "ERR-OUT-01": {
     "assumed": "You probably expected the answer to count as right with an extra column, a missing column or a differently named column.",
     "why": "The output contract asks for {expected_columns} column(s) with the names it lists, and your query returned {actual_columns}. The columns are part of the answer: an extra one changes what each row means, and a missing one leaves part of the question unanswered.",
     "model": "Select exactly the columns in the output contract, in its order, and use AS to give each one the name it lists. A missing comma also turns the next column name into an alias, as in `SELECT city country_code`, so check the commas in your SELECT list."
   },
   "ERR-OUT-02": {
-    "assumed": "You probably expected a value to count as right whatever its type, for example the text '10' for the number 10, or a date written as text.",
-    "why": "SQL keeps text, numbers and dates as different types: the text '10' never equals the number 10, and the engine stops when it cannot turn one type into another. Each column must have the type the output contract shows, in the place it shows it.",
-    "model": "Return each column in the contract's type and order: leave numbers and dates unformatted rather than casting them to text, and compare text columns with quoted text such as `'BE'` and number columns with plain numbers such as `10`."
+    "assumed": "You probably expected a value to count as right whatever its type, for example the text '10' for the number 10, a date written as text, or a whole number written with decimals, such as 2.0 for 2.",
+    "why": "SQL keeps text, numbers and dates as different types: the text '10' never equals the number 10, and the engine stops when it cannot turn one type into another. Each column must have the type the output contract shows, in the place it shows it. In screen mode, as in an online SQL test, whole numbers and numbers with decimals are different types too: a count that comes back as 2.0, after `* 1.0` or a CAST to a decimal, does not match the whole number 2, and the reverse.",
+    "model": "Return each column in the contract's type and order: leave numbers and dates unformatted rather than casting them to text, and compare text columns with quoted text such as `'BE'` and number columns with plain numbers such as `10`. Return a count as a whole number: use `* 1.0` or a CAST to a decimal only on a value that has decimals, such as a rate."
   }
 }

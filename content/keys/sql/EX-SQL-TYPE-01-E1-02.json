@@ -6,7 +6,10 @@
     "SELECT promo_code, discount_pct, ROUND(199.00 - 199.00 * discount_pct / 100, 2) AS price_after_eur FROM promotions WHERE start_date >= DATE '2025-01-01' AND start_date <= DATE '2025-12-31'",
     "SELECT promo_code, discount_pct, ROUND(199 * (100 - discount_pct) / 100, 2) AS price_after_eur FROM promotions WHERE start_date BETWEEN '2025-01-01' AND '2025-12-31'"
   ],
-  "other_way": null,
+  "other_way": {
+    "sql": "SELECT promo_code, discount_pct, ROUND(199.00 - 199.00 * discount_pct / 100, 2) AS price_after_eur FROM promotions WHERE start_date >= DATE '2025-01-01' AND start_date <= DATE '2025-12-31'",
+    "tradeoff": "Two comparisons give the same rows, but BETWEEN states the range in one short test."
+  },
   "planted_wrong": [
     {
       "id": "PW1",

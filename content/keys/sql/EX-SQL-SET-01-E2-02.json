@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-SET-01-E2-02",
+  "item_version": 2,
+  "reference_sql": "WITH may_not_june AS (\n  SELECT customer_id\n  FROM orders\n  WHERE customer_id IS NOT NULL\n    AND order_ts >= TIMESTAMP '2025-05-01 00:00:00'\n    AND order_ts < TIMESTAMP '2025-06-01 00:00:00'\n  EXCEPT\n  SELECT customer_id\n  FROM orders\n  WHERE order_ts >= TIMESTAMP '2025-06-01 00:00:00'\n    AND order_ts < TIMESTAMP '2025-07-01 00:00:00'\n)\nSELECT COUNT(*) AS customers\nFROM may_not_june",
+  "alternatives": [
+    "WITH may_customers AS (SELECT DISTINCT customer_id FROM orders WHERE customer_id IS NOT NULL AND order_ts >= TIMESTAMP '2025-05-01 00:00:00' AND order_ts < TIMESTAMP '2025-06-01 00:00:00'), june_customers AS (SELECT DISTINCT customer_id FROM orders WHERE customer_id IS NOT NULL AND order_ts >= TIMESTAMP '2025-06-01 00:00:00' AND order_ts < TIMESTAMP '2025-07-01 00:00:00') SELECT COUNT(*) AS customers FROM may_customers m LEFT JOIN june_customers j ON j.customer_id = m.customer_id WHERE j.customer_id IS NULL",
+    "WITH may_not_june AS (SELECT customer_id FROM orders WHERE customer_id IS NOT NULL AND order_ts >= TIMESTAMP '2025-05-01 00:00:00' AND order_ts < TIMESTAMP '2025-06-01 00:00:00' EXCEPT SELECT customer_id FROM orders WHERE customer_id IS NOT NULL AND order_ts >= TIMESTAMP '2025-06-01 00:00:00' AND order_ts < TIMESTAMP '2025-07-01 00:00:00') SELECT COUNT(customer_id) AS customers FROM may_not_june"
+  ],
+  "other_way": {
+    "sql": "WITH may_customers AS (SELECT DISTINCT customer_id FROM orders WHERE customer_id IS NOT NULL AND order_ts >= TIMESTAMP '2025-05-01 00:00:00' AND order_ts < TIMESTAMP '2025-06-01 00:00:00'), june_customers AS (SELECT DISTINCT customer_id FROM orders WHERE customer_id IS NOT NULL AND order_ts >= TIMESTAMP '2025-06-01 00:00:00' AND order_ts < TIMESTAMP '2025-07-01 00:00:00') SELECT COUNT(*) AS customers FROM may_customers m LEFT JOIN june_customers j ON j.customer_id = m.customer_id WHERE j.customer_id IS NULL",
+    "tradeoff": "A LEFT JOIN with IS NULL finds the same customers, but each side must first be made one row per customer."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-27",
+      "sql": "WITH may_not_june AS (SELECT customer_id FROM orders WHERE customer_id IS NOT NULL AND order_ts >= TIMESTAMP '2025-06-01 00:00:00' AND order_ts < TIMESTAMP '2025-07-01 00:00:00' EXCEPT SELECT customer_id FROM orders WHERE order_ts >= TIMESTAMP '2025-05-01 00:00:00' AND order_ts < TIMESTAMP '2025-06-01 00:00:00') SELECT COUNT(*) AS customers FROM may_not_june"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-06",
+      "sql": "WITH may_not_june AS (SELECT customer_id FROM orders WHERE customer_id IS NOT NULL AND order_ts BETWEEN DATE '2025-05-01' AND DATE '2025-05-31' EXCEPT SELECT customer_id FROM orders WHERE order_ts BETWEEN DATE '2025-06-01' AND DATE '2025-06-30') SELECT COUNT(*) AS customers FROM may_not_june"
+    }
+  ],
+  "hint3_partial": "WITH may_not_june AS (\n  SELECT customer_id\n  FROM orders\n  WHERE customer_id IS NOT NULL\n    AND order_ts >= TIMESTAMP '2025-05-01 00:00:00'\n    AND order_ts < TIMESTAMP '2025-06-01 00:00:00'\n  ___\n  SELECT customer_id\n  FROM orders\n  WHERE order_ts >= ___\n    AND order_ts < ___\n)\nSELECT COUNT(*) AS customers\nFROM may_not_june",
+  "solver": {
+    "prompt_hash": "8d0a9b9e71436e09",
+    "schema_version": "7ed366279088",
+    "dataset_version": "7f30f5a797e6a9ce",
+    "grader_version": "4b.1",
+    "query": "SELECT COUNT(*) AS customers FROM (\n  SELECT customer_id FROM orders\n  WHERE customer_id IS NOT NULL AND order_ts >= TIMESTAMP '2025-05-01 00:00:00' AND order_ts < TIMESTAMP '2025-06-01 00:00:00'\n  EXCEPT\n  SELECT customer_id FROM orders\n  WHERE customer_id IS NOT NULL AND order_ts >= TIMESTAMP '2025-06-01 00:00:00' AND order_ts < TIMESTAMP '2025-07-01 00:00:00'\n) t",
+    "at": "2026-10-07T22:25:32.787Z"
+  }
+}

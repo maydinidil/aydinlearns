@@ -1,0 +1,116 @@
+{
+  "id": "EX-SQL-JOIN-04-E1-08",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "self-join",
+    "products",
+    "sister",
+    "pairs"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-JOIN-04"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-JOIN-04",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-JOIN-01",
+    "SQL-JOIN-04"
+  ],
+  "template_id": "T-JOIN-04-self-join-pairs-once",
+  "template_params": {
+    "table": "products",
+    "link": "sister_product_id"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_join",
+  "prompt": "List each pair of sister products once. Two products are sisters when one's sister_product_id holds the other's product_id. Return two columns, in this order: product_a and product_b, the product_names of the two sisters, with product_a the product with the lower product_id. Return one row for each pair. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "product_a",
+        "type_class": "text"
+      },
+      {
+        "name": "product_b",
+        "type_class": "text"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "product_a",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "product_b",
+        "type_class": "text",
+        "precision": "exact"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "product_a"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, keep each pair once by comparing the two product_ids.",
+    "Every pair shows up twice after the self-join, once from each side; keep only the row where the first copy has the smaller ID."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 63,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 64,
+      "to": 79,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 80,
+      "to": 133,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 134,
+      "to": 167,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "The self-join finds every sister pair from both sides, and the test on product_id keeps only the row where the first product has the lower ID."
+}

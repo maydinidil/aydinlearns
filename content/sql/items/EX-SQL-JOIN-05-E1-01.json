@@ -1,0 +1,118 @@
+{
+  "id": "EX-SQL-JOIN-05-E1-01",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "cross-join",
+    "grid",
+    "stores",
+    "calendar"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-JOIN-05"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pretest",
+  "target_concept_id": "SQL-JOIN-05",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-JOIN-01",
+    "SQL-JOIN-05"
+  ],
+  "template_id": "T-JOIN-05-cross-join-store-day-list",
+  "template_params": {
+    "country_code": "BE",
+    "from": "2025-03-03",
+    "to": "2025-03-09"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_join",
+  "prompt": "List every combination of a store located in Belgium (country_code BE) and a calendar day from 3 to 9 March 2025, whether or not the store had orders that day. Return two columns, in this order: store_code and cal_date. Return one row for each store and day. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "store_code",
+        "type_class": "text"
+      },
+      {
+        "name": "cal_date",
+        "type_class": "temporal"
+      }
+    ],
+    "grain": "one row per store and day"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "store_code",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "cal_date",
+        "type_class": "temporal",
+        "precision": "exact"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "store_code",
+      "cal_date"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, pair every Belgian store with every day of the week, with no join condition at all.",
+    "A grid needs every store with every day, so it comes from a join that matches all pairs, not from the orders, which skip days without sales."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 31,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 32,
+      "to": 45,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 46,
+      "to": 67,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 68,
+      "to": 158,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "CROSS JOIN pairs each Belgian store with each of the 7 days, so every store and day gets a row even when nothing was sold."
+}

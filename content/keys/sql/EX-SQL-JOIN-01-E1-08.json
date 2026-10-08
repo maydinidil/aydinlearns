@@ -1,0 +1,31 @@
+{
+  "item_id": "EX-SQL-JOIN-01-E1-08",
+  "item_version": 2,
+  "reference_sql": "SELECT l.order_line_id, pr.promo_name, l.line_discount_eur\nFROM order_lines l\nJOIN promotions pr ON pr.promo_id = l.promo_id\nWHERE pr.promo_code = 'P-2025-06'",
+  "alternatives": [
+    "SELECT l.order_line_id, pr.promo_name, l.line_discount_eur FROM promotions pr JOIN order_lines l ON l.promo_id = pr.promo_id WHERE pr.promo_code = 'P-2025-06'",
+    "SELECT l.order_line_id, pr.promo_name, l.line_discount_eur FROM order_lines l, promotions pr WHERE pr.promo_id = l.promo_id AND pr.promo_code = 'P-2025-06'"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-12",
+      "sql": "SELECT l.order_line_id, pr.promo_name, l.line_discount_eur FROM order_lines l JOIN promotions pr ON pr.promo_id = l.product_id WHERE pr.promo_code = 'P-2025-06'"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-SYN-03",
+      "sql": "SELECT order_line_id, promo_name, line_discount_eur FROM order_lines l JOIN promotions pr ON pr.promo_id = promo_id WHERE promo_code = 'P-2025-06'"
+    }
+  ],
+  "hint3_partial": "SELECT l.order_line_id, pr.promo_name, l.line_discount_eur\nFROM order_lines l\nJOIN promotions pr ON ___\nWHERE pr.promo_code = 'P-2025-06'",
+  "solver": {
+    "prompt_hash": "42305653af01ffad",
+    "schema_version": "deaba44a0c00",
+    "dataset_version": "e1545e4258743033",
+    "grader_version": "1b.3",
+    "query": "SELECT l.order_line_id, p.promo_name, l.line_discount_eur\nFROM order_lines l\nJOIN promotions p ON p.promo_id = l.promo_id\nWHERE p.promo_code = 'P-2025-06'",
+    "at": "2026-10-07T10:41:37.910Z"
+  }
+}

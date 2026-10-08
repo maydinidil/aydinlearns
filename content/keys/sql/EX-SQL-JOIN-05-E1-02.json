@@ -1,0 +1,39 @@
+{
+  "item_id": "EX-SQL-JOIN-05-E1-02",
+  "item_version": 1,
+  "reference_sql": "WITH d3 AS (SELECT store_id, COUNT(*) AS n FROM orders WHERE CAST(order_ts AS DATE) = DATE '2025-03-03' GROUP BY store_id),\nd4 AS (SELECT store_id, COUNT(*) AS n FROM orders WHERE CAST(order_ts AS DATE) = DATE '2025-03-04' GROUP BY store_id)\nSELECT COALESCE(d3.store_id, d4.store_id) AS store_id, COALESCE(d3.n, 0) AS orders_mar_3, COALESCE(d4.n, 0) AS orders_mar_4\nFROM d3\nFULL OUTER JOIN d4 ON d4.store_id = d3.store_id",
+  "alternatives": [
+    "SELECT store_id, COUNT(*) FILTER (WHERE CAST(order_ts AS DATE) = DATE '2025-03-03') AS orders_mar_3, COUNT(*) FILTER (WHERE CAST(order_ts AS DATE) = DATE '2025-03-04') AS orders_mar_4 FROM orders WHERE CAST(order_ts AS DATE) BETWEEN DATE '2025-03-03' AND DATE '2025-03-04' GROUP BY store_id",
+    "WITH d3 AS (SELECT store_id, COUNT(*) AS n FROM orders WHERE CAST(order_ts AS DATE) = DATE '2025-03-03' GROUP BY store_id), d4 AS (SELECT store_id, COUNT(*) AS n FROM orders WHERE CAST(order_ts AS DATE) = DATE '2025-03-04' GROUP BY store_id) SELECT COALESCE(d4.store_id, d3.store_id) AS store_id, COALESCE(d3.n, 0) AS orders_mar_3, COALESCE(d4.n, 0) AS orders_mar_4 FROM d4 FULL JOIN d3 ON d3.store_id = d4.store_id"
+  ],
+  "other_way": {
+    "sql": "SELECT store_id, COUNT(*) FILTER (WHERE CAST(order_ts AS DATE) = DATE '2025-03-03') AS orders_mar_3, COUNT(*) FILTER (WHERE CAST(order_ts AS DATE) = DATE '2025-03-04') AS orders_mar_4 FROM orders WHERE CAST(order_ts AS DATE) BETWEEN DATE '2025-03-03' AND DATE '2025-03-04' GROUP BY store_id",
+    "tradeoff": "Counting both days with FILTER in one pass is shorter, but FULL OUTER JOIN also works when the two lists come from different tables."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-11",
+      "sql": "WITH d3 AS (SELECT store_id, COUNT(*) AS n FROM orders WHERE CAST(order_ts AS DATE) = DATE '2025-03-03' GROUP BY store_id), d4 AS (SELECT store_id, COUNT(*) AS n FROM orders WHERE CAST(order_ts AS DATE) = DATE '2025-03-04' GROUP BY store_id) SELECT COALESCE(d3.store_id, d4.store_id) AS store_id, COALESCE(d3.n, 0) AS orders_mar_3, COALESCE(d4.n, 0) AS orders_mar_4 FROM d3 LEFT JOIN d4 ON d4.store_id = d3.store_id"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-11",
+      "sql": "WITH d3 AS (SELECT store_id, COUNT(*) AS n FROM orders WHERE CAST(order_ts AS DATE) = DATE '2025-03-03' GROUP BY store_id), d4 AS (SELECT store_id, COUNT(*) AS n FROM orders WHERE CAST(order_ts AS DATE) = DATE '2025-03-04' GROUP BY store_id) SELECT COALESCE(d3.store_id, d4.store_id) AS store_id, COALESCE(d3.n, 0) AS orders_mar_3, COALESCE(d4.n, 0) AS orders_mar_4 FROM d3 JOIN d4 ON d4.store_id = d3.store_id"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-17",
+      "sql": "WITH d3 AS (SELECT store_id, COUNT(*) AS n FROM orders WHERE CAST(order_ts AS DATE) = DATE '2025-03-03' GROUP BY store_id), d4 AS (SELECT store_id, COUNT(*) AS n FROM orders WHERE CAST(order_ts AS DATE) = DATE '2025-03-04' GROUP BY store_id) SELECT COALESCE(d3.store_id, d4.store_id) AS store_id, d3.n AS orders_mar_3, d4.n AS orders_mar_4 FROM d3 FULL OUTER JOIN d4 ON d4.store_id = d3.store_id"
+    }
+  ],
+  "hint3_partial": "WITH d3 AS (SELECT store_id, COUNT(*) AS n FROM orders WHERE CAST(order_ts AS DATE) = DATE '2025-03-03' GROUP BY store_id),\nd4 AS (SELECT store_id, COUNT(*) AS n FROM orders WHERE CAST(order_ts AS DATE) = DATE '2025-03-04' GROUP BY store_id)\nSELECT COALESCE(d3.store_id, d4.store_id) AS store_id, COALESCE(d3.n, 0) AS orders_mar_3, COALESCE(d4.n, 0) AS orders_mar_4\nFROM d3\n___ d4 ON d4.store_id = d3.store_id",
+  "solver": {
+    "prompt_hash": "719ae3aebfd3cef3",
+    "schema_version": "7ed366279088",
+    "dataset_version": "e1545e4258743033",
+    "grader_version": "1b.3",
+    "query": "SELECT store_id,\n       COUNT(CASE WHEN CAST(order_ts AS DATE) = DATE '2025-03-03' THEN 1 END) AS orders_mar_3,\n       COUNT(CASE WHEN CAST(order_ts AS DATE) = DATE '2025-03-04' THEN 1 END) AS orders_mar_4\nFROM orders\nWHERE order_ts >= TIMESTAMP '2025-03-03 00:00:00' AND order_ts < TIMESTAMP '2025-03-05 00:00:00'\nGROUP BY store_id",
+    "at": "2026-10-07T10:41:41.644Z"
+  }
+}

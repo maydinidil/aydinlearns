@@ -1,0 +1,150 @@
+{
+  "id": "EX-SQL-JOIN-05-E2-05",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "cross-join",
+    "grid",
+    "stores",
+    "calendar",
+    "revenue"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-JOIN-05"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-JOIN-05",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-JOIN-01",
+    "SQL-JOIN-05"
+  ],
+  "template_id": "T-JOIN-05-grid-store-week-revenue",
+  "template_params": {
+    "country_code": "BE",
+    "month": "2025-03"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_join",
+  "prompt": "For every store located in Belgium (country_code BE) and every week whose week_start in calendar falls from 1 to 31 March 2025, what was the store's net revenue that week, from its week_start (a Monday) to the Sunday after? A line's net revenue is quantity times unit_price_eur minus line_discount_eur. order_ts holds UTC time: use its UTC date. Return three columns, in this order: store_code, week_start and net_revenue_eur, with 0 when the store sold nothing that week. Return one row for each store and week. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "store_code",
+        "type_class": "text"
+      },
+      {
+        "name": "week_start",
+        "type_class": "temporal"
+      },
+      {
+        "name": "net_revenue_eur",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "store_code",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "week_start",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "net_revenue_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "store_code",
+      "week_start"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, pair every Belgian store with every March week before the revenue is joined.",
+    "Work out revenue per store and week in its own step, then attach it to the store-by-week grid with a join that keeps weeks with no sales."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 122,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 123,
+      "to": 400,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 401,
+      "to": 485,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 486,
+      "to": 499,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 500,
+      "to": 518,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 519,
+      "to": 597,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 598,
+      "to": 625,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "The store-by-week grid has a row for every pair, and the LEFT JOIN with COALESCE shows 0 for a week in which a store sold nothing."
+}

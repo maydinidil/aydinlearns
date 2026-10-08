@@ -6,7 +6,10 @@
     "SELECT store_code, SUM(net_revenue_eur) AS revenue_eur, COALESCE(SUM(CASE WHEN parent_category = 'Accessories' THEN net_revenue_eur END), 0) AS accessories_revenue_eur FROM sales GROUP BY store_code",
     "SELECT store_code, SUM(net_revenue_eur) AS revenue_eur, COALESCE(SUM(net_revenue_eur) FILTER (WHERE parent_category = 'Accessories'), 0) AS accessories_revenue_eur FROM sales GROUP BY 1"
   ],
-  "other_way": null,
+  "other_way": {
+    "sql": "SELECT store_code, SUM(net_revenue_eur) AS revenue_eur, COALESCE(SUM(net_revenue_eur) FILTER (WHERE parent_category = 'Accessories'), 0) AS accessories_revenue_eur FROM sales GROUP BY 1",
+    "tradeoff": "Reads closer to plain English, but FILTER is not available in every SQL dialect."
+  },
   "planted_wrong": [
     {
       "id": "PW1",

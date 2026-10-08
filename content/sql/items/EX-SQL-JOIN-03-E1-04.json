@@ -1,0 +1,142 @@
+{
+  "id": "EX-SQL-JOIN-03-E1-04",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "fan_out",
+    "cte",
+    "orders",
+    "order_lines"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-JOIN-03"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "lesson",
+  "target_concept_id": "SQL-JOIN-03",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-JOIN-03"
+  ],
+  "template_id": "T-JOIN-03-aggregate-child-first",
+  "template_params": {
+    "parent": "orders",
+    "child": "order_lines",
+    "group_by": "channel"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_join",
+  "prompt": "How many orders did each channel take, and what were they worth in total? An order's value is the sum, over its order lines, of quantity times unit_price_eur minus line_discount_eur. Count only orders with at least one line. Return three columns, in this order: channel, n_orders and value_eur. Return one row for each channel. Do not round. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "channel",
+        "type_class": "text"
+      },
+      {
+        "name": "n_orders",
+        "type_class": "numeric"
+      },
+      {
+        "name": "value_eur",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per channel"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "channel",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "n_orders",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "value_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "channel"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the step that turns the order lines into one row per order with its value.",
+    "Name the step that the final query joins to, and inside its brackets group the lines by order."
+  ],
+  "subgoals": [
+    {
+      "from": 25,
+      "to": 105,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 108,
+      "to": 124,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 127,
+      "to": 144,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 147,
+      "to": 216,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 217,
+      "to": 277,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 278,
+      "to": 296,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": {
+    "stage1": 5,
+    "stage2": 5
+  },
+  "faded_shape": "WITH ",
+  "faded_suffix": "\nSELECT o.channel, COUNT(*) AS n_orders, SUM(t.order_eur) AS value_eur\nFROM orders o\nJOIN order_totals t ON t.order_id = o.order_id\nGROUP BY o.channel",
+  "starter_sql": null,
+  "time_target_ms": 150000,
+  "why_this_works": "The step brings the lines down to one row per order, so the join keeps one row per order and COUNT(*) counts orders."
+}

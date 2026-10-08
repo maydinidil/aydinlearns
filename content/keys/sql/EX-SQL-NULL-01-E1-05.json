@@ -7,7 +7,10 @@
     "SELECT store_code, city, country_code\nFROM stores\nWHERE close_date IS NULL AND (country_code = 'LU' OR country_code = 'NL')",
     "SELECT store_code, city, country_code\nFROM stores\nWHERE (country_code = 'NL' AND close_date IS NULL) OR (country_code = 'LU' AND close_date IS NULL)"
   ],
-  "other_way": null,
+  "other_way": {
+    "sql": "SELECT store_code, city, country_code\nFROM stores\nWHERE country_code IN ('NL', 'LU') AND close_date IS NULL",
+    "tradeoff": "IN lists the values once and reads shorter, while the OR version repeats the column name for each value."
+  },
   "planted_wrong": [
     {
       "id": "M1",

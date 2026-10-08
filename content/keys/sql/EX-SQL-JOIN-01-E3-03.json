@@ -1,0 +1,36 @@
+{
+  "item_id": "EX-SQL-JOIN-01-E3-03",
+  "item_version": 1,
+  "reference_sql": "SELECT p.product_name, cp.observed_ts, cp.price_eur, ph.list_price_eur\nFROM competitor_prices cp\nJOIN price_history ph ON ph.product_id = cp.product_id\nJOIN products p ON p.product_id = cp.product_id\nWHERE ph.valid_to IS NULL\n  AND cp.competitor = 'Bliksem'\n  AND cp.observed_ts >= TIMESTAMP '2025-03-03 00:00:00' AND cp.observed_ts < TIMESTAMP '2025-03-10 00:00:00'\n  AND cp.price_eur < ph.list_price_eur",
+  "alternatives": [
+    "SELECT p.product_name, cp.observed_ts, cp.price_eur, ph.list_price_eur FROM products p JOIN competitor_prices cp ON cp.product_id = p.product_id JOIN price_history ph ON ph.product_id = p.product_id AND ph.valid_to IS NULL WHERE cp.competitor = 'Bliksem' AND CAST(cp.observed_ts AS DATE) BETWEEN DATE '2025-03-03' AND DATE '2025-03-09' AND cp.price_eur < ph.list_price_eur",
+    "SELECT p.product_name, cp.observed_ts, cp.price_eur, ph.list_price_eur FROM competitor_prices cp JOIN price_history ph ON ph.product_id = cp.product_id AND ph.valid_to IS NULL AND cp.price_eur < ph.list_price_eur JOIN products p ON p.product_id = cp.product_id WHERE cp.competitor = 'Bliksem' AND cp.observed_ts >= TIMESTAMP '2025-03-03 00:00:00' AND cp.observed_ts < TIMESTAMP '2025-03-10 00:00:00'"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-SEM-04",
+      "sql": "SELECT p.product_name, cp.observed_ts, cp.price_eur, ph.list_price_eur FROM competitor_prices cp JOIN price_history ph ON ph.product_id = cp.product_id JOIN products p ON p.product_id = cp.product_id WHERE ph.valid_to = NULL AND cp.competitor = 'Bliksem' AND cp.observed_ts >= TIMESTAMP '2025-03-03 00:00:00' AND cp.observed_ts < TIMESTAMP '2025-03-10 00:00:00' AND cp.price_eur < ph.list_price_eur"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-12",
+      "sql": "SELECT p.product_name, cp.observed_ts, cp.price_eur, ph.list_price_eur FROM competitor_prices cp JOIN price_history ph ON ph.product_id = cp.product_id JOIN products p ON p.sister_product_id = cp.product_id WHERE ph.valid_to IS NULL AND cp.competitor = 'Bliksem' AND cp.observed_ts >= TIMESTAMP '2025-03-03 00:00:00' AND cp.observed_ts < TIMESTAMP '2025-03-10 00:00:00' AND cp.price_eur < ph.list_price_eur"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-SYN-03",
+      "sql": "SELECT p.product_name, cp.observed_ts, cp.price_eur, ph.list_price_eur FROM competitor_prices cp JOIN price_history ph ON ph.product_id = cp.product_id JOIN products p ON p.product_id = product_id WHERE ph.valid_to IS NULL AND cp.competitor = 'Bliksem' AND cp.observed_ts >= TIMESTAMP '2025-03-03 00:00:00' AND cp.observed_ts < TIMESTAMP '2025-03-10 00:00:00' AND cp.price_eur < ph.list_price_eur"
+    }
+  ],
+  "hint3_partial": "SELECT p.product_name, cp.observed_ts, cp.price_eur, ph.list_price_eur\nFROM competitor_prices cp\nJOIN price_history ph ON ___\nJOIN products p ON ___\nWHERE ph.valid_to IS NULL\n  AND ___",
+  "solver": {
+    "prompt_hash": "717935804473bd29",
+    "schema_version": "f9ece455102d",
+    "dataset_version": "e1545e4258743033",
+    "grader_version": "1b.3",
+    "query": "SELECT p.product_name, cp.observed_ts, cp.price_eur, h.list_price_eur\nFROM competitor_prices cp\nJOIN products p ON p.product_id = cp.product_id\nJOIN price_history h ON h.product_id = cp.product_id AND h.valid_to IS NULL\nWHERE cp.competitor = 'Bliksem'\n  AND cp.observed_ts >= TIMESTAMP '2025-03-03 00:00:00' AND cp.observed_ts < TIMESTAMP '2025-03-10 00:00:00'\n  AND cp.price_eur < h.list_price_eur",
+    "at": "2026-10-07T10:41:38.265Z"
+  }
+}

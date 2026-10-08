@@ -1,0 +1,146 @@
+{
+  "id": "EX-SQL-JOIN-05-E1-03",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "cross-join",
+    "grid",
+    "stores",
+    "calendar",
+    "orders"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-JOIN-05"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "lesson",
+  "target_concept_id": "SQL-JOIN-05",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-JOIN-02",
+    "SQL-JOIN-01",
+    "SQL-JOIN-05"
+  ],
+  "template_id": "T-JOIN-05-grid-store-day-orders",
+  "template_params": {
+    "country_code": "BE",
+    "from": "2025-03-03",
+    "to": "2025-03-09"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_join",
+  "prompt": "For every store located in Belgium (country_code BE) and every calendar day from 3 to 9 March 2025, how many orders did the store get that day? order_ts holds UTC time: use its UTC date. Return three columns, in this order: store_code, cal_date and n_orders, with 0 when the store had no order that day. Return one row for each store and day. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "store_code",
+        "type_class": "text"
+      },
+      {
+        "name": "cal_date",
+        "type_class": "temporal"
+      },
+      {
+        "name": "n_orders",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per store and day"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "store_code",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "cal_date",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "n_orders",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "store_code",
+      "cal_date"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, pair every store with every calendar day, before any order is joined.",
+    "The grid must exist before the orders arrive: a join that matches all pairs of stores and days, then a LEFT JOIN of the orders onto it."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 62,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 63,
+      "to": 76,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 77,
+      "to": 98,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 99,
+      "to": 186,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 187,
+      "to": 277,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 278,
+      "to": 311,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": {
+    "stage1": 77,
+    "stage2": 77
+  },
+  "faded_shape": "SELECT s.store_code, c.cal_date, COUNT(o.order_id) AS n_orders\nFROM stores s\n",
+  "faded_suffix": "\nLEFT JOIN orders o ON o.store_id = s.store_id AND CAST(o.order_ts AS DATE) = c.cal_date\nWHERE s.country_code = 'BE' AND c.cal_date BETWEEN DATE '2025-03-03' AND DATE '2025-03-09'\nGROUP BY s.store_code, c.cal_date",
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "CROSS JOIN builds every store and day first, and the LEFT JOIN with COUNT(o.order_id) turns a store and day with no orders into 0 instead of dropping it."
+}

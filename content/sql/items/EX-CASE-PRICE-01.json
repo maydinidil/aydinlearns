@@ -1,0 +1,163 @@
+{
+  "id": "EX-CASE-PRICE-01",
+  "version": 2,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "case",
+    "inbox",
+    "pricing",
+    "asp",
+    "amsterdam_time",
+    "sales",
+    "orders",
+    "products"
+  ],
+  "level": 3,
+  "source_ids": [
+    "04:CASE-PRICE-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-07",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "case",
+  "target_concept_id": "SQL-JOIN-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-DATE-01",
+    "SQL-JOIN-01"
+  ],
+  "template_id": "T-CASE-PRICE-01-asp-by-category",
+  "template_params": {
+    "month": "2025-03",
+    "clock": "Europe/Amsterdam",
+    "grain": "category"
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_join",
+  "prompt": "Joost, the pricing lead, is preparing Monday's price review and asks what customers really paid per unit in each category in March 2025. An order counts for March 2025 when it was placed from 2025-03-01 to 2025-03-31, both days included, in Amsterdam time; order_ts holds the moment in UTC. Return one row for each category that sold at least one unit that month, with five columns in this order: category_id; category_name; units, the total number of units sold; net_revenue_eur, the total net revenue of those units, not rounded; and asp_eur, the average selling price, which is net_revenue_eur divided by units, not rounded. Sort by category_id from low to high.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "category_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "category_name",
+        "type_class": "text"
+      },
+      {
+        "name": "units",
+        "type_class": "numeric"
+      },
+      {
+        "name": "net_revenue_eur",
+        "type_class": "numeric"
+      },
+      {
+        "name": "asp_eur",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": true,
+    "sort_keys": [
+      {
+        "column": "category_id",
+        "desc": false
+      }
+    ],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "category_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "category_name",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "units",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "net_revenue_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "asp_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "category_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, choose the tables: the order lines with their category, and the orders that hold each order's time.",
+    "Turn each UTC order time into Amsterdam time before taking its date, then build each column from the totals the question names."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 181,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 182,
+      "to": 291,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 292,
+      "to": 417,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 418,
+      "to": 457,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 458,
+      "to": 480,
+      "subgoal": "sort_limit"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "Converting order_ts to Amsterdam time puts late-evening orders in the right month, and summed revenue over summed units weights every unit sold."
+}

@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-DATE-01-E1-07",
+  "item_version": 1,
+  "reference_sql": "SELECT year(order_date) AS order_year,\n       quarter(order_date) AS order_quarter,\n       SUM(units) AS units\nFROM sales\nGROUP BY year(order_date), quarter(order_date)",
+  "alternatives": [
+    "SELECT EXTRACT(year FROM order_date) AS order_year, EXTRACT(quarter FROM order_date) AS order_quarter, SUM(units) AS units FROM sales GROUP BY 1, 2",
+    "SELECT year(date_trunc('quarter', order_date)) AS order_year, quarter(date_trunc('quarter', order_date)) AS order_quarter, SUM(units) AS units FROM sales GROUP BY date_trunc('quarter', order_date)"
+  ],
+  "other_way": {
+    "sql": "SELECT year(date_trunc('quarter', order_date)) AS order_year, quarter(date_trunc('quarter', order_date)) AS order_quarter, SUM(units) AS units FROM sales GROUP BY date_trunc('quarter', order_date)",
+    "tradeoff": "Grouping by each quarter's first day with date_trunc works too, but you then read the year and the quarter back out of it."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-25",
+      "sql": "SELECT year(order_date) AS order_year, month(order_date) AS order_quarter, SUM(units) AS units FROM sales GROUP BY 1, 2"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-14",
+      "sql": "SELECT year(order_date) AS order_year, quarter(order_date) AS order_quarter, COUNT(*) AS units FROM sales GROUP BY 1, 2"
+    }
+  ],
+  "hint3_partial": "SELECT year(order_date) AS order_year,\n       ___(order_date) AS order_quarter,\n       SUM(units) AS units\nFROM sales\nGROUP BY ___",
+  "solver": {
+    "prompt_hash": "e2b8977ef6043dd0",
+    "schema_version": "cebf75df442f",
+    "dataset_version": "e1545e4258743033",
+    "grader_version": "1b.3",
+    "query": "SELECT year(order_date) AS order_year, quarter(order_date) AS order_quarter, SUM(units) AS units\nFROM sales\nGROUP BY 1, 2",
+    "at": "2026-10-07T10:41:36.526Z"
+  }
+}

@@ -1,0 +1,144 @@
+{
+  "id": "EX-SQL-JOIN-01-E2-31",
+  "version": 2,
+  "kind": "fix",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "join",
+    "fix",
+    "wrong_key",
+    "order_lines",
+    "orders",
+    "stores",
+    "order_ts",
+    "utc_day"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-JOIN-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-JOIN-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-JOIN-01"
+  ],
+  "template_id": "T-JOIN-01-fix-wrong-key",
+  "template_params": {
+    "from": "order_lines",
+    "join": "orders, stores",
+    "channel": "store",
+    "day": "2025-03-09"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_join",
+  "prompt": "The query in the editor has one mistake. Fix it so that it lists the order lines of the store orders (channel store) placed on 9 March 2025, with the time of each line's order and the code of the store that took it. order_ts holds UTC time: take the day in UTC, and return order_ts as it is stored. Return four columns, in this order: order_line_id, order_ts, store_code and quantity. Return one row for each order line. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "order_line_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "order_ts",
+        "type_class": "temporal"
+      },
+      {
+        "name": "store_code",
+        "type_class": "text"
+      },
+      {
+        "name": "quantity",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "order_line_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "order_ts",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "store_code",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "quantity",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "order_line_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the join from each line to its order using the line's order ID.",
+    "order_line_id numbers the lines and order_id numbers the orders. They look alike, but only the line's order_id points at an order."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 60,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 61,
+      "to": 79,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 80,
+      "to": 120,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 121,
+      "to": 161,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 162,
+      "to": 288,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": "SELECT l.order_line_id, o.order_ts, s.store_code, l.quantity\nFROM order_lines l\nJOIN orders o ON o.order_id = l.order_line_id\nJOIN stores s ON s.store_id = o.store_id\nWHERE o.channel = 'store'\n  AND o.order_ts >= TIMESTAMP '2025-03-09 00:00:00' AND o.order_ts < TIMESTAMP '2025-03-10 00:00:00'",
+  "starter_error_id": "ERR-LOG-12",
+  "time_target_ms": 180000,
+  "why_this_works": "order_lines.order_id is the foreign key to orders; order_line_id only numbers the lines, so matching on it pairs lines with unrelated orders and their times."
+}

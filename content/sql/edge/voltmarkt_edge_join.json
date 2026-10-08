@@ -1,0 +1,18 @@
+{
+  "schema": "voltmarkt_edge_join",
+  "mirrors": "voltmarkt",
+  "family": "join",
+  "contains": [
+    "an order with no lines",
+    "a line whose promotion ID has no row in promotions, next to lines with no promotion (promo_id missing)",
+    "a product in two promotions, sold during each of them",
+    "a product whose price changed twice in one week (3 and 6 March 2025), with a sale at each price",
+    "current prices with no end date (valid_to missing)",
+    "a store with no orders (it opened on 1 March 2025)",
+    "guest orders with a missing customer ID, and customers with orders in two places",
+    "a category with no products, and a product that never sold",
+    "a pair of sister products",
+    "three competitor prices for one product in one week, two of them from the same rival, and products with no competitor price in a week they sold",
+    "a promotion week (ISO week 11, 10 to 16 March 2025) with sales on promotion, one of them on the Sunday, and a product the rivals checked that did not sell"
+  ]
+}

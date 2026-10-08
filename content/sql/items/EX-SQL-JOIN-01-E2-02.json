@@ -1,0 +1,138 @@
+{
+  "id": "EX-SQL-JOIN-01-E2-02",
+  "version": 2,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "join",
+    "group_by",
+    "count_distinct",
+    "order_lines",
+    "products",
+    "categories"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-JOIN-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "lesson",
+  "target_concept_id": "SQL-JOIN-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-JOIN-01"
+  ],
+  "template_id": "T-JOIN-01-count-per-dimension",
+  "template_params": {
+    "from": "order_lines",
+    "join": "products, categories",
+    "group": "parent_category",
+    "also": "distinct brands"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_join",
+  "prompt": "How many order lines did each parent category sell, and from how many different brands? Return three columns, in this order: parent_category, n_lines, the number of order lines, and n_brands, the number of different brands among the products on those lines. Return one row for each parent category that sold at least one line. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "parent_category",
+        "type_class": "text"
+      },
+      {
+        "name": "n_lines",
+        "type_class": "numeric"
+      },
+      {
+        "name": "n_brands",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per parent category"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "parent_category",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "n_lines",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "n_brands",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "parent_category"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, join each order line to its product, then the product to its category.",
+    "order_lines has product_id, products has the brand and category_id, and categories has parent_category. Follow those IDs one step at a time."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 82,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 83,
+      "to": 101,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 102,
+      "to": 148,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 149,
+      "to": 199,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 200,
+      "to": 226,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": {
+    "stage1": 102,
+    "stage2": 102
+  },
+  "faded_shape": "SELECT c.parent_category, COUNT(*) AS n_lines, COUNT(DISTINCT p.brand) AS n_brands\nFROM order_lines l\n",
+  "faded_suffix": "\nGROUP BY c.parent_category",
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "Each line has one product and each product one category, so the joins keep one row per line: COUNT(*) counts the lines and COUNT(DISTINCT p.brand) counts each brand once."
+}

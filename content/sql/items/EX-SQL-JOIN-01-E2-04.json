@@ -1,0 +1,118 @@
+{
+  "id": "EX-SQL-JOIN-01-E2-04",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "join",
+    "group_by",
+    "sum",
+    "order_lines",
+    "promotions"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-JOIN-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-JOIN-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-JOIN-01"
+  ],
+  "template_id": "T-JOIN-01-sum-per-dimension",
+  "template_params": {
+    "from": "order_lines",
+    "join": "promotions",
+    "group": "promo_type"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_join",
+  "prompt": "How much line discount did each type of promotion give? Return two columns, in this order: promo_type and total_discount_eur, the sum of line_discount_eur over the order lines that used a promotion of that type. Return one row for each promotion type used on at least one order line. Do not round. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "promo_type",
+        "type_class": "text"
+      },
+      {
+        "name": "total_discount_eur",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "promo_type",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "total_discount_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "promo_type"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, join each order line to its promotion, then group by the type.",
+    "promo_type sits with the promotion; the discount sits on the line. Lines with no promotion find no match."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 68,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 69,
+      "to": 87,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 88,
+      "to": 134,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 135,
+      "to": 157,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "Each line has at most one promotion, so the join keeps one row per line with a promotion, and the sum adds each discount once."
+}

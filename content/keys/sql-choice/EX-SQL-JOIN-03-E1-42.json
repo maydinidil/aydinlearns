@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-JOIN-03-E1-42",
+  "item_version": 1,
+  "value": 8787,
+  "explanation": "Each price version points at one product, and a product can have many versions, so the join returns one row per price version: 8,787, the row count of price_history, not the 1,200 products. A product with five versions appears five times, so adding up a product's sales after this join would count them five times.",
+  "solver": {
+    "prompt_hash": "8dc8d33d9edc8e16",
+    "grader_version": "choice.2",
+    "chosen": null,
+    "typed": "8787",
+    "at": "2026-10-07T09:58:58.594Z"
+  }
+}

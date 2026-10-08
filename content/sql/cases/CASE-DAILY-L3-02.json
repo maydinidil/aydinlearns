@@ -1,0 +1,84 @@
+{
+  "case_id": "CASE-DAILY-L3-02",
+  "kind": "daily",
+  "level": 3,
+  "world": "RETAIL",
+  "company_id": "voltmarkt",
+  "title": "Orders per store at the end of 2025",
+  "persona": {
+    "name": "Yara",
+    "role": "Retail operations"
+  },
+  "brief": {
+    "decision": "How many staff each store and the webshop need in each month of the busy season",
+    "deadline": "The staffing plan due at the end of next week"
+  },
+  "data_needed": [
+    "orders"
+  ],
+  "expected_output": {
+    "columns": [
+      "month_start",
+      "store_id",
+      "n_orders"
+    ],
+    "grain": "one row per store and month",
+    "sort": [
+      {
+        "column": "month_start",
+        "desc": false
+      },
+      {
+        "column": "store_id",
+        "desc": false
+      }
+    ]
+  },
+  "checkpoints": [
+    {
+      "id": "CP3",
+      "kind": "CP3",
+      "prompt": "Write the query that answers Yara's question.",
+      "credits_concepts": [
+        "SQL-DATE-01"
+      ],
+      "item_id": "EX-CASE-DAILY-L3-02"
+    },
+    {
+      "id": "CP4",
+      "kind": "CP4",
+      "prompt": "Yara's headline: how many orders did Voltmarkt take in December 2025, all stores and the webshop together? order_ts holds UTC time, and the month is the Amsterdam month: keep the orders whose date in Amsterdam time is from 2025-12-01 to 2025-12-31, both days included. Type a whole number.",
+      "credits_concepts": [],
+      "item_id": "CASE-DAILY-L3-02:CP4",
+      "typed": {
+        "precision": "count",
+        "scale": "plain",
+        "decimals": 0,
+        "unit_label": "orders"
+      },
+      "truth_key": "CASE-DAILY-L3-02:CP4"
+    }
+  ],
+  "model_plan": "Metric formula: n_orders is the number of orders; each row of orders is one order.\nOutput grain: one row per store and Amsterdam month.\nTables and keys: orders only, keyed by order_id; store_id names the store, so no join is needed.\nFilters: the Amsterdam date of order_ts from 2025-10-01 to 2025-12-31, both days included.\nEdge cases: order_ts is UTC, so a late-evening web order can fall on the next Amsterdam day and even in the next month; the clock change on 26 October 2025; a store with no orders in a month has no row.\nExpected row count: 75",
+  "model_answer_template": "Voltmarkt took {CP4} orders in December 2025. October was the quietest month of the quarter for every store and the webshop, and November, the month of Black Friday, was the busiest for most of them, with the webshop taking far more orders than any single store. An order is not a fixed amount of work: a web order needs picking and shipping, while a store order can be a quick sale at the till. Next, split the November and December orders by day of the week and plan the extra staff around the busiest days.",
+  "follow_up_question": "On which days of the week did the webshop take the most orders in November 2025?",
+  "data_source": {
+    "label": "Fictional, generated data: Voltmarkt",
+    "real": false,
+    "licence": null
+  },
+  "difficulty": 1,
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-DATE-01"
+  ],
+  "metric_ids": [],
+  "find_ids": [],
+  "uses_raw": false
+}

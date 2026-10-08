@@ -1,0 +1,133 @@
+{
+  "id": "EX-SQL-JOIN-05-E1-02",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "full-outer-join",
+    "reconcile",
+    "orders"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-JOIN-05"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pretest",
+  "target_concept_id": "SQL-JOIN-05",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-CTE-01",
+    "SQL-JOIN-01",
+    "SQL-JOIN-05"
+  ],
+  "template_id": "T-JOIN-05-full-outer-two-days",
+  "template_params": {
+    "day_1": "2025-03-03",
+    "day_2": "2025-03-04"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_join",
+  "prompt": "Compare two days of orders: for every store with at least one order on 3 March 2025 or on 4 March 2025, how many orders did it get on each day? order_ts holds UTC time: use its UTC date. Return three columns, in this order: store_id, orders_mar_3 and orders_mar_4, with 0 when the store had no order that day. Return one row for each store with an order on either day. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "store_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "orders_mar_3",
+        "type_class": "numeric"
+      },
+      {
+        "name": "orders_mar_4",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per store with an order on either day"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "store_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "orders_mar_3",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "orders_mar_4",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "store_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, join the two daily counts so that a store found on only one of the days keeps its row.",
+    "Count each day per store in its own step; the join must keep the stores of both lists, and the store_id must come from whichever side has it."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 123,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 124,
+      "to": 241,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 242,
+      "to": 365,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 366,
+      "to": 373,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 374,
+      "to": 421,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "FULL OUTER JOIN keeps the stores of both days, matched or not, and COALESCE takes the store_id from whichever side has it and turns a missing count into 0."
+}

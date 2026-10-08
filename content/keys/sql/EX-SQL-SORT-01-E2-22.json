@@ -7,7 +7,10 @@
     "SELECT DISTINCT category_id,\n       brand\nFROM products\nWHERE category_id BETWEEN 1 AND 3\nORDER BY category_id ASC, brand ASC",
     "SELECT DISTINCT category_id,\n       brand\nFROM products\nWHERE category_id = 1 OR category_id = 2 OR category_id = 3\nORDER BY category_id, brand"
   ],
-  "other_way": null,
+  "other_way": {
+    "sql": "SELECT DISTINCT category_id,\n       brand\nFROM products\nWHERE category_id = 1 OR category_id = 2 OR category_id = 3\nORDER BY category_id, brand",
+    "tradeoff": "An OR chain returns the same rows, but repeats the column for every value, while IN keeps the list short."
+  },
   "planted_wrong": [
     {
       "id": "PW1",

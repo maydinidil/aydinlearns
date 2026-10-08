@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-JOIN-05-E1-06",
+  "item_version": 1,
+  "reference_sql": "SELECT s.store_code, c.category_name\nFROM stores s\nCROSS JOIN categories c\nWHERE s.country_code = 'BE' AND c.parent_category = 'Gaming'",
+  "alternatives": [
+    "SELECT s.store_code, c.category_name FROM categories c CROSS JOIN stores s WHERE c.parent_category = 'Gaming' AND s.country_code = 'BE'",
+    "SELECT s.store_code, c.category_name FROM stores s, categories c WHERE s.country_code = 'BE' AND c.parent_category = 'Gaming'"
+  ],
+  "other_way": {
+    "sql": "SELECT s.store_code, c.category_name FROM stores s, categories c WHERE s.country_code = 'BE' AND c.parent_category = 'Gaming'",
+    "tradeoff": "Listing both tables with a comma gives the same pairs, but CROSS JOIN tells the reader that every pair is meant."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-11",
+      "sql": "SELECT DISTINCT s.store_code, c.category_name FROM stores s JOIN orders o ON o.store_id = s.store_id JOIN order_lines ol ON ol.order_id = o.order_id JOIN products p ON p.product_id = ol.product_id JOIN categories c ON c.category_id = p.category_id WHERE s.country_code = 'BE' AND c.parent_category = 'Gaming'"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-12",
+      "sql": "SELECT s.store_code, c.category_name FROM stores s JOIN categories c ON c.category_id = s.store_id WHERE s.country_code = 'BE' AND c.parent_category = 'Gaming'"
+    }
+  ],
+  "hint3_partial": "SELECT s.store_code, c.category_name\nFROM stores s\n___ categories c\nWHERE s.country_code = 'BE' AND c.parent_category = 'Gaming'",
+  "solver": {
+    "prompt_hash": "cef0880c95baf244",
+    "schema_version": "6e0cbc48cfbb",
+    "dataset_version": "e1545e4258743033",
+    "grader_version": "1b.3",
+    "query": "SELECT s.store_code, c.category_name\nFROM stores s\nCROSS JOIN categories c\nWHERE s.country_code = 'BE' AND c.parent_category = 'Gaming'",
+    "at": "2026-10-07T10:41:41.737Z"
+  }
+}

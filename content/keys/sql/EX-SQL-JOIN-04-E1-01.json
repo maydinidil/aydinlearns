@@ -1,0 +1,39 @@
+{
+  "item_id": "EX-SQL-JOIN-04-E1-01",
+  "item_version": 1,
+  "reference_sql": "SELECT p.product_name, s.product_name AS sister_name\nFROM products p\nJOIN products s ON s.product_id = p.sister_product_id",
+  "alternatives": [
+    "SELECT p.product_name, s.product_name AS sister_name FROM products s JOIN products p ON p.sister_product_id = s.product_id",
+    "SELECT p.product_name, s.product_name AS sister_name FROM products p LEFT JOIN products s ON s.product_id = p.sister_product_id WHERE p.sister_product_id IS NOT NULL"
+  ],
+  "other_way": {
+    "sql": "SELECT p.product_name, s.product_name AS sister_name FROM products p LEFT JOIN products s ON s.product_id = p.sister_product_id WHERE p.sister_product_id IS NOT NULL",
+    "tradeoff": "A LEFT JOIN with IS NOT NULL gives the same rows, but the inner join drops the products with no sister by itself."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-12",
+      "sql": "SELECT p.product_name, s.product_name AS sister_name FROM products p JOIN products s ON s.product_id = p.product_id WHERE p.sister_product_id IS NOT NULL"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-SYN-03",
+      "sql": "SELECT product_name, s.product_name AS sister_name FROM products p JOIN products s ON s.product_id = p.sister_product_id"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-11",
+      "sql": "SELECT p.product_name, s.product_name AS sister_name FROM products p LEFT JOIN products s ON s.product_id = p.sister_product_id"
+    }
+  ],
+  "hint3_partial": "SELECT p.product_name, s.product_name AS sister_name\nFROM products p\nJOIN products s ON s.product_id = ___",
+  "solver": {
+    "prompt_hash": "86d33dd358af5e8e",
+    "schema_version": "d77fe1c31a0e",
+    "dataset_version": "e1545e4258743033",
+    "grader_version": "1b.3",
+    "query": "SELECT p.product_name, s.product_name AS sister_name\nFROM products p\nJOIN products s ON s.product_id = p.sister_product_id",
+    "at": "2026-10-07T10:41:40.871Z"
+  }
+}

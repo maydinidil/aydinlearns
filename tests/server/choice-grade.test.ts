@@ -22,8 +22,8 @@ const refusal = (text: string, spec: TypedSpec = percent): string => {
   return p.ok ? '' : p.message;
 };
 
-test('the grader version is choice.1 and the percent-scale error is ERR-LOG-21', () => {
-  assert.equal(CHOICE_GRADER_VERSION, 'choice.1');
+test('the grader version is choice.2 and the percent-scale error is ERR-LOG-21', () => {
+  assert.equal(CHOICE_GRADER_VERSION, 'choice.2');
   assert.equal(PERCENT_SCALE_ERROR, 'ERR-LOG-21');
 });
 
@@ -40,16 +40,33 @@ test('Review Focus 5: each input as a person types it is parsed or refused with 
   assert.equal(refusal('1e3'), 'Write the number out in full, for example 1000 instead of 1e3.');
 });
 
-test('a count typed with a thousands separator is refused with its own text, and pass, fail and the grader version do not change', () => {
-  const THOUSANDS = 'This answer is a whole number, and a thousands separator is not accepted. Type it without one, for example 1234.';
-  for (const t of ['1,234', '1.234', '12,345', '-1.234', '+1,234', '1 234,567']) assert.equal(refusal(t, count), t === '1 234,567' ? 'This answer is a whole number. Type it without decimals.' : THOUSANDS, t);
-  assert.equal(refusal('12.4', count), 'This answer is a whole number. Type it without decimals.', 'a real decimal is still a decimal');
-  assert.equal(refusal('0.125', count), 'This answer is a whole number. Type it without decimals.');
-  assert.equal(refusal('1.2345', count), 'This answer is a whole number. Type it without decimals.');
-  assert.equal(refusal('1.234.567', count), 'Use one decimal mark and leave out thousands separators, for example 1234.5 or 1234,5.', 'two marks keep their text');
+test('S4-14: a count accepts one thousands separator per group of three digits, and the version is choice.2', () => {
+  const WHOLE = 'This answer is a whole number. Type it without decimals.';
+  const ONE_MARK = 'Use one decimal mark and leave out thousands separators, for example 1234.5 or 1234,5.';
+  for (const [t, v] of [['1,000', 1000], ['1.000', 1000], ['12,345,678', 12345678], ['1.234.567', 1234567], ['-1.234', -1234], ['+1,234', 1234], ['999,999', 999999]] as const) {
+    assert.deepEqual(answer(t, v, count), { value: v, correct: true, error_ids: [] }, t);
+  }
+  assert.deepEqual(answer('1,234', 1235, count), { value: 1234, correct: false, error_ids: [] }, 'graded like any whole number');
+  // P-7a: a comma not followed by exact three-digit groups is refused; a dot not followed by them is a decimal point.
+  for (const t of ['1,00', '1,0000', '12,00', '12,34', '1234,567', '1.2345', '12.4', '0.125', '1 234,567']) assert.equal(refusal(t, count), WHOLE, t);
+  for (const [t, v] of [['12.00', 12], ['1.00', 1], ['1.0000', 1], ['0.00', 0], ['12.0', 12]] as const) {
+    assert.deepEqual(answer(t, v, count), { value: v, correct: true, error_ids: [] }, `${t} is a whole value with a decimal point`);
+  }
+  for (const t of ['1.5,000', '1,234.567', '1.234,567', '1,234,5']) assert.equal(refusal(t, count), ONE_MARK, t);
   assert.deepEqual(answer('1234', 1234, count), { value: 1234, correct: true, error_ids: [] });
   assert.deepEqual(answer('1 234', 1234, count), { value: 1234, correct: true, error_ids: [] });
-  assert.equal(CHOICE_GRADER_VERSION, 'choice.1');
+  assert.deepEqual(answer('12.0', 12, count), { value: 12, correct: true, error_ids: [] });
+  assert.equal(CHOICE_GRADER_VERSION, 'choice.2');
+});
+
+test('S4-14: a kind other than count keeps its separator behaviour', () => {
+  const ONE_MARK = 'Use one decimal mark and leave out thousands separators, for example 1234.5 or 1234,5.';
+  for (const spec of [money, plainRatio, percent]) {
+    assert.equal(refusal('1.234.567', spec), ONE_MARK);
+    assert.equal(refusal('12,345,678', spec), ONE_MARK);
+  }
+  const p = parseTyped('1,234', money);
+  assert.deepEqual(p, { ok: true, value: 1.234 }, 'one comma is still a decimal comma');
 });
 
 test('only an answer off by exactly a factor of 100, at the precision asked, gets ERR-LOG-21', () => {

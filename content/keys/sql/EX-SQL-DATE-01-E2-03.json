@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-DATE-01-E2-03",
+  "item_version": 1,
+  "reference_sql": "SELECT CAST(timezone('Europe/Amsterdam', timezone('UTC', order_ts)) AS DATE) AS order_day,\n       COUNT(*) AS orders\nFROM orders\nWHERE channel = 'web'\n  AND CAST(timezone('Europe/Amsterdam', timezone('UTC', order_ts)) AS DATE) BETWEEN DATE '2025-10-20' AND DATE '2025-10-26'\nGROUP BY 1",
+  "alternatives": [
+    "SELECT date_trunc('day', timezone('Europe/Amsterdam', timezone('UTC', order_ts))) AS order_day, COUNT(*) AS orders FROM orders WHERE channel = 'web' AND timezone('Europe/Amsterdam', timezone('UTC', order_ts)) >= TIMESTAMP '2025-10-20 00:00:00' AND timezone('Europe/Amsterdam', timezone('UTC', order_ts)) < TIMESTAMP '2025-10-27 00:00:00' GROUP BY 1",
+    "SELECT CAST(timezone('Europe/Amsterdam', timezone('UTC', order_ts)) AS DATE) AS order_day, COUNT(order_id) AS orders FROM orders WHERE channel = 'web' AND order_ts >= TIMESTAMP '2025-10-19 22:00:00' AND order_ts < TIMESTAMP '2025-10-26 23:00:00' GROUP BY 1"
+  ],
+  "other_way": {
+    "sql": "SELECT CAST(timezone('Europe/Amsterdam', timezone('UTC', order_ts)) AS DATE) AS order_day, COUNT(order_id) AS orders FROM orders WHERE channel = 'web' AND order_ts >= TIMESTAMP '2025-10-19 22:00:00' AND order_ts < TIMESTAMP '2025-10-26 23:00:00' GROUP BY 1",
+    "tradeoff": "Filtering order_ts on UTC bounds keeps the column bare, but you must work out each offset yourself, and it changed on 26 October."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-26",
+      "sql": "SELECT CAST(order_ts AS DATE) AS order_day, COUNT(*) AS orders FROM orders WHERE channel = 'web' AND CAST(order_ts AS DATE) BETWEEN DATE '2025-10-20' AND DATE '2025-10-26' GROUP BY 1"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-26",
+      "sql": "SELECT CAST(timezone('Europe/Amsterdam', timezone('UTC', order_ts)) AS DATE) AS order_day, COUNT(*) AS orders FROM orders WHERE channel = 'web' AND CAST(order_ts AS DATE) BETWEEN DATE '2025-10-20' AND DATE '2025-10-26' GROUP BY 1"
+    }
+  ],
+  "hint3_partial": "SELECT CAST(timezone(___, timezone(___, order_ts)) AS DATE) AS order_day,\n       COUNT(*) AS orders\nFROM orders\nWHERE channel = 'web'\n  AND ___ BETWEEN DATE '2025-10-20' AND DATE '2025-10-26'\nGROUP BY 1",
+  "solver": {
+    "prompt_hash": "64264e4792c0e106",
+    "schema_version": "7ed366279088",
+    "dataset_version": "e1545e4258743033",
+    "grader_version": "1b.3",
+    "query": "SELECT CAST((order_ts AT TIME ZONE 'UTC') AT TIME ZONE 'Europe/Amsterdam' AS DATE) AS order_day, COUNT(*) AS orders\nFROM orders\nWHERE channel = 'web'\n  AND CAST((order_ts AT TIME ZONE 'UTC') AT TIME ZONE 'Europe/Amsterdam' AS DATE) BETWEEN DATE '2025-10-20' AND DATE '2025-10-26'\nGROUP BY 1",
+    "at": "2026-10-07T10:41:36.858Z"
+  }
+}

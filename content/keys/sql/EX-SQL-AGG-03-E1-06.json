@@ -6,7 +6,10 @@
     "SELECT parent_category, AVG(net_revenue_eur) AS avg_line_revenue_eur FROM sales GROUP BY 1 HAVING 300 < AVG(net_revenue_eur)",
     "SELECT parent_category, SUM(net_revenue_eur) / COUNT(net_revenue_eur) AS avg_line_revenue_eur FROM sales GROUP BY parent_category HAVING SUM(net_revenue_eur) / COUNT(net_revenue_eur) > 300"
   ],
-  "other_way": null,
+  "other_way": {
+    "sql": "SELECT parent_category, SUM(net_revenue_eur) / COUNT(net_revenue_eur) AS avg_line_revenue_eur FROM sales GROUP BY parent_category HAVING SUM(net_revenue_eur) / COUNT(net_revenue_eur) > 300",
+    "tradeoff": "Builds the average from a sum and a count, which shows the idea, but AVG is shorter."
+  },
   "planted_wrong": [
     {
       "id": "PW1",

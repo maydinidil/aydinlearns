@@ -1,6 +1,6 @@
 {
   "id": "EX-SQL-NULL-01-E2-32",
-  "version": 1,
+  "version": 2,
   "kind": "fix",
   "tags": [
     "sql",
@@ -40,7 +40,7 @@
   "company": "voltmarkt",
   "schema": "voltmarkt",
   "edge_schema": "voltmarkt_edge_null",
-  "prompt": "The query in the editor has one mistake. Fix it so that it answers this question: what does a 60-euro gift box cost at each promotion? For every promotion, return three columns, in this order: promo_code, discount_pct and box_price_eur, the price of the 60-euro gift box after the promotion's discount (discount_pct is a percentage, so 25 means 25% off and the box then costs 45 euros). A promotion with no discount_pct recorded (NULL) gave no discount, so its box_price_eur is the full 60 euros. Show discount_pct as it is stored, missing where it is missing. Do not round. Return one row per promotion, every promotion included. Any row order is fine.",
+  "prompt": "The query in the editor has one mistake. Fix it so that it answers this question: what does a 60-euro gift box cost at each promotion? For every promotion, return three columns, in this order: promo_code, discount_pct and box_price_eur, the price of the 60-euro gift box after the promotion's discount (discount_pct is a percentage, so 25 means 25% off and the box then costs 45 euros). A promotion with no discount_pct recorded (NULL) gave no discount, so its box_price_eur is the full 60 euros. Show discount_pct as it is stored, missing where it is missing. Do not round. Return one row per promotion, every promotion included. Any row order is fine. The visible data may not show the mistake; the hidden checks do.",
   "output_contract": {
     "columns": [
       {

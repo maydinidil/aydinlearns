@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { afterGrade, afterRun, beforeSubmit, canDispute, checklist, closeReason, diffTotals, gradeHeading, keyFailed, newInstance, outcomeText, retryIfClosed, rulesBadge, sampleCount,
+import { afterGrade, afterRun, beforeSubmit, canDispute, checklist, closeReason, diffTotals, grainLine, gradeHeading, keyFailed, newInstance, outcomeText, retryIfClosed, rulesBadge, sampleCount,
   showsRunTable, isClosedError, overrideOrReopen, type Instance, type ResultArea } from '../../web/src/lib/exercise.ts';
 import { ApiError } from '../../web/src/api.ts';
 import type { DisplayOk } from '../../server/runner/protocol.ts';
@@ -219,4 +219,12 @@ test('an exercise whose own answer key failed says so, instead of blaming the SQ
   assert.equal(keyFailed({ notes: ['CHK-TABLE-CHECK-TEXT'] }), false);
   assert.equal(gradeHeading({ outcome: 'fail', notes: ['CHK-TABLE-CHECK-TEXT'] }), 'Not yet');
   assert.equal(gradeHeading({ outcome: 'pass', notes: ['Why it works.'] }), 'Correct');
+});
+
+test('S4-04: the output contract shows the grain line whenever the item carries one, at any level, and nothing when it is null', () => {
+  assert.equal(grainLine({ grain: 'one row per customer' }), '. One row per customer.');   // level 1 or 2
+  assert.equal(grainLine({ grain: 'one row per order' }), '. One row per order.');                              // level 3 lesson item
+  assert.equal(grainLine({ grain: null }), '');                                                                 // level 3 pool item
+  assert.equal(grainLine(null), '');
+  assert.equal(grainLine(undefined), '');
 });

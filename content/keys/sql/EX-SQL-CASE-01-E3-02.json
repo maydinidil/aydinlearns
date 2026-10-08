@@ -1,6 +1,6 @@
 {
   "item_id": "EX-SQL-CASE-01-E3-02",
-  "item_version": 1,
+  "item_version": 2,
   "reference_sql": "SELECT channel,\n       CASE WHEN net_revenue_eur IS NULL OR units IS NULL OR unit_cost_eur IS NULL THEN 'unknown'\n            WHEN net_revenue_eur - units * unit_cost_eur < 0 THEN 'loss'\n            WHEN net_revenue_eur - units * unit_cost_eur < 0.2 * net_revenue_eur THEN 'thin'\n            ELSE 'healthy'\n       END AS margin_band,\n       COUNT(*) AS n_lines\nFROM sales\nGROUP BY channel, margin_band",
   "alternatives": [
     "SELECT channel, CASE WHEN net_revenue_eur - units * unit_cost_eur IS NULL THEN 'unknown' WHEN net_revenue_eur - units * unit_cost_eur < 0 THEN 'loss' WHEN (net_revenue_eur - units * unit_cost_eur) / net_revenue_eur < 0.2 THEN 'thin' ELSE 'healthy' END AS margin_band, COUNT(*) AS n_lines FROM sales GROUP BY 1, 2",
@@ -15,7 +15,7 @@
     },
     {
       "id": "PW2",
-      "error_id": "ERR-LOG-00",
+      "error_id": "ERR-LOG-29",
       "sql": "SELECT channel, CASE WHEN net_revenue_eur IS NULL OR units IS NULL OR unit_cost_eur IS NULL THEN 'unknown' WHEN net_revenue_eur - units * unit_cost_eur < 0.2 * net_revenue_eur THEN 'thin' WHEN net_revenue_eur - units * unit_cost_eur < 0 THEN 'loss' ELSE 'healthy' END AS margin_band, COUNT(*) AS n_lines FROM sales GROUP BY channel, margin_band"
     },
     {

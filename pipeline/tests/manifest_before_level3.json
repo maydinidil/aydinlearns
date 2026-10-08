@@ -1,0 +1,245 @@
+{
+  "about": "R37 and S4-02: every table and view in data/manifest.json as built before sprint 4a (dataset a3da93f63243c895, the same as a rebuild of commit 83f21fb). Level 3 data only adds objects, so each entry stays exactly as it is.",
+  "tables": {
+    "voltmarkt.calendar": {
+      "rows": 731,
+      "sha256": "e8d9b989f2bd591620bf43322bdd79eb50d5c052654b7c5898f5fc6604ab18b6"
+    },
+    "voltmarkt.categories": {
+      "rows": 40,
+      "sha256": "c08da16fa1af22225b195a1d22ef74013420f3b9e23702a41005da86ff28b5aa"
+    },
+    "voltmarkt.order_lines": {
+      "rows": 962018,
+      "sha256": "ec56e55ece12f68c74da08ab6ec689aeec12ce735f78ccc1490fecf8c31b55ee"
+    },
+    "voltmarkt.orders": {
+      "rows": 602079,
+      "sha256": "6d493a61ce13c1bdc7302aba57599c432b2d749d6d5296a0822b0c348016be86"
+    },
+    "voltmarkt.price_history": {
+      "rows": 8787,
+      "sha256": "a3a16daa0b740b82dfdac436e965df3af093491cff177887ad55c6bd62c13612"
+    },
+    "voltmarkt.products": {
+      "rows": 1200,
+      "sha256": "d8e45c8971e4f7619ccf2c8d4cefc282e12ce8412b52ddc1a4347ca666268cd8"
+    },
+    "voltmarkt.promotion_products": {
+      "rows": 913,
+      "sha256": "59df8b107e77bb3bd0655e5d47aa1c474c11635e9d4a910a2559cb0446b76289"
+    },
+    "voltmarkt.promotions": {
+      "rows": 60,
+      "sha256": "dca58ae6f46e92d493361c1a3a9082d4ded43c6d9e6081a7fdaa73cdbd184ce2"
+    },
+    "voltmarkt.sales": {
+      "rows": 962018,
+      "view_sql_sha256": "534375d51edaa05ac6cb0bec62f4832bad8f6a7b0011a7f39d30075bd0d371ba"
+    },
+    "voltmarkt.stores": {
+      "rows": 26,
+      "sha256": "51e7b5dddccb4148b52d80d548c1ed23dc1cf86a51d68a421227a8f4c3408026"
+    },
+    "voltmarkt_edge_agg.calendar": {
+      "rows": 11,
+      "sha256": "16de1822433a1947dbcc753f8bd436cb0c8bbedb1f60542ab682d48a1633e6ab"
+    },
+    "voltmarkt_edge_agg.categories": {
+      "rows": 6,
+      "sha256": "4885688dee9050e2d43c654eac0374d853467e0ae1728f1001d5c077fb33419a"
+    },
+    "voltmarkt_edge_agg.order_lines": {
+      "rows": 15,
+      "sha256": "4a7d375a35a625bba0a9c191ea5c5f5e41f5f5abc7c95f00ef374505ddb229d7"
+    },
+    "voltmarkt_edge_agg.orders": {
+      "rows": 11,
+      "sha256": "fc04b284fe27b302e36f25e49cc115578e219a5acf74fa1e658f80817271ca32"
+    },
+    "voltmarkt_edge_agg.price_history": {
+      "rows": 7,
+      "sha256": "e65ba3c0e50f24ce1ad7611240581f3d64648b518394200e1f9e009d8388393c"
+    },
+    "voltmarkt_edge_agg.products": {
+      "rows": 7,
+      "sha256": "a1ec7551bc34ecf498d01413ec4cf4620a42fc9cbc9be8330886885934e5eca1"
+    },
+    "voltmarkt_edge_agg.promotion_products": {
+      "rows": 2,
+      "sha256": "cb1cf9998f1b7560fe32cc86805a6bea6836ff3580c269e35af4f70a3ddfa9c4"
+    },
+    "voltmarkt_edge_agg.promotions": {
+      "rows": 2,
+      "sha256": "fe56e6f645c76ac2e78a5a7dd3f057fde353c9e8c68872f98a78de999234ab77"
+    },
+    "voltmarkt_edge_agg.sales": {
+      "rows": 15,
+      "view_sql_sha256": "dfe4f39d4f428d79aaa6f4e1c5eb2f1b1f52dec44a65e1ea25812d2092aee118"
+    },
+    "voltmarkt_edge_agg.stores": {
+      "rows": 5,
+      "sha256": "3c70d1e6c26370c53cb0dfa725d4a9c8e3c1b17c4158957c88e7626b1ae3e8dd"
+    },
+    "voltmarkt_edge_basics.calendar": {
+      "rows": 5,
+      "sha256": "92b4c9b76b0f011d409c494e501f56a6b14b718598c08b491f31e76b813d703a"
+    },
+    "voltmarkt_edge_basics.categories": {
+      "rows": 5,
+      "sha256": "3f0da87748c4ae94ca1020375d46ae564ad363ff8c92772bacb11afa49fa64d3"
+    },
+    "voltmarkt_edge_basics.products": {
+      "rows": 5,
+      "sha256": "7b0ed206c87bcab2b1b55b79ba6d814792d70f05996fc08f0431c91a826b8f81"
+    },
+    "voltmarkt_edge_basics.promotions": {
+      "rows": 5,
+      "sha256": "b5a2700c876a15d9a4830aa091dce163113131a8fcc29a93f33324fed65a1514"
+    },
+    "voltmarkt_edge_basics.stores": {
+      "rows": 6,
+      "sha256": "470b8269bcf3b92fab7c4da7c79bb2f41d87ab11bfa032344ff78e2f9ec5aa2c"
+    },
+    "voltmarkt_edge_case.calendar": {
+      "rows": 10,
+      "sha256": "faa1d47c3c4aedfd2ef0328ea260196fbecc7907771cb48019a5d8910f412195"
+    },
+    "voltmarkt_edge_case.categories": {
+      "rows": 7,
+      "sha256": "cb26d1c91f165efb31d087e38d9353b349c31ae7e0b788006c951660f364acd7"
+    },
+    "voltmarkt_edge_case.order_lines": {
+      "rows": 17,
+      "sha256": "a438c585643f2e63a3865037646a0f687e689af838cb054e208ecc1e2f0f84b2"
+    },
+    "voltmarkt_edge_case.orders": {
+      "rows": 10,
+      "sha256": "3dbd7453bd581b39e3b52845fc4c26c0826ca07f3c8a393434a8d4ef630a12df"
+    },
+    "voltmarkt_edge_case.price_history": {
+      "rows": 8,
+      "sha256": "5b5d041ea51a73ff05e0af156a4b596d472d76dbb964fb303918939d2cacd70b"
+    },
+    "voltmarkt_edge_case.products": {
+      "rows": 8,
+      "sha256": "566d425e803e9de86b76299a323c955d1c01644bd8494abd6ab9f1f6f2ca34e2"
+    },
+    "voltmarkt_edge_case.promotion_products": {
+      "rows": 1,
+      "sha256": "8f438fab372ee0a0b1b5148e7d610b273c63e868dc5ecfceccfd1be322f6159b"
+    },
+    "voltmarkt_edge_case.promotions": {
+      "rows": 1,
+      "sha256": "37a367f499ab6846faa72fca9d606efb70425d0289af4767a9675b57f040777d"
+    },
+    "voltmarkt_edge_case.sales": {
+      "rows": 17,
+      "view_sql_sha256": "daace82a9ff5afbb021fcf2c7e6b23e1037c88a018fe5e95b889df99255b066f"
+    },
+    "voltmarkt_edge_case.stores": {
+      "rows": 5,
+      "sha256": "3c70d1e6c26370c53cb0dfa725d4a9c8e3c1b17c4158957c88e7626b1ae3e8dd"
+    },
+    "voltmarkt_edge_filter.calendar": {
+      "rows": 5,
+      "sha256": "baed41d54d13d1f4cdcfe86cd38cb9f8dd7ef3f050460f147d422c9f55722442"
+    },
+    "voltmarkt_edge_filter.categories": {
+      "rows": 6,
+      "sha256": "5f703bc3ca3716c7298a43cbb387f86a7ecc141349a5bd63551f02790d1229ef"
+    },
+    "voltmarkt_edge_filter.products": {
+      "rows": 7,
+      "sha256": "937225d6c055e8b59f87b5c4193ddb14b8515cd04876d4da68273251869d1a79"
+    },
+    "voltmarkt_edge_filter.promotions": {
+      "rows": 6,
+      "sha256": "c67ac9f28fdd3ecf405bf1d4d37ea40a7528c0321de40d4ac42a89dcabe46d83"
+    },
+    "voltmarkt_edge_filter.stores": {
+      "rows": 7,
+      "sha256": "c07b6c392520a154446a367567541c2bc5f0fb47fa613446e732878acc92006a"
+    },
+    "voltmarkt_edge_null.calendar": {
+      "rows": 8,
+      "sha256": "ff98295fe38d56ad6a18a9ea478d587d82328a36bf291f82d79ca6b990c70ea8"
+    },
+    "voltmarkt_edge_null.categories": {
+      "rows": 4,
+      "sha256": "7f35326a1782e4a638b21b9ac1d3992962aa6abf9d5b70df9573579a0e962af4"
+    },
+    "voltmarkt_edge_null.products": {
+      "rows": 5,
+      "sha256": "de728e4fb810b5ec8a7e2e26abd5e282867a8be49b70292eb6a16488c328e853"
+    },
+    "voltmarkt_edge_null.promotions": {
+      "rows": 4,
+      "sha256": "6e2b1035e100ccda050706405c8906a72ed796a0339c934296cc4e0d6a75df67"
+    },
+    "voltmarkt_edge_null.stores": {
+      "rows": 4,
+      "sha256": "52d2264a82533eab69f285c97209da41c4939593d9fc87bbeed9b890dfdaa5b8"
+    },
+    "voltmarkt_edge_sort.calendar": {
+      "rows": 6,
+      "sha256": "19c678a01df0eec254f3ae550ac04e2e452587a9880b6b8ce9f13017f6016106"
+    },
+    "voltmarkt_edge_sort.categories": {
+      "rows": 5,
+      "sha256": "cfe827ffeb6c8401f99d171aab81053bb83002e71ab40fdad69c215412e7c40a"
+    },
+    "voltmarkt_edge_sort.products": {
+      "rows": 8,
+      "sha256": "8c31713bc7fd9016d9cc2b4699992a15ddfcbfc0daeefd21127bc743b2c9cf3e"
+    },
+    "voltmarkt_edge_sort.promotions": {
+      "rows": 6,
+      "sha256": "9f556a4068bcfe1a3e78c88bb18e87fd6c679cba873de354f20e5f2e7f96df5a"
+    },
+    "voltmarkt_edge_sort.stores": {
+      "rows": 7,
+      "sha256": "194840bba1fddfa9833588c55830235c3250caaf40491b9f6367034bb1b9a265"
+    },
+    "voltmarkt_edge_type.calendar": {
+      "rows": 10,
+      "sha256": "0fd33854ec4399e9b178d1c59604ff86efbddc51e28d57be9a71f082ed5c916e"
+    },
+    "voltmarkt_edge_type.categories": {
+      "rows": 6,
+      "sha256": "b53c9d857e5e3a0f8ec6ad8cd2483b810f088fa568577720d93ffde57a953fac"
+    },
+    "voltmarkt_edge_type.order_lines": {
+      "rows": 13,
+      "sha256": "49ded4f3761b819fbb46e5a5b9e5716184e1aa50c8281bcab1639747020ebec8"
+    },
+    "voltmarkt_edge_type.orders": {
+      "rows": 10,
+      "sha256": "a32a7446b003d3ff38867dfd9f4e6fd397c9ac2f65756a24391af310e65e46df"
+    },
+    "voltmarkt_edge_type.price_history": {
+      "rows": 6,
+      "sha256": "84bfc325061f27a227f89a77cdcff4d463f75d6a0ca4de39990a37e9264ee6d1"
+    },
+    "voltmarkt_edge_type.products": {
+      "rows": 6,
+      "sha256": "0af5d07d8536536bfe0ac552709886b4d0bb235d6e85613cd556de527778daa0"
+    },
+    "voltmarkt_edge_type.promotion_products": {
+      "rows": 1,
+      "sha256": "91ad6eab66aacbbee4e0b358fbfb60dd719293f74891f33edb497e39e283e595"
+    },
+    "voltmarkt_edge_type.promotions": {
+      "rows": 1,
+      "sha256": "77fe004eed0b5843dca85b83fd0aa8dd3a19689f8ddc4537fca8449a1035aa01"
+    },
+    "voltmarkt_edge_type.sales": {
+      "rows": 13,
+      "view_sql_sha256": "c07e7c7fbc3c22defa5357574739dfcdb8c2e62dff054cd055d239f0edaa6635"
+    },
+    "voltmarkt_edge_type.stores": {
+      "rows": 5,
+      "sha256": "3c70d1e6c26370c53cb0dfa725d4a9c8e3c1b17c4158957c88e7626b1ae3e8dd"
+    }
+  }
+}

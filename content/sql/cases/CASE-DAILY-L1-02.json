@@ -1,0 +1,85 @@
+{
+  "case_id": "CASE-DAILY-L1-02",
+  "kind": "daily",
+  "level": 1,
+  "world": "PRICE",
+  "company_id": "voltmarkt",
+  "title": "A budget audio shelf",
+  "persona": {
+    "name": "Sanne",
+    "role": "Category manager"
+  },
+  "brief": {
+    "decision": "Which headphones and earbuds go on the new budget audio shelf, and at what price",
+    "deadline": "Before the shelf plan goes to the stores next week"
+  },
+  "data_needed": [
+    "products"
+  ],
+  "expected_output": {
+    "columns": [
+      "product_id",
+      "product_name",
+      "brand",
+      "unit_cost_eur",
+      "shelf_price_eur"
+    ],
+    "grain": "one row per product",
+    "sort": [
+      {
+        "column": "unit_cost_eur",
+        "desc": false
+      },
+      {
+        "column": "product_id",
+        "desc": false
+      }
+    ]
+  },
+  "checkpoints": [
+    {
+      "id": "CP3",
+      "kind": "CP3",
+      "prompt": "Write the query that answers Sanne's question.",
+      "credits_concepts": [
+        "SQL-SORT-01",
+        "SQL-BASICS-01",
+        "SQL-BASICS-02",
+        "SQL-FILTER-01"
+      ],
+      "item_id": "EX-CASE-DAILY-L1-02"
+    },
+    {
+      "id": "CP4",
+      "kind": "CP4",
+      "prompt": "Sanne has a follow-up: what is the highest shelf price on the budget shelf? Look at the headphones and earbuds (category_id 15 or 16) whose unit_cost_eur is under 40.00 euros; a product with a missing unit_cost_eur does not count. A product's shelf price is its unit_cost_eur plus a 60 percent markup on it. Type the highest shelf price in euros, rounded to 2 decimals.",
+      "credits_concepts": [],
+      "item_id": "CASE-DAILY-L1-02:CP4",
+      "typed": {
+        "precision": "money",
+        "scale": "eur",
+        "decimals": 2,
+        "unit_label": "euros"
+      },
+      "truth_key": "CASE-DAILY-L1-02:CP4"
+    }
+  ],
+  "model_plan": "Metric formula: shelf_price_eur is unit_cost_eur plus 60 percent of it, that is unit_cost_eur times 1.6.\nOutput grain: one row per product.\nTables and keys: products only, keyed by product_id; no join.\nFilters: category_id 15 or 16, and unit_cost_eur under 40.00; the two categories sit in brackets, because AND is worked out before OR.\nEdge cases: a missing unit_cost_eur fails the cost test and drops out, and products with the same unit cost are ordered by product_id.\nExpected row count: 17",
+  "model_answer_template": "At a 60 percent markup, the most expensive product on the budget audio shelf would sell for {CP4} euros. The list covers two categories, and the cost cut may leave the shelf leaning on one of them, so check the category split in the result. A markup is a plan, not a market price: it says nothing yet about what shoppers will pay or what competitors charge. Next, check the shelf prices against competitor prices and last year's sales before the shelf goes live.",
+  "follow_up_question": "Which of these products sold the most units last year?",
+  "data_source": {
+    "label": "Fictional, generated data: Voltmarkt",
+    "real": false,
+    "licence": null
+  },
+  "difficulty": 1,
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-SORT-01"
+  ],
+  "metric_ids": [],
+  "find_ids": [],
+  "uses_raw": false
+}

@@ -1,0 +1,39 @@
+{
+  "item_id": "EX-SQL-JOIN-04-E2-01",
+  "item_version": 1,
+  "reference_sql": "SELECT nxt.product_id, nxt.valid_from AS changed_on, old.list_price_eur AS old_price_eur, nxt.list_price_eur AS new_price_eur\nFROM price_history old\nJOIN price_history nxt ON nxt.product_id = old.product_id AND nxt.valid_from = old.valid_to + 1\nWHERE nxt.valid_from BETWEEN DATE '2025-03-01' AND DATE '2025-03-31'",
+  "alternatives": [
+    "SELECT old.product_id, nxt.valid_from AS changed_on, old.list_price_eur AS old_price_eur, nxt.list_price_eur AS new_price_eur FROM price_history nxt JOIN price_history old ON old.product_id = nxt.product_id AND old.valid_to = nxt.valid_from - 1 WHERE nxt.valid_from >= DATE '2025-03-01' AND nxt.valid_from < DATE '2025-04-01'",
+    "WITH next_start AS (SELECT a.product_id, a.valid_from, MIN(b.valid_from) AS next_from FROM price_history a JOIN price_history b ON b.product_id = a.product_id AND b.valid_from > a.valid_from GROUP BY a.product_id, a.valid_from) SELECT n.product_id, n.next_from AS changed_on, old.list_price_eur AS old_price_eur, nxt.list_price_eur AS new_price_eur FROM next_start n JOIN price_history old ON old.product_id = n.product_id AND old.valid_from = n.valid_from JOIN price_history nxt ON nxt.product_id = n.product_id AND nxt.valid_from = n.next_from WHERE n.next_from BETWEEN DATE '2025-03-01' AND DATE '2025-03-31'"
+  ],
+  "other_way": {
+    "sql": "WITH next_start AS (SELECT a.product_id, a.valid_from, MIN(b.valid_from) AS next_from FROM price_history a JOIN price_history b ON b.product_id = a.product_id AND b.valid_from > a.valid_from GROUP BY a.product_id, a.valid_from) SELECT n.product_id, n.next_from AS changed_on, old.list_price_eur AS old_price_eur, nxt.list_price_eur AS new_price_eur FROM next_start n JOIN price_history old ON old.product_id = n.product_id AND old.valid_from = n.valid_from JOIN price_history nxt ON nxt.product_id = n.product_id AND nxt.valid_from = n.next_from WHERE n.next_from BETWEEN DATE '2025-03-01' AND DATE '2025-03-31'",
+    "tradeoff": "Finding the next start with MIN needs no date arithmetic and copes with gaps, but takes a CTE and two more joins."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-12",
+      "sql": "SELECT nxt.product_id, nxt.valid_from AS changed_on, old.list_price_eur AS old_price_eur, nxt.list_price_eur AS new_price_eur FROM price_history old JOIN price_history nxt ON nxt.product_id = old.product_id AND nxt.valid_from = old.valid_from WHERE nxt.valid_from BETWEEN DATE '2025-03-01' AND DATE '2025-03-31'"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-01",
+      "sql": "SELECT nxt.product_id, nxt.valid_from AS changed_on, old.list_price_eur AS old_price_eur, nxt.list_price_eur AS new_price_eur FROM price_history old JOIN price_history nxt ON nxt.product_id = old.product_id AND nxt.valid_from > old.valid_from WHERE nxt.valid_from BETWEEN DATE '2025-03-01' AND DATE '2025-03-31'"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-12",
+      "sql": "SELECT nxt.product_id, nxt.valid_from AS changed_on, old.list_price_eur AS old_price_eur, nxt.list_price_eur AS new_price_eur FROM price_history old JOIN price_history nxt ON nxt.product_id = old.product_id AND nxt.valid_from = old.valid_to WHERE nxt.valid_from BETWEEN DATE '2025-03-01' AND DATE '2025-03-31'"
+    }
+  ],
+  "hint3_partial": "SELECT nxt.product_id, nxt.valid_from AS changed_on, old.list_price_eur AS old_price_eur, nxt.list_price_eur AS new_price_eur\nFROM price_history old\nJOIN price_history nxt ON nxt.product_id = old.product_id AND nxt.valid_from = ___\nWHERE nxt.valid_from BETWEEN DATE '2025-03-01' AND DATE '2025-03-31'",
+  "solver": {
+    "prompt_hash": "2eb9ad4345b2cc9b",
+    "schema_version": "e8cea7c4eacc",
+    "dataset_version": "e1545e4258743033",
+    "grader_version": "1b.3",
+    "query": "SELECT n.product_id, n.valid_from AS changed_on, o.list_price_eur AS old_price_eur, n.list_price_eur AS new_price_eur\nFROM price_history n\nJOIN price_history o ON o.product_id = n.product_id AND o.valid_to + 1 = n.valid_from\nWHERE n.valid_from >= DATE '2025-03-01' AND n.valid_from <= DATE '2025-03-31'",
+    "at": "2026-10-07T10:41:41.096Z"
+  }
+}

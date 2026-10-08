@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-SET-01-E2-41",
+  "item_version": 1,
+  "correct_oid": "o3ab70c6",
+  "explanation": "The first part returns 106662 and a missing value, the second a missing value and 47569. A set operation compares rows as a whole and treats two missing values as the same, unlike = in WHERE, so the missing customer_id is the one row in both lists. Three rows would be the result of UNION, which keeps everything once.",
+  "solver": {
+    "prompt_hash": "127069d8e477e47e",
+    "grader_version": "choice.2",
+    "chosen": "o3ab70c6",
+    "typed": null,
+    "at": "2026-10-07T09:58:58.613Z"
+  }
+}

@@ -1,0 +1,153 @@
+{
+  "id": "EX-SQL-JOIN-03-E2-21",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "fan_out",
+    "cte",
+    "bridge",
+    "promotion_products",
+    "order_lines",
+    "left_join",
+    "drill"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-JOIN-03"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-JOIN-03",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-JOIN-03"
+  ],
+  "template_id": "T-JOIN-03-two-children",
+  "template_params": {
+    "parent": "products",
+    "child_a": "promotion_products",
+    "child_b": "order_lines"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_join",
+  "prompt": "For each product listed in at least one promotion, how many promotions list it, and how many units of it were sold in total, with or without a promotion? A listed product that never sold has 0 units, and each order line's quantity counts once. Return three columns, in this order: product_id, n_promotions and units. Return one row for each listed product. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "n_promotions",
+        "type_class": "numeric"
+      },
+      {
+        "name": "units",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "n_promotions",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "units",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "product_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, count each product's promotions and add up its units in two separate steps.",
+    "A product in two promotions has two bridge rows, and joining its lines to both adds its units twice; each side needs one row per product first."
+  ],
+  "subgoals": [
+    {
+      "from": 25,
+      "to": 68,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 71,
+      "to": 94,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 97,
+      "to": 116,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 141,
+      "to": 182,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 185,
+      "to": 201,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 204,
+      "to": 223,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 226,
+      "to": 294,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 295,
+      "to": 373,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "Both steps have one row per product, so the LEFT JOIN pairs single rows and keeps listed products that never sold."
+}

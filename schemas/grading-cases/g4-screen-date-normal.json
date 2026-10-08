@@ -1,0 +1,23 @@
+{
+  "id": "g4-screen-date-normal",
+  "rule": "G4",
+  "screen_mode": false,
+  "setup_sql": [
+    "CREATE SCHEMA g",
+    "CREATE TABLE g.screen_date AS SELECT DATE '2025-03-10' AS d"
+  ],
+  "key_sql": "SELECT d FROM g.screen_date",
+  "learner_sql": "SELECT CAST(d AS TIMESTAMP) AS d FROM g.screen_date",
+  "rules": {
+    "columns": [
+      {
+        "name": "d",
+        "type_class": "temporal",
+        "precision": "exact"
+      }
+    ]
+  },
+  "expect": {
+    "pass": true
+  }
+}

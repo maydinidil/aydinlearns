@@ -1,0 +1,137 @@
+{
+  "id": "EX-SQL-SET-01-E1-03",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "set",
+    "union_all",
+    "count",
+    "price_history",
+    "competitor_prices"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-SET-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "lesson",
+  "target_concept_id": "SQL-SET-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-SET-01"
+  ],
+  "template_id": "T-SET-01-stack-aggregates",
+  "template_params": {
+    "tables": "price_history, competitor_prices",
+    "product_id": 2
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_set",
+  "prompt": "Give a short summary of the price data held for product 2, with one row for each source. For source 'Voltmarkt', count the list price versions of product 2 in price_history; for each competitor, count that competitor's price checks of product 2 in competitor_prices. Return two columns, in this order: source, the text 'Voltmarkt' or the competitor's name, and observations, the number of rows counted. Return one row for each source that has data. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "source",
+        "type_class": "text"
+      },
+      {
+        "name": "observations",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per price source"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "source",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "observations",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "source"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, stack the competitor counts under the Voltmarkt row: one more SELECT with the same two columns, added with a set operator.",
+    "Each part of a UNION ALL is a full query of its own, so the second part can have its own GROUP BY. Both parts need two columns, text first and the count second."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 54,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 55,
+      "to": 73,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 74,
+      "to": 94,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 95,
+      "to": 132,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 133,
+      "to": 155,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 156,
+      "to": 176,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 177,
+      "to": 196,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": {
+    "stage1": 94,
+    "stage2": 94
+  },
+  "faded_shape": "SELECT 'Voltmarkt' AS source, COUNT(*) AS observations\nFROM price_history\nWHERE product_id = 2",
+  "faded_suffix": "\nFROM competitor_prices\nWHERE product_id = 2\nGROUP BY competitor",
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "Each part of the UNION ALL is its own query, so the Voltmarkt count and the per-competitor counts sit in one result with the same two columns."
+}

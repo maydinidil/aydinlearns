@@ -1,0 +1,141 @@
+{
+  "id": "EX-SQL-JOIN-04-E2-04",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "self-join",
+    "price_history",
+    "products",
+    "price-cut"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-JOIN-04"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-JOIN-04",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-JOIN-01",
+    "SQL-JOIN-04"
+  ],
+  "template_id": "T-JOIN-04-self-join-price-cuts",
+  "template_params": {
+    "year": 2025,
+    "cut_below": 0.9
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_join",
+  "prompt": "Which price changes in 2025 cut a product's list price by more than 10%, that is, to a new list_price_eur below 90% of the old one? A product's next price version always starts the day after its previous version's valid_to. Return four columns, in this order: product_name, changed_on (the new version's valid_from, from 1 January to 31 December 2025), old_price_eur and new_price_eur. Return one row for each such price change. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "product_name",
+        "type_class": "text"
+      },
+      {
+        "name": "changed_on",
+        "type_class": "temporal"
+      },
+      {
+        "name": "old_price_eur",
+        "type_class": "numeric"
+      },
+      {
+        "name": "new_price_eur",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "product_name",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "changed_on",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "old_price_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "new_price_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "product_name",
+      "changed_on"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, pair each price version with the one that replaced it, by joining price_history to itself.",
+    "The new version starts the day after the old version's valid_to; then compare the new price with 90% of the old one."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 125,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 126,
+      "to": 148,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 149,
+      "to": 244,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 245,
+      "to": 293,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 294,
+      "to": 412,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "The self-join puts each old price next to its replacement, so WHERE can compare them and keep only cuts to below 90% of the old price."
+}

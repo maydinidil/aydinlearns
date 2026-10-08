@@ -1,0 +1,17 @@
+{
+  "case_id": "CASE-PRICE-02",
+  "truths": {
+    "CP2": "SELECT COUNT(DISTINCT s.product_id)\nFROM sales AS s\nJOIN competitor_price_weekly AS w ON w.product_id = s.product_id\nWHERE s.order_week = DATE '2025-03-10'\n  AND w.iso_year = 2025\n  AND w.iso_week = 11",
+    "CP4": "SELECT ROUND(100 * SUM(s.net_revenue_eur) / SUM(s.units * w.avg_competitor_price_eur), 1)\nFROM sales AS s\nJOIN competitor_price_weekly AS w ON w.product_id = s.product_id\nWHERE s.order_week = DATE '2025-03-10'\n  AND w.iso_year = 2025\n  AND w.iso_week = 11"
+  },
+  "choices": {
+    "CP1": {
+      "correct_oid": "o0ae7812",
+      "explanation": "The index weights each product by the units Voltmarkt sold and needs a rival price to compare with, so only products with both count; filling a gap with Voltmarkt's own price pulls the index toward 100."
+    },
+    "CP5": {
+      "correct_oid": "o2697a3b",
+      "explanation": "The index compares prices paid, so a promotion week pulls it down; compare a week without the promotion, or list prices, before judging regular prices."
+    }
+  }
+}

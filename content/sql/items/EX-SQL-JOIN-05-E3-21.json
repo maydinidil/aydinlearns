@@ -1,0 +1,170 @@
+{
+  "id": "EX-SQL-JOIN-05-E3-21",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "cross-join",
+    "grid",
+    "products",
+    "weeks",
+    "competitor_prices"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-JOIN-05"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-JOIN-05",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-JOIN-03",
+    "SQL-JOIN-01",
+    "SQL-JOIN-05"
+  ],
+  "template_id": "T-JOIN-05-grid-product-week-units-and-competitor",
+  "template_params": {
+    "brand": "Sonora",
+    "from": "2025-02-24",
+    "to": "2025-03-03"
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_join",
+  "prompt": "For every product of brand Sonora and every week whose week_start in calendar falls from 24 February to 3 March 2025, return the units sold that week and the lowest competitor price checked that week. order_ts and observed_ts hold UTC time: use their UTC dates, and a week runs from its week_start (a Monday) to the Sunday after. Return four columns, in this order: product_name, week_start, units (0 when none) and min_competitor_eur (the lowest price_eur of any competitor check, missing when there was none). Return one row for each product and week. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "product_name",
+        "type_class": "text"
+      },
+      {
+        "name": "week_start",
+        "type_class": "temporal"
+      },
+      {
+        "name": "units",
+        "type_class": "numeric"
+      },
+      {
+        "name": "min_competitor_eur",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "product_name",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "week_start",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "units",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "min_competitor_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "product_name",
+      "week_start"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, attach each weekly total to the product-by-week grid, each through a join that keeps grid rows with nothing to match.",
+    "Sum the units and find the lowest competitor price per product and week in separate steps first; joining raw lines and raw checks to the grid together repeats each line once per check."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 122,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 123,
+      "to": 352,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 353,
+      "to": 562,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 563,
+      "to": 651,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 652,
+      "to": 667,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 668,
+      "to": 686,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 687,
+      "to": 767,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 768,
+      "to": 847,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 848,
+      "to": 872,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "The CROSS JOIN gives every product every week, and each weekly total arrives already at one row per product and week, so the two LEFT JOINs repeat nothing."
+}

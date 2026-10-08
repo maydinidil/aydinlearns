@@ -1,0 +1,122 @@
+{
+  "id": "EX-SQL-DATE-01-E1-05",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "date",
+    "date_trunc",
+    "month",
+    "competitor_prices"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-DATE-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "retest",
+  "target_concept_id": "SQL-DATE-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-DATE-01"
+  ],
+  "template_id": "T-DATE-01-count-per-group-and-month",
+  "template_params": {
+    "table": "competitor_prices",
+    "unit": "month",
+    "clock": "UTC"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_date",
+  "prompt": "How many price checks did each competitor make in each calendar month? Use the competitor_prices table and count every check. observed_ts holds the time of the check in UTC, so take the month in UTC. Return three columns, in this order: competitor, check_month, the first day of the month as a date, and checks, the number of price checks. Return one row for each competitor and month. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "competitor",
+        "type_class": "text"
+      },
+      {
+        "name": "check_month",
+        "type_class": "temporal"
+      },
+      {
+        "name": "checks",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "competitor",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "check_month",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "checks",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "competitor",
+      "check_month"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the calculated column check_month: each check's time cut back to the first day of its month.",
+    "Group by both the competitor and the month, so each competitor gets its own row for every month; date_trunc keeps the year with the month."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 100,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 101,
+      "to": 123,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 124,
+      "to": 177,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "Grouping by the competitor and date_trunc('month', ...) gives one row for each competitor in each month, with the year kept."
+}

@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-DATE-01-E3-21",
+  "item_version": 1,
+  "reference_sql": "SELECT isodow(timezone('Europe/Amsterdam', timezone('UTC', order_ts))) AS iso_weekday,\n       ROUND(COUNT(*) * 1.0 / COUNT(DISTINCT CAST(timezone('Europe/Amsterdam', timezone('UTC', order_ts)) AS DATE)), 1) AS orders_per_day\nFROM orders\nWHERE channel = 'web'\nGROUP BY isodow(timezone('Europe/Amsterdam', timezone('UTC', order_ts)))",
+  "alternatives": [
+    "SELECT EXTRACT(isodow FROM timezone('Europe/Amsterdam', timezone('UTC', order_ts))) AS iso_weekday, ROUND(CAST(COUNT(*) AS DOUBLE) / COUNT(DISTINCT date_trunc('day', timezone('Europe/Amsterdam', timezone('UTC', order_ts)))), 1) AS orders_per_day FROM orders WHERE channel = 'web' GROUP BY 1",
+    "SELECT CASE WHEN dayofweek(timezone('Europe/Amsterdam', timezone('UTC', order_ts))) = 0 THEN 7 ELSE dayofweek(timezone('Europe/Amsterdam', timezone('UTC', order_ts))) END AS iso_weekday, ROUND(COUNT(order_id) * 1.0 / COUNT(DISTINCT CAST(timezone('Europe/Amsterdam', timezone('UTC', order_ts)) AS DATE)), 1) AS orders_per_day FROM orders WHERE channel = 'web' GROUP BY 1"
+  ],
+  "other_way": {
+    "sql": "SELECT CASE WHEN dayofweek(timezone('Europe/Amsterdam', timezone('UTC', order_ts))) = 0 THEN 7 ELSE dayofweek(timezone('Europe/Amsterdam', timezone('UTC', order_ts))) END AS iso_weekday, ROUND(COUNT(order_id) * 1.0 / COUNT(DISTINCT CAST(timezone('Europe/Amsterdam', timezone('UTC', order_ts)) AS DATE)), 1) AS orders_per_day FROM orders WHERE channel = 'web' GROUP BY 1",
+    "tradeoff": "A CASE that turns dayofweek's Sunday 0 into 7 works, but isodow already counts Monday 1 to Sunday 7."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-26",
+      "sql": "SELECT isodow(order_ts) AS iso_weekday, ROUND(COUNT(*) * 1.0 / COUNT(DISTINCT CAST(order_ts AS DATE)), 1) AS orders_per_day FROM orders WHERE channel = 'web' GROUP BY 1"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-05",
+      "sql": "SELECT isodow(timezone('Europe/Amsterdam', timezone('UTC', order_ts))) AS iso_weekday, ROUND(COUNT(*) // COUNT(DISTINCT CAST(timezone('Europe/Amsterdam', timezone('UTC', order_ts)) AS DATE)), 1) AS orders_per_day FROM orders WHERE channel = 'web' GROUP BY 1"
+    }
+  ],
+  "hint3_partial": "SELECT isodow(timezone('Europe/Amsterdam', timezone('UTC', order_ts))) AS iso_weekday,\n       ROUND(COUNT(*) * 1.0 / COUNT(DISTINCT ___), 1) AS orders_per_day\nFROM orders\nWHERE channel = 'web'\nGROUP BY ___",
+  "solver": {
+    "prompt_hash": "b9dbee264c322825",
+    "schema_version": "7ed366279088",
+    "dataset_version": "e1545e4258743033",
+    "grader_version": "1b.3",
+    "query": "WITH o AS (\n  SELECT CAST((order_ts AT TIME ZONE 'UTC') AT TIME ZONE 'Europe/Amsterdam' AS DATE) AS d\n  FROM orders\n  WHERE channel = 'web'\n)\nSELECT isodow(d) AS iso_weekday, ROUND(COUNT(*) * 1.0 / COUNT(DISTINCT d), 1) AS orders_per_day\nFROM o\nGROUP BY 1",
+    "at": "2026-10-07T10:41:37.759Z"
+  }
+}

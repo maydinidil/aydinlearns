@@ -1,0 +1,122 @@
+{
+  "id": "EX-SQL-DATE-01-E1-07",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "date",
+    "date_part",
+    "quarter",
+    "year",
+    "sales"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-DATE-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-DATE-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-DATE-01"
+  ],
+  "template_id": "T-DATE-01-sum-per-year-and-quarter",
+  "template_params": {
+    "table": "sales",
+    "measure": "units"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_date",
+  "prompt": "How many units did Voltmarkt sell in each quarter of each year? Use the sales table, where order_date is the UTC day of the order, and count every order line. Return three columns, in this order: order_year, the calendar year, order_quarter, the quarter as a number from 1 to 4, and units, the total units. Return one row for each year and quarter. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "order_year",
+        "type_class": "numeric"
+      },
+      {
+        "name": "order_quarter",
+        "type_class": "numeric"
+      },
+      {
+        "name": "units",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "order_year",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "order_quarter",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "units",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "order_year",
+      "order_quarter"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the calculated columns: the year and the quarter number of each line's order date, and the total units.",
+    "quarter() gives a number from 1 to 4 that repeats every year, so keep year() beside it and group by both."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 110,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 111,
+      "to": 121,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 122,
+      "to": 168,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "Grouping by year() and quarter() together keeps each quarter of 2024 apart from the same quarter of 2025."
+}

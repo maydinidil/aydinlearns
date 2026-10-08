@@ -1,0 +1,39 @@
+{
+  "item_id": "EX-SQL-JOIN-05-E1-01",
+  "item_version": 1,
+  "reference_sql": "SELECT s.store_code, c.cal_date\nFROM stores s\nCROSS JOIN calendar c\nWHERE s.country_code = 'BE' AND c.cal_date BETWEEN DATE '2025-03-03' AND DATE '2025-03-09'",
+  "alternatives": [
+    "SELECT s.store_code, c.cal_date FROM calendar c CROSS JOIN stores s WHERE c.cal_date >= DATE '2025-03-03' AND c.cal_date <= DATE '2025-03-09' AND s.country_code = 'BE'",
+    "SELECT s.store_code, c.cal_date FROM stores s, calendar c WHERE s.country_code = 'BE' AND c.cal_date BETWEEN DATE '2025-03-03' AND DATE '2025-03-09'"
+  ],
+  "other_way": {
+    "sql": "SELECT s.store_code, c.cal_date FROM stores s, calendar c WHERE s.country_code = 'BE' AND c.cal_date BETWEEN DATE '2025-03-03' AND DATE '2025-03-09'",
+    "tradeoff": "A comma between the two tables pairs every row just as CROSS JOIN does, but a reader may take it for a forgotten ON."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-11",
+      "sql": "SELECT DISTINCT s.store_code, CAST(o.order_ts AS DATE) AS cal_date FROM stores s JOIN orders o ON o.store_id = s.store_id WHERE s.country_code = 'BE' AND o.order_ts >= TIMESTAMP '2025-03-03' AND o.order_ts < TIMESTAMP '2025-03-10'"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-23",
+      "sql": "SELECT s.store_code, c.cal_date FROM stores s CROSS JOIN calendar c WHERE s.country_code = 'BE' AND c.cal_date > DATE '2025-03-03' AND c.cal_date < DATE '2025-03-09'"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-12",
+      "sql": "SELECT s.store_code, c.cal_date FROM stores s JOIN calendar c ON c.cal_date = s.opened_on WHERE s.country_code = 'BE' AND c.cal_date BETWEEN DATE '2025-03-03' AND DATE '2025-03-09'"
+    }
+  ],
+  "hint3_partial": "SELECT s.store_code, c.cal_date\nFROM stores s\n___ calendar c\nWHERE s.country_code = 'BE' AND c.cal_date BETWEEN DATE '2025-03-03' AND DATE '2025-03-09'",
+  "solver": {
+    "prompt_hash": "5b79ef5fd95b3981",
+    "schema_version": "90ef910aa398",
+    "dataset_version": "e1545e4258743033",
+    "grader_version": "1b.3",
+    "query": "SELECT s.store_code, c.cal_date\nFROM stores s\nCROSS JOIN calendar c\nWHERE s.country_code = 'BE'\n  AND c.cal_date >= DATE '2025-03-03' AND c.cal_date <= DATE '2025-03-09'",
+    "at": "2026-10-07T10:41:41.627Z"
+  }
+}

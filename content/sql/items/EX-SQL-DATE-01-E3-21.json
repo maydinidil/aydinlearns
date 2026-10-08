@@ -1,0 +1,124 @@
+{
+  "id": "EX-SQL-DATE-01-E3-21",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "date",
+    "date_part",
+    "isodow",
+    "weekday",
+    "time-zone",
+    "amsterdam",
+    "ratio",
+    "orders"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-DATE-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-DATE-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-DATE-01"
+  ],
+  "template_id": "T-DATE-01-average-per-weekday-amsterdam",
+  "template_params": {
+    "table": "orders",
+    "clock": "Europe/Amsterdam",
+    "channel": "web"
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_date",
+  "prompt": "On an average day, how many web orders does Voltmarkt take on each day of the week, by Amsterdam time? Use the orders table and keep the orders with channel 'web'. order_ts holds the time of the order in UTC: turn it into Amsterdam time first, then take the weekday and the date. For each weekday, divide the number of web orders by the number of different Amsterdam dates with web orders on that weekday. Return two columns, in this order: iso_weekday, the ISO day number from 1 for Monday to 7 for Sunday, and orders_per_day, rounded to 1 decimal with ROUND(x, 1). Return one row for each day of the week. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "iso_weekday",
+        "type_class": "numeric"
+      },
+      {
+        "name": "orders_per_day",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "iso_weekday",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "orders_per_day",
+        "type_class": "numeric",
+        "precision": "ratio",
+        "require_rounding": 1
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "iso_weekday"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the calculated columns: the ISO weekday of each web order in Amsterdam time, and the orders per day.",
+    "Count the orders, then divide by the number of different Amsterdam dates in the group, so each weekday is averaged over its own days. Both counts are whole numbers, so keep the decimals."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 224,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 225,
+      "to": 236,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 237,
+      "to": 258,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 259,
+      "to": 331,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "Dividing the orders by the number of different Amsterdam dates gives the average per day, and isodow on the Amsterdam time puts every order on its Amsterdam weekday."
+}

@@ -1,4 +1,6 @@
-// server/runner/child.ts: the only process where learner SQL executes (design §11)
+// server/runner/child.ts: the only process where learner SQL executes (design §11). It holds two locked instances on the same
+// read-only file: the runner, and from Task E3 a second one with integer_division on (spike A X9, S4B-24), opened on first use.
+// Only a 'display' request that asks for integer division runs on the second; it passes the same gate, deadline and kill.
 import { DuckDBInstance, DuckDBTimestampTZValue, type DuckDBConnection } from '@duckdb/node-api';
 import { gate, readParseTree, serializeSql } from './gate.ts';
 import { withDeadline } from './deadline.ts';
@@ -66,14 +68,17 @@ export function macroDenylistOf(inst: DuckDBInstance): ReadonlySet<string> {
 
 /**
  * Opens the database READ_ONLY, builds the macro denylist, sets TimeZone UTC, then locks the
- * configuration.
+ * configuration. `integerDivision` opens the second runner (S4B-24): the same options and lockdown (R12, R17), plus
+ * `integer_division` on, set on the setup connection before the lock, so `/` between two whole numbers cuts off the
+ * decimals as PostgreSQL and SQL Server do (7 / 2 = 3).
  */
-export async function openLockedInstance(dbPath: string): Promise<DuckDBInstance> {
+export async function openLockedInstance(dbPath: string, opts: { integerDivision?: boolean } = {}): Promise<DuckDBInstance> {
   const inst = await DuckDBInstance.create(dbPath, { ...INSTANCE_OPTIONS });
   try {
     const setup = await inst.connect();
     try {
       macroDenylists.set(inst, await readMacroDenylist(setup));
+      if (opts.integerDivision) await setup.run('SET GLOBAL integer_division = true');
       await setup.run(`SET GLOBAL TimeZone = 'UTC'`);
       await setup.run('SET GLOBAL lock_configuration = true');
     } finally {
@@ -86,8 +91,25 @@ export async function openLockedInstance(dbPath: string): Promise<DuckDBInstance
   return inst;
 }
 
-export async function handle(inst: DuckDBInstance, req: RunnerRequest, env: { useParseTree: boolean }): Promise<RunnerResponse> {
+/**
+ * `division` gives the second runner (S4B-24), opened on first use. Without it, a request for integer division gets an engine
+ * error, which the grader reads as "no note".
+ */
+export interface HandleEnv { useParseTree: boolean; division?: () => Promise<DuckDBInstance> }
+
+export async function handle(inst: DuckDBInstance, req: RunnerRequest, env: HandleEnv): Promise<RunnerResponse> {
   if (req.op === 'shutdown') return ok(req.id, null);
+  if (req.op === 'display' && req.integerDivision) {
+    let second: DuckDBInstance;
+    try {
+      if (!env.division) throw new Error('there is no second runner');
+      second = await env.division();
+    } catch (e) {
+      return fail(req.id, { kind: 'engine', phase: 'runtime', message: `The integer division runner could not be opened: ${msg(e)}` });
+    }
+    // The same request, gate and deadline, on the second instance.
+    return handle(second, { ...req, integerDivision: false }, { useParseTree: env.useParseTree });
+  }
   const deniedFunctions = macroDenylistOf(inst);
   const conn = await inst.connect();
   try {
@@ -133,16 +155,22 @@ export async function handle(inst: DuckDBInstance, req: RunnerRequest, env: { us
 
 if (import.meta.main) {
   const [dbPath, flag] = process.argv.slice(2);
-  const env = { useParseTree: flag !== '--no-parse-tree' };
+  // The second runner (S4B-24), opened on the first request that asks for it; a failed open is tried again by the next one.
+  let second: Promise<DuckDBInstance> | null = null;
+  let opened: DuckDBInstance | null = null;
+  const division = (): Promise<DuckDBInstance> => (second ??= openLockedInstance(dbPath!, { integerDivision: true })
+    .then((i) => (opened = i), (e: unknown) => { second = null; throw e; }));
+  const env: HandleEnv = { useParseTree: flag !== '--no-parse-tree', division };
   const inst = await openLockedInstance(dbPath!).catch((e: unknown) => {
     process.send!({ type: 'fatal', message: msg(e) }, () => process.exit(1));   // exit once the message is sent, or has failed
     return null;
   });
   if (inst) {
+    const closeAll = (): void => { inst.closeSync(); opened?.closeSync(); };
     /** Sends a message. When the channel has closed (the parent is gone), the child exits cleanly. */
     const send = (message: unknown): Promise<void> => new Promise((resolve) => {
       process.send!(message, (e: Error | null) => {
-        if (e) { inst.closeSync(); process.exit(0); }
+        if (e) { closeAll(); process.exit(0); }
         resolve();
       });
     });
@@ -152,7 +180,7 @@ if (import.meta.main) {
       const req = message as RunnerRequest;
       if (req.op === 'shutdown') {
         // Requests already received finish and are answered first.
-        chain = chain.then(() => { inst.closeSync(); process.exit(0); });
+        chain = chain.then(() => { closeAll(); process.exit(0); });
         return;
       }
       chain = chain.then(async () => {

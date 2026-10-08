@@ -1,0 +1,127 @@
+{
+  "id": "EX-SQL-JOIN-03-E2-32",
+  "version": 1,
+  "kind": "fix",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "fan_out",
+    "competitor_prices",
+    "sales",
+    "distinct",
+    "fix"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-JOIN-03"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-JOIN-03",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-JOIN-03"
+  ],
+  "template_id": "T-JOIN-03-fix-competitor",
+  "template_params": {
+    "child": "competitor_prices",
+    "fact": "sales",
+    "group_by": "channel"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_join",
+  "prompt": "The query in the editor has one mistake. Fix it so that it answers this question: how many units did each channel sell of the products that a competitor checked at least once? Use units and channel from the sales table; each order line's units count once, however many price checks its product has. Return two columns, in this order: channel and units. Return one row for each channel. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "channel",
+        "type_class": "text"
+      },
+      {
+        "name": "units",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "channel",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "units",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "channel"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, check the grain of competitor_prices: how many rows does one product have?",
+    "Every line of a product checked 50 times meets 50 check rows, so its units are added 50 times; join the lines to a list of checked products instead."
+  ],
+  "subgoals": [
+    {
+      "from": 29,
+      "to": 55,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 58,
+      "to": 80,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 83,
+      "to": 122,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 123,
+      "to": 192,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 193,
+      "to": 211,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": "SELECT s.channel, SUM(s.units) AS units\nFROM sales s\nJOIN competitor_prices cp ON cp.product_id = s.product_id\nGROUP BY s.channel",
+  "starter_error_id": "ERR-LOG-01",
+  "time_target_ms": 180000,
+  "why_this_works": "The step lists each checked product once, so every line meets one row and its units are added once."
+}

@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-JOIN-03-E3-03",
+  "item_version": 1,
+  "reference_sql": "WITH category_promos AS (\n  SELECT c.parent_category, COUNT(DISTINCT pp.promo_id) AS n_promotions\n  FROM promotion_products pp\n  JOIN products p ON p.product_id = pp.product_id\n  JOIN categories c ON c.category_id = p.category_id\n  GROUP BY c.parent_category\n),\ncategory_units AS (\n  SELECT c.parent_category, SUM(ol.quantity) AS promo_units\n  FROM order_lines ol\n  JOIN products p ON p.product_id = ol.product_id\n  JOIN categories c ON c.category_id = p.category_id\n  WHERE ol.promo_id IS NOT NULL\n  GROUP BY c.parent_category\n)\nSELECT cp.parent_category, cp.n_promotions, COALESCE(cu.promo_units, 0) AS promo_units\nFROM category_promos cp\nLEFT JOIN category_units cu ON cu.parent_category = cp.parent_category",
+  "alternatives": [
+    "WITH promo_pairs AS (SELECT DISTINCT c.parent_category, pp.promo_id FROM promotion_products pp JOIN products p ON p.product_id = pp.product_id JOIN categories c ON c.category_id = p.category_id), category_promos AS (SELECT parent_category, COUNT(*) AS n_promotions FROM promo_pairs GROUP BY parent_category), category_units AS (SELECT c.parent_category, SUM(ol.quantity) AS promo_units FROM order_lines ol JOIN products p ON p.product_id = ol.product_id JOIN categories c ON c.category_id = p.category_id WHERE ol.promo_id IS NOT NULL GROUP BY c.parent_category) SELECT cp.parent_category, cp.n_promotions, COALESCE(cu.promo_units, 0) AS promo_units FROM category_promos cp LEFT JOIN category_units cu ON cu.parent_category = cp.parent_category",
+    "WITH category_promos AS (SELECT c.parent_category, COUNT(DISTINCT pp.promo_id) AS n_promotions FROM promotion_products pp JOIN products p ON p.product_id = pp.product_id JOIN categories c ON c.category_id = p.category_id GROUP BY 1), category_units AS (SELECT parent_category, SUM(units) AS promo_units FROM sales s JOIN order_lines ol ON ol.order_line_id = s.order_line_id WHERE ol.promo_id IS NOT NULL GROUP BY 1) SELECT cp.parent_category, cp.n_promotions, COALESCE(cu.promo_units, 0) AS promo_units FROM category_promos cp LEFT JOIN category_units cu ON cu.parent_category = cp.parent_category"
+  ],
+  "other_way": {
+    "sql": "WITH promo_pairs AS (SELECT DISTINCT c.parent_category, pp.promo_id FROM promotion_products pp JOIN products p ON p.product_id = pp.product_id JOIN categories c ON c.category_id = p.category_id), category_promos AS (SELECT parent_category, COUNT(*) AS n_promotions FROM promo_pairs GROUP BY parent_category), category_units AS (SELECT c.parent_category, SUM(ol.quantity) AS promo_units FROM order_lines ol JOIN products p ON p.product_id = ol.product_id JOIN categories c ON c.category_id = p.category_id WHERE ol.promo_id IS NOT NULL GROUP BY c.parent_category) SELECT cp.parent_category, cp.n_promotions, COALESCE(cu.promo_units, 0) AS promo_units FROM category_promos cp LEFT JOIN category_units cu ON cu.parent_category = cp.parent_category",
+    "tradeoff": "Listing each category and promotion pair once, then counting rows, avoids COUNT(DISTINCT), but it needs one more step."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-01",
+      "sql": "SELECT c.parent_category, COUNT(DISTINCT pp.promo_id) AS n_promotions, COALESCE(SUM(ol.quantity), 0) AS promo_units FROM products p JOIN categories c ON c.category_id = p.category_id JOIN promotion_products pp ON pp.product_id = p.product_id LEFT JOIN order_lines ol ON ol.product_id = p.product_id AND ol.promo_id IS NOT NULL GROUP BY c.parent_category"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-04",
+      "sql": "WITH category_promos AS (SELECT c.parent_category, COUNT(pp.promo_id) AS n_promotions FROM promotion_products pp JOIN products p ON p.product_id = pp.product_id JOIN categories c ON c.category_id = p.category_id GROUP BY c.parent_category), category_units AS (SELECT c.parent_category, SUM(ol.quantity) AS promo_units FROM order_lines ol JOIN products p ON p.product_id = ol.product_id JOIN categories c ON c.category_id = p.category_id WHERE ol.promo_id IS NOT NULL GROUP BY c.parent_category) SELECT cp.parent_category, cp.n_promotions, COALESCE(cu.promo_units, 0) AS promo_units FROM category_promos cp LEFT JOIN category_units cu ON cu.parent_category = cp.parent_category"
+    }
+  ],
+  "hint3_partial": "WITH category_promos AS (\n  SELECT c.parent_category, COUNT(DISTINCT ___) AS n_promotions\n  FROM promotion_products pp\n  JOIN products p ON p.product_id = pp.product_id\n  JOIN categories c ON c.category_id = p.category_id\n  GROUP BY c.parent_category\n),\ncategory_units AS (\n  SELECT c.parent_category, SUM(ol.quantity) AS promo_units\n  FROM order_lines ol\n  JOIN products p ON p.product_id = ol.product_id\n  JOIN categories c ON c.category_id = p.category_id\n  WHERE ___\n  GROUP BY c.parent_category\n)\nSELECT cp.parent_category, cp.n_promotions, COALESCE(___, 0) AS promo_units\nFROM category_promos cp\nLEFT JOIN category_units cu ON ___",
+  "solver": {
+    "prompt_hash": "b8c3a641cf59246d",
+    "schema_version": "3427981c160c",
+    "dataset_version": "e1545e4258743033",
+    "grader_version": "1b.3",
+    "query": "WITH promos AS (\n  SELECT c.parent_category, COUNT(DISTINCT pp.promo_id) AS n_promotions\n  FROM promotion_products pp\n  JOIN products p ON p.product_id = pp.product_id\n  JOIN categories c ON c.category_id = p.category_id\n  GROUP BY c.parent_category\n), promo_units AS (\n  SELECT c.parent_category, SUM(l.quantity) AS promo_units\n  FROM order_lines l\n  JOIN products p ON p.product_id = l.product_id\n  JOIN categories c ON c.category_id = p.category_id\n  WHERE l.promo_id IS NOT NULL\n  GROUP BY c.parent_category\n)\nSELECT pr.parent_category, pr.n_promotions, COALESCE(pu.promo_units, 0) AS promo_units\nFROM promos pr\nLEFT JOIN promo_units pu ON pu.parent_category = pr.parent_category",
+    "at": "2026-10-07T10:41:40.830Z"
+  }
+}

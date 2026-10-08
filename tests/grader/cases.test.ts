@@ -177,11 +177,22 @@ async function plansFor(c: any) {
   const lg = await runner.request<GateOk>({ op: 'gate', schema: 'g', allowedSchemas: [], sql: c.learner_sql });
   const kg = await runner.request<GateOk>({ op: 'gate', schema: 'g', allowedSchemas: [], sql: c.key_sql });
   assert.ok(lg.ok && kg.ok, JSON.stringify([lg, kg]));
-  return { lg: lg.data, kg: kg.data, plans: buildPlans(lg.data.columns, kg.data.columns, { ...DEFAULT_RULES, ...c.rules }) };
+  // D41 (Task E3): a case with screen_mode true grades in screen mode; every other case in normal mode, as before.
+  return { lg: lg.data, kg: kg.data, plans: buildPlans(lg.data.columns, kg.data.columns, { ...DEFAULT_RULES, ...c.rules }, { screenMode: c.screen_mode === true }) };
 }
 
-test('Task 6 has 16 grading cases, and the extra cases use other table names', () => {
-  assert.equal(cases.length, 16);
+test('Task 6 has 16 grading cases, Task E3 adds two screen-mode pairs, and the extra cases use other table names', () => {
+  assert.equal(cases.filter((c) => c.screen_mode === undefined).length, 16, 'G1 to G13 as Task 6 wrote them, graded in normal mode');
+  // Each pair is one key and one learner query: it passes in normal mode and fails in screen mode (D41, S4B-22).
+  const pairs = cases.filter((c) => c.screen_mode !== undefined);
+  assert.deepEqual(pairs.map((c) => [c.id, c.screen_mode, c.expect.pass]).sort(), [
+    ['g4-screen-date-normal', false, true], ['g4-screen-date-screen', true, false],
+    ['g4-screen-integer-normal', false, true], ['g4-screen-integer-screen', true, false],
+  ]);
+  for (const kind of ['date', 'integer']) {
+    const [n, s] = ['normal', 'screen'].map((m) => pairs.find((c) => c.id === `g4-screen-${kind}-${m}`));
+    assert.deepEqual([n.key_sql, n.learner_sql, n.rules], [s.key_sql, s.learner_sql, s.rules], kind);
+  }
   const tables = (cs: any[]) => new Set(cs.flatMap((c) => (c.setup_sql as string[]).flatMap((s) => [...s.matchAll(/CREATE TABLE (\S+)/g)].map((m) => m[1]))));
   const caseTables = tables(cases);
   for (const t of tables(EXTRA)) assert.ok(!caseTables.has(t), t);
@@ -257,15 +268,15 @@ test('grain counts all rows and the distinct key-column combinations', async () 
 });
 
 test('A5: a witness over a partial plan compares only the key columns that map, on both sides', async () => {
-  // The key returns id, price and twice; the learner returns price, a note and id, for two of the three rows.
+  // The key returns twice, id and price; the learner returns price, a note and id, for two of the three rows.
   const learnerSql = "SELECT price, 'x' AS note, id FROM g.x_p WHERE id < 3";
-  const keySql = 'SELECT id, price, id * 2 AS twice FROM g.x_p';
+  const keySql = 'SELECT id * 2 AS twice, id, price FROM g.x_p';
   const lg = await runner.request<GateOk>({ op: 'gate', schema: 'g', allowedSchemas: [], sql: learnerSql });
   const kg = await runner.request<GateOk>({ op: 'gate', schema: 'g', allowedSchemas: [], sql: keySql });
   assert.ok(lg.ok && kg.ok, JSON.stringify([lg, kg]));
   const p = partialPlan(lg.data.columns, kg.data.columns, DEFAULT_RULES);
   assert.ok(p);
-  assert.deepEqual([p.keyOrder, p.learnerOrder], [[0, 1], [2, 0]]);
+  assert.deepEqual([p.keyOrder, p.learnerOrder], [[1, 2], [2, 0]]);
   const w = await runner.request<RowsOk>({ op: 'one_row', schema: 'g', sql: composeWitnessSql(learnerSql, keySql, p), deadlineMs: 5000 });
   assert.ok(w.ok, JSON.stringify(w));
   // extra, missing, mismatched, matched, learner_rows, key_rows: two of the key's three rows, nothing extra.

@@ -1,0 +1,89 @@
+{
+  "case_id": "CASE-DAILY-L2-01",
+  "kind": "daily",
+  "level": 2,
+  "world": "MKT",
+  "company_id": "voltmarkt",
+  "title": "Spring top sellers and the stores",
+  "persona": {
+    "name": "Fleur",
+    "role": "Trade marketing"
+  },
+  "brief": {
+    "decision": "Which products get an in-store display next spring",
+    "deadline": "The display planning meeting at the end of the month"
+  },
+  "data_needed": [
+    "sales"
+  ],
+  "expected_output": {
+    "columns": [
+      "product_id",
+      "product_name",
+      "units",
+      "store_units"
+    ],
+    "grain": "one row per product",
+    "sort": [
+      {
+        "column": "units",
+        "desc": true
+      },
+      {
+        "column": "product_id",
+        "desc": false
+      }
+    ]
+  },
+  "checkpoints": [
+    {
+      "id": "CP3",
+      "kind": "CP3",
+      "prompt": "Write the query that answers Fleur's question.",
+      "credits_concepts": [
+        "SQL-AGG-04",
+        "SQL-AGG-01",
+        "SQL-AGG-02"
+      ],
+      "item_id": "EX-CASE-DAILY-L2-01"
+    },
+    {
+      "id": "CP4",
+      "kind": "CP4",
+      "prompt": "Fleur's headline: of all the units Voltmarkt sold from 2025-01-01 to 2025-03-31, both days included, what percentage were sold on lines whose channel is 'store'? Use every line of the sales table with an order_date in that period, whatever the product; a line with a missing units value adds nothing. Divide the store units by all the units and multiply by 100. Type the percentage with 1 decimal, for example 12.5.",
+      "credits_concepts": [
+        "SQL-AGG-01"
+      ],
+      "item_id": "CASE-DAILY-L2-01:CP4",
+      "typed": {
+        "precision": "ratio",
+        "scale": "percent",
+        "decimals": 1,
+        "unit_label": "%"
+      },
+      "truth_key": "CASE-DAILY-L2-01:CP4"
+    }
+  ],
+  "model_plan": "Metric formula: units is the sum of units; store_units is the sum of units over the lines whose channel is 'store', 0 when there are none.\nOutput grain: one row per product, cut to the 10 with the most units.\nTables and keys: the sales view only, one row per order line; group on product_id and product_name.\nFilters: order_date from 2025-01-01 to 2025-03-31, both days included.\nEdge cases: a missing units value adds nothing, a product with no store lines needs 0 rather than a missing value, and equal units are settled by product_id before the cut.\nExpected row count: 10",
+  "model_answer_template": "In the first quarter of 2025, {CP4} percent of all the units Voltmarkt sold went through the stores, so in-store displays can reach most of the volume. A ranking by units favours small, fast-moving items, and these may bring in little money per unit, so look at what the top 10 holds. Units say nothing about margin or about whether a display adds sales, and one quarter may not repeat next spring. Next, rank the same products by net revenue and margin, and try the displays in a few stores before rolling them out.",
+  "follow_up_question": "How do the same products rank by net revenue instead of units?",
+  "data_source": {
+    "label": "Fictional, generated data: Voltmarkt",
+    "real": false,
+    "licence": null
+  },
+  "difficulty": 1,
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CASE-01",
+    "SQL-AGG-04"
+  ],
+  "metric_ids": [],
+  "find_ids": [],
+  "uses_raw": false
+}

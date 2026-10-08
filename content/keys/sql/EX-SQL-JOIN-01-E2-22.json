@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-JOIN-01-E2-22",
+  "item_version": 1,
+  "reference_sql": "SELECT pr.promo_code, c.parent_category, COUNT(*) AS n_products\nFROM promotion_products pp\nJOIN promotions pr ON pr.promo_id = pp.promo_id\nJOIN products p ON p.product_id = pp.product_id\nJOIN categories c ON c.category_id = p.category_id\nWHERE pr.start_date BETWEEN DATE '2025-03-01' AND DATE '2025-03-31'\nGROUP BY pr.promo_code, c.parent_category",
+  "alternatives": [
+    "SELECT pr.promo_code, c.parent_category, COUNT(pp.product_id) AS n_products FROM promotions pr JOIN promotion_products pp ON pp.promo_id = pr.promo_id JOIN products p ON p.product_id = pp.product_id JOIN categories c ON c.category_id = p.category_id WHERE pr.start_date >= DATE '2025-03-01' AND pr.start_date < DATE '2025-04-01' GROUP BY 1, 2",
+    "SELECT pr.promo_code, c.parent_category, COUNT(*) AS n_products FROM promotion_products pp, promotions pr, products p, categories c WHERE pr.promo_id = pp.promo_id AND p.product_id = pp.product_id AND c.category_id = p.category_id AND pr.start_date >= DATE '2025-03-01' AND pr.start_date < DATE '2025-04-01' GROUP BY pr.promo_code, c.parent_category"
+  ],
+  "other_way": {
+    "sql": "SELECT pr.promo_code, c.parent_category, COUNT(*) AS n_products FROM promotion_products pp, promotions pr, products p, categories c WHERE pr.promo_id = pp.promo_id AND p.product_id = pp.product_id AND c.category_id = p.category_id AND pr.start_date >= DATE '2025-03-01' AND pr.start_date < DATE '2025-04-01' GROUP BY pr.promo_code, c.parent_category",
+    "tradeoff": "Four tables in a comma list work, but with three matches and a date test in one WHERE, a slip is hard to see."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-12",
+      "sql": "SELECT pr.promo_code, c.parent_category, COUNT(*) AS n_products FROM promotion_products pp JOIN promotions pr ON pr.promo_id = pp.promo_id JOIN products p ON p.product_id = pp.promo_id JOIN categories c ON c.category_id = p.category_id WHERE pr.start_date BETWEEN DATE '2025-03-01' AND DATE '2025-03-31' GROUP BY pr.promo_code, c.parent_category"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-SEM-03",
+      "sql": "SELECT pr.promo_code, c.parent_category, COUNT(*) AS n_products FROM promotion_products pp, promotions pr, products p, categories c WHERE p.product_id = pp.product_id AND c.category_id = p.category_id AND pr.start_date BETWEEN DATE '2025-03-01' AND DATE '2025-03-31' GROUP BY pr.promo_code, c.parent_category"
+    }
+  ],
+  "hint3_partial": "SELECT pr.promo_code, c.parent_category, COUNT(*) AS n_products\nFROM promotion_products pp\nJOIN promotions pr ON ___\nJOIN products p ON ___\nJOIN categories c ON ___\nWHERE ___\nGROUP BY pr.promo_code, c.parent_category",
+  "solver": {
+    "prompt_hash": "d53ed263466cde21",
+    "schema_version": "b7f4a8c3ec45",
+    "dataset_version": "e1545e4258743033",
+    "grader_version": "1b.3",
+    "query": "SELECT pr.promo_code, c.parent_category, COUNT(*) AS n_products\nFROM promotions pr\nJOIN promotion_products pp ON pp.promo_id = pr.promo_id\nJOIN products p ON p.product_id = pp.product_id\nJOIN categories c ON c.category_id = p.category_id\nWHERE pr.start_date >= DATE '2025-03-01' AND pr.start_date <= DATE '2025-03-31'\nGROUP BY pr.promo_code, c.parent_category",
+    "at": "2026-10-07T10:41:38.141Z"
+  }
+}

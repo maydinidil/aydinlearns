@@ -7,7 +7,10 @@
     "SELECT promo_code, promo_type, 1 - COALESCE(discount_pct / 100, 0) AS price_factor\nFROM promotions\nWHERE start_date >= DATE '2025-01-01' AND (promo_type = 'bundle' OR promo_type = 'clearance')",
     "SELECT promo_code, promo_type, 1 - COALESCE(discount_pct, 0) * 0.01 AS price_factor\nFROM promotions\nWHERE (promo_type = 'clearance' OR promo_type = 'bundle') AND start_date > DATE '2024-12-31'"
   ],
-  "other_way": null,
+  "other_way": {
+    "sql": "SELECT promo_code, promo_type, (100 - COALESCE(discount_pct, 0)) / 100 AS price_factor\nFROM promotions\nWHERE promo_type IN ('clearance', 'bundle') AND start_date >= '2025-01-01'",
+    "tradeoff": "IN lists the values once and reads shorter, while the OR version repeats the column name for each value."
+  },
   "planted_wrong": [
     {
       "id": "M1",

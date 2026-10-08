@@ -1,0 +1,132 @@
+{
+  "concept_id": "SQL-CTE-01",
+  "version": 1,
+  "reading_md": "## Name a step with WITH\n\nSome questions need two rounds of adding up. \"What is the average order value?\" first needs each order's value, the sum of its lines, and only then an average over the orders. One GROUP BY cannot do both: it gives one row per order or one row in total, not one after the other.\n\nA CTE (common table expression) names the first step, so the rest of the query can read it like a table:\n\n```sql\nWITH order_totals AS (\n  SELECT order_id, SUM(quantity * unit_price_eur - line_discount_eur) AS order_eur\n  FROM order_lines\n  GROUP BY order_id\n)\nSELECT AVG(order_eur) AS avg_order_eur\nFROM order_totals;\n```\n\nThe query inside the brackets runs first. Its result gets the name `order_totals`, and the final SELECT reads it with FROM, as it would read `orders`.\n\n### Every step has a grain\n\nBefore you write a step, say what one row of it stands for. Here the step has one row per order; the final query has one row in total. A comment helps: `-- one row per order`. Then check it: run the step on its own and look at the row count. A step meant to have one row per order must not return more rows than there are orders; if it does, its GROUP BY is wrong, and every later step inherits the mistake.\n\nThe grain decides what the next step counts. AVG over `order_totals` weighs every order once. AVG straight over `order_lines` weighs every line once, so an order with five lines would count five times.\n\n### Writing the steps\n\n- `WITH name AS ( ... )` comes before the final SELECT, and there is only one WITH, even for several steps.\n- Separate steps with a comma: `WITH a AS (...), b AS (SELECT ... FROM a)`. No comma before the final SELECT.\n- A step can read any step written above it.\n- Name every calculated column with AS, so later steps can use it.\n- A filter can sit in either place. WHERE inside the step removes lines before they are added up; WHERE in the final query removes rows of the step, for example orders worth more than 1,000 EUR.\n\n### When to use a step\n\nUse a step when the question has two \"per\" levels: units per order, then the largest order per store; orders per customer, then customers per number of orders; revenue per day, then the average day. A question with one level needs no WITH.\n\n### What comes next\n\nJoining tables can repeat rows. The usual fix is a named step that adds up one side to one row per key before the join. That is the next concept, grain and join fan-out, and it builds on this one.",
+  "syntax_md": "```sql\nWITH step_name AS (                                       -- one row per <the step's grain>\n  SELECT key_column, AGGREGATE(value_column) AS metric_name  -- metrics\n  FROM table_name                                            -- source and grain\n  GROUP BY key_column                                        -- output grain of the step\n)\nSELECT AGGREGATE(metric_name) AS result_name                 -- metrics\nFROM step_name;                                              -- source: the named step\n```\n\n- WITH comes first, then the step's name, AS, and the step's query in brackets.\n- More steps: `WITH a AS (...), b AS (SELECT ... FROM a)`, with no comma before the final SELECT.\n- The final SELECT reads a step like a table.\n- State each step's grain, and check its row count before you build on it.",
+  "dialect_note": "WITH is standard SQL, so the same steps run in PostgreSQL, SQL Server and BigQuery. In DuckDB a step can read only the steps written above it (checked on 1.5.6): a step that reads one defined below it stops with \"Table ... does not exist\", so write the steps in the order they run.",
+  "worked_examples": [
+    {
+      "title": "Average units per order",
+      "prompt": "What is the average number of units in an order? An order's units are the quantity summed over its order lines. Return one column, avg_units.",
+      "clauses": [
+        {
+          "text": "WITH order_units AS (SELECT order_id, SUM(quantity) AS units",
+          "subgoal": "metrics",
+          "why": "The step returns each order's ID with its units, under the name order_units that the final query reads."
+        },
+        {
+          "text": "FROM order_lines",
+          "subgoal": "source_grain",
+          "why": "order_lines has one row per line, so the lines of one order are added up together."
+        },
+        {
+          "text": "GROUP BY order_id)",
+          "subgoal": "output_grain",
+          "why": "The step has one row per order; the bracket closes the step."
+        },
+        {
+          "text": "SELECT AVG(units) AS avg_units",
+          "subgoal": "metrics",
+          "why": "AVG now runs over orders, so each order counts once, whatever its number of lines."
+        },
+        {
+          "text": "FROM order_units",
+          "subgoal": "source_grain",
+          "why": "The final query reads the named step like a table."
+        }
+      ]
+    },
+    {
+      "title": "Customers with more than one order",
+      "prompt": "How many customers placed more than one order? Guest orders, with a missing customer_id, do not count. Return one column, n_customers.",
+      "clauses": [
+        {
+          "text": "WITH orders_per_customer AS (SELECT customer_id, COUNT(*) AS n_orders",
+          "subgoal": "metrics",
+          "why": "The step counts each customer's orders and names the result."
+        },
+        {
+          "text": "FROM orders",
+          "subgoal": "source_grain",
+          "why": "orders has one row per order, so COUNT(*) counts orders."
+        },
+        {
+          "text": "WHERE customer_id IS NOT NULL",
+          "subgoal": "row_filter",
+          "why": "Guest orders have no customer, so they leave before the grouping."
+        },
+        {
+          "text": "GROUP BY customer_id)",
+          "subgoal": "output_grain",
+          "why": "The step has one row per customer."
+        },
+        {
+          "text": "SELECT COUNT(*) AS n_customers",
+          "subgoal": "metrics",
+          "why": "Counts rows of the step, and each row is a customer."
+        },
+        {
+          "text": "FROM orders_per_customer",
+          "subgoal": "source_grain",
+          "why": "The final query reads the step, not the orders."
+        },
+        {
+          "text": "WHERE n_orders > 1",
+          "subgoal": "row_filter",
+          "why": "The test needs each customer's order count, which exists only after the step."
+        }
+      ]
+    }
+  ],
+  "pretest_item_ids": [
+    "EX-SQL-CTE-01-E1-01",
+    "EX-SQL-CTE-01-E1-02"
+  ],
+  "lesson_item_ids": [
+    "EX-SQL-CTE-01-E1-03",
+    "EX-SQL-CTE-01-E1-04",
+    "EX-SQL-CTE-01-E2-01",
+    "EX-SQL-CTE-01-E2-02"
+  ],
+  "retest_item_id": "EX-SQL-CTE-01-E1-05",
+  "pool_item_ids": [
+    "EX-SQL-CTE-01-E1-06",
+    "EX-SQL-CTE-01-E1-07",
+    "EX-SQL-CTE-01-E1-08",
+    "EX-SQL-CTE-01-E2-03",
+    "EX-SQL-CTE-01-E2-04",
+    "EX-SQL-CTE-01-E2-05",
+    "EX-SQL-CTE-01-E3-01",
+    "EX-SQL-CTE-01-E3-02",
+    "EX-SQL-CTE-01-E1-42",
+    "EX-SQL-CTE-01-E2-41",
+    "EX-SQL-CTE-01-E2-42"
+  ],
+  "source_ids": [
+    "01:SQL-CTE-01"
+  ],
+  "why_clause": {
+    "clause": "GROUP BY order_id",
+    "stem": "Why does the step group the order lines by order_id?",
+    "options": [
+      {
+        "id": "a",
+        "text": "So the step has one row per order, and AVG then counts each order once."
+      },
+      {
+        "id": "b",
+        "text": "Because every step written after WITH must end with a GROUP BY."
+      },
+      {
+        "id": "c",
+        "text": "So the lines come out sorted by order_id before the average runs."
+      },
+      {
+        "id": "d",
+        "text": "So the orders that have no lines are left out of the average."
+      }
+    ],
+    "correct_id": "a",
+    "explanation": "GROUP BY order_id turns the lines into one row per order, the grain the average needs. A step needs no GROUP BY when its rows already have the right grain, GROUP BY does not sort, and an order with no lines never appears in order_lines at all."
+  }
+}

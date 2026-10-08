@@ -23,6 +23,8 @@ logs/
 # Spike scripts (throwaway) and local environments
 spike/
 tools/.solver-out/
+# Blind-solver hold files: they hold solver SQL, so they are never committed
+tools/.solver-hold/
 tools/.solver-view/
 pipeline/.venv/
 web/dist/

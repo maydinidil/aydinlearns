@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-JOIN-05-E2-02",
+  "item_version": 1,
+  "reference_sql": "WITH weeks AS (SELECT DISTINCT week_start FROM calendar WHERE week_start BETWEEN DATE '2025-03-01' AND DATE '2025-03-31'),\nunits AS (SELECT ol.product_id, c.week_start, SUM(ol.quantity) AS units FROM order_lines ol JOIN orders o ON o.order_id = ol.order_id JOIN calendar c ON c.cal_date = CAST(o.order_ts AS DATE) GROUP BY ol.product_id, c.week_start)\nSELECT p.product_id, w.week_start, COALESCE(u.units, 0) AS units\nFROM products p\nCROSS JOIN weeks w\nLEFT JOIN units u ON u.product_id = p.product_id AND u.week_start = w.week_start\nWHERE p.brand = 'Sonora'",
+  "alternatives": [
+    "WITH weeks AS (SELECT DISTINCT week_start FROM calendar WHERE week_start BETWEEN DATE '2025-03-01' AND DATE '2025-03-31'), units AS (SELECT ol.product_id, CAST(date_trunc('week', o.order_ts) AS DATE) AS week_start, SUM(ol.quantity) AS units FROM order_lines ol JOIN orders o ON o.order_id = ol.order_id GROUP BY ol.product_id, CAST(date_trunc('week', o.order_ts) AS DATE)) SELECT p.product_id, w.week_start, COALESCE(u.units, 0) AS units FROM products p CROSS JOIN weeks w LEFT JOIN units u ON u.product_id = p.product_id AND u.week_start = w.week_start WHERE p.brand = 'Sonora'",
+    "WITH weeks AS (SELECT DISTINCT week_start FROM calendar WHERE week_start BETWEEN DATE '2025-03-01' AND DATE '2025-03-31'), units AS (SELECT ol.product_id, c.week_start, SUM(ol.quantity) AS units FROM order_lines ol JOIN orders o ON o.order_id = ol.order_id JOIN calendar c ON c.cal_date = CAST(o.order_ts AS DATE) GROUP BY ol.product_id, c.week_start) SELECT p.product_id, w.week_start, COALESCE(u.units, 0) AS units FROM weeks w CROSS JOIN products p LEFT JOIN units u ON u.week_start = w.week_start AND u.product_id = p.product_id WHERE p.brand = 'Sonora'"
+  ],
+  "other_way": {
+    "sql": "WITH weeks AS (SELECT DISTINCT week_start FROM calendar WHERE week_start BETWEEN DATE '2025-03-01' AND DATE '2025-03-31'), units AS (SELECT ol.product_id, CAST(date_trunc('week', o.order_ts) AS DATE) AS week_start, SUM(ol.quantity) AS units FROM order_lines ol JOIN orders o ON o.order_id = ol.order_id GROUP BY ol.product_id, CAST(date_trunc('week', o.order_ts) AS DATE)) SELECT p.product_id, w.week_start, COALESCE(u.units, 0) AS units FROM products p CROSS JOIN weeks w LEFT JOIN units u ON u.product_id = p.product_id AND u.week_start = w.week_start WHERE p.brand = 'Sonora'",
+    "tradeoff": "date_trunc finds each order's Monday without a join, but the calendar join reuses the week_start that the grid uses."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-11",
+      "sql": "WITH weeks AS (SELECT DISTINCT week_start FROM calendar WHERE week_start BETWEEN DATE '2025-03-01' AND DATE '2025-03-31'), units AS (SELECT ol.product_id, c.week_start, SUM(ol.quantity) AS units FROM order_lines ol JOIN orders o ON o.order_id = ol.order_id JOIN calendar c ON c.cal_date = CAST(o.order_ts AS DATE) GROUP BY ol.product_id, c.week_start) SELECT p.product_id, w.week_start, COALESCE(u.units, 0) AS units FROM products p CROSS JOIN weeks w JOIN units u ON u.product_id = p.product_id AND u.week_start = w.week_start WHERE p.brand = 'Sonora'"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-17",
+      "sql": "WITH weeks AS (SELECT DISTINCT week_start FROM calendar WHERE week_start BETWEEN DATE '2025-03-01' AND DATE '2025-03-31'), units AS (SELECT ol.product_id, c.week_start, SUM(ol.quantity) AS units FROM order_lines ol JOIN orders o ON o.order_id = ol.order_id JOIN calendar c ON c.cal_date = CAST(o.order_ts AS DATE) GROUP BY ol.product_id, c.week_start) SELECT p.product_id, w.week_start, u.units FROM products p CROSS JOIN weeks w LEFT JOIN units u ON u.product_id = p.product_id AND u.week_start = w.week_start WHERE p.brand = 'Sonora'"
+    }
+  ],
+  "hint3_partial": "WITH weeks AS (SELECT DISTINCT week_start FROM calendar WHERE week_start BETWEEN DATE '2025-03-01' AND DATE '2025-03-31'),\nunits AS (SELECT ol.product_id, c.week_start, SUM(ol.quantity) AS units FROM order_lines ol JOIN orders o ON o.order_id = ol.order_id JOIN calendar c ON c.cal_date = CAST(o.order_ts AS DATE) GROUP BY ol.product_id, c.week_start)\nSELECT p.product_id, w.week_start, COALESCE(u.units, 0) AS units\nFROM products p\n___ weeks w\nLEFT JOIN units u ON u.product_id = p.product_id AND u.week_start = w.week_start\nWHERE p.brand = 'Sonora'",
+  "solver": {
+    "prompt_hash": "fa87144d6919cd33",
+    "schema_version": "3505faad9222",
+    "dataset_version": "e1545e4258743033",
+    "grader_version": "1b.3",
+    "query": "WITH weeks AS (\n  SELECT DISTINCT week_start\n  FROM calendar\n  WHERE week_start >= DATE '2025-03-01' AND week_start <= DATE '2025-03-31'\n), sold AS (\n  SELECT l.product_id, CAST(o.order_ts AS DATE) AS d, l.quantity\n  FROM order_lines l\n  JOIN orders o ON o.order_id = l.order_id\n)\nSELECT p.product_id, w.week_start, COALESCE(SUM(s.quantity), 0) AS units\nFROM products p\nCROSS JOIN weeks w\nLEFT JOIN sold s ON s.product_id = p.product_id AND s.d >= w.week_start AND s.d <= w.week_start + 6\nWHERE p.brand = 'Sonora'\nGROUP BY p.product_id, w.week_start",
+    "at": "2026-10-07T10:41:41.932Z"
+  }
+}

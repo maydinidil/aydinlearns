@@ -280,6 +280,7 @@ export function extendHeldOut(section: ChoiceSection, items: readonly ChoiceItem
   const loggedCands = cands.filter((c) => logged.has(c.id)).length;
   if (loggedCands) refuse(`${plural(loggedCands, 'candidate is', 'candidates are')} named by a log record`);
   const heldItems = [...pool].map((id) => byId.get(id)).filter((i): i is ChoiceItem => !!i);
+  if (heldItems.length < pool.size) refuse(`${plural(pool.size - heldItems.length, 'held-out ID is', 'held-out IDs are')} not in the ${section} bank`);
 
   const active = items.filter((i) => i.status === 'active');
   const next = new Set(pool);
@@ -369,10 +370,15 @@ export function extendHeldOut(section: ChoiceSection, items: readonly ChoiceItem
   };
 }
 
-/** The item IDs among `ids` that any attempts-*.jsonl file in `dir` names. Throws when the folder cannot be read. */
+class NoAttemptsFiles extends Error {}
+
+/** The item IDs among `ids` that any attempts-*.jsonl file in `dir` names. Throws when the folder cannot be read or holds no attempts file. */
 async function loggedIds(dir: string, ids: readonly string[]): Promise<Set<string>> {
   const named = new Set<string>();
-  for (const f of (await readdir(dir)).filter((n) => /^attempts-.*\.jsonl$/.test(n))) {
+  const files = (await readdir(dir)).filter((n) => /^attempts-.*\.jsonl$/.test(n));
+  // s3:L76: a wrong folder has no attempts files and would pass as a clean one, so none is a refusal.
+  if (!files.length) throw new NoAttemptsFiles();
+  for (const f of files) {
     const text = await readFile(join(dir, f), 'utf8');
     for (const id of ids) if (text.includes(`"${id}"`)) named.add(id);
   }
@@ -420,7 +426,7 @@ async function extendMain(argv: string[]): Promise<number> {
   let logged: Set<string> | undefined;
   if (flags.has('--logs')) {
     try { logged = await loggedIds(resolve(flags.get('--logs')!), [...candidates, ...before]); }
-    catch { return fail('the logs folder cannot be read'); }
+    catch (e) { return fail(e instanceof NoAttemptsFiles ? 'the logs folder has no attempts files, so it may be the wrong folder' : 'the logs folder cannot be read'); }
   }
   let ext: Extension;
   try {

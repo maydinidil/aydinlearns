@@ -1,0 +1,109 @@
+{
+  "id": "EX-SQL-JOIN-03-E1-02",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "fan_out",
+    "bridge",
+    "promotion_products",
+    "sales"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-JOIN-03"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pretest",
+  "target_concept_id": "SQL-JOIN-03",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-JOIN-03"
+  ],
+  "template_id": "T-JOIN-03-bridge-distinct-total",
+  "template_params": {
+    "bridge": "promotion_products",
+    "fact": "sales",
+    "metric": "net_revenue_eur"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_join",
+  "prompt": "What is the total net revenue of the products that take part in at least one promotion? A product takes part when at least one promotion lists it, whether or not a given line was sold with a promotion. Use net_revenue_eur from the sales table, and count each order line once, even when its product is in several promotions. Return one column, revenue_eur. Do not round. The result is a single row. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "revenue_eur",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "revenue_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, make a list of the products in a promotion that holds each product only once.",
+    "A product in two promotions has two rows in the bridge table, so joining the lines to it directly repeats them; join to a step with one row per product."
+  ],
+  "subgoals": [
+    {
+      "from": 27,
+      "to": 53,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 56,
+      "to": 79,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 82,
+      "to": 126,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 127,
+      "to": 194,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "The step lists each promoted product once, so every order line matches at most one row and is added up once."
+}

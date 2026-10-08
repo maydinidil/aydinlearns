@@ -1,0 +1,127 @@
+{
+  "id": "EX-SQL-JOIN-02-E2-03",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "left_join",
+    "filter_in_on",
+    "coalesce",
+    "stores",
+    "orders",
+    "order_lines"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-JOIN-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-JOIN-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02"
+  ],
+  "template_id": "T-JOIN-02-sum-keep-zero",
+  "template_params": {
+    "from": "stores",
+    "join": "orders, order_lines",
+    "month": "2025-02"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_join",
+  "prompt": "How much net revenue did each store bring in during February 2025? order_ts holds UTC time: count orders from 1 February 2025 to 28 February 2025, UTC days, both included. A line's net revenue is quantity times unit_price_eur minus line_discount_eur. Include every store, with 0 for a store with no order lines in that month. Return two columns, in this order: store_code and revenue_eur. Return one row for each store. Do not round. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "store_code",
+        "type_class": "text"
+      },
+      {
+        "name": "revenue_eur",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "store_code",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "revenue_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "store_code"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, join the February orders and their lines so that every store stays.",
+    "Keep the month test inside the join. A store with no lines gets a missing sum, which the question wants as 0."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 105,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 106,
+      "to": 119,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 120,
+      "to": 264,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 265,
+      "to": 315,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 316,
+      "to": 337,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "Both joins keep every store, the month test in ON picks the orders, and COALESCE turns a missing sum into 0."
+}

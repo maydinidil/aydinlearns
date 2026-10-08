@@ -7,7 +7,10 @@
     "SELECT cal_date, weekday_name, is_weekend\nFROM calendar\nWHERE cal_date >= DATE '2025-02-28' AND cal_date < DATE '2025-03-03'",
     "SELECT cal_date, weekday_name, is_weekend\nFROM calendar\nWHERE cal_date BETWEEN '2025-02-28' AND '2025-03-02'"
   ],
-  "other_way": null,
+  "other_way": {
+    "sql": "SELECT cal_date, weekday_name, is_weekend\nFROM calendar\nWHERE cal_date >= '2025-02-28' AND cal_date <= '2025-03-02'",
+    "tradeoff": "Two comparisons give the same rows, but BETWEEN states the range in one short test."
+  },
   "planted_wrong": [
     {
       "id": "PW1",

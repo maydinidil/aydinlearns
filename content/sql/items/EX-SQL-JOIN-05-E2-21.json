@@ -1,0 +1,149 @@
+{
+  "id": "EX-SQL-JOIN-05-E2-21",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "cross-join",
+    "grid",
+    "stores",
+    "calendar",
+    "units",
+    "chained-left-join"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-JOIN-05"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-JOIN-05",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-JOIN-02",
+    "SQL-JOIN-01",
+    "SQL-JOIN-05"
+  ],
+  "template_id": "T-JOIN-05-grid-store-day-units",
+  "template_params": {
+    "country_code": "NL",
+    "from": "2025-03-06",
+    "to": "2025-03-09"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_join",
+  "prompt": "For every store whose country_code is NL (the webshop WEB-01 included) and every calendar day from 6 to 9 March 2025, how many units did the store sell that day? order_ts holds UTC time: use its UTC date. An order with no lines sells 0 units. Return three columns, in this order: store_code, cal_date and units, with 0 when none were sold. Return one row for each store and day. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "store_code",
+        "type_class": "text"
+      },
+      {
+        "name": "cal_date",
+        "type_class": "temporal"
+      },
+      {
+        "name": "units",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "store_code",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "cal_date",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "units",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "store_code",
+      "cal_date"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, attach the order lines to the grid with a second join that also keeps rows with nothing to match.",
+    "After the store-by-day grid, both the orders and their lines must come in through joins that keep unmatched rows; an inner join on the lines drops the days with no sale again."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 71,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 72,
+      "to": 85,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 86,
+      "to": 107,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 108,
+      "to": 195,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 196,
+      "to": 248,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 249,
+      "to": 339,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 340,
+      "to": 373,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "CROSS JOIN builds every store and day, two LEFT JOINs bring in orders and lines without dropping a pair, and COALESCE turns a missing sum into 0."
+}

@@ -6,7 +6,10 @@
     "SELECT COUNT(order_line_id) AS n_lines, COUNT(order_line_id) - COUNT(units) AS n_missing_units, COUNT(order_line_id) - COUNT(net_revenue_eur) AS n_missing_revenue, COUNT(order_line_id) - COUNT(unit_cost_eur) AS n_missing_cost FROM sales WHERE order_date >= DATE '2025-01-01' AND order_date < DATE '2026-01-01'",
     "SELECT COUNT(1) AS n_lines, COUNT(1) - COUNT(units) AS n_missing_units, COUNT(1) - COUNT(net_revenue_eur) AS n_missing_revenue, COUNT(1) - COUNT(unit_cost_eur) AS n_missing_cost FROM sales WHERE order_date BETWEEN '2025-01-01' AND '2025-12-31'"
   ],
-  "other_way": null,
+  "other_way": {
+    "sql": "SELECT COUNT(order_line_id) AS n_lines, COUNT(order_line_id) - COUNT(units) AS n_missing_units, COUNT(order_line_id) - COUNT(net_revenue_eur) AS n_missing_revenue, COUNT(order_line_id) - COUNT(unit_cost_eur) AS n_missing_cost FROM sales WHERE order_date >= DATE '2025-01-01' AND order_date < DATE '2026-01-01'",
+    "tradeoff": "Stays correct if the column later holds times of day, but you must write the day after the end date."
+  },
   "planted_wrong": [
     {
       "id": "EX-SQL-AGG-01-E3-03-PW1",

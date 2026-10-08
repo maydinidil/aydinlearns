@@ -4,7 +4,7 @@
 import { useEffect, useState } from 'react';
 import { api, type ItemView } from '../api.ts';
 import type { Phase } from '../../../core/envelope.ts';
-import type { TableNote } from '../../../schemas/schema-notes.ts';
+import { notesForLevel, type TableNote } from '../../../schemas/schema-notes.ts';
 import { choiceClosedResult, usesChoicePanel } from '../lib/sql-choice.ts';
 import { ChoicePanel } from './ChoicePanel.tsx';
 import { ExercisePanel, type ClosedResult } from './ExercisePanel.tsx';
@@ -28,7 +28,7 @@ export function ItemPanel({ itemId, phase, labels, onClosed, instanceId, hideLab
   if (!usesChoicePanel(found.item.kind)) {
     return <ExercisePanel itemId={itemId} phase={phase} labels={labels} instanceId={instanceId} hideLabels={hideLabels} heading={heading} onClosed={onClosed} />;
   }
-  const panel = <ChoicePanel itemId={itemId} section="sql" phase={phase} schemaNotes={found.schemaNotes} instanceId={instanceId}
+  const panel = <ChoicePanel itemId={itemId} section="sql" phase={phase} schemaNotes={notesForLevel(found.schemaNotes, found.item.level)} instanceId={instanceId}
     onDone={onClosed ? (r) => onClosed(choiceClosedResult(r)) : undefined} />;
   return heading ? <><h2>{heading}</h2>{panel}</> : panel;
 }

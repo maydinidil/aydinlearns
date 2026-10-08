@@ -6,7 +6,10 @@
     "SELECT product_id, product_name, category_id, unit_cost_eur\nFROM products\nWHERE unit_cost_eur < 100\n  AND category_id IN (18, 16, 15)",
     "SELECT product_id, product_name, category_id, unit_cost_eur\nFROM products\nWHERE (category_id = 15 OR category_id = 16 OR category_id = 18)\n  AND unit_cost_eur < 100"
   ],
-  "other_way": null,
+  "other_way": {
+    "sql": "SELECT product_id, product_name, category_id, unit_cost_eur\nFROM products\nWHERE (category_id = 15 OR category_id = 16 OR category_id = 18)\n  AND unit_cost_eur < 100",
+    "tradeoff": "An OR chain returns the same rows, but repeats the column for every value, while IN keeps the list short."
+  },
   "planted_wrong": [
     {
       "id": "EX-SQL-FILTER-02-E1-04-PW1",

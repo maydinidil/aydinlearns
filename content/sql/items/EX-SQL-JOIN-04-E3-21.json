@@ -1,0 +1,145 @@
+{
+  "id": "EX-SQL-JOIN-04-E3-21",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "self-join",
+    "range-join",
+    "products",
+    "price_history",
+    "sister"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-JOIN-04"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-JOIN-04",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-NULL-01",
+    "SQL-JOIN-01",
+    "SQL-JOIN-04"
+  ],
+  "template_id": "T-JOIN-04-cheaper-than-sister-on-day",
+  "template_params": {
+    "day": "2025-03-01"
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_join",
+  "prompt": "On 1 March 2025, which products had a lower list price than their sister product? A product's sister_product_id holds the product_id of its sister. A list price is in effect from its version's valid_from to its valid_to, both days included; valid_to is missing for the current price. Return four columns, in this order: product_name, list_price_eur, sister_name and sister_price_eur, each price the one in effect on 1 March 2025. Return one row for each product cheaper than its sister on that day. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "product_name",
+        "type_class": "text"
+      },
+      {
+        "name": "list_price_eur",
+        "type_class": "numeric"
+      },
+      {
+        "name": "sister_name",
+        "type_class": "text"
+      },
+      {
+        "name": "sister_price_eur",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "product_name",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "list_price_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "sister_name",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "sister_price_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "product_name"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, find two prices on the day: one for the product and one for its sister, each from its own copy of price_history.",
+    "Each copy of price_history needs its own product (the product's or the sister's) and its own test that 1 March 2025 falls inside the version."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 108,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 109,
+      "to": 124,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 125,
+      "to": 178,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 179,
+      "to": 328,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 329,
+      "to": 478,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 479,
+      "to": 520,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "Two aliases of products give the product and its sister, and two aliases of price_history give each one's price on the day, so WHERE can compare them."
+}

@@ -142,6 +142,7 @@ function ChoicePanelInner({ itemId, section, phase: asked, schemaNotes, instance
   }
 
   /** "Next": disabled while the caller fetches and serves the next question, which replaces this panel. */
+  // `advancing` disables the button; `nextGate` drops a second call that gets in before the disabled state renders.
   async function next(correct: boolean) {
     const helped = revealed !== null;      // a show-answer is a reveal (S2-11)
     setAdvancing(true);

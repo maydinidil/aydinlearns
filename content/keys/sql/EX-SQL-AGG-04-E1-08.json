@@ -6,7 +6,10 @@
     "SELECT parent_category, SUM(CASE WHEN net_revenue_eur >= 100 THEN 1 ELSE 0 END) AS big_lines, COUNT(*) - SUM(CASE WHEN net_revenue_eur >= 100 THEN 1 ELSE 0 END) AS other_lines FROM sales GROUP BY parent_category",
     "SELECT parent_category, COUNT(CASE WHEN net_revenue_eur >= 100 THEN 1 END) AS big_lines, COUNT(CASE WHEN net_revenue_eur < 100 OR net_revenue_eur IS NULL THEN 1 END) AS other_lines FROM sales GROUP BY 1"
   ],
-  "other_way": null,
+  "other_way": {
+    "sql": "SELECT parent_category, SUM(CASE WHEN net_revenue_eur >= 100 THEN 1 ELSE 0 END) AS big_lines, COUNT(*) - SUM(CASE WHEN net_revenue_eur >= 100 THEN 1 ELSE 0 END) AS other_lines FROM sales GROUP BY parent_category",
+    "tradeoff": "Takes the second count from the total, so the two always add up, but its test is hidden."
+  },
   "planted_wrong": [
     {
       "id": "PW1",

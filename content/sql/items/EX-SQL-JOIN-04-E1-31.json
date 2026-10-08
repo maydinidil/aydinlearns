@@ -1,0 +1,122 @@
+{
+  "id": "EX-SQL-JOIN-04-E1-31",
+  "version": 1,
+  "kind": "fix",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "fix",
+    "wrong-key",
+    "order_lines",
+    "orders",
+    "promotions"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-JOIN-04"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-JOIN-04",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-JOIN-01",
+    "SQL-JOIN-04"
+  ],
+  "template_id": "T-JOIN-04-fix-wrong-key-promotion",
+  "template_params": {
+    "from": "2025-03-03",
+    "to": "2025-03-16"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_join",
+  "prompt": "The query in the editor has one mistake. Fix it so that it answers this question: for the orders placed from 3 to 16 March 2025 (order_ts holds UTC time: use its UTC date), which promotion was each order line sold with? Return two columns, in this order: order_line_id and promo_code. Return one row for each of those order lines whose promotion is in promotions; leave out lines with no promotion. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "order_line_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "promo_code",
+        "type_class": "text"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "order_line_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "promo_code",
+        "type_class": "text",
+        "precision": "exact"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "order_line_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, check the ON of the join to promotions: which column of the line names its promotion?",
+    "The query matches promotions to the line's product ID, so the codes belong to unrelated promotions; the line has its own column for the promotion it was sold with."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 38,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 39,
+      "to": 58,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 59,
+      "to": 100,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 101,
+      "to": 148,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 149,
+      "to": 231,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": "SELECT ol.order_line_id, pr.promo_code\nFROM order_lines ol\nJOIN orders o ON o.order_id = ol.order_id\nJOIN promotions pr ON pr.promo_id = ol.product_id\nWHERE o.order_ts >= TIMESTAMP '2025-03-03' AND o.order_ts < TIMESTAMP '2025-03-17'",
+  "starter_error_id": "ERR-LOG-12",
+  "time_target_ms": 120000,
+  "why_this_works": "Each order line carries the promo_id it was sold with, so joining promotions on that column gives each line its own promotion."
+}

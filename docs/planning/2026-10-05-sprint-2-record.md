@@ -14,6 +14,8 @@ the sprint 2 task whose review raised the finding (A = gate and tools, B = slice
 
 ## Open deferred findings
 
+Triaged on 2026-10-07: what is still open is in [`backlog.md`](backlog.md); the closed ones are in the section at the end.
+
 Nine areas follow.
 
 ### Grading
@@ -166,7 +168,129 @@ Nine areas follow.
 | Methodology live on the server before its screen | C5 review minor 6 | Resolved or no action (C6 built the screen) |
 | `.replace(/.json$/, '')` has an unescaped dot in smoke row 1 | C8 review minor 2 | Resolved or no action (final review triage) |
 | C30 could report under a concept that is not level 1 | C8 review minor 3 | No action needed |
+| keyColumn throws if rules name a column the key lacks; content check wanted | A4 | Already fixed (content check C18 checks the key columns) |
+| CHK-INT-TRUNC not flagged when key divides by zero (infinity) | B9 | Already fixed (the cuts leave infinity and NaN alone) |
+| reverted override then a later automatic pass rates Hard (S2-78) | B4 | Already fixed (Hard only when an override passed; a reverted override is skipped) |
+| unparsable fact ts gives undefined sort order | B5 | Already fixed (replay skips a record with no readable time) |
+| leech flag keyed by concept; review facts carry no card_id | B5 | Obsolete since sprint 4a (the mistake card fact carries a card ID) |
+| no test reaches closeById's choice branch | C1 | Already fixed (route tests assert the choice item_close records) |
+| count refusal for "1,234" should mention thousands separators | C1 | Obsolete (a count now accepts one thousands separator) |
+| mock exams must sample the held-out pool by topic weight | C4 | Already fixed (the exam picks by weight; the pool is drawn the same way) |
+| nextPracticeConcept picks a concept with an empty pool first | C5 minor 2 | Already fixed (Today filters out concepts with an empty pool) |
+| refreshers for GA4 parents without a reading never offered | C5 minor 12 | Obsolete (all 16 GA4 parents now have a reading) |
+| Ga4MapScreen intro says topics are taught in its reading but 12 parents have none | C5 minor 10 | Already fixed (all 16 parents have readings; the intro was reworded) |
+| held-write tests wait 500/200 ms | A3 | Already fixed (the tests use a release gate, not long waits) |
+| smoke 2a-2 typed value never checked parsed | C8 | Already fixed (typed parsing and thousands separators are tested) |
+| order tables lack schema notes | B8 | Already fixed (schema notes now cover the orders table) |
+| GA4-SETUP-01 reading wording | C5 minor 11 | Already fixed (the reading carries the wording and the Unverified mark) |
+| hand-offs for sprint 3 GA4 readings | C3 | Obsolete (sprint 3 shipped the readings; the hand-offs are in ERRATA) |
 
 ## Still open from PR #32
 
 - M1 (PR #32 review): the unit tests in `tests/web/choice-flow.test.ts` pin the helpers, not the wiring that fixes F10 (`ReadingPanel` has no unit test layer, and a regression that logs from the fetch's `.then` would pass every unit test). A DOM test layer needs a new package, so it waits. End-to-end row 2a-1 asserts exactly one reading exposure in a production build.
+
+## Closed on 2026-10-07 (backlog cleanup)
+
+Every deferred finding in this record was triaged on 2026-10-07. The ones still open are in
+[`backlog.md`](backlog.md). These tables hold the rest.
+
+### Fixed in the hygiene PR
+
+| Item | Fix |
+|---|---|
+| B10 portability test name overclaims | Test renamed to say what it checks |
+| B4 no test for the rejected exclusion in gradedAttempts | New test: a rejected attempt then a fail gives only the fail |
+| B13 seenIn doc comment | Doc comment corrected |
+| B15 duplicate Start button names on Today | Today's Start buttons, lesson link and map step links have accessible names |
+| B16 DrillScreen accessible names fail label-in-name | Drill start buttons are named by level or by the chosen concepts |
+| B16 aria-pressed should be aria-current=step | The current drill question is marked as the current step |
+| C1 ChoicePanel confidence buttons lack aria-labels | Confidence buttons are named (1 to 4 with a word, and Skip) |
+| B12 later opener overwrites checkpointCredits for a duplicated item_id | Content check C29 fails when two openers share an item |
+| A6 ResultTable.tsx two consecutive blank lines | Extra blank line removed |
+| C5 minor 8 no h1 on the reading page | The reading page title is its main heading (still a sub-heading inside Today) |
+| C5 minor 9 Ga4MapScreen Reading/Practice links read the same | GA4 map links are named "Reading: title" and "Practice: title" |
+| C6 and C7 review minor 3 App.tsx else block not indented | Indentation fixed |
+| A1 smoke port IIFE dense, no prefix | One-line comment added above the port |
+| A1 smoke header comment short line | Header comment reflowed |
+| A2 selfcheck expected list missing space | Missing space added |
+| A4 witness test keyOrder misses K[i] mutation | Test key now maps columns by name, so a position-based mapping fails it |
+| A7 smoke row J comment wording | Comment now says what the smoke row checks |
+| B12 code: C27 opener level check, C19 own drills parse | Content check C29 now compares the opener level with the item ID level |
+| No guard that web never imports schemas/presets.ts | The import check now scans the web code |
+| seedHistory accepts the real logs folder | The history test helper refuses a folder outside the temp folder |
+
+### Won't do
+
+| Item | Reason |
+|---|---|
+| A4 position pass can pair a learner column named after another key column | grader code, partial-score display only |
+| B9 error-ID pattern copied in three places | three files, no behaviour effect |
+| B10 FROM subquery linted with its own columns visible, loses a note | deliberate, grader code |
+| B10 extra runner round trip per graded submission | grader code, milliseconds |
+| B10 GradePanel duplicates Markdown's inline renderer | shared helper across files, works as is |
+| B10 no committed GradePanel test | no component test harness; no effect worth a change |
+| B4 no test for S2-77 and a comment at rating.ts:153 | Hard rules already covered; needs fixture design |
+| B4 second "I was right" in one instance cannot be represented | design decision in rating code |
+| B4 test fixture defaults close_reason to pass | changing the default touches every test |
+| B5 no test of demotion then reset clearing refresherDue and demotedAt | reset already tested; no effect worth a change |
+| B5 re-solve of an old item can restore Mastered while a refresher is due | recorded decision (S2-68, S2-80) |
+| B6 S2-75 exemption missing at block_close | core engine, latent |
+| B6 S2-75 exemption also covers confirmed | core engine, latent |
+| B6 rename openBlock to block | core engine file, cosmetic |
+| B6 no positive test for a valid GA4 config_change with exam_boost | needs replay fixture; preset already checked |
+| B6 a revert leaves stale snapshot warnings on earlier closes | core engine, latent |
+| B6 pretest Good on an existing unrated card keeps origin fallback | core engine, label nothing reads |
+| Standing rule: never infer state from masteredAt while Retained | a rule, nothing to fix |
+| B13 live_rep goal label mentions weeks while GoalSummary drops window_weeks | belongs to 4b goal kinds work |
+| B13 fix servings count toward 1-in-3 even if never opened | mix design, no learner effect |
+| B13 mixedBlock picks its fix item with purpose review | ranking design decision |
+| B13 GoalSummary and GoalProgress duplicated in api.ts and today.ts | type sharing across web/server boundary |
+| B13 served-but-never-opened item not closed or forgotten at session end | nothing is lost, no record written |
+| B14 early drill end stamped after in-flight answers finish | clamped already, seconds |
+| B14 after a crash a submission to a never-opened item becomes a new instance | crash recovery path |
+| B14 no route test for a stop during grading or racing first drills.json read | needs race harness |
+| B14 InstanceResult.unreached optional | core engine type, touches test objects |
+| B14 idle session end can stamp a close before the last attempt | core engine, replay drops it with warning |
+| B15 Today never refreshes on its own | new behaviour, design decision |
+| B15 limit exemption in the no-duration scan too broad | narrowing may fail other lines, needs scan |
+| B15 a browser reload forgets an unfinished block | needs persistence design |
+| B15 after an idle session end Continue reopens next item as free | rare, phase design |
+| B16 End the drill has no confirm | design decision, nothing lost |
+| B16 no test of the end and 409 race | needs race harness |
+| C4 parent choice drains the big parents | Marked optional in the record; no sign of it hurting. |
+| C5 minor 13 no test drives ReadingPanel | no component test harness |
+| A1 port.ts accepts leading zeros | startup code, harmless |
+| A2 launch probe res.json() has no timeout | startup code, hang case only |
+| B2 recovered help-only close takes the latest help record's phase | documented limit, recovery path |
+| B13 /api/items sends faded_suffix and full faded_shape at stage 2 | concealment only, owner owns the content |
+| B11 template_params and tags reach the browser | Concealment only; the owner owns the content. |
+| A6 markdown.ts lookbehind \w is ASCII-only | needs accented-letter edge, no real effect |
+| A6 App.tsx start-up failure shows NOT_RUNNING with no retry link | design decision, reload retries |
+| C5 minor 4 Unverified badge is not a warning badge | belongs to the 4c visual pass |
+| A7 row R route delay not removed in finally | No effect worth a change: a failing step ends the run anyway. |
+| A7 fixed sleeps in smoke rows R and E | Swapping sleeps for waits is a design change that can add flake; none seen. |
+| B7 circular assertion in startup.test.ts | Already compares to explicit values; nothing left to fix. |
+| Smoke row X snapshots across a midnight | Accepted in the record; rare flake never seen. |
+| Smoke row X restart not after concept lesson | Accepted; state.test.ts covers later states. |
+| state.test.ts any casts on logged records | Typing nicety, no effect; touches replay-state tests with type-check risk. |
+| Smoke row D fixed wrong query | No effect unless an item asks for that column. |
+| C1/C3 choice check nits (C21, C24, C23, wording) | Main gap closed by C26; rest is rare edges and wording, no effect. |
+| C2 importer robustness nits | One-off tool, content already imported. |
+| SQL recorder stale-answer gap | Already covered by C14 freshness check; no effect. |
+| A5 FILTER-02-E3-03 prompt near-describes logic | Prompt change needs a blind re-solve. |
+| A5 solver notes on passing items | Wording preferences on items; any item edit needs a re-solve. |
+| B8 customer_countries draws reserved stream | Touching the generator risks changing the built data; works today. |
+| B8 views found by parsing ddl.sql | Works, internal; refactor has no learner effect. |
+| B8 schema panel does not annotate sample headers | UI feature, not a quick fix; cosmetic. |
+| B11 near-copies in lessons | Lesson rewrite; repetition only. |
+| B11 AGG-04-E3-02 PW1 uses ERR-LOG-06 | Item feedback or mapping change needs a re-solve. |
+| B11 AGG-03 empty-edge items skip missing values | Nine items to change; needs re-solve. |
+| B11 TYPE-01 prefers FILTER over CASE | Key material change needs a re-solve; style only. |
+| B12 M4 two fix items copy a lesson example | Item prompt change needs a re-solve. |
+| B12 M5 TYPE-01 items share a question shape | Marked optional; items would need re-solve. |
+| B12 M6 ERR-SYN-06 has no fix item | Reason already recorded (R9); reverses a recorded decision. |
+| B12 M7 ERRATA E-157 wording nits | One nit changes the entry type (deferred) and a ruling citation; a recorded ruling, not a pure wording fix. |
+| B12 M8 DECIMAL samples as strings in schema-notes | Only affects the blind solver view; changes data notes with no learner effect. |
+| B12 M9 CASE-01-E2-22 missing outside-NL/BE/LU sentence | Item prompt change needs a re-solve; no such rows exist. |
+| C5 minor 7 record shared-interface additions | Interfaces live in code; the source is the record. |
+| M1 PR #32 DOM test layer for ReadingPanel | Needs a new package; smoke row 2a-1 covers it. |

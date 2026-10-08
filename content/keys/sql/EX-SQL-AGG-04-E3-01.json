@@ -6,7 +6,10 @@
     "SELECT country_code, SUM(CASE WHEN channel = 'web' THEN net_revenue_eur END) / SUM(CASE WHEN channel = 'web' THEN units END) AS web_price_per_unit_eur, SUM(CASE WHEN channel = 'store' THEN net_revenue_eur END) / SUM(CASE WHEN channel = 'store' THEN units END) AS store_price_per_unit_eur FROM sales WHERE net_revenue_eur IS NOT NULL AND units IS NOT NULL GROUP BY country_code",
     "SELECT country_code, SUM(net_revenue_eur) FILTER (WHERE channel = 'web') / SUM(units) FILTER (WHERE channel = 'web') AS web_price_per_unit_eur, SUM(net_revenue_eur) FILTER (WHERE channel = 'store') / SUM(units) FILTER (WHERE channel = 'store') AS store_price_per_unit_eur FROM sales WHERE NOT (net_revenue_eur IS NULL OR units IS NULL) GROUP BY 1"
   ],
-  "other_way": null,
+  "other_way": {
+    "sql": "SELECT country_code, SUM(net_revenue_eur) FILTER (WHERE channel = 'web') / SUM(units) FILTER (WHERE channel = 'web') AS web_price_per_unit_eur, SUM(net_revenue_eur) FILTER (WHERE channel = 'store') / SUM(units) FILTER (WHERE channel = 'store') AS store_price_per_unit_eur FROM sales WHERE NOT (net_revenue_eur IS NULL OR units IS NULL) GROUP BY 1",
+    "tradeoff": "Reads closer to plain English, but FILTER is not available in every SQL dialect."
+  },
   "planted_wrong": [
     {
       "id": "PW1",

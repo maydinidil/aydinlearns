@@ -1,0 +1,39 @@
+{
+  "item_id": "EX-SQL-JOIN-03-E2-01",
+  "item_version": 1,
+  "reference_sql": "WITH lowest_prices AS (\n  SELECT product_id, MIN(price_eur) AS lowest_competitor_eur\n  FROM competitor_prices\n  GROUP BY product_id\n)\nSELECT s.product_id, SUM(s.units) AS units, lp.lowest_competitor_eur\nFROM sales s\nJOIN lowest_prices lp ON lp.product_id = s.product_id\nWHERE s.parent_category = 'Audio'\nGROUP BY s.product_id, lp.lowest_competitor_eur",
+  "alternatives": [
+    "WITH product_units AS (SELECT product_id, SUM(units) AS units FROM sales WHERE parent_category = 'Audio' GROUP BY product_id), lowest_prices AS (SELECT product_id, MIN(price_eur) AS lowest_competitor_eur FROM competitor_prices GROUP BY product_id) SELECT u.product_id, u.units, lp.lowest_competitor_eur FROM product_units u JOIN lowest_prices lp ON lp.product_id = u.product_id",
+    "WITH product_units AS (SELECT product_id, SUM(units) AS units FROM sales WHERE parent_category = 'Audio' GROUP BY product_id) SELECT u.product_id, u.units, MIN(cp.price_eur) AS lowest_competitor_eur FROM product_units u JOIN competitor_prices cp ON cp.product_id = u.product_id GROUP BY u.product_id, u.units"
+  ],
+  "other_way": {
+    "sql": "WITH product_units AS (SELECT product_id, SUM(units) AS units FROM sales WHERE parent_category = 'Audio' GROUP BY product_id), lowest_prices AS (SELECT product_id, MIN(price_eur) AS lowest_competitor_eur FROM competitor_prices GROUP BY product_id) SELECT u.product_id, u.units, lp.lowest_competitor_eur FROM product_units u JOIN lowest_prices lp ON lp.product_id = u.product_id",
+    "tradeoff": "Bringing both sides to one row per product before the join is the safest pattern, but it needs a second named step."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-01",
+      "sql": "SELECT s.product_id, SUM(s.units) AS units, MIN(cp.price_eur) AS lowest_competitor_eur FROM sales s JOIN competitor_prices cp ON cp.product_id = s.product_id WHERE s.parent_category = 'Audio' GROUP BY s.product_id"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-14",
+      "sql": "WITH lowest_prices AS (SELECT product_id, MAX(price_eur) AS lowest_competitor_eur FROM competitor_prices GROUP BY product_id) SELECT s.product_id, SUM(s.units) AS units, lp.lowest_competitor_eur FROM sales s JOIN lowest_prices lp ON lp.product_id = s.product_id WHERE s.parent_category = 'Audio' GROUP BY s.product_id, lp.lowest_competitor_eur"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-11",
+      "sql": "WITH lowest_prices AS (SELECT product_id, MIN(price_eur) AS lowest_competitor_eur FROM competitor_prices GROUP BY product_id) SELECT s.product_id, SUM(s.units) AS units, lp.lowest_competitor_eur FROM sales s LEFT JOIN lowest_prices lp ON lp.product_id = s.product_id WHERE s.parent_category = 'Audio' GROUP BY s.product_id, lp.lowest_competitor_eur"
+    }
+  ],
+  "hint3_partial": "WITH lowest_prices AS (\n  SELECT product_id, MIN(___) AS lowest_competitor_eur\n  FROM competitor_prices\n  GROUP BY ___\n)\nSELECT s.product_id, SUM(s.units) AS units, lp.lowest_competitor_eur\nFROM sales s\nJOIN lowest_prices lp ON lp.product_id = s.product_id\nWHERE s.parent_category = 'Audio'\nGROUP BY s.product_id, lp.lowest_competitor_eur",
+  "solver": {
+    "prompt_hash": "9f22ca75854a8f6e",
+    "schema_version": "b84cbb63bf9d",
+    "dataset_version": "e1545e4258743033",
+    "grader_version": "1b.3",
+    "query": "WITH sold AS (\n  SELECT product_id, SUM(units) AS units\n  FROM sales\n  WHERE parent_category = 'Audio'\n  GROUP BY product_id\n), lowest AS (\n  SELECT product_id, MIN(price_eur) AS lowest_competitor_eur\n  FROM competitor_prices\n  GROUP BY product_id\n)\nSELECT s.product_id, s.units, l.lowest_competitor_eur\nFROM sold s\nJOIN lowest l ON l.product_id = s.product_id",
+    "at": "2026-10-07T10:41:39.793Z"
+  }
+}

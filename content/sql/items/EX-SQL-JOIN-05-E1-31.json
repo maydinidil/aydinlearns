@@ -1,0 +1,134 @@
+{
+  "id": "EX-SQL-JOIN-05-E1-31",
+  "version": 1,
+  "kind": "fix",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "fix",
+    "full-outer-join",
+    "wrong-join-type",
+    "order_lines"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-JOIN-05"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-JOIN-05",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CTE-01",
+    "SQL-JOIN-01",
+    "SQL-JOIN-05"
+  ],
+  "template_id": "T-JOIN-05-fix-left-to-full-outer",
+  "template_params": {
+    "store_code": "NL-01",
+    "months": "2025-02,2025-03"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_join",
+  "prompt": "The query in the editor has one mistake. Fix it so that it answers this question: for store NL-01 (store_code), how many units of each product were sold in February 2025 and in March 2025? order_ts holds UTC time: use its UTC date. Return three columns, in this order: product_id, feb_units and mar_units, with 0 when the product sold nothing at NL-01 in that month. Return one row for each product sold at NL-01 in at least one of the two months. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "feb_units",
+        "type_class": "numeric"
+      },
+      {
+        "name": "mar_units",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "feb_units",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "mar_units",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "product_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, check the join type: a product sold only in March has no February row to start from.",
+    "A LEFT JOIN keeps every February product but drops the products sold only in March; the join must keep unmatched rows from both months."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 298,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 299,
+      "to": 591,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 592,
+      "to": 719,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 720,
+      "to": 730,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 731,
+      "to": 783,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": "WITH feb AS (SELECT ol.product_id, SUM(ol.quantity) AS units FROM order_lines ol JOIN orders o ON o.order_id = ol.order_id JOIN stores s ON s.store_id = o.store_id WHERE s.store_code = 'NL-01' AND o.order_ts >= TIMESTAMP '2025-02-01' AND o.order_ts < TIMESTAMP '2025-03-01' GROUP BY ol.product_id),\nmar AS (SELECT ol.product_id, SUM(ol.quantity) AS units FROM order_lines ol JOIN orders o ON o.order_id = ol.order_id JOIN stores s ON s.store_id = o.store_id WHERE s.store_code = 'NL-01' AND o.order_ts >= TIMESTAMP '2025-03-01' AND o.order_ts < TIMESTAMP '2025-04-01' GROUP BY ol.product_id)\nSELECT COALESCE(f.product_id, m.product_id) AS product_id, COALESCE(f.units, 0) AS feb_units, COALESCE(m.units, 0) AS mar_units\nFROM feb f\nLEFT JOIN mar m ON m.product_id = f.product_id",
+  "starter_error_id": "ERR-LOG-11",
+  "time_target_ms": 120000,
+  "why_this_works": "FULL OUTER JOIN keeps the products of both months, and COALESCE fills in the product_id and the units of the month with no sales."
+}

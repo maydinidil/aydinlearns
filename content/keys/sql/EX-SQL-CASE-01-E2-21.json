@@ -6,7 +6,10 @@
     "SELECT CASE WHEN start_date < DATE '2024-07-01' THEN '2024-H1' WHEN start_date < DATE '2025-01-01' THEN '2024-H2' WHEN start_date < DATE '2025-07-01' THEN '2025-H1' ELSE '2025-H2' END AS half_year, COUNT(*) AS n_promotions, AVG(discount_pct) AS avg_discount_pct FROM promotions GROUP BY 1",
     "SELECT CASE WHEN start_date <= '2024-06-30' THEN '2024-H1' WHEN start_date <= '2024-12-31' THEN '2024-H2' WHEN start_date <= '2025-06-30' THEN '2025-H1' ELSE '2025-H2' END AS half_year, COUNT(promo_id) AS n_promotions, AVG(discount_pct) AS avg_discount_pct FROM promotions GROUP BY CASE WHEN start_date <= '2024-06-30' THEN '2024-H1' WHEN start_date <= '2024-12-31' THEN '2024-H2' WHEN start_date <= '2025-06-30' THEN '2025-H1' ELSE '2025-H2' END"
   ],
-  "other_way": null,
+  "other_way": {
+    "sql": "SELECT CASE WHEN start_date < DATE '2024-07-01' THEN '2024-H1' WHEN start_date < DATE '2025-01-01' THEN '2024-H2' WHEN start_date < DATE '2025-07-01' THEN '2025-H1' ELSE '2025-H2' END AS half_year, COUNT(*) AS n_promotions, AVG(discount_pct) AS avg_discount_pct FROM promotions GROUP BY 1",
+    "tradeoff": "Only states upper limits, which is shorter, but dates after 2025 would land in 2025-H2."
+  },
   "planted_wrong": [
     {
       "id": "PW1",

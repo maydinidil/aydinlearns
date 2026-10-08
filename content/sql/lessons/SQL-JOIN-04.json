@@ -1,0 +1,134 @@
+{
+  "concept_id": "SQL-JOIN-04",
+  "version": 1,
+  "reading_md": "## Joining more than two tables\n\nA question often needs columns from three or four tables. Follow the links the tables panel shows, one JOIN per link, and give each JOIN its own ON with both keys of that link:\n\n```sql\nFROM order_lines ol\nJOIN orders o ON o.order_id = ol.order_id\nJOIN stores s ON s.store_id = o.store_id\n```\n\n### Choose the path first\n\nWrite the path down before the query: order_lines, then orders, then stores. Each step goes from a foreign key to the primary key it points at, as the panel's \"store_id → stores (1:N)\" shows. A step from the many side to the one side keeps the grain: one row per order line stays one row per order line. A step towards a many side (orders to order_lines, a product to promotion_products or to competitor_prices) repeats rows, so check the row count before you add anything up.\n\n### Self-joins\n\nA self-join joins a table to itself under two aliases, to put one row next to another row of the same table.\n\n- In products, sister_product_id points at another product: `FROM products p JOIN products s ON s.product_id = p.sister_product_id` puts each product next to its sister.\n- price_history has one row per price version. The next version starts the day after the old one's valid_to, so `JOIN price_history nxt ON nxt.product_id = old.product_id AND nxt.valid_from = old.valid_to + 1` puts each old price next to the new one.\n\n### Range joins\n\nAn ON can test a range instead of one ID. The list price in effect on a day is the version whose valid_from is on or before that day and whose valid_to is on or after it, or missing for the current price:\n\n`ON ph.product_id = cp.product_id AND d >= ph.valid_from AND (ph.valid_to IS NULL OR d <= ph.valid_to)`\n\n### Mistakes to avoid\n\n1. **A wrong key.** Two ID columns that look alike but mean different things, such as `p.product_id = pp.promo_id`, or a product joined to itself instead of to its sister. The query runs and the numbers are wrong.\n2. **A path through a many table you do not need.** Joining order lines through promotion_products counts each line once for every promotion its product is in.\n3. **A range with the wrong end.** `>` where `>=` was meant drops the first day of a version, and forgetting that valid_to is missing drops every current price.\n4. **Pairs in both directions.** Sister products find each other from both sides, so each pair appears twice. Add `p.product_id < s.product_id` to keep one.\n5. **A LEFT JOIN followed by an INNER JOIN** on the right table's columns: the inner join drops the unmatched rows again.",
+  "syntax_md": "```sql\nSELECT a.label, c.label, SUM(b.amount) AS total   -- metrics\nFROM table_b b                                    -- source and grain: start at the many end\nJOIN table_a a ON a.a_id = b.a_id                 -- one link, both keys in ON\nJOIN table_c c ON c.c_id = b.c_id                 -- the next link\nWHERE row_condition                               -- row filter\nGROUP BY a.label, c.label;                        -- output grain\n\n-- self-join: one table, two aliases\nFROM products p\nJOIN products s ON s.product_id = p.sister_product_id\n\n-- range join: the version in effect on day d\nJOIN price_history ph ON ph.product_id = x.product_id\n  AND d >= ph.valid_from AND (ph.valid_to IS NULL OR d <= ph.valid_to)\n```\n\n- One JOIN per link, each with its own ON. The order of the JOINs does not change the result of inner joins.\n- Give every copy of a table its own alias, and prefix every column with its alias.\n- A two-column key, as in price_history or promotion_products, needs every column the question depends on.\n- Check the row count after each join that goes towards a many side.",
+  "dialect_note": "In DuckDB, a DATE plus a whole number moves the date by that many days: DATE '2025-03-02' + 1 is 2025-03-03 (checked on 1.5.6). Date arithmetic differs between engines, so in a live test say which engine you assume, or use a range test, which needs none.",
+  "worked_examples": [
+    {
+      "title": "Units per store city and parent category",
+      "prompt": "How many units of each parent category did each store city sell on 1 March 2025 (the UTC date of order_ts)? Return city, parent_category and units, one row per city and parent category with sales.",
+      "clauses": [
+        {
+          "text": "SELECT s.city, c.parent_category, SUM(ol.quantity) AS units",
+          "subgoal": "metrics",
+          "why": "The two labels the question groups by, plus the total."
+        },
+        {
+          "text": "FROM order_lines ol",
+          "subgoal": "source_grain",
+          "why": "Start at the many end of the chain: one row per order line, which holds the quantity."
+        },
+        {
+          "text": "JOIN orders o ON o.order_id = ol.order_id",
+          "subgoal": "source_grain",
+          "why": "Each line points at one order, so joining up to it keeps one row per line."
+        },
+        {
+          "text": "JOIN stores s ON s.store_id = o.store_id",
+          "subgoal": "source_grain",
+          "why": "The order points at its store, which holds the city."
+        },
+        {
+          "text": "JOIN products p ON p.product_id = ol.product_id",
+          "subgoal": "source_grain",
+          "why": "A second branch starts at the line again: its product."
+        },
+        {
+          "text": "JOIN categories c ON c.category_id = p.category_id",
+          "subgoal": "source_grain",
+          "why": "The product points at its category, which holds the parent category."
+        },
+        {
+          "text": "WHERE CAST(o.order_ts AS DATE) = DATE '2025-03-01'",
+          "subgoal": "row_filter",
+          "why": "order_ts is UTC time, so its UTC date picks the day."
+        },
+        {
+          "text": "GROUP BY s.city, c.parent_category",
+          "subgoal": "output_grain",
+          "why": "One row per city and parent category."
+        }
+      ]
+    },
+    {
+      "title": "Old and new price at each price change",
+      "prompt": "For product 1, list every price change: the day the new price started, the old list price and the new list price.",
+      "clauses": [
+        {
+          "text": "SELECT nxt.valid_from AS changed_on, old.list_price_eur AS old_price_eur, nxt.list_price_eur AS new_price_eur",
+          "subgoal": "metrics",
+          "why": "One row holds two versions, so the prices come from two aliases of the same table."
+        },
+        {
+          "text": "FROM price_history old",
+          "subgoal": "source_grain",
+          "why": "The first copy plays the version that was replaced."
+        },
+        {
+          "text": "JOIN price_history nxt ON nxt.product_id = old.product_id AND nxt.valid_from = old.valid_to + 1",
+          "subgoal": "source_grain",
+          "why": "The second copy is the version of the same product that starts the day after the old one ends."
+        },
+        {
+          "text": "WHERE old.product_id = 1",
+          "subgoal": "row_filter",
+          "why": "Keep the one product the question asks about."
+        }
+      ]
+    }
+  ],
+  "pretest_item_ids": [
+    "EX-SQL-JOIN-04-E1-01",
+    "EX-SQL-JOIN-04-E1-02"
+  ],
+  "lesson_item_ids": [
+    "EX-SQL-JOIN-04-E1-03",
+    "EX-SQL-JOIN-04-E1-04",
+    "EX-SQL-JOIN-04-E2-01",
+    "EX-SQL-JOIN-04-E2-02"
+  ],
+  "retest_item_id": "EX-SQL-JOIN-04-E1-05",
+  "pool_item_ids": [
+    "EX-SQL-JOIN-04-E1-06",
+    "EX-SQL-JOIN-04-E1-07",
+    "EX-SQL-JOIN-04-E1-08",
+    "EX-SQL-JOIN-04-E2-03",
+    "EX-SQL-JOIN-04-E2-04",
+    "EX-SQL-JOIN-04-E2-05",
+    "EX-SQL-JOIN-04-E3-01",
+    "EX-SQL-JOIN-04-E3-02",
+    "EX-SQL-JOIN-04-E1-31",
+    "EX-SQL-JOIN-04-E2-31",
+    "EX-SQL-JOIN-04-E1-42",
+    "EX-SQL-JOIN-04-E1-43",
+    "EX-SQL-JOIN-04-E2-41"
+  ],
+  "source_ids": [
+    "01:SQL-JOIN-04"
+  ],
+  "why_clause": {
+    "clause": "JOIN stores s ON s.store_id = o.store_id",
+    "stem": "Why does stores join to orders here, and not straight to order_lines?",
+    "options": [
+      {
+        "id": "a",
+        "text": "Joining stores straight to order_lines would count every order twice."
+      },
+      {
+        "id": "b",
+        "text": "order_lines has no store column: the store belongs to the order, so the path goes line, order, store."
+      },
+      {
+        "id": "c",
+        "text": "stores must always be the last table joined in a query."
+      },
+      {
+        "id": "d",
+        "text": "orders holds the city, so stores only adds the store code."
+      }
+    ],
+    "correct_id": "b",
+    "explanation": "Each link in the tables panel joins a foreign key to the primary key it points at. order_lines points at orders, and orders points at stores, so the city is two steps away from the line. No column of order_lines links to stores."
+  }
+}

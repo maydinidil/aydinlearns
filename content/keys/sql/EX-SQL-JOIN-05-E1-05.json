@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-JOIN-05-E1-05",
+  "item_version": 1,
+  "reference_sql": "WITH parents AS (SELECT DISTINCT parent_category FROM categories),\nchannels AS (SELECT DISTINCT channel FROM orders),\nmarch_lines AS (SELECT c.parent_category, o.channel, COUNT(*) AS n_lines FROM order_lines ol JOIN orders o ON o.order_id = ol.order_id JOIN products p ON p.product_id = ol.product_id JOIN categories c ON c.category_id = p.category_id WHERE o.order_ts >= TIMESTAMP '2025-03-01' AND o.order_ts < TIMESTAMP '2025-04-01' GROUP BY c.parent_category, o.channel)\nSELECT pa.parent_category, ch.channel, COALESCE(m.n_lines, 0) AS n_lines\nFROM parents pa\nCROSS JOIN channels ch\nLEFT JOIN march_lines m ON m.parent_category = pa.parent_category AND m.channel = ch.channel",
+  "alternatives": [
+    "WITH parents AS (SELECT DISTINCT parent_category FROM categories), channels AS (SELECT DISTINCT channel FROM orders), march_lines AS (SELECT parent_category, channel, COUNT(*) AS n_lines FROM sales WHERE order_date BETWEEN DATE '2025-03-01' AND DATE '2025-03-31' GROUP BY parent_category, channel) SELECT pa.parent_category, ch.channel, COALESCE(m.n_lines, 0) AS n_lines FROM parents pa CROSS JOIN channels ch LEFT JOIN march_lines m ON m.parent_category = pa.parent_category AND m.channel = ch.channel",
+    "WITH parents AS (SELECT DISTINCT parent_category FROM categories), channels AS (SELECT DISTINCT channel FROM orders), march_lines AS (SELECT c.parent_category, o.channel, COUNT(*) AS n_lines FROM order_lines ol JOIN orders o ON o.order_id = ol.order_id JOIN products p ON p.product_id = ol.product_id JOIN categories c ON c.category_id = p.category_id WHERE o.order_ts >= TIMESTAMP '2025-03-01' AND o.order_ts < TIMESTAMP '2025-04-01' GROUP BY c.parent_category, o.channel) SELECT pa.parent_category, ch.channel, COALESCE(m.n_lines, 0) AS n_lines FROM channels ch CROSS JOIN parents pa LEFT JOIN march_lines m ON m.channel = ch.channel AND m.parent_category = pa.parent_category"
+  ],
+  "other_way": {
+    "sql": "WITH parents AS (SELECT DISTINCT parent_category FROM categories), channels AS (SELECT DISTINCT channel FROM orders), march_lines AS (SELECT parent_category, channel, COUNT(*) AS n_lines FROM sales WHERE order_date BETWEEN DATE '2025-03-01' AND DATE '2025-03-31' GROUP BY parent_category, channel) SELECT pa.parent_category, ch.channel, COALESCE(m.n_lines, 0) AS n_lines FROM parents pa CROSS JOIN channels ch LEFT JOIN march_lines m ON m.parent_category = pa.parent_category AND m.channel = ch.channel",
+    "tradeoff": "Counting the lines from the sales view is shorter, because sales already joins these tables and has a UTC order_date."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-11",
+      "sql": "WITH parents AS (SELECT DISTINCT parent_category FROM categories), channels AS (SELECT DISTINCT channel FROM orders), march_lines AS (SELECT c.parent_category, o.channel, COUNT(*) AS n_lines FROM order_lines ol JOIN orders o ON o.order_id = ol.order_id JOIN products p ON p.product_id = ol.product_id JOIN categories c ON c.category_id = p.category_id WHERE o.order_ts >= TIMESTAMP '2025-03-01' AND o.order_ts < TIMESTAMP '2025-04-01' GROUP BY c.parent_category, o.channel) SELECT pa.parent_category, ch.channel, COALESCE(m.n_lines, 0) AS n_lines FROM parents pa CROSS JOIN channels ch JOIN march_lines m ON m.parent_category = pa.parent_category AND m.channel = ch.channel"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-17",
+      "sql": "WITH parents AS (SELECT DISTINCT parent_category FROM categories), channels AS (SELECT DISTINCT channel FROM orders), march_lines AS (SELECT c.parent_category, o.channel, COUNT(*) AS n_lines FROM order_lines ol JOIN orders o ON o.order_id = ol.order_id JOIN products p ON p.product_id = ol.product_id JOIN categories c ON c.category_id = p.category_id WHERE o.order_ts >= TIMESTAMP '2025-03-01' AND o.order_ts < TIMESTAMP '2025-04-01' GROUP BY c.parent_category, o.channel) SELECT pa.parent_category, ch.channel, m.n_lines FROM parents pa CROSS JOIN channels ch LEFT JOIN march_lines m ON m.parent_category = pa.parent_category AND m.channel = ch.channel"
+    }
+  ],
+  "hint3_partial": "WITH parents AS (SELECT DISTINCT parent_category FROM categories),\nchannels AS (SELECT DISTINCT channel FROM orders),\nmarch_lines AS (SELECT c.parent_category, o.channel, COUNT(*) AS n_lines FROM order_lines ol JOIN orders o ON o.order_id = ol.order_id JOIN products p ON p.product_id = ol.product_id JOIN categories c ON c.category_id = p.category_id WHERE o.order_ts >= TIMESTAMP '2025-03-01' AND o.order_ts < TIMESTAMP '2025-04-01' GROUP BY c.parent_category, o.channel)\nSELECT pa.parent_category, ch.channel, COALESCE(m.n_lines, 0) AS n_lines\nFROM parents pa\n___ channels ch\n___ march_lines m ON m.parent_category = pa.parent_category AND m.channel = ch.channel",
+  "solver": {
+    "prompt_hash": "052a93801a8036c5",
+    "schema_version": "f148bc911bb7",
+    "dataset_version": "e1545e4258743033",
+    "grader_version": "1b.3",
+    "query": "WITH grid AS (\n  SELECT pc.parent_category, ch.channel\n  FROM (SELECT DISTINCT parent_category FROM categories) pc\n  CROSS JOIN (VALUES ('store'), ('web')) AS ch(channel)\n), lines_mar AS (\n  SELECT c.parent_category, o.channel, COUNT(*) AS n_lines\n  FROM order_lines l\n  JOIN orders o ON o.order_id = l.order_id\n  JOIN products p ON p.product_id = l.product_id\n  JOIN categories c ON c.category_id = p.category_id\n  WHERE o.order_ts >= TIMESTAMP '2025-03-01 00:00:00' AND o.order_ts < TIMESTAMP '2025-04-01 00:00:00'\n  GROUP BY c.parent_category, o.channel\n)\nSELECT g.parent_category, g.channel, COALESCE(lm.n_lines, 0) AS n_lines\nFROM grid g\nLEFT JOIN lines_mar lm ON lm.parent_category = g.parent_category AND lm.channel = g.channel",
+    "at": "2026-10-07T10:41:41.722Z"
+  }
+}

@@ -6,7 +6,10 @@
     "SELECT quarter, COUNT(*) AS n_days, ROUND(100.0 * SUM(CASE WHEN is_weekend THEN 1 ELSE 0 END) / COUNT(*), 1) AS weekend_pct FROM calendar WHERE cal_date >= DATE '2025-01-01' AND cal_date <= DATE '2025-12-31' GROUP BY quarter",
     "SELECT quarter, COUNT(*) AS n_days, ROUND(100 * AVG(CAST(is_weekend AS INTEGER)), 1) AS weekend_pct FROM calendar WHERE cal_date BETWEEN '2025-01-01' AND '2025-12-31' GROUP BY 1"
   ],
-  "other_way": null,
+  "other_way": {
+    "sql": "SELECT quarter, COUNT(*) AS n_days, ROUND(100.0 * SUM(CASE WHEN is_weekend THEN 1 ELSE 0 END) / COUNT(*), 1) AS weekend_pct FROM calendar WHERE cal_date >= DATE '2025-01-01' AND cal_date <= DATE '2025-12-31' GROUP BY quarter",
+    "tradeoff": "Works in every SQL dialect, but is wordier than FILTER."
+  },
   "planted_wrong": [
     {
       "id": "PW1",

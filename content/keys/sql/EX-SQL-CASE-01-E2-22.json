@@ -6,7 +6,10 @@
     "SELECT CASE WHEN channel = 'store' THEN 'in_store' WHEN country_code = 'NL' THEN 'next_day' ELSE 'two_day' END AS delivery, COUNT(*) AS n_lines, SUM(units) AS units_sold FROM sales GROUP BY 1",
     "SELECT CASE WHEN channel = 'web' AND country_code = 'NL' THEN 'next_day' WHEN channel = 'web' AND (country_code = 'BE' OR country_code = 'LU') THEN 'two_day' ELSE 'in_store' END AS delivery, COUNT(order_line_id) AS n_lines, SUM(units) AS units_sold FROM sales GROUP BY delivery"
   ],
-  "other_way": null,
+  "other_way": {
+    "sql": "SELECT CASE WHEN channel = 'store' THEN 'in_store' WHEN country_code = 'NL' THEN 'next_day' ELSE 'two_day' END AS delivery, COUNT(*) AS n_lines, SUM(units) AS units_sold FROM sales GROUP BY 1",
+    "tradeoff": "Tests the store channel first and treats the rest as web, which is shorter, but mislabels any new channel."
+  },
   "planted_wrong": [
     {
       "id": "PW1",

@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-DATE-01-E1-42",
+  "item_version": 1,
+  "value": 12,
+  "explanation": "month(order_ts) gives a number from 1 to 12 and drops the year, so January 2024 and January 2025 both become 1 and fall into the same group. Two years of orders give 12 rows, not 24; date_trunc('month', order_ts) would keep the years apart.",
+  "solver": {
+    "prompt_hash": "fd6eed31e7c3494f",
+    "grader_version": "choice.2",
+    "chosen": null,
+    "typed": "12",
+    "at": "2026-10-07T09:58:58.576Z"
+  }
+}

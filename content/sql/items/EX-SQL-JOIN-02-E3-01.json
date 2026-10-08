@@ -1,0 +1,140 @@
+{
+  "id": "EX-SQL-JOIN-02-E3-01",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "left_join",
+    "chain",
+    "filter_in_on",
+    "count_zero",
+    "categories",
+    "products",
+    "order_lines",
+    "orders",
+    "utc_day"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-JOIN-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-JOIN-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02"
+  ],
+  "template_id": "T-JOIN-02-chain-count-keep-zero",
+  "template_params": {
+    "from": "categories",
+    "join": "products, order_lines, orders",
+    "parent": "Accessories",
+    "week": "2025-03-03"
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_join",
+  "prompt": "How many order lines did each category of the parent category Accessories sell in orders placed from 3 March 2025 to 9 March 2025? order_ts holds UTC time: take those UTC days, both included. Include every Accessories category, with 0 for a category that sold no lines that week. Return two columns, in this order: category_name and n_lines. Return one row for each Accessories category. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "category_name",
+        "type_class": "text"
+      },
+      {
+        "name": "n_lines",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "category_name",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "n_lines",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "category_name"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, chain the joins from categories to products, lines and orders so that every Accessories category stays.",
+    "Each join must keep the rows from before it, and the week test belongs with the orders. Then count a column of orders."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 52,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 53,
+      "to": 70,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 71,
+      "to": 124,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 125,
+      "to": 179,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 180,
+      "to": 324,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 325,
+      "to": 364,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 365,
+      "to": 389,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "Every join keeps the category, the week test in ON leaves out-of-week lines without an order, and COUNT(o.order_id) counts only that week's lines."
+}

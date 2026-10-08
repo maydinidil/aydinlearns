@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-JOIN-05-E2-01",
+  "item_version": 1,
+  "reference_sql": "WITH b AS (SELECT product_id, MIN(price_eur) AS bliksem_min_eur FROM competitor_prices WHERE competitor = 'Bliksem' AND observed_ts >= TIMESTAMP '2025-03-03' AND observed_ts < TIMESTAMP '2025-03-10' GROUP BY product_id),\ns AS (SELECT product_id, MIN(price_eur) AS stroomhuis_min_eur FROM competitor_prices WHERE competitor = 'Stroomhuis' AND observed_ts >= TIMESTAMP '2025-03-03' AND observed_ts < TIMESTAMP '2025-03-10' GROUP BY product_id)\nSELECT COALESCE(b.product_id, s.product_id) AS product_id, b.bliksem_min_eur, s.stroomhuis_min_eur\nFROM b\nFULL OUTER JOIN s ON s.product_id = b.product_id",
+  "alternatives": [
+    "SELECT product_id, MIN(price_eur) FILTER (WHERE competitor = 'Bliksem') AS bliksem_min_eur, MIN(price_eur) FILTER (WHERE competitor = 'Stroomhuis') AS stroomhuis_min_eur FROM competitor_prices WHERE observed_ts >= TIMESTAMP '2025-03-03' AND observed_ts < TIMESTAMP '2025-03-10' AND competitor IN ('Bliksem', 'Stroomhuis') GROUP BY product_id",
+    "WITH b AS (SELECT product_id, MIN(price_eur) AS bliksem_min_eur FROM competitor_prices WHERE competitor = 'Bliksem' AND observed_ts >= TIMESTAMP '2025-03-03' AND observed_ts < TIMESTAMP '2025-03-10' GROUP BY product_id), s AS (SELECT product_id, MIN(price_eur) AS stroomhuis_min_eur FROM competitor_prices WHERE competitor = 'Stroomhuis' AND observed_ts >= TIMESTAMP '2025-03-03' AND observed_ts < TIMESTAMP '2025-03-10' GROUP BY product_id) SELECT COALESCE(s.product_id, b.product_id) AS product_id, b.bliksem_min_eur, s.stroomhuis_min_eur FROM s FULL JOIN b ON b.product_id = s.product_id"
+  ],
+  "other_way": {
+    "sql": "SELECT product_id, MIN(price_eur) FILTER (WHERE competitor = 'Bliksem') AS bliksem_min_eur, MIN(price_eur) FILTER (WHERE competitor = 'Stroomhuis') AS stroomhuis_min_eur FROM competitor_prices WHERE observed_ts >= TIMESTAMP '2025-03-03' AND observed_ts < TIMESTAMP '2025-03-10' AND competitor IN ('Bliksem', 'Stroomhuis') GROUP BY product_id",
+    "tradeoff": "One GROUP BY with FILTER is shorter for two rivals in one table, but FULL OUTER JOIN also reconciles lists from different tables."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-11",
+      "sql": "WITH b AS (SELECT product_id, MIN(price_eur) AS bliksem_min_eur FROM competitor_prices WHERE competitor = 'Bliksem' AND observed_ts >= TIMESTAMP '2025-03-03' AND observed_ts < TIMESTAMP '2025-03-10' GROUP BY product_id), s AS (SELECT product_id, MIN(price_eur) AS stroomhuis_min_eur FROM competitor_prices WHERE competitor = 'Stroomhuis' AND observed_ts >= TIMESTAMP '2025-03-03' AND observed_ts < TIMESTAMP '2025-03-10' GROUP BY product_id) SELECT COALESCE(b.product_id, s.product_id) AS product_id, b.bliksem_min_eur, s.stroomhuis_min_eur FROM b JOIN s ON s.product_id = b.product_id"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-11",
+      "sql": "WITH b AS (SELECT product_id, MIN(price_eur) AS bliksem_min_eur FROM competitor_prices WHERE competitor = 'Bliksem' AND observed_ts >= TIMESTAMP '2025-03-03' AND observed_ts < TIMESTAMP '2025-03-10' GROUP BY product_id), s AS (SELECT product_id, MIN(price_eur) AS stroomhuis_min_eur FROM competitor_prices WHERE competitor = 'Stroomhuis' AND observed_ts >= TIMESTAMP '2025-03-03' AND observed_ts < TIMESTAMP '2025-03-10' GROUP BY product_id) SELECT COALESCE(b.product_id, s.product_id) AS product_id, b.bliksem_min_eur, s.stroomhuis_min_eur FROM b LEFT JOIN s ON s.product_id = b.product_id"
+    }
+  ],
+  "hint3_partial": "WITH b AS (SELECT product_id, MIN(price_eur) AS bliksem_min_eur FROM competitor_prices WHERE competitor = 'Bliksem' AND observed_ts >= TIMESTAMP '2025-03-03' AND observed_ts < TIMESTAMP '2025-03-10' GROUP BY product_id),\ns AS (SELECT product_id, MIN(price_eur) AS stroomhuis_min_eur FROM competitor_prices WHERE competitor = 'Stroomhuis' AND observed_ts >= TIMESTAMP '2025-03-03' AND observed_ts < TIMESTAMP '2025-03-10' GROUP BY product_id)\nSELECT COALESCE(b.product_id, s.product_id) AS product_id, b.bliksem_min_eur, s.stroomhuis_min_eur\nFROM b\n___ s ON s.product_id = b.product_id",
+  "solver": {
+    "prompt_hash": "a67298e61c784a56",
+    "schema_version": "ffc6be9b2fbc",
+    "dataset_version": "e1545e4258743033",
+    "grader_version": "1b.3",
+    "query": "SELECT product_id,\n       MIN(CASE WHEN competitor = 'Bliksem' THEN price_eur END) AS bliksem_min_eur,\n       MIN(CASE WHEN competitor = 'Stroomhuis' THEN price_eur END) AS stroomhuis_min_eur\nFROM competitor_prices\nWHERE competitor IN ('Bliksem', 'Stroomhuis')\n  AND observed_ts >= TIMESTAMP '2025-03-03 00:00:00' AND observed_ts < TIMESTAMP '2025-03-10 00:00:00'\nGROUP BY product_id",
+    "at": "2026-10-07T10:41:41.857Z"
+  }
+}

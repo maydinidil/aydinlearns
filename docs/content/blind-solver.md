@@ -12,6 +12,8 @@ ambiguous or the key is wrong, and a generator fixes it before a learner meets i
 - GA4 and Methodology questions have their own solver and check, C26: see
   [Choice items](#choice-items-ga4-and-methodology-task-c3) at the end. SQL choice items use that
   solver and C14: see [SQL choice items](#sql-choice-items-task-c4).
+- A case's checkpoints (sprint 4b) are solved by one solver per batch: see
+  [Case checkpoints](#case-checkpoints-sprint-4b-task-b2).
 
 ## Why it works this way (R36)
 
@@ -28,6 +30,19 @@ Design §12 says the solver sees only the prompt, the schema, the output contrac
 |---|---|
 | `tools/.solver-view/<id>.json` for its own concepts: `id`, `prompt`, `output_contract`, `rules`, `schema`, and for a fix item `starter_sql`, the query it is asked to fix | Hints, `why_this_works`, `fading`, `faded_shape`, `faded_suffix`, `subgoals`, `starter_error_id` |
 | `data/schema-notes.json`: the visible tables, their grain, keys and sample rows | Keys, lessons, other concepts' views, the database, the code, the docs |
+
+**Tables by level (sprint 4a, S4-01).** `data/schema-notes.json` holds every table of the schema,
+and each note has `from_level`: the first level whose items show that table. From level 3 the
+notes add `orders`, `order_lines`, `price_history`, `promotion_products` and `competitor_prices`,
+each with its grain, primary key and foreign keys (`ref_table`, `ref_columns`, 1:N). The learner's
+schema panel and autocomplete show only the tables whose `from_level` is at or below the item's
+level, so the solver does the same: the controller names the level in the dispatch, and the solver
+uses only those tables. A level 1 or 2 item never needs a level 3 table.
+
+**Level 3 prompts** have no grain line in the output contract outside the lesson phases (S4-04),
+so the prompt itself says what one row of the answer stands for. Every `*_ts` column holds UTC
+time; a prompt that asks for an Amsterdam day says so, and the solver converts the time as the
+prompt asks.
 
 A learner sees a fix item's starter in the editor, so its solver sees it too. The export writes
 `starter_sql` whenever it is a string, exactly as the prompt hash covers it (R37); every other item's
@@ -85,14 +100,16 @@ for the item IDs.
 You stand in for a SQL learner. You solve exercises blind, so the content checks can catch
 ambiguous prompts and wrong answer keys before a real learner meets them.
 
-Your concepts: <concept A> and <concept B>.
+Your concepts: <concept A> and <concept B>. Their level: <level>.
 (Fix round only: solve only these item IDs: <IDs>.)
 
 Work in <root>. You may read ONLY:
 - the solver-view files for your concepts, tools/.solver-view/EX-<concept A>-*.json and
   tools/.solver-view/EX-<concept B>-*.json, one per item. Each holds only the item's id, prompt,
   output_contract, rules and schema, plus starter_sql for a "fix this query" item;
-- data/schema-notes.json (the visible tables, their grain, keys and sample rows).
+- data/schema-notes.json (the visible tables, their grain, keys, foreign keys and sample rows).
+  Use only the tables whose from_level is at or below your level: a learner at that level sees
+  no other table.
 
 Never open anything else: not content/ (items, keys, lessons), pipeline/, knowledge/, server/,
 tests/, docs/, other files under tools/, or another concept's solver-view files. Do not query the
@@ -106,6 +123,10 @@ file:
 - Output columns exactly as the prompt and the contract name them, in that order.
 - The order, tie-breaks and rounding exactly as the prompt states.
 - No ORDER BY unless the prompt asks for an order.
+- One row per what the prompt says one row stands for. When the output contract has no grain
+  line, the prompt's wording is the grain.
+- Times in *_ts columns are UTC. When the prompt asks for a day, week or month in Amsterdam time,
+  convert the time first.
 
 When a view holds starter_sql, the prompt asks you to fix that query. Write the whole corrected
 query to the .sql file, not a description of the change.
@@ -282,7 +303,7 @@ For each active item, in this order:
    of the options and is the key's `correct_oid`, or the typed answer is read as the app reads
    one (D15) and is within half a unit of the last decimal asked.
 
-The record also keeps `grader_version` (`choice.1`) and the time; C26 does not compare them, as
+The record also keeps `grader_version` (`choice.2` since sprint 4a's Task A1) and the time; C26 does not compare them, as
 C14 does not for SQL.
 
 | Change | C26 |
@@ -332,13 +353,14 @@ You stand in for a learner of SQL who is working towards a junior analyst job. Y
 questions blind, so the content checks can catch ambiguous questions and wrong answer keys
 before a real learner meets them.
 
-Your concepts: sql/<concept A> and sql/<concept B>.
+Your concepts: sql/<concept A> and sql/<concept B>. Their level: <level>.
 (Fix round only: answer only these item IDs: <IDs>.)
 
 Work in <root>. You may read ONLY the view files of your concepts,
 tools/.solver-view/choice/sql/<concept A>/*.json and tools/.solver-view/choice/sql/<concept B>/*.json,
 and data/schema-notes.json (each table's grain, keys, row count and sample rows, as the app's
-schema panel shows them). Each view holds one question: its id, its kind, its prompt, the
+schema panel shows them; the panel shows only the tables whose from_level is at or below your
+level). Each view holds one question: its id, its kind, its prompt, the
 schema it asks about, and what that kind shows: shown_sql (a query to predict), options (each an
 oid and a text; for predict_result also the result table it stands for), typed (a row count to
 type), or unique_check (a table and a column).
@@ -375,3 +397,117 @@ For each active SQL choice item, in this order:
 | The prompt, `shown_sql`, `schema`, an option's text or table, an option added or removed, the typed spec, `unique_check` | Stale: needs a new blind solve |
 | The explanation, misconception IDs, the edge schema, difficulty, `version`, the data | No effect on C14. A data change is caught by C31 to C35 |
 | The key's correct option or value | Fails only if the recorded answer is no longer right |
+
+## Case checkpoints (sprint 4b, Task B2)
+
+A case's checkpoints are solved blind as items are: one fresh agent sees only what a learner sees
+of each checkpoint, and its answers are graded by the app's own rules. How cases are written:
+[`generator-brief.md`](generator-brief.md), section "Cases". A case's CP6 is self-scored and is
+not solved.
+
+| Checkpoint | The solver sees | It writes | Graded by |
+|---|---|---|---|
+| CP3 | `tools/.solver-view/<item id>.json` (`npm run export:solver-view`): the CP3 item's `id`, `prompt`, `output_contract`, `rules` and `schema`, as for every SQL item. Its ID is `EX-OPENER-L<level>-01` or `EX-CASE-<case tail>` | `tools/.solver-out/<item id>.sql`, as in the SQL solver brief above | `npm run record:solver`, then C14 |
+| CP1, CP5 | `tools/.solver-view/choice/case/<case_id>/<case_id>-CP1.json` (or `-CP5`; `npm run export:choice-view`): `id`, `prompt` and `options` (each an `oid` and a `text`, in a seeded shuffled order) | `tools/.solver-out/case/<case_id>-CP1.txt`: the oid of one option | The grader agent (below): right when it is the key's `correct_oid` |
+| CP2, CP4 | `tools/.solver-view/choice/case/<case_id>/<case_id>-CP2.json` (or `-CP4`): `id`, `prompt` and `typed` (the unit, the scale and the decimals asked for) | `tools/.solver-out/case/<case_id>-CP2.sql`: one SELECT that returns the one number the prompt asks for, in the scale it asks | The grader agent: right when the number, read as the app reads a typed answer (D15), is within half a unit of the last decimal asked of the truth value |
+
+The view of a case checkpoint holds nothing else: never the brief, the other checkpoints, the
+credits, the truth key, the case key, the model plan or the model answer. So every checkpoint
+prompt must stand on its own; a solver that needs the screen around it to answer is an ambiguity
+finding. A file name holds no colon, so `CASE-PRICE-01:CP1`'s view and answer files are named
+`CASE-PRICE-01-CP1`.
+
+### Steps (cases)
+
+| Step | What to do | Result |
+|---|---|---|
+| 1 | The controller runs `npm run build:data` (the CP2 and CP4 truth values), then `npm run export:solver-view` and `npm run export:choice-view` | The views, and `data/truth/voltmarkt.json` with every `<case_id>:CP2` and `<case_id>:CP4` |
+| 2 | Dispatch one fresh Sonnet solver per batch with the case solver brief below, naming the case IDs, their CP3 item IDs and the level. Never a generator, which has seen the keys | `.sql` and `.txt` files under `tools/.solver-out/`, and a reply with counts and ambiguity notes |
+| 3 | CP3: `npm run record:solver`, then `npm run check:content` | C14 passes for each CP3 item |
+| 4 | CP1, CP2, CP4 and CP5: dispatch one fresh background grader agent (Sonnet, never the solver or a generator) with the grader brief below | PASS or FAIL for each checkpoint ID |
+| 5 | A fix round for each FAIL, up to 3 rounds (below) | Every checkpoint passes, or the IDs left go to the owner |
+| 6 | Delete `tools/.solver-out/case/` and the CP3 `.sql` files | No solver answers left on disk |
+
+The rules while it runs are the SQL and choice ones: never open a file in `tools/.solver-out/` or
+`content/keys/`, and only case IDs, checkpoint IDs, counts and PASS or FAIL reach the conversation.
+
+### Fix rounds (cases)
+
+Send the failing checkpoint IDs, never answers, to a generator (Opus) with
+[`generator-brief.md`](generator-brief.md), section "Cases". It reads the case record, the case
+key, the solver's file and the case's source (04's case for a ported one), and decides which case
+applies:
+
+| Case | The generator changes | Then the controller |
+|---|---|---|
+| The prompt or the options allow the solver's answer | The prompt or an option's text in place (never the order of the options), or the truth query when the prompt's reading changed | Runs `build:data` again when a truth query changed, deletes those checkpoints' answer files, re-exports and dispatches a fresh solver for those IDs only |
+| The key is wrong | The truth query, or the correct option and its explanation | Runs `build:data` again when a truth query changed, then a fresh grader on the same answer files: the prompt did not change, so the blind answer still counts |
+
+After 3 rounds, stop and list the checkpoint IDs still failing for the owner. A case with a
+failing checkpoint does not ship.
+
+### The case solver brief
+
+```text
+You stand in for a SQL learner working on a manager's case at work. You answer each checkpoint
+blind, so the content checks can catch ambiguous questions and wrong answer keys before a real
+learner meets them.
+
+Your cases: <case IDs>. Their CP3 items: <item IDs>. Their level: <level>.
+(Fix round only: answer only these checkpoint IDs: <IDs>.)
+
+Work in <root>. You may read ONLY:
+- tools/.solver-view/<CP3 item ID>.json for each of your CP3 items (id, prompt, output_contract,
+  rules and schema);
+- tools/.solver-view/choice/case/<case ID>/*.json for each of your cases: one file per checkpoint,
+  holding its id, its prompt, and either options (each an oid and a text) or typed (the unit, the
+  scale and the number of decimals to give);
+- data/schema-notes.json (the visible tables and views, their grain, keys and sample rows). Use
+  only the tables whose from_level is at or below your level.
+
+Never open anything else: not content/, knowledge/, pipeline/, server/, schemas/, tests/, docs/,
+data/truth/, other files under tools/, or another case's files. Do not query the database, do not
+search the web, and run no command except to create the output folders and write your files.
+
+Write each answer as plain text, with nothing else in the file:
+- a CP3 item: tools/.solver-out/<item ID>.sql, one DuckDB SELECT, as the SQL solver brief asks
+  (table names without a schema prefix; the output columns, order, tie-breaks and rounding exactly
+  as the prompt states; no ORDER BY unless the prompt asks for an order; times in *_ts columns are
+  UTC);
+- a checkpoint with options: tools/.solver-out/case/<case ID>-<CP>.txt, the oid of the one option
+  you pick, exactly as the view gives it;
+- a checkpoint with typed: tools/.solver-out/case/<case ID>-<CP>.sql, one DuckDB SELECT that
+  returns exactly one row with one number: the number the prompt asks for, in its unit and scale
+  (for a percentage, 37.4 means 37.4%) and rounded as it asks.
+
+Answer as a careful learner would, from each prompt alone. If a prompt is ambiguous, needs
+something it does not say, or more than one option looks right, pick the most natural reading and
+note the ID and why in your reply.
+
+Reply in under 10 lines: the number of files written, and any IDs you found ambiguous, with one
+line each on why. Never quote a prompt, a query, an option or an oid in your reply.
+```
+
+### The case grader brief
+
+```text
+You grade a blind solver's answers to case checkpoints. You may read keys because you are a
+background agent; nothing you read may reach your reply.
+
+Work in <root>. Your cases: <case IDs>. Read tools/.solver-out/case/, the case records in
+content/sql/openers/ and content/sql/cases/, the case keys in content/keys/cases/, and
+data/truth/voltmarkt.json ("checkpoints").
+
+For each answer file:
+- <case ID>-CP1.txt or -CP5.txt: PASS when its text, trimmed, is the key's choices.<CP>.correct_oid.
+- <case ID>-CP2.sql or -CP4.sql: run the query read-only on data/course.duckdb, schema voltmarkt
+  (DuckDB with autoinstall_known_extensions and autoload_known_extensions false, then
+  SET TimeZone = 'UTC' and SET search_path = 'voltmarkt'). FAIL when it does not return exactly one
+  number. Otherwise write the number with the checkpoint's typed decimals, read it with parseTyped
+  and grade it with gradeTyped (server/choice/grade.ts) against the truth value <case ID>:<CP>,
+  with the checkpoint's typed spec: PASS when it is correct.
+- A checkpoint with no answer file is a FAIL.
+
+Reply in under 10 lines: one line per checkpoint ID with PASS or FAIL, and the counts. Never quote
+a query, an oid, a number, an explanation or a value.
+```

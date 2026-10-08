@@ -1,0 +1,127 @@
+{
+  "id": "EX-SQL-CTE-01-E1-02",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "cte",
+    "count",
+    "order_lines",
+    "distribution"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-CTE-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pretest",
+  "target_concept_id": "SQL-CTE-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CTE-01"
+  ],
+  "template_id": "T-CTE-01-count-of-counts",
+  "template_params": {
+    "table": "order_lines",
+    "step_grain": "order",
+    "bucket": "n_lines"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_join",
+  "prompt": "How many orders have exactly one order line, how many have exactly two, and so on? Return two columns, in this order: n_lines, a number of lines, and n_orders, the number of orders with exactly that many lines. Return one row for each number of lines that occurs. An order with no lines does not count. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "n_lines",
+        "type_class": "numeric"
+      },
+      {
+        "name": "n_orders",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per number of lines"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "n_lines",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "n_orders",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "n_lines"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, count the lines of each order in a first step, then count the orders for each of those numbers.",
+    "The second step groups the rows of the first step by their line count."
+  ],
+  "subgoals": [
+    {
+      "from": 28,
+      "to": 64,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 67,
+      "to": 83,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 86,
+      "to": 103,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 106,
+      "to": 142,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 143,
+      "to": 163,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 164,
+      "to": 180,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "The first step has one row per order with its line count; the second step groups those rows by that count."
+}

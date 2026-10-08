@@ -1,0 +1,91 @@
+{
+  "id": "EX-SQL-JOIN-02-E2-41",
+  "version": 1,
+  "kind": "choose_query",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "choose_query",
+    "anti_join",
+    "filter_in_on",
+    "stores",
+    "orders"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-JOIN-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-JOIN-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-NULL-01",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02"
+  ],
+  "template_id": "T-JOIN-02-choose-anti-join",
+  "template_params": {
+    "from": "stores",
+    "join": "orders",
+    "month": "2025-02"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_join",
+  "prompt": "Which stores took no orders in February 2025? order_ts holds UTC time: count orders from 1 February 2025 to 28 February 2025, UTC days, both included. Return store_code, one row for each such store. Any row order is fine. Which query returns it?",
+  "output_contract": null,
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [],
+  "subgoals": [],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 90000,
+  "why_this_works": "",
+  "options": [
+    {
+      "oid": "o433472c",
+      "text": "SELECT s.store_code\nFROM stores s\nLEFT JOIN orders o ON o.store_id = s.store_id\nWHERE o.order_ts >= TIMESTAMP '2025-02-01 00:00:00'\n  AND o.order_ts < TIMESTAMP '2025-03-01 00:00:00'\n  AND o.order_id IS NULL",
+      "misconception_id": "ERR-LOG-10"
+    },
+    {
+      "oid": "o9e54f71",
+      "text": "SELECT s.store_code\nFROM stores s\nLEFT JOIN orders o ON o.store_id = s.store_id\n  AND o.order_ts >= TIMESTAMP '2025-02-01 00:00:00'\n  AND o.order_ts < TIMESTAMP '2025-03-01 00:00:00'\nWHERE o.order_id IS NULL",
+      "misconception_id": null
+    },
+    {
+      "oid": "oa43e5d7",
+      "text": "SELECT s.store_code\nFROM stores s\nJOIN orders o ON o.store_id = s.store_id\n  AND o.order_ts >= TIMESTAMP '2025-02-01 00:00:00'\n  AND o.order_ts < TIMESTAMP '2025-03-01 00:00:00'\nWHERE o.order_id IS NULL",
+      "misconception_id": "ERR-LOG-11"
+    },
+    {
+      "oid": "o0664a0d",
+      "text": "SELECT DISTINCT s.store_code\nFROM stores s\nLEFT JOIN orders o ON o.store_id = s.store_id\n  AND o.order_ts >= TIMESTAMP '2025-02-01 00:00:00'\n  AND o.order_ts < TIMESTAMP '2025-03-01 00:00:00'\nWHERE o.order_id IS NOT NULL",
+      "misconception_id": "ERR-LOG-11"
+    }
+  ]
+}

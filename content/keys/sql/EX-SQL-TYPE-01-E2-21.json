@@ -6,7 +6,10 @@
     "SELECT store_code, ROUND(100.0 * COUNT(*) FILTER (WHERE units >= 3) / COUNT(*), 1) AS bulk_line_pct FROM sales GROUP BY store_code",
     "SELECT store_code, ROUND(CAST(COUNT(CASE WHEN units >= 3 THEN 1 END) AS DOUBLE) * 100 / COUNT(*), 1) AS bulk_line_pct FROM sales GROUP BY 1"
   ],
-  "other_way": null,
+  "other_way": {
+    "sql": "SELECT store_code, ROUND(100.0 * COUNT(*) FILTER (WHERE units >= 3) / COUNT(*), 1) AS bulk_line_pct FROM sales GROUP BY store_code",
+    "tradeoff": "Reads closer to plain English, but FILTER is not available in every SQL dialect."
+  },
   "planted_wrong": [
     {
       "id": "PW1",

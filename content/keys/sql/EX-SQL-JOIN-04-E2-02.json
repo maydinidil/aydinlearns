@@ -1,0 +1,39 @@
+{
+  "item_id": "EX-SQL-JOIN-04-E2-02",
+  "item_version": 1,
+  "reference_sql": "SELECT cp.product_id, cp.competitor, cp.observed_ts, cp.price_eur, ph.list_price_eur\nFROM competitor_prices cp\nJOIN products p ON p.product_id = cp.product_id\nJOIN categories c ON c.category_id = p.category_id\nJOIN price_history ph ON ph.product_id = cp.product_id AND CAST(cp.observed_ts AS DATE) >= ph.valid_from AND (ph.valid_to IS NULL OR CAST(cp.observed_ts AS DATE) <= ph.valid_to)\nWHERE c.category_name = 'TVs 50-55 inch' AND cp.observed_ts >= TIMESTAMP '2025-03-03' AND cp.observed_ts < TIMESTAMP '2025-03-10'",
+  "alternatives": [
+    "SELECT cp.product_id, cp.competitor, cp.observed_ts, cp.price_eur, ph.list_price_eur FROM competitor_prices cp JOIN products p ON p.product_id = cp.product_id JOIN categories c ON c.category_id = p.category_id JOIN price_history ph ON ph.product_id = cp.product_id AND CAST(cp.observed_ts AS DATE) BETWEEN ph.valid_from AND COALESCE(ph.valid_to, DATE '9999-12-31') WHERE c.category_name = 'TVs 50-55 inch' AND CAST(cp.observed_ts AS DATE) BETWEEN DATE '2025-03-03' AND DATE '2025-03-09'",
+    "WITH checks AS (SELECT cp.product_id, cp.competitor, cp.observed_ts, cp.price_eur, CAST(cp.observed_ts AS DATE) AS check_date FROM competitor_prices cp JOIN products p ON p.product_id = cp.product_id JOIN categories c ON c.category_id = p.category_id WHERE c.category_name = 'TVs 50-55 inch' AND cp.observed_ts >= TIMESTAMP '2025-03-03' AND cp.observed_ts < TIMESTAMP '2025-03-10') SELECT k.product_id, k.competitor, k.observed_ts, k.price_eur, ph.list_price_eur FROM checks k JOIN price_history ph ON ph.product_id = k.product_id AND k.check_date >= ph.valid_from AND (ph.valid_to IS NULL OR k.check_date <= ph.valid_to)"
+  ],
+  "other_way": {
+    "sql": "SELECT cp.product_id, cp.competitor, cp.observed_ts, cp.price_eur, ph.list_price_eur FROM competitor_prices cp JOIN products p ON p.product_id = cp.product_id JOIN categories c ON c.category_id = p.category_id JOIN price_history ph ON ph.product_id = cp.product_id AND CAST(cp.observed_ts AS DATE) BETWEEN ph.valid_from AND COALESCE(ph.valid_to, DATE '9999-12-31') WHERE c.category_name = 'TVs 50-55 inch' AND CAST(cp.observed_ts AS DATE) BETWEEN DATE '2025-03-03' AND DATE '2025-03-09'",
+    "tradeoff": "BETWEEN with COALESCE is shorter, but the far-off end date stands in for a missing valid_to and must be chosen with care."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-03",
+      "sql": "SELECT cp.product_id, cp.competitor, cp.observed_ts, cp.price_eur, ph.list_price_eur FROM competitor_prices cp JOIN products p ON p.product_id = cp.product_id JOIN categories c ON c.category_id = p.category_id JOIN price_history ph ON ph.product_id = cp.product_id AND CAST(cp.observed_ts AS DATE) >= ph.valid_from AND CAST(cp.observed_ts AS DATE) <= ph.valid_to WHERE c.category_name = 'TVs 50-55 inch' AND cp.observed_ts >= TIMESTAMP '2025-03-03' AND cp.observed_ts < TIMESTAMP '2025-03-10'"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-01",
+      "sql": "SELECT cp.product_id, cp.competitor, cp.observed_ts, cp.price_eur, ph.list_price_eur FROM competitor_prices cp JOIN products p ON p.product_id = cp.product_id JOIN categories c ON c.category_id = p.category_id JOIN price_history ph ON ph.product_id = cp.product_id WHERE c.category_name = 'TVs 50-55 inch' AND cp.observed_ts >= TIMESTAMP '2025-03-03' AND cp.observed_ts < TIMESTAMP '2025-03-10'"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-23",
+      "sql": "SELECT cp.product_id, cp.competitor, cp.observed_ts, cp.price_eur, ph.list_price_eur FROM competitor_prices cp JOIN products p ON p.product_id = cp.product_id JOIN categories c ON c.category_id = p.category_id JOIN price_history ph ON ph.product_id = cp.product_id AND CAST(cp.observed_ts AS DATE) > ph.valid_from AND (ph.valid_to IS NULL OR CAST(cp.observed_ts AS DATE) <= ph.valid_to) WHERE c.category_name = 'TVs 50-55 inch' AND cp.observed_ts >= TIMESTAMP '2025-03-03' AND cp.observed_ts < TIMESTAMP '2025-03-10'"
+    }
+  ],
+  "hint3_partial": "SELECT cp.product_id, cp.competitor, cp.observed_ts, cp.price_eur, ph.list_price_eur\nFROM competitor_prices cp\nJOIN products p ON p.product_id = cp.product_id\nJOIN categories c ON c.category_id = p.category_id\nJOIN price_history ph ON ph.product_id = cp.product_id AND CAST(cp.observed_ts AS DATE) >= ph.valid_from AND (___)\nWHERE c.category_name = 'TVs 50-55 inch' AND cp.observed_ts >= TIMESTAMP '2025-03-03' AND cp.observed_ts < TIMESTAMP '2025-03-10'",
+  "solver": {
+    "prompt_hash": "ac904647ed413079",
+    "schema_version": "ed3be5110cd5",
+    "dataset_version": "e1545e4258743033",
+    "grader_version": "1b.3",
+    "query": "SELECT cp.product_id, cp.competitor, cp.observed_ts, cp.price_eur, h.list_price_eur\nFROM competitor_prices cp\nJOIN products p ON p.product_id = cp.product_id\nJOIN categories c ON c.category_id = p.category_id\nJOIN price_history h ON h.product_id = cp.product_id\n  AND h.valid_from <= CAST(cp.observed_ts AS DATE)\n  AND (h.valid_to IS NULL OR h.valid_to >= CAST(cp.observed_ts AS DATE))\nWHERE c.category_name = 'TVs 50-55 inch'\n  AND cp.observed_ts >= TIMESTAMP '2025-03-03 00:00:00' AND cp.observed_ts < TIMESTAMP '2025-03-10 00:00:00'",
+    "at": "2026-10-07T10:41:41.119Z"
+  }
+}

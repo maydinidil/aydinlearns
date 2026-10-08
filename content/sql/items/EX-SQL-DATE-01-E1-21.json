@@ -1,0 +1,118 @@
+{
+  "id": "EX-SQL-DATE-01-E1-21",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "date",
+    "date_part",
+    "year",
+    "orders"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-DATE-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-DATE-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-DATE-01"
+  ],
+  "template_id": "T-DATE-01-count-per-year",
+  "template_params": {
+    "table": "orders",
+    "clock": "UTC",
+    "channel": "web"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_date",
+  "prompt": "How many web orders did Voltmarkt take in each calendar year? Use the orders table, keep the orders with channel 'web' and count every one of them, guest orders included. order_ts holds the time of the order in UTC, so take the year in UTC. Return two columns, in this order: order_year, the year as a number, and orders, the number of web orders. Return one row for each year. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "order_year",
+        "type_class": "numeric"
+      },
+      {
+        "name": "orders",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "order_year",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "orders",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "order_year"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the calculated column order_year: the calendar year of each web order.",
+    "year() gives the calendar year; isoyear() would move the last days of December into the next ISO year. Count rows, since a guest order has no customer_id."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 62,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 63,
+      "to": 74,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 75,
+      "to": 96,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 97,
+      "to": 120,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "year(order_ts) gives the calendar year of each order, and COUNT(*) counts the guest orders too."
+}

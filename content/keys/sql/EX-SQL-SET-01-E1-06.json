@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-SET-01-E1-06",
+  "item_version": 1,
+  "reference_sql": "SELECT promo_code, 'start' AS event, start_date AS event_date\nFROM promotions\nWHERE start_date BETWEEN DATE '2025-06-01' AND DATE '2025-06-30'\nUNION ALL\nSELECT promo_code, 'end', end_date\nFROM promotions\nWHERE start_date BETWEEN DATE '2025-06-01' AND DATE '2025-06-30'",
+  "alternatives": [
+    "WITH events AS (SELECT 'start' AS event UNION ALL SELECT 'end') SELECT p.promo_code, e.event, CASE WHEN e.event = 'start' THEN p.start_date ELSE p.end_date END AS event_date FROM promotions p CROSS JOIN events e WHERE p.start_date BETWEEN DATE '2025-06-01' AND DATE '2025-06-30'",
+    "SELECT promo_code, 'end' AS event, end_date AS event_date FROM promotions WHERE start_date >= DATE '2025-06-01' AND start_date < DATE '2025-07-01' UNION ALL SELECT promo_code, 'start', start_date FROM promotions WHERE start_date >= DATE '2025-06-01' AND start_date < DATE '2025-07-01'"
+  ],
+  "other_way": {
+    "sql": "WITH events AS (SELECT 'start' AS event UNION ALL SELECT 'end') SELECT p.promo_code, e.event, CASE WHEN e.event = 'start' THEN p.start_date ELSE p.end_date END AS event_date FROM promotions p CROSS JOIN events e WHERE p.start_date BETWEEN DATE '2025-06-01' AND DATE '2025-06-30'",
+    "tradeoff": "A CROSS JOIN with a two-row list and a CASE gives the same rows, but two plain branches are easier to read."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-OUT-01",
+      "sql": "SELECT promo_code, start_date AS event_date FROM promotions WHERE start_date BETWEEN DATE '2025-06-01' AND DATE '2025-06-30' UNION ALL SELECT promo_code, end_date FROM promotions WHERE start_date BETWEEN DATE '2025-06-01' AND DATE '2025-06-30'"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-23",
+      "sql": "SELECT promo_code, 'start' AS event, start_date AS event_date FROM promotions WHERE start_date BETWEEN DATE '2025-06-30' AND DATE '2025-06-01' UNION ALL SELECT promo_code, 'end', end_date FROM promotions WHERE start_date BETWEEN DATE '2025-06-30' AND DATE '2025-06-01'"
+    }
+  ],
+  "hint3_partial": "SELECT promo_code, 'start' AS event, start_date AS event_date\nFROM promotions\nWHERE start_date BETWEEN DATE '2025-06-01' AND DATE '2025-06-30'\n___\nSELECT promo_code, ___, ___\nFROM promotions\nWHERE start_date BETWEEN DATE '2025-06-01' AND DATE '2025-06-30'",
+  "solver": {
+    "prompt_hash": "1d97e72222bd749a",
+    "schema_version": "f0340f71a1f5",
+    "dataset_version": "e1545e4258743033",
+    "grader_version": "1b.3",
+    "query": "SELECT promo_code, 'start' AS event, start_date AS event_date\nFROM promotions\nWHERE start_date >= DATE '2025-06-01' AND start_date <= DATE '2025-06-30'\nUNION ALL\nSELECT promo_code, 'end' AS event, end_date AS event_date\nFROM promotions\nWHERE start_date >= DATE '2025-06-01' AND start_date <= DATE '2025-06-30'",
+    "at": "2026-10-07T10:41:42.634Z"
+  }
+}

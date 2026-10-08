@@ -1,0 +1,119 @@
+{
+  "id": "EX-SQL-SET-01-E3-01",
+  "version": 2,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "set",
+    "except",
+    "union_all",
+    "cte",
+    "count",
+    "competitor_prices"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-SET-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-SET-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-AGG-01",
+    "SQL-CTE-01",
+    "SQL-SET-01"
+  ],
+  "template_id": "T-SET-01-except-counts-stacked",
+  "template_params": {
+    "table": "competitor_prices",
+    "month": "2025-05"
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_set",
+  "prompt": "For each competitor, how many of the products it checked in May 2025 did the other competitor not check in May 2025? Use the competitor_prices table, where competitor is 'Bliksem' or 'Stroomhuis'. observed_ts holds the time of the check in UTC, so take May in UTC: from 2025-05-01 00:00 up to but not including 2025-06-01 00:00. Count each product once. Return two columns, in this order: competitor and only_this_rival, the number of products only that competitor checked. Return one row for each competitor. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "competitor",
+        "type_class": "text"
+      },
+      {
+        "name": "only_this_rival",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "competitor",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "only_this_rival",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "competitor"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, count each CTE's products and stack the two counts, one row per competitor.",
+    "Write one EXCEPT for each direction: Bliksem minus Stroomhuis, then Stroomhuis minus Bliksem. EXCEPT keeps each product once, however often it was checked."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 824,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 825,
+      "to": 842,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 843,
+      "to": 882,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 883,
+      "to": 903,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "Each EXCEPT keeps the products only one competitor checked, once, and UNION ALL stacks the two counts with their competitor names."
+}

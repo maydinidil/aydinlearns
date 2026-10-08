@@ -1,0 +1,177 @@
+{
+  "id": "EX-SQL-JOIN-01-E3-01",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "join",
+    "sales",
+    "five_tables",
+    "utc_day"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-JOIN-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-JOIN-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-JOIN-01"
+  ],
+  "template_id": "T-JOIN-01-rebuild-sales",
+  "template_params": {
+    "from": "order_lines",
+    "join": "orders, stores, products, categories",
+    "day": "2025-03-04",
+    "country": "BE"
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_join",
+  "prompt": "The sales view is order_lines joined to orders, stores, products and categories. Build part of it yourself, for the orders placed on 4 March 2025 that were shipped to Belgium (ship_to_country BE). order_ts holds UTC time: take the day in UTC. Return seven columns, in this order: order_line_id, order_ts, city (the city of the store), category_name, product_name, quantity, and net_revenue_eur, which is quantity times unit_price_eur minus line_discount_eur. Return one row for each order line. Do not round. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "order_line_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "order_ts",
+        "type_class": "temporal"
+      },
+      {
+        "name": "city",
+        "type_class": "text"
+      },
+      {
+        "name": "category_name",
+        "type_class": "text"
+      },
+      {
+        "name": "product_name",
+        "type_class": "text"
+      },
+      {
+        "name": "quantity",
+        "type_class": "numeric"
+      },
+      {
+        "name": "net_revenue_eur",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "order_line_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "order_ts",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "city",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "category_name",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "product_name",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "quantity",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "net_revenue_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "order_line_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, join each line to its order, the order to its store, the line to its product and the product to its category.",
+    "Follow the IDs: order_id, store_id, product_id, category_id. Each step points at exactly one row, so the result keeps one row per line."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 159,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 160,
+      "to": 178,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 179,
+      "to": 219,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 220,
+      "to": 260,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 261,
+      "to": 307,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 308,
+      "to": 358,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 359,
+      "to": 490,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "Every join follows a key to exactly one row, so the result keeps the grain of order_lines: one row per order line, as sales does."
+}

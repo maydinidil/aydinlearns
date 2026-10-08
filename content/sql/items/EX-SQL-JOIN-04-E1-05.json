@@ -1,0 +1,140 @@
+{
+  "id": "EX-SQL-JOIN-04-E1-05",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "multi-table",
+    "order_lines",
+    "orders",
+    "stores",
+    "products",
+    "categories"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-JOIN-04"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "retest",
+  "target_concept_id": "SQL-JOIN-04",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-JOIN-01",
+    "SQL-JOIN-04"
+  ],
+  "template_id": "T-JOIN-04-chain-units-parent-category-country",
+  "template_params": {
+    "country_code": "BE",
+    "month": "2025-03"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_join",
+  "prompt": "How many units of each parent category did the stores located in Belgium sell in March 2025? A store is in Belgium when its own country_code is BE, whatever the country an order ships to. order_ts holds UTC time: an order counts when its UTC date is from 1 to 31 March 2025. Return two columns, in this order: parent_category and units, the total quantity sold. Return one row for each parent category with sales. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "parent_category",
+        "type_class": "text"
+      },
+      {
+        "name": "units",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "parent_category",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "units",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "parent_category"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, follow the line to its order and store for the country, and the line to its product and category for the parent category.",
+    "Four links need four JOINs, each with its own ON; the store's country_code is the filter, not the order's ship_to_country."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 51,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 52,
+      "to": 71,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 72,
+      "to": 113,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 114,
+      "to": 154,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 155,
+      "to": 202,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 203,
+      "to": 253,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 254,
+      "to": 362,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 363,
+      "to": 389,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "Two chains meet at the order line: one through orders to stores for the country, one through products to categories for the parent category."
+}

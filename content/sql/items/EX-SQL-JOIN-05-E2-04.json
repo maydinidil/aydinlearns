@@ -1,0 +1,133 @@
+{
+  "id": "EX-SQL-JOIN-05-E2-04",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "full-outer-join",
+    "reconcile",
+    "order_lines",
+    "competitor_prices"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-JOIN-05"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-JOIN-05",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CTE-01",
+    "SQL-JOIN-01",
+    "SQL-JOIN-05"
+  ],
+  "template_id": "T-JOIN-05-full-outer-sold-vs-checked",
+  "template_params": {
+    "from": "2025-03-03",
+    "to": "2025-03-09"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_join",
+  "prompt": "For the week from 3 to 9 March 2025, compare sales and competitor checks per product. order_ts and observed_ts hold UTC time: use their UTC dates. Return three columns, in this order: product_id, units (the quantity sold that week, 0 when none) and n_checks (the number of competitor price checks that week, 0 when none). Return one row for each product that was sold or checked that week. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "units",
+        "type_class": "numeric"
+      },
+      {
+        "name": "n_checks",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "units",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "n_checks",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "product_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, join the two weekly lists so that a product that was only sold, or only checked, keeps its row.",
+    "Bring each list to one row per product first; then the join must keep unmatched products from both sides, with 0 for the side that is missing."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 231,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 232,
+      "to": 412,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 413,
+      "to": 538,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 539,
+      "to": 550,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 551,
+      "to": 607,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "Each list is one row per product, so FULL OUTER JOIN keeps products from both without repeating any, and COALESCE fills the missing side with 0."
+}

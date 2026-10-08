@@ -1,0 +1,135 @@
+{
+  "id": "EX-SQL-JOIN-05-E1-22",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "cross-join",
+    "ratio",
+    "orders",
+    "stores"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-JOIN-05"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-JOIN-05",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-CTE-01",
+    "SQL-JOIN-01",
+    "SQL-JOIN-05"
+  ],
+  "template_id": "T-JOIN-05-cross-join-ratio-to-busiest",
+  "template_params": {
+    "month": "2025-03",
+    "decimals": 3
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_join",
+  "prompt": "In March 2025, how did each store's number of orders compare with the busiest store's? order_ts holds UTC time: use its UTC date, from 1 to 31 March 2025. Return three columns, in this order: store_code, n_orders and ratio_to_busiest, the store's n_orders divided by the highest n_orders of any store, rounded to 3 decimals (1.0 for the busiest store). Return one row for each store with orders in March 2025. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "store_code",
+        "type_class": "text"
+      },
+      {
+        "name": "n_orders",
+        "type_class": "numeric"
+      },
+      {
+        "name": "ratio_to_busiest",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "store_code",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "n_orders",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "ratio_to_busiest",
+        "type_class": "numeric",
+        "precision": "ratio",
+        "require_rounding": 3
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "store_code"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, attach the busiest store's count to every store row with a join that needs no condition.",
+    "Find the highest count in a one-row step of its own; pairing a one-row result with every store repeats nothing."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 222,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 223,
+      "to": 285,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 286,
+      "to": 380,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 381,
+      "to": 397,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 398,
+      "to": 418,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "busiest has one row, so CROSS JOIN puts the same top count next to every store, and dividing by it gives each store's ratio."
+}

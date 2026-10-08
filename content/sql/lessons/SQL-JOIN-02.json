@@ -1,0 +1,116 @@
+{
+  "concept_id": "SQL-JOIN-02",
+  "version": 1,
+  "reading_md": "## LEFT JOIN: keep the rows with no match\n\nAn inner join drops a row that has no match. Often the question wants it kept: every store, including one that took no orders; every category, including one with no products.\n\n`FROM stores s LEFT JOIN orders o ON o.store_id = s.store_id`\n\nLEFT JOIN keeps every row of the table written first, the left table. Where no order matches, the store still gets one row, and every column of `orders` on that row is missing. `LEFT OUTER JOIN` means the same.\n\n### Counting after a LEFT JOIN\n\n`COUNT(*)` counts that row too, so a store with no orders would show 1. Count a column of the right table instead: `COUNT(o.order_id)` skips the missing value and gives 0. A SUM over no matching rows is missing, not 0: wrap it in COALESCE when the question asks for 0.\n\n### Where the right table's tests go\n\nA test on the right table belongs in ON:\n\n`LEFT JOIN orders o ON o.store_id = s.store_id AND o.ship_to_country = 'LU'`\n\nON decides which orders match, and every store stays. Put the same test in WHERE and it runs after the join: on a store with no such order, `ship_to_country` is missing, the test is not true, and the row goes. The LEFT JOIN has quietly become an inner join. A test on the left table, such as `s.country_code = 'BE'`, belongs in WHERE.\n\n### Anti-joins: the rows with no match\n\nTo find the rows with no match at all, LEFT JOIN and keep the rows where the right table's key is missing:\n\n`FROM products p LEFT JOIN promotion_products pp ON pp.product_id = p.product_id WHERE pp.product_id IS NULL`\n\nThese are the products no promotion covers. Test a column that is never missing on a real match, such as the join key, and use IS NULL, never `= NULL`.\n\n### RIGHT JOIN\n\nRIGHT JOIN keeps every row of the table written second. `FROM orders o RIGHT JOIN stores s ON ...` gives the same rows as `FROM stores s LEFT JOIN orders o ON ...`. Most people write LEFT JOIN with the kept table first, but RIGHT JOIN is handy at the end of a chain: join the lines to their orders first, then RIGHT JOIN products to keep every product.\n\n### Choosing the join type\n\nAsk: must every row of one table appear, even with no match? Then LEFT JOIN from that table. If only matched pairs matter, an inner join is right. Putting the wrong table on the left keeps the wrong rows.",
+  "syntax_md": "```sql\nSELECT a.column_1, COUNT(b.key_column) AS n   -- metrics\nFROM kept_table a                             -- source and grain: every row stays\nLEFT JOIN other_table b                       -- source and grain\n  ON b.key_column = a.key_column\n  AND b.other_column = 'value'                -- a test on the right table: in ON\nWHERE a.column_2 = 'value'                    -- a test on the left table: row filter\nGROUP BY a.column_1                           -- output grain\n```\n\n- Anti-join: `LEFT JOIN b ON ... WHERE b.key_column IS NULL`.\n- `LEFT OUTER JOIN` is the same as `LEFT JOIN`.\n- `RIGHT JOIN` keeps every row of the second table instead.\n- Count a column of the right table, so an unmatched row counts 0.",
+  "dialect_note": "After a LEFT JOIN the right table's columns can be missing, and a sort still has to place those rows. DuckDB and PostgreSQL put missing values last in an ascending sort; SQLite and BigQuery put them first (01, DIALECT-11). Write NULLS FIRST or NULLS LAST when the place matters.",
+  "worked_examples": [
+    {
+      "title": "Every store with its orders on one day, 0 when none",
+      "prompt": "How many orders did each store take on 1 March 2025, taking the day in UTC? Include every store, with 0 for a store that took none. Return store_code and n_orders, one row for each store.",
+      "clauses": [
+        {
+          "text": "SELECT s.store_code, COUNT(o.order_id) AS n_orders",
+          "subgoal": "metrics",
+          "why": "Counting a column of orders gives 0 for a store with no match."
+        },
+        {
+          "text": "FROM stores s",
+          "subgoal": "source_grain",
+          "why": "Every store must appear, so stores is the left table."
+        },
+        {
+          "text": "LEFT JOIN orders o ON o.store_id = s.store_id AND o.order_ts >= TIMESTAMP '2025-03-01 00:00:00' AND o.order_ts < TIMESTAMP '2025-03-02 00:00:00'",
+          "subgoal": "source_grain",
+          "why": "The day test is about orders, so it sits in ON, where it cannot drop a store."
+        },
+        {
+          "text": "GROUP BY s.store_code",
+          "subgoal": "output_grain",
+          "why": "One row per store."
+        }
+      ]
+    },
+    {
+      "title": "Categories with no products",
+      "prompt": "Which categories have no products? Return category_id and category_name, one row for each such category.",
+      "clauses": [
+        {
+          "text": "SELECT c.category_id, c.category_name",
+          "subgoal": "metrics",
+          "why": "The columns of the table you keep."
+        },
+        {
+          "text": "FROM categories c",
+          "subgoal": "source_grain",
+          "why": "Start from the table whose unmatched rows you want."
+        },
+        {
+          "text": "LEFT JOIN products p ON p.category_id = c.category_id",
+          "subgoal": "source_grain",
+          "why": "Keeps every category; one with no products gets missing product columns."
+        },
+        {
+          "text": "WHERE p.product_id IS NULL",
+          "subgoal": "row_filter",
+          "why": "Keeps only the categories where no product matched."
+        }
+      ]
+    }
+  ],
+  "pretest_item_ids": [
+    "EX-SQL-JOIN-02-E1-01",
+    "EX-SQL-JOIN-02-E1-02"
+  ],
+  "lesson_item_ids": [
+    "EX-SQL-JOIN-02-E1-03",
+    "EX-SQL-JOIN-02-E1-04",
+    "EX-SQL-JOIN-02-E2-01",
+    "EX-SQL-JOIN-02-E2-02"
+  ],
+  "retest_item_id": "EX-SQL-JOIN-02-E1-05",
+  "pool_item_ids": [
+    "EX-SQL-JOIN-02-E1-06",
+    "EX-SQL-JOIN-02-E1-07",
+    "EX-SQL-JOIN-02-E1-08",
+    "EX-SQL-JOIN-02-E2-03",
+    "EX-SQL-JOIN-02-E2-04",
+    "EX-SQL-JOIN-02-E2-05",
+    "EX-SQL-JOIN-02-E2-06",
+    "EX-SQL-JOIN-02-E3-01",
+    "EX-SQL-JOIN-02-E3-02",
+    "EX-SQL-JOIN-02-E3-03",
+    "EX-SQL-JOIN-02-E2-31",
+    "EX-SQL-JOIN-02-E2-32",
+    "EX-SQL-JOIN-02-E1-42",
+    "EX-SQL-JOIN-02-E2-41",
+    "EX-SQL-JOIN-02-E2-42"
+  ],
+  "source_ids": [
+    "01:SQL-JOIN-02"
+  ],
+  "why_clause": {
+    "clause": "LEFT JOIN orders o ON o.store_id = s.store_id AND o.order_ts >= TIMESTAMP '2025-03-01 00:00:00' AND o.order_ts < TIMESTAMP '2025-03-02 00:00:00'",
+    "stem": "Why is the day test in ON and not in WHERE?",
+    "options": [
+      {
+        "id": "a",
+        "text": "WHERE cannot test a column that comes from a joined table."
+      },
+      {
+        "id": "b",
+        "text": "ON runs faster, but WHERE would give exactly the same rows."
+      },
+      {
+        "id": "c",
+        "text": "In WHERE it would remove each store with no order that day, because its order_ts is missing."
+      },
+      {
+        "id": "d",
+        "text": "In WHERE it would count every order of the store, not only those of 1 March."
+      }
+    ],
+    "correct_id": "c",
+    "explanation": "After the LEFT JOIN, a store with no order that day has a missing order_ts. A WHERE test on it is not true, so the row goes and the store disappears from the result. In ON the test only decides which orders match, and every store keeps its row."
+  }
+}

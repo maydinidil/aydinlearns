@@ -1,0 +1,134 @@
+{
+  "id": "EX-SQL-SET-01-E2-02",
+  "version": 2,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "set",
+    "except",
+    "cte",
+    "count",
+    "customers",
+    "orders"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-SET-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "lesson",
+  "target_concept_id": "SQL-SET-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-CTE-01",
+    "SQL-SET-01"
+  ],
+  "template_id": "T-SET-01-except-count",
+  "template_params": {
+    "table": "orders",
+    "in": "2025-05",
+    "not_in": "2025-06"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_set",
+  "prompt": "How many customers ordered in May 2025 but did not order at all in June 2025? Use the orders table. order_ts holds the time of the order in UTC, so take the months in UTC: May runs from 2025-05-01 00:00 up to but not including 2025-06-01 00:00, and June from 2025-06-01 00:00 up to but not including 2025-07-01 00:00. Leave out guest orders, whose customer_id is missing, and count each customer once. Return one column, customers, the number of customers, in one row. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "customers",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row for the two months"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "customers",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the list of June customers inside the CTE and take it away from the May list.",
+    "EXCEPT keeps the rows of the first query that the second query does not return, each once, so the order of the two parts matters: May first, then June."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 43,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 44,
+      "to": 57,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 58,
+      "to": 192,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 193,
+      "to": 222,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 223,
+      "to": 236,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 237,
+      "to": 341,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 342,
+      "to": 370,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 371,
+      "to": 388,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": {
+    "stage1": 192,
+    "stage2": 192
+  },
+  "faded_shape": "WITH may_not_june AS (\n  SELECT customer_id\n  FROM orders\n  WHERE customer_id IS NOT NULL\n    AND order_ts >= TIMESTAMP '2025-05-01 00:00:00'\n    AND order_ts < TIMESTAMP '2025-06-01 00:00:00'",
+  "faded_suffix": "\n  FROM orders\n  WHERE order_ts >= TIMESTAMP '2025-06-01 00:00:00'\n    AND order_ts < TIMESTAMP '2025-07-01 00:00:00'\n)\nSELECT COUNT(*) AS customers\nFROM may_not_june",
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "EXCEPT keeps each May customer that the June list does not hold, once, so COUNT(*) on the CTE counts the customers who did not come back in June."
+}

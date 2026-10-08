@@ -6,7 +6,10 @@
     "SELECT store_code, MIN(order_date) FILTER (WHERE parent_category = 'Gaming') AS first_gaming_date, MIN(order_date) FILTER (WHERE parent_category = 'Accessories') AS first_accessories_date FROM sales GROUP BY store_code",
     "SELECT store_code, MIN(CASE WHEN parent_category = 'Gaming' THEN order_date ELSE NULL END) AS first_gaming_date, MIN(CASE WHEN parent_category IN ('Accessories') THEN order_date ELSE NULL END) AS first_accessories_date FROM sales GROUP BY 1"
   ],
-  "other_way": null,
+  "other_way": {
+    "sql": "SELECT store_code, MIN(order_date) FILTER (WHERE parent_category = 'Gaming') AS first_gaming_date, MIN(order_date) FILTER (WHERE parent_category = 'Accessories') AS first_accessories_date FROM sales GROUP BY store_code",
+    "tradeoff": "Reads closer to plain English, but FILTER is not available in every SQL dialect."
+  },
   "planted_wrong": [
     {
       "id": "PW1",

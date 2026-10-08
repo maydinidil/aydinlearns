@@ -6,7 +6,10 @@
     "SELECT store_code, SUM(units) AS units_sold FROM sales WHERE order_date >= DATE '2024-12-01' AND order_date < DATE '2025-01-01' GROUP BY 1 HAVING SUM(units) > 1300",
     "SELECT store_code, SUM(units) AS units_sold FROM sales WHERE order_date BETWEEN '2024-12-01' AND '2024-12-31' GROUP BY store_code HAVING 1300 < SUM(units)"
   ],
-  "other_way": null,
+  "other_way": {
+    "sql": "SELECT store_code, SUM(units) AS units_sold FROM sales WHERE order_date >= DATE '2024-12-01' AND order_date < DATE '2025-01-01' GROUP BY 1 HAVING SUM(units) > 1300",
+    "tradeoff": "Stays correct if the column later holds times of day, but you must write the day after the end date."
+  },
   "planted_wrong": [
     {
       "id": "PW1",

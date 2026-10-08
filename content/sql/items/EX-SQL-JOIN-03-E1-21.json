@@ -1,0 +1,125 @@
+{
+  "id": "EX-SQL-JOIN-03-E1-21",
+  "version": 2,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "fan_out",
+    "bridge",
+    "count_distinct",
+    "promotions",
+    "promotion_products",
+    "drill"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-JOIN-03"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-JOIN-03",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-JOIN-03"
+  ],
+  "template_id": "T-JOIN-03-count-parent-after-join",
+  "template_params": {
+    "parent": "promotions",
+    "child": "promotion_products",
+    "group_by": "promo_type"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_join",
+  "prompt": "For each promotion type, how many promotions that list at least one product are there, and how many promotion and product listings do they have in total? A listing is one product listed in one promotion. Return three columns, in this order: promo_type, n_promotions and n_listings. Return one row for each promotion type with at least one listed product. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "promo_type",
+        "type_class": "text"
+      },
+      {
+        "name": "n_promotions",
+        "type_class": "numeric"
+      },
+      {
+        "name": "n_listings",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "promo_type",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "n_promotions",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "n_listings",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "promo_type"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, decide what the join does to each promotion: it appears once per listed product.",
+    "After the join, a row count counts listings; the promotions need each promo_id counted once."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 89,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 90,
+      "to": 164,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 165,
+      "to": 187,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "The join gives one row per listing, so COUNT(*) counts listings and COUNT(DISTINCT promo_id) counts each promotion once."
+}

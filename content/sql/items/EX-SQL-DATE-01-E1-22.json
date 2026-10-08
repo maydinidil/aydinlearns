@@ -1,0 +1,120 @@
+{
+  "id": "EX-SQL-DATE-01-E1-22",
+  "version": 2,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "date",
+    "date_trunc",
+    "month",
+    "sales"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-DATE-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-DATE-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-DATE-01"
+  ],
+  "template_id": "T-DATE-01-sum-per-month-one-year",
+  "template_params": {
+    "table": "sales",
+    "year": 2025,
+    "measure": "net_revenue_eur"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_date",
+  "prompt": "What was Voltmarkt's net revenue in each calendar month of 2025? Use the sales table, where order_date is the UTC day of the order, and keep the order lines with an order_date from 2025-01-01 to 2025-12-31, both included. Return two columns, in this order: order_month, the first day of the month as a date, and net_revenue_eur, the total net_revenue_eur. Return one row for each month. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "order_month",
+        "type_class": "temporal"
+      },
+      {
+        "name": "net_revenue_eur",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "order_month",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "net_revenue_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "order_month"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the calculated column order_month: each line's order_date cut back to the first day of its month.",
+    "date_trunc with the unit 'month' keeps the year with the month. order_date is a date, so a range with both ends included keeps every day of 2025."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 115,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 116,
+      "to": 126,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 127,
+      "to": 191,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 192,
+      "to": 232,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "date_trunc('month', order_date) gives each 2025 line the first day of its month, and SUM adds the revenue of every line in it."
+}

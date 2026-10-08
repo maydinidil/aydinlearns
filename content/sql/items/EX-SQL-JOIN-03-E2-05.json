@@ -1,0 +1,168 @@
+{
+  "id": "EX-SQL-JOIN-03-E2-05",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "fan_out",
+    "cte",
+    "left_join",
+    "competitor_prices",
+    "sales",
+    "utc_month",
+    "null"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-JOIN-03"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-JOIN-03",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-DATE-01",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-JOIN-03"
+  ],
+  "template_id": "T-JOIN-03-two-children",
+  "template_params": {
+    "parent": "products",
+    "child_a": "sales",
+    "child_b": "competitor_prices",
+    "month": "2025-03",
+    "parent_category": "Audio"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_join",
+  "prompt": "For each Audio product (parent_category 'Audio') sold in March 2025, how many units were sold that month, and how many competitor price checks of the product were made that month? Use the sales table for units, parent_category and order_date, the UTC day of the order; observed_ts holds the check time in UTC. Count March 2025 in UTC: order_date from 1 March 2025 to 31 March 2025, and observed_ts from 1 March 2025 00:00 up to but not including 1 April 2025 00:00. A product with no check in March 2025 shows 0 checks. Return three columns, in this order: product_id, units and n_checks. Return one row for each Audio product sold in March 2025. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "units",
+        "type_class": "numeric"
+      },
+      {
+        "name": "n_checks",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "units",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "n_checks",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "product_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, add up the March units and count the March checks in two separate steps, each at one row per product.",
+    "A product with two March lines and three March checks gives six rows if lines and checks meet before anything is added up."
+  ],
+  "subgoals": [
+    {
+      "from": 24,
+      "to": 62,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 65,
+      "to": 75,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 78,
+      "to": 176,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 179,
+      "to": 198,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 222,
+      "to": 261,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 264,
+      "to": 286,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 289,
+      "to": 391,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 394,
+      "to": 413,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 416,
+      "to": 481,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 482,
+      "to": 556,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "Both steps have one row per product, so the LEFT JOIN pairs one row with at most one row and keeps products with no March check."
+}

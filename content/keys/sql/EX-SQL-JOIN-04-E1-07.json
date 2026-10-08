@@ -1,0 +1,39 @@
+{
+  "item_id": "EX-SQL-JOIN-04-E1-07",
+  "item_version": 1,
+  "reference_sql": "SELECT pr.promo_code, COUNT(*) AS n_lines\nFROM order_lines ol\nJOIN orders o ON o.order_id = ol.order_id\nJOIN promotions pr ON pr.promo_id = ol.promo_id\nWHERE o.order_ts >= TIMESTAMP '2025-02-01' AND o.order_ts < TIMESTAMP '2025-04-01'\nGROUP BY pr.promo_code",
+  "alternatives": [
+    "SELECT pr.promo_code, COUNT(ol.order_line_id) AS n_lines FROM promotions pr JOIN order_lines ol ON ol.promo_id = pr.promo_id JOIN orders o ON o.order_id = ol.order_id WHERE CAST(o.order_ts AS DATE) BETWEEN DATE '2025-02-01' AND DATE '2025-03-31' GROUP BY pr.promo_code",
+    "WITH per_promo AS (SELECT ol.promo_id, COUNT(*) AS n_lines FROM order_lines ol JOIN orders o ON o.order_id = ol.order_id WHERE o.order_ts >= TIMESTAMP '2025-02-01' AND o.order_ts < TIMESTAMP '2025-04-01' AND ol.promo_id IS NOT NULL GROUP BY ol.promo_id) SELECT pr.promo_code, pp.n_lines FROM per_promo pp JOIN promotions pr ON pr.promo_id = pp.promo_id"
+  ],
+  "other_way": {
+    "sql": "WITH per_promo AS (SELECT ol.promo_id, COUNT(*) AS n_lines FROM order_lines ol JOIN orders o ON o.order_id = ol.order_id WHERE o.order_ts >= TIMESTAMP '2025-02-01' AND o.order_ts < TIMESTAMP '2025-04-01' AND ol.promo_id IS NOT NULL GROUP BY ol.promo_id) SELECT pr.promo_code, pp.n_lines FROM per_promo pp JOIN promotions pr ON pr.promo_id = pp.promo_id",
+    "tradeoff": "Counting the lines per promo_id in a CTE before joining promotions keeps that join tiny, but needs one more step."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-01",
+      "sql": "SELECT pr.promo_code, COUNT(*) AS n_lines FROM order_lines ol JOIN orders o ON o.order_id = ol.order_id JOIN promotion_products pp ON pp.product_id = ol.product_id JOIN promotions pr ON pr.promo_id = pp.promo_id WHERE o.order_ts >= TIMESTAMP '2025-02-01' AND o.order_ts < TIMESTAMP '2025-04-01' GROUP BY pr.promo_code"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-12",
+      "sql": "SELECT pr.promo_code, COUNT(*) AS n_lines FROM order_lines ol JOIN orders o ON o.order_id = ol.order_id JOIN promotions pr ON pr.promo_id = ol.product_id WHERE o.order_ts >= TIMESTAMP '2025-02-01' AND o.order_ts < TIMESTAMP '2025-04-01' GROUP BY pr.promo_code"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-11",
+      "sql": "SELECT pr.promo_code, COUNT(*) AS n_lines FROM order_lines ol JOIN orders o ON o.order_id = ol.order_id LEFT JOIN promotions pr ON pr.promo_id = ol.promo_id WHERE o.order_ts >= TIMESTAMP '2025-02-01' AND o.order_ts < TIMESTAMP '2025-04-01' GROUP BY pr.promo_code"
+    }
+  ],
+  "hint3_partial": "SELECT pr.promo_code, COUNT(*) AS n_lines\nFROM order_lines ol\nJOIN orders o ON o.order_id = ol.order_id\nJOIN promotions pr ON pr.promo_id = ___\nWHERE o.order_ts >= TIMESTAMP '2025-02-01' AND o.order_ts < TIMESTAMP '2025-04-01'\nGROUP BY pr.promo_code",
+  "solver": {
+    "prompt_hash": "e8b9a2b41f0d1cc1",
+    "schema_version": "b1c4e68b1a62",
+    "dataset_version": "e1545e4258743033",
+    "grader_version": "1b.3",
+    "query": "SELECT pr.promo_code, COUNT(*) AS n_lines\nFROM order_lines l\nJOIN orders o ON o.order_id = l.order_id\nJOIN promotions pr ON pr.promo_id = l.promo_id\nWHERE o.order_ts >= TIMESTAMP '2025-02-01 00:00:00' AND o.order_ts < TIMESTAMP '2025-04-01 00:00:00'\nGROUP BY pr.promo_code",
+    "at": "2026-10-07T10:41:41.006Z"
+  }
+}

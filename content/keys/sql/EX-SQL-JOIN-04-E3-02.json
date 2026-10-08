@@ -1,0 +1,39 @@
+{
+  "item_id": "EX-SQL-JOIN-04-E3-02",
+  "item_version": 1,
+  "reference_sql": "SELECT ol.order_line_id, s.product_name AS sister_name, ph.list_price_eur AS sister_price_eur\nFROM order_lines ol\nJOIN orders o ON o.order_id = ol.order_id\nJOIN products p ON p.product_id = ol.product_id\nJOIN products s ON s.product_id = p.sister_product_id\nJOIN price_history ph ON ph.product_id = s.product_id AND CAST(o.order_ts AS DATE) >= ph.valid_from AND (ph.valid_to IS NULL OR CAST(o.order_ts AS DATE) <= ph.valid_to)\nWHERE o.order_ts >= TIMESTAMP '2025-03-03' AND o.order_ts < TIMESTAMP '2025-03-10'",
+  "alternatives": [
+    "SELECT ol.order_line_id, s.product_name AS sister_name, ph.list_price_eur AS sister_price_eur FROM orders o JOIN order_lines ol ON ol.order_id = o.order_id JOIN products p ON p.product_id = ol.product_id JOIN products s ON s.product_id = p.sister_product_id JOIN price_history ph ON ph.product_id = p.sister_product_id AND CAST(o.order_ts AS DATE) BETWEEN ph.valid_from AND COALESCE(ph.valid_to, DATE '9999-12-31') WHERE CAST(o.order_ts AS DATE) BETWEEN DATE '2025-03-03' AND DATE '2025-03-09'",
+    "WITH week_lines AS (SELECT ol.order_line_id, ol.product_id, CAST(o.order_ts AS DATE) AS order_date FROM order_lines ol JOIN orders o ON o.order_id = ol.order_id WHERE o.order_ts >= TIMESTAMP '2025-03-03' AND o.order_ts < TIMESTAMP '2025-03-10') SELECT w.order_line_id, s.product_name AS sister_name, ph.list_price_eur AS sister_price_eur FROM week_lines w JOIN products p ON p.product_id = w.product_id JOIN products s ON s.product_id = p.sister_product_id JOIN price_history ph ON ph.product_id = s.product_id AND w.order_date >= ph.valid_from AND (ph.valid_to IS NULL OR w.order_date <= ph.valid_to)"
+  ],
+  "other_way": {
+    "sql": "WITH week_lines AS (SELECT ol.order_line_id, ol.product_id, CAST(o.order_ts AS DATE) AS order_date FROM order_lines ol JOIN orders o ON o.order_id = ol.order_id WHERE o.order_ts >= TIMESTAMP '2025-03-03' AND o.order_ts < TIMESTAMP '2025-03-10') SELECT w.order_line_id, s.product_name AS sister_name, ph.list_price_eur AS sister_price_eur FROM week_lines w JOIN products p ON p.product_id = w.product_id JOIN products s ON s.product_id = p.sister_product_id JOIN price_history ph ON ph.product_id = s.product_id AND w.order_date >= ph.valid_from AND (ph.valid_to IS NULL OR w.order_date <= ph.valid_to)",
+    "tradeoff": "Collecting the week's lines with their dates in a CTE first keeps each join short, but the query gets longer."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-12",
+      "sql": "SELECT ol.order_line_id, s.product_name AS sister_name, ph.list_price_eur AS sister_price_eur FROM order_lines ol JOIN orders o ON o.order_id = ol.order_id JOIN products p ON p.product_id = ol.product_id JOIN products s ON s.product_id = p.sister_product_id JOIN price_history ph ON ph.product_id = p.product_id AND CAST(o.order_ts AS DATE) >= ph.valid_from AND (ph.valid_to IS NULL OR CAST(o.order_ts AS DATE) <= ph.valid_to) WHERE o.order_ts >= TIMESTAMP '2025-03-03' AND o.order_ts < TIMESTAMP '2025-03-10'"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-03",
+      "sql": "SELECT ol.order_line_id, s.product_name AS sister_name, ph.list_price_eur AS sister_price_eur FROM order_lines ol JOIN orders o ON o.order_id = ol.order_id JOIN products p ON p.product_id = ol.product_id JOIN products s ON s.product_id = p.sister_product_id JOIN price_history ph ON ph.product_id = s.product_id AND CAST(o.order_ts AS DATE) >= ph.valid_from AND CAST(o.order_ts AS DATE) <= ph.valid_to WHERE o.order_ts >= TIMESTAMP '2025-03-03' AND o.order_ts < TIMESTAMP '2025-03-10'"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-01",
+      "sql": "SELECT ol.order_line_id, s.product_name AS sister_name, ph.list_price_eur AS sister_price_eur FROM order_lines ol JOIN orders o ON o.order_id = ol.order_id JOIN products p ON p.product_id = ol.product_id JOIN products s ON s.product_id = p.sister_product_id JOIN price_history ph ON ph.product_id = s.product_id WHERE o.order_ts >= TIMESTAMP '2025-03-03' AND o.order_ts < TIMESTAMP '2025-03-10'"
+    }
+  ],
+  "hint3_partial": "SELECT ol.order_line_id, s.product_name AS sister_name, ph.list_price_eur AS sister_price_eur\nFROM order_lines ol\nJOIN orders o ON o.order_id = ol.order_id\nJOIN products p ON p.product_id = ol.product_id\nJOIN products s ON ___\nJOIN price_history ph ON ph.product_id = ___ AND CAST(o.order_ts AS DATE) >= ph.valid_from AND (ph.valid_to IS NULL OR CAST(o.order_ts AS DATE) <= ph.valid_to)\nWHERE o.order_ts >= TIMESTAMP '2025-03-03' AND o.order_ts < TIMESTAMP '2025-03-10'",
+  "solver": {
+    "prompt_hash": "7b6a75fd79634946",
+    "schema_version": "5989cb58d91e",
+    "dataset_version": "e1545e4258743033",
+    "grader_version": "1b.3",
+    "query": "SELECT l.order_line_id, s.product_name AS sister_name, h.list_price_eur AS sister_price_eur\nFROM order_lines l\nJOIN orders o ON o.order_id = l.order_id\nJOIN products p ON p.product_id = l.product_id\nJOIN products s ON s.product_id = p.sister_product_id\nJOIN price_history h ON h.product_id = s.product_id\n  AND h.valid_from <= CAST(o.order_ts AS DATE)\n  AND (h.valid_to IS NULL OR h.valid_to >= CAST(o.order_ts AS DATE))\nWHERE o.order_ts >= TIMESTAMP '2025-03-03 00:00:00' AND o.order_ts < TIMESTAMP '2025-03-10 00:00:00'",
+    "at": "2026-10-07T10:41:41.589Z"
+  }
+}

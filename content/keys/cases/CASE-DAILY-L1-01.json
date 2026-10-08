@@ -1,0 +1,7 @@
+{
+  "case_id": "CASE-DAILY-L1-01",
+  "truths": {
+    "CP4": "SELECT COUNT(*)\nFROM stores\nWHERE country_code = 'NL' AND store_type = 'standard' AND close_date IS NULL"
+  },
+  "choices": {}
+}

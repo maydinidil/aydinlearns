@@ -6,7 +6,10 @@
     "SELECT country_code, SUM(net_revenue_eur) FILTER (WHERE channel = 'web') / COUNT(DISTINCT order_id) FILTER (WHERE channel = 'web') AS web_order_value_eur, SUM(net_revenue_eur) FILTER (WHERE channel = 'store') / COUNT(DISTINCT order_id) FILTER (WHERE channel = 'store') AS store_order_value_eur FROM sales WHERE order_date >= DATE '2025-01-01' AND order_date < DATE '2026-01-01' GROUP BY country_code",
     "SELECT country_code, SUM(CASE WHEN channel = 'web' THEN net_revenue_eur ELSE 0 END) * 1.0 / COUNT(DISTINCT CASE WHEN channel = 'web' THEN order_id END) AS web_order_value_eur, SUM(CASE WHEN channel = 'store' THEN net_revenue_eur ELSE 0 END) * 1.0 / COUNT(DISTINCT CASE WHEN channel = 'store' THEN order_id END) AS store_order_value_eur FROM sales WHERE order_date BETWEEN '2025-01-01' AND '2025-12-31' GROUP BY 1"
   ],
-  "other_way": null,
+  "other_way": {
+    "sql": "SELECT country_code, SUM(net_revenue_eur) FILTER (WHERE channel = 'web') / COUNT(DISTINCT order_id) FILTER (WHERE channel = 'web') AS web_order_value_eur, SUM(net_revenue_eur) FILTER (WHERE channel = 'store') / COUNT(DISTINCT order_id) FILTER (WHERE channel = 'store') AS store_order_value_eur FROM sales WHERE order_date >= DATE '2025-01-01' AND order_date < DATE '2026-01-01' GROUP BY country_code",
+    "tradeoff": "Reads closer to plain English, but FILTER is not available in every SQL dialect."
+  },
   "planted_wrong": [
     {
       "id": "PW1",

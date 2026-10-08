@@ -6,7 +6,10 @@
     "SELECT CASE WHEN order_date < DATE '2025-04-01' THEN 'Q1' ELSE 'Q2' END AS quarter, channel, COUNT(DISTINCT order_id) AS n_orders, COUNT(*) AS n_lines, SUM(net_revenue_eur) AS revenue_eur FROM sales WHERE order_date >= DATE '2025-01-01' AND order_date < DATE '2025-07-01' GROUP BY 1, 2 ORDER BY 1, 2",
     "SELECT CASE WHEN order_date BETWEEN '2025-01-01' AND '2025-03-31' THEN 'Q1' WHEN order_date BETWEEN '2025-04-01' AND '2025-06-30' THEN 'Q2' END AS quarter, channel, COUNT(DISTINCT order_id) AS n_orders, COUNT(order_line_id) AS n_lines, SUM(net_revenue_eur) AS revenue_eur FROM sales WHERE order_date BETWEEN '2025-01-01' AND '2025-06-30' GROUP BY channel, quarter ORDER BY quarter ASC, channel ASC"
   ],
-  "other_way": null,
+  "other_way": {
+    "sql": "SELECT CASE WHEN order_date < DATE '2025-04-01' THEN 'Q1' ELSE 'Q2' END AS quarter, channel, COUNT(DISTINCT order_id) AS n_orders, COUNT(*) AS n_lines, SUM(net_revenue_eur) AS revenue_eur FROM sales WHERE order_date >= DATE '2025-01-01' AND order_date < DATE '2025-07-01' GROUP BY 1, 2 ORDER BY 1, 2",
+    "tradeoff": "Stays correct if the column later holds times of day, but you must write the day after the end date."
+  },
   "planted_wrong": [
     {
       "id": "PW1",

@@ -1,0 +1,125 @@
+{
+  "id": "EX-SQL-JOIN-02-E2-01",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "left_join",
+    "filter_in_on",
+    "count_zero",
+    "stores",
+    "orders"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-JOIN-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "lesson",
+  "target_concept_id": "SQL-JOIN-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02"
+  ],
+  "template_id": "T-JOIN-02-count-keep-zero-filtered",
+  "template_params": {
+    "from": "stores",
+    "join": "orders",
+    "country": "LU",
+    "month": "2025-03"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_join",
+  "prompt": "How many orders shipped to Luxembourg (ship_to_country LU) did each store take in March 2025? order_ts holds UTC time: count orders from 1 March 2025 to 31 March 2025, UTC days, both included. Include every store, with 0 for a store that took none. Return two columns, in this order: store_code and n_orders. Return one row for each store. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "store_code",
+        "type_class": "text"
+      },
+      {
+        "name": "n_orders",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per store"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "store_code",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "n_orders",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "store_code"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, join the orders so that every store stays, with the country and month tests inside the join.",
+    "A test on orders in WHERE removes the stores whose orders all failed it. Put those tests in ON, and count a column of orders."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 50,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 51,
+      "to": 64,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 65,
+      "to": 238,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 239,
+      "to": 260,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": {
+    "stage1": 65,
+    "stage2": 65
+  },
+  "faded_shape": "SELECT s.store_code, COUNT(o.order_id) AS n_orders\nFROM stores s\n",
+  "faded_suffix": "\nGROUP BY s.store_code",
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "The tests in ON decide which orders match, while LEFT JOIN still keeps every store; COUNT(o.order_id) gives 0 where none matched."
+}

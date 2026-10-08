@@ -1,0 +1,121 @@
+{
+  "id": "EX-SQL-JOIN-02-E2-31",
+  "version": 1,
+  "kind": "fix",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "left_join",
+    "fix",
+    "filter_in_where",
+    "stores",
+    "orders"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-JOIN-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-JOIN-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02"
+  ],
+  "template_id": "T-JOIN-02-fix-right-filter-in-where",
+  "template_params": {
+    "from": "stores",
+    "join": "orders",
+    "month": "2025-02"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_join",
+  "prompt": "The query in the editor has one mistake. Fix it so that it counts the orders each store took in February 2025. order_ts holds UTC time: count orders from 1 February 2025 to 28 February 2025, UTC days, both included. Include every store, with 0 for a store that took none. Return two columns, in this order: store_code and n_orders. Return one row for each store. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "store_code",
+        "type_class": "text"
+      },
+      {
+        "name": "n_orders",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "store_code",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "n_orders",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "store_code"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, move the month test so that it no longer removes stores.",
+    "In WHERE, the month test throws away the row that a store with no February order gets, because its order_ts is missing. In ON it only decides which orders match."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 50,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 51,
+      "to": 64,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 65,
+      "to": 209,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 210,
+      "to": 231,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": "SELECT s.store_code, COUNT(o.order_id) AS n_orders\nFROM stores s\nLEFT JOIN orders o ON o.store_id = s.store_id\nWHERE o.order_ts >= TIMESTAMP '2025-02-01 00:00:00' AND o.order_ts < TIMESTAMP '2025-03-01 00:00:00'\nGROUP BY s.store_code",
+  "starter_error_id": "ERR-LOG-10",
+  "time_target_ms": 180000,
+  "why_this_works": "A right-table test in WHERE turns a LEFT JOIN back into an inner join; in ON it filters the orders and keeps every store."
+}

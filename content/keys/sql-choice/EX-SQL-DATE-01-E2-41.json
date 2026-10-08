@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-DATE-01-E2-41",
+  "item_version": 1,
+  "correct_oid": "oca207a8",
+  "explanation": "ISO week 1 is the week with the year's first Thursday, so the week from Monday 29 December 2025 to Sunday 4 January 2026 is week 1 of 2026. year() still gives the calendar year, 2025, while isoyear() gives 2026 and week() gives 1. Pairing year() with week() would label that Monday as week 1 of 2025, a week that ended almost a year earlier.",
+  "solver": {
+    "prompt_hash": "754395a090562a86",
+    "grader_version": "choice.2",
+    "chosen": "oca207a8",
+    "typed": null,
+    "at": "2026-10-07T09:58:58.577Z"
+  }
+}

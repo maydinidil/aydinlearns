@@ -143,9 +143,9 @@ const reviewsOf = (b: any): [string, number][] => b.card_reviews.map((c: any) =>
 
 // ---- the specs, the sampling, the score and the history (pure) --------------------------------------------------
 
-test('the shipped drills.json: level 1 is 10 questions in 20 minutes at 90%, level 2 the same shape in 25 (D10), both 70% unseen; a malformed file names itself', async () => {
+test('the shipped drills.json: level 1 is 10 questions in 20 minutes at 90%, level 2 the same shape in 25 (D10), both 70% unseen; level 3 the same shape as level 1; a malformed file names itself', async () => {
   const shipped = await loadDrills();
-  assert.deepEqual(shipped.map((s) => [s.level, s.questions, s.minutes, s.pass_pct, s.unseen_min_pct, s.concepts.length]), [[1, 10, 20, 90, 70, 6], [2, 10, 25, 90, 70, 6]]);
+  assert.deepEqual(shipped.map((s) => [s.level, s.questions, s.minutes, s.pass_pct, s.unseen_min_pct, s.concepts.length]), [[1, 10, 20, 90, 70, 6], [2, 10, 25, 90, 70, 6], [3, 10, 20, 90, 70, 8]]);
   assert.ok(shipped.every((s) => Array.isArray(s.pool_item_ids)), 'a drill with no pool list yet has an empty pool (Task B12 fills it)');
   assert.throws(() => parseDrills({}), /content\/sql\/drills\.json: "drills" must be a list/);
   assert.throws(() => parseDrills({ drills: [{ ...SPEC1, questions: 0 }] }), /content\/sql\/drills\.json: drill 1 .*questions/);
@@ -476,8 +476,8 @@ test('S2-47: a learner-started drill on chosen concepts draws their practice ite
   const h1 = await json(get(app, '/api/drill/history?level=1'));
   assert.deepEqual(h1.drill, { level: 1, questions: 10, minutes: 20, pass_pct: 90, unseen_min_pct: 70, available: true });
   assert.deepEqual(h1.runs.map((r: any) => r.block_id), [level.block_id]);
-  assert.deepEqual(Object.keys(h1.runs[0]).sort(), ['block_id', 'counts_for_level', 'date', 'kind', 'level', 'passed', 'pct', 'questions', 'run_passed', 'unseen', 'unseen_pct'],
-    'date, score, pass and unseen share: no study time');
+  assert.deepEqual(Object.keys(h1.runs[0]).sort(), ['block_id', 'counts_for_level', 'date', 'kind', 'level', 'passed', 'pct', 'questions', 'run_passed', 'screen_mode', 'unseen', 'unseen_pct'],
+    'date, mode (S4B-23), score, pass and unseen share: no study time');
   assert.equal(h1.runs[0].date, amsterdamDate(new Date()));
   const all = await json(get(app, '/api/drill/history'));
   assert.deepEqual(all.runs.map((r: any) => r.block_id), [level.block_id, chosen.block_id], 'newest first');
@@ -593,4 +593,86 @@ test('S3-16: a SQL drill serves write and fix items only, never an SQL choice it
   const chosen = await json(post(app, '/api/drill/start', { concept_ids: CHOSEN }));
   assert.ok(chosen.servings.length > 0);
   assert.ok(chosen.servings.every((s: Serving) => !s.item_id.endsWith('-CH')), 'a chosen-concepts run serves no choice item');
+});
+
+// ---- Task E3: screen-mode drills (D41, S4B-22, S4B-23) ----------------------------------------------------------------
+
+/** A run's records with every attempt marked screen mode, as the server logs them for a run started in screen mode. */
+const asScreen = (records: object[]): object[] => records.map((r: any) => (r.record === 'attempt' ? { ...r, screen_mode: true } : r));
+
+test('S4B-23: the history reads a run\'s mode from its attempts, and a level drill pass counts in either mode', () => {
+  const at = (hms: string) => `2026-10-10T${hms}Z`;
+  const run = (block: string, ids: string[]) => [
+    ...ids.flatMap((id, n) => instance({ id: `${block}-${n}`, item: id, concept: conceptOf(id), phase: 'drill', block, version: 2, start: at(`10:0${n}:00`),
+      steps: [{ at: at(`10:0${n}:30`), submit: 'pass' }], close: { at: at('10:20:00'), reason: 'run_end' } })),
+    blockClose(block, at('10:20:00')),
+  ];
+  const ten = POOL1.slice(0, 10);
+  const normal = drillRuns(run('N-1', ten), [], (id) => items.get(id), [SPEC1])[0]!;
+  const screen = drillRuns(asScreen(run('S-1', ten)), [], (id) => items.get(id), [SPEC1])[0]!;
+  assert.deepEqual([normal.screen_mode, screen.screen_mode], [false, true]);
+  assert.deepEqual(screen.score, normal.score, 'the same score, pass mark and unseen share');
+  assert.equal(screen.score.counts_for_level, true, 'a passed screen-mode level run counts toward level completion');
+  assert.equal(screen.kind, 'level');
+});
+
+test('S4B-23: POST /api/drill/start with screen_mode serves every item in screen mode, logs it on each attempt, and the history shows the mode', async () => {
+  const d = await deps();
+  const app = createApp(d);
+  for (const bad of [{ level: 1, screen_mode: 'yes' }, { level: 1, screen_mode: 1 }, { concept_ids: CHOSEN, screen_mode: null }]) {
+    assert.equal((await post(app, '/api/drill/start', bad)).status, 400, JSON.stringify(bad));
+  }
+  const run = await json(post(app, '/api/drill/start', { level: 1, screen_mode: true }));
+  assert.deepEqual([run.screen_mode, run.questions, run.minutes, run.pass_pct, run.kind], [true, 10, 20, 90, 'level'], 'the same pool, limit and pass mark');
+  for (const s of run.servings as Serving[]) assert.equal(d.servings.get(s.item_instance_id)?.screen_mode, true, 'the serving carries screen mode');
+  assert.equal((await json(get(app, '/api/drill/current'))).run.screen_mode, true, 'a resumed run is still in screen mode');
+  const s = run.servings[0] as Serving;
+  assert.equal((await json(submit(app, s, right(s.item_id)))).outcome, 'pass');
+  const [attempt] = (await records(d)).filter((r) => r.record === 'attempt' && r.item_instance_id === s.item_instance_id);
+  assert.equal(attempt.screen_mode, true);
+  await json(post(app, '/api/drill/end', { block_id: run.block_id }));
+  const normal = await json(post(app, '/api/drill/start', { level: 1 }));
+  assert.equal(normal.screen_mode, false);
+  assert.equal('screen_mode' in d.servings.get(normal.servings[0].item_instance_id)!, false, 'a normal serving is unchanged');
+  const n = normal.servings[0] as Serving;
+  await submit(app, n, right(n.item_id));
+  await json(post(app, '/api/drill/end', { block_id: normal.block_id }));
+  const history = await json(get(app, '/api/drill/history?level=1'));
+  assert.deepEqual(history.runs.map((r: any) => [r.block_id, r.screen_mode]), [[normal.block_id, false], [run.block_id, true]]);
+  const chosen = await json(post(app, '/api/drill/start', { concept_ids: CHOSEN, screen_mode: true }));
+  assert.deepEqual([chosen.kind, chosen.screen_mode], ['chosen', true], 'a chosen drill may start in screen mode too');
+});
+
+test('S4B-22: screen mode grades with the integer check, only for an instance served in screen mode; a browser cannot ask for it', async () => {
+  // One pool item whose key returns a whole number (an INTEGER store_id); the learner returns it with a decimal point.
+  const id = 'EX-SQL-BASICS-01-E1-90';
+  const intItem = { ...items.get(poolIds('SQL-BASICS-01')[0]!)!, id, prompt: 'Show the store_id of the store in Gent.',
+    output_contract: { columns: [{ name: 'store_id', type_class: 'numeric' }], grain: 'one row' },
+    rules: { ...DEFAULT_RULES, columns: [{ name: 'store_id', type_class: 'numeric', precision: 'count' }] } } as SqlItem;
+  const base = memoryContent();
+  const store = {
+    ...base,
+    item: (x: string) => (x === id ? intItem : base.item(x)),
+    key: (x: string) => (x === id ? { ...keyOf(poolIds('SQL-BASICS-01')[0]!), item_id: id, reference_sql: "SELECT store_id FROM stores WHERE city = 'Gent'" } : base.key(x)),
+    lesson: (c: string) => { const l = base.lesson(c); return l && c === 'SQL-BASICS-01' ? { ...l, pool_item_ids: [id] } as Lesson : l; },
+  } as ContentStore & { drills(): DrillSpec[] };
+  const d = await deps({ content: store });
+  const app = createApp(d);
+  const decimal = "SELECT store_id * 1.0 AS store_id FROM stores WHERE city = 'Gent'";
+  const answer = async (screen_mode: boolean) => {
+    const run = await json(post(app, '/api/drill/start', { concept_ids: ['SQL-BASICS-01'], ...(screen_mode ? { screen_mode } : {}) }));
+    assert.deepEqual(run.servings.map((s: Serving) => s.item_id), [id]);
+    const g = await json(submit(app, run.servings[0], decimal));
+    await json(post(app, '/api/drill/end', { block_id: run.block_id }));
+    return g;
+  };
+  const normal = await answer(false);
+  assert.equal(normal.outcome, 'pass', 'normal mode grades as before: 2.0 matches 2');
+  const screen = await answer(true);
+  assert.deepEqual([screen.outcome, screen.diagnosis?.errorId], ['fail', 'ERR-OUT-02'], 'screen mode: 2.0 does not match 2');
+  // A free instance the server never served: no screen mode, whatever the body says.
+  const free = await json(post(app, '/api/submit', { item_id: id, item_instance_id: 'FREE-1', sql: decimal, screen_mode: true }));
+  assert.equal(free.outcome, 'pass');
+  const logged = (await records(d)).filter((r) => r.record === 'attempt');
+  assert.deepEqual(logged.map((r) => [r.screen_mode, r.outcome]), [[false, 'pass'], [true, 'fail'], [false, 'pass']]);
 });

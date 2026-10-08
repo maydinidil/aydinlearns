@@ -1,0 +1,142 @@
+{
+  "id": "EX-SQL-JOIN-03-E2-22",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "fan_out",
+    "cte",
+    "avg",
+    "orders",
+    "order_lines",
+    "stores",
+    "drill"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-JOIN-03"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-JOIN-03",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-JOIN-03"
+  ],
+  "template_id": "T-JOIN-03-aggregate-child-first",
+  "template_params": {
+    "parent": "orders",
+    "child": "order_lines",
+    "group_by": "store_type",
+    "metric": "avg_units_per_order"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_join",
+  "prompt": "For each store type, how many orders with at least one line were taken, and how many units did an order hold on average? An order's units are the quantity summed over its lines. Orders with no lines do not count. Return three columns, in this order: store_type, n_orders and avg_units_per_order. Return one row for each store type with at least one such order. Do not round. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "store_type",
+        "type_class": "text"
+      },
+      {
+        "name": "n_orders",
+        "type_class": "numeric"
+      },
+      {
+        "name": "avg_units_per_order",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "store_type",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "n_orders",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "avg_units_per_order",
+        "type_class": "numeric",
+        "precision": "ratio"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "store_type"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, add up each order's units in a step, one row per order.",
+    "After joining the lines, AVG runs over lines; the per-order step makes it run over orders."
+  ],
+  "subgoals": [
+    {
+      "from": 24,
+      "to": 63,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 66,
+      "to": 82,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 85,
+      "to": 102,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 105,
+      "to": 183,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 184,
+      "to": 284,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 285,
+      "to": 306,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "The step has one row per order, so COUNT(*) and AVG run over orders within each store type."
+}

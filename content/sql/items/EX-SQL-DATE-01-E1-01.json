@@ -1,0 +1,112 @@
+{
+  "id": "EX-SQL-DATE-01-E1-01",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "date",
+    "date_trunc",
+    "month",
+    "orders"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-DATE-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pretest",
+  "target_concept_id": "SQL-DATE-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-DATE-01"
+  ],
+  "template_id": "T-DATE-01-count-per-month",
+  "template_params": {
+    "table": "orders",
+    "unit": "month",
+    "clock": "UTC"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_date",
+  "prompt": "How many orders did Voltmarkt take in each calendar month? Use the orders table and count every order, guest orders included. order_ts holds the time of the order in UTC, so take the month in UTC. Return two columns, in this order: order_month, the first day of the month as a date, and orders, the number of orders. Return one row for each month that has orders. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "order_month",
+        "type_class": "temporal"
+      },
+      {
+        "name": "orders",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per calendar month"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "order_month",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "orders",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "order_month"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the calculated column order_month: each order's time cut back to the first day of its month.",
+    "date_trunc with the unit 'month' turns any time in March 2025 into 2025-03-01 and keeps the year. Group by that same expression, and count rows rather than a column that can be missing."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 78,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 79,
+      "to": 90,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 91,
+      "to": 129,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "date_trunc('month', ...) keeps the year with the month, so March 2024 and March 2025 stay apart, and COUNT(*) counts every order."
+}

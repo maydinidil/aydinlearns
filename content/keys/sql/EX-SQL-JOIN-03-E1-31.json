@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-JOIN-03-E1-31",
+  "item_version": 1,
+  "reference_sql": "SELECT SUM(ol.quantity) AS units\nFROM order_lines ol\nJOIN price_history ph ON ph.product_id = ol.product_id\nWHERE ph.valid_to IS NULL\n  AND ph.list_price_eur > 100",
+  "alternatives": [
+    "WITH current_prices AS (SELECT product_id, list_price_eur FROM price_history WHERE valid_to IS NULL) SELECT SUM(ol.quantity) AS units FROM order_lines ol JOIN current_prices c ON c.product_id = ol.product_id WHERE c.list_price_eur > 100",
+    "SELECT SUM(ol.quantity) AS units FROM order_lines ol JOIN price_history ph ON ph.product_id = ol.product_id AND ph.valid_to IS NULL WHERE ph.list_price_eur > 100"
+  ],
+  "other_way": {
+    "sql": "WITH current_prices AS (SELECT product_id, list_price_eur FROM price_history WHERE valid_to IS NULL) SELECT SUM(ol.quantity) AS units FROM order_lines ol JOIN current_prices c ON c.product_id = ol.product_id WHERE c.list_price_eur > 100",
+    "tradeoff": "A named step of current prices shows its grain, one row per product, but the extra test in WHERE is the shorter fix."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-01",
+      "sql": "SELECT SUM(ol.quantity) AS units FROM order_lines ol JOIN price_history ph ON ph.product_id = ol.product_id WHERE ph.list_price_eur > 100"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-14",
+      "sql": "SELECT COUNT(*) AS units FROM order_lines ol JOIN price_history ph ON ph.product_id = ol.product_id WHERE ph.valid_to IS NULL AND ph.list_price_eur > 100"
+    }
+  ],
+  "hint3_partial": "SELECT SUM(ol.quantity) AS units\nFROM order_lines ol\nJOIN price_history ph ON ph.product_id = ol.product_id\nWHERE ___\n  AND ph.list_price_eur > 100",
+  "solver": {
+    "prompt_hash": "f2fe762d4fe01684",
+    "schema_version": "7ecef712588c",
+    "dataset_version": "e1545e4258743033",
+    "grader_version": "1b.3",
+    "query": "SELECT SUM(ol.quantity) AS units\nFROM order_lines ol\nJOIN price_history ph ON ph.product_id = ol.product_id\nWHERE ph.valid_to IS NULL AND ph.list_price_eur > 100",
+    "at": "2026-10-07T10:41:39.691Z"
+  }
+}

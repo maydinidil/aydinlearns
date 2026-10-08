@@ -1,0 +1,17 @@
+{
+  "case_id": "CASE-PRICE-01",
+  "truths": {
+    "CP2": "SELECT SUM(s.units)\nFROM sales AS s\nJOIN orders AS o ON o.order_id = s.order_id\nWHERE CAST(timezone('Europe/Amsterdam', timezone('UTC', o.order_ts)) AS DATE) BETWEEN DATE '2025-03-01' AND DATE '2025-03-31'",
+    "CP4": "SELECT ROUND(100.0 * SUM(CASE WHEN ol.promo_id IS NOT NULL THEN ol.quantity ELSE 0 END) / SUM(ol.quantity), 1)\nFROM order_lines AS ol\nJOIN orders AS o ON o.order_id = ol.order_id\nJOIN products AS p ON p.product_id = ol.product_id\nJOIN categories AS c ON c.category_id = p.category_id\nWHERE c.category_name = 'Headphones'\n  AND CAST(timezone('Europe/Amsterdam', timezone('UTC', o.order_ts)) AS DATE) BETWEEN DATE '2025-03-01' AND DATE '2025-03-31'"
+  },
+  "choices": {
+    "CP1": {
+      "correct_oid": "oc9c6f5b",
+      "explanation": "ASP weights every unit sold, so it is total net revenue over total units; an average of line prices counts a one-unit line as much as a ten-unit line."
+    },
+    "CP5": {
+      "correct_oid": "o372fe60",
+      "explanation": "ASP mixes price, promotions and product mix, so a fall alone does not show a list price cut; volume does not set ASP, and margin also depends on cost."
+    }
+  }
+}

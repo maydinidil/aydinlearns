@@ -6,7 +6,10 @@
     "SELECT parent_category, SUM(CASE WHEN country_code = 'NL' THEN 1 ELSE 0 END) AS nl_lines, SUM(CASE WHEN country_code = 'BE' THEN 1 ELSE 0 END) AS be_lines, SUM(CASE WHEN country_code = 'LU' THEN 1 ELSE 0 END) AS lu_lines FROM sales GROUP BY parent_category",
     "SELECT parent_category, COUNT(CASE WHEN country_code = 'NL' THEN 1 END) AS nl_lines, COUNT(CASE WHEN country_code = 'BE' THEN 1 END) AS be_lines, COUNT(CASE WHEN country_code = 'LU' THEN 1 END) AS lu_lines FROM sales GROUP BY 1"
   ],
-  "other_way": null,
+  "other_way": {
+    "sql": "SELECT parent_category, SUM(CASE WHEN country_code = 'NL' THEN 1 ELSE 0 END) AS nl_lines, SUM(CASE WHEN country_code = 'BE' THEN 1 ELSE 0 END) AS be_lines, SUM(CASE WHEN country_code = 'LU' THEN 1 ELSE 0 END) AS lu_lines FROM sales GROUP BY parent_category",
+    "tradeoff": "Works in every SQL dialect, but is wordier than FILTER."
+  },
   "planted_wrong": [
     {
       "id": "PW1",

@@ -1,7 +1,7 @@
 // tests/helpers/history-fixture.ts: a past study history, written into a temporary logs folder, so that a server started on
 // it has reviews due (Task B17). The browser smoke test seeds its slice 1b rows with it; it is never pointed at the real logs/.
 //
-// The records are the ones the 1b server writes (schema version 2), in time order, through AttemptLogger. Every close is
+// The records are the ones the 1b server writes (the current schema version), in time order, through AttemptLogger. Every close is
 // rated by a replay that includes it (LearnerState.rateClose), as the server rates a live close, so the server's startup
 // replays the folder with no warning (S2-15) and writes nothing. Every session has its end, so nothing is left to recover.
 // Times are counted back from `now`, so the history is due whenever the test runs:
@@ -14,6 +14,9 @@
 // So every level 1 concept is started (the next new concept is SQL-AGG-01, the first of level 2), SQL-NULL-01 stays at
 // Learning (so level 1's opener is not yet recommended for solving), and three concepts were first exposed in the last
 // 7 days (the mixed block).
+import { realpathSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { isAbsolute, relative, resolve } from 'node:path';
 import { SCHEMA_VERSION, type ItemClose, type Phase } from '../../core/envelope.ts';
 import { openJsonlLog } from '../../core/jsonl.ts';
 import type { AydinAttempt } from '../../schemas/log-ext.ts';
@@ -35,6 +38,13 @@ export const HISTORY = {
   next: 'SQL-AGG-01',
 } as const;
 
+/** s2:L103: whether `dir` lies inside os.tmpdir(), comparing real paths (Windows case and 8.3 short names) where the folder exists. */
+function insideTemp(dir: string): boolean {
+  const real = (p: string): string => { try { return realpathSync.native(resolve(p)); } catch { return resolve(p); } };
+  const rel = relative(real(tmpdir()), real(dir));
+  return rel !== '' && !rel.startsWith('..') && !isAbsolute(rel);
+}
+
 /** What the seeded folder holds, for the test's own checks. */
 export interface SeededHistory { dir: string; now: Date; sessions: number; attempts: number; events: number }
 
@@ -46,6 +56,7 @@ const MINUTE = 60_000;
  * uses its lessons' item IDs, and its closes are rated against it.
  */
 export async function seedHistory(dir: string, content: ContentStore, now = new Date()): Promise<SeededHistory> {
+  if (!insideTemp(dir)) throw new Error('history fixture: the folder must be inside the temporary folder, never the real logs');
   const logger = new AttemptLogger(openJsonlLog(dir));
   const state = new LearnerState({ content, attempts: [], events: [], examDate: () => null });
   logger.onWrite((file, r) => state.record(file, r));

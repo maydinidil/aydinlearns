@@ -1,0 +1,35 @@
+{
+  "item_id": "EX-SQL-JOIN-01-E2-05",
+  "item_version": 2,
+  "reference_sql": "SELECT DISTINCT o.order_id\nFROM orders o\nJOIN order_lines l ON l.order_id = o.order_id\nJOIN products p ON p.product_id = l.product_id\nWHERE p.brand = 'Basswell'\n  AND o.order_ts >= TIMESTAMP '2025-03-06 00:00:00' AND o.order_ts < TIMESTAMP '2025-03-07 00:00:00'",
+  "alternatives": [
+    "SELECT o.order_id FROM orders o JOIN order_lines l ON l.order_id = o.order_id JOIN products p ON p.product_id = l.product_id WHERE p.brand = 'Basswell' AND CAST(o.order_ts AS DATE) = DATE '2025-03-06' GROUP BY o.order_id",
+    "SELECT DISTINCT l.order_id FROM order_lines l JOIN orders o ON o.order_id = l.order_id JOIN products p ON p.product_id = l.product_id AND p.brand = 'Basswell' WHERE o.order_ts >= TIMESTAMP '2025-03-06 00:00:00' AND o.order_ts < TIMESTAMP '2025-03-07 00:00:00'",
+    "SELECT DISTINCT s.order_id FROM sales s JOIN products p ON p.product_id = s.product_id WHERE p.brand = 'Basswell' AND s.order_date = DATE '2025-03-06'"
+  ],
+  "other_way": {
+    "sql": "SELECT o.order_id FROM orders o JOIN order_lines l ON l.order_id = o.order_id JOIN products p ON p.product_id = l.product_id WHERE p.brand = 'Basswell' AND CAST(o.order_ts AS DATE) = DATE '2025-03-06' GROUP BY o.order_id",
+    "tradeoff": "GROUP BY order_id also gives each order once, but DISTINCT says more plainly that only the list is wanted."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-08",
+      "sql": "SELECT o.order_id FROM orders o JOIN order_lines l ON l.order_id = o.order_id JOIN products p ON p.product_id = l.product_id WHERE p.brand = 'Basswell' AND o.order_ts >= TIMESTAMP '2025-03-06 00:00:00' AND o.order_ts < TIMESTAMP '2025-03-07 00:00:00'"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-12",
+      "sql": "SELECT DISTINCT o.order_id FROM orders o JOIN order_lines l ON l.order_id = o.order_id JOIN products p ON p.product_id = l.order_line_id WHERE p.brand = 'Basswell' AND o.order_ts >= TIMESTAMP '2025-03-06 00:00:00' AND o.order_ts < TIMESTAMP '2025-03-07 00:00:00'"
+    }
+  ],
+  "hint3_partial": "SELECT DISTINCT o.order_id\nFROM orders o\nJOIN order_lines l ON l.order_id = o.order_id\nJOIN products p ON ___\nWHERE ___",
+  "solver": {
+    "prompt_hash": "1ca4079a182a45c9",
+    "schema_version": "f6cc3f56f764",
+    "dataset_version": "e1545e4258743033",
+    "grader_version": "1b.3",
+    "query": "SELECT DISTINCT o.order_id\nFROM orders o\nJOIN order_lines l ON l.order_id = o.order_id\nJOIN products p ON p.product_id = l.product_id\nWHERE p.brand = 'Basswell'\n  AND o.order_ts >= TIMESTAMP '2025-03-06 00:00:00' AND o.order_ts < TIMESTAMP '2025-03-07 00:00:00'",
+    "at": "2026-10-07T10:41:38.081Z"
+  }
+}

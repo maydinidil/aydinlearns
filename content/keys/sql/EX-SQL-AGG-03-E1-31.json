@@ -6,7 +6,10 @@
     "SELECT category_name, AVG(units) AS avg_units FROM sales WHERE order_date >= DATE '2025-01-01' AND order_date < DATE '2025-04-01' GROUP BY 1 HAVING 1.25 < AVG(units)",
     "SELECT category_name, SUM(units) * 1.0 / COUNT(units) AS avg_units FROM sales WHERE order_date BETWEEN '2025-01-01' AND '2025-03-31' GROUP BY category_name HAVING SUM(units) * 1.0 / COUNT(units) > 1.25"
   ],
-  "other_way": null,
+  "other_way": {
+    "sql": "SELECT category_name, SUM(units) * 1.0 / COUNT(units) AS avg_units FROM sales WHERE order_date BETWEEN '2025-01-01' AND '2025-03-31' GROUP BY category_name HAVING SUM(units) * 1.0 / COUNT(units) > 1.25",
+    "tradeoff": "Builds the average from a sum and a count, which shows the idea, but AVG is shorter."
+  },
   "planted_wrong": [
     {
       "id": "EX-SQL-AGG-03-E1-31-PW1",

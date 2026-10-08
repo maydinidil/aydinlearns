@@ -6,7 +6,7 @@ import { serveStatic } from '@hono/node-server/serve-static';
 import { randomUUID } from 'node:crypto';
 import { isAbsolute, join, resolve } from 'node:path';
 import { SCHEMA_VERSION, type BlockClose, type CloseReason, type Exposure, type ItemClose, type Phase, type Section } from '../core/envelope.ts';
-import type { CardEvent, ExternalResult, SettingChange } from '../core/events.ts';
+import type { CardEvent, ExternalGa4Exam, ExternalPortfolioPiece, SettingChange } from '../core/events.ts';
 import { amsterdamDate } from '../core/time.ts';
 import type { RunnerClient, RunnerReq, RunnerResult } from './runner/client.ts';
 import type { DisplayOk } from './runner/protocol.ts';
@@ -30,11 +30,20 @@ import { mountDrill } from './routes/drill.ts';
 import { mountChoice } from './routes/choice.ts';
 import { pretestItemIds } from './session-composer.ts';
 import { mountCp4 } from './routes/cp4.ts';
+import { mountCases } from './routes/cases.ts';
 import { mountSections } from './routes/sections.ts';
 import { mountRun } from './routes/run.ts';
-import { HELP_WAITS, NO_DRILLS, RUN_OVER, type DrillGate } from './drill.ts';
+import { mountMistakes } from './routes/mistakes.ts';
+import { mountPortfolio, uncProblem } from './routes/portfolio.ts';
+import { mountProgress } from './routes/progress.ts';
+import { mountExplore, EXPLORE_RUN_PATH } from './routes/explore.ts';
+import { HELP_WAITS, NO_DRILLS, RUN_OVER, type DrillGate, type DrillRuns } from './drill.ts';
 
-export interface Settings { backup_folder: string | null; exam_date: string | null; goal_dates: Record<string, string> }
+/**
+ * The settings replayed from the events file (server/main.ts). `portfolio_folder` (D35, log version 4) is set by main.ts; it is
+ * optional here so a test's settings may leave it out, which reads as not set. The settings route takes it (Task D4).
+ */
+export interface Settings { backup_folder: string | null; exam_date: string | null; goal_dates: Record<string, string>; portfolio_folder?: string | null }
 export type BackupResult = Awaited<ReturnType<typeof backupLogs>>;
 export interface AppDeps {
   port: number;
@@ -114,6 +123,8 @@ interface Instance {
   phase: Phase | null;              // the first phase a request names; null until one does
   blockId: string | null;           // from the serving (S2-32, S2-46); null for an instance the server did not serve
   repeatExposure: boolean;          // from the serving (design §12, the pool fallback)
+  cardId: string | null;            // from the serving: the mistake card it reviews (D28), copied onto every attempt
+  screenMode: boolean;              // from the serving (D41, S4B-22): graded in screen mode and logged as such; never from a browser
   started: number;                  // ms; moved back to the browser's started_at when a request brings an earlier one
   submitted: number;                // logged submissions, crashes included: submission_no is a raw counter
   graded: number;
@@ -128,7 +139,7 @@ interface Instance {
 const PHASES: Phase[] = ['pretest', 'faded_1', 'faded_2', 'faded_3', 'lesson_block', 'retest', 'review', 'mixed', 'drill', 'case', 'free', 'mock', 'opener_preview'];
 const CLOSE_REASONS: CloseReason[] = ['pass', 'left', 'session_end', 'run_end'];
 const EXPOSURE_KINDS: Exposure['kind'][] = ['reading', 'worked_example', 'lesson', 'micro_lesson', 'refresher'];
-const SETTING_KEYS: SettingChange['key'][] = ['backup_folder', 'exam_date', 'goal_dates'];
+const SETTING_KEYS: SettingChange['key'][] = ['backup_folder', 'exam_date', 'goal_dates', 'portfolio_folder'];
 const SLICE_FOR_LEVEL: Record<number, string> = { 1: '1a', 2: '1b', 3: '3', 4: '5', 5: '6', 6: '7', 7: 'after the first applications' };
 const DISPLAY_CAP = 1000;
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
@@ -138,19 +149,23 @@ const CLOSED = 'This exercise is closed. Leave it and open it again.';
 const READS: ReadonlySet<string> = new Set(['GET', 'HEAD']);
 
 type HiddenItemField = 'hints' | 'subgoals' | 'why_this_works' | 'starter_error_id' | 'faded_shape' | 'faded_suffix' | 'options';
+/** S4-11: the item view says only whether the key holds an "other ways" entry (Task D1), never its text: that comes from /api/other-way. */
+type ItemViewFields = Omit<SqlItem, HiddenItemField> & Partial<Pick<SqlItem, 'faded_shape' | 'faded_suffix'>> & { has_other_way: boolean };
 /**
  * What /api/items sends (Task B13). Never the hints (hints 1 and 2 come from /api/hint, which logs them), the subgoal labels,
  * "why this works" (the grade shows it after a pass) or a fix item's starter_error_id (it names the mistake to look for). The
  * faded shape and suffix only for the stage that shows them (?stage=1 or 2), so a blank editor gives nothing away. Never an
  * SQL choice item's options (Task C4): their source order and misconception IDs tell the answer; /api/choice shuffles them.
  */
-export function publicItem(item: SqlItem, stage: string | undefined): Omit<SqlItem, HiddenItemField> & Partial<Pick<SqlItem, 'faded_shape' | 'faded_suffix'>> {
+export function publicItem(item: SqlItem, stage: string | undefined, hasOtherWay = false): ItemViewFields {
   const { hints: _hints, subgoals: _subgoals, why_this_works: _why, starter_error_id: _error, options: _options, faded_shape, faded_suffix, ...rest } = item;
-  return stage === '1' || stage === '2' ? { ...rest, faded_shape, faded_suffix: faded_suffix ?? null } : rest;
+  const view = { ...rest, has_other_way: hasOtherWay };
+  return stage === '1' || stage === '2' ? { ...view, faded_shape, faded_suffix: faded_suffix ?? null } : view;
 }
 
 type Body = Record<string, unknown>;
-const refuse = (status: 400 | 404 | 409 | 503, message: string): HTTPException => new HTTPException(status, { message });
+const refuse = (status: 400 | 404 | 409 | 503, message: string, code?: string): HTTPException =>
+  Object.assign(new HTTPException(status, { message }), code === undefined ? {} : { code });
 const isRecord = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object' && !Array.isArray(v);
 /** A YYYY-MM-DD that is a real calendar day: 2026-02-30 does not survive a trip through Date.UTC. */
 const isDate = (v: unknown): v is string => {
@@ -176,15 +191,17 @@ function text(b: Body, field: string): string {
 /** Why a setting value is refused, or null when it is fine. */
 function settingProblem(key: SettingChange['key'], value: unknown): string | null {
   if (key === 'backup_folder') return value === null || (typeof value === 'string' && isAbsolute(value)) ? null : 'Use a full folder path, such as D:\\Backups.';
+  // S4B-19: validated like the backup folder. Whether it exists is checked when an export runs (routes/portfolio.ts).
+  if (key === 'portfolio_folder') return uncProblem(value) ?? (value === null || (typeof value === 'string' && isAbsolute(value)) ? null : 'Use a full folder path, such as D:\\Portfolio.');
   if (key === 'exam_date') return value === null || isDate(value) ? null : 'Use a date like 2026-11-20.';
   return isRecord(value) && Object.values(value).every((v) => v === '' || isDate(v)) ? null : 'Goal dates must be dates like 2026-11-20.';
 }
 
-/** The external result's data in its declared shape, or null. */
-function externalData(kind: unknown, d: unknown): ExternalResult['data'] | null {
+/** The external result's kind with its data in that kind's declared shape (a union on `kind` since log version 4), or null. */
+function externalData(kind: unknown, d: unknown): Pick<ExternalGa4Exam, 'kind' | 'data'> | Pick<ExternalPortfolioPiece, 'kind' | 'data'> | null {
   if (!isRecord(d)) return null;
-  if (kind === 'ga4_exam') return isDate(d.date) && typeof d.score === 'number' && Number.isFinite(d.score) && typeof d.passed === 'boolean' ? { date: d.date, score: d.score, passed: d.passed } : null;
-  if (kind === 'portfolio_piece') return isText(d.title) && isText(d.data_source) && typeof d.real_data === 'boolean' ? { title: d.title, data_source: d.data_source, real_data: d.real_data } : null;
+  if (kind === 'ga4_exam') return isDate(d.date) && typeof d.score === 'number' && Number.isFinite(d.score) && typeof d.passed === 'boolean' ? { kind, data: { date: d.date, score: d.score, passed: d.passed } } : null;
+  if (kind === 'portfolio_piece') return isText(d.title) && isText(d.data_source) && typeof d.real_data === 'boolean' ? { kind, data: { title: d.title, data_source: d.data_source, real_data: d.real_data } } : null;
   return null;
 }
 
@@ -210,7 +227,7 @@ function watchTableCheck(runner: RunnerClient): { runner: RunnerClient; sawText:
   };
 }
 
-const newInstance = (itemId: string, conceptId: string, started: number): Instance => ({ itemId, conceptId, phase: null, blockId: null, repeatExposure: false, started,
+const newInstance = (itemId: string, conceptId: string, started: number): Instance => ({ itemId, conceptId, phase: null, blockId: null, repeatExposure: false, cardId: null, screenMode: false, started,
   submitted: 0, graded: 0, maxHint: 0, revealedBeforeAttempt: false, solutionViewed: false, passed: false, firstAttemptPass: false, lastGraded: null });
 const phaseOf = (p: unknown): Phase | null => (PHASES.includes(p as Phase) ? (p as Phase) : null);
 /**
@@ -227,6 +244,8 @@ const browserPhase = (p: unknown): Phase | null => { const x = phaseOf(p); retur
  */
 const helpFields = (i: Instance): { item_id: string; target_concept_id: string; phase: Phase } =>
   ({ item_id: i.itemId, target_concept_id: i.conceptId, phase: i.phase ?? 'free' });
+/** D33: a help record names the mistake card the instance reviews, so replay can rate it when there is no attempt. Absent otherwise. */
+const cardField = (i: Instance | null): { card_id?: string } => (i?.cardId ? { card_id: i.cardId } : {});
 
 // The steps of an instance's help and grading history. The routes and the startup recovery both go through them,
 // so a close written after a restart says what the live close would have said.
@@ -387,11 +406,16 @@ export function createApp(d: AppDeps): Hono {
     if (!d.runner) throw refuse(503, 'The SQL runner is not running. See the setup screen.');
     return d.runner;
   };
-  /** A serving's phase, block and repeat flag are the server's truth (S2-39, S2-46): a browser's phase never replaces them. */
+  /**
+   * A serving's phase, block and repeat flag are the server's truth (S2-39, S2-46): a browser's phase never replaces them. So is its
+   * mistake card (D28) and its screen mode (D41, S4B-22): only a serving names them.
+   */
   const applyServing = (i: Instance, s: Serving): void => {
     i.phase = s.phase;
     i.blockId = s.block_id;
     i.repeatExposure = s.repeat_exposure;
+    i.cardId = s.card_id ?? null;
+    i.screenMode = s.screen_mode === true;
   };
   /**
    * The open instance with this id, opened on first use. Every request that opens one (submit, hint, show answer,
@@ -422,7 +446,10 @@ export function createApp(d: AppDeps): Hono {
     instances.delete(id);
     closed.add(id);
     if (i.blockId === null) servings.forget(id);             // a block's servings stay listed until the block closes
-    await d.logger.itemClose(d.state.rateClose(closeRecord(id, i, reason, at), at));
+    const write = d.logger.itemClose(d.state.rateClose(closeRecord(id, i, reason, at), at));
+    // Codex F21: a mistake card's review stays reserved until its close is in the log and the state, so it is not served twice.
+    if (i.cardId !== null) servings.closingCard(i.cardId, write);
+    await write;
     if (i.blockId !== null && i.phase === 'mixed') await endMixedBlockAfter(id, i.blockId, at);
   };
   // S2-16: a mixed block ends when its last item closes. Each member's close time once it is in the log, and the blocks already
@@ -548,7 +575,7 @@ export function createApp(d: AppDeps): Hono {
     if (!d.logger.writable) {
       // Design §18: grading stops until the log can be written again, so no attempt is lost silently.
       if (c.req.method !== 'GET') return c.json({ error: 'The log cannot be written, so grading is paused. See the setup screen.' }, 503);
-    } else if (!READS.has(c.req.method) && c.req.path !== '/api/session-end') {
+    } else if (!READS.has(c.req.method) && c.req.path !== '/api/session-end' && c.req.path !== EXPLORE_RUN_PATH) {
       // Only a request that can change something starts a session (Task B13): opening Today or the map writes nothing.
       await d.session.touch();
       // S2-42: a drill run whose time is up ends before this request does anything (the check on every request; the run's
@@ -571,7 +598,7 @@ export function createApp(d: AppDeps): Hono {
   });
   app.get('/api/items/:id', (c) => {
     const item = d.content.item(c.req.param('id'));
-    if (item) return c.json({ item: publicItem(item, c.req.query('stage')), schemaNotes: d.schemaNotes.filter((n) => n.schema === item.schema) });
+    if (item) return c.json({ item: publicItem(item, c.req.query('stage'), d.content.key(item.id)?.other_way != null), schemaNotes: d.schemaNotes.filter((n) => n.schema === item.schema) });
     // A GA4 or Methodology question typed into the SQL item URL (a held-out one, S2-64): named, never served here (Task C8).
     return c.json({ error: d.content.choiceItem?.(c.req.param('id')) ? 'This question is not available for practice.' : 'Unknown item.' }, 404);
   });
@@ -606,7 +633,8 @@ export function createApp(d: AppDeps): Hono {
       const i = open(id, item, b);
       i.phase ??= 'free';                                        // an attempt always has a phase: 'free' when no request ever named one
       const watched = watchTableCheck(runner);
-      const r = await grade({ item, key, sql }, { runner: watched.runner, edge: d.content.edge(item.edge_schema) ?? null, feedback: d.content.feedback, schemaNotes: d.schemaNotes });
+      // D41: the stricter checks only for an instance served in screen mode; every other one grades as before.
+      const r = await grade({ item, key, sql, screenMode: i.screenMode }, { runner: watched.runner, edge: d.content.edge(item.edge_schema) ?? null, feedback: d.content.feedback, schemaNotes: d.schemaNotes });
       // Design §18: a rejected statement is neither logged nor graded; a crash is logged and not graded; everything else is graded.
       if (r.outcome === 'rejected') return c.json({ ...r, attempt_id: null });
       // An override being written may still be given back: count this submission against what the log will hold.
@@ -623,16 +651,18 @@ export function createApp(d: AppDeps): Hono {
         submitted_at: at.toISOString(), local_date: amsterdamDate(at), item_id: item.id, item_version: item.version, item_kind: item.kind,
         target_concept_id: item.target_concept_id, concept_ids: item.concept_ids, template_id: item.template_id, level: item.level,
         phase: i.phase, block_id: i.blockId, fading_stage: b.fading_stage === 1 || b.fading_stage === 2 || b.fading_stage === 3 ? b.fading_stage : null,
-        repeat_exposure: i.repeatExposure, screen_mode: false, submission_no: i.submitted, hint_level: i.maxHint, solution_viewed: i.solutionViewed,
+        repeat_exposure: i.repeatExposure, screen_mode: i.screenMode, submission_no: i.submitted, hint_level: i.maxHint, solution_viewed: i.solutionViewed,
         active_ms: Math.max(0, Number(b.active_ms) || 0), target_ms: item.time_target_ms, outcome: r.outcome, is_correct: r.outcome === 'pass',
         partial_score: r.outcome === 'pass' ? 100 : r.partial?.total ?? null, error_ids: r.diagnosis ? [r.diagnosis.errorId] : [],
         checks, grading_source: 'auto',
         confidence: b.confidence === 1 || b.confidence === 2 || b.confidence === 3 || b.confidence === 4 ? b.confidence : null,
         content_version: d.content.contentVersion, grader_version: GRADER_VERSION,
         world: 'pricing', difficulty: item.difficulty, sub_skill: item.sub_skill, dataset_version: d.manifest.dataset_version, duckdb_version: d.manifest.library_version,
+        ...(i.cardId === null ? {} : { card_id: i.cardId }),        // D28: a mistake-card review; the override copies it with the rest
         payload: { kind: 'sql', submitted_query: sql,
           per_dataset: r.datasets.map((x) => ({ schema: x.schema, passed: x.passed, missing: x.missing, extra: x.extra, mismatched: x.mismatched, timed_out: x.timedOut })),
-          matched_mutant_id: r.matchedMutantId, diff_summary: r.diff ? `${r.diff.missing.length} missing, ${r.diff.extra.length} extra` : null, portability_notes: r.portabilityNotes },
+          matched_mutant_id: r.matchedMutantId, diff_summary: r.diff ? `${r.diff.missing.length} missing, ${r.diff.extra.length} extra` : null, portability_notes: r.portabilityNotes,
+          ...(r.divisionCheck === undefined ? {} : { division_check: r.divisionCheck }) },   // Codex F24: a pass's re-run outcome, for JR-04 (log format 4)
       };
       await d.logger.attempt(attempt);
       logged = at;
@@ -652,7 +682,7 @@ export function createApp(d: AppDeps): Hono {
     const id = text(b, 'item_instance_id');
     const review = await reviewHelp(id, item);                // S2-44: refused in a drill run, open in its end-of-run review
     const i = review ? null : open(id, item, b);
-    await d.logger.hintOpened({ record: 'hint_opened', schema_version: SCHEMA_VERSION, ts: now(), item_instance_id: id, level, ...(review ?? helpFields(i!)) });
+    await d.logger.hintOpened({ record: 'hint_opened', schema_version: SCHEMA_VERSION, ts: now(), item_instance_id: id, level, ...(review ?? helpFields(i!)), ...cardField(i) });
     if (i) noteHint(i, level);
     return c.json({ text: level === 3 ? key.hint3_partial : item.hints[level - 1] });
   });
@@ -664,9 +694,36 @@ export function createApp(d: AppDeps): Hono {
     const id = text(b, 'item_instance_id');
     const review = await reviewHelp(id, item);                // S2-44: refused in a drill run, open in its end-of-run review
     const i = review ? null : open(id, item, b);
-    await d.logger.solutionOpened({ record: 'solution_opened', schema_version: SCHEMA_VERSION, ts: now(), item_instance_id: id, ...(review ?? helpFields(i!)) });
+    await d.logger.solutionOpened({ record: 'solution_opened', schema_version: SCHEMA_VERSION, ts: now(), item_instance_id: id, ...(review ?? helpFields(i!)), ...cardField(i) });
     if (i) noteSolution(i);
     return c.json(await revealReference(item, key, runner));
+  });
+  /**
+   * S4-12 (Task D1), the fourth logged key case: one different correct query and its trade-off, only for an instance that has a passing
+   * attempt and that no running timed run holds. A refusal logs nothing; each served response writes one other_way_opened (D29), which
+   * replay reads and ignores. It never opens an instance: a request for one nobody submitted on is NOT_PASSED. A closed instance (the
+   * learner pressed Next, a session ended, or a drill run is over and its review is open) is judged by the log's own replay.
+   */
+  app.post('/api/other-way', async (c) => {
+    const b = await readBody(c);
+    const item = itemOf(b);
+    const key = keyOf(item);
+    const id = text(b, 'item_instance_id');
+    if (await drills.running(id)) throw refuse(409, HELP_WAITS, 'HELP_WAITS');
+    let at: { item_id: string; target_concept_id: string; phase: Phase } | null = null;
+    if (closed.has(id)) {
+      const done = d.state.current().instances.get(id);
+      if (done && done.item_id !== item.id) throw refuse(400, 'This item instance belongs to another item.');
+      if (done?.countsAsPass) at = { item_id: done.item_id, target_concept_id: done.concept_id, phase: done.phase as Phase };
+    } else {
+      const i = instances.get(id);
+      if (i && i.itemId !== item.id) throw refuse(400, 'This item instance belongs to another item.');
+      if (i?.passed) at = helpFields(i);
+    }
+    if (!at) throw refuse(409, 'Other ways open after you pass this exercise.', 'NOT_PASSED');
+    if (!key.other_way) throw refuse(404, 'This exercise has no other way to show.');
+    await d.logger.otherWayOpened({ record: 'other_way_opened', schema_version: SCHEMA_VERSION, ts: now(), item_instance_id: id, ...at });
+    return c.json({ sql: key.other_way.sql, tradeoff: key.other_way.tradeoff });
   });
   app.post('/api/override', async (c) => {
     const b = await readBody(c);
@@ -757,7 +814,7 @@ export function createApp(d: AppDeps): Hono {
     const b = await readBody(c);
     const key = b.key as SettingChange['key'];
     if (!SETTING_KEYS.includes(key)) throw refuse(400, 'Unknown setting.');
-    const value = key === 'backup_folder' && b.value === '' ? null : b.value;
+    const value = (key === 'backup_folder' || key === 'portfolio_folder') && b.value === '' ? null : b.value;
     const problem = settingProblem(key, value);
     if (problem) throw refuse(400, problem);
     await d.logger.event({ event: 'setting_change', schema_version: SCHEMA_VERSION, ts: now(), key, value });
@@ -773,10 +830,9 @@ export function createApp(d: AppDeps): Hono {
   });
   app.post('/api/external-result', async (c) => {
     const b = await readBody(c);
-    const kind = b.kind as ExternalResult['kind'];
-    const data = externalData(kind, b.data);
-    if (!data) throw refuse(400, 'Unknown kind, or its data is incomplete.');
-    await d.logger.event({ event: 'external_result', schema_version: SCHEMA_VERSION, ts: now(), kind, data });
+    const result = externalData(b.kind, b.data);
+    if (!result) throw refuse(400, 'Unknown kind, or its data is incomplete.');
+    await d.logger.event({ event: 'external_result', schema_version: SCHEMA_VERSION, ts: now(), ...result });
     return c.json({ ok: true });
   });
   app.post('/api/report', async (c) => {
@@ -787,13 +843,26 @@ export function createApp(d: AppDeps): Hono {
   // Route modules (Tasks B13, B14, C1) own their paths and mount before the 404 below. An end hook a module pushes runs
   // before the app's own, pushed next, so a module closes its own instances first (a drill's run_end, S2-42).
   const routeDeps: RouteDeps = { ...d, servings, writeClose: closeById, openInstance };
-  mountToday(app, routeDeps);
+  // S4-15 (sprint 3 record D2 S3): Today never serves an item the timed run that is on holds. The run clock exists once the drill
+  // routes mount, after Today's, so Today asks this at request time: the open servings of the run that is on (one at a time
+  // across sections, S3-08; its items stay open until its end), each at the run's start.
+  let timed: DrillRuns | null = null;
+  const liveRunItems = (): { item_id: string; started_at: string }[] => {
+    const run = timed?.current();
+    return run ? run.servings.map((s) => ({ item_id: s.item_id, started_at: new Date(run.started_at).toISOString() })) : [];
+  };
+  const today = mountToday(app, routeDeps, liveRunItems);
   const runs = mountDrill(app, routeDeps);
   drills = runs;
+  timed = runs;
   mountChoice(app, routeDeps, runs);                       // Task B2: the choice routes ask the run clock (S3-03, S3-12)
   mountRun(app, routeDeps, runs);                          // the GA4 runs share the SQL drills' clock (S3-08)
-  mountCp4(app, routeDeps);
+  mountCp4(app, routeDeps, mountCases(app, routeDeps));    // sprint 4b (Task D1): the case routes; the opener CP4 path aliases theirs
   mountSections(app, routeDeps);
+  mountMistakes(app, routeDeps, today);                    // Task C2: serves through Today's serving (S4-08, S4-13, S4-15)
+  mountPortfolio(app, routeDeps);                          // sprint 4b (Task D4): the portfolio export and its screen's data (S4B-16 to S4B-19)
+  mountExplore(app, routeDeps);                            // sprint 4b (Task E2): the dataset explorer; its run logs nothing and starts no session (S4B-28)
+  mountProgress(app, routeDeps);                           // sprint 4b (Task E1): GET /api/progress, read only (S4B-27)
   // Writes through the logger only: this runs inside the session tracker's queue.
   d.endHooks.push(async (at) => {
     for (const [id, i] of [...instances]) await writeClose(id, i, 'session_end', at);

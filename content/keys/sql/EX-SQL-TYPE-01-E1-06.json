@@ -6,7 +6,10 @@
     "SELECT parent_category, ROUND(SUM(CASE WHEN channel = 'store' THEN 1 ELSE 0 END) * 1.0 / COUNT(*), 3) AS store_line_share FROM sales WHERE order_date >= DATE '2025-01-01' AND order_date <= DATE '2025-12-31' GROUP BY parent_category",
     "SELECT parent_category, ROUND(CAST(COUNT(CASE WHEN channel = 'store' THEN 1 END) AS DOUBLE) / COUNT(*), 3) AS store_line_share FROM sales WHERE order_date BETWEEN '2025-01-01' AND '2025-12-31' GROUP BY 1"
   ],
-  "other_way": null,
+  "other_way": {
+    "sql": "SELECT parent_category, ROUND(SUM(CASE WHEN channel = 'store' THEN 1 ELSE 0 END) * 1.0 / COUNT(*), 3) AS store_line_share FROM sales WHERE order_date >= DATE '2025-01-01' AND order_date <= DATE '2025-12-31' GROUP BY parent_category",
+    "tradeoff": "Works in every SQL dialect, but is wordier than FILTER."
+  },
   "planted_wrong": [
     {
       "id": "PW1",

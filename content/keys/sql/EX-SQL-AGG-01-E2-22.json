@@ -6,7 +6,10 @@
     "SELECT COUNT(product_id) AS n_products, COUNT(unit_cost_eur) AS n_with_cost, COUNT(sister_product_id) AS n_with_sister FROM products WHERE launch_date >= DATE '2024-01-01' AND launch_date <= DATE '2024-12-31'",
     "SELECT COUNT(*) AS n_products, COUNT(unit_cost_eur) AS n_with_cost, COUNT(sister_product_id) AS n_with_sister FROM products WHERE launch_date >= '2024-01-01' AND launch_date < '2025-01-01'"
   ],
-  "other_way": null,
+  "other_way": {
+    "sql": "SELECT COUNT(*) AS n_products, COUNT(unit_cost_eur) AS n_with_cost, COUNT(sister_product_id) AS n_with_sister FROM products WHERE launch_date >= '2024-01-01' AND launch_date < '2025-01-01'",
+    "tradeoff": "Stays correct if the column later holds times of day, but you must write the day after the end date."
+  },
   "planted_wrong": [
     {
       "id": "PW1",

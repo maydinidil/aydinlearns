@@ -6,7 +6,11 @@ export type RunnerRequest =
   | { id: number; op: 'gate'; schema: string; allowedSchemas: string[]; sql: string }
   /** The portability lint's parse tree (Task B10): the gate, then json_serialize_sql on the gated text. Nothing runs. */
   | { id: number; op: 'parse_tree'; schema: string; allowedSchemas: string[]; sql: string }
-  | { id: number; op: 'display'; schema: string; allowedSchemas: string[]; sql: string; cap: number; deadlineMs: number }
+  /**
+   * `integerDivision` (S4B-24, Task E3): run on the child's second locked instance, the same read-only file with integer_division
+   * on (spike A X9), through the same gate and deadline. Only the grader's re-run after a pass asks for it.
+   */
+  | { id: number; op: 'display'; schema: string; allowedSchemas: string[]; sql: string; cap: number; deadlineMs: number; integerDivision?: boolean }
   | { id: number; op: 'one_row'; schema: string; sql: string; deadlineMs: number }
   | { id: number; op: 'rows'; schema: string; sql: string; limit: number; deadlineMs: number }
   | { id: number; op: 'app_query'; sql: string }

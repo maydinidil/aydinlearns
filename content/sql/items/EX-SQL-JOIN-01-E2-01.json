@@ -1,0 +1,136 @@
+{
+  "id": "EX-SQL-JOIN-01-E2-01",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "join",
+    "three_tables",
+    "products",
+    "categories",
+    "price_history",
+    "current_price"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-JOIN-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "lesson",
+  "target_concept_id": "SQL-JOIN-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-NULL-01",
+    "SQL-JOIN-01"
+  ],
+  "template_id": "T-JOIN-01-current-price-lookup",
+  "template_params": {
+    "from": "products",
+    "join": "categories, price_history",
+    "parent": "Audio"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_join",
+  "prompt": "List the current list price of every product in the parent category Audio, with its category name. The current price is the price version with a missing valid_to. Return three columns, in this order: category_name, product_name and list_price_eur. Return one row for each product. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "category_name",
+        "type_class": "text"
+      },
+      {
+        "name": "product_name",
+        "type_class": "text"
+      },
+      {
+        "name": "list_price_eur",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per product"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "category_name",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "product_name",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "list_price_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "product_name"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, join each product to its category and to its price versions.",
+    "The parent category sits with the category and the price with the price version. Keep only the version with no end date."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 57,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 58,
+      "to": 73,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 74,
+      "to": 124,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 125,
+      "to": 178,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 179,
+      "to": 238,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": {
+    "stage1": 74,
+    "stage2": 74
+  },
+  "faded_shape": "SELECT c.category_name, p.product_name, ph.list_price_eur\nFROM products p\n",
+  "faded_suffix": "\nWHERE c.parent_category = 'Audio'\n  AND ph.valid_to IS NULL",
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "Each product has one category and one price version with no end date, so after the joins and the filter there is one row per product."
+}

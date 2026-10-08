@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-JOIN-03-E1-41",
+  "item_version": 1,
+  "value": 962018,
+  "explanation": "Each order line points at exactly one order, and one order can have many lines, so the join returns one row per order line: 962,018, the row count of order_lines. An order with three lines appears three times. That repeat is why a value or a count that belongs to the order goes wrong when it is added up after this join.",
+  "solver": {
+    "prompt_hash": "d4f7b8790aba0db4",
+    "grader_version": "choice.2",
+    "chosen": null,
+    "typed": "962018",
+    "at": "2026-10-07T09:58:58.592Z"
+  }
+}

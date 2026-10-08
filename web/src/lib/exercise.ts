@@ -102,6 +102,15 @@ export function canDispute(g: { outcome: GradeOutcome; attempt_id: string | null
 /** Leaving after a pass (or an "I was right") closes the item as passed, by the Next button or by navigating away. */
 export function closeReason(i: { passed: boolean }): 'pass' | 'left' { return i.passed ? 'pass' : 'left'; }
 
+/**
+ * The grain sentence after the output contract ("One row per customer."), or '' when the item has none. S4-04: the content decides
+ * where the line fades (it is null on re-test, pool, drill and opener items at level 3), so the screen shows it whenever it is set.
+ */
+export function grainLine(contract: { grain: string | null } | null | undefined): string {
+  const g = contract?.grain;
+  return g ? `. ${g[0]!.toUpperCase()}${g.slice(1)}.` : '';
+}
+
 /** One plain-English line per graded rule: row order and column names always, every other rule when it is not the default. */
 export function rulesBadge(r: GradingRules): string[] {
   const out = [r.order_matters ? `Row order is checked: ${r.sort_keys.map((k) => `${k.column} (${k.desc ? 'high to low' : 'low to high'})`).join(', ')}` : 'Row order is not checked'];

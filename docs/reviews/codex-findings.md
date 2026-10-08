@@ -3,6 +3,311 @@
 Append-only log of findings raised by the Codex PR reviewer, each with an independent verdict.
 Newest review first.
 
+## PR #41: sprint 4c, the SQL learner-facing backlog (reviewed 2026-10-08)
+
+Codex left one line comment on commit `7e81096`, P2, before the merge. It is real. The owner chose
+to log it and merge; the fix follows with its own plan.
+
+### F26: "Try again"'s fallback can serve a card whose close is still being written
+
+**P2 · `server/routes/mistakes.ts:202` · Verdict: CONFIRMED · Status: OPEN**
+
+The claim: when the requested due card has no servable trap item, sprint 4c's fallback (Task A5)
+walks the due queue and serves the next card. For each fallback card it checks
+`d.servings.openForCard(id)` but never waits for `d.servings.closeOf(id)`. `writeClose` forgets the
+serving before the log write settles (F21's mechanism), so while a fallback card's previous review
+is being closed, `openForCard` finds nothing and replay still reports the card due. `pickFor` then
+serves a second review with the same `card_id`, and closing both applies two scheduler reviews.
+
+What I found: correct. The route waits for `closeOf` only for the requested card (line 179, the
+F21 fix). Today's review step waits for every card in the step (`closingIn`,
+`server/routes/today.ts:141`), so only the new fallback path is exposed. It needs another card's
+close to be in flight at the moment the learner presses "Try again" on a card with no free
+exercise, which is rare in a one-learner app. When it happens, the card is rated twice and nothing
+on screen says so.
+
+**Fix direction:** in the fallback loop, wait for `d.servings.closeOf(id)` for each candidate card,
+then re-read the state and skip a card that is no longer due, before `openForCard` and `pickFor`.
+Pin it with a test in `tests/server/mistakes-c2-today.test.ts` that holds a fallback card's close
+open, as F21's test does for the requested card.
+
+## PR #40: sprint 4b, cases, portfolio, Progress and screen mode (reviewed 2026-10-08, merged 2026-10-08)
+
+Codex left two line comments on commit `d6f427f`, both P2, before the merge. Both are real. The
+owner chose to fix both on the PR branch before merging.
+
+### F24: JR-04 counts a ratio pass as checked when the integer division re-run never compared it
+
+**P2 · `server/progress.ts:411` · Verdict: CONFIRMED, with a correction · Status: FIXED 2026-10-08 (unverified against a real second-runner failure)**
+
+JR-04 treats the latest pass of a ratio item as checked when its grader version is 4b.1 or later
+(`rerunChecked`), and as clean when its notes lack the integer division note. But
+`integerDivisionNotes` (`server/grader/portability.ts:328`) returns no note in four different
+cases: the query has no `/`, the pass's display was cut at the display cap, the second runner
+answered with an error, or the request threw (a time-out or a crash). JR-04 cannot tell them
+apart, so a re-run that never ran or never compared counts as "the same result with integer
+division", and the criterion can show as met without a comparison.
+
+The correction: the no-`/` case is a real clean result. Integer division only changes `/`, so a
+query without one gives the same result under both settings. The defect is the other three cases.
+They are rare (a ratio item's result is a few rows, and the second runner seldom fails), but each
+one passes silently.
+
+**Fix direction:** record the re-run's outcome on the pass's attempt record (no division, same,
+changed, not compared) and have JR-04 count only a pass whose outcome is a real result. A pass
+with no outcome recorded (an older grader, or not compared) does not count as checked. Log format
+version 4 is not released yet, so the field can join it without a new version.
+
+> **Update 2026-10-08:** Fixed on the PR branch before the merge (ruling P-32). `integerDivisionNotes`
+> became `integerDivisionCheck` (`server/grader/portability.ts`), which returns `no_division`, `same`,
+> `changed` or `not_compared`; a truncated display, an `ok: false` re-run, a thrown request or an
+> uncomparable result give `not_compared`. `grade` sets `divisionCheck` on a pass only and adds the
+> note exactly on `changed`. The SQL attempt payload carries it as `division_check`
+> (`server/app.ts`; `SqlPayload` in `schemas/log-ext.ts`), still log format 4 and grader `4b.1`. JR-04
+> (`server/progress.ts`) counts the latest pass as checked only on `no_division`, `same` or
+> `changed`, and cuts only on `changed`; `rerunChecked` is gone. The RED test in
+> `tests/server/progress.test.ts` ("Codex F24: ...") failed on the old code with a not-compared pass
+> and with a pass that logged no outcome (both judged `met`). New tests cover each outcome
+> (`tests/grader/portability.test.ts`, `grade.test.ts`), the logged payload
+> (`tests/server/portability-app.test.ts`), and that another portability note does not cut. Three
+> mutations (accept `not_compared`, map a thrown re-run to `same`, cut on any note) each turn a test red.
+>
+> **Still unproven:** the failure cases were driven by stubbed runner replies; `same` and `changed`
+> ran on the real second runner. A real second-runner failure during a learner's pass has not
+> been seen.
+>
+> **Adjacent, not fixed:** `InstanceFact.latest_pass` still carries `grader_version` and `notes`,
+> which JR-04 no longer reads. In `tests/grader/portability.test.ts`, a filtered run
+> (`--test-name-pattern`) fails every test after the file's top-level await with "runner closed";
+> whole-file runs and `npm test` pass. This was already so before the fix.
+
+### F25: An export whose log event fails leaves its files behind
+
+**P2 · `server/routes/portfolio.ts:354` · Verdict: CONFIRMED · Status: FIXED 2026-10-08 (unverified against a real failed log write)**
+
+The export route writes the Markdown page and the CSV (`writeExport`), then appends the
+`case_export` event (`d.logger.event`). When the append rejects, the request fails, but the two
+files stay in the portfolio folder with no event. Replay, the Portfolio screen and the goal
+evaluation then show no export, and a retry on the same day writes a `-2` pair beside the
+orphaned files. The learner does see an error, so the failure is not silent.
+
+**Fix direction:** when the event append rejects, remove the files this request created, then
+answer with a clear error, so a retry starts clean. Test with a logger whose append rejects.
+
+> **Update 2026-10-08:** Fixed on the PR branch before the merge. The route
+> (`server/routes/portfolio.ts`) wraps the event append; on rejection it removes the two files
+> `writeExport` returned (best effort, so a failed removal does not hide the error) and answers 503
+> "The export could not be recorded, so its files were removed. Nothing was saved. Try the export
+> again." The test in `tests/server/portfolio.test.ts` ("Codex F25: ...") rejects only the
+> `case_export` append: on the old code both files stayed; now neither does, no event is logged,
+> and a retry writes the base names, not `-2`. Removing the cleanup turns it red.
+>
+> **Still unproven:** the failed append is a stub; a real failed write to the log folder (a full
+> disk, a locked file) has not been tried.
+
+## PR #39: hygiene PR, backlog cleanup and the F20 fix (reviewed 2026-10-07, merged 2026-10-07)
+
+Codex left three line comments on commit `a80edfb`, all P2. They arrived minutes after the merge.
+All three are real. F21 is a narrow gap left by the F20 fix. F22 and F23 are gaps in two checks
+the hygiene PR extended; nothing on disk reaches either today. The fix plan goes to the owner
+first.
+
+### F21: A due mistake card can still be served twice while its close is being written
+
+**P2 · `server/servings.ts:32` · Verdict: CONFIRMED · Status: FIXED 2026-10-07 (unverified against two real browser tabs)**
+
+`writeClose` (`server/app.ts:433`) forgets the serving (`servings.forget`, line 436) before it
+awaits the log write on line 437. The learner state mirrors the log only after the append
+succeeds (`server/log.ts:19`, the `onWrite` listener), so during the write the replayed card is
+still due. A second "Try again" or Today review request for the same card that lands in that
+window finds no open instance through `openForCard`, sees the card as due, and serves a new
+instance with the same `card_id`. Its close then applies a second FSRS review, as in F20.
+The window is one append to the local log file, a few milliseconds, so it takes a second request
+timed inside it. F20's much wider window (the whole time the first instance was open) is closed.
+
+**Fix direction:** keep the card reserved until its close is in the log. For example, the try
+route and Today's review serve wait for an in-flight close of the same card and then read the
+state again, so the second request gets free practice (no `card_id`). Test with a logger whose
+append is held open: a request for the same card during the hold serves no second review, and
+after the release the card has one review.
+
+> **Update 2026-10-07:** Fixed in sprint 4b (Task A1, ruling S4B-29). `writeClose`
+> (`server/app.ts`) now records the close of a mistake card's review as in flight
+> (`Servings.closingCard`) until its log write, and with it the state update, has settled. The
+> try route (`server/routes/mistakes.ts`) waits for an in-flight close of the same card before
+> it reads the state. Today's review serve (`server/routes/today.ts`) waits for the in-flight
+> close of any card in its review step, then composes the plan again. So a try during the close
+> gets free practice (no `card_id`), and Today serves no second review of the card. A failed
+> write releases the card too, since nothing was logged. The tests in
+> `tests/server/mistakes-f21.test.ts` hold the log append open on a promise: a try during the
+> hold waits and then answers with no `card_id`; Today's review serve during the hold waits and
+> then answers "No review is due."; after the release the card has one review. Two unit tests
+> pin the release once the write settles, failed or not.
+>
+> **Still unproven:** this was proven by route tests with a held log write, not by two real
+> browser tabs racing a real write to disk. A hand test cannot aim at a window of a few
+> milliseconds. The closest real check: answer a due card's "Try again" question in one tab,
+> leave it, and press "Try again" in a second tab at the same moment; the card should be
+> reviewed once.
+>
+> **Adjacent, not fixed:** Today's `compose` reads the state before it awaits the pair
+> registry. On the first SQL compose after a start, while that registry is still loading from
+> disk, a close that both starts and finishes inside the load is not seen. The Today screen
+> loads the registry through `GET /api/today` before any review serve, so the UI does not reach
+> it.
+
+### F22: A malformed opener crashes the content check instead of failing C29
+
+**P2 · `tools/check-content.ts:583` · Verdict: CONFIRMED, currently LATENT · Status: FIXED 2026-10-07**
+
+`checkOpeners` collects `validateCaseRecord`'s messages, then derives the opener's level whenever
+`concept_ids` and `checkpoints` are arrays. `openerLevel` (`server/session-composer.ts:149`) reads
+`p.credits_concepts.includes` on every checkpoint for each curriculum concept outside
+`concept_ids`. A checkpoint that is not an object, or lacks a `credits_concepts` array, throws.
+Nothing catches it (`tools/check-content.ts:701`), so `npm run check:content` stops with a stack
+trace instead of reporting C29 and the rest. The level check that calls it came in with the
+hygiene PR (s2:L101). **Latent:** both openers on disk validate. It bites the first time a
+generated opener has a malformed checkpoint, and sprint 4b generates the level 3 opener.
+
+**Fix direction:** derive the level only when the record validated, or make the derivation skip
+malformed checkpoints. Test: an opener whose checkpoint lacks `credits_concepts` gives a C29
+failure and the check still finishes.
+
+> **Update 2026-10-07:** Fixed in sprint 4b (Task A1, ruling S4B-29). `checkOpeners` now
+> derives an opener's level only from a record that `validateCaseRecord` passed. A malformed
+> record skips the level check and fails C29 on the validation messages, and the check goes on.
+> The test in `tests/tools/check-content.test.ts` loads two fixture openers through the real
+> content loader, one whose checkpoint lacks `credits_concepts` and one with a checkpoint that
+> is not an object: each gives one C29 failure that names the bad field, and `checkOpeners` does
+> not throw.
+>
+> **Confirmed where it bites (2026-10-07):** `npm run check:content` was run on the real tree with
+> a temporary copy of the level 1 opener whose CP3 had no `credits_concepts`. The run finished
+> with C29 failures naming the copy (12415/12417 checks) and no stack trace. The copy was then
+> removed.
+>
+> **Adjacent, not fixed:** `GET /api/openers` and Today's `openerInputs`
+> (`server/session-composer.ts`) also call `openerLevel` on every opener the store loaded, with
+> no validation, so a malformed opener would make those routes answer 500. C29 now fails such a
+> file, so nothing that passes the content checks reaches them.
+
+### F23: The import check misses bare side-effect imports
+
+**P2 · `tools/import-check.ts:26` · Verdict: CONFIRMED, currently LATENT · Status: FIXED 2026-10-07**
+
+`SPECIFIER` (line 6) matches `from '...'` and `import('...')` only, so a bare `import '../../schemas/presets.ts';`
+in `web/src` passes the new presets guard, and the module and its `ts-fsrs` side effects could
+reach the browser bundle. The same pattern feeds the older `core/` check, so a bare side-effect
+import of DuckDB or of a path outside `core/` is missed there too; that part predates the hygiene
+PR. **Latent:** no web file imports the presets in any form, and the only bare imports in
+`web/src` are the three stylesheets in `main.tsx`.
+
+**Fix direction:** extend `SPECIFIER` to bare `import '...'` statements, with tests for both the
+web presets guard and the core check.
+
+> **Update 2026-10-07:** Fixed in sprint 4b (Task A1, ruling S4B-29). `SPECIFIER`
+> (`tools/import-check.ts`) also matches a bare `import '...'` or `import "..."` with no
+> binding, so the web presets guard and the `core/` check both see it. The tests in
+> `tests/tools/import-check.test.ts`: a web file with `import '../../schemas/presets.ts';` is
+> reported; a core file with a bare import of `@duckdb/node-api`, or of a path outside `core/`,
+> is reported; the three stylesheet imports in `web/src/main.tsx` are not.
+> `npm run check:imports` still passes on the tree.
+>
+> **Still unproven:** no file in the tree has a bare import of the presets or of DuckDB, so the
+> new match has only been seen to fire on test text.
+>
+> **Adjacent, not fixed:** the scanner reads text, not syntax, so an import written inside a
+> comment or a string is reported too. That can only over-report, and the tree has none today.
+
+## PR #38: sprint 4a, SQL level 3, mistake cards and review (reviewed 2026-10-07, merged 2026-10-07)
+
+Codex left one line comment on commit `cb8879b`. It is real, and the sprint's own review had parked
+the same defect as a minor (C2 M-8 in `docs/planning/2026-10-07-sprint-4a-record.md`). The fix
+plan goes to the owner first.
+
+### F20: A due mistake card can be served, and reviewed, twice
+
+**P2 · `server/routes/mistakes.ts:188` · Verdict: CONFIRMED, with a correction · Status: FIXED 2026-10-07 (unverified against two real browser tabs)**
+
+`POST /api/mistakes/:card/try` reads the card from replayed state and serves a trap item with
+`card_id` whenever the card is due. An open serving does not change the card, so a second request
+before the first instance closes serves the card again. Replay applies a mistake-card review as
+each instance closes, because a try is served outside any block and so outside the "one review per
+card" rule (`core/replay.ts:694`, `:845`). Two closes give two FSRS reviews. The second, on the same
+day, also resets the card's retirement streak, because it is not spaced (`core/replay.ts:451`).
+**Correction:** Codex calls it a race between overlapping requests. The handler is synchronous, so
+nothing interleaves; any second request before the first instance closes does it, such as a second
+tab or a retried request. Within one tab, "Try again" is disabled while its request runs
+(`web/src/screens/MistakesScreen.tsx:36`, `:96`). The same holds for a concept review served twice,
+which predates sprint 4a. Not checked: whether Today's review step can serve a card that a try
+instance already holds.
+
+**Fix direction:** make the serve idempotent until the instance closes: if an open instance
+already carries this `card_id`, return it instead of serving a new one, in the try route and in
+Today's review serve. A route test: two tries give one `item_instance_id` and, after the close,
+one review.
+
+> **Update 2026-10-07:** Fixed in the hygiene PR. An open instance that carries the card's
+> `card_id` is now answered again by the try route and by Today's review serve, so a second
+> request before the first instance closes gets the same instance and not a new one. The route
+> tests in `tests/server/mistakes-f20.test.ts` pin it: a second try returns the same
+> `item_instance_id`; a try followed by Today's review serve returns that same instance; after a
+> close the next try serves a new instance; and a free practice try (no `card_id`) is not
+> affected. Closing every instance the two tries returned rates the card once, and a reused
+> instance keeps the label hiding of its own phase (S2-39). One assertion in `tests/server/mistakes-c2-today.test.ts` changed on purpose, since a
+> second review serve now gives the open instance and not the next fix item.
+>
+> **Still unproven:** this was proven by route tests, not by two real browser tabs. To confirm,
+> open one due card's "Try again" in two tabs and check that the card is reviewed once.
+
+## PR #37: public release preparation (reviewed 2026-10-06, merged 2026-10-06)
+
+Codex left two line comments on commit `cc44851`, both on `tools/export-public.sh`, and both are
+real. Neither changes what the script exports: one refuses a valid target, the other accepts a
+wrong one only when someone points the script at it. The public copy was made the same day by
+running the script from a linked worktree against a fresh clone of `maydinidil/aydinlearns`,
+where neither applies. The fix plan goes to the owner first.
+
+### F18: The shared-repository check resolves both paths in the wrong directory
+
+**P1 · `tools/export-public.sh:27` · Verdict: CONFIRMED, with a correction · Status: FIXED 2026-10-06 (unverified against the real monorepo checkout and public clone)**
+
+`git rev-parse --git-common-dir` prints a path relative to the repository it runs in (`.git` for
+a plain clone or the main checkout), but `xargs realpath` resolves it in the script's current
+directory. Run from the monorepo's main checkout, both sides become that checkout's `.git`, so a
+valid public clone is refused as "sharing this monorepo's repository".
+**Correction:** Codex says every normal clone is refused. Run from a linked worktree, the
+monorepo's side is printed as an absolute path while the clone's `.git` resolves to the worktree's
+`.git` file, so the two differ and the check passes by accident. That is why the release-prep test
+passed.
+
+**Fix direction:** ask Git for absolute paths (`git rev-parse --path-format=absolute
+--git-common-dir`, Git 2.31 or later; 2.54 here) on both sides, and add a test that runs the
+check from the main checkout and from a worktree.
+
+**Still unproven:** the new test (`tests/tools/export-public.test.ts`) ran the script against
+throwaway repositories with a fake `gh` and an isolated Git config, from a main checkout and from a
+linked worktree. It was red before the fix and green after. It has not run against the real
+monorepo checkout and the real public clone. Confirm it at the next public refresh by running the
+export from `C:\zehirlab`'s main checkout.
+
+### F19: The origin check is not anchored
+
+**P2 · `tools/export-public.sh:26` · Verdict: CONFIRMED · Status: FIXED 2026-10-06 (unverified against the real monorepo checkout and public clone)**
+
+`[[ "$origin" =~ github\.com[:/]$PUBLIC_REPO(\.git)?$ ]]` matches the end of the URL only, so
+`https://notgithub.com/maydinidil/aydinlearns` or a local path ending in
+`github.com/maydinidil/aydinlearns` passes. The script would then replace that repository's files
+and commit to it (it never pushes).
+
+**Fix direction:** match the whole URL: `^(https://github\.com/|git@github\.com:|ssh://git@github\.com/)maydinidil/aydinlearns(\.git)?$`,
+with cases for each accepted form and the two rejected ones.
+
+**Still unproven:** the test covers the https form with and without `.git`, `git@github.com:` and
+`ssh://git@github.com/`, and look-alike origins, all on throwaway repositories. It has not run
+against the real public clone. Confirm it at the next public refresh by running the export from
+`C:\zehirlab`'s main checkout.
+
 ## PR #36: visuals overhaul, sprint 3b (reviewed 2026-10-06, merged 2026-10-06)
 
 Codex completed its review of commit `c87a0f8` with no line comments and a +1 reaction on the PR

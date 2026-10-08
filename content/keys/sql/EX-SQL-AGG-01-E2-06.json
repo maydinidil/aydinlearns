@@ -6,7 +6,10 @@
     "SELECT MIN(net_revenue_eur) AS min_line_revenue_eur, MAX(net_revenue_eur) AS max_line_revenue_eur FROM sales WHERE category_name IN ('TVs up to 43 inch', 'TVs 50-55 inch', 'TVs 65 inch and up')",
     "SELECT MIN(net_revenue_eur) min_line_revenue_eur, MAX(net_revenue_eur) max_line_revenue_eur FROM sales WHERE category_name LIKE 'TVs %'"
   ],
-  "other_way": null,
+  "other_way": {
+    "sql": "SELECT MIN(net_revenue_eur) AS min_line_revenue_eur, MAX(net_revenue_eur) AS max_line_revenue_eur FROM sales WHERE category_name IN ('TVs up to 43 inch', 'TVs 50-55 inch', 'TVs 65 inch and up')",
+    "tradeoff": "Names every matching value, so nothing extra can match, but the list must grow with new values."
+  },
   "planted_wrong": [
     {
       "id": "EX-SQL-AGG-01-E2-06-PW1",

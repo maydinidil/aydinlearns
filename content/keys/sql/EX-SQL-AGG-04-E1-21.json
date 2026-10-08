@@ -6,7 +6,10 @@
     "SELECT brand, COUNT(*) AS n_products, COUNT(*) FILTER (WHERE launch_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31') AS new_products FROM products GROUP BY brand",
     "SELECT brand, COUNT(product_id) AS n_products, COUNT(CASE WHEN launch_date >= '2025-01-01' AND launch_date < '2026-01-01' THEN 1 END) AS new_products FROM products GROUP BY 1"
   ],
-  "other_way": null,
+  "other_way": {
+    "sql": "SELECT brand, COUNT(*) AS n_products, COUNT(*) FILTER (WHERE launch_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31') AS new_products FROM products GROUP BY brand",
+    "tradeoff": "Reads closer to plain English, but FILTER is not available in every SQL dialect."
+  },
   "planted_wrong": [
     {
       "id": "PW1",

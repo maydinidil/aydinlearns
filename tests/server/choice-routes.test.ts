@@ -208,7 +208,7 @@ test('an answer logs one attempt with the shown order and closes the instance', 
     ['attempt', SCHEMA_VERSION, 'ga4', 'mcq', 'Q-GA4-901', 1, id]);
   assert.deepEqual([a.target_concept_id, a.concept_ids], [PARENT, [PARENT, CHILD]], 'E-110: the parent is the target, the child in concept_ids');
   assert.deepEqual(a.payload, { kind: 'mcq', shown_order: served.shown_order, chosen: wrong }, 'the order logged is the order sent');
-  assert.deepEqual([a.outcome, a.is_correct, a.error_ids, a.confidence, a.grader_version, a.grading_source], ['fail', false, ['MIS-FAKE-1'], 2, 'choice.1', 'auto']);
+  assert.deepEqual([a.outcome, a.is_correct, a.error_ids, a.confidence, a.grader_version, a.grading_source], ['fail', false, ['MIS-FAKE-1'], 2, 'choice.2', 'auto']);
   assert.deepEqual([a.phase, a.block_id, a.repeat_exposure, a.submission_no, a.hint_level, a.solution_viewed], ['free', null, false, 1, 0, false], 'phase free, not the browser\'s');
   assert.deepEqual([a.active_ms, a.target_ms, a.partial_score, a.template_id, a.fading_stage, a.checks], [4200, null, null, null, null, []]);
   assert.equal(a.session_id, d.session.currentId);
@@ -328,7 +328,7 @@ test('an answer is refused, and nothing logged, for a question never shown, a fo
 
 // ---- Show answer (D14) and closing like any other instance -------------------------------------------------------------------
 
-test('show answer writes a version 2 solution_opened, returns the key, and leaves the instance open', async () => {
+test('show answer writes a solution_opened at the current schema version, returns the key, and leaves the instance open', async () => {
   const d = await deps();
   const app = createApp(d);
   const served = await json(show(app, 'Q-GA4-901', 'ga4'));
@@ -337,7 +337,7 @@ test('show answer writes a version 2 solution_opened, returns the key, and leave
   assert.equal(r.status, 200);
   assert.deepEqual(await r.json(), { correct_oid: optionId('Q-GA4-901', 0), explanation: `${EXPLAIN} (Q-GA4-901)` });
   const [opened] = await attempts(d);
-  assert.deepEqual(opened, { record: 'solution_opened', schema_version: 2, ts: opened.ts, item_instance_id: id, item_id: 'Q-GA4-901', target_concept_id: PARENT, phase: 'free' });
+  assert.deepEqual(opened, { record: 'solution_opened', schema_version: SCHEMA_VERSION, ts: opened.ts, item_instance_id: id, item_id: 'Q-GA4-901', target_concept_id: PARENT, phase: 'free' });
   const typed = await json(show(app, 'Q-MET-901', 'methodology'));
   assert.deepEqual(await json(reveal(app, { item_id: 'Q-MET-901', item_instance_id: typed.item_instance_id })), { value: 37.4, explanation: TYPED_EXPLAIN });
   // The learner may still answer after the reveal (design §5: rated as a reveal before answering).
@@ -355,7 +355,7 @@ test('a session end closes an open choice instance, and recovery closes one from
   const id = served.item_instance_id;
   await reveal(app, { item_id: 'Q-GA4-901', item_instance_id: id });
   const opened = (await attempts(d))[0];
-  // After a crash, startup recovery closes it from the version 2 record alone.
+  // After a crash, startup recovery closes it from that record alone.
   const [recovered] = recoveredCloses([opened], new Map(), []);
   assert.deepEqual([recovered?.item_instance_id, recovered?.item_id, recovered?.target_concept_id, recovered?.reason], [id, 'Q-GA4-901', PARENT, 'session_end']);
   // Live, the session end closes it.

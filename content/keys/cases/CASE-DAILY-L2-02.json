@@ -1,0 +1,7 @@
+{
+  "case_id": "CASE-DAILY-L2-02",
+  "truths": {
+    "CP4": "WITH product_loss AS (\n  SELECT product_id, SUM(units * unit_cost_eur) - SUM(net_revenue_eur) AS loss_eur\n  FROM sales\n  WHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\n    AND net_revenue_eur IS NOT NULL AND units IS NOT NULL AND unit_cost_eur IS NOT NULL\n  GROUP BY product_id\n)\nSELECT ROUND(SUM(loss_eur), 2)\nFROM product_loss\nWHERE loss_eur > 0"
+  },
+  "choices": {}
+}

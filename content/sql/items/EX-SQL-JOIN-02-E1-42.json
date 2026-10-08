@@ -1,0 +1,157 @@
+{
+  "id": "EX-SQL-JOIN-02-E1-42",
+  "version": 1,
+  "kind": "predict_result",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "predict_result",
+    "right_join",
+    "categories",
+    "products"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-JOIN-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-JOIN-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02"
+  ],
+  "template_id": "T-JOIN-02-predict-result-right-join",
+  "template_params": {
+    "from": "products",
+    "join": "categories"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_join",
+  "prompt": "Which result does this query return? The sample rows in the tables panel show categories 1 to 5 and products 1 to 5; product 1 is in category 1, product 2 in category 2, and so on. Rows may be in any order.",
+  "output_contract": null,
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [],
+  "subgoals": [],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 60000,
+  "why_this_works": "",
+  "shown_sql": "SELECT c.category_name, p.product_name\nFROM products p\nRIGHT JOIN categories c ON c.category_id = p.category_id AND p.product_id <= 2\nWHERE c.category_id <= 3",
+  "options": [
+    {
+      "oid": "o0c5e3a5",
+      "text": "Only the two categories that have a matching product",
+      "misconception_id": "ERR-LOG-11",
+      "table": {
+        "columns": [
+          "category_name",
+          "product_name"
+        ],
+        "rows": [
+          [
+            "TVs up to 43 inch",
+            "Lumio Air 564"
+          ],
+          [
+            "TVs 50-55 inch",
+            "Nordvue One 153"
+          ]
+        ]
+      }
+    },
+    {
+      "oid": "oedc05f8",
+      "text": "All three categories, each with its own product",
+      "misconception_id": "ERR-LOG-10",
+      "table": {
+        "columns": [
+          "category_name",
+          "product_name"
+        ],
+        "rows": [
+          [
+            "TVs up to 43 inch",
+            "Lumio Air 564"
+          ],
+          [
+            "TVs 50-55 inch",
+            "Nordvue One 153"
+          ],
+          [
+            "TVs 65 inch and up",
+            "Lumio Lite 718"
+          ]
+        ]
+      }
+    },
+    {
+      "oid": "o68110ab",
+      "text": "All three categories, the third with a missing product_name",
+      "misconception_id": null,
+      "table": {
+        "columns": [
+          "category_name",
+          "product_name"
+        ],
+        "rows": [
+          [
+            "TVs up to 43 inch",
+            "Lumio Air 564"
+          ],
+          [
+            "TVs 50-55 inch",
+            "Nordvue One 153"
+          ],
+          [
+            "TVs 65 inch and up",
+            null
+          ]
+        ]
+      }
+    },
+    {
+      "oid": "oa007faa",
+      "text": "Only the category with no matching product",
+      "misconception_id": "ERR-LOG-11",
+      "table": {
+        "columns": [
+          "category_name",
+          "product_name"
+        ],
+        "rows": [
+          [
+            "TVs 65 inch and up",
+            null
+          ]
+        ]
+      }
+    }
+  ]
+}

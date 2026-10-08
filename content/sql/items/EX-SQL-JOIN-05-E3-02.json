@@ -1,0 +1,160 @@
+{
+  "id": "EX-SQL-JOIN-05-E3-02",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "full-outer-join",
+    "competitor_prices",
+    "products",
+    "categories",
+    "gap"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-JOIN-05"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-JOIN-05",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CTE-01",
+    "SQL-JOIN-01",
+    "SQL-JOIN-05"
+  ],
+  "template_id": "T-JOIN-05-full-outer-competitors-audio-gap",
+  "template_params": {
+    "parent_category": "Audio",
+    "from": "2025-03-03",
+    "to": "2025-03-09"
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_join",
+  "prompt": "For the products of the parent category Audio checked by Bliksem or by Stroomhuis from 3 to 9 March 2025, compare the two competitors' lowest prices. observed_ts holds UTC time: a check counts when its UTC date is in that week. Return four columns, in this order: product_name, bliksem_min_eur and stroomhuis_min_eur (the lowest price_eur each recorded for the product that week, missing when that competitor did not check it), and gap_eur, Stroomhuis's lowest minus Bliksem's lowest, missing when either is missing. Return one row for each Audio product checked by at least one of them that week. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "product_name",
+        "type_class": "text"
+      },
+      {
+        "name": "bliksem_min_eur",
+        "type_class": "numeric"
+      },
+      {
+        "name": "stroomhuis_min_eur",
+        "type_class": "numeric"
+      },
+      {
+        "name": "gap_eur",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "product_name",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "bliksem_min_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "stroomhuis_min_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "gap_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "product_name"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, join the products table on the product_id of whichever side of the FULL OUTER JOIN has one.",
+    "After the FULL OUTER JOIN a Stroomhuis-only product has no Bliksem product_id; joining products on one side's ID alone drops it again."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 220,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 221,
+      "to": 441,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 442,
+      "to": 557,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 558,
+      "to": 564,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 565,
+      "to": 613,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 614,
+      "to": 684,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 685,
+      "to": 735,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 736,
+      "to": 769,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "FULL OUTER JOIN keeps products checked by either rival, and joining products on the COALESCE of both IDs keeps the one-sided products when the category is added."
+}

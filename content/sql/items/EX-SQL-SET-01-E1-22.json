@@ -1,0 +1,118 @@
+{
+  "id": "EX-SQL-SET-01-E1-22",
+  "version": 4,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "set",
+    "intersect",
+    "customers",
+    "orders"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-SET-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-SET-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-NULL-01",
+    "SQL-TYPE-01",
+    "SQL-SET-01"
+  ],
+  "template_id": "T-SET-01-intersect-list",
+  "template_params": {
+    "table": "orders",
+    "days": "2025-05-12, 2025-05-17"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_set",
+  "prompt": "Which customers ordered on 2025-05-12 and ordered again on 2025-05-17, in any channel? Use the orders table. order_ts holds the time of the order in UTC, so take the days in UTC. Leave out guest orders, whose customer_id is missing. Return one column, customer_id, with one row for each customer. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "customer_id",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "customer_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "customer_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the list of customers who ordered on 2025-05-17 and keep only the customers in both lists.",
+    "INTERSECT keeps each row both parts return, once. It treats two missing values as equal, so the guest orders must be filtered out in both parts."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 18,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 19,
+      "to": 30,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 31,
+      "to": 109,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 110,
+      "to": 138,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 139,
+      "to": 150,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 151,
+      "to": 229,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "INTERSECT returns each customer_id found on both days once, and the IS NOT NULL filters keep the guest orders out."
+}

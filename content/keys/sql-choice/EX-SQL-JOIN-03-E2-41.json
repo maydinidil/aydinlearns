@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-JOIN-03-E2-41",
+  "item_version": 1,
+  "correct_oid": "o0cb4978",
+  "explanation": "The named step lists each promoted product once, so every order line of such a product meets one row and its quantity is added once. Joining the bridge table itself repeats the lines of a product in two promotions. SUM(DISTINCT quantity) does not undo that: it adds each different quantity value once, so thousands of one-unit lines count as 1. The LEFT JOIN keeps every line, promoted product or not.",
+  "solver": {
+    "prompt_hash": "bf82a95db9a9611f",
+    "grader_version": "choice.2",
+    "chosen": "o0cb4978",
+    "typed": null,
+    "at": "2026-10-07T09:58:58.595Z"
+  }
+}

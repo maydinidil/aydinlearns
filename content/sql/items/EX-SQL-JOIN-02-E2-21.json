@@ -1,0 +1,122 @@
+{
+  "id": "EX-SQL-JOIN-02-E2-21",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "left_join",
+    "filter_in_on",
+    "count_zero",
+    "categories",
+    "products",
+    "date_range"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-JOIN-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-JOIN-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02"
+  ],
+  "template_id": "T-JOIN-02-count-keep-zero-filtered",
+  "template_params": {
+    "from": "categories",
+    "join": "products",
+    "group": "parent_category",
+    "year": 2025
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_join",
+  "prompt": "How many products launched in 2025 does each parent category have? Count products with a launch_date from 1 January 2025 to 31 December 2025, both included. Include every parent category, with 0 for one with no such product. Return two columns, in this order: parent_category and n_products. Return one row for each parent category. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "parent_category",
+        "type_class": "text"
+      },
+      {
+        "name": "n_products",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "parent_category",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "n_products",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "parent_category"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, join the 2025 products so that every parent category stays.",
+    "The launch-year test is about products, so in WHERE it would drop a parent category with none. Count a column of products."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 59,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 60,
+      "to": 77,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 78,
+      "to": 197,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 198,
+      "to": 224,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "With the launch test in ON, every category keeps a row, and COUNT(p.product_id) counts only the 2025 products, 0 where there are none."
+}

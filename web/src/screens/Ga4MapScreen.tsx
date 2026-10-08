@@ -7,7 +7,7 @@ import { api, type ChoiceConceptView, type ChoiceSection } from '../api.ts';
 import { Ga4Runs } from '../components/Ga4Runs.tsx';
 import { PageHead } from '../components/PageHead.tsx';
 import { crumbParts } from '../lib/crumb.ts';
-import { mapGroups, mapRows, SECTION_LABEL, type ChoiceBadge, type MapRow } from '../lib/choice-flow.ts';
+import { mapGroups, mapRows, rowLinkName, SECTION_LABEL, type ChoiceBadge, type MapRow } from '../lib/choice-flow.ts';
 
 const Badges = ({ badges }: { badges: readonly ChoiceBadge[] }) => <>{badges.map((b) => <span key={b.kind}>{' '}<strong className="badge">{b.label}</strong></span>)}</>;
 
@@ -23,8 +23,8 @@ const RowList = ({ rows }: { rows: MapRow[] }) => (
             <strong>{r.title}</strong>{' '}<span className={`chip ${chipClass(r.state)} state-${r.state.toLowerCase()}`}>{r.state}</span>
             {r.level && <span className="muted"> {r.level}</span>}<Badges badges={r.badges} />
             <br />
-            {r.readingHref && <><a href={r.readingHref}>Reading</a>{' '}</>}
-            <a href={r.practiceHref}>Practice</a>
+            {r.readingHref && <><a href={r.readingHref} aria-label={rowLinkName('Reading', r.title)}>Reading</a>{' '}</>}
+            <a href={r.practiceHref} aria-label={rowLinkName('Practice', r.title)}>Practice</a>
             {r.practiceNote && <span className="muted"> {r.practiceNote}</span>}
             {r.children.length > 0 && (
               <ul>{r.children.map((x) => <li key={x.id}>{x.title}<Badges badges={x.badges} /></li>)}</ul>

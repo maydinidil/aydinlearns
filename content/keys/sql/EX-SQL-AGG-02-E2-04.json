@@ -7,7 +7,10 @@
     "SELECT store_code, order_month, SUM(net_revenue_eur) AS revenue_eur FROM sales WHERE order_month BETWEEN '2025-01-01' AND '2025-03-01' GROUP BY 1, 2 ORDER BY 1, 2",
     "SELECT store_code, order_month, SUM(net_revenue_eur) AS revenue_eur FROM sales WHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-03-31' GROUP BY order_month, store_code ORDER BY store_code, order_month"
   ],
-  "other_way": null,
+  "other_way": {
+    "sql": "SELECT store_code, order_month, SUM(net_revenue_eur) AS revenue_eur FROM sales WHERE order_month BETWEEN '2025-01-01' AND '2025-03-01' GROUP BY 1, 2 ORDER BY 1, 2",
+    "tradeoff": "Filters on the month column, which is short, but only works when the range is whole months."
+  },
   "planted_wrong": [
     {
       "id": "PW1",

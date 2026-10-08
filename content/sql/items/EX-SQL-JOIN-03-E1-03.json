@@ -1,0 +1,134 @@
+{
+  "id": "EX-SQL-JOIN-03-E1-03",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "fan_out",
+    "price_history",
+    "current_price",
+    "sales"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-JOIN-03"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "lesson",
+  "target_concept_id": "SQL-JOIN-03",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-JOIN-03"
+  ],
+  "template_id": "T-JOIN-03-versions-current-filter",
+  "template_params": {
+    "history": "price_history",
+    "fact": "sales",
+    "parent_category": "Audio"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_join",
+  "prompt": "How many units of each Audio product (parent_category 'Audio') were sold, and what is the product's current list price? The current list price is the price version with a missing valid_to. Use units and parent_category from the sales table. Return three columns, in this order: product_id, list_price_eur and units. Return one row for each Audio product that sold at least one unit. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "list_price_eur",
+        "type_class": "numeric"
+      },
+      {
+        "name": "units",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per Audio product sold"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "list_price_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "units",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "product_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, keep only one price version per product: the current one.",
+    "Each product has several rows in price_history, and every one of them pairs with every line; a test on valid_to keeps one row before the units are added up."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 61,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 62,
+      "to": 128,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 129,
+      "to": 188,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 189,
+      "to": 229,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": {
+    "stage1": 169,
+    "stage2": 129
+  },
+  "faded_shape": "SELECT s.product_id, ph.list_price_eur, SUM(s.units) AS units\nFROM sales s\nJOIN price_history ph ON ph.product_id = s.product_id\nWHERE s.parent_category = 'Audio'\n  AND ",
+  "faded_suffix": "\nGROUP BY s.product_id, ph.list_price_eur",
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "Keeping only the version with a missing valid_to leaves one price row per product, so each line is joined once and its units are added once."
+}

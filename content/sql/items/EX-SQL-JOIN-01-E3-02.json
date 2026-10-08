@@ -1,0 +1,132 @@
+{
+  "id": "EX-SQL-JOIN-01-E3-02",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "join",
+    "group_by",
+    "sum",
+    "order_lines",
+    "orders",
+    "stores",
+    "utc_day"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-JOIN-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-JOIN-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-JOIN-01"
+  ],
+  "template_id": "T-JOIN-01-revenue-per-dimension-month",
+  "template_params": {
+    "from": "order_lines",
+    "join": "orders, stores",
+    "group": "city",
+    "month": "2025-03"
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_join",
+  "prompt": "How much net revenue did the orders of each store city bring in during March 2025? order_ts holds UTC time: count orders from 1 March 2025 to 31 March 2025, UTC days, both included. A line's net revenue is quantity times unit_price_eur minus line_discount_eur. Return two columns, in this order: city and revenue_eur. Return one row for each city whose store took at least one order line in March 2025. Do not round. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "city",
+        "type_class": "text"
+      },
+      {
+        "name": "revenue_eur",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "city",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "revenue_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "city"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, join each line to its order and each order to its store, keep March, then group by city.",
+    "The city sits with the store, the time with the order, and the money on the line. Work out each line's net revenue before adding it up."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 86,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 87,
+      "to": 105,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 106,
+      "to": 146,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 147,
+      "to": 187,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 188,
+      "to": 288,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 289,
+      "to": 304,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "Lines join to one order and orders to one store, so each line's revenue is added once, under its store's city."
+}

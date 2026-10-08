@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-DATE-01-E2-04",
+  "item_version": 1,
+  "reference_sql": "SELECT CAST(timezone('Europe/Amsterdam', timezone('UTC', observed_ts)) AS DATE) AS check_day,\n       COUNT(*) AS checks\nFROM competitor_prices\nWHERE CAST(timezone('Europe/Amsterdam', timezone('UTC', observed_ts)) AS DATE) BETWEEN DATE '2025-06-28' AND DATE '2025-07-04'\nGROUP BY 1",
+  "alternatives": [
+    "SELECT date_trunc('day', timezone('Europe/Amsterdam', timezone('UTC', observed_ts))) AS check_day, COUNT(*) AS checks FROM competitor_prices WHERE timezone('Europe/Amsterdam', timezone('UTC', observed_ts)) >= TIMESTAMP '2025-06-28 00:00:00' AND timezone('Europe/Amsterdam', timezone('UTC', observed_ts)) < TIMESTAMP '2025-07-05 00:00:00' GROUP BY 1",
+    "SELECT CAST(timezone('Europe/Amsterdam', timezone('UTC', observed_ts)) AS DATE) AS check_day, COUNT(*) AS checks FROM competitor_prices WHERE observed_ts >= TIMESTAMP '2025-06-27 22:00:00' AND observed_ts < TIMESTAMP '2025-07-04 22:00:00' GROUP BY 1"
+  ],
+  "other_way": {
+    "sql": "SELECT CAST(timezone('Europe/Amsterdam', timezone('UTC', observed_ts)) AS DATE) AS check_day, COUNT(*) AS checks FROM competitor_prices WHERE observed_ts >= TIMESTAMP '2025-06-27 22:00:00' AND observed_ts < TIMESTAMP '2025-07-04 22:00:00' GROUP BY 1",
+    "tradeoff": "Filtering observed_ts on UTC bounds keeps the column bare, but you must work out the 2 hour summer offset yourself."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-26",
+      "sql": "SELECT CAST(observed_ts AS DATE) AS check_day, COUNT(*) AS checks FROM competitor_prices WHERE CAST(observed_ts AS DATE) BETWEEN DATE '2025-06-28' AND DATE '2025-07-04' GROUP BY 1"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-25",
+      "sql": "SELECT date_trunc('week', timezone('Europe/Amsterdam', timezone('UTC', observed_ts))) AS check_day, COUNT(*) AS checks FROM competitor_prices WHERE CAST(timezone('Europe/Amsterdam', timezone('UTC', observed_ts)) AS DATE) BETWEEN DATE '2025-06-28' AND DATE '2025-07-04' GROUP BY 1"
+    }
+  ],
+  "hint3_partial": "SELECT CAST(timezone(___, timezone(___, observed_ts)) AS DATE) AS check_day,\n       COUNT(*) AS checks\nFROM competitor_prices\nWHERE ___ BETWEEN DATE '2025-06-28' AND DATE '2025-07-04'\nGROUP BY 1",
+  "solver": {
+    "prompt_hash": "1142ade07528c6ce",
+    "schema_version": "ffc6be9b2fbc",
+    "dataset_version": "e1545e4258743033",
+    "grader_version": "1b.3",
+    "query": "SELECT CAST((observed_ts AT TIME ZONE 'UTC') AT TIME ZONE 'Europe/Amsterdam' AS DATE) AS check_day, COUNT(*) AS checks\nFROM competitor_prices\nWHERE CAST((observed_ts AT TIME ZONE 'UTC') AT TIME ZONE 'Europe/Amsterdam' AS DATE) BETWEEN DATE '2025-06-28' AND DATE '2025-07-04'\nGROUP BY 1",
+    "at": "2026-10-07T10:41:36.938Z"
+  }
+}

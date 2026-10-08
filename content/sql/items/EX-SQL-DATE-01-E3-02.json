@@ -1,0 +1,135 @@
+{
+  "id": "EX-SQL-DATE-01-E3-02",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "date",
+    "date_part",
+    "iso-week",
+    "isoyear",
+    "time-zone",
+    "amsterdam",
+    "orders"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-DATE-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-DATE-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-DATE-01"
+  ],
+  "template_id": "T-DATE-01-count-per-iso-week-amsterdam",
+  "template_params": {
+    "table": "orders",
+    "from": "2025-12-15",
+    "to": "2026-01-04",
+    "clock": "Europe/Amsterdam",
+    "channel": "web"
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_date",
+  "prompt": "How many web orders did Voltmarkt take in each ISO week at the turn of 2025 into 2026, by Amsterdam time? Use the orders table and keep the orders with channel 'web' whose Amsterdam date is from 2025-12-15 to 2026-01-04, both included. order_ts holds the time of the order in UTC: turn it into Amsterdam time first, then take the ISO week. Return three columns, in this order: iso_year, the year the ISO week belongs to, iso_week, the ISO week number, and orders, the number of web orders. Return one row for each ISO week. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "iso_year",
+        "type_class": "numeric"
+      },
+      {
+        "name": "iso_week",
+        "type_class": "numeric"
+      },
+      {
+        "name": "orders",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "iso_year",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "iso_week",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "orders",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "iso_year",
+      "iso_week"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the calculated columns: the ISO year and ISO week of each web order in Amsterdam time, and the count.",
+    "Convert order_ts to Amsterdam time before anything else, in SELECT and in WHERE. ISO week 1 of 2026 starts on Monday 29 December 2025, so take its year with isoyear, not year."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 192,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 193,
+      "to": 204,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 205,
+      "to": 350,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 351,
+      "to": 364,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "Taking isoyear and week of the Amsterdam time puts 29 December 2025 to 1 January 2026 in week 1 of 2026, with late-evening UTC orders on their Amsterdam day."
+}

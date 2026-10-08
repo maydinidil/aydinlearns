@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-CTE-01-E3-21",
+  "item_version": 1,
+  "reference_sql": "WITH customer_channels AS (\n  SELECT customer_id,\n    COUNT(*) FILTER (WHERE channel = 'store') AS store_orders,\n    COUNT(*) FILTER (WHERE channel = 'web') AS web_orders\n  FROM orders\n  WHERE customer_id IS NOT NULL\n  GROUP BY customer_id\n),\ncustomer_mix AS (\n  SELECT customer_id,\n    CASE WHEN store_orders > 0 AND web_orders > 0 THEN 'both' WHEN store_orders > 0 THEN 'store only' ELSE 'web only' END AS channel_mix\n  FROM customer_channels\n)\nSELECT channel_mix, COUNT(*) AS n_customers\nFROM customer_mix\nGROUP BY channel_mix",
+  "alternatives": [
+    "WITH c AS (SELECT customer_id, COUNT(DISTINCT channel) AS n_channels, MIN(channel) AS one_channel FROM orders WHERE customer_id IS NOT NULL GROUP BY customer_id) SELECT CASE WHEN n_channels = 2 THEN 'both' WHEN one_channel = 'store' THEN 'store only' ELSE 'web only' END AS channel_mix, COUNT(*) AS n_customers FROM c GROUP BY 1",
+    "WITH customer_channels AS (SELECT customer_id, SUM(CASE WHEN channel = 'store' THEN 1 ELSE 0 END) AS store_orders, SUM(CASE WHEN channel = 'web' THEN 1 ELSE 0 END) AS web_orders FROM orders WHERE customer_id IS NOT NULL GROUP BY customer_id) SELECT CASE WHEN store_orders > 0 AND web_orders > 0 THEN 'both' WHEN store_orders > 0 THEN 'store only' ELSE 'web only' END AS channel_mix, COUNT(*) AS n_customers FROM customer_channels GROUP BY CASE WHEN store_orders > 0 AND web_orders > 0 THEN 'both' WHEN store_orders > 0 THEN 'store only' ELSE 'web only' END"
+  ],
+  "other_way": {
+    "sql": "WITH c AS (SELECT customer_id, COUNT(DISTINCT channel) AS n_channels, MIN(channel) AS one_channel FROM orders WHERE customer_id IS NOT NULL GROUP BY customer_id) SELECT CASE WHEN n_channels = 2 THEN 'both' WHEN one_channel = 'store' THEN 'store only' ELSE 'web only' END AS channel_mix, COUNT(*) AS n_customers FROM c GROUP BY 1",
+    "tradeoff": "Counting different channels and naming one with MIN is shorter, but two separate counts state each case more plainly."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-14",
+      "sql": "WITH customer_channels AS (SELECT customer_id, COUNT(*) FILTER (WHERE channel = 'store') AS store_orders, COUNT(*) FILTER (WHERE channel = 'web') AS web_orders FROM orders WHERE customer_id IS NOT NULL GROUP BY customer_id), customer_mix AS (SELECT customer_id, store_orders + web_orders AS n_orders, CASE WHEN store_orders > 0 AND web_orders > 0 THEN 'both' WHEN store_orders > 0 THEN 'store only' ELSE 'web only' END AS channel_mix FROM customer_channels) SELECT channel_mix, SUM(n_orders) AS n_customers FROM customer_mix GROUP BY channel_mix"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-07",
+      "sql": "WITH customer_channels AS (SELECT customer_id, store_id, COUNT(*) FILTER (WHERE channel = 'store') AS store_orders, COUNT(*) FILTER (WHERE channel = 'web') AS web_orders FROM orders WHERE customer_id IS NOT NULL GROUP BY customer_id, store_id), customer_mix AS (SELECT customer_id, CASE WHEN store_orders > 0 AND web_orders > 0 THEN 'both' WHEN store_orders > 0 THEN 'store only' ELSE 'web only' END AS channel_mix FROM customer_channels) SELECT channel_mix, COUNT(*) AS n_customers FROM customer_mix GROUP BY channel_mix"
+    }
+  ],
+  "hint3_partial": "WITH customer_channels AS (\n  SELECT customer_id,\n    COUNT(*) FILTER (WHERE ___) AS store_orders,\n    COUNT(*) FILTER (WHERE ___) AS web_orders\n  FROM orders\n  WHERE customer_id IS NOT NULL\n  GROUP BY customer_id\n),\ncustomer_mix AS (\n  SELECT customer_id,\n    CASE WHEN ___ THEN 'both' WHEN ___ THEN 'store only' ELSE 'web only' END AS channel_mix\n  FROM customer_channels\n)\nSELECT channel_mix, COUNT(*) AS n_customers\nFROM customer_mix\nGROUP BY ___",
+  "solver": {
+    "prompt_hash": "44f4c3a96a901e95",
+    "schema_version": "7ed366279088",
+    "dataset_version": "e1545e4258743033",
+    "grader_version": "1b.3",
+    "query": "WITH per_customer AS (\n  SELECT customer_id,\n         COUNT(CASE WHEN channel = 'store' THEN 1 END) AS store_orders,\n         COUNT(CASE WHEN channel = 'web' THEN 1 END) AS web_orders\n  FROM orders\n  WHERE customer_id IS NOT NULL\n  GROUP BY customer_id\n)\nSELECT CASE WHEN store_orders > 0 AND web_orders > 0 THEN 'both'\n            WHEN store_orders > 0 THEN 'store only'\n            ELSE 'web only' END AS channel_mix,\n       COUNT(*) AS n_customers\nFROM per_customer\nGROUP BY 1",
+    "at": "2026-10-07T10:41:36.011Z"
+  }
+}

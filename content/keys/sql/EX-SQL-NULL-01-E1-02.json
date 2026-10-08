@@ -7,7 +7,10 @@
     "SELECT product_id, product_name, brand, sister_product_id\nFROM products\nWHERE sister_product_id IS NOT NULL AND (brand = 'Echoline' OR brand = 'Sonora')",
     "SELECT product_id, product_name, brand, sister_product_id\nFROM products\nWHERE (brand = 'Sonora' OR brand = 'Echoline') AND NOT sister_product_id IS NULL"
   ],
-  "other_way": null,
+  "other_way": {
+    "sql": "SELECT product_id, product_name, brand, sister_product_id\nFROM products\nWHERE brand IN ('Sonora', 'Echoline') AND sister_product_id IS NOT NULL",
+    "tradeoff": "IN lists the values once and reads shorter, while the OR version repeats the column name for each value."
+  },
   "planted_wrong": [
     {
       "id": "M1",

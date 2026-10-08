@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-JOIN-03-E1-08",
+  "item_version": 1,
+  "reference_sql": "WITH changed_products AS (\n  SELECT product_id\n  FROM price_history\n  GROUP BY product_id\n  HAVING COUNT(*) > 1\n)\nSELECT SUM(ol.quantity) AS units\nFROM order_lines ol\nJOIN changed_products cp ON cp.product_id = ol.product_id",
+  "alternatives": [
+    "WITH versions AS (SELECT product_id, COUNT(*) AS n_versions FROM price_history GROUP BY product_id) SELECT SUM(ol.quantity) AS units FROM order_lines ol JOIN versions v ON v.product_id = ol.product_id WHERE v.n_versions > 1",
+    "WITH product_units AS (SELECT product_id, SUM(quantity) AS units FROM order_lines GROUP BY product_id), changed_products AS (SELECT product_id FROM price_history GROUP BY product_id HAVING COUNT(*) >= 2) SELECT SUM(u.units) AS units FROM product_units u JOIN changed_products c ON c.product_id = u.product_id"
+  ],
+  "other_way": {
+    "sql": "WITH versions AS (SELECT product_id, COUNT(*) AS n_versions FROM price_history GROUP BY product_id) SELECT SUM(ol.quantity) AS units FROM order_lines ol JOIN versions v ON v.product_id = ol.product_id WHERE v.n_versions > 1",
+    "tradeoff": "Keeping each product's version count in the step and filtering after the join works, but HAVING keeps the step to the products needed."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-01",
+      "sql": "SELECT SUM(ol.quantity) AS units FROM order_lines ol JOIN price_history ph ON ph.product_id = ol.product_id WHERE ph.valid_to IS NOT NULL"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-15",
+      "sql": "WITH changed_products AS (SELECT product_id FROM price_history GROUP BY product_id HAVING COUNT(*) >= 1) SELECT SUM(ol.quantity) AS units FROM order_lines ol JOIN changed_products cp ON cp.product_id = ol.product_id"
+    }
+  ],
+  "hint3_partial": "WITH changed_products AS (\n  SELECT product_id\n  FROM price_history\n  GROUP BY product_id\n  HAVING ___\n)\nSELECT SUM(ol.quantity) AS units\nFROM order_lines ol\nJOIN changed_products cp ON ___",
+  "solver": {
+    "prompt_hash": "e70913a36e4f32c7",
+    "schema_version": "7ecef712588c",
+    "dataset_version": "e1545e4258743033",
+    "grader_version": "1b.3",
+    "query": "SELECT SUM(quantity) AS units\nFROM order_lines\nWHERE product_id IN (\n  SELECT product_id FROM price_history GROUP BY product_id HAVING COUNT(*) > 1\n)",
+    "at": "2026-10-07T10:41:39.552Z"
+  }
+}

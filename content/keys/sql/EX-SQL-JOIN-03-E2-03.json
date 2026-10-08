@@ -1,0 +1,39 @@
+{
+  "item_id": "EX-SQL-JOIN-03-E2-03",
+  "item_version": 1,
+  "reference_sql": "WITH versions AS (\n  SELECT product_id, COUNT(*) AS n_versions\n  FROM price_history\n  GROUP BY product_id\n),\nchecks AS (\n  SELECT product_id, COUNT(*) AS n_checks\n  FROM competitor_prices\n  GROUP BY product_id\n)\nSELECT p.product_id, v.n_versions, COALESCE(c.n_checks, 0) AS n_checks\nFROM products p\nJOIN versions v ON v.product_id = p.product_id\nLEFT JOIN checks c ON c.product_id = p.product_id\nWHERE p.brand IN ('Vistara', 'Sonora')",
+  "alternatives": [
+    "WITH checks AS (SELECT product_id, COUNT(*) AS n_checks FROM competitor_prices GROUP BY product_id) SELECT ph.product_id, COUNT(*) AS n_versions, COALESCE(MAX(c.n_checks), 0) AS n_checks FROM price_history ph JOIN products p ON p.product_id = ph.product_id LEFT JOIN checks c ON c.product_id = ph.product_id WHERE p.brand IN ('Vistara', 'Sonora') GROUP BY ph.product_id",
+    "WITH versions AS (SELECT product_id, COUNT(valid_from) AS n_versions FROM price_history GROUP BY product_id), checks AS (SELECT product_id, COUNT(*) AS n_checks FROM competitor_prices GROUP BY product_id) SELECT p.product_id, COALESCE(v.n_versions, 0) AS n_versions, COALESCE(c.n_checks, 0) AS n_checks FROM products p LEFT JOIN versions v ON v.product_id = p.product_id LEFT JOIN checks c ON c.product_id = p.product_id WHERE p.brand = 'Vistara' OR p.brand = 'Sonora'"
+  ],
+  "other_way": {
+    "sql": "WITH checks AS (SELECT product_id, COUNT(*) AS n_checks FROM competitor_prices GROUP BY product_id) SELECT ph.product_id, COUNT(*) AS n_versions, COALESCE(MAX(c.n_checks), 0) AS n_checks FROM price_history ph JOIN products p ON p.product_id = ph.product_id LEFT JOIN checks c ON c.product_id = ph.product_id WHERE p.brand IN ('Vistara', 'Sonora') GROUP BY ph.product_id",
+    "tradeoff": "One step is enough if MAX carries the check count through the grouping, which works because every row of a product holds the same count."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-01",
+      "sql": "SELECT p.product_id, COUNT(ph.valid_from) AS n_versions, COUNT(cp.observed_ts) AS n_checks FROM products p JOIN price_history ph ON ph.product_id = p.product_id LEFT JOIN competitor_prices cp ON cp.product_id = p.product_id WHERE p.brand IN ('Vistara', 'Sonora') GROUP BY p.product_id"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-11",
+      "sql": "WITH versions AS (SELECT product_id, COUNT(*) AS n_versions FROM price_history GROUP BY product_id), checks AS (SELECT product_id, COUNT(*) AS n_checks FROM competitor_prices GROUP BY product_id) SELECT p.product_id, v.n_versions, c.n_checks FROM products p JOIN versions v ON v.product_id = p.product_id JOIN checks c ON c.product_id = p.product_id WHERE p.brand IN ('Vistara', 'Sonora')"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-17",
+      "sql": "WITH versions AS (SELECT product_id, COUNT(*) AS n_versions FROM price_history GROUP BY product_id), checks AS (SELECT product_id, COUNT(*) AS n_checks FROM competitor_prices GROUP BY product_id) SELECT p.product_id, v.n_versions, c.n_checks FROM products p JOIN versions v ON v.product_id = p.product_id LEFT JOIN checks c ON c.product_id = p.product_id WHERE p.brand IN ('Vistara', 'Sonora')"
+    }
+  ],
+  "hint3_partial": "WITH versions AS (\n  SELECT product_id, COUNT(*) AS n_versions\n  FROM price_history\n  GROUP BY product_id\n),\nchecks AS (\n  SELECT product_id, COUNT(*) AS n_checks\n  FROM competitor_prices\n  GROUP BY ___\n)\nSELECT p.product_id, v.n_versions, COALESCE(___, 0) AS n_checks\nFROM products p\nJOIN versions v ON v.product_id = p.product_id\nLEFT JOIN checks c ON ___\nWHERE p.brand IN ('Vistara', 'Sonora')",
+  "solver": {
+    "prompt_hash": "67f5c13ab31dfc53",
+    "schema_version": "f9ece455102d",
+    "dataset_version": "e1545e4258743033",
+    "grader_version": "1b.3",
+    "query": "WITH versions AS (\n  SELECT product_id, COUNT(*) AS n_versions\n  FROM price_history\n  GROUP BY product_id\n), checks AS (\n  SELECT product_id, COUNT(*) AS n_checks\n  FROM competitor_prices\n  GROUP BY product_id\n)\nSELECT p.product_id, COALESCE(v.n_versions, 0) AS n_versions, COALESCE(c.n_checks, 0) AS n_checks\nFROM products p\nLEFT JOIN versions v ON v.product_id = p.product_id\nLEFT JOIN checks c ON c.product_id = p.product_id\nWHERE p.brand IN ('Vistara', 'Sonora')",
+    "at": "2026-10-07T10:41:39.837Z"
+  }
+}

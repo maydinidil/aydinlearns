@@ -1,0 +1,36 @@
+{
+  "item_id": "EX-CASE-DAILY-L1-02",
+  "item_version": 1,
+  "reference_sql": "SELECT product_id, product_name, brand, unit_cost_eur, unit_cost_eur * 1.6 AS shelf_price_eur\nFROM products\nWHERE (category_id = 15 OR category_id = 16) AND unit_cost_eur < 40\nORDER BY unit_cost_eur, product_id",
+  "alternatives": [
+    "SELECT product_id, product_name, brand, unit_cost_eur, unit_cost_eur + unit_cost_eur * 0.6 AS shelf_price_eur FROM products WHERE category_id IN (15, 16) AND unit_cost_eur < 40.00 ORDER BY 4, 1",
+    "SELECT product_id, product_name, brand, unit_cost_eur, unit_cost_eur * 160 / 100 AS shelf_price_eur FROM products WHERE unit_cost_eur < 40 AND (category_id = 16 OR category_id = 15) ORDER BY unit_cost_eur ASC, product_id ASC"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-13",
+      "sql": "SELECT product_id, product_name, brand, unit_cost_eur, unit_cost_eur * 1.6 AS shelf_price_eur FROM products WHERE category_id = 15 OR category_id = 16 AND unit_cost_eur < 40 ORDER BY unit_cost_eur, product_id"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-21",
+      "sql": "SELECT product_id, product_name, brand, unit_cost_eur, unit_cost_eur + unit_cost_eur * 60 AS shelf_price_eur FROM products WHERE (category_id = 15 OR category_id = 16) AND unit_cost_eur < 40 ORDER BY unit_cost_eur, product_id"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-18",
+      "sql": "SELECT product_id, product_name, brand, unit_cost_eur, unit_cost_eur * 1.6 AS shelf_price_eur FROM products WHERE (category_id = 15 OR category_id = 16) AND unit_cost_eur < 40 ORDER BY unit_cost_eur DESC, product_id"
+    }
+  ],
+  "hint3_partial": "SELECT product_id, product_name, brand, unit_cost_eur, unit_cost_eur * ___ AS shelf_price_eur\nFROM products\nWHERE (___) AND unit_cost_eur < 40\nORDER BY ___",
+  "solver": {
+    "prompt_hash": "b574efc6b14448c1",
+    "schema_version": "d77fe1c31a0e",
+    "dataset_version": "7f30f5a797e6a9ce",
+    "grader_version": "4b.1",
+    "query": "SELECT product_id, product_name, brand, unit_cost_eur, unit_cost_eur * 1.6 AS shelf_price_eur\nFROM products\nWHERE category_id IN (15, 16) AND unit_cost_eur < 40.00\nORDER BY unit_cost_eur ASC, product_id ASC",
+    "at": "2026-10-07T22:25:30.870Z"
+  }
+}

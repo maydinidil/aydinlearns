@@ -1,0 +1,121 @@
+{
+  "id": "EX-SQL-JOIN-03-E1-08",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "fan_out",
+    "cte",
+    "having",
+    "price_history",
+    "order_lines"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-JOIN-03"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-JOIN-03",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-AGG-03",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-JOIN-03"
+  ],
+  "template_id": "T-JOIN-03-versions-key-list",
+  "template_params": {
+    "history": "price_history",
+    "fact": "order_lines",
+    "condition": "more than one version"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_join",
+  "prompt": "How many units were sold, in total, of the products whose list price has changed at least once, that is, products with more than one price version? Each order line's quantity counts once. Return one column, units. The result is a single row. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "units",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "units",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, list the products with more than one price version, each product once.",
+    "Joining the lines to price_history itself repeats each line once per version; join them to the list of products instead."
+  ],
+  "subgoals": [
+    {
+      "from": 29,
+      "to": 46,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 49,
+      "to": 67,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 70,
+      "to": 89,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 92,
+      "to": 111,
+      "subgoal": "group_filter"
+    },
+    {
+      "from": 114,
+      "to": 146,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 147,
+      "to": 224,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "The step holds each changed product once, so every order line of such a product is joined once and its quantity is added once."
+}

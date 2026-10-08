@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-JOIN-05-E1-42",
+  "item_version": 1,
+  "correct_oid": "oa8b37a5",
+  "explanation": "CROSS JOIN builds every store and day pair first, and the LEFT JOIN with COALESCE turns a pair with no orders, such as Mechelen before it opened on 1 March 2025, into 0. An inner join drops those pairs, leaving out COALESCE shows a missing value instead of 0, and COUNT(*) counts the grid row itself, so a day with no order shows 1.",
+  "solver": {
+    "prompt_hash": "0992ebfab8812dab",
+    "grader_version": "choice.2",
+    "chosen": "oa8b37a5",
+    "typed": null,
+    "at": "2026-10-07T09:58:58.605Z"
+  }
+}

@@ -1,0 +1,89 @@
+{
+  "case_id": "CASE-DAILY-L2-02",
+  "kind": "daily",
+  "level": 2,
+  "world": "RETAIL",
+  "company_id": "voltmarkt",
+  "title": "Products sold below cost in 2025",
+  "persona": {
+    "name": "Marieke",
+    "role": "CFO"
+  },
+  "brief": {
+    "decision": "Which products the year-end report flags as sold below cost",
+    "deadline": "The year-end close next week"
+  },
+  "data_needed": [
+    "sales"
+  ],
+  "expected_output": {
+    "columns": [
+      "product_id",
+      "product_name",
+      "parent_category",
+      "revenue_eur",
+      "loss_eur"
+    ],
+    "grain": "one row per product",
+    "sort": [
+      {
+        "column": "parent_category",
+        "desc": false
+      },
+      {
+        "column": "product_id",
+        "desc": false
+      }
+    ]
+  },
+  "checkpoints": [
+    {
+      "id": "CP3",
+      "kind": "CP3",
+      "prompt": "Write the query that answers Marieke's question.",
+      "credits_concepts": [
+        "SQL-AGG-03",
+        "SQL-AGG-01",
+        "SQL-AGG-02"
+      ],
+      "item_id": "EX-CASE-DAILY-L2-02"
+    },
+    {
+      "id": "CP4",
+      "kind": "CP4",
+      "prompt": "Marieke's headline: how much did Voltmarkt lose in 2025 on the products it sold below cost? Use the lines of the sales table with an order_date from 2025-01-01 to 2025-12-31, both days included, where net_revenue_eur, units and unit_cost_eur are all present. A product's loss is the sum of units times unit_cost_eur minus the sum of net_revenue_eur; add up the losses of the products whose loss is greater than 0. Type the total in euros as a positive number, rounded to 2 decimals.",
+      "credits_concepts": [],
+      "item_id": "CASE-DAILY-L2-02:CP4",
+      "typed": {
+        "precision": "money",
+        "scale": "eur",
+        "decimals": 2,
+        "unit_label": "euros"
+      },
+      "truth_key": "CASE-DAILY-L2-02:CP4"
+    }
+  ],
+  "model_plan": "Metric formula: revenue_eur is the sum of net_revenue_eur; loss_eur is the sum of units times unit_cost_eur minus that revenue.\nOutput grain: one row per product.\nTables and keys: the sales view only, one row per order line; group on product_id, product_name and parent_category.\nFilters: order_date from 2025-01-01 to 2025-12-31, both days included, and only the lines with net_revenue_eur, units and unit_cost_eur all present (row filter); cost greater than revenue (group filter, after grouping).\nEdge cases: a line with a missing value would add cost without revenue, or revenue without cost; a product can lose money on some lines yet make money over the year.\nExpected row count: 9",
+  "model_answer_template": "In 2025 Voltmarkt lost {CP4} euros on the products it sold below cost over the year. Check where the loss sits: if a few products carry most of it, see whether their list price is below their unit cost or whether promotions explain it. The sales data may not hold returns, supplier rebates or delivery costs, so the true loss can be higher or lower. Next, ask the pricing team to check these prices against cost before any change.",
+  "follow_up_question": "Which of these products are still listed below their unit cost today?",
+  "data_source": {
+    "label": "Fictional, generated data: Voltmarkt",
+    "real": false,
+    "licence": null
+  },
+  "difficulty": 1,
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-AGG-03"
+  ],
+  "metric_ids": [],
+  "find_ids": [],
+  "uses_raw": false
+}

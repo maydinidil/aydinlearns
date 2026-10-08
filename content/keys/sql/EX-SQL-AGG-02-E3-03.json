@@ -7,7 +7,10 @@
     "SELECT channel, order_month, COUNT(DISTINCT order_id) AS n_orders, SUM(net_revenue_eur) AS revenue_eur, SUM(net_revenue_eur) / COUNT(DISTINCT order_id) AS avg_order_value_eur FROM sales WHERE order_date >= DATE '2025-01-01' AND order_date <= DATE '2025-03-31' GROUP BY channel, order_month ORDER BY channel ASC, order_month ASC",
     "SELECT channel, order_month, COUNT(DISTINCT order_id) AS n_orders, SUM(net_revenue_eur) AS revenue_eur, SUM(net_revenue_eur) / COUNT(DISTINCT order_id) AS avg_order_value_eur FROM sales WHERE order_month BETWEEN '2025-01-01' AND '2025-03-01' GROUP BY order_month, channel ORDER BY channel, order_month"
   ],
-  "other_way": null,
+  "other_way": {
+    "sql": "SELECT channel, order_month, COUNT(DISTINCT order_id) AS n_orders, SUM(net_revenue_eur) AS revenue_eur, SUM(net_revenue_eur) / COUNT(DISTINCT order_id) AS avg_order_value_eur FROM sales WHERE order_month BETWEEN '2025-01-01' AND '2025-03-01' GROUP BY order_month, channel ORDER BY channel, order_month",
+    "tradeoff": "Filters on the month column, which is short, but only works when the range is whole months."
+  },
   "planted_wrong": [
     {
       "id": "PW1",

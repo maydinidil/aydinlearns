@@ -1,0 +1,126 @@
+{
+  "id": "EX-SQL-JOIN-01-E2-32",
+  "version": 1,
+  "kind": "fix",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "join",
+    "fix",
+    "missing_join_condition",
+    "bridge",
+    "promotion_products",
+    "promotions",
+    "products"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-JOIN-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-JOIN-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-JOIN-01"
+  ],
+  "template_id": "T-JOIN-01-fix-missing-condition",
+  "template_params": {
+    "from": "promotion_products",
+    "join": "promotions, products",
+    "month": "2025-03"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_join",
+  "prompt": "The query in the editor has one mistake. Fix it so that it lists, for the promotions that started in March 2025 (start_date from 1 March 2025 to 31 March 2025, both included), each product the promotion covers. Return two columns, in this order: promo_code and product_name. Return one row for each promotion and product it covers. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "promo_code",
+        "type_class": "text"
+      },
+      {
+        "name": "product_name",
+        "type_class": "text"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "promo_code",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "product_name",
+        "type_class": "text",
+        "precision": "exact"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "promo_code",
+      "product_name"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, add the match between each bridge row and its promotion.",
+    "Every table in the FROM list needs a link to another one. The products are linked, but nothing ties a bridge row to its promotion, so every promotion pairs with every row."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 36,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 37,
+      "to": 63,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 64,
+      "to": 111,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 112,
+      "to": 159,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 160,
+      "to": 227,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": "SELECT pr.promo_code, p.product_name\nFROM promotion_products pp, promotions pr, products p\nWHERE p.product_id = pp.product_id\n  AND pr.start_date BETWEEN DATE '2025-03-01' AND DATE '2025-03-31'",
+  "starter_error_id": "ERR-SEM-03",
+  "time_target_ms": 180000,
+  "why_this_works": "Each bridge row names one promotion; without that match the query pairs every March promotion with every bridge row."
+}

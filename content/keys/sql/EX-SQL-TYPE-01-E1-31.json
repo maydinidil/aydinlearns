@@ -6,7 +6,10 @@
     "SELECT parent_category, ROUND(COUNT(*) FILTER (WHERE units >= 2) * 100.0 / COUNT(*), 1) AS multi_unit_pct FROM sales WHERE order_date >= DATE '2025-01-01' AND order_date < DATE '2026-01-01' GROUP BY parent_category",
     "SELECT parent_category, ROUND(CAST(COUNT(CASE WHEN units >= 2 THEN 1 END) AS DOUBLE) * 100 / COUNT(*), 1) AS multi_unit_pct FROM sales WHERE order_date BETWEEN '2025-01-01' AND '2025-12-31' GROUP BY 1"
   ],
-  "other_way": null,
+  "other_way": {
+    "sql": "SELECT parent_category, ROUND(COUNT(*) FILTER (WHERE units >= 2) * 100.0 / COUNT(*), 1) AS multi_unit_pct FROM sales WHERE order_date >= DATE '2025-01-01' AND order_date < DATE '2026-01-01' GROUP BY parent_category",
+    "tradeoff": "Reads closer to plain English, but FILTER is not available in every SQL dialect."
+  },
   "planted_wrong": [
     {
       "id": "EX-SQL-TYPE-01-E1-31-PW1",

@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-DATE-01-E1-08",
+  "item_version": 1,
+  "reference_sql": "SELECT date_trunc('month', valid_from) AS change_month,\n       COUNT(*) AS price_changes\nFROM price_history\nWHERE valid_from BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\nGROUP BY date_trunc('month', valid_from)",
+  "alternatives": [
+    "SELECT CAST(date_trunc('month', valid_from) AS DATE) AS change_month, COUNT(*) AS price_changes FROM price_history WHERE year(valid_from) = 2025 GROUP BY 1",
+    "SELECT make_date(2025, month(valid_from), 1) AS change_month, COUNT(*) AS price_changes FROM price_history WHERE valid_from >= DATE '2025-01-01' AND valid_from < DATE '2026-01-01' GROUP BY month(valid_from)"
+  ],
+  "other_way": {
+    "sql": "SELECT make_date(2025, month(valid_from), 1) AS change_month, COUNT(*) AS price_changes FROM price_history WHERE valid_from >= DATE '2025-01-01' AND valid_from < DATE '2026-01-01' GROUP BY month(valid_from)",
+    "tradeoff": "Building each date from 2025 and the month number works here, but only because the filter keeps a single year."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-25",
+      "sql": "SELECT date_trunc('week', valid_from) AS change_month, COUNT(*) AS price_changes FROM price_history WHERE valid_from BETWEEN DATE '2025-01-01' AND DATE '2025-12-31' GROUP BY 1"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-23",
+      "sql": "SELECT date_trunc('month', valid_from) AS change_month, COUNT(*) AS price_changes FROM price_history WHERE valid_from > DATE '2025-01-01' AND valid_from < DATE '2025-12-31' GROUP BY 1"
+    }
+  ],
+  "hint3_partial": "SELECT date_trunc(___, valid_from) AS change_month,\n       COUNT(*) AS price_changes\nFROM price_history\nWHERE valid_from BETWEEN ___ AND ___\nGROUP BY date_trunc('month', valid_from)",
+  "solver": {
+    "prompt_hash": "294e661e1ea146fe",
+    "schema_version": "e8cea7c4eacc",
+    "dataset_version": "e1545e4258743033",
+    "grader_version": "1b.3",
+    "query": "SELECT date_trunc('month', valid_from)::DATE AS change_month, COUNT(*) AS price_changes\nFROM price_history\nWHERE valid_from >= DATE '2025-01-01' AND valid_from <= DATE '2025-12-31'\nGROUP BY 1",
+    "at": "2026-10-07T10:41:36.542Z"
+  }
+}

@@ -16,12 +16,13 @@ import type { Lesson } from '../../schemas/lesson.ts';
 import type { SqlKey } from '../../schemas/keys.ts';
 import type { AydinAttempt } from '../../schemas/log-ext.ts';
 import { createApp, type AppDeps } from '../../server/app.ts';
-import type { ContentStore } from '../../server/content.ts';
+import { loadContent, type ContentStore } from '../../server/content.ts';
 import type { ChoiceItem } from '../../schemas/choice.ts';
 import { AttemptLogger } from '../../server/log.ts';
 import { SessionTracker } from '../../server/session.ts';
 import { Servings } from '../../server/servings.ts';
 import { LearnerState } from '../../server/state.ts';
+import { makeChoiceRoot, METRIC, PARENT } from '../helpers/choice-fixture.ts';
 import { instance } from '../helpers/replay-fixture.ts';
 import type { OpenerView } from '../../server/routes/today.ts';
 import type { OpenerView as WebOpenerView } from '../../web/src/api.ts';
@@ -37,6 +38,10 @@ const curriculum = JSON.parse(await readFile('content/sql/curriculum.json', 'utf
 const WITH_CONTENT = ['SQL-BASICS-01', 'SQL-BASICS-02', 'SQL-FILTER-01', 'SQL-FILTER-02', 'SQL-SORT-01', 'SQL-NULL-01', 'SQL-AGG-01'];
 const FIX_CONCEPT = 'SQL-NULL-01';
 const id = (concept: string, n: string) => `EX-${concept}-${n}`;
+/** The case record fields sprint 4b added (S4B-01); these routes read none of them. */
+const CASE_FIELDS = { kind: 'opener' as const, level: 1, data_needed: ['promotions'], follow_up_question: 'What next?',
+  expected_output: { columns: ['promo_code'], grain: 'one row per promotion', sort: [{ column: 'promo_code', desc: false }] },
+  data_source: { label: 'Fictional, generated data: Voltmarkt', real: false, licence: null } };
 const SHAPE = 'SELECT city\n  FROM stores\n';
 
 function sqlItem(itemId: string, concept: string, use: SqlItem['use'], over: Partial<SqlItem> = {}): SqlItem {
@@ -237,14 +242,14 @@ test('POST /api/serve: at most 1 fix item in 3 review servings of a session (S2-
 });
 
 test('POST /api/serve: the new concept\'s first pretest item, the re-test item, and the opener\'s CP3 item in phase case', async () => {
-  const opener: CaseRecord = { case_id: 'CASE-VOLT-L1', world: 'pricing', company_id: 'voltmarkt', title: 'Opener', persona: { name: 'Sam', role: 'manager' },
+  const opener: CaseRecord = { ...CASE_FIELDS, case_id: 'CASE-VOLT-L1', world: 'pricing', company_id: 'voltmarkt', title: 'Opener', persona: { name: 'Sam', role: 'manager' },
     brief: { decision: 'd', deadline: 'x' }, checkpoints: [{ id: 'CP3', kind: 'CP3', prompt: 'p', credits_concepts: ['SQL-BASICS-01', 'SQL-FILTER-01'], item_id: id('SQL-BASICS-01', 'E2-10') }],
     model_plan: '', model_answer_template: '', difficulty: 1, concept_ids: ['SQL-BASICS-01', 'SQL-FILTER-01'], metric_ids: [], find_ids: [], uses_raw: false };
   const d = await deps({ content: memoryContent([], { openers: () => [opener] } as Partial<ContentStore>) });
   const app = createApp(d);
   const plan = (await json(get(app, '/api/today?section=sql'))).plan;
-  assert.deepEqual(plan.steps.slice(0, 2), [{ kind: 'opener', case_id: 'CASE-VOLT-L1', mode: 'preview' },
-    { kind: 'new_concept', concept_id: 'SQL-BASICS-01', held_back: null, reason: null }], 'S2-51: read-only before the level\'s first concept');
+  assert.deepEqual(plan.steps.slice(0, 2), [{ kind: 'opener', case_id: 'CASE-VOLT-L1', mode: 'preview', sketch: true },
+    { kind: 'new_concept', concept_id: 'SQL-BASICS-01', held_back: null, reason: null }], 'S2-51: read-only before the level\'s first concept; S4B-13: with the sketch');
   const fresh = await json(post(app, '/api/serve', { section: 'sql', purpose: 'new_concept' }));
   assert.deepEqual([fresh.item_id, fresh.phase, fresh.hide_labels], [id('SQL-BASICS-01', 'E1-01'), 'pretest', false]);
   const retest = await json(post(app, '/api/serve', { section: 'sql', purpose: 'retest', concept_id: 'SQL-FILTER-02' }));
@@ -362,7 +367,7 @@ const sameShape: [(x: OpenerView) => WebOpenerView, (x: WebOpenerView) => Opener
 void sameShape;
 
 function openerCase(case_id: string, concepts: string[], cp3: string | null): CaseRecord {
-  return { case_id, world: 'pricing', company_id: 'voltmarkt', title: `The ${case_id} question`, persona: { name: 'Sam', role: 'manager' },
+  return { ...CASE_FIELDS, case_id, world: 'pricing', company_id: 'voltmarkt', title: `The ${case_id} question`, persona: { name: 'Sam', role: 'manager' },
     brief: { decision: 'MODEL-DECISION', deadline: 'x' },
     checkpoints: [{ id: 'CP1', kind: 'CP1', prompt: 'CHECKPOINT-PROMPT', credits_concepts: concepts }, ...(cp3 === null ? [] : [{ id: 'CP3', kind: 'CP3' as const, prompt: 'CHECKPOINT-PROMPT', credits_concepts: concepts, item_id: cp3 }])],
     model_plan: 'MODEL-PLAN', model_answer_template: 'MODEL-ANSWER', difficulty: 1, concept_ids: concepts, metric_ids: [], find_ids: [], uses_raw: false };
@@ -410,4 +415,109 @@ test('GET /api/items/:id for a GA4 or Methodology question ID (a held-out one ty
   assert.deepEqual([r.status, (await r.json()).error], [404, 'This question is not available for practice.']);
   const u = await get(app, '/api/items/Q-GA4-NOPE');
   assert.deepEqual([u.status, (await u.json()).error], [404, 'Unknown item.']);
+});
+
+// ---- sprint 4b, Task D3: the daily case (S4B-15), the mid-level question (S4B-14), GA4 and Methodology unchanged -----------------
+
+/** A case record for Today's tests: its kind, level and checkpoints; the other fields are placeholders Today never reads. */
+function caseRecord(case_id: string, kind: CaseRecord['kind'], level: number, checkpoints: CaseRecord['checkpoints']): CaseRecord {
+  return { ...CASE_FIELDS, kind, level, case_id, world: 'pricing', company_id: 'voltmarkt', title: `The ${case_id} question`, persona: { name: 'Yara', role: 'Retail operations' },
+    brief: { decision: 'd', deadline: 'x' }, checkpoints, model_plan: '', model_answer_template: '', difficulty: 1,
+    concept_ids: [...new Set(checkpoints.flatMap((p) => p.credits_concepts))], metric_ids: [], find_ids: [], uses_raw: false };
+}
+const COUNT = { precision: 'count', scale: 'plain', decimals: 0, unit_label: 'stores' } as const;
+const cp4Of = (caseId: string): CaseRecord['checkpoints'][number] =>
+  ({ id: 'CP4', kind: 'CP4', prompt: 'p', credits_concepts: [], item_id: `${caseId}:CP4`, typed: { ...COUNT }, truth_key: `${caseId}:CP4` });
+const dailyCase = (caseId: string, credits: string[]) => caseRecord(caseId, 'daily', 1, [
+  { id: 'CP3', kind: 'CP3', prompt: 'p', credits_concepts: credits, item_id: `EX-${caseId}` }, cp4Of(caseId)]);
+/** A level 1 opener with a CP1, as the level 3 opener has (S4B-05): the mid-level question. */
+const openerWithCp1 = caseRecord('CASE-VOLT-L1', 'opener', 1, [
+  { id: 'CP1', kind: 'CP1', prompt: 'p', credits_concepts: [], item_id: 'CASE-VOLT-L1:CP1' },
+  { id: 'CP3', kind: 'CP3', prompt: 'p', credits_concepts: ['SQL-BASICS-01', 'SQL-FILTER-01'], item_id: 'EX-OPENER-L1-01' }, cp4Of('CASE-VOLT-L1')]);
+/** The store's case methods for these records, with each checkpoint item's credits, so replay rates them as checkpoints. */
+function withCases(cases: CaseRecord[]): Partial<ContentStore> {
+  const credits = new Map(cases.flatMap((c) => c.checkpoints.flatMap((p) => (p.item_id ? [[p.item_id, p.credits_concepts] as const] : []))));
+  return { cases: () => cases, case: (x) => cases.find((c) => c.case_id === x), openers: () => cases.filter((c) => c.kind === 'opener'),
+    opener: (x) => cases.find((c) => c.case_id === x && c.kind === 'opener'), checkpointCredits: (x) => credits.get(x) };
+}
+/** A reading, then three passes on three different pool items, `days` days ago: the concept is at Practised (S2-20). */
+async function practise(d: AppDeps, concepts: string[], days = 5): Promise<void> {
+  for (const c of concepts) {
+    await d.logger.exposure(exposureRec(c, iso(days * DAY + 3_600_000)));
+    for (const [n, it] of ['E1-08', 'E1-09', 'E2-10'].entries()) await logInstance(d, { inst: `P-${c}-${it}`, item: id(c, it), concept: c, at: iso(days * DAY - n * 3_600_000) });
+  }
+}
+/** Writes an instance's records as the server does. */
+async function write(d: AppDeps, recs: object[]): Promise<void> {
+  for (const r of recs) {
+    if ((r as { record: string }).record === 'attempt') await d.logger.attempt(r as AydinAttempt);
+    else await d.logger.itemClose(r as never);
+  }
+}
+/** A checkpoint answered moments ago in its own instance (phase case): on today's Amsterdam date. */
+const answerNow = (d: AppDeps, inst: string, item: string, kind: string, pass: boolean) => write(d, instance({ id: inst, item, concept: 'SQL-BASICS-01', phase: 'case', kind,
+  version: 2, start: iso(4_000), steps: [{ at: iso(3_000), submit: pass ? 'pass' : 'fail' }], close: { at: iso(2_000) } }));
+const logs = async (d: AppDeps) => [await d.logger.readAll('attempts'), await d.logger.readAll('events')];
+
+test('S4B-15 (GET /api/today): the day\'s case is the same after a restart, shows as done once solved, and no second one comes that day; Today logs nothing', async () => {
+  const cases = [dailyCase('CASE-DAILY-L1-01', ['SQL-BASICS-01', 'SQL-BASICS-02']), dailyCase('CASE-DAILY-L1-02', ['SQL-FILTER-01'])];
+  const content = memoryContent([], withCases(cases));
+  const d = await deps({ content });
+  const app = createApp(d);
+  const dailyStep = async (a: Hono = app) => (await json(get(a, '/api/today?section=sql'))).plan.steps.find((s: any) => s.kind === 'daily_case') ?? null;
+  assert.equal(await dailyStep(), null, 'no credited concept is practised yet');
+  await practise(d, ['SQL-FILTER-01']);
+  assert.deepEqual(await dailyStep(), { kind: 'daily_case', case_id: 'CASE-DAILY-L1-02', done: false });
+  await practise(d, ['SQL-BASICS-01', 'SQL-BASICS-02'], 6);
+  assert.deepEqual(await dailyStep(), { kind: 'daily_case', case_id: 'CASE-DAILY-L1-01', done: false }, 'both qualify: the case ID decides');
+  // The learner opens CASE-DAILY-L1-02 (from the inbox, say) and answers its query: it is the day's case from now on.
+  await answerNow(d, 'D-CP3', 'EX-CASE-DAILY-L1-02', 'write', true);
+  assert.deepEqual(await dailyStep(), { kind: 'daily_case', case_id: 'CASE-DAILY-L1-02', done: false });
+  await answerNow(d, 'D-CP4', 'CASE-DAILY-L1-02:CP4', 'typed', true);
+  const before = await logs(d);
+  assert.deepEqual(await dailyStep(), { kind: 'daily_case', case_id: 'CASE-DAILY-L1-02', done: true }, 'solved: shown as done; CASE-DAILY-L1-01 waits for another day');
+  // A restart: the state replayed afresh from the same log.
+  const restarted = await deps({ content, logger: d.logger, state: new LearnerState({ content, attempts: before[0]!, events: before[1]!, examDate: () => null }) });
+  assert.deepEqual(await dailyStep(createApp(restarted)), { kind: 'daily_case', case_id: 'CASE-DAILY-L1-02', done: true });
+  assert.deepEqual(await logs(d), before, 'reading Today wrote nothing: the day\'s case comes from the log alone');
+  // GA4 and Methodology never get one.
+  assert.ok(!(await json(get(app, '/api/today?section=ga4'))).plan.steps.some((s: any) => s.kind === 'daily_case'));
+});
+
+test('S4B-14 (GET /api/today): the opener\'s CP1 step appears at half the level\'s concepts and goes once CP1 has an answer', async () => {
+  const d = await deps({ content: memoryContent([], withCases([openerWithCp1])) });
+  const app = createApp(d);
+  const openerSteps = async () => (await json(get(app, '/api/today?section=sql'))).plan.steps.filter((s: any) => s.kind === 'opener');
+  await practise(d, ['SQL-BASICS-01', 'SQL-BASICS-02']);
+  assert.deepEqual(await openerSteps(), [], '2 of the 6 level 1 concepts');
+  await practise(d, ['SQL-FILTER-01'], 6);
+  assert.deepEqual(await openerSteps(), [{ kind: 'opener', case_id: 'CASE-VOLT-L1', mode: 'check' }], '3 of 6: half the level');
+  await answerNow(d, 'CP1-1', 'CASE-VOLT-L1:CP1', 'mcq', false);
+  assert.deepEqual(await openerSteps(), [], 'CP1 has an answer, a wrong one: the case screen offers it again, Today no longer does');
+});
+
+/** GET /api/today's GA4 and Methodology plans on the fixture below, recorded from the code before Task D3 (2db05ed). */
+const GA4_PLAN_BEFORE = { section: 'ga4', steps: [{ kind: 'reviews', card_ids: ['CARD-GA4-FAKE-01'] }, { kind: 'new_concept', concept_id: 'GA4-FAKE-02', held_back: null, reason: null }],
+  minimumDay: [{ kind: 'reviews', card_ids: ['CARD-GA4-FAKE-01'] }], anotherNewConcept: { offered: false, concept_id: null, reason: null }, dueTomorrow: 0 };
+const METHODOLOGY_PLAN_BEFORE = { section: 'methodology', steps: [{ kind: 'reviews', card_ids: ['CARD-MET-FAKE-01'] }],
+  minimumDay: [{ kind: 'reviews', card_ids: ['CARD-MET-FAKE-01'] }], anotherNewConcept: { offered: false, concept_id: null, reason: null }, dueTomorrow: 0 };
+
+test('Task D3: the GA4 and Methodology plans are the plans from before the task, with or without cases, a daily case and a mid-level question in SQL', async () => {
+  const choice = await loadContent(await makeChoiceRoot());
+  const stores: [string, ContentStore][] = [['without cases', choice], ['with cases', { ...choice, ...withCases([dailyCase('CASE-DAILY-L1-01', ['SQL-BASICS-01']), openerWithCp1]) }]];
+  for (const [label, content] of stores) {
+    const d = await deps({ content });
+    // A GA4 concept and a Methodology concept, each read and answered 60 days ago, so a review is due; GA4's other concept is new.
+    for (const c of [PARENT, METRIC]) await d.logger.exposure(exposureRec(c, iso(61 * DAY)));
+    await write(d, instance({ id: 'G1', item: 'Q-GA4-901', concept: PARENT, section: 'ga4', kind: 'mcq', version: 2, start: iso(60 * DAY), steps: [{ at: iso(60 * DAY - 20_000), submit: 'pass' }] }));
+    await write(d, instance({ id: 'M1', item: 'Q-MET-902', concept: METRIC, section: 'methodology', kind: 'mcq', version: 2, start: iso(60 * DAY), steps: [{ at: iso(60 * DAY - 20_000), submit: 'pass' }] }));
+    // SQL: half of level 1 practised, so with the cases the daily case and the opener's mid-level question are on.
+    await practise(d, ['SQL-BASICS-01', 'SQL-BASICS-02', 'SQL-FILTER-01']);
+    const app = createApp(d);
+    const sql = (await json(get(app, '/api/today?section=sql'))).plan.steps.filter((s: any) => s.kind === 'daily_case' || s.kind === 'opener');
+    assert.deepEqual(sql, label === 'with cases' ? [{ kind: 'daily_case', case_id: 'CASE-DAILY-L1-01', done: false }, { kind: 'opener', case_id: 'CASE-VOLT-L1', mode: 'check' }] : [],
+      `SQL, ${label}`);
+    assert.deepEqual((await json(get(app, '/api/today?section=ga4'))).plan, GA4_PLAN_BEFORE, `GA4, ${label}`);
+    assert.deepEqual((await json(get(app, '/api/today?section=methodology'))).plan, METHODOLOGY_PLAN_BEFORE, `Methodology, ${label}`);
+  }
 });

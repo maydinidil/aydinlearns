@@ -4,7 +4,9 @@
 // so none is ever copied into a detail or printed. After the SQL checks (C01 to C19 and C29), the CLI runs
 // the GA4 and Methodology checks, C20 to C28, from tools/check-choice.ts (Task C3); C30, the readings, is here.
 // SQL choice items (S3-13, Task C4) take C01, C14 and C31 to C35 from tools/check-sql-choice.ts instead of the
-// write and fix checks, and a lesson's why_clause takes C36 and C37 from there.
+// write and fix checks, and a lesson's why_clause takes C36 and C37 from there. Sprint 4a (Task B2) adds the level 3
+// rules to the write and fix checks: C38 (the grain line fades), C39 (the other way) and C40 (the level 3 edge schema).
+// Sprint 4b (Task B2) adds C41, the cases: the openers and content/sql/cases/, their CP3 items, keys and truth values.
 // Usage: node tools/check-content.ts [content-root]   (default: content/)
 import { createHash } from 'node:crypto';
 import { readdir, readFile } from 'node:fs/promises';
@@ -15,11 +17,12 @@ import type { DisplayOk, GateOk, RowsOk } from '../server/runner/protocol.ts';
 import { maskSql, stripTrailing } from '../server/runner/tables.ts';
 import { grade, type Feedback } from '../server/grader/grade.ts';
 import type { GradeResult } from '../server/grader/types.ts';
-import { loadContent, type ContentStore } from '../server/content.ts';
+import { loadContent, type ContentStore, type LoadOptions } from '../server/content.ts';
+import { openerLevel } from '../server/session-composer.ts';
 import { isSqlChoiceKind, validateSqlItem, type SqlItem } from '../schemas/item.ts';
 import { validateSqlKey, type SqlKey } from '../schemas/keys.ts';
 import { validateLesson, type Lesson } from '../schemas/lesson.ts';
-import { validateCaseRecord } from '../schemas/case.ts';
+import { validateCaseKey, validateCaseRecord, type CaseRecord } from '../schemas/case.ts';
 import type { Curriculum } from '../schemas/concepts.ts';
 import type { EdgeDescription } from '../schemas/edge.ts';
 import { detectConstructs, helperCalls } from './constructs.ts';
@@ -408,14 +411,127 @@ export async function checkItem(item: SqlItem, key: SqlKey, ctx: CheckContext): 
     add('C18', missing.length === 0, `rules.key_columns names ${missing.join(', ')}, which the reference does not return`);
   });
 
+  // Sprint 4a Task B2. C38: the grain line fades from level 3 (S4-04).
+  await check('C38', () => {
+    const why = grainFadeProblem(item, ctx.curriculum);
+    add('C38', why === '', why);
+  });
+
+  // C39: the other way (S4-11) is null, or an alternative that passes on the visible and edge data with a short trade-off.
+  // It is graded against the reference alone, as C04 grades each alternative. One that uses exactly the reference's
+  // constructs may be only another layout, so it warns for the content review; a different method does not.
+  await check('C39', async () => {
+    const problems = otherWayProblems(key);
+    const ow = key.other_way;
+    if (problems.length || !ow) return add('C39', problems.length === 0, problems.join('; '));
+    if ((await tryGrade(item, { ...key, alternatives: [] }, ow.sql, ctx))?.outcome !== 'pass') return add('C39', false, 'the other way does not pass on the visible and edge data');
+    const mine = detectConstructs(ow.sql);
+    const ref = detectConstructs(key.reference_sql);
+    if (mine.length === ref.length && mine.every((c) => ref.includes(c))) {
+      return add('C39', false, 'the other way uses the same constructs as the reference: check it is another method, not only other aliases, order or layout (S4-11)', true);
+    }
+    add('C39', true);
+  });
+
+  // C40 (Review Focus 3): every level 3 key runs on its edge schema, where a fanned-out key that passes on the visible data
+  // by luck fails. The item names its concept's edge schema, and each key (the reference, the alternatives and the other
+  // way) reads only tables that schema holds and runs there. Tables are counted, never named: they come from the key.
+  // A CTE's own name is in neither schema, so only the visible schema's tables are looked for.
+  await check('C40', async () => {
+    if (conceptLevel(item, ctx.curriculum) < 3) return add('C40', true);
+    const problems: string[] = [];
+    const want = LEVEL3_EDGE_SCHEMAS[item.target_concept_id];
+    if (want && item.use !== 'opener' && item.edge_schema !== want) problems.push(`a level 3 ${item.target_concept_id} item must use the edge schema ${want}`);
+    const [visible, edge] = [await tablesIn(ctx.runner, item.schema), await tablesIn(ctx.runner, item.edge_schema)];
+    if (!visible || !edge) problems.push('the tables of the visible or the edge schema could not be read');
+    const named: [string, string][] = [['the reference', key.reference_sql], ...key.alternatives.map((s, i): [string, string] => [`alternative ${i + 1}`, s]),
+      ...otherWay().map((s): [string, string] => ['the other way', s])];
+    for (const [label, sql] of named) {
+      const g = await ctx.runner.request<GateOk>({ op: 'gate', schema: item.schema, allowedSchemas: [], sql });
+      if (!g.ok) { problems.push(`${label} could not be read (see C03 and C04)`); continue; }
+      if (visible && edge) {
+        const read = new Set(g.data.tables.filter((t) => t.schema === null || t.schema === item.schema).map((t) => t.table.toLowerCase()));
+        const missing = [...read].filter((t) => visible.has(t) && !edge.has(t)).length;
+        if (missing) problems.push(`${label} reads ${missing} table${missing === 1 ? '' : 's'} the edge schema does not hold`);
+      }
+      if ((await rowBag(ctx.runner, item.edge_schema, sql, item.rules.timeout_ms)) === null) problems.push(`${label} does not run on ${item.edge_schema}`);
+    }
+    add('C40', problems.length === 0, problems.join('; '));
+  });
+
   return out.map((r) => (r.ok ? { ...r, detail: '' } : r));
 }
 
-export interface DrillSpec { level: number; questions: number; concepts: string[] }
+// ---- the level 3 rules (sprint 4a Task B2): C38 to C40 ----------------------------------------------------------------
+
+/**
+ * C40: the edge schema of each level 3 concept, from Task B3's concept table in the sprint 4a plan. The join edge schema
+ * plants the fan-out cases (duplicate bridge rows, an order with no lines, a product in two promotions), the date one the
+ * time zone and ISO week cases, and the set one the duplicate rows a UNION would drop.
+ */
+export const LEVEL3_EDGE_SCHEMAS: Readonly<Record<string, string>> = {
+  'SQL-DATE-01': 'voltmarkt_edge_date', 'SQL-JOIN-01': 'voltmarkt_edge_join', 'SQL-JOIN-02': 'voltmarkt_edge_join', 'SQL-CTE-01': 'voltmarkt_edge_join',
+  'SQL-JOIN-03': 'voltmarkt_edge_join', 'SQL-JOIN-04': 'voltmarkt_edge_join', 'SQL-JOIN-05': 'voltmarkt_edge_join', 'SQL-SET-01': 'voltmarkt_edge_set',
+};
+/** S4-11: the most characters an other way's trade-off may have. */
+export const TRADEOFF_MAX = 140;
+
+/** The level the level 3 rules read: the target concept's level in the curriculum, else the item's own `level`, else 0. */
+function conceptLevel(item: SqlItem, curriculum: Curriculum): number {
+  return curriculum.concepts.find((c) => c.id === item.target_concept_id)?.level ?? item.level ?? 0;
+}
+
+/**
+ * C38 (S4-04, design §11 "that line fades"): from level 3, `output_contract.grain` is null outside the lesson phases. A lesson
+ * item (the lesson block) keeps its grain line, a pretest item, also served in the lesson phases, may keep it, and a re-test,
+ * pool, drill or opener item has none. Levels 1 and 2 are unchanged. Returns the problem, or '' when there is none.
+ */
+export function grainFadeProblem(item: SqlItem, curriculum: Curriculum): string {
+  if (conceptLevel(item, curriculum) < 3 || item.use === 'pretest') return '';
+  const grain = item.output_contract?.grain ?? null;
+  if (item.use === 'lesson') return grain ? '' : 'a level 3 lesson item keeps its grain line (S4-04): set output_contract.grain';
+  return grain === null ? '' : `the grain line fades from level 3 (S4-04): output_contract.grain must be null on a ${item.use} item`;
+}
+
+/** Key text compared as one query: a trailing semicolon dropped and every run of spaces and line breaks made one space. */
+const sameQuery = (a: string, b: string): boolean => squash(stripTrailing(a)) === squash(stripTrailing(b));
+
+/**
+ * C39's rules on the key file alone (S4-11): `other_way` is null, or `{ sql, tradeoff }` whose `sql` is one of the key's
+ * `alternatives` and whose `tradeoff` is one plain sentence (no line break, no second sentence, ending with a full stop) of
+ * at most 140 characters. checkItem then grades the other way on the visible and edge data. Never quotes the key.
+ */
+export function otherWayProblems(key: SqlKey): string[] {
+  const ow: unknown = (key as { other_way?: unknown }).other_way;
+  if (ow === null || ow === undefined) return [];
+  const o = typeof ow === 'object' && !Array.isArray(ow) ? (ow as Record<string, unknown>) : null;
+  if (!o || typeof o.sql !== 'string' || typeof o.tradeoff !== 'string') return ['other_way must be null or { sql, tradeoff }'];
+  const problems: string[] = [];
+  const alternatives = Array.isArray(key.alternatives) ? key.alternatives.filter((s): s is string => typeof s === 'string') : [];
+  if (!alternatives.some((a) => sameQuery(a, o.sql as string))) problems.push('the other way is not one of the alternatives');
+  const t = o.tradeoff.trim();
+  if (t === '') return [...problems, 'the tradeoff is missing'];
+  if (t.length > TRADEOFF_MAX) problems.push(`the tradeoff is ${t.length} characters, over ${TRADEOFF_MAX}`);
+  if (/[\r\n]/.test(t) || !t.endsWith('.') || /[.!?]\s+\S/.test(t)) problems.push('the tradeoff must be one sentence that ends with a full stop');
+  return problems;
+}
+
+/** The tables and views a schema holds, lower case, or null when it cannot be read. */
+async function tablesIn(runner: RunnerClient, schema: string): Promise<Set<string> | null> {
+  if (!/^[a-z_][a-z0-9_]*$/.test(schema)) return null;
+  const r = await runner.request<RowsOk>({ op: 'app_query', sql: `SELECT lower(table_name) FROM information_schema.tables WHERE table_schema = '${schema}'` });
+  return r.ok ? new Set(r.data.rows.map((row) => String(row[0]))) : null;
+}
+
+export interface DrillSpec { level: number; questions: number; concepts: string[]; pool_item_ids?: string[] }
 
 /**
  * C19: each level's drill pool holds at least `questions` active items with use 'drill', and at least one
- * per concept of the level (design §12). The result is named by level, never by item.
+ * per concept of the level (design §12). The result is named by level, never by item. A drill whose
+ * `pool_item_ids` is an empty list is not written yet (sprint 4a: level 3's, until Task B3): the server
+ * lists it as not available and starts no run, so it warns instead of failing. When `pool_item_ids` is listed, the level drill draws
+ * only those items (server/routes/drill.ts, which drops a bad ID without a word), so each listed ID must be an active drill item
+ * of one of the drill's concepts at the drill's level, none may repeat, and every concept keeps at least one of them.
  */
 export function checkDrillPools(drills: DrillSpec[], items: SqlItem[]): CheckResult[] {
   const pool = items.filter((i) => i.use === 'drill' && i.status === 'active');
@@ -424,23 +540,51 @@ export function checkDrillPools(drills: DrillSpec[], items: SqlItem[]): CheckRes
     if (!d || !Number.isInteger(d.questions) || d.questions < 1 || !Array.isArray(d.concepts) || d.concepts.length === 0) {
       return { id, check: 'C19', ok: false, detail: 'the drill entry needs questions and concepts' };
     }
+    if (Array.isArray(d.pool_item_ids) && d.pool_item_ids.length === 0) {
+      return { id, check: 'C19', ok: false, warn: true, detail: 'the drill has no pool yet (pool_item_ids is empty), so the app lists it as not available' };
+    }
     const inLevel = pool.filter((i) => d.concepts.includes(i.target_concept_id));
     const bare = d.concepts.filter((c) => !inLevel.some((i) => i.target_concept_id === c));
     const why: string[] = [];
     if (inLevel.length < d.questions) why.push(`the pool holds ${inLevel.length} items, the drill asks ${d.questions}`);
     if (bare.length) why.push(`no drill item for ${bare.join(', ')}`);
+    if (Array.isArray(d.pool_item_ids)) {
+      const byId = new Map(items.map((i) => [i.id, i]));
+      const dup = d.pool_item_ids.filter((x, k) => d.pool_item_ids!.indexOf(x) !== k);
+      if (dup.length) why.push(`pool_item_ids repeats ${[...new Set(dup)].join(', ')}`);
+      const bad = [...new Set(d.pool_item_ids)].filter((x) => {
+        const i = byId.get(x);
+        return !i || i.use !== 'drill' || i.status !== 'active' || !d.concepts.includes(i.target_concept_id) || i.level !== d.level;
+      });
+      if (bad.length) why.push(`pool_item_ids names ${bad.join(', ')}, which ${bad.length === 1 ? 'is' : 'are'} not active drill items of this level's concepts`);
+      const listed = new Set(d.pool_item_ids.map((x) => byId.get(x)?.target_concept_id));
+      const empty = d.concepts.filter((c) => !listed.has(c));
+      if (empty.length) why.push(`pool_item_ids has no item for ${empty.join(', ')}`);
+    }
     return { id, check: 'C19', ok: why.length === 0, detail: why.join('; ') };
   });
 }
 
 /**
  * C29: each opener's case record is valid, it has a CP3 checkpoint, and that checkpoint's item exists with
- * use 'opener' and no grain line (S2-49, design §7). Names case IDs and item IDs only.
+ * use 'opener' and no grain line (S2-49, design §7), its item's ID level is the opener's level (s2:L101), and no item_id is shared
+ * between openers (s2:L69). Names case IDs and item IDs only.
  */
 export function checkOpeners(store: ContentStore): CheckResult[] {
+  // s2:L69: the store keeps one credit list per item_id (the last opener wins), so an item_id two openers share is a fault.
+  const users = new Map<string, string[]>();
+  for (const [n, rec] of (store.openers?.() ?? []).entries()) {
+    const owner = typeof rec?.case_id === 'string' ? rec.case_id : `sql/openers #${n + 1}`;
+    for (const c of Array.isArray(rec?.checkpoints) ? rec.checkpoints : []) if (typeof c?.item_id === 'string') users.set(c.item_id, [...(users.get(c.item_id) ?? []), owner]);
+  }
   return (store.openers?.() ?? []).map((rec, n) => {
     const id = typeof rec?.case_id === 'string' ? rec.case_id : `sql/openers #${n + 1}`;
-    const why = [...validateCaseRecord(rec)];
+    const invalid = validateCaseRecord(rec);
+    const why = [...invalid];
+    for (const [item, owners] of users) if (owners.includes(id) && new Set(owners).size > 1) why.push(`${item} is also used by ${[...new Set(owners)].filter((o) => o !== id).join(', ')}`);
+    // Codex F22: openerLevel reads concept_ids and every checkpoint's credits_concepts, so the level comes only from a record that
+    // validated; a malformed one skips the level check and fails C29 on the messages above.
+    const level = invalid.length === 0 && store.curriculum ? openerLevel(rec, store.curriculum) : null;
     const cp3 = Array.isArray(rec?.checkpoints) ? rec.checkpoints.filter((c) => c?.kind === 'CP3') : [];
     if (cp3.length !== 1) why.push('an opener needs exactly one CP3 checkpoint');
     for (const c of cp3) {
@@ -450,9 +594,111 @@ export function checkOpeners(store: ContentStore): CheckResult[] {
       else {
         if (item.use !== 'opener') why.push(`${c.item_id} must have use opener`);
         if (item.output_contract?.grain != null) why.push(`${c.item_id} must have no grain line`);
+        // s2:L101: the level in the item ID (EX-OPENER-L2-01) is the opener's level.
+        const named = /-L(\d+)-/.exec(c.item_id)?.[1];
+        if (level !== null && named !== undefined && Number(named) !== level) why.push(`${c.item_id} names level ${named} but the opener is level ${level}`);
       }
     }
     return { id, check: 'C29', ok: why.length === 0, detail: why.join('; ') };
+  });
+}
+
+const CASE_CHOICES = ['CP1', 'CP5'] as const;
+const CASE_TRUTHS = ['CP2', 'CP4'] as const;
+
+/**
+ * C41 (sprint 4b, Task B2; S4B-01 to S4B-05, design §7): every case, the level openers and content/sql/cases/ alike, one result per
+ * case file, named by case ID. C29 keeps the opener rules; this check adds, for every case:
+ * - the record validates (validateCaseRecord, a daily case's CP3 and CP4 only included); a malformed record fails on those
+ *   messages alone, and the check finishes;
+ * - an opener sits in content/sql/openers/, an inbox or daily case in content/sql/cases/; no case ID and no checkpoint item is
+ *   used by two case files (the store keeps one credit list per item);
+ * - its CP3 item exists with use `opener` (an opener) or `case` (otherwise) and no grain line, and the expected output is that
+ *   item's output columns and sort keys;
+ * - an opener's level is openerLevel's; every credited concept is an SQL curriculum concept at or below the case's level;
+ * - every truth_key has a value in the truth file the store read (`store.checkpointTruth`);
+ * - its key (content/keys/cases/<case_id>.json) validates, names the case, has a truth query for each CP2 and CP4 and a correct
+ *   option for each CP1 and CP5 the case lists and nothing for any other, and each correct option is one of that checkpoint's
+ *   options, whose oids are unique.
+ * A detail names case IDs, item IDs, checkpoints and fields: never a truth query, a value, a correct oid or an explanation.
+ */
+export function checkCases(store: ContentStore): CheckResult[] {
+  const all = store.cases?.() ?? [];
+  const openers = new Set<unknown>(store.openers?.() ?? []);
+  const idOf = (rec: CaseRecord, n: number): string => (typeof rec?.case_id === 'string' ? rec.case_id : `case file #${n + 1}`);
+  const files = new Map<string, number>();
+  const itemOwners = new Map<string, number>();
+  for (const [n, rec] of all.entries()) {
+    files.set(idOf(rec, n), (files.get(idOf(rec, n)) ?? 0) + 1);
+    for (const c of Array.isArray(rec?.checkpoints) ? rec.checkpoints : []) if (typeof c?.item_id === 'string') itemOwners.set(c.item_id, (itemOwners.get(c.item_id) ?? 0) + 1);
+  }
+  const levelOf = new Map(store.curriculum.concepts.map((c) => [c.id, c.level]));
+  return all.map((rec, n) => {
+    const id = idOf(rec, n);
+    const invalid = validateCaseRecord(rec);
+    const why = [...invalid];
+    const isOpener = openers.has(rec);
+    if ((files.get(id) ?? 0) > 1) why.push(`the case ID ${id} is used by ${files.get(id)} case files`);
+    // Codex F22's lesson: the checks below read the record's fields, so they run only on a record that validated.
+    if (invalid.length) return { id, check: 'C41', ok: false, detail: why.join('; ') };
+    if (isOpener && rec.kind !== 'opener') why.push('content/sql/openers/ holds the level openers only: an inbox or daily case goes in content/sql/cases/');
+    if (!isOpener && rec.kind === 'opener') why.push('a level opener goes in content/sql/openers/, not content/sql/cases/');
+    for (const c of rec.checkpoints) if (c.item_id !== undefined && (itemOwners.get(c.item_id) ?? 0) > 1) why.push(`${c.item_id} is also a checkpoint item of another case`);
+    // The CP3 item: its use, no grain line, and the expected output it promises.
+    const cp3 = rec.checkpoints.find((c) => c.kind === 'CP3')!;
+    const item = store.item(cp3.item_id!);
+    const use = rec.kind === 'opener' ? 'opener' : 'case';
+    if (!item) why.push(`${cp3.item_id} is missing`);
+    else {
+      if (item.use !== use) why.push(`${cp3.item_id} must have use ${use}`);
+      if (item.output_contract?.grain != null) why.push(`${cp3.item_id} must have no grain line`);
+      const columns = item.output_contract?.columns?.map((c) => c.name) ?? [];
+      if (JSON.stringify(rec.expected_output.columns) !== JSON.stringify(columns)) why.push(`expected_output.columns must be ${cp3.item_id}'s output columns, in order`);
+      const sort = (item.rules?.sort_keys ?? []).map((k) => ({ column: k.column, desc: k.desc }));
+      const promised = rec.expected_output.sort.map((k) => ({ column: k.column, desc: k.desc }));
+      if (JSON.stringify(promised) !== JSON.stringify(sort)) why.push(`expected_output.sort must be ${cp3.item_id}'s sort keys`);
+    }
+    // Levels: an opener opens the level its concepts reach; every credit sits at or below the case's level.
+    if (rec.kind === 'opener') {
+      const opens = openerLevel(rec, store.curriculum);
+      if (opens !== rec.level) why.push(`the opener is level ${rec.level}, but its concepts reach level ${opens ?? 'none'} (openerLevel)`);
+    }
+    for (const c of rec.checkpoints) for (const concept of c.credits_concepts) {
+      const level = levelOf.get(concept);
+      if (level === undefined) why.push(`${c.kind} credits ${concept}, which is not a concept of the SQL curriculum`);
+      else if (level > rec.level) why.push(`${c.kind} credits ${concept}, a level ${level} concept, above the case's level ${rec.level}`);
+    }
+    // The truth file: every CP2 and CP4 value the build wrote.
+    for (const c of rec.checkpoints) if (c.truth_key !== undefined && store.checkpointTruth?.(c.truth_key) === undefined) {
+      why.push(`${c.truth_key} has no value in the truth file: run npm run build:data, and check the key's truth query`);
+    }
+    // The key: its shape, then each entry against the checkpoints the case lists.
+    const kinds = new Set<string>(rec.checkpoints.map((c) => c.kind));
+    const needsKey = [...CASE_CHOICES, ...CASE_TRUTHS].some((k) => kinds.has(k));
+    const key = store.caseKey?.(rec.case_id);
+    if (!key) { if (needsKey) why.push(`content/keys/cases/${rec.case_id}.json is missing: its CP1, CP2, CP4 and CP5 need it`); }
+    else {
+      const shape = validateCaseKey(key);
+      if (shape.length) why.push(...shape.map((m) => `the key: ${m}`));
+      else {
+        if (key.case_id !== rec.case_id) why.push('the key names another case');
+        for (const k of CASE_TRUTHS) {
+          if (kinds.has(k) && key.truths[k] === undefined) why.push(`the key has no truth query for ${k}`);
+          if (!kinds.has(k) && key.truths[k] !== undefined) why.push(`the key has a truth query for ${k}, but the case has no ${k}`);
+        }
+        for (const k of CASE_CHOICES) {
+          const cp = rec.checkpoints.find((c) => c.kind === k);
+          const choice = key.choices[k];
+          if (cp && !choice) why.push(`the key has no correct option for ${k}`);
+          if (!cp && choice) why.push(`the key has a correct option for ${k}, but the case has no ${k}`);
+          if (!cp || !choice) continue;
+          const oids = (cp.options ?? []).map((o) => o.oid);
+          if (new Set(oids).size !== oids.length) why.push(`${k}'s options repeat an oid`);
+          if (!oids.includes(choice.correct_oid)) why.push(`the key's ${k} correct option is not one of its options`);
+        }
+      }
+    }
+    return { id, check: 'C41', ok: why.length === 0, detail: why.join('; ') };
   });
 }
 
@@ -503,8 +749,8 @@ export function checkLesson(lesson: Lesson, store: ContentStore): CheckResult[] 
  * which in a key is SQL (non-negotiable 2), so only the file's name is printed. Sets exit code 1
  * and returns null on failure.
  */
-export async function loadContentForCli(root: string): Promise<ContentStore | null> {
-  try { return await loadContent(root); } catch (e) {
+export async function loadContentForCli(root: string, options: LoadOptions = {}): Promise<ContentStore | null> {
+  try { return await loadContent(root, options); } catch (e) {
     const file = /^([\w./-]+\.json): /.exec(e instanceof Error ? e.message : '')?.[1];
     const code = (e as { code?: unknown } | null)?.code;
     console.error(file ? `cannot load content: ${file} is not valid JSON`
@@ -533,7 +779,8 @@ async function itemFiles(dir: string): Promise<{ ids: string[]; unreadable: stri
 async function main(): Promise<void> {
   const at = (p: string) => fileURLToPath(new URL(`../${p}`, import.meta.url));
   const root = process.argv[2] ? resolve(process.argv[2]) : at('content');
-  const store = await loadContentForCli(root);
+  // C41 reads every CP2 and CP4 value from the truth file the build wrote, beside the database the item checks run on.
+  const store = await loadContentForCli(root, { truthFile: at('data/truth/voltmarkt.json') });
   if (!store) return;
   const results: CheckResult[] = [];
   const ids: string[] = [];
@@ -554,8 +801,10 @@ async function main(): Promise<void> {
     const item = store.item(id);
     if (!item || !isSqlChoiceKind(item.kind) || keyId !== id) results.push({ id: `keys/sql-choice/${n}`, check: 'C01', ok: false, detail: 'a key with no SQL choice item, or not named after its item' });
   }
-  for (const o of (store.openers?.() ?? [])) for (const c of Array.isArray(o.checkpoints) ? o.checkpoints : []) if (typeof c?.item_id === 'string') ids.push(c.item_id);
+  // Every case's CP3 item is an SQL item the item checks run on (the other checkpoints' item IDs name no item file).
+  for (const o of (store.cases?.() ?? store.openers?.() ?? [])) for (const c of Array.isArray(o?.checkpoints) ? o.checkpoints : []) if (typeof c?.item_id === 'string' && store.item(c.item_id)) ids.push(c.item_id);
   results.push(...checkOpeners(store));
+  results.push(...checkCases(store));
   results.push(...checkReadings(store));
   // C19 reads content/sql/drills.json; a missing file means no drills yet, an unreadable one is one failure.
   try {

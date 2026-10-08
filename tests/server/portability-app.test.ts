@@ -60,3 +60,31 @@ test('S2-53: a submission that uses a SELECT alias in WHERE logs the note in pay
   assert.deepEqual(byInstance('I-1').checks, [], 'a note is never a check');
   assert.deepEqual(byInstance('I-2').payload.portability_notes, []);
 });
+
+const INT_DIVISION = 'On PostgreSQL or SQL Server this division cuts off the decimals (7 / 2 = 3). Cast one side to a decimal.';
+
+test('Codex F24: a pass logs its integer division re-run outcome in payload.division_check; a fail logs none', async () => {
+  const d = await deps();
+  const app = createApp(d);
+  const item_id = lesson.pool_item_ids[0]!;
+  const submit = async (item_instance_id: string, sql: string): Promise<any> => (await app.request('http://127.0.0.1:5174/api/submit',
+    { method: 'POST', headers: P, body: JSON.stringify({ item_id, item_instance_id, sql, phase: 'free' }) })).json();
+
+  // 7 / 2 is 3.5 here, so no store matches; with integer division it is 3, and store 3 does.
+  const changed = await submit('D-1', 'SELECT city FROM stores WHERE store_id = 8 OR store_id = 7 / 2');
+  assert.deepEqual([changed.outcome, changed.portabilityNotes, changed.divisionCheck], ['pass', [INT_DIVISION], 'changed']);
+  const same = await submit('D-2', 'SELECT city FROM stores WHERE store_id = 16 / 2');
+  assert.deepEqual([same.outcome, same.divisionCheck], ['pass', 'same']);
+  const none = await submit('D-3', 'SELECT city FROM stores WHERE store_id = 8');
+  assert.deepEqual([none.outcome, none.divisionCheck], ['pass', 'no_division']);
+  const failed = await submit('D-4', 'SELECT city FROM stores WHERE store_id < 7 / 2');
+  assert.deepEqual([failed.outcome, 'divisionCheck' in failed], ['fail', false]);
+
+  const logged = (await d.logger.readAll('attempts')) as any[];
+  const payloadOf = (id: string) => logged.find((r) => r.record === 'attempt' && r.item_instance_id === id).payload;
+  assert.deepEqual([payloadOf('D-1').division_check, payloadOf('D-1').portability_notes], ['changed', [INT_DIVISION]]);
+  assert.equal(payloadOf('D-2').division_check, 'same');
+  assert.equal(payloadOf('D-3').division_check, 'no_division');
+  assert.equal('division_check' in payloadOf('D-4'), false, 'a fail has no division check');
+  assert.equal(logged.find((r) => r.item_instance_id === 'D-1').schema_version, 4, 'an additive field inside log format version 4');
+});

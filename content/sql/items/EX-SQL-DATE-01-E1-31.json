@@ -1,0 +1,132 @@
+{
+  "id": "EX-SQL-DATE-01-E1-31",
+  "version": 1,
+  "kind": "fix",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "date",
+    "fix",
+    "date_part",
+    "iso-week",
+    "isoyear",
+    "orders"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-DATE-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-DATE-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-DATE-01"
+  ],
+  "template_id": "T-DATE-01-fix-iso-year",
+  "template_params": {
+    "table": "orders",
+    "from": "2025-12-15",
+    "to": "2025-12-31",
+    "clock": "UTC"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_date",
+  "prompt": "The query in the editor has one mistake. Fix it so that it answers this question: how many orders did Voltmarkt take in each ISO week, for the orders from 2025-12-15 to 2025-12-31? Use the orders table. order_ts holds the time of the order in UTC, so work in UTC and keep the orders from 2025-12-15 00:00 up to but not including 2026-01-01 00:00. Return three columns, in this order: iso_year, the year the ISO week belongs to, iso_week, the ISO week number, and orders, the number of orders. Return one row for each ISO week. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "iso_year",
+        "type_class": "numeric"
+      },
+      {
+        "name": "iso_week",
+        "type_class": "numeric"
+      },
+      {
+        "name": "orders",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "iso_year",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "iso_week",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "orders",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "iso_year",
+      "iso_week"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, look at the iso_year column: one row says week 1 of 2025, but its days are at the end of December 2025.",
+    "Monday 29 December 2025 starts ISO week 1 of 2026. year() gives the calendar year of each day; the ISO week needs the year the week belongs to."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 84,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 85,
+      "to": 96,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 97,
+      "to": 195,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 196,
+      "to": 238,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": "SELECT year(order_ts) AS iso_year, week(order_ts) AS iso_week, COUNT(*) AS orders\nFROM orders\nWHERE order_ts >= TIMESTAMP '2025-12-15 00:00:00'\n  AND order_ts < TIMESTAMP '2026-01-01 00:00:00'\nGROUP BY year(order_ts), week(order_ts)",
+  "starter_error_id": "ERR-LOG-25",
+  "time_target_ms": 90000,
+  "why_this_works": "isoyear gives the year the ISO week belongs to, so 29 to 31 December 2025 show as week 1 of 2026, not week 1 of 2025."
+}

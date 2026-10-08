@@ -7,7 +7,10 @@
     "SELECT DISTINCT promo_type, discount_pct FROM promotions WHERE start_date BETWEEN '2025-01-01' AND '2025-12-31' ORDER BY 1, 2 DESC",
     "SELECT DISTINCT promo_type, discount_pct FROM promotions WHERE start_date >= DATE '2025-01-01' AND start_date <= DATE '2025-12-31' ORDER BY promo_type ASC, discount_pct DESC"
   ],
-  "other_way": null,
+  "other_way": {
+    "sql": "SELECT DISTINCT promo_type, discount_pct FROM promotions WHERE start_date >= DATE '2025-01-01' AND start_date < DATE '2026-01-01' ORDER BY promo_type, discount_pct DESC",
+    "tradeoff": "A start date with an exclusive next date also works for timestamps, while BETWEEN is shorter for plain dates."
+  },
   "planted_wrong": [
     {
       "id": "EX-SQL-SORT-01-E3-01-PW1",

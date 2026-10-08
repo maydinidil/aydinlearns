@@ -6,7 +6,10 @@
     "SELECT product_id, product_name, brand, unit_cost_eur\nFROM products\nWHERE (unit_cost_eur < 100 OR unit_cost_eur > 500)\n  AND brand IN ('Basswell', 'Sonora')",
     "SELECT product_id, product_name, brand, unit_cost_eur\nFROM products\nWHERE brand IN ('Sonora', 'Basswell')\n  AND NOT unit_cost_eur BETWEEN 100 AND 500"
   ],
-  "other_way": null,
+  "other_way": {
+    "sql": "SELECT product_id, product_name, brand, unit_cost_eur\nFROM products\nWHERE brand IN ('Sonora', 'Basswell')\n  AND NOT unit_cost_eur BETWEEN 100 AND 500",
+    "tradeoff": "NOT BETWEEN is shorter, but the two-sided OR makes the edges easier to see."
+  },
   "planted_wrong": [
     {
       "id": "EX-SQL-FILTER-02-E3-01-PW1",

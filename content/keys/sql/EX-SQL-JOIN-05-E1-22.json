@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-JOIN-05-E1-22",
+  "item_version": 1,
+  "reference_sql": "WITH per_store AS (SELECT s.store_code, COUNT(*) AS n_orders FROM orders o JOIN stores s ON s.store_id = o.store_id WHERE o.order_ts >= TIMESTAMP '2025-03-01' AND o.order_ts < TIMESTAMP '2025-04-01' GROUP BY s.store_code),\nbusiest AS (SELECT MAX(n_orders) AS max_orders FROM per_store)\nSELECT p.store_code, p.n_orders, ROUND(p.n_orders * 1.0 / b.max_orders, 3) AS ratio_to_busiest\nFROM per_store p\nCROSS JOIN busiest b",
+  "alternatives": [
+    "WITH per_store AS (SELECT s.store_code, COUNT(*) AS n_orders FROM orders o JOIN stores s ON s.store_id = o.store_id WHERE o.order_ts >= TIMESTAMP '2025-03-01' AND o.order_ts < TIMESTAMP '2025-04-01' GROUP BY s.store_code), busiest AS (SELECT MAX(n_orders) AS max_orders FROM per_store) SELECT p.store_code, p.n_orders, ROUND(CAST(p.n_orders AS DOUBLE) / b.max_orders, 3) AS ratio_to_busiest FROM busiest b CROSS JOIN per_store p",
+    "WITH per_store AS (SELECT s.store_code, COUNT(*) AS n_orders FROM orders o JOIN stores s ON s.store_id = o.store_id WHERE o.order_ts >= TIMESTAMP '2025-03-01' AND o.order_ts < TIMESTAMP '2025-04-01' GROUP BY s.store_code), busiest AS (SELECT MAX(n_orders) AS max_orders FROM per_store) SELECT p.store_code, p.n_orders, ROUND(p.n_orders * 1.0 / b.max_orders, 3) AS ratio_to_busiest FROM per_store p, busiest b"
+  ],
+  "other_way": {
+    "sql": "WITH per_store AS (SELECT s.store_code, COUNT(*) AS n_orders FROM orders o JOIN stores s ON s.store_id = o.store_id WHERE o.order_ts >= TIMESTAMP '2025-03-01' AND o.order_ts < TIMESTAMP '2025-04-01' GROUP BY s.store_code), busiest AS (SELECT MAX(n_orders) AS max_orders FROM per_store) SELECT p.store_code, p.n_orders, ROUND(p.n_orders * 1.0 / b.max_orders, 3) AS ratio_to_busiest FROM per_store p, busiest b",
+    "tradeoff": "A comma between the two in FROM pairs every row as well, but CROSS JOIN tells the reader that the pairing is meant."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-05",
+      "sql": "WITH per_store AS (SELECT s.store_code, COUNT(*) AS n_orders FROM orders o JOIN stores s ON s.store_id = o.store_id WHERE o.order_ts >= TIMESTAMP '2025-03-01' AND o.order_ts < TIMESTAMP '2025-04-01' GROUP BY s.store_code), busiest AS (SELECT MAX(n_orders) AS max_orders FROM per_store) SELECT p.store_code, p.n_orders, p.n_orders // b.max_orders AS ratio_to_busiest FROM per_store p CROSS JOIN busiest b"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-14",
+      "sql": "WITH per_store AS (SELECT s.store_code, COUNT(*) AS n_orders FROM orders o JOIN stores s ON s.store_id = o.store_id WHERE o.order_ts >= TIMESTAMP '2025-03-01' AND o.order_ts < TIMESTAMP '2025-04-01' GROUP BY s.store_code), busiest AS (SELECT SUM(n_orders) AS max_orders FROM per_store) SELECT p.store_code, p.n_orders, ROUND(p.n_orders * 1.0 / b.max_orders, 3) AS ratio_to_busiest FROM per_store p CROSS JOIN busiest b"
+    }
+  ],
+  "hint3_partial": "WITH per_store AS (SELECT s.store_code, COUNT(*) AS n_orders FROM orders o JOIN stores s ON s.store_id = o.store_id WHERE o.order_ts >= TIMESTAMP '2025-03-01' AND o.order_ts < TIMESTAMP '2025-04-01' GROUP BY s.store_code),\nbusiest AS (SELECT MAX(n_orders) AS max_orders FROM per_store)\nSELECT p.store_code, p.n_orders, ROUND(___, 3) AS ratio_to_busiest\nFROM per_store p\n___ busiest b",
+  "solver": {
+    "prompt_hash": "ca79a4144ca24f27",
+    "schema_version": "b1c1a5d57d7d",
+    "dataset_version": "e1545e4258743033",
+    "grader_version": "1b.3",
+    "query": "WITH per_store AS (\n  SELECT s.store_code, COUNT(*) AS n_orders\n  FROM orders o\n  JOIN stores s ON s.store_id = o.store_id\n  WHERE o.order_ts >= TIMESTAMP '2025-03-01 00:00:00' AND o.order_ts < TIMESTAMP '2025-04-01 00:00:00'\n  GROUP BY s.store_code\n)\nSELECT store_code, n_orders, ROUND(n_orders * 1.0 / MAX(n_orders) OVER (), 3) AS ratio_to_busiest\nFROM per_store",
+    "at": "2026-10-07T10:41:41.807Z"
+  }
+}

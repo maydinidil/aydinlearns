@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-JOIN-04-E2-41",
+  "item_version": 1,
+  "correct_oid": "of60e3a3",
+  "explanation": "Product 1 has three versions, and each one after the first starts the day after the previous one's valid_to. The join pairs each version with the one that starts the next day, so there are two rows: 239.99 to 259.99 on 6 July 2025 and 259.99 to 269.99 on 17 December 2025. The current version has no valid_to, so it is never on the old side.",
+  "solver": {
+    "prompt_hash": "c003c7c5dfc57759",
+    "grader_version": "choice.2",
+    "chosen": "of60e3a3",
+    "typed": null,
+    "at": "2026-10-07T09:58:58.602Z"
+  }
+}

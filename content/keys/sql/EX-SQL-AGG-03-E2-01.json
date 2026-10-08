@@ -6,7 +6,10 @@
     "SELECT store_code, SUM(net_revenue_eur) AS revenue_eur FROM sales WHERE order_date >= DATE '2025-01-01' AND order_date < DATE '2026-01-01' GROUP BY store_code HAVING SUM(net_revenue_eur) > 3000000",
     "SELECT store_code, SUM(net_revenue_eur) AS revenue_eur FROM sales WHERE order_month BETWEEN DATE '2025-01-01' AND DATE '2025-12-01' GROUP BY 1 HAVING SUM(net_revenue_eur) > 3000000"
   ],
-  "other_way": null,
+  "other_way": {
+    "sql": "SELECT store_code, SUM(net_revenue_eur) AS revenue_eur FROM sales WHERE order_month BETWEEN DATE '2025-01-01' AND DATE '2025-12-01' GROUP BY 1 HAVING SUM(net_revenue_eur) > 3000000",
+    "tradeoff": "Filters on the month column, which is short, but only works when the range is whole months."
+  },
   "planted_wrong": [
     {
       "id": "PW1",

@@ -304,6 +304,18 @@ class VoltmarktOrders(unittest.TestCase):
                                      WHERE p.launch_date > pr.start_date""")[0], 0, "no promotion of a product before its launch")
         self.assertTrue(700 <= self.clean["promotion_products"].num_rows <= 1_100, self.clean["promotion_products"].num_rows)
 
+    def test_p10_every_ts_column_note_says_utc(self):
+        from voltmarkt import notes as vm_notes
+        seen = []
+        for table, spec in vm_notes.GRAINS.items():
+            n = vm_notes.note(self.con, "main", table, *spec, visible=True)
+            for column in n["sample"]["columns"]:
+                if column.endswith("_ts"):
+                    seen.append(column)
+                    self.assertIn("UTC", n.get("column_notes", {}).get(column, ""), f"{table}.{column}")
+        self.assertIn("order_ts", seen)
+        self.assertIn("observed_ts", seen)
+
     def test_e147_top_parent_categories(self):
         by_revenue = self.rows("SELECT parent_category, sum(net) AS r FROM l GROUP BY 1 ORDER BY r DESC")
         by_units = self.rows("SELECT parent_category, sum(quantity) AS u FROM l GROUP BY 1 ORDER BY u DESC")
@@ -426,6 +438,107 @@ class VoltmarktOrders(unittest.TestCase):
         moved = lines.set_column(lines.schema.get_field_index("product_id"), "product_id", pa.array(product, pa.int32()))
         with self.assertRaisesRegex(ValueError, "FIND-01-09|E-103"):
             vm.validate({"clean": {**self.clean, "order_lines": moved}, "raw": self.tables["raw"]}, self.truth)
+
+
+# 05 CO-01's columns for competitor_prices.
+COMPETITOR_COLUMNS = [("product_id", pa.int32()), ("competitor", pa.string()), ("observed_ts", pa.timestamp("us")),
+                      ("price_eur", pa.decimal128(10, 2))]
+# Each observation with Voltmarkt's list price on its observation date (E-103: the price before any promotion).
+OBSERVED = """CREATE TEMP VIEW cp AS
+    SELECT c.*, ph.list_price_eur, c.price_eur / ph.list_price_eur AS ratio,
+           date_trunc('week', c.observed_ts) AS wk
+    FROM competitor_prices c JOIN price_history ph ON ph.product_id = c.product_id
+     AND CAST(c.observed_ts AS DATE) BETWEEN ph.valid_from AND coalesce(ph.valid_to, DATE '9999-12-31')"""
+
+
+class VoltmarktCompetitorPrices(unittest.TestCase):
+    """Sprint 4a (S4-02): competitor_prices follows 05 CO-01 and draws only from its own reserved stream (GEN-02)."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.tables, cls.truth = generated()
+        cls.clean = cls.tables["clean"]
+        cls.con = duckdb.connect(config=NO_NETWORK)
+        cls.con.execute("SET TimeZone = 'UTC'")
+        for name, table in cls.clean.items():
+            cls.con.register(name, table)
+        cls.con.execute(OBSERVED)
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.con.close()
+
+    def one(self, sql):
+        return self.con.execute(sql).fetchone()
+
+    def test_columns_and_row_count(self):
+        table = self.clean["competitor_prices"]
+        self.assertEqual([(f.name, f.type) for f in table.schema], COMPETITOR_COLUMNS)
+        self.assertTrue(140_000 <= table.num_rows <= 160_000, f"{table.num_rows} rows, 05 CO-01 gives 150,000")
+        self.assertEqual(self.one("SELECT count(*) FROM competitor_prices WHERE product_id IS NULL OR competitor IS NULL "
+                                  "OR observed_ts IS NULL OR price_eur IS NULL")[0], 0, "no missing values in clean data")
+
+    def test_keys(self):
+        rows, keys = self.one("SELECT count(*), count(DISTINCT (product_id, competitor, observed_ts)) FROM competitor_prices")
+        self.assertEqual(rows, keys, "one row per product, competitor and observation time")
+        self.assertEqual(self.one("SELECT count(*) FROM competitor_prices WHERE product_id NOT IN (SELECT product_id FROM products)")[0], 0)
+        self.assertEqual(self.one("SELECT count(*) FROM cp")[0], rows, "each observation meets exactly one list price version")
+
+    def test_two_national_rivals(self):
+        # 05 CO-01: "competes on price with two national rivals".
+        names = [r[0] for r in self.con.execute("SELECT DISTINCT competitor FROM competitor_prices ORDER BY 1").fetchall()]
+        self.assertEqual(names, sorted(vm.COMPETITORS))
+        self.assertEqual(len(names), 2)
+
+    def test_observed_inside_the_window_and_after_launch(self):
+        first, last = self.one("SELECT min(CAST(observed_ts AS DATE)), max(CAST(observed_ts AS DATE)) FROM competitor_prices")
+        self.assertTrue(dt.date(2024, 1, 1) <= first and last <= dt.date(2025, 12, 31), (first, last))
+        self.assertEqual(self.one("""SELECT count(*) FROM competitor_prices c JOIN products p USING (product_id)
+                                     WHERE CAST(c.observed_ts AS DATE) < p.launch_date""")[0], 0, "no price before launch")
+
+    def test_prices_follow_the_voltmarkt_list_price(self):
+        low, high = self.one("SELECT min(ratio), max(ratio) FROM cp")
+        self.assertTrue(0.75 <= low and high <= 1.25, f"competitor price against list price runs {low} to {high}")
+        medians = dict(self.con.execute("SELECT competitor, median(ratio) FROM cp GROUP BY 1").fetchall())
+        cheaper, dearer = vm.COMPETITORS
+        self.assertLess(medians[cheaper], 1, medians)
+        self.assertGreater(medians[dearer], 1, medians)
+
+    def test_competitor_undercutting(self):
+        # 05 CO-01's business logic: competitor undercutting. More than 5% below the list price is FIND-01-15's flag.
+        share = float(self.one("SELECT avg(CASE WHEN ratio < 0.95 THEN 1 ELSE 0 END) FROM cp")[0])
+        self.assertTrue(0.10 <= share <= 0.35, f"{share:.3f} of observations undercut by more than 5%")
+        by_rival = dict(self.con.execute("SELECT competitor, count(*) FILTER (WHERE ratio < 0.95) FROM cp GROUP BY 1").fetchall())
+        self.assertTrue(all(by_rival[c] > 0 for c in vm.COMPETITORS), by_rival)
+
+    def test_rows_that_fan_out_a_join(self):
+        # Level 3's fan-out traps (SQL-JOIN-03): both rivals price a product in the same week, and a rival
+        # sometimes checks a product twice in one week, so a join on product (and week) repeats rows.
+        both = self.one("SELECT count(*) FROM (SELECT product_id, wk FROM cp GROUP BY ALL HAVING count(DISTINCT competitor) = 2)")[0]
+        twice = self.one("SELECT count(*) FROM (SELECT product_id, competitor, wk FROM cp GROUP BY ALL HAVING count(*) > 1)")[0]
+        self.assertGreater(both, 10_000)
+        self.assertGreater(twice, 100)
+
+    def test_no_other_table_depends_on_it(self):
+        # S4-02 and GEN-02: generating competitor prices changes no other table.
+        empty = pa.table({n: pa.array([], t) for n, t in COMPETITOR_COLUMNS})
+        with mock.patch.object(vm, "build_competitor_prices", return_value=empty):
+            without, _ = vm.generate()
+        for name, table in self.clean.items():
+            if name != "competitor_prices":
+                self.assertTrue(table.equals(without["clean"][name]), name)
+
+    def test_validate_rejects_broken_competitor_prices(self):
+        table = self.clean["competitor_prices"]
+        names = table.column("competitor").to_pylist()
+        names[0] = "Rival C"
+        bad = table.set_column(table.schema.get_field_index("competitor"), "competitor", pa.array(names))
+        with self.assertRaisesRegex(ValueError, "competitor_prices"):
+            vm.validate({"clean": {**self.clean, "competitor_prices": bad}, "raw": self.tables["raw"]}, self.truth)
+
+    def test_truth_records_the_rivals(self):
+        self.assertEqual(self.truth["planted"]["competitor_prices"]["competitors"], list(vm.COMPETITORS))
+        self.assertIn("competitor_prices", vm.validate(self.tables, self.truth))
 
 
 if __name__ == "__main__":

@@ -6,7 +6,10 @@
     "SELECT product_id, product_name, unit_cost_eur\nFROM products\nWHERE unit_cost_eur >= 100 AND unit_cost_eur <= 250 AND brand = 'Echoline'",
     "SELECT product_id, product_name, unit_cost_eur\nFROM products\nWHERE brand IN ('Echoline') AND unit_cost_eur BETWEEN 100 AND 250"
   ],
-  "other_way": null,
+  "other_way": {
+    "sql": "SELECT product_id, product_name, unit_cost_eur\nFROM products\nWHERE unit_cost_eur >= 100 AND unit_cost_eur <= 250 AND brand = 'Echoline'",
+    "tradeoff": "Two comparisons give the same rows, but BETWEEN states the range in one short test."
+  },
   "planted_wrong": [
     {
       "id": "EX-SQL-FILTER-02-E1-32-PW1",

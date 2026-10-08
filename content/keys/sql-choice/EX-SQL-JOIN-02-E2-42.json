@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-JOIN-02-E2-42",
+  "item_version": 1,
+  "value": 5,
+  "explanation": "The LEFT JOIN first keeps every store, but WHERE then tests order_id, which is missing for a store with no match, so those rows go. Only the 5 matched rows of store 99 with orders 1 to 5 are left.",
+  "solver": {
+    "prompt_hash": "59e37a2f983fc7dd",
+    "grader_version": "choice.2",
+    "chosen": null,
+    "typed": "5",
+    "at": "2026-10-07T09:58:58.591Z"
+  }
+}

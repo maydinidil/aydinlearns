@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-SET-01-E1-22",
+  "item_version": 4,
+  "reference_sql": "SELECT customer_id\nFROM orders\nWHERE customer_id IS NOT NULL\n  AND CAST(order_ts AS DATE) = DATE '2025-05-12'\nINTERSECT\nSELECT customer_id\nFROM orders\nWHERE customer_id IS NOT NULL\n  AND CAST(order_ts AS DATE) = DATE '2025-05-17'",
+  "alternatives": [
+    "SELECT DISTINCT a.customer_id FROM orders a JOIN orders b ON b.customer_id = a.customer_id WHERE CAST(a.order_ts AS DATE) = DATE '2025-05-12' AND CAST(b.order_ts AS DATE) = DATE '2025-05-17'",
+    "SELECT customer_id FROM orders WHERE customer_id IS NOT NULL AND order_ts >= TIMESTAMP '2025-05-17 00:00:00' AND order_ts < TIMESTAMP '2025-05-18 00:00:00' INTERSECT SELECT customer_id FROM orders WHERE customer_id IS NOT NULL AND order_ts >= TIMESTAMP '2025-05-12 00:00:00' AND order_ts < TIMESTAMP '2025-05-13 00:00:00'"
+  ],
+  "other_way": {
+    "sql": "SELECT DISTINCT a.customer_id FROM orders a JOIN orders b ON b.customer_id = a.customer_id WHERE CAST(a.order_ts AS DATE) = DATE '2025-05-12' AND CAST(b.order_ts AS DATE) = DATE '2025-05-17'",
+    "tradeoff": "A self-join on customer_id finds the same customers, but it needs DISTINCT, where INTERSECT returns each customer once."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-SEM-04",
+      "sql": "SELECT customer_id FROM orders WHERE customer_id <> NULL AND CAST(order_ts AS DATE) = DATE '2025-05-12' INTERSECT SELECT customer_id FROM orders WHERE customer_id <> NULL AND CAST(order_ts AS DATE) = DATE '2025-05-17'"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-28",
+      "sql": "SELECT customer_id FROM orders WHERE CAST(order_ts AS DATE) = DATE '2025-05-12' INTERSECT SELECT customer_id FROM orders WHERE CAST(order_ts AS DATE) = DATE '2025-05-17'"
+    }
+  ],
+  "hint3_partial": "SELECT customer_id\nFROM orders\nWHERE customer_id IS NOT NULL\n  AND CAST(order_ts AS DATE) = DATE '2025-05-12'\n___\nSELECT customer_id\nFROM orders\nWHERE customer_id IS NOT NULL\n  AND ___",
+  "solver": {
+    "prompt_hash": "04b9295986f3c968",
+    "schema_version": "7ed366279088",
+    "dataset_version": "7f30f5a797e6a9ce",
+    "grader_version": "4b.1",
+    "query": "SELECT DISTINCT customer_id FROM orders\nWHERE customer_id IS NOT NULL AND CAST(order_ts AS DATE) = DATE '2025-05-12'\nINTERSECT\nSELECT DISTINCT customer_id FROM orders\nWHERE customer_id IS NOT NULL AND CAST(order_ts AS DATE) = DATE '2025-05-17'",
+    "at": "2026-10-07T22:25:32.718Z"
+  }
+}

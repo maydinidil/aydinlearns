@@ -6,7 +6,10 @@
     "SELECT country_code, ROUND(SUM(net_revenue_eur) / COUNT(net_revenue_eur), 2) AS avg_line_revenue_eur FROM sales GROUP BY 1",
     "SELECT country_code, ROUND(AVG(net_revenue_eur), 2) AS avg_line_revenue_eur FROM sales WHERE net_revenue_eur IS NOT NULL GROUP BY country_code"
   ],
-  "other_way": null,
+  "other_way": {
+    "sql": "SELECT country_code, ROUND(SUM(net_revenue_eur) / COUNT(net_revenue_eur), 2) AS avg_line_revenue_eur FROM sales GROUP BY 1",
+    "tradeoff": "Builds the average from a sum and a count, which shows the idea, but AVG is shorter."
+  },
   "planted_wrong": [
     {
       "id": "PW1",

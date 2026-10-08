@@ -1,0 +1,131 @@
+{
+  "id": "EX-SQL-JOIN-04-E1-22",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "multi-table",
+    "bridge",
+    "promotions",
+    "categories"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-JOIN-04"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-JOIN-04",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-JOIN-01",
+    "SQL-JOIN-04"
+  ],
+  "template_id": "T-JOIN-04-bridge-products-per-parent-category",
+  "template_params": {
+    "promo_code": "P-2025-06"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_join",
+  "prompt": "How many products of each parent category does the promotion with promo_code 'P-2025-06' cover? Return two columns, in this order: parent_category and n_products. Return one row for each parent category with at least one covered product. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "parent_category",
+        "type_class": "text"
+      },
+      {
+        "name": "n_products",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "parent_category",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "n_products",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "parent_category"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, walk from the promotion through promotion_products to the products, then to their categories.",
+    "Each bridge row is one covered product; link its product column to products and the product's category_id to categories."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 48,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 49,
+      "to": 67,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 68,
+      "to": 123,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 124,
+      "to": 171,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 172,
+      "to": 222,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 223,
+      "to": 256,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 257,
+      "to": 283,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "Each row of promotion_products is one covered product, so after the chain of joins COUNT(*) per parent category counts covered products."
+}

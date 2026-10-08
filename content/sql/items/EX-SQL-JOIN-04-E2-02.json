@@ -1,0 +1,162 @@
+{
+  "id": "EX-SQL-JOIN-04-E2-02",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "range-join",
+    "competitor_prices",
+    "price_history",
+    "products",
+    "categories"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-JOIN-04"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "lesson",
+  "target_concept_id": "SQL-JOIN-04",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-NULL-01",
+    "SQL-TYPE-01",
+    "SQL-JOIN-01",
+    "SQL-JOIN-04"
+  ],
+  "template_id": "T-JOIN-04-range-join-list-price-at-check",
+  "template_params": {
+    "category_name": "TVs 50-55 inch",
+    "from": "2025-03-03",
+    "to": "2025-03-09"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_join",
+  "prompt": "For every competitor price check of a product in the category 'TVs 50-55 inch' made from 3 to 9 March 2025, show Voltmarkt's own list price on that day. observed_ts holds UTC time: use its UTC date, both for the week and for the price. The list price in effect on a day is the price_history version whose valid_from is on or before that day and whose valid_to is on or after it, or missing for the current price. Return five columns, in this order: product_id, competitor, observed_ts, price_eur and list_price_eur. Return one row for each price check. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "competitor",
+        "type_class": "text"
+      },
+      {
+        "name": "observed_ts",
+        "type_class": "temporal"
+      },
+      {
+        "name": "price_eur",
+        "type_class": "numeric"
+      },
+      {
+        "name": "list_price_eur",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per price check"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "competitor",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "observed_ts",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "price_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "list_price_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "product_id",
+      "competitor",
+      "observed_ts"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, join price_history with a range condition, so each check finds the version in effect on its UTC date.",
+    "Match the product, then test the check's date against valid_from and valid_to, and remember that valid_to is missing for the current price."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 84,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 85,
+      "to": 110,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 111,
+      "to": 158,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 159,
+      "to": 209,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 210,
+      "to": 387,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 388,
+      "to": 517,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": {
+    "stage1": 210,
+    "stage2": 210
+  },
+  "faded_shape": "SELECT cp.product_id, cp.competitor, cp.observed_ts, cp.price_eur, ph.list_price_eur\nFROM competitor_prices cp\nJOIN products p ON p.product_id = cp.product_id\nJOIN categories c ON c.category_id = p.category_id\n",
+  "faded_suffix": "\nWHERE c.category_name = 'TVs 50-55 inch' AND cp.observed_ts >= TIMESTAMP '2025-03-03' AND cp.observed_ts < TIMESTAMP '2025-03-10'",
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "The range condition picks the one price version whose dates contain the check's UTC date, and the IS NULL branch keeps the current price, which has no valid_to."
+}

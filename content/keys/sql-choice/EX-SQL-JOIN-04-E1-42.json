@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-JOIN-04-E1-42",
+  "item_version": 1,
+  "correct_oid": "o25d851b",
+  "explanation": "promotion_products links each promotion to the products it covers, so the right path goes from the promotion through the bridge to products, matching the bridge's product_id. Matching products to the bridge's promo_id, or to the promotion's own ID, pairs IDs that mean different things, and going through order_lines lists the products sold with the promotion, once per line, not the products it covers.",
+  "solver": {
+    "prompt_hash": "ffe5f9820545aa71",
+    "grader_version": "choice.2",
+    "chosen": "o25d851b",
+    "typed": null,
+    "at": "2026-10-07T09:58:58.599Z"
+  }
+}

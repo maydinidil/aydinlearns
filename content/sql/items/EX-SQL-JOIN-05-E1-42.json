@@ -1,0 +1,91 @@
+{
+  "id": "EX-SQL-JOIN-05-E1-42",
+  "version": 1,
+  "kind": "choose_query",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "choose_query",
+    "cross-join",
+    "grid"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-JOIN-05"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-JOIN-05",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-JOIN-05"
+  ],
+  "template_id": "T-JOIN-05-choose-store-day-grid",
+  "template_params": {
+    "country_code": "BE",
+    "from": "2025-02-26",
+    "to": "2025-03-03"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_join",
+  "prompt": "Which query returns, for every store located in Belgium (country_code BE) and every calendar day from 26 February to 3 March 2025, the number of orders the store got that day (the UTC date of order_ts), with 0 when it had none? One row per store and day. Any row order is fine.",
+  "output_contract": null,
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [],
+  "subgoals": [],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 60000,
+  "why_this_works": "",
+  "options": [
+    {
+      "oid": "oeca2e01",
+      "text": "WITH day_orders AS (SELECT store_id, CAST(order_ts AS DATE) AS order_day, COUNT(*) AS n_orders FROM orders GROUP BY store_id, CAST(order_ts AS DATE))\nSELECT st.store_code, cal.cal_date, COALESCE(d.n_orders, 0) AS n_orders\nFROM stores st\nCROSS JOIN calendar cal\nJOIN day_orders d ON d.store_id = st.store_id AND d.order_day = cal.cal_date\nWHERE st.country_code = 'BE' AND cal.cal_date BETWEEN DATE '2025-02-26' AND DATE '2025-03-03'",
+      "misconception_id": "ERR-LOG-11"
+    },
+    {
+      "oid": "o4206066",
+      "text": "WITH day_orders AS (SELECT store_id, CAST(order_ts AS DATE) AS order_day, COUNT(*) AS n_orders FROM orders GROUP BY store_id, CAST(order_ts AS DATE))\nSELECT st.store_code, cal.cal_date, d.n_orders\nFROM stores st\nCROSS JOIN calendar cal\nLEFT JOIN day_orders d ON d.store_id = st.store_id AND d.order_day = cal.cal_date\nWHERE st.country_code = 'BE' AND cal.cal_date BETWEEN DATE '2025-02-26' AND DATE '2025-03-03'",
+      "misconception_id": "ERR-LOG-17"
+    },
+    {
+      "oid": "oa8b37a5",
+      "text": "WITH day_orders AS (SELECT store_id, CAST(order_ts AS DATE) AS order_day, COUNT(*) AS n_orders FROM orders GROUP BY store_id, CAST(order_ts AS DATE))\nSELECT st.store_code, cal.cal_date, COALESCE(d.n_orders, 0) AS n_orders\nFROM stores st\nCROSS JOIN calendar cal\nLEFT JOIN day_orders d ON d.store_id = st.store_id AND d.order_day = cal.cal_date\nWHERE st.country_code = 'BE' AND cal.cal_date BETWEEN DATE '2025-02-26' AND DATE '2025-03-03'",
+      "misconception_id": null
+    },
+    {
+      "oid": "o4ca7bc9",
+      "text": "SELECT st.store_code, cal.cal_date, COUNT(*) AS n_orders\nFROM stores st\nCROSS JOIN calendar cal\nLEFT JOIN orders o ON o.store_id = st.store_id AND CAST(o.order_ts AS DATE) = cal.cal_date\nWHERE st.country_code = 'BE' AND cal.cal_date BETWEEN DATE '2025-02-26' AND DATE '2025-03-03'\nGROUP BY st.store_code, cal.cal_date",
+      "misconception_id": "ERR-LOG-04"
+    }
+  ]
+}

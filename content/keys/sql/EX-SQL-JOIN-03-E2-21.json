@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-JOIN-03-E2-21",
+  "item_version": 1,
+  "reference_sql": "WITH promo_counts AS (\n  SELECT product_id, COUNT(*) AS n_promotions\n  FROM promotion_products\n  GROUP BY product_id\n),\nproduct_units AS (\n  SELECT product_id, SUM(quantity) AS units\n  FROM order_lines\n  GROUP BY product_id\n)\nSELECT pc.product_id, pc.n_promotions, COALESCE(u.units, 0) AS units\nFROM promo_counts pc\nLEFT JOIN product_units u ON u.product_id = pc.product_id",
+  "alternatives": [
+    "WITH product_units AS (SELECT product_id, SUM(quantity) AS units FROM order_lines GROUP BY product_id) SELECT pp.product_id, COUNT(*) AS n_promotions, COALESCE(MAX(u.units), 0) AS units FROM promotion_products pp LEFT JOIN product_units u ON u.product_id = pp.product_id GROUP BY pp.product_id",
+    "WITH promo_counts AS (SELECT product_id, COUNT(promo_id) AS n_promotions FROM promotion_products GROUP BY 1), product_units AS (SELECT product_id, SUM(quantity) AS units FROM order_lines GROUP BY 1) SELECT pc.product_id, pc.n_promotions, SUM(COALESCE(u.units, 0)) AS units FROM promo_counts pc LEFT JOIN product_units u ON u.product_id = pc.product_id GROUP BY pc.product_id, pc.n_promotions"
+  ],
+  "other_way": {
+    "sql": "WITH product_units AS (SELECT product_id, SUM(quantity) AS units FROM order_lines GROUP BY product_id) SELECT pp.product_id, COUNT(*) AS n_promotions, COALESCE(MAX(u.units), 0) AS units FROM promotion_products pp LEFT JOIN product_units u ON u.product_id = pp.product_id GROUP BY pp.product_id",
+    "tradeoff": "One step less works if MAX takes the units, because every bridge row of a product holds the same units, but two steps read plainer."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-01",
+      "sql": "SELECT pp.product_id, COUNT(*) AS n_promotions, COALESCE(SUM(ol.quantity), 0) AS units FROM promotion_products pp LEFT JOIN order_lines ol ON ol.product_id = pp.product_id GROUP BY pp.product_id"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-01",
+      "sql": "SELECT pp.product_id, COUNT(DISTINCT pp.promo_id) AS n_promotions, COALESCE(SUM(ol.quantity), 0) AS units FROM promotion_products pp LEFT JOIN order_lines ol ON ol.product_id = pp.product_id GROUP BY pp.product_id"
+    }
+  ],
+  "hint3_partial": "WITH promo_counts AS (\n  SELECT product_id, COUNT(*) AS n_promotions\n  FROM promotion_products\n  GROUP BY product_id\n),\nproduct_units AS (\n  SELECT product_id, SUM(quantity) AS units\n  FROM order_lines\n  GROUP BY ___\n)\nSELECT pc.product_id, pc.n_promotions, COALESCE(___, 0) AS units\nFROM promo_counts pc\nLEFT JOIN product_units u ON ___",
+  "solver": {
+    "prompt_hash": "904b19ef1cbabdd7",
+    "schema_version": "8c8adf903d4b",
+    "dataset_version": "e1545e4258743033",
+    "grader_version": "1b.3",
+    "query": "WITH listed AS (\n  SELECT product_id, COUNT(*) AS n_promotions\n  FROM promotion_products\n  GROUP BY product_id\n), product_units AS (\n  SELECT product_id, SUM(quantity) AS units\n  FROM order_lines\n  GROUP BY product_id\n)\nSELECT l.product_id, l.n_promotions, COALESCE(pu.units, 0) AS units\nFROM listed l\nLEFT JOIN product_units pu ON pu.product_id = l.product_id",
+    "at": "2026-10-07T10:41:40.075Z"
+  }
+}

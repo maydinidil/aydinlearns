@@ -74,7 +74,12 @@ test('a lesson needs a reading, two worked examples and the right item counts', 
     'retest item missing', 'need at least 6 pool items',
   ]);
   const long = validateLesson({ reading_md: Array(600).fill('word').join(' ') });
-  assert.ok(long.includes('reading_md has 600 words; the cap is about 500'));
+  assert.ok(long.includes('reading_md has 600 words; the cap is 550 (aim for about 500)'));
+});
+test('a lesson reading of 550 words passes the cap and 551 fails it', () => {
+  const reading = (n: number) => ({ reading_md: Array(n).fill('word').join(' ') });
+  assert.ok(!validateLesson(reading(550)).some((e) => e.startsWith('reading_md has')));
+  assert.ok(validateLesson(reading(551)).includes('reading_md has 551 words; the cap is 550 (aim for about 500)'));
 });
 test('the deck presets cover sql, ga4 and methodology, with the exam boost only on ga4', () => {
   assert.deepEqual(Object.keys(PRESETS), ['sql', 'ga4', 'methodology']);
@@ -168,4 +173,15 @@ test('opener items use the EX-OPENER-L<n>-NN ID form, and only they do', () => {
     assert.deepEqual(validateSqlItem({ ...opener, id: bad }), ['an opener item ID must look like EX-OPENER-L1-01'], bad);
   }
   assert.deepEqual(validateSqlItem({ ...item, id: 'EX-OPENER-L1-01' }), ['only an opener item may use an EX-OPENER-L<n>-NN ID']);
+});
+
+// S4B-02 (Task B1): an inbox or daily case's CP3 item has use 'case' and the EX-CASE-<case tail> ID; no other item has that ID.
+test('case items use the EX-CASE-<case tail> ID form, and only they do', () => {
+  const caseItem = { ...item, id: 'EX-CASE-PRICE-01', use: 'case' as const };
+  assert.deepEqual(validateSqlItem(caseItem), []);
+  assert.deepEqual(validateSqlItem({ ...caseItem, id: 'EX-CASE-DAILY-L2-01' }), []);
+  for (const bad of ['EX-CASE-', 'EX-CASE-price-01', 'EX-CASE-PRICE--01', 'EX-CASE-PRICE-01-', 'EX-SQL-FILTER-01-E1-01']) {
+    assert.deepEqual(validateSqlItem({ ...caseItem, id: bad }), ['a case item ID must look like EX-CASE-PRICE-01'], bad);
+  }
+  assert.deepEqual(validateSqlItem({ ...item, id: 'EX-CASE-PRICE-01' }), ['only a case item may use an EX-CASE- ID']);
 });

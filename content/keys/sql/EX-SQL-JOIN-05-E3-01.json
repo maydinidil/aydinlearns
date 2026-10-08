@@ -1,0 +1,40 @@
+{
+  "item_id": "EX-SQL-JOIN-05-E3-01",
+  "item_version": 1,
+  "reference_sql": "WITH order_days AS (SELECT CAST(timezone('Europe/Amsterdam', timezone('UTC', order_ts)) AS DATE) AS order_day, COUNT(*) AS n_orders FROM orders GROUP BY CAST(timezone('Europe/Amsterdam', timezone('UTC', order_ts)) AS DATE)),\ncal AS (SELECT cal_date, weekday_name FROM calendar WHERE cal_date BETWEEN DATE '2025-02-24' AND DATE '2026-01-01'),\nod AS (SELECT order_day, n_orders FROM order_days WHERE order_day BETWEEN DATE '2025-02-24' AND DATE '2026-01-01')\nSELECT COALESCE(c.cal_date, d.order_day) AS day, c.weekday_name, COALESCE(d.n_orders, 0) AS n_orders\nFROM cal c\nFULL OUTER JOIN od d ON d.order_day = c.cal_date",
+  "alternatives": [
+    "WITH order_days AS (SELECT CAST(timezone('Europe/Amsterdam', timezone('UTC', order_ts)) AS DATE) AS order_day, COUNT(*) AS n_orders FROM orders GROUP BY CAST(timezone('Europe/Amsterdam', timezone('UTC', order_ts)) AS DATE)), cal AS (SELECT cal_date, weekday_name FROM calendar WHERE cal_date BETWEEN DATE '2025-02-24' AND DATE '2026-01-01'), od AS (SELECT order_day, n_orders FROM order_days WHERE order_day BETWEEN DATE '2025-02-24' AND DATE '2026-01-01') SELECT COALESCE(d.order_day, c.cal_date) AS day, c.weekday_name, COALESCE(d.n_orders, 0) AS n_orders FROM od d FULL JOIN cal c ON c.cal_date = d.order_day",
+    "SELECT COALESCE(c.cal_date, CAST(timezone('Europe/Amsterdam', timezone('UTC', o.order_ts)) AS DATE)) AS day, c.weekday_name, COUNT(o.order_id) AS n_orders FROM calendar c FULL OUTER JOIN orders o ON CAST(timezone('Europe/Amsterdam', timezone('UTC', o.order_ts)) AS DATE) = c.cal_date WHERE COALESCE(c.cal_date, CAST(timezone('Europe/Amsterdam', timezone('UTC', o.order_ts)) AS DATE)) BETWEEN DATE '2025-02-24' AND DATE '2026-01-01' GROUP BY COALESCE(c.cal_date, CAST(timezone('Europe/Amsterdam', timezone('UTC', o.order_ts)) AS DATE)), c.weekday_name",
+    "WITH order_days AS (SELECT CAST(timezone('Europe/Amsterdam', timezone('UTC', order_ts)) AS DATE) AS order_day, COUNT(*) AS n_orders FROM orders GROUP BY CAST(timezone('Europe/Amsterdam', timezone('UTC', order_ts)) AS DATE)) SELECT COALESCE(c.cal_date, d.order_day) AS day, c.weekday_name, COALESCE(d.n_orders, 0) AS n_orders FROM calendar c FULL OUTER JOIN order_days d ON d.order_day = c.cal_date WHERE COALESCE(c.cal_date, d.order_day) BETWEEN DATE '2025-02-24' AND DATE '2026-01-01'"
+  ],
+  "other_way": {
+    "sql": "SELECT COALESCE(c.cal_date, CAST(timezone('Europe/Amsterdam', timezone('UTC', o.order_ts)) AS DATE)) AS day, c.weekday_name, COUNT(o.order_id) AS n_orders FROM calendar c FULL OUTER JOIN orders o ON CAST(timezone('Europe/Amsterdam', timezone('UTC', o.order_ts)) AS DATE) = c.cal_date WHERE COALESCE(c.cal_date, CAST(timezone('Europe/Amsterdam', timezone('UTC', o.order_ts)) AS DATE)) BETWEEN DATE '2025-02-24' AND DATE '2026-01-01' GROUP BY COALESCE(c.cal_date, CAST(timezone('Europe/Amsterdam', timezone('UTC', o.order_ts)) AS DATE)), c.weekday_name",
+    "tradeoff": "Joining the raw orders and counting order_id skips the CTEs, but the FULL OUTER JOIN then carries every order before grouping."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-11",
+      "sql": "WITH order_days AS (SELECT CAST(timezone('Europe/Amsterdam', timezone('UTC', order_ts)) AS DATE) AS order_day, COUNT(*) AS n_orders FROM orders GROUP BY CAST(timezone('Europe/Amsterdam', timezone('UTC', order_ts)) AS DATE)), cal AS (SELECT cal_date, weekday_name FROM calendar WHERE cal_date BETWEEN DATE '2025-02-24' AND DATE '2026-01-01'), od AS (SELECT order_day, n_orders FROM order_days WHERE order_day BETWEEN DATE '2025-02-24' AND DATE '2026-01-01') SELECT COALESCE(c.cal_date, d.order_day) AS day, c.weekday_name, COALESCE(d.n_orders, 0) AS n_orders FROM cal c LEFT JOIN od d ON d.order_day = c.cal_date"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-11",
+      "sql": "WITH order_days AS (SELECT CAST(timezone('Europe/Amsterdam', timezone('UTC', order_ts)) AS DATE) AS order_day, COUNT(*) AS n_orders FROM orders GROUP BY CAST(timezone('Europe/Amsterdam', timezone('UTC', order_ts)) AS DATE)), cal AS (SELECT cal_date, weekday_name FROM calendar WHERE cal_date BETWEEN DATE '2025-02-24' AND DATE '2026-01-01'), od AS (SELECT order_day, n_orders FROM order_days WHERE order_day BETWEEN DATE '2025-02-24' AND DATE '2026-01-01') SELECT COALESCE(c.cal_date, d.order_day) AS day, c.weekday_name, COALESCE(d.n_orders, 0) AS n_orders FROM od d LEFT JOIN cal c ON c.cal_date = d.order_day"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-26",
+      "sql": "WITH order_days AS (SELECT CAST(order_ts AS DATE) AS order_day, COUNT(*) AS n_orders FROM orders GROUP BY CAST(order_ts AS DATE)), cal AS (SELECT cal_date, weekday_name FROM calendar WHERE cal_date BETWEEN DATE '2025-02-24' AND DATE '2026-01-01'), od AS (SELECT order_day, n_orders FROM order_days WHERE order_day BETWEEN DATE '2025-02-24' AND DATE '2026-01-01') SELECT COALESCE(c.cal_date, d.order_day) AS day, c.weekday_name, COALESCE(d.n_orders, 0) AS n_orders FROM cal c FULL OUTER JOIN od d ON d.order_day = c.cal_date"
+    }
+  ],
+  "hint3_partial": "WITH order_days AS (SELECT CAST(timezone('Europe/Amsterdam', timezone('UTC', order_ts)) AS DATE) AS order_day, COUNT(*) AS n_orders FROM orders GROUP BY CAST(timezone('Europe/Amsterdam', timezone('UTC', order_ts)) AS DATE)),\ncal AS (SELECT cal_date, weekday_name FROM calendar WHERE cal_date BETWEEN DATE '2025-02-24' AND DATE '2026-01-01'),\nod AS (SELECT order_day, n_orders FROM order_days WHERE order_day BETWEEN DATE '2025-02-24' AND DATE '2026-01-01')\nSELECT COALESCE(c.cal_date, d.order_day) AS day, c.weekday_name, COALESCE(d.n_orders, 0) AS n_orders\nFROM cal c\n___ od d ON d.order_day = c.cal_date",
+  "solver": {
+    "prompt_hash": "50ba3060b01de561",
+    "schema_version": "31dd60526704",
+    "dataset_version": "e1545e4258743033",
+    "grader_version": "1b.3",
+    "query": "WITH od AS (\n  SELECT CAST((order_ts AT TIME ZONE 'UTC') AT TIME ZONE 'Europe/Amsterdam' AS DATE) AS day, COUNT(*) AS n_orders\n  FROM orders\n  GROUP BY 1\n), cal AS (\n  SELECT cal_date AS day, weekday_name\n  FROM calendar\n)\nSELECT COALESCE(cal.day, od.day) AS day, cal.weekday_name, COALESCE(od.n_orders, 0) AS n_orders\nFROM cal\nFULL OUTER JOIN od ON od.day = cal.day\nWHERE COALESCE(cal.day, od.day) >= DATE '2025-02-24' AND COALESCE(cal.day, od.day) <= DATE '2026-01-01'",
+    "at": "2026-10-07T10:41:42.400Z"
+  }
+}

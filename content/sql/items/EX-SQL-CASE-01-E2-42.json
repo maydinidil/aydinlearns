@@ -1,6 +1,6 @@
 {
   "id": "EX-SQL-CASE-01-E2-42",
-  "version": 1,
+  "version": 2,
   "kind": "choose_query",
   "tags": [
     "sql",
@@ -65,7 +65,7 @@
     {
       "oid": "o2ade4ab",
       "text": "SELECT promo_code,\n       CASE WHEN discount_pct >= 20 THEN 'medium'\n            WHEN discount_pct >= 40 THEN 'deep'\n            ELSE 'light'\n       END AS depth\nFROM promotions",
-      "misconception_id": "ERR-LOG-00"
+      "misconception_id": "ERR-LOG-29"
     },
     {
       "oid": "o7047d36",

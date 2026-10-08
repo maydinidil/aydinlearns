@@ -1,0 +1,116 @@
+{
+  "id": "EX-SQL-DATE-01-E1-04",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "date",
+    "date_part",
+    "weekday",
+    "sales"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-DATE-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "lesson",
+  "target_concept_id": "SQL-DATE-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-DATE-01"
+  ],
+  "template_id": "T-DATE-01-sum-per-weekday",
+  "template_params": {
+    "table": "sales",
+    "part": "dayname",
+    "measure": "units"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_date",
+  "prompt": "How many units does Voltmarkt sell on each day of the week? Use the sales table, where order_date is the UTC day of the order, and count every order line. Return two columns, in this order: weekday, the English name of the day, such as Monday, and units, the total units. Return one row for each day of the week. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "weekday",
+        "type_class": "text"
+      },
+      {
+        "name": "units",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per day of the week"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "weekday",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "units",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "weekday"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the calculated columns: the name of each line's weekday, and the total units.",
+    "dayname turns a date into the English name of its weekday. Add up units with SUM: counting rows would give the number of lines, not units."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 65,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 66,
+      "to": 76,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 77,
+      "to": 87,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": {
+    "stage1": 7,
+    "stage2": 7
+  },
+  "faded_shape": "SELECT ",
+  "faded_suffix": "\nFROM sales\nGROUP BY 1",
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "dayname gives each date its weekday name, so every Monday of both years falls in one group, and SUM adds their units."
+}

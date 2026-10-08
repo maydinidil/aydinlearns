@@ -1,0 +1,39 @@
+{
+  "item_id": "EX-SQL-JOIN-05-E1-04",
+  "item_version": 1,
+  "reference_sql": "WITH by_country AS (SELECT s.country_code, COUNT(*) AS n_orders FROM orders o JOIN stores s ON s.store_id = o.store_id WHERE o.order_ts >= TIMESTAMP '2025-03-01' AND o.order_ts < TIMESTAMP '2025-04-01' GROUP BY s.country_code),\ntotal AS (SELECT SUM(n_orders) AS n_all FROM by_country)\nSELECT b.country_code, b.n_orders, ROUND(b.n_orders / t.n_all, 4) AS share_of_orders\nFROM by_country b\nCROSS JOIN total t",
+  "alternatives": [
+    "WITH by_country AS (SELECT s.country_code, COUNT(*) AS n_orders FROM orders o JOIN stores s ON s.store_id = o.store_id WHERE o.order_ts >= TIMESTAMP '2025-03-01' AND o.order_ts < TIMESTAMP '2025-04-01' GROUP BY s.country_code), total AS (SELECT COUNT(*) AS n_all FROM orders o WHERE o.order_ts >= TIMESTAMP '2025-03-01' AND o.order_ts < TIMESTAMP '2025-04-01') SELECT b.country_code, b.n_orders, ROUND(b.n_orders * 1.0 / t.n_all, 4) AS share_of_orders FROM total t CROSS JOIN by_country b",
+    "WITH by_country AS (SELECT s.country_code, COUNT(*) AS n_orders FROM orders o JOIN stores s ON s.store_id = o.store_id WHERE o.order_ts >= TIMESTAMP '2025-03-01' AND o.order_ts < TIMESTAMP '2025-04-01' GROUP BY s.country_code), total AS (SELECT SUM(n_orders) AS n_all FROM by_country) SELECT b.country_code, b.n_orders, ROUND(b.n_orders / t.n_all, 4) AS share_of_orders FROM by_country b, total t"
+  ],
+  "other_way": {
+    "sql": "WITH by_country AS (SELECT s.country_code, COUNT(*) AS n_orders FROM orders o JOIN stores s ON s.store_id = o.store_id WHERE o.order_ts >= TIMESTAMP '2025-03-01' AND o.order_ts < TIMESTAMP '2025-04-01' GROUP BY s.country_code), total AS (SELECT SUM(n_orders) AS n_all FROM by_country) SELECT b.country_code, b.n_orders, ROUND(b.n_orders / t.n_all, 4) AS share_of_orders FROM by_country b, total t",
+    "tradeoff": "A comma between the two tables in FROM also pairs every row, but CROSS JOIN shows that the pairing is meant."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-05",
+      "sql": "WITH by_country AS (SELECT s.country_code, COUNT(*) AS n_orders FROM orders o JOIN stores s ON s.store_id = o.store_id WHERE o.order_ts >= TIMESTAMP '2025-03-01' AND o.order_ts < TIMESTAMP '2025-04-01' GROUP BY s.country_code), total AS (SELECT SUM(n_orders) AS n_all FROM by_country) SELECT b.country_code, b.n_orders, b.n_orders // t.n_all AS share_of_orders FROM by_country b CROSS JOIN total t"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-01",
+      "sql": "WITH by_country AS (SELECT s.country_code, COUNT(*) AS n_orders FROM orders o JOIN stores s ON s.store_id = o.store_id WHERE o.order_ts >= TIMESTAMP '2025-03-01' AND o.order_ts < TIMESTAMP '2025-04-01' GROUP BY s.country_code), total AS (SELECT COUNT(*) AS n_all FROM orders o JOIN order_lines ol ON ol.order_id = o.order_id WHERE o.order_ts >= TIMESTAMP '2025-03-01' AND o.order_ts < TIMESTAMP '2025-04-01') SELECT b.country_code, b.n_orders, ROUND(b.n_orders / t.n_all, 4) AS share_of_orders FROM by_country b CROSS JOIN total t"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-21",
+      "sql": "WITH by_country AS (SELECT s.country_code, COUNT(*) AS n_orders FROM orders o JOIN stores s ON s.store_id = o.store_id WHERE o.order_ts >= TIMESTAMP '2025-03-01' AND o.order_ts < TIMESTAMP '2025-04-01' GROUP BY s.country_code), total AS (SELECT SUM(n_orders) AS n_all FROM by_country) SELECT b.country_code, b.n_orders, ROUND(100.0 * b.n_orders / t.n_all, 4) AS share_of_orders FROM by_country b CROSS JOIN total t"
+    }
+  ],
+  "hint3_partial": "WITH by_country AS (SELECT s.country_code, COUNT(*) AS n_orders FROM orders o JOIN stores s ON s.store_id = o.store_id WHERE o.order_ts >= TIMESTAMP '2025-03-01' AND o.order_ts < TIMESTAMP '2025-04-01' GROUP BY s.country_code),\ntotal AS (SELECT SUM(n_orders) AS n_all FROM by_country)\nSELECT b.country_code, b.n_orders, ROUND(b.n_orders / t.n_all, 4) AS share_of_orders\nFROM by_country b\n___ total t",
+  "solver": {
+    "prompt_hash": "af1b9db74c8c13fa",
+    "schema_version": "b1c1a5d57d7d",
+    "dataset_version": "e1545e4258743033",
+    "grader_version": "1b.3",
+    "query": "SELECT CASE WHEN s.store_type = 'web' THEN 'NL' ELSE s.country_code END AS country_code,\n       COUNT(*) AS n_orders,\n       ROUND(COUNT(*) * 1.0 / SUM(COUNT(*)) OVER (), 4) AS share_of_orders\nFROM orders o\nJOIN stores s ON s.store_id = o.store_id\nWHERE o.order_ts >= TIMESTAMP '2025-03-01 00:00:00' AND o.order_ts < TIMESTAMP '2025-04-01 00:00:00'\nGROUP BY 1",
+    "at": "2026-10-07T10:41:41.689Z"
+  }
+}

@@ -1,0 +1,118 @@
+{
+  "id": "EX-SQL-SET-01-E1-02",
+  "version": 4,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "set",
+    "intersect",
+    "customers",
+    "orders"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-SET-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pretest",
+  "target_concept_id": "SQL-SET-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-NULL-01",
+    "SQL-SET-01"
+  ],
+  "template_id": "T-SET-01-intersect-list",
+  "template_params": {
+    "table": "orders",
+    "from": "2025-05-12",
+    "to": "2025-05-18"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_set",
+  "prompt": "Which customers ordered both on the web and in a store in the week from Monday 2025-05-12 to Sunday 2025-05-18? Use the orders table, where channel is 'web' or 'store'. order_ts holds the time of the order in UTC, so take the days in UTC: from 2025-05-12 00:00 up to but not including 2025-05-19 00:00. Leave out guest orders, whose customer_id is missing. Return one column, customer_id, with one row for each customer. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "customer_id",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per customer"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "customer_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "customer_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the second list, of store customers in the same week, and keep only the customers that are in both lists.",
+    "INTERSECT keeps the rows that both queries return, each once. A set operation treats two missing values as equal, so filter out the guest orders with IS NOT NULL in both parts."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 18,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 19,
+      "to": 30,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 31,
+      "to": 181,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 182,
+      "to": 210,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 211,
+      "to": 222,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 223,
+      "to": 375,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "INTERSECT keeps each customer_id that both the web list and the store list hold, once, and the IS NOT NULL filters keep the guest orders out."
+}

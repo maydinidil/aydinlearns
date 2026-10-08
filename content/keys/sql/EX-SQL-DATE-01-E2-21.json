@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-DATE-01-E2-21",
+  "item_version": 1,
+  "reference_sql": "SELECT CAST(timezone('Europe/Amsterdam', timezone('UTC', order_ts)) AS DATE) AS order_day,\n       channel,\n       COUNT(*) AS orders\nFROM orders\nWHERE CAST(timezone('Europe/Amsterdam', timezone('UTC', order_ts)) AS DATE) BETWEEN DATE '2025-12-24' AND DATE '2025-12-26'\nGROUP BY 1, 2",
+  "alternatives": [
+    "SELECT CAST(date_trunc('day', timezone('Europe/Amsterdam', timezone('UTC', order_ts))) AS DATE) AS order_day, channel, COUNT(*) AS orders FROM orders WHERE timezone('Europe/Amsterdam', timezone('UTC', order_ts)) >= TIMESTAMP '2025-12-24 00:00:00' AND timezone('Europe/Amsterdam', timezone('UTC', order_ts)) < TIMESTAMP '2025-12-27 00:00:00' GROUP BY 1, 2",
+    "SELECT CAST(timezone('Europe/Amsterdam', timezone('UTC', order_ts)) AS DATE) AS order_day, channel, COUNT(*) AS orders FROM orders WHERE order_ts >= TIMESTAMP '2025-12-23 23:00:00' AND order_ts < TIMESTAMP '2025-12-26 23:00:00' GROUP BY 1, 2"
+  ],
+  "other_way": {
+    "sql": "SELECT CAST(timezone('Europe/Amsterdam', timezone('UTC', order_ts)) AS DATE) AS order_day, channel, COUNT(*) AS orders FROM orders WHERE order_ts >= TIMESTAMP '2025-12-23 23:00:00' AND order_ts < TIMESTAMP '2025-12-26 23:00:00' GROUP BY 1, 2",
+    "tradeoff": "Filtering order_ts on UTC bounds keeps the column bare, but you must work out the 1 hour winter offset yourself."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-26",
+      "sql": "SELECT CAST(order_ts AS DATE) AS order_day, channel, COUNT(*) AS orders FROM orders WHERE CAST(order_ts AS DATE) BETWEEN DATE '2025-12-24' AND DATE '2025-12-26' GROUP BY 1, 2"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-26",
+      "sql": "SELECT CAST(order_ts AT TIME ZONE 'Europe/Amsterdam' AS DATE) AS order_day, channel, COUNT(*) AS orders FROM orders WHERE CAST(order_ts AT TIME ZONE 'Europe/Amsterdam' AS DATE) BETWEEN DATE '2025-12-24' AND DATE '2025-12-26' GROUP BY 1, 2"
+    }
+  ],
+  "hint3_partial": "SELECT CAST(timezone(___, timezone(___, order_ts)) AS DATE) AS order_day,\n       channel,\n       COUNT(*) AS orders\nFROM orders\nWHERE ___ BETWEEN DATE '2025-12-24' AND DATE '2025-12-26'\nGROUP BY 1, 2",
+  "solver": {
+    "prompt_hash": "b54608baffd250b6",
+    "schema_version": "7ed366279088",
+    "dataset_version": "e1545e4258743033",
+    "grader_version": "1b.3",
+    "query": "SELECT CAST((order_ts AT TIME ZONE 'UTC') AT TIME ZONE 'Europe/Amsterdam' AS DATE) AS order_day, channel, COUNT(*) AS orders\nFROM orders\nWHERE CAST((order_ts AT TIME ZONE 'UTC') AT TIME ZONE 'Europe/Amsterdam' AS DATE) BETWEEN DATE '2025-12-24' AND DATE '2025-12-26'\nGROUP BY 1, 2",
+    "at": "2026-10-07T10:41:37.302Z"
+  }
+}

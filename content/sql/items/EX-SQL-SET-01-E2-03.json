@@ -1,0 +1,130 @@
+{
+  "id": "EX-SQL-SET-01-E2-03",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "set",
+    "union_all",
+    "cte",
+    "average",
+    "price_history",
+    "competitor_prices"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-SET-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-SET-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-AGG-01",
+    "SQL-TYPE-01",
+    "SQL-CTE-01",
+    "SQL-SET-01"
+  ],
+  "template_id": "T-SET-01-stack-then-average",
+  "template_params": {
+    "tables": "price_history, competitor_prices",
+    "product_id": 3
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_set",
+  "prompt": "What is the average of all the prices seen for product 3? Count every list price version of product 3 in price_history and every competitor price check of product 3 in competitor_prices as one price each, repeats included, and take the average of all of them together. Return one column, avg_price_eur, rounded to 2 decimals with ROUND(x, 2), in one row. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "avg_price_eur",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "avg_price_eur",
+        "type_class": "numeric",
+        "precision": "money",
+        "require_rounding": 2
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, stack the list prices and the checked prices of product 3 into one column inside a CTE, then average that column.",
+    "UNION would keep each different price once, so a price seen in many weeks would weigh as much as a price seen once. An average of two averages also weights the two tables wrongly."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 59,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 60,
+      "to": 80,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 81,
+      "to": 103,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 104,
+      "to": 134,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 135,
+      "to": 159,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 160,
+      "to": 184,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 185,
+      "to": 233,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 234,
+      "to": 251,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "UNION ALL keeps every price point, repeats included, so AVG over the stack gives each list price version and each check the same weight."
+}

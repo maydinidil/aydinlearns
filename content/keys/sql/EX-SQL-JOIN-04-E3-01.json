@@ -1,0 +1,39 @@
+{
+  "item_id": "EX-SQL-JOIN-04-E3-01",
+  "item_version": 1,
+  "reference_sql": "SELECT c.parent_category, COUNT(*) AS n_undercut_checks\nFROM competitor_prices cp\nJOIN price_history ph ON ph.product_id = cp.product_id AND CAST(cp.observed_ts AS DATE) >= ph.valid_from AND (ph.valid_to IS NULL OR CAST(cp.observed_ts AS DATE) <= ph.valid_to)\nJOIN products p ON p.product_id = cp.product_id\nJOIN categories c ON c.category_id = p.category_id\nWHERE cp.observed_ts >= TIMESTAMP '2025-03-01' AND cp.observed_ts < TIMESTAMP '2025-04-01' AND cp.price_eur < ph.list_price_eur\nGROUP BY c.parent_category",
+  "alternatives": [
+    "SELECT c.parent_category, COUNT(*) AS n_undercut_checks FROM competitor_prices cp JOIN products p ON p.product_id = cp.product_id JOIN categories c ON c.category_id = p.category_id JOIN price_history ph ON ph.product_id = cp.product_id AND CAST(cp.observed_ts AS DATE) BETWEEN ph.valid_from AND COALESCE(ph.valid_to, DATE '9999-12-31') WHERE CAST(cp.observed_ts AS DATE) BETWEEN DATE '2025-03-01' AND DATE '2025-03-31' AND cp.price_eur < ph.list_price_eur GROUP BY c.parent_category",
+    "SELECT c.parent_category, COUNT(*) FILTER (WHERE cp.price_eur < ph.list_price_eur) AS n_undercut_checks FROM competitor_prices cp JOIN price_history ph ON ph.product_id = cp.product_id AND CAST(cp.observed_ts AS DATE) >= ph.valid_from AND (ph.valid_to IS NULL OR CAST(cp.observed_ts AS DATE) <= ph.valid_to) JOIN products p ON p.product_id = cp.product_id JOIN categories c ON c.category_id = p.category_id WHERE cp.observed_ts >= TIMESTAMP '2025-03-01' AND cp.observed_ts < TIMESTAMP '2025-04-01' GROUP BY c.parent_category HAVING COUNT(*) FILTER (WHERE cp.price_eur < ph.list_price_eur) > 0"
+  ],
+  "other_way": {
+    "sql": "SELECT c.parent_category, COUNT(*) FILTER (WHERE cp.price_eur < ph.list_price_eur) AS n_undercut_checks FROM competitor_prices cp JOIN price_history ph ON ph.product_id = cp.product_id AND CAST(cp.observed_ts AS DATE) >= ph.valid_from AND (ph.valid_to IS NULL OR CAST(cp.observed_ts AS DATE) <= ph.valid_to) JOIN products p ON p.product_id = cp.product_id JOIN categories c ON c.category_id = p.category_id WHERE cp.observed_ts >= TIMESTAMP '2025-03-01' AND cp.observed_ts < TIMESTAMP '2025-04-01' GROUP BY c.parent_category HAVING COUNT(*) FILTER (WHERE cp.price_eur < ph.list_price_eur) > 0",
+    "tradeoff": "Counting with FILTER and HAVING gives the same rows and leaves room for more counts, but a plain WHERE is simpler for one."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-01",
+      "sql": "SELECT c.parent_category, COUNT(*) AS n_undercut_checks FROM competitor_prices cp JOIN price_history ph ON ph.product_id = cp.product_id JOIN products p ON p.product_id = cp.product_id JOIN categories c ON c.category_id = p.category_id WHERE cp.observed_ts >= TIMESTAMP '2025-03-01' AND cp.observed_ts < TIMESTAMP '2025-04-01' AND cp.price_eur < ph.list_price_eur GROUP BY c.parent_category"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-03",
+      "sql": "SELECT c.parent_category, COUNT(*) AS n_undercut_checks FROM competitor_prices cp JOIN price_history ph ON ph.product_id = cp.product_id AND CAST(cp.observed_ts AS DATE) >= ph.valid_from AND CAST(cp.observed_ts AS DATE) <= ph.valid_to JOIN products p ON p.product_id = cp.product_id JOIN categories c ON c.category_id = p.category_id WHERE cp.observed_ts >= TIMESTAMP '2025-03-01' AND cp.observed_ts < TIMESTAMP '2025-04-01' AND cp.price_eur < ph.list_price_eur GROUP BY c.parent_category"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-23",
+      "sql": "SELECT c.parent_category, COUNT(*) AS n_undercut_checks FROM competitor_prices cp JOIN price_history ph ON ph.product_id = cp.product_id AND CAST(cp.observed_ts AS DATE) > ph.valid_from AND (ph.valid_to IS NULL OR CAST(cp.observed_ts AS DATE) <= ph.valid_to) JOIN products p ON p.product_id = cp.product_id JOIN categories c ON c.category_id = p.category_id WHERE cp.observed_ts >= TIMESTAMP '2025-03-01' AND cp.observed_ts < TIMESTAMP '2025-04-01' AND cp.price_eur < ph.list_price_eur GROUP BY c.parent_category"
+    }
+  ],
+  "hint3_partial": "SELECT c.parent_category, COUNT(*) AS n_undercut_checks\nFROM competitor_prices cp\nJOIN price_history ph ON ph.product_id = cp.product_id AND ___\nJOIN products p ON p.product_id = cp.product_id\nJOIN categories c ON c.category_id = p.category_id\nWHERE cp.observed_ts >= TIMESTAMP '2025-03-01' AND cp.observed_ts < TIMESTAMP '2025-04-01' AND cp.price_eur < ph.list_price_eur\nGROUP BY c.parent_category",
+  "solver": {
+    "prompt_hash": "e51f3c87d39c854f",
+    "schema_version": "ed3be5110cd5",
+    "dataset_version": "e1545e4258743033",
+    "grader_version": "1b.3",
+    "query": "SELECT c.parent_category, COUNT(*) AS n_undercut_checks\nFROM competitor_prices cp\nJOIN products p ON p.product_id = cp.product_id\nJOIN categories c ON c.category_id = p.category_id\nJOIN price_history h ON h.product_id = cp.product_id\n  AND h.valid_from <= CAST(cp.observed_ts AS DATE)\n  AND (h.valid_to IS NULL OR h.valid_to >= CAST(cp.observed_ts AS DATE))\nWHERE cp.observed_ts >= TIMESTAMP '2025-03-01 00:00:00' AND cp.observed_ts < TIMESTAMP '2025-04-01 00:00:00'\n  AND cp.price_eur < h.list_price_eur\nGROUP BY c.parent_category",
+    "at": "2026-10-07T10:41:41.479Z"
+  }
+}

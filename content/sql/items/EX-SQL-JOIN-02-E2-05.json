@@ -1,0 +1,110 @@
+{
+  "id": "EX-SQL-JOIN-02-E2-05",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "anti_join",
+    "filter_in_on",
+    "stores",
+    "orders",
+    "utc_day"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-JOIN-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-JOIN-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-NULL-01",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02"
+  ],
+  "template_id": "T-JOIN-02-anti-join-filtered",
+  "template_params": {
+    "from": "stores",
+    "join": "orders",
+    "country": "BE",
+    "week": "2025-03-03"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_join",
+  "prompt": "Which stores took no orders shipped to Belgium (ship_to_country BE) from 3 March 2025 to 9 March 2025? order_ts holds UTC time: take those UTC days, both included. Return one column, store_code, with one row for each such store. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "store_code",
+        "type_class": "text"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "store_code",
+        "type_class": "text",
+        "precision": "exact"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "store_code"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, join the Belgian orders of that week so that a store with none keeps a row, then keep those rows.",
+    "Both the country test and the date test belong in ON. Then a store with no such order has a missing order_id."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 19,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 20,
+      "to": 33,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 34,
+      "to": 207,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 208,
+      "to": 232,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "With the tests in ON, a store with no matching order keeps one row with a missing order_id, which IS NULL then keeps."
+}

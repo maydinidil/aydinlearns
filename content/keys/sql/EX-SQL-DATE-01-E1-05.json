@@ -1,0 +1,31 @@
+{
+  "item_id": "EX-SQL-DATE-01-E1-05",
+  "item_version": 1,
+  "reference_sql": "SELECT competitor,\n       date_trunc('month', observed_ts) AS check_month,\n       COUNT(*) AS checks\nFROM competitor_prices\nGROUP BY competitor, date_trunc('month', observed_ts)",
+  "alternatives": [
+    "SELECT competitor, CAST(date_trunc('month', observed_ts) AS DATE) AS check_month, COUNT(*) AS checks FROM competitor_prices GROUP BY 1, 2",
+    "SELECT competitor, CAST(strftime(observed_ts, '%Y-%m-01') AS DATE) AS check_month, COUNT(*) AS checks FROM competitor_prices GROUP BY 1, 2"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-25",
+      "sql": "SELECT competitor, date_trunc('year', observed_ts) AS check_month, COUNT(*) AS checks FROM competitor_prices GROUP BY 1, 2"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-OUT-01",
+      "sql": "SELECT date_trunc('month', observed_ts) AS check_month, COUNT(*) AS checks FROM competitor_prices GROUP BY 1"
+    }
+  ],
+  "hint3_partial": "SELECT competitor,\n       date_trunc(___, observed_ts) AS check_month,\n       COUNT(*) AS checks\nFROM competitor_prices\nGROUP BY ___",
+  "solver": {
+    "prompt_hash": "cc1ce55194ff3003",
+    "schema_version": "ffc6be9b2fbc",
+    "dataset_version": "e1545e4258743033",
+    "grader_version": "1b.3",
+    "query": "SELECT competitor, date_trunc('month', observed_ts)::DATE AS check_month, COUNT(*) AS checks\nFROM competitor_prices\nGROUP BY 1, 2",
+    "at": "2026-10-07T10:41:36.398Z"
+  }
+}

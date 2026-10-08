@@ -6,7 +6,10 @@
     "SELECT cal_date, weekday_name, event\nFROM calendar\nWHERE event IN ('black_friday', 'cyber_monday')\nORDER BY cal_date DESC",
     "SELECT cal_date, weekday_name, event\nFROM calendar\nWHERE event = 'cyber_monday' OR event = 'black_friday'\nORDER BY 1 DESC"
   ],
-  "other_way": null,
+  "other_way": {
+    "sql": "SELECT cal_date, weekday_name, event\nFROM calendar\nWHERE event IN ('black_friday', 'cyber_monday')\nORDER BY cal_date DESC",
+    "tradeoff": "IN lists the values once and reads shorter, while the OR version repeats the column name for each value."
+  },
   "planted_wrong": [
     {
       "id": "EX-SQL-SORT-01-E1-32-PW1",

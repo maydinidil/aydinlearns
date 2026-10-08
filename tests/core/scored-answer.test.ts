@@ -73,6 +73,17 @@ test('S3-07: the cold answer is the scored answer of the item\'s first instance 
 
 test('golden: a sprint 2 history (one answer per choice instance) replays exactly as it did before Task B2', async () => {
   const stored = JSON.parse(await readFile('tests/fixtures/replay/sprint2-single-answer.json', 'utf8')) as unknown;
-  const now = JSON.parse(JSON.stringify(snapshot(run(sprint2SingleAnswerLog())))) as unknown;
-  assert.deepEqual(now, stored);
+  const r = run(sprint2SingleAnswerLog());
+  // Sprint 4a Task C1 adds the mistake cards, their candidate list and the wheel-spinning flag, and sprint 4b Task B2 the case
+  // statuses (none here: the test catalog lists no case); everything else is compared whole.
+  const { mistakeCards, mistakeCandidatesWithoutTraps, cases, ...rest } = JSON.parse(JSON.stringify(snapshot(r))) as Record<string, unknown>;
+  assert.deepEqual(cases, []);
+  rest.concepts = (rest.concepts as [string, { flags: Record<string, unknown> }][]).map(([id, v]) => {
+    const { wheelSpinning: _w, ...flags } = v.flags;
+    return [id, { ...v, flags }];
+  });
+  assert.deepEqual(rest, stored);
+  // Every graded failure on SQL-BASICS-01 names ERR-LOG-00, the unclassified fallback: no card and no candidate (P-20).
+  assert.deepEqual([mistakeCards, mistakeCandidatesWithoutTraps], [[], []]);
+  assert.ok([...r.concepts.values()].every((c) => c.flags.wheelSpinning === false));
 });

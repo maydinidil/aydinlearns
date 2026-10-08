@@ -1,0 +1,141 @@
+{
+  "id": "EX-SQL-JOIN-02-E3-21",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "left_join",
+    "chain",
+    "filter_in_on",
+    "count_zero",
+    "stores",
+    "orders",
+    "order_lines",
+    "products",
+    "categories",
+    "utc_day"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-JOIN-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-JOIN-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02"
+  ],
+  "template_id": "T-JOIN-02-chain-count-keep-zero",
+  "template_params": {
+    "from": "stores",
+    "join": "orders, order_lines, products, categories",
+    "parent": "TV & Video",
+    "week": "2025-03-03"
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_join",
+  "prompt": "How many order lines of products from the parent category TV & Video did each store sell in orders placed from 3 March 2025 to 9 March 2025? order_ts holds UTC time: take those UTC days, both included. Include every store, with 0 for a store that sold none. Return two columns, in this order: store_code and n_tv_lines. Return one row for each store. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "store_code",
+        "type_class": "text"
+      },
+      {
+        "name": "n_tv_lines",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "store_code",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "n_tv_lines",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "store_code"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, chain the joins from stores to the week's orders, their lines, products and categories, keeping every store.",
+    "Both the week test and the TV & Video test belong in ON. Then count a column that is there only for a TV & Video line."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 55,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 56,
+      "to": 69,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 70,
+      "to": 214,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 215,
+      "to": 265,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 266,
+      "to": 317,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 318,
+      "to": 410,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 411,
+      "to": 432,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "Every LEFT JOIN keeps the store, the tests in ON leave other lines without a category, and COUNT(c.category_id) counts only TV & Video lines."
+}

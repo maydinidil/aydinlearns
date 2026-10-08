@@ -1,0 +1,132 @@
+{
+  "id": "EX-SQL-JOIN-04-E1-03",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "multi-table",
+    "order_lines",
+    "orders",
+    "stores"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-JOIN-04"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "lesson",
+  "target_concept_id": "SQL-JOIN-04",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-JOIN-01",
+    "SQL-JOIN-04"
+  ],
+  "template_id": "T-JOIN-04-chain-units-city",
+  "template_params": {
+    "from": "2025-03-03",
+    "to": "2025-03-09"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_join",
+  "prompt": "How many units did each store city sell from 3 to 9 March 2025? order_ts holds UTC time: an order counts when its UTC date is from 3 to 9 March 2025, both days included. Return two columns, in this order: city and units, the total quantity of the order lines. Return one row for each city with sales in that week. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "city",
+        "type_class": "text"
+      },
+      {
+        "name": "units",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per city"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "city",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "units",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "city"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, join stores, so each order line gets the city of its order's store.",
+    "orders already holds store_id: link it to the key of stores in one more JOIN."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 40,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 41,
+      "to": 60,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 61,
+      "to": 102,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 103,
+      "to": 143,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 144,
+      "to": 226,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 227,
+      "to": 242,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": {
+    "stage1": 103,
+    "stage2": 103
+  },
+  "faded_shape": "SELECT s.city, SUM(ol.quantity) AS units\nFROM order_lines ol\nJOIN orders o ON o.order_id = ol.order_id\n",
+  "faded_suffix": "\nWHERE o.order_ts >= TIMESTAMP '2025-03-03' AND o.order_ts < TIMESTAMP '2025-03-10'\nGROUP BY s.city",
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "Each JOIN follows one link, the line to its order and then the order to its store, so every line carries its store's city before SUM adds the units."
+}

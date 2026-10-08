@@ -6,7 +6,10 @@
     "SELECT cal_date, CASE WHEN is_weekend THEN 'weekend' ELSE 'weekday' END AS day_type FROM calendar WHERE cal_date >= DATE '2025-04-01' AND cal_date <= DATE '2025-04-30'",
     "SELECT cal_date, CASE WHEN weekday_name = 'Saturday' OR weekday_name = 'Sunday' THEN 'weekend' ELSE 'weekday' END AS day_type FROM calendar WHERE cal_date BETWEEN '2025-04-01' AND '2025-04-30'"
   ],
-  "other_way": null,
+  "other_way": {
+    "sql": "SELECT cal_date, CASE WHEN is_weekend THEN 'weekend' ELSE 'weekday' END AS day_type FROM calendar WHERE cal_date >= DATE '2025-04-01' AND cal_date <= DATE '2025-04-30'",
+    "tradeoff": "Uses the is_weekend column, which is shorter, but depends on that column being correct."
+  },
   "planted_wrong": [
     {
       "id": "PW1",

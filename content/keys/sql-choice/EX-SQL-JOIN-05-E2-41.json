@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-JOIN-05-E2-41",
+  "item_version": 1,
+  "correct_oid": "of71f393",
+  "explanation": "a holds stores 1 and 2, and b holds stores 2 and 3. FULL OUTER JOIN keeps every row of both: store 2 matches, store 1 has no opened_on from b, and store 3 has no city from a. COALESCE takes store 3's ID from b. An inner join would keep only store 2, and a LEFT JOIN would drop store 3.",
+  "solver": {
+    "prompt_hash": "b17f01b261b9ab0e",
+    "grader_version": "choice.2",
+    "chosen": "of71f393",
+    "typed": null,
+    "at": "2026-10-07T09:58:58.609Z"
+  }
+}

@@ -1,0 +1,149 @@
+{
+  "id": "EX-SQL-JOIN-03-E2-01",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "fan_out",
+    "cte",
+    "competitor_prices",
+    "sales"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-JOIN-03"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "lesson",
+  "target_concept_id": "SQL-JOIN-03",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-JOIN-03"
+  ],
+  "template_id": "T-JOIN-03-aggregate-child-first",
+  "template_params": {
+    "parent": "products",
+    "child": "competitor_prices",
+    "fact": "sales",
+    "parent_category": "Audio"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_join",
+  "prompt": "For each Audio product (parent_category 'Audio') that sold at least one unit and has at least one competitor price check, how many units were sold, and what is the lowest price a competitor was seen asking? Use units and parent_category from the sales table, and count each order line's units once. Return three columns, in this order: product_id, units and lowest_competitor_eur. Return one row for each such product. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "units",
+        "type_class": "numeric"
+      },
+      {
+        "name": "lowest_competitor_eur",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per Audio product"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "units",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "lowest_competitor_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "product_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the step that brings the competitor checks down to one row per product.",
+    "A product checked three times would pair each of its lines with three checks; the step keeps only each product's lowest price."
+  ],
+  "subgoals": [
+    {
+      "from": 26,
+      "to": 84,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 87,
+      "to": 109,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 112,
+      "to": 131,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 134,
+      "to": 202,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 203,
+      "to": 269,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 270,
+      "to": 303,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 304,
+      "to": 351,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": {
+    "stage1": 5,
+    "stage2": 5
+  },
+  "faded_shape": "WITH ",
+  "faded_suffix": "\nSELECT s.product_id, SUM(s.units) AS units, lp.lowest_competitor_eur\nFROM sales s\nJOIN lowest_prices lp ON lp.product_id = s.product_id\nWHERE s.parent_category = 'Audio'\nGROUP BY s.product_id, lp.lowest_competitor_eur",
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "The step has one row per product, so each order line meets one row and its units are added up once."
+}

@@ -9,6 +9,7 @@ import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { isUnreached } from '../core/replay.ts';
 import { interleave } from '../core/session.ts';
+import type { ConceptStateName } from '../core/states.ts';
 import { amsterdamDate } from '../core/time.ts';
 import type { SqlItem } from '../schemas/item.ts';
 import type { ChoiceRunPlan } from './run.ts';
@@ -85,9 +86,15 @@ export async function loadDrills(path = DRILLS_PATH): Promise<DrillSpec[]> {
 
 // ---- what a run asks ----------------------------------------------------------------------------------------------
 
-/** A run's questions, its time limit (a test rule, which the screen may show) and its pass marks. */
+/**
+ * A run's questions, its time limit (a test rule, which the screen may show) and its pass marks. `screen_mode` (S4B-23): the run was
+ * started in screen mode, with the same pool, limit and pass marks; absent means normal mode.
+ */
 export interface DrillPlan {
   kind: 'level' | 'chosen'; level: number | null; concepts: string[]; questions: number; minutes: number; pass_pct: number; unseen_min_pct: number;
+  screen_mode?: boolean;
+  /** S4B-26 (D42, Task E4): a live rep, one unseen item in screen mode, whose block_id starts `live-`. The history lists it apart. */
+  live?: boolean;
 }
 export type Marks = Pick<DrillSpec, 'pass_pct' | 'unseen_min_pct'>;
 /** When no spec exists at all: level 1's shape (01 LVL-01). */
@@ -172,6 +179,11 @@ export function scoreOf(passed: number, questions: number, unseen: number, marks
 
 export interface DrillRun {
   block_id: string; kind: 'level' | 'chosen'; level: number | null;
+  /**
+   * S4B-23: the run was in screen mode, read from its attempts' `screen_mode` (no log field is added). A run with no attempt at all
+   * reads as normal mode: nothing in the log says otherwise.
+   */
+  screen_mode: boolean;
   /** The Amsterdam date the run started. */
   date: string;
   started_at: string;
@@ -186,6 +198,8 @@ interface Inst {
   item_id: string | null; concept: string | null; block: string | null; drill: boolean; start: number; closedAt: number | null;
   /** The section its attempts name; null when it has none (an unreached item). */
   section: string | null;
+  /** An attempt of it was logged in screen mode (S4B-23). */
+  screen: boolean;
   passes: { at: number; auto: boolean; attempt_id: string }[];
   /** For S2-97: the close's reason, the attempts, and the help records logged before the close. */
   reason: unknown; attempts: number; helpBefore: number;
@@ -222,7 +236,7 @@ export function drillRuns(attempts: object[], events: object[], itemOf: (id: str
     const id = str(r.item_instance_id);
     if (!id || !(r.record === 'attempt' || r.record === 'item_close' || r.record === 'hint_opened' || r.record === 'solution_opened')) continue;
     let x = insts.get(id);
-    if (!x) { x = { item_id: null, concept: null, block: null, drill: false, start: Infinity, closedAt: null, section: null, passes: [], reason: null, attempts: 0, helpBefore: 0 }; insts.set(id, x); }
+    if (!x) { x = { item_id: null, concept: null, block: null, drill: false, start: Infinity, closedAt: null, section: null, screen: false, passes: [], reason: null, attempts: 0, helpBefore: 0 }; insts.set(id, x); }
     x.item_id ??= str(r.item_id);
     x.concept ??= str(r.target_concept_id);
     if (r.record !== 'hint_opened' && r.record !== 'solution_opened') {
@@ -232,6 +246,7 @@ export function drillRuns(attempts: object[], events: object[], itemOf: (id: str
     let start = NaN;
     if (r.record === 'attempt') {
       x.section ??= str(r.section);
+      if (r.screen_mode === true) x.screen = true;
       start = Date.parse(str(r.started_at) ?? str(r.submitted_at) ?? '');
       x.attempts++;
       const at = Date.parse(str(r.submitted_at) ?? '');
@@ -256,6 +271,7 @@ export function drillRuns(attempts: object[], events: object[], itemOf: (id: str
   }
   const out: DrillRun[] = [];
   for (const [block_id, members] of runs) {
+    if (isLiveBlock(block_id)) continue;                  // S4B-26: a live rep is never a level or chosen run (liveRuns lists it)
     if (members.some((m) => (m.section !== null && m.section !== 'sql') || (m.item_id !== null && isChoiceItem(m.item_id)))) continue;   // a GA4 run
     const start = Math.min(...members.map((m) => m.start));
     const known = members.map((m) => (m.item_id === null ? undefined : itemOf(m.item_id)));
@@ -267,11 +283,125 @@ export function drillRuns(attempts: object[], events: object[], itemOf: (id: str
       && (p.auto || decided.get(p.attempt_id) === 'confirmed'))).length;
     const unseen = members.filter((m) => m.item_id !== null && !(startsOf.get(m.item_id) ?? [])
       .some((o) => o.block !== block_id && o.start < start && o.start >= start - SEEN_WINDOW_MS)).length;
-    out.push({ block_id, kind: levelSpec ? 'level' : 'chosen', level: levelSpec?.level ?? null, date: amsterdamDate(new Date(start)), started_at: iso(start),
+    out.push({ block_id, kind: levelSpec ? 'level' : 'chosen', level: levelSpec?.level ?? null, screen_mode: members.some((m) => m.screen),
+      date: amsterdamDate(new Date(start)), started_at: iso(start),
       ended_at: ends.get(block_id) ?? null, concept_ids: [...new Set(members.map((m) => m.concept).filter((c): c is string => c !== null))],
       score: scoreOf(passed, questions, unseen, marks, levelSpec !== undefined) });
   }
   return out.sort((a, b) => Date.parse(b.started_at) - Date.parse(a.started_at));
+}
+
+// ---- live reps (S4B-26, D42; Task E4) -------------------------------------------------------------------------------------
+
+/** S4B-26: a live rep is one block whose block_id starts with this. Drill history tells it from a level or chosen run by it. */
+export const LIVE_PREFIX = 'live-';
+export const isLiveBlock = (blockId: string): boolean => blockId.startsWith(LIVE_PREFIX);
+/** S4B-26: a live rep is one item in 10 minutes, in screen mode. */
+export const LIVE_MINUTES = 10;
+/** The self-check text (SelfCheck.ticked) of a ticked "explained aloud". */
+export const EXPLAINED_ALOUD = 'explained_aloud';
+
+const PRACTISED_UP: ReadonlySet<ConceptStateName> = new Set(['practised', 'mastered', 'retained']);
+/**
+ * S4B-26: the levels a live rep draws from: those whose concepts are all Practised or better, in level order. Level 1 when there are none.
+ * A spec with no concepts qualifies for nothing.
+ */
+export function liveRepLevels(specs: readonly DrillSpec[], stateOf: (conceptId: string) => ConceptStateName | undefined): number[] {
+  const levels = specs.filter((s) => s.concepts.length > 0 && s.concepts.every((c) => PRACTISED_UP.has(stateOf(c) as ConceptStateName)))
+    .map((s) => s.level).sort((a, b) => a - b);
+  return levels.length ? levels : [1];
+}
+
+/**
+ * D49 (sprint 4c): where a live rep looks for a fresh exercise, tier by tier. First the practised levels together (liveRepLevels, so
+ * level 1 when none is practised), then every other level with a drill, one at a time, nearest a practised level first (ties: the
+ * lower level). A level with no drill spec is never looked in.
+ */
+export function liveRepTiers(specs: readonly DrillSpec[], stateOf: (conceptId: string) => ConceptStateName | undefined): number[][] {
+  const first = liveRepLevels(specs, stateOf);
+  const distance = (level: number): number => Math.min(...first.map((f) => Math.abs(f - level)));
+  const rest = [...new Set(specs.map((s) => s.level))].filter((l) => !first.includes(l)).sort((a, b) => distance(a) - distance(b) || a - b);
+  return [first, ...rest.map((l) => [l])];
+}
+
+/** S4B-26: the plan of a live rep: one question, 10 minutes, screen mode, pass when the item passes. */
+export function livePlan(item: SqlItem): DrillPlan {
+  return { kind: 'chosen', level: null, concepts: [item.target_concept_id], questions: 1, minutes: LIVE_MINUTES, pass_pct: 100, unseen_min_pct: 0, screen_mode: true, live: true };
+}
+
+/** S4B-26: one item of `pool` that no instance started in the 30 days before `now`, picked with `random` (0 up to 1); null when there is none. */
+export function pickLiveRep(a: { pool: readonly SqlItem[]; seen: readonly Seen[]; now: Date; random: () => number }): SqlItem | null {
+  const t = a.now.getTime();
+  const recent = new Set(a.seen.filter((s) => { const at = Date.parse(s.started_at); return !Number.isNaN(at) && at <= t && at > t - SEEN_WINDOW_MS; }).map((s) => s.item_id));
+  const fresh = [...new Map(a.pool.map((i) => [i.id, i])).values()].filter((i) => !recent.has(i.id));
+  return fresh.length ? fresh[Math.min(fresh.length - 1, Math.floor(a.random() * fresh.length))]! : null;
+}
+
+/** D49: the draw of pickLiveRep over the tiers' pools (liveRepTiers) in order: the first pool with a fresh item gives it; null when none has one. */
+export function pickLiveRepTiered(a: { tiers: readonly (readonly SqlItem[])[]; seen: readonly Seen[]; now: Date; random: () => number }): SqlItem | null {
+  for (const pool of a.tiers) {
+    const item = pickLiveRep({ pool, seen: a.seen, now: a.now, random: a.random });
+    if (item) return item;
+  }
+  return null;
+}
+
+export interface LiveRun {
+  block_id: string;
+  /** The Amsterdam date its block closed (S4B-26: a rep is logged when its block closed). */
+  local_date: string;
+  ended_at: string;
+  item_id: string | null;
+  /** The item passed before the close (an automatic pass, or an override once confirmed). */
+  item_passed: boolean;
+  /** The latest "explained aloud" self-check of the block ticked it. */
+  explained_aloud: boolean;
+  /** D42: the item passed and "explained aloud" is ticked. */
+  passed: boolean;
+}
+
+/**
+ * S4B-26, D42: every live rep in the logs, in the order their blocks closed. A rep is logged when its block closed (a rep that ran out
+ * of time unanswered is logged, not passed), on the Amsterdam date of that close. Its item passed when an attempt of the block passed
+ * before the close: an automatic pass, or an "I was right" an override_confirm confirmed (as drillRuns reads a pass). The tick is
+ * the block's latest `explained_aloud` self-check; a self-check names the block and never an instance, so it opens and closes nothing.
+ */
+export function liveRuns(attempts: object[], events: object[]): LiveRun[] {
+  const decided = new Set<string>();
+  for (const e of events as Rec[]) {
+    const id = str(e.attempt_id);
+    if (id && e.event === 'override_confirm') decided.add(id);
+    else if (id && e.event === 'override_revert') decided.delete(id);
+  }
+  const closes = new Map<string, number>();
+  const passes = new Map<string, { at: number; ok: boolean }[]>();
+  const itemOf = new Map<string, string>();
+  const ticks = new Map<string, boolean>();
+  for (const r of attempts as Rec[]) {
+    const block = str(r.block_id);
+    if (!block || !isLiveBlock(block)) continue;
+    if (r.record === 'block_close') {
+      const at = Date.parse(str(r.ts) ?? '');
+      if (!Number.isNaN(at) && !closes.has(block)) closes.set(block, at);
+    } else if (r.record === 'attempt') {
+      const item = str(r.item_id);
+      if (item && !itemOf.has(block)) itemOf.set(block, item);
+      const at = Date.parse(str(r.submitted_at) ?? '');
+      if (r.outcome === 'pass' && !Number.isNaN(at)) passes.set(block, [...(passes.get(block) ?? []), { at, ok: r.grading_source !== 'override' || decided.has(str(r.attempt_id) ?? '') }]);
+    } else if (r.record === 'self_check' && r.kind === EXPLAINED_ALOUD) {
+      ticks.set(block, Array.isArray(r.ticked) && r.ticked.includes(EXPLAINED_ALOUD));
+    }
+  }
+  return [...closes].map(([block_id, at]) => {
+    const item_passed = (passes.get(block_id) ?? []).some((p) => p.ok && p.at <= at);
+    const explained_aloud = ticks.get(block_id) === true;
+    return { block_id, local_date: amsterdamDate(new Date(at)), ended_at: iso(at), item_id: itemOf.get(block_id) ?? null, item_passed, explained_aloud, passed: item_passed && explained_aloud };
+  });
+}
+
+/** S4B-26: the reps as the goal evaluator's `live_rep` criterion reads them (core/goal-eval.ts GoalView.liveReps): one per closed block. */
+export function liveReps(attempts: object[], events: object[] = []): { local_date: string; passed: boolean }[] {
+  return liveRuns(attempts, events).map((r) => ({ local_date: r.local_date, passed: r.passed }));
 }
 
 // ---- the runs in progress (S2-42) ---------------------------------------------------------------------------------
@@ -310,7 +440,7 @@ export const NO_DRILLS: DrillGate = { sweep: async () => {}, running: async () =
 export function drillRunView(run: RunEntry & { plan: DrillPlan }) {
   const p = run.plan;
   return { block_id: run.block_id, kind: p.kind, level: p.level, phase: 'drill' as const, hide_labels: true, questions: p.questions, minutes: p.minutes,
-    pass_pct: p.pass_pct, unseen_min_pct: p.unseen_min_pct, ends_at: new Date(run.ends_at).toISOString(), servings: run.servings };
+    pass_pct: p.pass_pct, unseen_min_pct: p.unseen_min_pct, ends_at: new Date(run.ends_at).toISOString(), servings: run.servings, screen_mode: p.screen_mode === true, live: p.live === true };
 }
 
 /** Runs `fn` after `ms`, and returns its cancel. The real timer never keeps the process alive. */

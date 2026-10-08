@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-JOIN-01-E2-32",
+  "item_version": 1,
+  "reference_sql": "SELECT pr.promo_code, p.product_name\nFROM promotion_products pp\nJOIN promotions pr ON pr.promo_id = pp.promo_id\nJOIN products p ON p.product_id = pp.product_id\nWHERE pr.start_date BETWEEN DATE '2025-03-01' AND DATE '2025-03-31'",
+  "alternatives": [
+    "SELECT pr.promo_code, p.product_name FROM promotion_products pp, promotions pr, products p WHERE p.product_id = pp.product_id AND pr.promo_id = pp.promo_id AND pr.start_date >= DATE '2025-03-01' AND pr.start_date < DATE '2025-04-01'",
+    "SELECT pr.promo_code, p.product_name FROM promotions pr JOIN promotion_products pp ON pp.promo_id = pr.promo_id JOIN products p ON p.product_id = pp.product_id WHERE pr.start_date BETWEEN DATE '2025-03-01' AND DATE '2025-03-31'"
+  ],
+  "other_way": {
+    "sql": "SELECT pr.promo_code, p.product_name FROM promotion_products pp, promotions pr, products p WHERE p.product_id = pp.product_id AND pr.promo_id = pp.promo_id AND pr.start_date >= DATE '2025-03-01' AND pr.start_date < DATE '2025-04-01'",
+    "tradeoff": "Adding the missing match to the comma list fixes it too, but JOIN ON makes a missing match much easier to spot."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-SEM-03",
+      "sql": "SELECT pr.promo_code, p.product_name FROM promotion_products pp, promotions pr, products p WHERE p.product_id = pp.product_id AND pr.start_date BETWEEN DATE '2025-03-01' AND DATE '2025-03-31'"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-12",
+      "sql": "SELECT pr.promo_code, p.product_name FROM promotion_products pp JOIN promotions pr ON pr.promo_id = pp.product_id JOIN products p ON p.product_id = pp.product_id WHERE pr.start_date BETWEEN DATE '2025-03-01' AND DATE '2025-03-31'"
+    }
+  ],
+  "hint3_partial": "SELECT pr.promo_code, p.product_name\nFROM promotion_products pp\nJOIN promotions pr ON ___\nJOIN products p ON p.product_id = pp.product_id\nWHERE ___",
+  "solver": {
+    "prompt_hash": "d8f36f8cd1c2c1c6",
+    "schema_version": "e2dd1715d8ff",
+    "dataset_version": "e1545e4258743033",
+    "grader_version": "1b.3",
+    "query": "SELECT pr.promo_code, p.product_name\nFROM promotion_products pp\nJOIN promotions pr ON pr.promo_id = pp.promo_id\nJOIN products p ON p.product_id = pp.product_id\nWHERE pr.start_date BETWEEN DATE '2025-03-01' AND DATE '2025-03-31'",
+    "at": "2026-10-07T10:41:38.179Z"
+  }
+}

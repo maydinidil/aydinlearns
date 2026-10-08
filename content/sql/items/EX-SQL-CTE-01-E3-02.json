@@ -1,0 +1,142 @@
+{
+  "id": "EX-SQL-CTE-01-E3-02",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "cte",
+    "chained",
+    "avg",
+    "join",
+    "orders",
+    "order_lines",
+    "null"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-CTE-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-CTE-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-AGG-03",
+    "SQL-JOIN-01",
+    "SQL-CTE-01"
+  ],
+  "template_id": "T-CTE-01-chained-steps",
+  "template_params": {
+    "steps": "order totals, customer averages, count",
+    "threshold": 500
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_join",
+  "prompt": "How many customers have an average order value above 500 EUR? An order's value is the sum, over its order lines, of quantity times unit_price_eur minus line_discount_eur. A customer's average order value is the average over that customer's orders that have at least one line; orders with no lines do not count, and neither do guest orders, which have a missing customer_id. Return one column, n_customers. The result is a single row. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "n_customers",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "n_customers",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, plan three steps: one row per order, then one row per customer, then the count.",
+    "The second step joins the first step to orders to find each order's customer, and averages per customer; a comma separates the two steps."
+  ],
+  "subgoals": [
+    {
+      "from": 25,
+      "to": 105,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 108,
+      "to": 124,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 127,
+      "to": 144,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 173,
+      "to": 228,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 231,
+      "to": 293,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 296,
+      "to": 327,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 330,
+      "to": 352,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 355,
+      "to": 385,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 386,
+      "to": 408,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 409,
+      "to": 434,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "Each step has one stated grain: orders, then customers, so the average is over orders and the count is over customers."
+}

@@ -48,7 +48,7 @@ test('every check passes on a matching setup', async () => {
   const checks = await runSelfChecks(opts(fakeRunner()));
   assert.deepEqual(failing(checks), []);
   assert.deepEqual(checks.map((c) => c.name),
-    ['data built', 'schema notes', 'log writable','database matches manifest', 'held-out pool', 'SQL runner', 'same DuckDB version', 'ICU and JSON', 'no tables in schema main']);
+    ['data built', 'schema notes', 'log writable', 'database matches manifest', 'held-out pool', 'SQL runner', 'same DuckDB version', 'ICU and JSON', 'no tables in schema main']);
 });
 test('a DuckDB version mismatch fails a check (degraded setup mode)', async () => {
   const checks = await runSelfChecks(opts(fakeRunner({ version: 'v1.5.5' })));

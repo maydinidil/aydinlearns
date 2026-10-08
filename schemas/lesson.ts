@@ -50,7 +50,7 @@ export function validateLesson(x: unknown): string[] {
   const o = (x ?? {}) as Partial<Lesson>;
   const words = typeof o.reading_md === 'string' ? o.reading_md.split(/\s+/).filter(Boolean).length : 0;
   if (words === 0) e.push('reading_md missing');
-  if (words > 550) e.push(`reading_md has ${words} words; the cap is about 500`);
+  if (words > 550) e.push(`reading_md has ${words} words; the cap is 550 (aim for about 500)`);
   if (!Array.isArray(o.worked_examples) || o.worked_examples.length !== 2) e.push('need exactly 2 worked examples');
   if (!Array.isArray(o.pretest_item_ids) || o.pretest_item_ids.length !== 2) e.push('need 2 pretest items');
   if (!Array.isArray(o.lesson_item_ids) || o.lesson_item_ids.length !== 4) e.push('need 4 lesson-block items');

@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-JOIN-03-E1-07",
+  "item_version": 1,
+  "reference_sql": "WITH order_units AS (\n  SELECT order_id, SUM(quantity) AS units\n  FROM order_lines\n  GROUP BY order_id\n)\nSELECT o.customer_id, COUNT(*) AS n_orders, COALESCE(SUM(u.units), 0) AS units\nFROM orders o\nLEFT JOIN order_units u ON u.order_id = o.order_id\nWHERE o.customer_id BETWEEN 1001 AND 1500\nGROUP BY o.customer_id",
+  "alternatives": [
+    "SELECT o.customer_id, COUNT(DISTINCT o.order_id) AS n_orders, COALESCE(SUM(ol.quantity), 0) AS units FROM orders o LEFT JOIN order_lines ol ON ol.order_id = o.order_id WHERE o.customer_id BETWEEN 1001 AND 1500 GROUP BY o.customer_id",
+    "WITH order_units AS (SELECT order_id, SUM(quantity) AS units FROM order_lines GROUP BY order_id) SELECT o.customer_id, COUNT(o.order_id) AS n_orders, SUM(COALESCE(u.units, 0)) AS units FROM order_units u RIGHT JOIN orders o ON o.order_id = u.order_id WHERE o.customer_id >= 1001 AND o.customer_id <= 1500 GROUP BY o.customer_id"
+  ],
+  "other_way": {
+    "sql": "SELECT o.customer_id, COUNT(DISTINCT o.order_id) AS n_orders, COALESCE(SUM(ol.quantity), 0) AS units FROM orders o LEFT JOIN order_lines ol ON ol.order_id = o.order_id WHERE o.customer_id BETWEEN 1001 AND 1500 GROUP BY o.customer_id",
+    "tradeoff": "Counting different order IDs after joining the lines is shorter, but only the per-order step keeps every later sum safe."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-01",
+      "sql": "SELECT o.customer_id, COUNT(*) AS n_orders, COALESCE(SUM(ol.quantity), 0) AS units FROM orders o LEFT JOIN order_lines ol ON ol.order_id = o.order_id WHERE o.customer_id BETWEEN 1001 AND 1500 GROUP BY o.customer_id"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-11",
+      "sql": "WITH order_units AS (SELECT order_id, SUM(quantity) AS units FROM order_lines GROUP BY order_id) SELECT o.customer_id, COUNT(*) AS n_orders, COALESCE(SUM(u.units), 0) AS units FROM orders o JOIN order_units u ON u.order_id = o.order_id WHERE o.customer_id BETWEEN 1001 AND 1500 GROUP BY o.customer_id"
+    }
+  ],
+  "hint3_partial": "WITH order_units AS (\n  SELECT order_id, SUM(quantity) AS units\n  FROM order_lines\n  GROUP BY order_id\n)\nSELECT o.customer_id, COUNT(*) AS n_orders, COALESCE(SUM(u.units), 0) AS units\nFROM orders o\nLEFT JOIN order_units u ON ___\nWHERE ___\nGROUP BY o.customer_id",
+  "solver": {
+    "prompt_hash": "2a7ab5f331538253",
+    "schema_version": "2b3ae373ff81",
+    "dataset_version": "e1545e4258743033",
+    "grader_version": "1b.3",
+    "query": "WITH order_units AS (\n  SELECT order_id, SUM(quantity) AS units\n  FROM order_lines\n  GROUP BY order_id\n)\nSELECT o.customer_id, COUNT(*) AS n_orders, COALESCE(SUM(ou.units), 0) AS units\nFROM orders o\nLEFT JOIN order_units ou ON ou.order_id = o.order_id\nWHERE o.customer_id BETWEEN 1001 AND 1500\nGROUP BY o.customer_id",
+    "at": "2026-10-07T10:41:39.528Z"
+  }
+}

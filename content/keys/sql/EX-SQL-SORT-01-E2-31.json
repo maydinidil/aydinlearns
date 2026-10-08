@@ -6,7 +6,10 @@
     "SELECT DISTINCT promo_name\nFROM promotions\nWHERE start_date >= DATE '2025-01-01' AND start_date <= DATE '2025-12-31'\nORDER BY promo_name ASC",
     "SELECT DISTINCT promo_name\nFROM promotions\nWHERE start_date >= DATE '2025-01-01' AND start_date < DATE '2026-01-01'\nORDER BY 1"
   ],
-  "other_way": null,
+  "other_way": {
+    "sql": "SELECT DISTINCT promo_name\nFROM promotions\nWHERE start_date >= DATE '2025-01-01' AND start_date < DATE '2026-01-01'\nORDER BY 1",
+    "tradeoff": "A start date with an exclusive next date also works for timestamps, while BETWEEN is shorter for plain dates."
+  },
   "planted_wrong": [
     {
       "id": "EX-SQL-SORT-01-E2-31-PW1",

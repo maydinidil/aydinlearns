@@ -1,16 +1,19 @@
 {
   "item_id": "EX-SQL-CASE-01-E2-07",
-  "item_version": 1,
+  "item_version": 2,
   "reference_sql": "SELECT month_start,\n       CASE WHEN event IS NOT NULL THEN 'event'\n            WHEN is_weekend THEN 'weekend'\n            ELSE 'normal'\n       END AS day_kind,\n       COUNT(*) AS n_days\nFROM calendar\nWHERE cal_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\nGROUP BY month_start, day_kind",
   "alternatives": [
     "SELECT month_start, CASE WHEN event IS NOT NULL THEN 'event' WHEN weekday_name IN ('Saturday', 'Sunday') THEN 'weekend' ELSE 'normal' END AS day_kind, COUNT(*) AS n_days FROM calendar WHERE cal_date >= DATE '2025-01-01' AND cal_date <= DATE '2025-12-31' GROUP BY 1, 2",
     "SELECT month_start, CASE WHEN event IS NULL AND is_weekend THEN 'weekend' WHEN event IS NULL THEN 'normal' ELSE 'event' END AS day_kind, COUNT(*) AS n_days FROM calendar WHERE cal_date BETWEEN '2025-01-01' AND '2025-12-31' GROUP BY month_start, day_kind"
   ],
-  "other_way": null,
+  "other_way": {
+    "sql": "SELECT month_start, CASE WHEN event IS NOT NULL THEN 'event' WHEN weekday_name IN ('Saturday', 'Sunday') THEN 'weekend' ELSE 'normal' END AS day_kind, COUNT(*) AS n_days FROM calendar WHERE cal_date >= DATE '2025-01-01' AND cal_date <= DATE '2025-12-31' GROUP BY 1, 2",
+    "tradeoff": "Two comparisons give the same rows, but BETWEEN states the range in one short test."
+  },
   "planted_wrong": [
     {
       "id": "PW1",
-      "error_id": "ERR-LOG-00",
+      "error_id": "ERR-LOG-29",
       "sql": "SELECT month_start, CASE WHEN is_weekend THEN 'weekend' WHEN event IS NOT NULL THEN 'event' ELSE 'normal' END AS day_kind, COUNT(*) AS n_days FROM calendar WHERE cal_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31' GROUP BY month_start, day_kind"
     },
     {

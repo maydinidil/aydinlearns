@@ -6,7 +6,10 @@
     "SELECT category_name, SUM(CASE WHEN channel = 'web' THEN net_revenue_eur END) AS web_revenue_eur, SUM(CASE WHEN channel = 'store' THEN net_revenue_eur END) AS store_revenue_eur FROM sales GROUP BY category_name HAVING SUM(CASE WHEN channel = 'web' THEN net_revenue_eur END) >= 0.6 * SUM(CASE WHEN channel = 'store' THEN net_revenue_eur END)",
     "SELECT category_name, SUM(net_revenue_eur) FILTER (WHERE channel = 'web') AS web_revenue_eur, SUM(net_revenue_eur) FILTER (WHERE channel = 'store') AS store_revenue_eur FROM sales GROUP BY 1 HAVING SUM(net_revenue_eur) FILTER (WHERE channel = 'web') >= 0.6 * SUM(net_revenue_eur) FILTER (WHERE channel = 'store')"
   ],
-  "other_way": null,
+  "other_way": {
+    "sql": "SELECT category_name, SUM(net_revenue_eur) FILTER (WHERE channel = 'web') AS web_revenue_eur, SUM(net_revenue_eur) FILTER (WHERE channel = 'store') AS store_revenue_eur FROM sales GROUP BY 1 HAVING SUM(net_revenue_eur) FILTER (WHERE channel = 'web') >= 0.6 * SUM(net_revenue_eur) FILTER (WHERE channel = 'store')",
+    "tradeoff": "Reads closer to plain English, but FILTER is not available in every SQL dialect."
+  },
   "planted_wrong": [
     {
       "id": "PW1",

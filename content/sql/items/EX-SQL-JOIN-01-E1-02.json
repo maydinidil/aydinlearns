@@ -1,0 +1,124 @@
+{
+  "id": "EX-SQL-JOIN-01-E1-02",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "join",
+    "price_history",
+    "products"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-JOIN-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pretest",
+  "target_concept_id": "SQL-JOIN-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-JOIN-01"
+  ],
+  "template_id": "T-JOIN-01-history-lookup-filter",
+  "template_params": {
+    "from": "price_history",
+    "join": "products",
+    "brand": "Sonora"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_join",
+  "prompt": "List the price versions of the products of the brand Sonora. Return three columns, in this order: product_name, valid_from and list_price_eur. Return one row for each price version. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "product_name",
+        "type_class": "text"
+      },
+      {
+        "name": "valid_from",
+        "type_class": "temporal"
+      },
+      {
+        "name": "list_price_eur",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per price version"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "product_name",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "valid_from",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "list_price_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "product_name",
+      "valid_from"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, join each price version to the product it belongs to.",
+    "price_history holds only product_id; the brand and the name sit with the product. Match the IDs, then keep the Sonora rows."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 55,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 56,
+      "to": 77,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 78,
+      "to": 125,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 126,
+      "to": 150,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "The join gives each price version its product's row, so the version can be tested on the product's brand."
+}

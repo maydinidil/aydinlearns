@@ -1,0 +1,132 @@
+{
+  "id": "EX-SQL-JOIN-05-E1-07",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "full-outer-join",
+    "reconcile",
+    "products",
+    "promotion_products"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-JOIN-05"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-JOIN-05",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-NULL-01",
+    "SQL-CTE-01",
+    "SQL-JOIN-01",
+    "SQL-JOIN-05"
+  ],
+  "template_id": "T-JOIN-05-full-outer-two-product-lists",
+  "template_params": {
+    "category_name": "Earbuds",
+    "promo_code": "P-2025-05"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_join",
+  "prompt": "Compare two lists of products: the products in the category Earbuds, and the products covered by the promotion with promo_code 'P-2025-05'. Return three columns, in this order: product_id, in_earbuds and in_promotion, each true when the product is in that list and false when it is not. Return one row for each product in at least one of the two lists. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "in_earbuds",
+        "type_class": "boolean"
+      },
+      {
+        "name": "in_promotion",
+        "type_class": "boolean"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "in_earbuds",
+        "type_class": "boolean",
+        "precision": "exact"
+      },
+      {
+        "name": "in_promotion",
+        "type_class": "boolean",
+        "precision": "exact"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "product_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, join the two lists so that a product found in only one of them keeps its row.",
+    "Each list is a step of its own; the join must keep unmatched products from both sides, and the ID must come from whichever side has it."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 139,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 140,
+      "to": 280,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 281,
+      "to": 422,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 423,
+      "to": 437,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 438,
+      "to": 494,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "FULL OUTER JOIN keeps the products of both lists; a side that did not match is missing, so IS NOT NULL on its product_id says whether the product is in that list."
+}

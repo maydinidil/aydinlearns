@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-CTE-01-E2-41",
+  "item_version": 1,
+  "value": 14,
+  "explanation": "The step has one row per month, 24 months over 2024 and 2025, with that month's number of days. The final query keeps the months with 31 days: January, March, May, July, August, October and December, seven in each year. So it returns 14 rows. Filtering calendar itself on a 31st day would keep days, not months.",
+  "solver": {
+    "prompt_hash": "fba710a767f86d9f",
+    "grader_version": "choice.2",
+    "chosen": null,
+    "typed": "14",
+    "at": "2026-10-07T09:58:58.572Z"
+  }
+}

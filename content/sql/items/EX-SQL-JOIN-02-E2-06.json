@@ -1,0 +1,124 @@
+{
+  "id": "EX-SQL-JOIN-02-E2-06",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "anti_join",
+    "group_by",
+    "products",
+    "promotion_products"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-JOIN-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-JOIN-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02"
+  ],
+  "template_id": "T-JOIN-02-anti-join-count",
+  "template_params": {
+    "from": "products",
+    "join": "promotion_products",
+    "group": "brand"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_join",
+  "prompt": "For each brand, how many of its products does no promotion cover? Return two columns, in this order: brand and n_uncovered. Return one row for each brand with at least one such product. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "brand",
+        "type_class": "text"
+      },
+      {
+        "name": "n_uncovered",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "brand",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "n_uncovered",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "brand"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, join the bridge table so that uncovered products stay, keep only those, then group by brand.",
+    "After the anti-join each row is one uncovered product. Count rows, not a column of promotion_products, which is missing on every one of them."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 39,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 40,
+      "to": 55,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 56,
+      "to": 119,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 120,
+      "to": 147,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 148,
+      "to": 164,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "The anti-join leaves one row per uncovered product, so COUNT(*) per brand counts them."
+}

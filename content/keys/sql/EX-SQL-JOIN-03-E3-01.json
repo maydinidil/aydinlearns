@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-JOIN-03-E3-01",
+  "item_version": 1,
+  "reference_sql": "WITH current_prices AS (\n  SELECT product_id, list_price_eur\n  FROM price_history\n  WHERE valid_to IS NULL\n    AND list_price_eur > 400\n),\ncheck_shares AS (\n  SELECT cp.product_id, AVG(CASE WHEN cp.price_eur < c.list_price_eur THEN 1.0 ELSE 0.0 END) AS share_below\n  FROM competitor_prices cp\n  JOIN current_prices c ON c.product_id = cp.product_id\n  GROUP BY cp.product_id\n),\nproduct_units AS (\n  SELECT product_id, SUM(quantity) AS units\n  FROM order_lines\n  GROUP BY product_id\n)\nSELECT s.product_id, COALESCE(u.units, 0) AS units, c.list_price_eur, s.share_below\nFROM check_shares s\nJOIN current_prices c ON c.product_id = s.product_id\nLEFT JOIN product_units u ON u.product_id = s.product_id",
+  "alternatives": [
+    "WITH current_prices AS (SELECT product_id, list_price_eur FROM price_history WHERE valid_to IS NULL AND list_price_eur > 400), product_units AS (SELECT product_id, SUM(quantity) AS units FROM order_lines GROUP BY product_id) SELECT cp.product_id, COALESCE(MAX(u.units), 0) AS units, c.list_price_eur, AVG(CASE WHEN cp.price_eur < c.list_price_eur THEN 1.0 ELSE 0.0 END) AS share_below FROM competitor_prices cp JOIN current_prices c ON c.product_id = cp.product_id LEFT JOIN product_units u ON u.product_id = cp.product_id GROUP BY cp.product_id, c.list_price_eur",
+    "WITH current_prices AS (SELECT product_id, list_price_eur FROM price_history WHERE valid_to IS NULL), check_shares AS (SELECT cp.product_id, COUNT(*) FILTER (WHERE cp.price_eur < c.list_price_eur) * 1.0 / COUNT(*) AS share_below FROM competitor_prices cp JOIN current_prices c ON c.product_id = cp.product_id GROUP BY cp.product_id), product_units AS (SELECT product_id, SUM(quantity) AS units FROM order_lines GROUP BY product_id) SELECT s.product_id, COALESCE(u.units, 0) AS units, c.list_price_eur, s.share_below FROM check_shares s JOIN current_prices c ON c.product_id = s.product_id LEFT JOIN product_units u ON u.product_id = s.product_id WHERE c.list_price_eur > 400"
+  ],
+  "other_way": {
+    "sql": "WITH current_prices AS (SELECT product_id, list_price_eur FROM price_history WHERE valid_to IS NULL AND list_price_eur > 400), product_units AS (SELECT product_id, SUM(quantity) AS units FROM order_lines GROUP BY product_id) SELECT cp.product_id, COALESCE(MAX(u.units), 0) AS units, c.list_price_eur, AVG(CASE WHEN cp.price_eur < c.list_price_eur THEN 1.0 ELSE 0.0 END) AS share_below FROM competitor_prices cp JOIN current_prices c ON c.product_id = cp.product_id LEFT JOIN product_units u ON u.product_id = cp.product_id GROUP BY cp.product_id, c.list_price_eur",
+    "tradeoff": "Joining the units to every check saves the shares step, and MAX works because every row of a product holds the same units."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-01",
+      "sql": "SELECT cp.product_id, COALESCE(SUM(ol.quantity), 0) AS units, ph.list_price_eur, AVG(CASE WHEN cp.price_eur < ph.list_price_eur THEN 1.0 ELSE 0.0 END) AS share_below FROM competitor_prices cp JOIN price_history ph ON ph.product_id = cp.product_id AND ph.valid_to IS NULL LEFT JOIN order_lines ol ON ol.product_id = cp.product_id WHERE ph.list_price_eur > 400 GROUP BY cp.product_id, ph.list_price_eur"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-11",
+      "sql": "WITH current_prices AS (SELECT product_id, list_price_eur FROM price_history WHERE valid_to IS NULL AND list_price_eur > 400), check_shares AS (SELECT cp.product_id, AVG(CASE WHEN cp.price_eur < c.list_price_eur THEN 1.0 ELSE 0.0 END) AS share_below FROM competitor_prices cp JOIN current_prices c ON c.product_id = cp.product_id GROUP BY cp.product_id), product_units AS (SELECT product_id, SUM(quantity) AS units FROM order_lines GROUP BY product_id) SELECT s.product_id, COALESCE(u.units, 0) AS units, c.list_price_eur, s.share_below FROM check_shares s JOIN current_prices c ON c.product_id = s.product_id JOIN product_units u ON u.product_id = s.product_id"
+    }
+  ],
+  "hint3_partial": "WITH current_prices AS (\n  SELECT product_id, list_price_eur\n  FROM price_history\n  WHERE ___\n),\ncheck_shares AS (\n  SELECT cp.product_id, AVG(CASE WHEN ___ THEN 1.0 ELSE 0.0 END) AS share_below\n  FROM competitor_prices cp\n  JOIN current_prices c ON c.product_id = cp.product_id\n  GROUP BY cp.product_id\n),\nproduct_units AS (\n  SELECT product_id, SUM(quantity) AS units\n  FROM order_lines\n  GROUP BY product_id\n)\nSELECT s.product_id, COALESCE(u.units, 0) AS units, c.list_price_eur, s.share_below\nFROM check_shares s\nJOIN current_prices c ON ___\nLEFT JOIN product_units u ON ___",
+  "solver": {
+    "prompt_hash": "629cf0264a9cc7e5",
+    "schema_version": "64ba8acc2d06",
+    "dataset_version": "e1545e4258743033",
+    "grader_version": "1b.3",
+    "query": "WITH cur AS (\n  SELECT product_id, list_price_eur\n  FROM price_history\n  WHERE valid_to IS NULL AND list_price_eur > 400\n), product_units AS (\n  SELECT product_id, SUM(quantity) AS units\n  FROM order_lines\n  GROUP BY product_id\n)\nSELECT cur.product_id,\n       COALESCE(pu.units, 0) AS units,\n       cur.list_price_eur,\n       COUNT(CASE WHEN cp.price_eur < cur.list_price_eur THEN 1 END) * 1.0 / COUNT(*) AS share_below\nFROM cur\nJOIN competitor_prices cp ON cp.product_id = cur.product_id\nLEFT JOIN product_units pu ON pu.product_id = cur.product_id\nGROUP BY cur.product_id, pu.units, cur.list_price_eur",
+    "at": "2026-10-07T10:41:40.601Z"
+  }
+}

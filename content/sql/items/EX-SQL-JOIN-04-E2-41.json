@@ -1,0 +1,174 @@
+{
+  "id": "EX-SQL-JOIN-04-E2-41",
+  "version": 1,
+  "kind": "predict_result",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "predict_result",
+    "self-join",
+    "price_history"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-JOIN-04"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-JOIN-04",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-JOIN-01",
+    "SQL-JOIN-04"
+  ],
+  "template_id": "T-JOIN-04-predict-result-price-changes",
+  "template_params": {
+    "product_id": 1
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_join",
+  "prompt": "Which result does this query return? The first three sample rows of price_history in the tables panel are all the price versions of product 1. Rows may be in any order.",
+  "output_contract": null,
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [],
+  "subgoals": [],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 90000,
+  "why_this_works": "",
+  "shown_sql": "SELECT nxt.valid_from AS changed_on, old.list_price_eur AS old_price, nxt.list_price_eur AS new_price\nFROM price_history old\nJOIN price_history nxt ON nxt.product_id = old.product_id AND nxt.valid_from = old.valid_to + 1\nWHERE old.product_id = 1",
+  "options": [
+    {
+      "oid": "of60e3a3",
+      "text": "Two rows: 239.99 to 259.99, and 259.99 to 269.99",
+      "misconception_id": null,
+      "table": {
+        "columns": [
+          "changed_on",
+          "old_price",
+          "new_price"
+        ],
+        "rows": [
+          [
+            "2025-07-06",
+            "239.99",
+            "259.99"
+          ],
+          [
+            "2025-12-17",
+            "259.99",
+            "269.99"
+          ]
+        ]
+      }
+    },
+    {
+      "oid": "od05a751",
+      "text": "Three rows, one for each later version, including 239.99 to 269.99",
+      "misconception_id": "ERR-LOG-01",
+      "table": {
+        "columns": [
+          "changed_on",
+          "old_price",
+          "new_price"
+        ],
+        "rows": [
+          [
+            "2025-07-06",
+            "239.99",
+            "259.99"
+          ],
+          [
+            "2025-12-17",
+            "259.99",
+            "269.99"
+          ],
+          [
+            "2025-12-17",
+            "239.99",
+            "269.99"
+          ]
+        ]
+      }
+    },
+    {
+      "oid": "o3ca0041",
+      "text": "Three rows, each version next to itself",
+      "misconception_id": "ERR-LOG-12",
+      "table": {
+        "columns": [
+          "changed_on",
+          "old_price",
+          "new_price"
+        ],
+        "rows": [
+          [
+            "2024-10-09",
+            "239.99",
+            "239.99"
+          ],
+          [
+            "2025-07-06",
+            "259.99",
+            "259.99"
+          ],
+          [
+            "2025-12-17",
+            "269.99",
+            "269.99"
+          ]
+        ]
+      }
+    },
+    {
+      "oid": "obaceacc",
+      "text": "Two rows with the old and new price swapped",
+      "misconception_id": "ERR-LOG-12",
+      "table": {
+        "columns": [
+          "changed_on",
+          "old_price",
+          "new_price"
+        ],
+        "rows": [
+          [
+            "2025-07-06",
+            "259.99",
+            "239.99"
+          ],
+          [
+            "2025-12-17",
+            "269.99",
+            "259.99"
+          ]
+        ]
+      }
+    }
+  ]
+}

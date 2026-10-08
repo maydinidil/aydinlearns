@@ -7,7 +7,10 @@
     "SELECT product_id, product_name, unit_cost_eur\nFROM products\nWHERE (category_raw = 'Batteries' OR category_raw = 'Cables') AND unit_cost_eur < 5 AND unit_cost_eur IS NOT NULL",
     "SELECT product_id, product_name, unit_cost_eur\nFROM products\nWHERE unit_cost_eur < 5.00 AND (category_raw = 'Cables' OR category_raw = 'Batteries')"
   ],
-  "other_way": null,
+  "other_way": {
+    "sql": "SELECT product_id, product_name, unit_cost_eur\nFROM products\nWHERE category_raw IN ('Cables', 'Batteries') AND unit_cost_eur < 5",
+    "tradeoff": "IN lists the values once and reads shorter, while the OR version repeats the column name for each value."
+  },
   "planted_wrong": [
     {
       "id": "M1",

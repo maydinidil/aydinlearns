@@ -1,0 +1,128 @@
+{
+  "id": "EX-SQL-JOIN-04-E1-07",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "multi-table",
+    "order_lines",
+    "orders",
+    "promotions",
+    "bridge-trap"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-JOIN-04"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-JOIN-04",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-JOIN-01",
+    "SQL-JOIN-04"
+  ],
+  "template_id": "T-JOIN-04-lines-per-promotion",
+  "template_params": {
+    "from": "2025-02-01",
+    "to": "2025-03-31"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_join",
+  "prompt": "How many order lines were sold with each promotion in February and March 2025? order_ts holds UTC time: an order counts when its UTC date is from 1 February to 31 March 2025. Return two columns, in this order: promo_code and n_lines, the number of order lines sold with that promotion. Return one row for each promotion that at least one of those lines was sold with; leave out lines with no promotion and lines whose promotion is not in promotions. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "promo_code",
+        "type_class": "text"
+      },
+      {
+        "name": "n_lines",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "promo_code",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "n_lines",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "promo_code"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, join each line straight to the promotion it was sold with.",
+    "The line itself says which promotion it was sold with; going through promotion_products would count every line of every product a promotion covers."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 41,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 42,
+      "to": 61,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 62,
+      "to": 103,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 104,
+      "to": 151,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 152,
+      "to": 234,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 235,
+      "to": 257,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "Each line carries the promotion it was sold with, so one join to promotions counts the lines per promotion without repeating any line."
+}

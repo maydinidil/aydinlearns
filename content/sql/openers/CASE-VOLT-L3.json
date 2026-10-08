@@ -1,0 +1,176 @@
+{
+  "case_id": "CASE-VOLT-L3",
+  "kind": "opener",
+  "level": 3,
+  "world": "PRICE",
+  "company_id": "voltmarkt",
+  "title": "Margin on the 2025 promotions",
+  "persona": {
+    "name": "Fleur",
+    "role": "Trade marketing"
+  },
+  "brief": {
+    "decision": "Which discount depths to keep in next year's promotion calendar, and which 2025 promotions to rethink",
+    "deadline": "The trade marketing planning round for next year's calendar"
+  },
+  "data_needed": [
+    "promotions",
+    "promotion_products",
+    "order_lines",
+    "products"
+  ],
+  "expected_output": {
+    "columns": [
+      "promo_code",
+      "promo_type",
+      "discount_pct",
+      "n_products",
+      "revenue_eur",
+      "margin_eur"
+    ],
+    "grain": "one row per promotion that started in 2025",
+    "sort": [
+      {
+        "column": "discount_pct",
+        "desc": true
+      },
+      {
+        "column": "promo_code",
+        "desc": false
+      }
+    ]
+  },
+  "checkpoints": [
+    {
+      "id": "CP1",
+      "kind": "CP1",
+      "prompt": "Fleur, in trade marketing, asks: for each promotion that started in 2025, how many products did it cover, and how much net revenue and gross margin did the order lines carrying it make? Before you write any SQL, which plan gives one correct row per promotion?",
+      "credits_concepts": [],
+      "item_id": "CASE-VOLT-L3:CP1",
+      "options": [
+        {
+          "oid": "o26c39f6",
+          "text": "Join promotions to promotion_products and to order_lines on promo_id in one query, then group by promotion and add up the lines."
+        },
+        {
+          "oid": "o6d464ba",
+          "text": "Count products per promotion and add up order lines per promotion in two separate steps, then join both results to promotions."
+        },
+        {
+          "oid": "o7c761b6",
+          "text": "Group the sales view by promotion, because it already holds one row per order line with its net revenue and unit cost."
+        },
+        {
+          "oid": "o1efb5e7",
+          "text": "Join order_lines to promotion_products on product_id to find each promotion's lines, then group by promotion and add them up."
+        }
+      ]
+    },
+    {
+      "id": "CP2",
+      "kind": "CP2",
+      "prompt": "Fleur first wants the size of the group behind the headline. How many order lines carried a promotion with a start_date from 2025-01-01 to 2025-12-31, both days included, and a discount_pct of 30 or more? Count each order line once. Type a whole number.",
+      "credits_concepts": [
+        "SQL-AGG-01"
+      ],
+      "item_id": "CASE-VOLT-L3:CP2",
+      "typed": {
+        "precision": "count",
+        "scale": "plain",
+        "decimals": 0,
+        "unit_label": "order lines"
+      },
+      "truth_key": "CASE-VOLT-L3:CP2"
+    },
+    {
+      "id": "CP3",
+      "kind": "CP3",
+      "prompt": "Write the query that answers Fleur's question.",
+      "credits_concepts": [
+        "SQL-JOIN-03",
+        "SQL-JOIN-01",
+        "SQL-JOIN-02",
+        "SQL-CTE-01",
+        "SQL-JOIN-04"
+      ],
+      "item_id": "EX-OPENER-L3-01"
+    },
+    {
+      "id": "CP4",
+      "kind": "CP4",
+      "prompt": "Fleur's headline: across all order lines that carried a promotion with a start_date from 2025-01-01 to 2025-12-31, both days included, and a discount_pct of 30 or more, what was the gross margin as a percentage of net revenue? A line's net revenue is quantity times unit_price_eur minus line_discount_eur, and its gross margin is that net revenue minus quantity times the product's unit_cost_eur. Add up the margin and the net revenue over all those lines, counting each order line once, then divide the margin by the net revenue and multiply by 100. Type the percentage with 1 decimal, for example -12.5.",
+      "credits_concepts": [],
+      "item_id": "CASE-VOLT-L3:CP4",
+      "typed": {
+        "precision": "ratio",
+        "scale": "percent",
+        "decimals": 1,
+        "unit_label": "%"
+      },
+      "truth_key": "CASE-VOLT-L3:CP4"
+    },
+    {
+      "id": "CP5",
+      "kind": "CP5",
+      "prompt": "Fleur's result lists every promotion that started in 2025 with its discount, the net revenue of the order lines that carried it, and their gross margin. Suppose the promotions with 30% or more off show a much lower gross margin than the shallower ones. What can Fleur conclude from this result alone?",
+      "credits_concepts": [],
+      "item_id": "CASE-VOLT-L3:CP5",
+      "options": [
+        {
+          "oid": "o2263101",
+          "text": "Deep discounts gave away margin on the promoted lines, but with no baseline the result cannot show if extra sales made up for it."
+        },
+        {
+          "oid": "oa8ce70c",
+          "text": "The deep promotions lowered Voltmarkt's total profit for 2025, so next year's calendar should drop every promotion of 30% or more."
+        },
+        {
+          "oid": "o013fec8",
+          "text": "The deep promotions must have sold more units than the others, so their extra volume already makes up for the lower margin."
+        },
+        {
+          "oid": "o09f91c8",
+          "text": "Margin falls steadily with discount depth, so any promotion at 25% off or less is sure to make a positive margin on its lines."
+        }
+      ]
+    },
+    {
+      "id": "CP6",
+      "kind": "CP6",
+      "prompt": "Write 2 to 4 sentences for Fleur: the headline number, what it means for next year's promotion calendar, one caveat and one next step.",
+      "credits_concepts": []
+    }
+  ],
+  "model_plan": "Metric formula: per promotion, the number of products it covers; revenue_eur, the sum of quantity times unit_price_eur minus line_discount_eur over the order lines that carry it; margin_eur, that revenue minus quantity times the product's unit_cost_eur over the same lines.\nOutput grain: one row per promotion with a start_date in 2025.\nTables and keys: promotions (promo_id); promotion_products counted per promo_id; order_lines joined to products on product_id and added up per promo_id; both results joined to promotions on promo_id with LEFT JOIN.\nFilters: start_date from 2025-01-01 to 2025-12-31, both days included; only order lines whose promo_id is not missing.\nEdge cases: the bridge holds many products per promotion, so joining it to the lines before adding up repeats each line once per product; a covered product that never sold still counts; a promotion with no lines keeps 0.\nExpected row count: 30",
+  "model_answer_template": "Across the {CP2} order lines sold in the 2025 promotions of 30% or more off, the gross margin came to {CP4} percent of net revenue, far below the shallower promotions. The driver is discount depth: margin falls as the discount deepens, and the deepest promotions lost money on their lines. The result covers only the promoted lines and has no baseline, so it cannot show whether the deep promotions brought extra sales that paid for the lost margin. Next, list the products in the deep promotions, where thin-margin accessories such as batteries and memory cards are the first suspects, and compare each deep promotion's units with the weeks before it.",
+  "follow_up_question": "Which products in the deep promotions sold below their unit cost?",
+  "data_source": {
+    "label": "Fictional, generated data: Voltmarkt",
+    "real": false,
+    "licence": null
+  },
+  "difficulty": 3,
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-JOIN-03",
+    "SQL-JOIN-04"
+  ],
+  "metric_ids": [
+    "MET-PRICE-07"
+  ],
+  "find_ids": [
+    "FIND-01-12"
+  ],
+  "uses_raw": false
+}

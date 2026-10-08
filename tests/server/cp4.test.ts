@@ -38,7 +38,7 @@ async function writeCases(root: string): Promise<void> {
   await put('sql/openers/CASE-VOLT-L1.json', record(1, cp4(1, PROMPT_1, L1_CREDITS, { precision: 'money', scale: 'eur', decimals: 2, unit_label: 'euros' })));
   await put('sql/openers/CASE-VOLT-L2.json', record(2, cp4(2, PROMPT_2, L2_CREDITS, { precision: 'ratio', scale: 'percent', decimals: 1, unit_label: '%' })));
   await put('sql/openers/CASE-VOLT-L3.json', record(3, null));         // an opener with no CP4
-  for (const n of [1, 2]) await put(`keys/cases/CASE-VOLT-L${n}.json`, { case_id: `CASE-VOLT-L${n}`, checkpoint_id: 'CP4', truth_query: QUERY_TEXT });
+  for (const n of [1, 2]) await put(`keys/cases/CASE-VOLT-L${n}.json`, { case_id: `CASE-VOLT-L${n}`, truths: { CP4: QUERY_TEXT }, choices: {} });
 }
 
 const root = await makeContentFixture();
@@ -89,7 +89,7 @@ test('a case key file is part of the content version and never loaded as an item
   const other = await makeContentFixture();
   await writeCases(other);
   const before = (await loadContent(other)).contentVersion;
-  await writeFile(join(other, 'keys/cases/CASE-VOLT-L1.json'), JSON.stringify({ case_id: 'CASE-VOLT-L1', checkpoint_id: 'CP4', truth_query: 'SELECT 1' }));
+  await writeFile(join(other, 'keys/cases/CASE-VOLT-L1.json'), JSON.stringify({ case_id: 'CASE-VOLT-L1', truths: { CP4: 'SELECT 1' }, choices: {} }));
   assert.notEqual((await loadContent(other)).contentVersion, before);
   assert.equal(content.key('CASE-VOLT-L1'), undefined);
 });
@@ -132,7 +132,7 @@ test('a right answer is logged as a typed checkpoint attempt in phase case, clos
   assert.deepEqual(rest, []);
   assert.deepEqual([a.record, a.section, a.item_kind, a.item_id, a.phase, a.item_instance_id], ['attempt', 'sql', 'typed', 'CASE-VOLT-L1:CP4', 'case', id], 'the serving\'s phase, not the browser\'s');
   assert.deepEqual([a.target_concept_id, a.concept_ids], ['SQL-BASICS-01', []], 'no credits: the target is the first concept of its CP3');
-  assert.deepEqual([a.outcome, a.is_correct, a.error_ids, a.confidence, a.grader_version, a.grading_source, a.submission_no, a.hint_level], ['pass', true, [], 3, 'choice.1', 'auto', 1, 0]);
+  assert.deepEqual([a.outcome, a.is_correct, a.error_ids, a.confidence, a.grader_version, a.grading_source, a.submission_no, a.hint_level], ['pass', true, [], 3, 'choice.2', 'auto', 1, 0]);
   assert.deepEqual(a.payload, { kind: 'mcq', shown_order: [], chosen: null, typed: ' 123,45 ' }, 'the text as typed');
   assert.deepEqual([a.world, a.difficulty, a.template_id], [null, null, null]);
   assert.deepEqual([close.record, close.reason, close.item_id, close.phase], ['item_close', 'pass', 'CASE-VOLT-L1:CP4', 'case']);

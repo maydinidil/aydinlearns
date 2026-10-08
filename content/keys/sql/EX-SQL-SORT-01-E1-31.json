@@ -1,6 +1,6 @@
 {
   "item_id": "EX-SQL-SORT-01-E1-31",
-  "item_version": 1,
+  "item_version": 2,
   "reference_sql": "SELECT product_name, unit_cost_eur\nFROM products\nWHERE category_id = 16",
   "alternatives": [
     "SELECT product_name, unit_cost_eur\nFROM products\nWHERE 16 = category_id",
@@ -26,11 +26,11 @@
   ],
   "hint3_partial": "SELECT product_name, unit_cost_eur\nFROM products\nWHERE category_id = ___",
   "solver": {
-    "prompt_hash": "56291d5c3f2b3775",
+    "prompt_hash": "c8c7df9db9f3aa06",
     "schema_version": "d77fe1c31a0e",
-    "dataset_version": "506a9858f862fdfb",
-    "grader_version": "1b.3",
-    "query": "SELECT product_name, unit_cost_eur FROM products WHERE category_id = 16\n",
-    "at": "2026-10-04T14:33:18.453Z"
+    "dataset_version": "7b5183c35ff26d5b",
+    "grader_version": "4c.1",
+    "query": "SELECT product_name, unit_cost_eur\nFROM products\nWHERE category_id = 16",
+    "at": "2026-10-08T14:11:56.282Z"
   }
 }

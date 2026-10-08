@@ -1,0 +1,131 @@
+{
+  "id": "EX-SQL-DATE-01-E2-21",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "date",
+    "time-zone",
+    "amsterdam",
+    "day",
+    "orders"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-DATE-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-DATE-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-DATE-01"
+  ],
+  "template_id": "T-DATE-01-count-per-day-and-channel-amsterdam",
+  "template_params": {
+    "table": "orders",
+    "from": "2025-12-24",
+    "to": "2025-12-26",
+    "clock": "Europe/Amsterdam"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_date",
+  "prompt": "How many orders did Voltmarkt take in each channel on each Amsterdam calendar day from 2025-12-24 to 2025-12-26? Use the orders table and count every order, web and store. order_ts holds the time of the order in UTC: turn it into Amsterdam time first, then take the date, and keep the orders whose Amsterdam date falls in that range, both days included. Return three columns, in this order: order_day, the Amsterdam date, channel, and orders, the number of orders. Return one row for each day and channel. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "order_day",
+        "type_class": "temporal"
+      },
+      {
+        "name": "channel",
+        "type_class": "text"
+      },
+      {
+        "name": "orders",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "order_day",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "channel",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "orders",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "order_day",
+      "channel"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the calculated column order_day: the Amsterdam date of each order.",
+    "Amsterdam is 1 hour ahead of UTC in December, so an order at 23:30 UTC is already the next day there. Convert order_ts before you take the date, in SELECT and in WHERE."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 132,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 133,
+      "to": 144,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 145,
+      "to": 268,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 269,
+      "to": 282,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "The two timezone calls give each order its Amsterdam date, so the days are cut at midnight in Amsterdam for both channels."
+}

@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-SET-01-E2-21",
+  "item_version": 2,
+  "reference_sql": "WITH store_only AS (\n  SELECT customer_id\n  FROM orders\n  WHERE channel = 'store'\n    AND customer_id IS NOT NULL\n    AND order_ts >= TIMESTAMP '2025-05-01 00:00:00'\n    AND order_ts < TIMESTAMP '2025-06-01 00:00:00'\n  EXCEPT\n  SELECT customer_id\n  FROM orders\n  WHERE channel = 'web'\n    AND order_ts >= TIMESTAMP '2025-05-01 00:00:00'\n    AND order_ts < TIMESTAMP '2025-06-01 00:00:00'\n)\nSELECT COUNT(*) AS customers\nFROM store_only",
+  "alternatives": [
+    "WITH may_orders AS (SELECT customer_id, channel FROM orders WHERE customer_id IS NOT NULL AND order_ts >= TIMESTAMP '2025-05-01 00:00:00' AND order_ts < TIMESTAMP '2025-06-01 00:00:00'), per_customer AS (SELECT customer_id FROM may_orders GROUP BY customer_id HAVING COUNT(*) FILTER (WHERE channel = 'store') > 0 AND COUNT(*) FILTER (WHERE channel = 'web') = 0) SELECT COUNT(*) AS customers FROM per_customer",
+    "WITH store_only AS (SELECT customer_id FROM orders WHERE channel = 'store' AND customer_id IS NOT NULL AND year(order_ts) = 2025 AND month(order_ts) = 5 EXCEPT SELECT customer_id FROM orders WHERE channel = 'web' AND year(order_ts) = 2025 AND month(order_ts) = 5) SELECT COUNT(customer_id) AS customers FROM store_only"
+  ],
+  "other_way": {
+    "sql": "WITH may_orders AS (SELECT customer_id, channel FROM orders WHERE customer_id IS NOT NULL AND order_ts >= TIMESTAMP '2025-05-01 00:00:00' AND order_ts < TIMESTAMP '2025-06-01 00:00:00'), per_customer AS (SELECT customer_id FROM may_orders GROUP BY customer_id HAVING COUNT(*) FILTER (WHERE channel = 'store') > 0 AND COUNT(*) FILTER (WHERE channel = 'web') = 0) SELECT COUNT(*) AS customers FROM per_customer",
+    "tradeoff": "Grouping by customer and counting each channel with FILTER also works, but EXCEPT reads as the question does."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-27",
+      "sql": "WITH store_only AS (SELECT customer_id FROM orders WHERE channel = 'web' AND customer_id IS NOT NULL AND order_ts >= TIMESTAMP '2025-05-01 00:00:00' AND order_ts < TIMESTAMP '2025-06-01 00:00:00' EXCEPT SELECT customer_id FROM orders WHERE channel = 'store' AND order_ts >= TIMESTAMP '2025-05-01 00:00:00' AND order_ts < TIMESTAMP '2025-06-01 00:00:00') SELECT COUNT(*) AS customers FROM store_only"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-06",
+      "sql": "WITH store_only AS (SELECT customer_id FROM orders WHERE channel = 'store' AND customer_id IS NOT NULL AND order_ts BETWEEN DATE '2025-05-01' AND DATE '2025-05-31' EXCEPT SELECT customer_id FROM orders WHERE channel = 'web' AND order_ts BETWEEN DATE '2025-05-01' AND DATE '2025-05-31') SELECT COUNT(*) AS customers FROM store_only"
+    }
+  ],
+  "hint3_partial": "WITH store_only AS (\n  SELECT customer_id\n  FROM orders\n  WHERE channel = 'store'\n    AND customer_id IS NOT NULL\n    AND order_ts >= TIMESTAMP '2025-05-01 00:00:00'\n    AND order_ts < TIMESTAMP '2025-06-01 00:00:00'\n  ___\n  SELECT customer_id\n  FROM orders\n  WHERE channel = ___\n    AND order_ts >= TIMESTAMP '2025-05-01 00:00:00'\n    AND order_ts < TIMESTAMP '2025-06-01 00:00:00'\n)\nSELECT COUNT(*) AS customers\nFROM store_only",
+  "solver": {
+    "prompt_hash": "34e3429da4436f28",
+    "schema_version": "7ed366279088",
+    "dataset_version": "7f30f5a797e6a9ce",
+    "grader_version": "4b.1",
+    "query": "SELECT COUNT(*) AS customers FROM (\n  SELECT customer_id FROM orders\n  WHERE channel = 'store' AND customer_id IS NOT NULL AND order_ts >= TIMESTAMP '2025-05-01 00:00:00' AND order_ts < TIMESTAMP '2025-06-01 00:00:00'\n  EXCEPT\n  SELECT customer_id FROM orders\n  WHERE channel = 'web' AND customer_id IS NOT NULL AND order_ts >= TIMESTAMP '2025-05-01 00:00:00' AND order_ts < TIMESTAMP '2025-06-01 00:00:00'\n) t",
+    "at": "2026-10-07T22:25:32.826Z"
+  }
+}

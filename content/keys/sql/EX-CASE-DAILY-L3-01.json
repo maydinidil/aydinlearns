@@ -1,0 +1,39 @@
+{
+  "item_id": "EX-CASE-DAILY-L3-01",
+  "item_version": 1,
+  "reference_sql": "SELECT p.product_id, p.product_name, c.category_name, COUNT(*) AS n_new_prices\nFROM price_history ph\nJOIN products p ON p.product_id = ph.product_id\nJOIN categories c ON c.category_id = p.category_id\nWHERE c.parent_category = 'TV & Video' AND ph.valid_from BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\nGROUP BY p.product_id, p.product_name, c.category_name\nORDER BY n_new_prices DESC, p.product_id\nLIMIT 10",
+  "alternatives": [
+    "SELECT p.product_id, p.product_name, c.category_name, COUNT(*) AS n_new_prices FROM price_history ph, products p, categories c WHERE ph.product_id = p.product_id AND p.category_id = c.category_id AND c.parent_category = 'TV & Video' AND year(ph.valid_from) = 2025 GROUP BY p.product_id, p.product_name, c.category_name ORDER BY n_new_prices DESC, p.product_id LIMIT 10",
+    "SELECT p.product_id, p.product_name, c.category_name, COUNT(ph.valid_from) AS n_new_prices FROM categories c JOIN products p ON p.category_id = c.category_id JOIN price_history ph ON ph.product_id = p.product_id AND ph.valid_from >= DATE '2025-01-01' AND ph.valid_from <= DATE '2025-12-31' WHERE c.parent_category = 'TV & Video' GROUP BY 1, 2, 3 ORDER BY 4 DESC, 1 LIMIT 10"
+  ],
+  "other_way": {
+    "sql": "SELECT p.product_id, p.product_name, c.category_name, COUNT(*) AS n_new_prices FROM price_history ph, products p, categories c WHERE ph.product_id = p.product_id AND p.category_id = c.category_id AND c.parent_category = 'TV & Video' AND year(ph.valid_from) = 2025 GROUP BY p.product_id, p.product_name, c.category_name ORDER BY n_new_prices DESC, p.product_id LIMIT 10",
+    "tradeoff": "Listing the tables with commas and joining them in WHERE works too, but a forgotten join condition silently multiplies the rows."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-SYN-03",
+      "sql": "SELECT product_id, p.product_name, c.category_name, COUNT(*) AS n_new_prices FROM price_history ph JOIN products p ON p.product_id = ph.product_id JOIN categories c ON c.category_id = p.category_id WHERE c.parent_category = 'TV & Video' AND ph.valid_from BETWEEN DATE '2025-01-01' AND DATE '2025-12-31' GROUP BY product_id, p.product_name, c.category_name ORDER BY n_new_prices DESC, product_id LIMIT 10"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-12",
+      "sql": "SELECT p.product_id, p.product_name, c.category_name, COUNT(*) AS n_new_prices FROM price_history ph JOIN products p ON p.product_id = ph.product_id JOIN categories c ON c.category_id = ph.product_id WHERE c.parent_category = 'TV & Video' AND ph.valid_from BETWEEN DATE '2025-01-01' AND DATE '2025-12-31' GROUP BY p.product_id, p.product_name, c.category_name ORDER BY n_new_prices DESC, p.product_id LIMIT 10"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-18",
+      "sql": "SELECT p.product_id, p.product_name, c.category_name, COUNT(*) AS n_new_prices FROM price_history ph JOIN products p ON p.product_id = ph.product_id JOIN categories c ON c.category_id = p.category_id WHERE c.parent_category = 'TV & Video' AND ph.valid_from BETWEEN DATE '2025-01-01' AND DATE '2025-12-31' GROUP BY p.product_id, p.product_name, c.category_name ORDER BY n_new_prices DESC, p.product_id DESC LIMIT 10"
+    }
+  ],
+  "hint3_partial": "SELECT p.product_id, p.product_name, c.category_name, COUNT(*) AS n_new_prices\nFROM price_history ph\nJOIN products p ON ___\nJOIN categories c ON ___\nWHERE ___\nGROUP BY ___\nORDER BY ___\nLIMIT 10",
+  "solver": {
+    "prompt_hash": "c25705901d8514ea",
+    "schema_version": "0072f9d3b7cc",
+    "dataset_version": "7f30f5a797e6a9ce",
+    "grader_version": "4b.1",
+    "query": "SELECT pr.product_id, pr.product_name, c.category_name, COUNT(*) AS n_new_prices\nFROM price_history ph\nJOIN products pr ON pr.product_id = ph.product_id\nJOIN categories c ON c.category_id = pr.category_id\nWHERE c.parent_category = 'TV & Video'\n  AND ph.valid_from BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\nGROUP BY pr.product_id, pr.product_name, c.category_name\nORDER BY n_new_prices DESC, pr.product_id ASC\nLIMIT 10",
+    "at": "2026-10-07T22:25:31.396Z"
+  }
+}

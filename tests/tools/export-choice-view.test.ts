@@ -9,6 +9,7 @@ import { join } from 'node:path';
 import { promisify } from 'node:util';
 import { choiceView, exportChoiceView, seededOrder, viewPromptHash, DEFAULT_SEED } from '../../tools/export-choice-view.ts';
 import { choicePromptHash } from '../../tools/check-choice.ts';
+import { DAILY_ID, EXPLANATION, INBOX_ID, OPENER_ID, inboxRecord, makeCaseFixture } from '../helpers/case-fixture.ts';
 import { explanationOf, ga4Files, ga4Item, makeChoiceRoot, methodologyFiles, optionsOf, typedItem, PERCENT, CHILD, OTHER } from '../helpers/choice-fixture.ts';
 
 const outDir = async () => join(await mkdtemp(join(tmpdir(), 'al-cview-')), 'choice');
@@ -92,4 +93,35 @@ test('the CLI takes a content root, an output folder and --seed, and prints coun
   assert.doesNotMatch(stdout, /widget|invented|Q-GA4|o[0-9a-f]{7}/);
   const view = await read(join(out, 'ga4', 'T-GA4-01', 'Q-GA4-901.json'));
   assert.deepEqual(view, choiceView(ga4Item('Q-GA4-901'), 'round-2'));
+});
+
+// ---- Task B2 of sprint 4b: a case's CP1 and CP5 (prompt and options), and its CP2 and CP4 (prompt and typed spec) ----------------
+// A case checkpoint's view holds what the learner sees of that checkpoint only. Its file is <out>/case/<case_id>/<case_id>-<CP>.json:
+// a file name cannot hold the colon of its ID. The case key, the model plan and the model answer are never read into a view.
+test('a case\'s CP1 and CP5 views hold the id, the prompt and the options in a seeded order; CP2 and CP4 the id, the prompt and the typed spec', async () => {
+  const { root } = await makeCaseFixture();
+  const out = await outDir();
+  const groups = await exportChoiceView(root, out);
+  const cases = groups.filter((g) => g.section === 'case');
+  assert.deepEqual(cases, [
+    { section: 'case', group: DAILY_ID, ids: [`${DAILY_ID}:CP4`] },
+    { section: 'case', group: INBOX_ID, ids: [`${INBOX_ID}:CP1`, `${INBOX_ID}:CP2`, `${INBOX_ID}:CP4`, `${INBOX_ID}:CP5`] },
+    { section: 'case', group: OPENER_ID, ids: [`${OPENER_ID}:CP4`] },
+  ]);
+  assert.deepEqual((await readdir(join(out, 'case', INBOX_ID))).sort(), ['CP1', 'CP2', 'CP4', 'CP5'].map((cp) => `${INBOX_ID}-${cp}.json`));
+  const record = inboxRecord();
+  const cp = (kind: string) => record.checkpoints.find((c) => c.kind === kind)!;
+  const cp1 = await read(join(out, 'case', INBOX_ID, `${INBOX_ID}-CP1.json`));
+  assert.deepEqual(Object.keys(cp1), ['id', 'prompt', 'options']);
+  assert.deepEqual(cp1, { id: `${INBOX_ID}:CP1`, prompt: cp('CP1').prompt, options: seededOrder(cp('CP1').options!, DEFAULT_SEED, `${INBOX_ID}:CP1`) });
+  const cp4 = await read(join(out, 'case', INBOX_ID, `${INBOX_ID}-CP4.json`));
+  assert.deepEqual(cp4, { id: `${INBOX_ID}:CP4`, prompt: cp('CP4').prompt, typed: cp('CP4').typed });
+  const all = JSON.stringify(await Promise.all(cases.flatMap((g) => g.ids.map((id) => read(join(out, 'case', g.group, `${id.replace(':', '-')}.json`))))));
+  assert.ok(!all.includes(EXPLANATION) && !all.includes('invented_case_truth_marker') && !all.includes('model plan marker') && !all.includes('model answer'),
+    'no key text, model plan or model answer');
+  assert.doesNotMatch(all, /correct|explanation|truth|credits|EX-CASE|brief/);
+  // A second export clears the case folders' view files first.
+  await writeFile(join(out, 'case', INBOX_ID, `${INBOX_ID}-CP9.json`), '{}');
+  await exportChoiceView(root, out);
+  assert.ok(!(await readdir(join(out, 'case', INBOX_ID))).includes(`${INBOX_ID}-CP9.json`));
 });

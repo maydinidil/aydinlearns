@@ -6,7 +6,10 @@
     "SELECT parent_category, AVG(net_revenue_eur) FILTER (WHERE units = 1) AS avg_single_line_eur, AVG(net_revenue_eur) FILTER (WHERE units >= 2) AS avg_multi_line_eur FROM sales GROUP BY parent_category",
     "SELECT parent_category, AVG(CASE WHEN units = 1 THEN net_revenue_eur ELSE NULL END) AS avg_single_line_eur, AVG(CASE WHEN units > 1 THEN net_revenue_eur ELSE NULL END) AS avg_multi_line_eur FROM sales GROUP BY 1"
   ],
-  "other_way": null,
+  "other_way": {
+    "sql": "SELECT parent_category, AVG(net_revenue_eur) FILTER (WHERE units = 1) AS avg_single_line_eur, AVG(net_revenue_eur) FILTER (WHERE units >= 2) AS avg_multi_line_eur FROM sales GROUP BY parent_category",
+    "tradeoff": "Reads closer to plain English, but FILTER is not available in every SQL dialect."
+  },
   "planted_wrong": [
     {
       "id": "PW1",

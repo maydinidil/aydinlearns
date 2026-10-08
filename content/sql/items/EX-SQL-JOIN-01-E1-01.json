@@ -1,0 +1,114 @@
+{
+  "id": "EX-SQL-JOIN-01-E1-01",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "join",
+    "products",
+    "categories"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-JOIN-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pretest",
+  "target_concept_id": "SQL-JOIN-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-JOIN-01"
+  ],
+  "template_id": "T-JOIN-01-dimension-lookup",
+  "template_params": {
+    "from": "products",
+    "join": "categories",
+    "brand": "Vistara"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_join",
+  "prompt": "List the products of the brand Vistara with the parent category each one belongs to. Return two columns, in this order: product_name and parent_category. Return one row for each such product. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "product_name",
+        "type_class": "text"
+      },
+      {
+        "name": "parent_category",
+        "type_class": "text"
+      }
+    ],
+    "grain": "one row per product"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "product_name",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "parent_category",
+        "type_class": "text",
+        "precision": "exact"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "product_name"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, add the join that brings in each product's category.",
+    "products holds category_id, and categories holds the parent_category of each category_id. Match the two on that ID."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 40,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 41,
+      "to": 56,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 57,
+      "to": 107,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 108,
+      "to": 133,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "Each product points at one category through category_id, so matching that ID gives each product exactly one parent category."
+}

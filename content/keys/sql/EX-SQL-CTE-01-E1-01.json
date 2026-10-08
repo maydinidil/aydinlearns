@@ -1,0 +1,39 @@
+{
+  "item_id": "EX-SQL-CTE-01-E1-01",
+  "item_version": 1,
+  "reference_sql": "WITH order_totals AS (\n  SELECT order_id, SUM(quantity * unit_price_eur - line_discount_eur) AS order_eur\n  FROM order_lines\n  GROUP BY order_id\n)\nSELECT AVG(order_eur) AS avg_order_eur\nFROM order_totals",
+  "alternatives": [
+    "SELECT SUM(quantity * unit_price_eur - line_discount_eur) / COUNT(DISTINCT order_id) AS avg_order_eur FROM order_lines",
+    "WITH order_totals AS (SELECT order_id, SUM(net_revenue_eur) AS order_eur FROM sales GROUP BY order_id) SELECT SUM(order_eur) / COUNT(*) AS avg_order_eur FROM order_totals"
+  ],
+  "other_way": {
+    "sql": "SELECT SUM(quantity * unit_price_eur - line_discount_eur) / COUNT(DISTINCT order_id) AS avg_order_eur FROM order_lines",
+    "tradeoff": "Dividing the total by the number of different orders takes one step, but the named step lets you check each order's value first."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-07",
+      "sql": "SELECT AVG(quantity * unit_price_eur - line_discount_eur) AS avg_order_eur FROM order_lines"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-14",
+      "sql": "WITH order_totals AS (SELECT order_id, SUM(quantity * unit_price_eur - line_discount_eur) AS order_eur FROM order_lines GROUP BY order_id) SELECT MAX(order_eur) AS avg_order_eur FROM order_totals"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-11",
+      "sql": "WITH order_totals AS (SELECT order_id, SUM(quantity * unit_price_eur - line_discount_eur) AS order_eur FROM order_lines GROUP BY order_id) SELECT AVG(COALESCE(t.order_eur, 0)) AS avg_order_eur FROM orders o LEFT JOIN order_totals t ON t.order_id = o.order_id"
+    }
+  ],
+  "hint3_partial": "WITH order_totals AS (\n  SELECT order_id, SUM(___) AS order_eur\n  FROM order_lines\n  GROUP BY order_id\n)\nSELECT AVG(___) AS avg_order_eur\nFROM order_totals",
+  "solver": {
+    "prompt_hash": "c9e4dacc75eb477f",
+    "schema_version": "6c8fc3c0d3d4",
+    "dataset_version": "e1545e4258743033",
+    "grader_version": "1b.3",
+    "query": "WITH order_values AS (\n  SELECT order_id, SUM(quantity * unit_price_eur - line_discount_eur) AS order_eur\n  FROM order_lines\n  GROUP BY order_id\n)\nSELECT AVG(order_eur) AS avg_order_eur\nFROM order_values",
+    "at": "2026-10-07T10:41:33.567Z"
+  }
+}

@@ -6,7 +6,10 @@
     "SELECT store_code, CASE WHEN close_date IS NULL THEN FALSE ELSE TRUE END AS is_closed FROM stores",
     "SELECT store_code, NOT (close_date IS NULL) AS is_closed FROM stores"
   ],
-  "other_way": null,
+  "other_way": {
+    "sql": "SELECT store_code, CASE WHEN close_date IS NULL THEN FALSE ELSE TRUE END AS is_closed FROM stores",
+    "tradeoff": "Spells out both cases, but is wordier than comparing directly."
+  },
   "planted_wrong": [
     {
       "id": "PW1",

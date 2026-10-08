@@ -1,0 +1,15 @@
+{
+  "schema": "voltmarkt_edge_set",
+  "mirrors": "voltmarkt",
+  "family": "set",
+  "contains": [
+    "products sold both on the web and in a store, and a customer who ordered in both channels",
+    "the same product on several web lines, and a customer with two web orders",
+    "a guest order with a missing customer ID in each channel",
+    "lines with no promotion (promo_id missing) next to lines on promotion",
+    "customers who ordered in one channel only, and a product that sold in a store only",
+    "a product in two promotions, and a product on promotion that never sold",
+    "a promotion in April 2025 that no order line carried",
+    "the same competitor price for one product twice from one rival, and the same price for one product from both rivals"
+  ]
+}

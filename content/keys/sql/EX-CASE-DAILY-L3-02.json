@@ -1,0 +1,44 @@
+{
+  "item_id": "EX-CASE-DAILY-L3-02",
+  "item_version": 1,
+  "reference_sql": "SELECT CAST(date_trunc('month', timezone('Europe/Amsterdam', timezone('UTC', order_ts))) AS DATE) AS month_start, store_id, COUNT(*) AS n_orders\nFROM orders\nWHERE CAST(timezone('Europe/Amsterdam', timezone('UTC', order_ts)) AS DATE) BETWEEN DATE '2025-10-01' AND DATE '2025-12-31'\nGROUP BY month_start, store_id\nORDER BY month_start, store_id",
+  "alternatives": [
+    "SELECT date_trunc('month', order_ts AT TIME ZONE 'UTC' AT TIME ZONE 'Europe/Amsterdam') AS month_start, store_id, COUNT(order_id) AS n_orders FROM orders WHERE CAST(order_ts AT TIME ZONE 'UTC' AT TIME ZONE 'Europe/Amsterdam' AS DATE) BETWEEN DATE '2025-10-01' AND DATE '2025-12-31' GROUP BY 1, 2 ORDER BY 1, 2",
+    "SELECT date_trunc('month', timezone('Europe/Amsterdam', timezone('UTC', order_ts))) AS month_start, store_id, COUNT(*) AS n_orders FROM orders WHERE order_ts >= TIMESTAMP '2025-09-30 22:00:00' AND order_ts < TIMESTAMP '2025-12-31 23:00:00' GROUP BY 1, 2 ORDER BY 1, 2"
+  ],
+  "other_way": {
+    "sql": "SELECT date_trunc('month', timezone('Europe/Amsterdam', timezone('UTC', order_ts))) AS month_start, store_id, COUNT(*) AS n_orders FROM orders WHERE order_ts >= TIMESTAMP '2025-09-30 22:00:00' AND order_ts < TIMESTAMP '2025-12-31 23:00:00' GROUP BY 1, 2 ORDER BY 1, 2",
+    "tradeoff": "Filtering order_ts on UTC bounds keeps the column bare, but you must work out the UTC edge of each Amsterdam month yourself."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-26",
+      "sql": "SELECT CAST(date_trunc('month', order_ts) AS DATE) AS month_start, store_id, COUNT(*) AS n_orders FROM orders WHERE CAST(order_ts AS DATE) BETWEEN DATE '2025-10-01' AND DATE '2025-12-31' GROUP BY month_start, store_id ORDER BY month_start, store_id"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-25",
+      "sql": "SELECT CAST(date_trunc('quarter', timezone('Europe/Amsterdam', timezone('UTC', order_ts))) AS DATE) AS month_start, store_id, COUNT(*) AS n_orders FROM orders WHERE CAST(timezone('Europe/Amsterdam', timezone('UTC', order_ts)) AS DATE) BETWEEN DATE '2025-10-01' AND DATE '2025-12-31' GROUP BY month_start, store_id ORDER BY month_start, store_id"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-04",
+      "sql": "SELECT CAST(date_trunc('month', timezone('Europe/Amsterdam', timezone('UTC', order_ts))) AS DATE) AS month_start, store_id, COUNT(DISTINCT customer_id) AS n_orders FROM orders WHERE CAST(timezone('Europe/Amsterdam', timezone('UTC', order_ts)) AS DATE) BETWEEN DATE '2025-10-01' AND DATE '2025-12-31' GROUP BY month_start, store_id ORDER BY month_start, store_id"
+    },
+    {
+      "id": "PW4",
+      "error_id": "ERR-LOG-18",
+      "sql": "SELECT CAST(date_trunc('month', timezone('Europe/Amsterdam', timezone('UTC', order_ts))) AS DATE) AS month_start, store_id, COUNT(*) AS n_orders FROM orders WHERE CAST(timezone('Europe/Amsterdam', timezone('UTC', order_ts)) AS DATE) BETWEEN DATE '2025-10-01' AND DATE '2025-12-31' GROUP BY month_start, store_id ORDER BY store_id, month_start"
+    }
+  ],
+  "hint3_partial": "SELECT CAST(date_trunc('month', ___) AS DATE) AS month_start, store_id, COUNT(*) AS n_orders\nFROM orders\nWHERE CAST(___ AS DATE) BETWEEN DATE '2025-10-01' AND DATE '2025-12-31'\nGROUP BY ___\nORDER BY ___",
+  "solver": {
+    "prompt_hash": "bc5397bc550e0ae0",
+    "schema_version": "7ed366279088",
+    "dataset_version": "7f30f5a797e6a9ce",
+    "grader_version": "4b.1",
+    "query": "WITH t AS (\n  SELECT order_id, store_id, CAST(timezone('Europe/Amsterdam', timezone('UTC', order_ts)) AS DATE) AS d\n  FROM orders\n)\nSELECT CAST(date_trunc('month', d) AS DATE) AS month_start, store_id, COUNT(*) AS n_orders\nFROM t\nWHERE d BETWEEN DATE '2025-10-01' AND DATE '2025-12-31'\nGROUP BY 1, 2\nORDER BY month_start ASC, store_id ASC",
+    "at": "2026-10-07T22:25:31.808Z"
+  }
+}

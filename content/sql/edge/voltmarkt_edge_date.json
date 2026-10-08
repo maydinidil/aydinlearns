@@ -1,0 +1,16 @@
+{
+  "schema": "voltmarkt_edge_date",
+  "mirrors": "voltmarkt",
+  "family": "date",
+  "contains": [
+    "web orders at 23:30 UTC (the webshop's time zone is UTC) that fall on the next day in Amsterdam, in winter and in summer time",
+    "the clock change on 26 October 2025: web orders at 00:30 and 01:30 UTC that both read 02:30 in Amsterdam",
+    "orders after midnight on the last day of a month, including the leap day 29 February 2024",
+    "orders on 30 and 31 December 2024 and on 29 and 31 December 2025, which are in ISO week 1 of the next year",
+    "orders in ISO week 52 (29 December 2024 and 28 December 2025) and in the first days of January 2025",
+    "a web order at 23:30 UTC on 31 December 2025, which is 1 January 2026 in Amsterdam, a day the calendar does not have",
+    "a promotion that runs from December 2024 into January 2025, and one that ends on 30 June 2025",
+    "list prices that change on 1 January 2025 and 1 July 2025",
+    "competitor prices checked at 23:30 UTC and during the clock change"
+  ]
+}

@@ -1,0 +1,119 @@
+{
+  "id": "EX-SQL-DATE-01-E1-08",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "date",
+    "date_trunc",
+    "month",
+    "price_history"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-DATE-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-DATE-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-DATE-01"
+  ],
+  "template_id": "T-DATE-01-count-per-month-one-year",
+  "template_params": {
+    "table": "price_history",
+    "column": "valid_from",
+    "year": 2025
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_date",
+  "prompt": "How many new list prices took effect in each calendar month of 2025? Use the price_history table, where valid_from is the first day a list price applies, and count every price version whose valid_from is from 2025-01-01 to 2025-12-31, both included. Return two columns, in this order: change_month, the first day of the month as a date, and price_changes, the number of price versions. Return one row for each month. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "change_month",
+        "type_class": "temporal"
+      },
+      {
+        "name": "price_changes",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "change_month",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "price_changes",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "change_month"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the calculated column change_month: each valid_from date cut back to the first day of its month.",
+    "valid_from is a date, so a range with both ends included keeps the whole year. date_trunc to the month keeps the year, and every row is one price version to count."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 88,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 89,
+      "to": 107,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 108,
+      "to": 172,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 173,
+      "to": 213,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "date_trunc('month', valid_from) puts each 2025 price version in its month, and COUNT(*) counts every version that starts there."
+}

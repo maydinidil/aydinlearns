@@ -44,6 +44,8 @@ test('every goal has an id, a title, an ISO target date and well-formed criteria
     mock_pass: ['mock'],
     external: ['result', 'count'],
     live_rep: ['window_weeks', 'min_logged', 'min_passed'],
+    case_solved: ['count'],                       // S4B-20 (Task B1); tests/content/goals-s4b.test.ts checks the shapes
+    real_data_analysis: ['count'],
   };
   for (const x of g.goals) {
     assert.ok(typeof x.id === 'string' && x.id.length > 0, JSON.stringify(x));

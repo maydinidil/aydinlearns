@@ -1,0 +1,91 @@
+{
+  "id": "EX-SQL-SET-01-E2-42",
+  "version": 1,
+  "kind": "choose_query",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "set",
+    "choose_query",
+    "union_all",
+    "cte",
+    "count"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-SET-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-SET-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-AGG-01",
+    "SQL-CTE-01",
+    "SQL-SET-01"
+  ],
+  "template_id": "T-SET-01-choose-union-all-count",
+  "template_params": {
+    "tables": "price_history, competitor_prices",
+    "product_id": 2
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_set",
+  "prompt": "How many price points does product 2 have? Every list price version of product 2 in price_history and every competitor price check of product 2 in competitor_prices is one price point, even when two of them have the same price. The answer has one column, price_points, in one row. Which query returns it?",
+  "output_contract": null,
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [],
+  "subgoals": [],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 90000,
+  "why_this_works": "",
+  "options": [
+    {
+      "oid": "o18caee5",
+      "text": "WITH p AS (\n  SELECT list_price_eur AS price_eur FROM price_history WHERE product_id = 2\n  UNION\n  SELECT price_eur FROM competitor_prices WHERE product_id = 2\n)\nSELECT COUNT(*) AS price_points FROM p",
+      "misconception_id": "ERR-LOG-24"
+    },
+    {
+      "oid": "o325564b",
+      "text": "SELECT COUNT(*) AS price_points\nFROM price_history ph\nJOIN competitor_prices cp ON cp.product_id = ph.product_id\nWHERE ph.product_id = 2",
+      "misconception_id": "ERR-LOG-01"
+    },
+    {
+      "oid": "o6382b66",
+      "text": "WITH p AS (\n  SELECT list_price_eur AS price_eur FROM price_history WHERE product_id = 2\n  UNION ALL\n  SELECT price_eur FROM competitor_prices WHERE product_id = 2\n)\nSELECT COUNT(*) AS price_points FROM p",
+      "misconception_id": null
+    },
+    {
+      "oid": "ob8d2cda",
+      "text": "WITH p AS (\n  SELECT DISTINCT list_price_eur AS price_eur FROM price_history WHERE product_id = 2\n  UNION ALL\n  SELECT DISTINCT price_eur FROM competitor_prices WHERE product_id = 2\n)\nSELECT COUNT(*) AS price_points FROM p",
+      "misconception_id": "ERR-LOG-09"
+    }
+  ]
+}

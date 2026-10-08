@@ -1,0 +1,135 @@
+{
+  "id": "EX-SQL-JOIN-01-E1-06",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "join",
+    "competitor_prices",
+    "products"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-JOIN-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-JOIN-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-JOIN-01"
+  ],
+  "template_id": "T-JOIN-01-fact-to-dimension-filter",
+  "template_params": {
+    "from": "competitor_prices",
+    "join": "products",
+    "brand": "Vistara",
+    "week": "2025-03-03"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_join",
+  "prompt": "List the competitor price checks of products of the brand Vistara made from 3 March 2025 to 9 March 2025. observed_ts holds UTC time: take those UTC days, both included. Return four columns, in this order: product_name, competitor, observed_ts and price_eur. Return one row for each price check. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "product_name",
+        "type_class": "text"
+      },
+      {
+        "name": "competitor",
+        "type_class": "text"
+      },
+      {
+        "name": "observed_ts",
+        "type_class": "temporal"
+      },
+      {
+        "name": "price_eur",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "product_name",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "competitor",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "observed_ts",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "price_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "product_name",
+      "competitor",
+      "observed_ts"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, join each price check to the product it checked.",
+    "competitor_prices names only product_id. The brand and the name sit with the product; the check time sits with the check."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 66,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 67,
+      "to": 92,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 93,
+      "to": 140,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 141,
+      "to": 275,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "Each price check points at one product, so the join adds its name and brand, and WHERE keeps the Vistara checks of that week."
+}

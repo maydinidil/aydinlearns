@@ -1,0 +1,137 @@
+{
+  "id": "EX-SQL-JOIN-04-E2-05",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "multi-table",
+    "left-join",
+    "order_lines",
+    "orders",
+    "products",
+    "promotions"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-JOIN-04"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-JOIN-04",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-TYPE-01",
+    "SQL-JOIN-02",
+    "SQL-JOIN-01",
+    "SQL-JOIN-04"
+  ],
+  "template_id": "T-JOIN-04-chain-lines-with-promo-code",
+  "template_params": {
+    "day": "2025-03-08"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_join",
+  "prompt": "List every order line of the orders placed on 8 March 2025 (order_ts holds UTC time: use its UTC date). Return three columns, in this order: order_line_id, product_name and promo_code, the code of the promotion the line was sold with, missing when the line had no promotion or its promotion is not in promotions. Return one row for each order line. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "order_line_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "product_name",
+        "type_class": "text"
+      },
+      {
+        "name": "promo_code",
+        "type_class": "text"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "order_line_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "product_name",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "promo_code",
+        "type_class": "text",
+        "precision": "exact"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "order_line_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, add the promotion with a join that keeps the lines that have none.",
+    "An inner join to promotions drops every line whose promo_id is missing or has no match; the line must stay, with the code missing."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 54,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 55,
+      "to": 74,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 75,
+      "to": 116,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 117,
+      "to": 164,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 165,
+      "to": 217,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 218,
+      "to": 268,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "Inner joins to orders and products keep every line, since each line has both; the LEFT JOIN to promotions keeps the lines with no promotion, with a missing code."
+}

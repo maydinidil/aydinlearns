@@ -14,6 +14,9 @@ before them are research and planning.
 
 ### Known issues
 
+- F26 (Codex, PR #41): when "Try again" falls back to another due mistake card while that card's
+  previous review is still being saved, it can serve that card a second time, and the card is then
+  rated twice. Rare in practice; the fix is planned.
 - F13 (Codex, PR #34), won't fix: after the app restarts in the middle of a GA4 run, the run's
   review numbers its questions in the order they were answered, not their order in the run. This
   is known and deliberate: the review says so, and exact numbering would need the run's order in
@@ -21,9 +24,103 @@ before them are research and planning.
 - F14 (Codex, PR #34): past GA4 runs are scored with today's blueprint (question count, pass
   mark). Nothing is wrong today, and a test stops a silent change, but changing the blueprint
   on purpose would rescore old runs until dated blueprints are kept.
+- Sprint 4b: an exported CP3 query that was copied from an "other ways" answer cannot be told from
+  the learner's own work. The export marks a pass that followed "Show answer" or hint 2 or 3,
+  but "other ways" leaves no record to check, and adding one would be a log format change.
+- Sprint 4c: one SQL-SET-01 plant (EX-SQL-SET-01-E1-07) stays on the generic ERR-LOG-00 feedback,
+  because no error ID fits a missing filter. Sprint 4b's other two (a set operator treats two
+  missing values as equal) moved to the new ERR-LOG-28.
 
 ### Added
 
+- **Sprint 4b: cases, portfolio, progress and screen mode** (2026-10-08):
+  - **Cases and the inbox.** A case screen runs a manager's request: an optional plan first, then
+    checkpoints CP1 to CP6 in the order the case lists them, "say it in 60 seconds" (four prompts and
+    a countdown, nothing recorded), a model answer and a rubric, and the score. Every step can be
+    skipped and reopened. The model plan opens after CP1 and the model answer after CP5, so neither
+    spoils a checkpoint. A case is solved when each of CP1 to CP5 has a pass, at any time. The inbox
+    (`#/inbox`) lists every case with its manager, level and status (new, started, solved,
+    exported).
+  - **Nine new cases:** the level 3 opener (`CASE-VOLT-L3`, with the mid-level question as its CP1),
+    `CASE-PRICE-01`, `CASE-PRICE-02` (ported and re-keyed, ERRATA E-004) and six daily cases, two for
+    each of levels 1 to 3. Every one passed the blind solver and a content review. The level 1 and
+    2 openers keep CP3 and CP4; an opener with a CP3 pass only now shows its CP4 to finish.
+  - **Today** offers one daily case per Amsterdam day, the opener's optional day-1 sketch (one row
+    per what, which tables, which metric), and the mid-level question once half of the level's
+    concepts are practised.
+  - **Portfolio export** (`#/portfolio`): a solved case writes a markdown page and a CSV into a
+    folder chosen in Settings. The page holds the brief, the learner's plan, the learner's own
+    passing query, its result re-run now, the headline number and the learner's written insight,
+    labelled with its data source; never an answer key or the model answer. It never overwrites a
+    file (a second export the same day gets `-2`) and refuses a folder that is not set, not absolute
+    or inside the logs folder.
+  - **Progress screen** (`#/progress`, a fifth top-bar tab): each goal against its date and the
+    concepts that close its gap, the recruitment readiness board, skill maps, 8-week trends of
+    first-attempt accuracy and help, GA4 and Methodology readiness, and the job-ready criteria that
+    can be computed now (JR-01 to JR-05 and JR-07; ERRATA E-170 closes E-054). New goal criteria
+    `case_solved` and `real_data_analysis`; `G-SQL-LEVEL-3` now needs one solved and exported case.
+  - **Dataset explorer** (`#/explore`): every table of the visible schema with keys, notes and
+    samples, and a free editor. Nothing is logged or graded.
+  - **Screen mode** for drills: no autocomplete, a banner, an integer check and strict date and
+    time types, as an online test checks them. Attempts carry `screen_mode`. Normal mode grades
+    exactly as before (grader version `4b.1`).
+  - **Live reps:** one unseen item in screen mode, 10 minutes, passed when the item passes and
+    "explained aloud" is ticked. They count toward the `live_rep` goal criterion and never enter a
+    level's score history.
+  - **Portability:** after a pass, a query with `/` runs again with integer division on; a different
+    result adds a note, never a fail. The lint also notes GROUP BY ALL, FROM-first, a trailing
+    comma, `::` casts, ILIKE, `count()` with no argument, EXCLUDE and QUALIFY.
+  - **Mistake IDs and data:** `ERR-LOG-27` for the wrong set operator or EXCEPT the wrong way round
+    (5 SQL-SET-01 plants; ERRATA E-168). A `competitor_price_weekly` view (one row per product and
+    ISO week) in the course data and three edge schemas. The schema notes say `sales.country_code`
+    is the ship-to country.
+  - **Log format version 4:** a `portfolio_folder` setting, a `case_export` event and a `self_check`
+    record for plans, sketches, insights, rubrics and "explained aloud". Replay reads them and
+    rates nothing from them; version 1 to 3 logs replay unchanged. Case checkpoints rate with the
+    existing checkpoint rule, and the low-confidence rule now covers CP1, CP2, CP4 and CP5.
+  - `ExternalResult` is typed as a union on `kind` (no data change).
+- **Sprint 4a: SQL level 3, mistake cards and review** (2026-10-07):
+  - SQL level 3 can be studied: 8 concepts (dates, INNER and LEFT joins with anti-joins, CTEs,
+    grain and fan-out, multi-table and self-joins, FULL OUTER and CROSS joins, set operations),
+    each with a lesson, a practice pool, fix items for its traps, choice items and 5 drill items:
+    213 items in all, every one passed by the blind solver. The level 3 drill has its 40-item pool.
+  - The course data gains the order tables (`orders`, `order_lines`, `price_history`,
+    `promotion_products`) and `competitor_prices`. The schema panel and autocomplete show a table
+    from the level its items first use it, with its keys, its links to other tables (1:N) and
+    notes such as "this time is UTC". Three hidden edge datasets test joins, dates and set
+    operations.
+  - Three new mistake IDs: a UNION that removes rows UNION ALL keeps (ERR-LOG-24), a date
+    truncation slip (ERR-LOG-25), and a UTC day where an Amsterdam day was asked (ERR-LOG-26).
+  - **Mistake cards:** a planted mistake made on two different days becomes its own review card
+    (at most 2 per concept), scheduled like any card and served on Today. The mistake that
+    the grader cannot name ("values differ") never makes a card.
+  - **Mistakes and review** screen (from Today and the SQL map): each mistake card with the
+    query that made it, the corrected query once there is one, a filter by mistake, and
+    "Try again". Today's wrap-up shows one corrected query from the day.
+  - When a concept keeps failing without progress, Today suggests its worked example and then an
+    easier exercise.
+  - **Other ways to write this:** after a pass, one button shows a genuinely different correct
+    query for the item (levels 1 to 3 where one exists), and logs that it was opened. Inside a
+    timed run it waits for the review.
+  - Confusable pairs for level 3 (INNER versus LEFT, EXCEPT versus an anti-join, a join that
+    repeats rows, a step grouped again), so look-alikes sit side by side in mixed practice.
+  - The log format is version 3: attempts and help records can name the mistake card they
+    served, and a new record notes when "other ways" was opened. Version 2 logs replay
+    unchanged.
+- **Sprint 4a, carried items** (2026-10-06):
+  - A typed whole-number answer (a count) now accepts thousands separators: `1,000`, `1.000` and
+    `12,345,678` are read as whole numbers, while `1,00`, `1,0000` and `1.5,000` are still refused
+    with a plain message. A point that does not start groups of three digits is still a decimal
+    point, so `12.00` and `1.0000` are accepted as whole values. Other answer kinds are unchanged. The choice grader version is now
+    `choice.2`.
+  - The timed practice run's rule line no longer says where help opens, because the line below it
+    already does.
+  - The two Methodology questions that ask for an answer in thousands of euros now give an
+    example of the scale (12.5 for €12,500).
+  - `npm run report:window` prints, for each SQL concept, the first attempts in its last-4
+    mastery window by kind (write, fix, choice), how many of them qualify, and the concept's state.
+    It prints counts only (no exercise ID, no query text), reads a logs folder given on the
+    command line (default `logs/`) and writes nothing.
 - **Public release preparation** (2026-10-06): the code is licensed under the PolyForm
   Noncommercial License 1.0.0 (`LICENSE`), the content and documentation under CC BY-NC 4.0
   (`LICENSE-CONTENT.md`); `NOTICE.md` says which files fall under which and lists the parts that
@@ -218,6 +315,88 @@ before them are research and planning.
 
 ### Fixed
 
+- **Sprint 4c: the SQL learner-facing backlog** (2026-10-08; plan
+  `docs/superpowers/plans/2026-10-08-aydinlearns-sprint-4c.md`, record
+  `docs/planning/2026-10-08-sprint-4c-record.md`):
+  - **Better feedback for four mistake families.** New `ERR-LOG-28` (a set operator treats
+    missing values as equal) on EX-SQL-SET-01-E1-02 and -E1-22. New `ERR-LOG-29` (a CASE branch
+    catches rows meant for a later one) on EX-SQL-CASE-01-E2-01, -E2-03, -E2-04, -E2-05, -E2-07,
+    -E3-01, -E3-02, -E2-41 and -E2-42 (ERRATA E-171 and E-172). `ERR-LOG-06` now speaks of
+    timestamps, DATE ranges and period boundaries such as weeks (E-173), and `ERR-OUT-02` names a
+    whole number returned with decimals. EX-SQL-AGG-01-E3-02 and EX-SQL-AGG-03-E3-01 now plant
+    their common mistake with an ID whose feedback fits (`ERR-LOG-04` and `ERR-LOG-17`). Logged
+    attempts keep the IDs they were logged with; a new attempt on a changed plant starts its own
+    mistake card.
+  - **Clearer wording** on EX-OPENER-L2-01, EX-CASE-DAILY-L2-01 and -L2-02 (one source), four fix
+    items whose mistake hides on the visible data (a one-line note), five choice items ("Values",
+    the panel's word), CASE-VOLT-L3 CP4 (the example has the answer's sign), EX-CASE-PRICE-01
+    hint 2, CASE-PRICE-02 CP5, and CASE-DAILY-L3-01 CP3, which also credits the join concept.
+  - **Edge data now tests what the cases claim:** an ISO week 11 slice for CASE-PRICE-02 and a
+    2025 promotion with no order lines for CASE-VOLT-L3. The ERR-LOG-20 plant of CASE-PRICE-02 and
+    the "keeps 0" clause of CASE-VOLT-L3 now fail on edge data when wrong.
+  - **Screen mode:** the references of EX-SQL-DATE-01-E1-22 and EX-SQL-CTE-01-E2-21 returned a
+    timestamp where the prompt asks for a date, so a correct answer failed; both are fixed, and
+    four key alternatives on three items were corrected. Every drill item now passes in both modes.
+  - **Live reps:** when every exercise of the practised levels was seen in the last 30 days, a rep
+    takes a fresh exercise from the nearest other level; it is refused only when no level has one.
+    A live rep left unticked can be ticked, or unticked, in the drill history.
+  - **Export:** a file write failure gives a plain reason, not a raw code. The CSV starts with a
+    UTF-8 BOM, guards text cells that start with `=`, `+`, `-`, `@`, a tab or a carriage return
+    (never numbers), and writes a missing value as an empty field, so a one-column row stays a row.
+    A network (UNC) folder is refused in Settings and at export.
+  - **Integer division note:** it runs a control re-run first, so a query whose result is not
+    repeatable (LIMIT without ORDER BY, random) no longer gets a false note.
+  - **A query that hits the memory limit** while grading gets a plain message, not "values differ".
+  - **A due mistake card with no servable item** is skipped in "Try again" and in Today, and the
+    next due card is served.
+  - **Keyboard focus** moves to the new screen's heading after a route change, and to the
+    question heading when a drill question changes; never on first load, on a timer tick or away
+    from a grade result.
+- **Codex findings from PR #40 (sprint 4b, 2026-10-08), fixed before the merge.**
+  - JR-04 counts a ratio item as checked against integer division only when the re-run really
+    compared the two results, or the query has no `/` to change (F24). A pass now records the
+    re-run's outcome in its attempt record (`division_check`, inside log format 4); a pass whose
+    re-run was cut off, failed or timed out, or that has no outcome recorded, is left out until
+    a later pass is compared.
+  - When an export's log event cannot be written, the export removes the two files it just made
+    and says so, so a retry writes the usual names instead of a `-2` pair (F25).
+- **Codex findings from PR #39 (sprint 4b, 2026-10-07).**
+  - A due mistake card can no longer be reviewed twice when a second "Try again" or Today review
+    request lands in the few milliseconds while the first review's close is being written to the
+    log (F21). The second request now waits for that write, then gives free practice, or Today's
+    next step. Route tests with a held log write prove it; it has not been tried in two real
+    browser tabs. To confirm, answer a due card's "Try again" question in one tab, leave it, and
+    press "Try again" in a second tab at the same moment; the card should be reviewed once.
+  - `npm run check:content` reports a malformed opener file as a C29 failure instead of stopping
+    with a stack trace (F22).
+  - `npm run check:imports` also catches a bare `import '...'` statement, in the web presets
+    guard and the `core/` check (F23).
+- **Backlog cleanup (hygiene PR, 2026-10-07).** Every deferred finding in the sprint records was
+  triaged. What is still open is in `docs/planning/backlog.md`; each record ends with what was
+  fixed, ruled won't do or already fixed.
+  - A due mistake card can no longer be served, and reviewed, twice (F20, Codex, PR #38).
+    "Try again" in a second tab, or a repeated request, now gets the card's open question back
+    instead of a new one, and so does Today's review step. Route tests prove it; it has not yet
+    been tried in two real browser tabs. To confirm, open one due card's "Try again" in two tabs
+    and check the card is reviewed once.
+  - Buttons and links have names a screen reader can use: Today's Start buttons (and the links
+    to the lesson and the map steps), the drill start buttons, the confidence buttons, the GA4
+    map links and the Mistakes "Try again" button.
+  - The current drill question is announced as the current step.
+  - The reading page's title is its main heading.
+  - The drill help line shows once, not twice.
+  - Tools and tests: content check C29 now catches an opener item used twice and an opener whose
+    level differs from its item ID; the import check covers the web code; the held-out tool
+    refuses an empty logs folder and an unknown held-out ID with a plain message; the history
+    test helper refuses a folder outside the temp folder. Other small test and comment fixes
+    came with them.
+- **Codex review of PR #37** (2026-10-06), recorded in `docs/reviews/codex-findings.md`:
+  `tools/export-public.sh` (the public-copy export) now checks the target properly. It no longer
+  refuses a valid public clone when run from the monorepo's main checkout (F18), and it accepts
+  only the exact public repository address, in its https, `git@github.com:` and
+  `ssh://git@github.com/` forms, so a look-alike address is refused (F19). A new test runs the
+  script against throwaway repositories. Not yet tried on the real thing: at the next public
+  refresh, run the export from the main checkout.
 - **Codex review of PRs #33 to #35** (2026-10-06), recorded in `docs/reviews/codex-findings.md`:
   - F12 (PR #33): the start-up check of the schema notes also checks each note's `schema` field,
     so a damaged file opens setup mode instead of silently dropping an exercise's schema panel.
@@ -271,6 +450,14 @@ before them are research and planning.
 
 ### Changed
 
+- **`GRADER_VERSION` is `4c.1`** (the division control re-run). `CHOICE_GRADER_VERSION` stays
+  `choice.2`. The log format stays version 4: no new record, event or field.
+- **Sprint 4c content versions:** every item whose prompt, key or plants changed has its `version`
+  raised, and the 12 reworded items were solved again by the blind solver (7 write items and 5 SQL
+  choice items passed, and so did the two case checkpoints).
+  The generator brief lists `ERR-LOG-28` and `ERR-LOG-29` and names the check that catches a
+  range join over the memory limit.
+- **Test counts:** `npm test` is 1717 tests, the pipeline tests 73, the smoke test 53 rows.
 - **`GRADER_VERSION` is `1b.3`** after three grader changes: the partial score after a shape
   failure (1b.1), the integer-division check CHK-INT-TRUNC (1b.2) and the ERR-LOG-05
   integer-division diagnosis (1b.3). The new choice grader logs its own version, `choice.1`.

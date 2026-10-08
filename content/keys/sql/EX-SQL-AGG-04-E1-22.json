@@ -6,7 +6,10 @@
     "SELECT order_month, SUM(net_revenue_eur) AS revenue_eur, COALESCE(SUM(net_revenue_eur) FILTER (WHERE parent_category = 'Gaming'), 0) AS gaming_revenue_eur FROM sales WHERE order_date >= DATE '2025-01-01' AND order_date < DATE '2025-04-01' GROUP BY order_month",
     "SELECT order_month, SUM(net_revenue_eur) AS revenue_eur, COALESCE(SUM(CASE WHEN parent_category = 'Gaming' THEN net_revenue_eur END), 0) AS gaming_revenue_eur FROM sales WHERE order_date BETWEEN '2025-01-01' AND '2025-03-31' GROUP BY 1"
   ],
-  "other_way": null,
+  "other_way": {
+    "sql": "SELECT order_month, SUM(net_revenue_eur) AS revenue_eur, COALESCE(SUM(net_revenue_eur) FILTER (WHERE parent_category = 'Gaming'), 0) AS gaming_revenue_eur FROM sales WHERE order_date >= DATE '2025-01-01' AND order_date < DATE '2025-04-01' GROUP BY order_month",
+    "tradeoff": "Reads closer to plain English, but FILTER is not available in every SQL dialect."
+  },
   "planted_wrong": [
     {
       "id": "PW1",

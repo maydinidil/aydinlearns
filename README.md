@@ -12,7 +12,7 @@ saying "wrong".
 
 | Section | Content |
 |---|---|
-| SQL | Levels 1 and 2, 12 concepts from the first SELECT to aggregation, CASE and types: lessons with worked examples, 352 exercises (write the query, fix the query, predict the result, choose the query), timed drills, and an opener case per level |
+| SQL | Levels 1 to 3, 20 concepts from the first SELECT to aggregation, CASE, types, dates, joins, CTEs and set operations: lessons with worked examples, 565 exercises (write the query, fix the query, predict the result, choose the query), timed drills, an opener case for levels 1 and 2, mistake cards for the mistakes that keep coming back, and "other ways to write this" after a pass |
 | GA4 | 16 lessons on the foundations and 123 questions: 73 for practice and 20-question mini drills, 50 held out for 25-question half-mocks |
 | Methodology | 30 metrics (marketing, retail, pricing and SaaS), each with a reading, and 190 questions |
 
@@ -63,10 +63,10 @@ Today: 1,193 automated tests, 7,781 content checks and a 37-row browser smoke te
 
 ## Status
 
-Built: SQL levels 1 and 2 with the scheduler, Today, drills and level openers; GA4 lessons, mini
-drills and half-mocks; 30 Methodology metrics; the visual design. Next: SQL level 3 (joins, CTEs
-and dates) with mistake cards and a review screen, then cases, a portfolio export and a progress
-screen. See `docs/planning/roadmap.md`.
+Built: SQL levels 1 to 3 with the scheduler, Today, drills, level openers for levels 1 and 2,
+mistake cards and the Mistakes and review screen; GA4 lessons, mini drills and half-mocks; 30
+Methodology metrics; the visual design. Next (sprint 4b): the level 3 opener, cases and an inbox,
+a portfolio export and a progress screen. See `docs/planning/roadmap.md`.
 
 It runs on Windows 11; other systems are untested.
 
@@ -163,3 +163,4 @@ For generating content (see `docs/content/`):
 | `npm run record:choice-solver` | Grades the choice blind solver's answers and records the right ones in the answer keys. Run it after a blind solve |
 | `node tools/reserve-held-out.ts` | Reserves the held-out mock pool for GA4 and Methodology (`content/<section>/held-out.json`). Run it when the bank changes, then `npm run check:content`. `--extend --candidates <file> (--per-card <k> or --topic <T> --count <n> [--release-from <T1,T2>]) [--logs <dir>]` adds only the listed new items and releases only never-served held items, never moving a practised one. A candidate that is not in the bank or is already held refuses the run; an ineligible one is skipped and counted |
 | `npm run record:solver` | Grades the blind solver's answers and records them in the answer keys |
+| `npm run report:window` | Prints, per SQL concept, the first attempts in its mastery window by kind, how many qualify, and the concept's state. Counts only. Reads `logs/`, or the folder given after `--`; writes nothing |

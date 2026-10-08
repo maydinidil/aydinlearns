@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-JOIN-02-E2-41",
+  "item_version": 1,
+  "correct_oid": "o9e54f71",
+  "explanation": "The month test must sit in ON, so a store with no February order keeps one row with a missing order_id, which IS NULL then keeps. In WHERE the month test removes those rows, an inner join never makes them, and IS NOT NULL keeps the stores that did take orders.",
+  "solver": {
+    "prompt_hash": "b39937e0c8314382",
+    "grader_version": "choice.2",
+    "chosen": "o9e54f71",
+    "typed": null,
+    "at": "2026-10-07T09:58:58.589Z"
+  }
+}

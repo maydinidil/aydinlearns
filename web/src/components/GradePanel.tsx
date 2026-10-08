@@ -1,4 +1,5 @@
 // web/src/components/GradePanel.tsx
+import type { ReactNode } from 'react';
 import type { PublicGrade } from '../api.ts';
 import { checklist, diffTotals, gradeHeading, sampleCount } from '../lib/exercise.ts';
 import { ResultTable } from './ResultTable.tsx';
@@ -12,9 +13,10 @@ const inline = (s: string) => parseInline(s).map((x, i) => (x.kind === 'code' ? 
 
 /**
  * `onDispute` is null when "I was right" is not on offer (see canDispute): its buttons are left out.
+ * `otherWay` is the "Other ways to write this" block, shown after a pass only (Task D1); the panel's owner decides whether one is on offer.
  * `disputing` disables them while a dispute is being sent, so a double-click sends one (aydinlearns F3).
  */
-export function GradePanel({ grade, onDispute, disputing = false }: { grade: PublicGrade; onDispute: ((row: unknown[] | null) => void) | null; disputing?: boolean }) {
+export function GradePanel({ grade, onDispute, disputing = false, otherWay = null }: { grade: PublicGrade; onDispute: ((row: unknown[] | null) => void) | null; disputing?: boolean; otherWay?: ReactNode }) {
   const pass = grade.outcome === 'pass';
   const totals = grade.diff ? diffTotals(grade.datasets, grade.diff) : null;
   return (
@@ -22,6 +24,7 @@ export function GradePanel({ grade, onDispute, disputing = false }: { grade: Pub
       <h3 className={pass ? 'ok' : 'bad'}>{gradeHeading(grade)}</h3>
       {grade.rejectMessage && <p>{grade.rejectMessage}</p>}
       {pass && grade.notes.map((n) => <p key={n}><strong>Why this works:</strong> {n}</p>)}
+      {pass && otherWay}
       {grade.diagnosis && !pass && (
         <div className="diagnosis">
           <p>{grade.diagnosis.feedback.assumed}</p>

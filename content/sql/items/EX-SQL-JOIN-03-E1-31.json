@@ -1,0 +1,106 @@
+{
+  "id": "EX-SQL-JOIN-03-E1-31",
+  "version": 1,
+  "kind": "fix",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "fan_out",
+    "price_history",
+    "current_price",
+    "order_lines",
+    "fix"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-JOIN-03"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-JOIN-03",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-JOIN-03"
+  ],
+  "template_id": "T-JOIN-03-fix-versions",
+  "template_params": {
+    "history": "price_history",
+    "fact": "order_lines",
+    "threshold": 100
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_join",
+  "prompt": "The query in the editor has one mistake. Fix it so that it answers this question: how many units were sold, in total, of the products whose current list price is above 100 EUR? The current list price is the price version with a missing valid_to, and each order line's quantity counts once. Return one column, units. The result is a single row. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "units",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "units",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, check the grain of the join: how many price rows does each order line meet?",
+    "A product has one row per price version, so each line meets all of them; only the current version should stay."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 32,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 33,
+      "to": 107,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 108,
+      "to": 163,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": "SELECT SUM(ol.quantity) AS units\nFROM order_lines ol\nJOIN price_history ph ON ph.product_id = ol.product_id\nWHERE ph.list_price_eur > 100",
+  "starter_error_id": "ERR-LOG-01",
+  "time_target_ms": 120000,
+  "why_this_works": "Keeping only the version with a missing valid_to leaves one price row per product, so each line is added once and only today's price is tested."
+}

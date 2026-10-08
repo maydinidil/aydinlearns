@@ -1,0 +1,119 @@
+{
+  "id": "EX-SQL-DATE-01-E1-02",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "date",
+    "date_part",
+    "month",
+    "year",
+    "orders"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-DATE-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pretest",
+  "target_concept_id": "SQL-DATE-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-DATE-01"
+  ],
+  "template_id": "T-DATE-01-month-number-one-year",
+  "template_params": {
+    "table": "orders",
+    "year": 2025,
+    "clock": "UTC"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_date",
+  "prompt": "How many orders did Voltmarkt take in each month of 2025? Use the orders table and count every order. order_ts holds the time of the order in UTC, so take the year and the month in UTC, and keep only the orders placed in 2025. Return two columns, in this order: month_no, the month as a number from 1 to 12, and orders, the number of orders. Return one row for each month. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "month_no",
+        "type_class": "numeric"
+      },
+      {
+        "name": "orders",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per month of 2025"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "month_no",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "orders",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "month_no"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the row filter that keeps only the orders of 2025.",
+    "month(order_ts) gives March 2024 and March 2025 the same number 3, so fix the year first: keep the rows whose year is 2025, then group by the month number."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 61,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 62,
+      "to": 73,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 74,
+      "to": 101,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 102,
+      "to": 126,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "A month number repeats every year, so the filter on the year keeps 2025 apart from 2024 before the months are counted."
+}

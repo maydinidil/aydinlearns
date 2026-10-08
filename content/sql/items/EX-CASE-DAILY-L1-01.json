@@ -1,0 +1,153 @@
+{
+  "id": "EX-CASE-DAILY-L1-01",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-01",
+    "case",
+    "daily",
+    "stores",
+    "is_null",
+    "order_by"
+  ],
+  "level": 1,
+  "source_ids": [
+    "01:SQL-NULL-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-07",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "case",
+  "target_concept_id": "SQL-NULL-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-SORT-01",
+    "SQL-NULL-01"
+  ],
+  "template_id": "T-CASE-DAILY-L1-open-stores",
+  "template_params": {
+    "table": "stores",
+    "country_code": "NL",
+    "left_out_type": "web"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_null",
+  "prompt": "Yara, who runs retail operations, is renewing the maintenance contract for the Dutch stores and asks which stores the contract must cover: every physical store in the Netherlands that is still open. From the stores table, keep the stores whose country_code is 'NL', whose store_type is not 'web' (so the webshop is left out) and whose close_date is missing, because a store that has closed has a close_date. Return five columns, in this order: store_id, store_code, city, store_type and opened_on, with one row per store. Sort by store_type from A to Z; when stores have the same store_type, sort them by store_id from low to high.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "store_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "store_code",
+        "type_class": "text"
+      },
+      {
+        "name": "city",
+        "type_class": "text"
+      },
+      {
+        "name": "store_type",
+        "type_class": "text"
+      },
+      {
+        "name": "opened_on",
+        "type_class": "temporal"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": true,
+    "sort_keys": [
+      {
+        "column": "store_type",
+        "desc": false
+      },
+      {
+        "column": "store_id",
+        "desc": false
+      }
+    ],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "store_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "store_code",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "city",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "store_type",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "opened_on",
+        "type_class": "temporal",
+        "precision": "exact"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "store_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the row filter: the country, the store type, and whether the store is still open.",
+    "A store that is still open has no close_date at all, and an equals sign never matches a missing value. Then sort on two columns, the store type first."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 56,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 57,
+      "to": 68,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 69,
+      "to": 141,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 142,
+      "to": 171,
+      "subgoal": "sort_limit"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "IS NULL finds the stores with no close_date, the ones still open, and store_id settles the order inside each store type."
+}

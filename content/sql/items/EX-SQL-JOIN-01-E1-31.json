@@ -1,0 +1,127 @@
+{
+  "id": "EX-SQL-JOIN-01-E1-31",
+  "version": 1,
+  "kind": "fix",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "join",
+    "fix",
+    "ambiguous_column",
+    "orders",
+    "stores",
+    "utc_day"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-JOIN-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-JOIN-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-JOIN-01"
+  ],
+  "template_id": "T-JOIN-01-fix-ambiguous-column",
+  "template_params": {
+    "from": "orders",
+    "join": "stores",
+    "day": "2025-03-04"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_join",
+  "prompt": "The query in the editor has one mistake. Fix it so that it lists the orders placed on 4 March 2025 with the store that took each one. order_ts holds UTC time: take the day in UTC. Return three columns, in this order: order_id, store_id and store_code. Return one row for each order. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "order_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "store_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "store_code",
+        "type_class": "text"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "order_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "store_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "store_code",
+        "type_class": "text",
+        "precision": "exact"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "order_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the columns to return so that each one says which table it comes from.",
+    "store_id is a column of both orders and stores, so the engine cannot tell which one you mean. Put a table alias in front of it."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 43,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 44,
+      "to": 57,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 58,
+      "to": 98,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 99,
+      "to": 199,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": "SELECT order_id, store_id, store_code\nFROM orders o\nJOIN stores s ON s.store_id = o.store_id\nWHERE o.order_ts >= TIMESTAMP '2025-03-04 00:00:00' AND o.order_ts < TIMESTAMP '2025-03-05 00:00:00'",
+  "starter_error_id": "ERR-SYN-03",
+  "time_target_ms": 120000,
+  "why_this_works": "With two tables joined, a column both tables hold needs its alias, so the engine knows which one to read."
+}

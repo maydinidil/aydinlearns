@@ -7,7 +7,10 @@
     "SELECT category_id, category_name, parent_category\nFROM categories\nWHERE NOT (parent_category = 'Audio' OR parent_category = 'Accessories') OR parent_category IS NULL",
     "SELECT category_id, category_name, parent_category\nFROM categories\nWHERE parent_category IS NULL OR parent_category NOT IN ('Accessories', 'Audio')"
   ],
-  "other_way": null,
+  "other_way": {
+    "sql": "SELECT category_id, category_name, parent_category\nFROM categories\nWHERE parent_category IS NULL OR (parent_category <> 'Audio' AND parent_category <> 'Accessories')",
+    "tradeoff": "Separate <> tests avoid NOT IN and give the same rows, but need one more test for every value in the list."
+  },
   "planted_wrong": [
     {
       "id": "M1",

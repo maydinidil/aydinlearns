@@ -6,7 +6,8 @@ import type { ChoiceOption, TypedSpec } from './choice-types.ts';
 /** S3-13: the SQL choice kinds, graded by the choice grader and rated by the multiple-choice map (S3-14, S3-15). */
 export type SqlChoiceKind = 'predict_rows' | 'predict_result' | 'choose_query' | 'which_table' | 'is_unique';
 export type ItemKind = 'write' | 'fix' | SqlChoiceKind;
-export type ItemUse = 'pretest' | 'lesson' | 'retest' | 'pool' | 'drill' | 'opener';
+/** `case` (S4B-02): an inbox or daily case's CP3 item, with the ID EX-CASE-<case tail>. */
+export type ItemUse = 'pretest' | 'lesson' | 'retest' | 'pool' | 'drill' | 'opener' | 'case';
 export type Difficulty = 'E1' | 'E2' | 'E3';
 export type TypeClass = 'numeric' | 'temporal' | 'boolean' | 'text';
 export type PrecisionClass = 'money' | 'ratio' | 'count' | 'exact';
@@ -88,7 +89,7 @@ export const isSqlChoiceKind = (kind: unknown): kind is SqlChoiceKind => SQL_CHO
 /** S3-17: the kinds a predict pretest item has. */
 export const PREDICT_KINDS: readonly SqlChoiceKind[] = ['predict_rows', 'predict_result'];
 const KINDS: ItemKind[] = ['write', 'fix', ...SQL_CHOICE_KINDS];
-const USES: ItemUse[] = ['pretest', 'lesson', 'retest', 'pool', 'drill', 'opener'];
+const USES: ItemUse[] = ['pretest', 'lesson', 'retest', 'pool', 'drill', 'opener', 'case'];
 const TYPE_CLASSES: TypeClass[] = ['numeric', 'temporal', 'boolean', 'text'];
 const PRECISIONS: PrecisionClass[] = ['money', 'ratio', 'count', 'exact'];
 /** The error catalogue's ID shape, as planted wrong queries use it (schemas/keys.ts). */
@@ -100,6 +101,14 @@ function checkOpenerId(o: Record<string, unknown>, e: string[]): void {
   const isForm = /^EX-OPENER-L\d-\d{2}$/.test(o.id);
   if (o.use === 'opener' && !isForm) e.push('an opener item ID must look like EX-OPENER-L1-01');
   else if (o.use !== 'opener' && o.id.startsWith('EX-OPENER-')) e.push('only an opener item may use an EX-OPENER-L<n>-NN ID');
+}
+
+// S4B-02: a case item (an inbox or daily case's CP3) carries the EX-CASE-<case tail> ID, such as EX-CASE-PRICE-01, and no other item does.
+function checkCaseItemId(o: Record<string, unknown>, e: string[]): void {
+  if (typeof o.id !== 'string') return;   // the envelope reports a missing ID
+  const isForm = /^EX-CASE-[A-Z0-9]+(-[A-Z0-9]+)*$/.test(o.id);
+  if (o.use === 'case' && !isForm) e.push('a case item ID must look like EX-CASE-PRICE-01');
+  else if (o.use !== 'case' && o.id.startsWith('EX-CASE-')) e.push('only a case item may use an EX-CASE- ID');
 }
 
 // S2-48: a fix item names the one error its starter makes. Other kinds need neither field; one that is there is checked.
@@ -257,6 +266,7 @@ export function validateSqlItem(x: unknown): string[] {
   if (typeof o.prompt !== 'string' || (o.prompt as string).length < 10) e.push('prompt is missing');
   if (!choice && (!Array.isArray(o.hints) || (o.hints as unknown[]).length !== 2)) e.push('hints must hold exactly 2 entries (hint 3 lives in the key)');
   checkOpenerId(o, e);
+  checkCaseItemId(o, e);
   checkStarter(o, e);
   checkFading(o, e);
   checkChoiceFields(o, e);

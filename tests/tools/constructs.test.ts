@@ -41,6 +41,22 @@ test('later constructs do not fire on earlier look-alikes', () => {
   ];
   for (const [sql, construct] of absent) assert.ok(!detectConstructs(sql).includes(construct), `${construct}: ${sql}`);
 });
+test('RIGHT JOIN is its own construct, apart from LEFT JOIN (sprint 4a Task B2; build record, Task 7 minor)', () => {
+  const right = detectConstructs('SELECT c.category_name, p.product_name FROM products p RIGHT JOIN categories c ON c.category_id = p.category_id');
+  assert.ok(right.includes('right_join'));
+  assert.ok(!right.includes('left_join'));
+  const rightOuter = detectConstructs('SELECT c.category_name FROM products p RIGHT OUTER JOIN categories c ON c.category_id = p.category_id');
+  assert.ok(rightOuter.includes('right_join') && !rightOuter.includes('left_join'));
+  const left = detectConstructs('SELECT c.category_name, p.product_name FROM categories c LEFT JOIN products p ON p.category_id = c.category_id');
+  assert.ok(left.includes('left_join'));
+  assert.ok(!left.includes('right_join'));
+  // RIGHT(text, n) is a string function, not a join.
+  assert.ok(!detectConstructs('SELECT RIGHT(sku, 2) AS suffix FROM products').includes('right_join'));
+  const entry = map.constructs.find((c: { construct: string }) => c.construct === 'right_join');
+  assert.equal(entry?.concept_id, 'SQL-JOIN-02');
+  const leftEntry = map.constructs.find((c: { construct: string }) => c.construct === 'left_join');
+  assert.ok(leftEntry.examples.every((ex: string) => !/\bright\s+(outer\s+)?join\b/i.test(ex)), 'left_join keeps no RIGHT JOIN example');
+});
 test('words that start with "over" are not windows (fix 5)', () => {
   for (const sql of ['SELECT city AS overall_share FROM stores', "SELECT overlay(city placing 'x' from 1) AS c FROM stores"]) {
     assert.ok(!detectConstructs(sql).includes('window'), sql);

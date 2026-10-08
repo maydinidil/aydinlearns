@@ -1,0 +1,115 @@
+{
+  "id": "EX-SQL-JOIN-01-E2-05",
+  "version": 2,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "join",
+    "distinct",
+    "orders",
+    "order_lines",
+    "products",
+    "utc_day"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-JOIN-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-JOIN-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-SORT-01",
+    "SQL-JOIN-01"
+  ],
+  "template_id": "T-JOIN-01-orders-with-category",
+  "template_params": {
+    "from": "orders",
+    "join": "order_lines, products",
+    "brand": "Basswell",
+    "day": "2025-03-06"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_join",
+  "prompt": "Which orders placed on 6 March 2025 held at least one product of the brand Basswell? order_ts holds UTC time: take the day in UTC. Return one column, order_id, with one row for each such order. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "order_id",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "order_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "order_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, follow each order to its lines and the lines to their products.",
+    "An order can hold several Basswell lines, but the question lists each order once."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 26,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 27,
+      "to": 40,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 41,
+      "to": 86,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 87,
+      "to": 133,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 134,
+      "to": 261,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "The joins give one row per line, so DISTINCT is what turns them back into one row per order."
+}

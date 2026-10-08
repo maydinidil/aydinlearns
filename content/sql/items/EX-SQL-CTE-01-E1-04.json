@@ -1,0 +1,134 @@
+{
+  "id": "EX-SQL-CTE-01-E1-04",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "cte",
+    "max",
+    "sum",
+    "sales",
+    "grain"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-CTE-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "lesson",
+  "target_concept_id": "SQL-CTE-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-JOIN-01",
+    "SQL-CTE-01"
+  ],
+  "template_id": "T-CTE-01-max-of-step-per-group",
+  "template_params": {
+    "table": "sales",
+    "step_grain": "order",
+    "group_by": "store_code",
+    "metric": "max_order_eur"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_join",
+  "prompt": "What is the value of the largest single order at each store? Use the sales table, where net_revenue_eur is a line's value and an order's value is the sum of its lines' net_revenue_eur. Return two columns, in this order: store_code and max_order_eur. Return one row for each store that has orders; the webshop, WEB-01, counts as a store. Do not round. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "store_code",
+        "type_class": "text"
+      },
+      {
+        "name": "max_order_eur",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per store"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "store_code",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "max_order_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "store_code"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the first step: one row per order with its value, keeping the store_code.",
+    "Inside the brackets after WITH, add up net_revenue_eur by order; the final query then takes the largest value for each store."
+  ],
+  "subgoals": [
+    {
+      "from": 82,
+      "to": 144,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 147,
+      "to": 157,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 160,
+      "to": 189,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 192,
+      "to": 242,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 243,
+      "to": 260,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 261,
+      "to": 280,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": {
+    "stage1": 57,
+    "stage2": 57
+  },
+  "faded_shape": "-- Step 1: one row per order. Step 2: one row per store.\n",
+  "faded_suffix": "\nSELECT store_code, MAX(order_eur) AS max_order_eur\nFROM order_totals\nGROUP BY store_code",
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "The step adds up each order's lines first, so MAX compares whole orders, not single lines."
+}

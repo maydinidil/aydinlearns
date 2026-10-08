@@ -1,0 +1,146 @@
+{
+  "id": "EX-SQL-JOIN-05-E1-21",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "cross-join",
+    "grid",
+    "orders",
+    "channel",
+    "country"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-JOIN-05"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-JOIN-05",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-SORT-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-JOIN-01",
+    "SQL-JOIN-05"
+  ],
+  "template_id": "T-JOIN-05-grid-channel-country",
+  "template_params": {
+    "month": "2025-03"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_join",
+  "prompt": "Take every channel that appears in orders and pair it with every ship_to_country that appears in orders. For each pair, how many orders were placed in March 2025? order_ts holds UTC time: an order counts when its UTC date is from 1 to 31 March 2025. Return three columns, in this order: channel, ship_to_country and n_orders, with 0 when none. Return one row for each channel and country. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "channel",
+        "type_class": "text"
+      },
+      {
+        "name": "ship_to_country",
+        "type_class": "text"
+      },
+      {
+        "name": "n_orders",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "channel",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "ship_to_country",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "n_orders",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "channel",
+      "ship_to_country"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, pair every channel with every country before the March counts are joined.",
+    "List the channels and the countries as two steps, pair them all, then attach the counts with a join that keeps the pairs that had no order."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 55,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 56,
+      "to": 115,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 116,
+      "to": 311,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 312,
+      "to": 386,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 387,
+      "to": 403,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 404,
+      "to": 427,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 428,
+      "to": 514,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "The CROSS JOIN of the two lists gives every channel and country pair, and the LEFT JOIN with COALESCE shows 0 for a pair with no March order."
+}

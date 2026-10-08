@@ -1,0 +1,39 @@
+{
+  "item_id": "EX-SQL-JOIN-05-E2-22",
+  "item_version": 1,
+  "reference_sql": "WITH web AS (SELECT CAST(order_ts AS DATE) AS d, COUNT(*) AS n_web_orders FROM orders WHERE channel = 'web' AND order_ts >= TIMESTAMP '2025-03-03' AND order_ts < TIMESTAMP '2025-03-10' GROUP BY CAST(order_ts AS DATE)),\nchk AS (SELECT CAST(observed_ts AS DATE) AS d, COUNT(*) AS n_checks FROM competitor_prices WHERE observed_ts >= TIMESTAMP '2025-03-03' AND observed_ts < TIMESTAMP '2025-03-10' GROUP BY CAST(observed_ts AS DATE))\nSELECT COALESCE(w.d, k.d) AS day, COALESCE(w.n_web_orders, 0) AS n_web_orders, COALESCE(k.n_checks, 0) AS n_checks\nFROM web w\nFULL OUTER JOIN chk k ON k.d = w.d",
+  "alternatives": [
+    "WITH web AS (SELECT CAST(order_ts AS DATE) AS d, COUNT(*) AS n_web_orders FROM orders WHERE channel = 'web' AND order_ts >= TIMESTAMP '2025-03-03' AND order_ts < TIMESTAMP '2025-03-10' GROUP BY CAST(order_ts AS DATE)), chk AS (SELECT CAST(observed_ts AS DATE) AS d, COUNT(*) AS n_checks FROM competitor_prices WHERE observed_ts >= TIMESTAMP '2025-03-03' AND observed_ts < TIMESTAMP '2025-03-10' GROUP BY CAST(observed_ts AS DATE)) SELECT COALESCE(k.d, w.d) AS day, COALESCE(w.n_web_orders, 0) AS n_web_orders, COALESCE(k.n_checks, 0) AS n_checks FROM chk k FULL JOIN web w ON w.d = k.d",
+    "WITH web AS (SELECT CAST(order_ts AS DATE) AS d, COUNT(*) AS n_web_orders FROM orders WHERE channel = 'web' AND order_ts >= TIMESTAMP '2025-03-03' AND order_ts < TIMESTAMP '2025-03-10' GROUP BY CAST(order_ts AS DATE)), chk AS (SELECT CAST(observed_ts AS DATE) AS d, COUNT(*) AS n_checks FROM competitor_prices WHERE observed_ts >= TIMESTAMP '2025-03-03' AND observed_ts < TIMESTAMP '2025-03-10' GROUP BY CAST(observed_ts AS DATE)) SELECT c.cal_date AS day, COALESCE(w.n_web_orders, 0) AS n_web_orders, COALESCE(k.n_checks, 0) AS n_checks FROM calendar c LEFT JOIN web w ON w.d = c.cal_date LEFT JOIN chk k ON k.d = c.cal_date WHERE c.cal_date BETWEEN DATE '2025-03-03' AND DATE '2025-03-09' AND (w.d IS NOT NULL OR k.d IS NOT NULL)"
+  ],
+  "other_way": {
+    "sql": "WITH web AS (SELECT CAST(order_ts AS DATE) AS d, COUNT(*) AS n_web_orders FROM orders WHERE channel = 'web' AND order_ts >= TIMESTAMP '2025-03-03' AND order_ts < TIMESTAMP '2025-03-10' GROUP BY CAST(order_ts AS DATE)), chk AS (SELECT CAST(observed_ts AS DATE) AS d, COUNT(*) AS n_checks FROM competitor_prices WHERE observed_ts >= TIMESTAMP '2025-03-03' AND observed_ts < TIMESTAMP '2025-03-10' GROUP BY CAST(observed_ts AS DATE)) SELECT c.cal_date AS day, COALESCE(w.n_web_orders, 0) AS n_web_orders, COALESCE(k.n_checks, 0) AS n_checks FROM calendar c LEFT JOIN web w ON w.d = c.cal_date LEFT JOIN chk k ON k.d = c.cal_date WHERE c.cal_date BETWEEN DATE '2025-03-03' AND DATE '2025-03-09' AND (w.d IS NOT NULL OR k.d IS NOT NULL)",
+    "tradeoff": "Two LEFT JOINs onto calendar work while every day is in calendar, but FULL OUTER JOIN keeps a day the calendar lacks."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-11",
+      "sql": "WITH web AS (SELECT CAST(order_ts AS DATE) AS d, COUNT(*) AS n_web_orders FROM orders WHERE channel = 'web' AND order_ts >= TIMESTAMP '2025-03-03' AND order_ts < TIMESTAMP '2025-03-10' GROUP BY CAST(order_ts AS DATE)), chk AS (SELECT CAST(observed_ts AS DATE) AS d, COUNT(*) AS n_checks FROM competitor_prices WHERE observed_ts >= TIMESTAMP '2025-03-03' AND observed_ts < TIMESTAMP '2025-03-10' GROUP BY CAST(observed_ts AS DATE)) SELECT COALESCE(w.d, k.d) AS day, COALESCE(w.n_web_orders, 0) AS n_web_orders, COALESCE(k.n_checks, 0) AS n_checks FROM web w LEFT JOIN chk k ON k.d = w.d"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-11",
+      "sql": "WITH web AS (SELECT CAST(order_ts AS DATE) AS d, COUNT(*) AS n_web_orders FROM orders WHERE channel = 'web' AND order_ts >= TIMESTAMP '2025-03-03' AND order_ts < TIMESTAMP '2025-03-10' GROUP BY CAST(order_ts AS DATE)), chk AS (SELECT CAST(observed_ts AS DATE) AS d, COUNT(*) AS n_checks FROM competitor_prices WHERE observed_ts >= TIMESTAMP '2025-03-03' AND observed_ts < TIMESTAMP '2025-03-10' GROUP BY CAST(observed_ts AS DATE)) SELECT COALESCE(w.d, k.d) AS day, COALESCE(w.n_web_orders, 0) AS n_web_orders, COALESCE(k.n_checks, 0) AS n_checks FROM web w JOIN chk k ON k.d = w.d"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-17",
+      "sql": "WITH web AS (SELECT CAST(order_ts AS DATE) AS d, COUNT(*) AS n_web_orders FROM orders WHERE channel = 'web' AND order_ts >= TIMESTAMP '2025-03-03' AND order_ts < TIMESTAMP '2025-03-10' GROUP BY CAST(order_ts AS DATE)), chk AS (SELECT CAST(observed_ts AS DATE) AS d, COUNT(*) AS n_checks FROM competitor_prices WHERE observed_ts >= TIMESTAMP '2025-03-03' AND observed_ts < TIMESTAMP '2025-03-10' GROUP BY CAST(observed_ts AS DATE)) SELECT COALESCE(w.d, k.d) AS day, w.n_web_orders, k.n_checks FROM web w FULL OUTER JOIN chk k ON k.d = w.d"
+    }
+  ],
+  "hint3_partial": "WITH web AS (SELECT CAST(order_ts AS DATE) AS d, COUNT(*) AS n_web_orders FROM orders WHERE channel = 'web' AND order_ts >= TIMESTAMP '2025-03-03' AND order_ts < TIMESTAMP '2025-03-10' GROUP BY CAST(order_ts AS DATE)),\nchk AS (SELECT CAST(observed_ts AS DATE) AS d, COUNT(*) AS n_checks FROM competitor_prices WHERE observed_ts >= TIMESTAMP '2025-03-03' AND observed_ts < TIMESTAMP '2025-03-10' GROUP BY CAST(observed_ts AS DATE))\nSELECT COALESCE(w.d, k.d) AS day, COALESCE(w.n_web_orders, 0) AS n_web_orders, COALESCE(k.n_checks, 0) AS n_checks\nFROM web w\n___ chk k ON ___",
+  "solver": {
+    "prompt_hash": "8b21ada5022caf35",
+    "schema_version": "a85b005a7923",
+    "dataset_version": "e1545e4258743033",
+    "grader_version": "1b.3",
+    "query": "WITH w AS (\n  SELECT CAST(order_ts AS DATE) AS day, COUNT(*) AS n_web_orders\n  FROM orders\n  WHERE channel = 'web'\n    AND order_ts >= TIMESTAMP '2025-03-03 00:00:00' AND order_ts < TIMESTAMP '2025-03-10 00:00:00'\n  GROUP BY 1\n), k AS (\n  SELECT CAST(observed_ts AS DATE) AS day, COUNT(*) AS n_checks\n  FROM competitor_prices\n  WHERE observed_ts >= TIMESTAMP '2025-03-03 00:00:00' AND observed_ts < TIMESTAMP '2025-03-10 00:00:00'\n  GROUP BY 1\n)\nSELECT COALESCE(w.day, k.day) AS day, COALESCE(w.n_web_orders, 0) AS n_web_orders, COALESCE(k.n_checks, 0) AS n_checks\nFROM w\nFULL OUTER JOIN k ON k.day = w.day",
+    "at": "2026-10-07T10:41:42.135Z"
+  }
+}

@@ -1,0 +1,124 @@
+{
+  "id": "EX-SQL-DATE-01-E2-03",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "date",
+    "time-zone",
+    "amsterdam",
+    "day",
+    "clock-change",
+    "orders"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-DATE-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-DATE-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-DATE-01"
+  ],
+  "template_id": "T-DATE-01-count-per-day-amsterdam",
+  "template_params": {
+    "table": "orders",
+    "from": "2025-10-20",
+    "to": "2025-10-26",
+    "clock": "Europe/Amsterdam",
+    "channel": "web"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_date",
+  "prompt": "How many web orders did Voltmarkt take on each Amsterdam calendar day from 2025-10-20 to 2025-10-26? Use the orders table and keep the orders with channel 'web'. order_ts holds the time of the order in UTC: turn it into Amsterdam time first, then take the date, and keep the orders whose Amsterdam date falls in that range, both days included. Return two columns, in this order: order_day, the Amsterdam date, and orders, the number of web orders. Return one row for each day. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "order_day",
+        "type_class": "temporal"
+      },
+      {
+        "name": "orders",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "order_day",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "orders",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "order_day"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the calculated column order_day: the Amsterdam date of each web order.",
+    "Amsterdam was 2 hours ahead of UTC until the clock change on 26 October and 1 hour after it. Turn order_ts into Amsterdam time before you take the date, in SELECT and in WHERE alike."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 116,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 117,
+      "to": 128,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 129,
+      "to": 274,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 275,
+      "to": 285,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "Converting to Amsterdam time before taking the date cuts the days at midnight in Amsterdam, so late-evening UTC orders count on the next day, before and after the clock change."
+}

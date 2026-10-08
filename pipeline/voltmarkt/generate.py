@@ -4,7 +4,8 @@ v0 (slice 1a) built the tables level 1 reads: calendar, stores, categories, prod
 Slice 1b adds the order data level 2 reads through the `sales` view: price_history,
 promotion_products, orders and order_lines. Each comes from the stream TABLE_ORDER already reserved
 for it, so no v0 table's draws change (GEN-02), and nothing v0 built is changed afterwards. Later
-tables are appended to TABLE_ORDER only.
+tables are appended to TABLE_ORDER only. Sprint 4a adds competitor_prices (level 3) from its reserved
+stream, built after the order data, so no earlier table changes (S4-02).
 """
 from __future__ import annotations
 
@@ -126,6 +127,7 @@ MONTH_NAMES = ("January", "February", "March", "April", "May", "June", "July", "
 # comment cites 05 or ERRATA for it. None of them is sourced data.
 LEVEL1_TABLES = ["calendar", "stores", "categories", "products", "promotions"]
 ORDER_TABLES = ["price_history", "promotion_products", "orders", "order_lines"]
+LEVEL3_TABLES = ["competitor_prices"]                   # sprint 4a (S4-02)
 NO_NETWORK = {"autoinstall_known_extensions": False, "autoload_known_extensions": False}   # ruling R17
 
 # Demand: each parent's share of order lines at launch prices, split over its children (equally, or by
@@ -255,6 +257,26 @@ POST_PROMO_DIP = {"promo": "P-2024-20", "days": 14, "factor": 0.80}
 HALO = {"tv_children": ("TVs up to 43 inch", "TVs 50-55 inch", "TVs 65 inch and up"), "child": "Soundbars", "attach": 0.03}
 # FIND-01-09: PlayBox 5 is out of stock chain-wide, so it sells nothing (05: 2024-12-06 to 2024-12-27).
 STOCKOUT = {"product_id": 540, "start": "2024-12-06", "end": "2024-12-27"}
+
+# ---- Sprint 4a: competitor prices (05 CO-01; S4-02) ----------------------------------------------------
+# 05: Voltmarkt "competes on price with two national rivals"; competitor_prices holds product, competitor,
+# observed time and price (about 150,000 rows), and its business logic includes competitor undercutting. The
+# table draws only from the stream TABLE_ORDER reserved for it and is built after the order data, from list
+# prices already drawn, so no other table changes (GEN-02). The rivals' names are invented. Every number
+# below is a calibration estimate, not sourced data.
+COMPETITORS = ("Bliksem", "Stroomhuis")                    # the cheaper rival first
+COMPETITOR_TRACKED = {"Bliksem": 860, "Stroomhuis": 710}   # products each rival checks, drawn by popularity
+COMPETITOR_TRACK_POWER = 0.5                               # weight demand ** power: a rival checks beyond the best sellers
+COMPETITOR_LEVEL = {"Bliksem": 0.97, "Stroomhuis": 1.03}   # a rival's usual price against Voltmarkt's list price
+COMPETITOR_PRODUCT_SIGMA = 0.03                            # each checked product's own offset (log scale)
+COMPETITOR_WEEK_SIGMA = 0.02                               # week-to-week noise (log scale)
+UNDERCUT_START = 0.02                                      # the chance that a run of undercut weeks starts in a week
+UNDERCUT_WEEKS = (1, 5)                                    # integers(low, high): runs of 1 to 4 weeks
+UNDERCUT_DEPTH = (0.86, 0.93)                              # a run's price against the rival's usual price
+COMPETITOR_BAND = (0.80, 1.20)                             # a rival's price stays inside this band of the list price
+OBSERVED_HOURS = (5, 9)                                    # integers(low, high): weekly checks run 05:00 to 08:59 UTC
+RECHECK_SHARE = 0.03                                       # a second check of the product later the same day
+RECHECK_GAP_HOURS = (6, 13)                                # integers(low, high): 6 to 12 hours after the first
 
 
 def d(s: str | None) -> dt.date | None:
@@ -859,6 +881,63 @@ def build_orders(r: dict, pf: dict, demand: np.ndarray, stores: pa.Table, promot
     return orders, order_lines
 
 
+def build_competitor_prices(rng: np.random.Generator, pf: dict, demand: np.ndarray, price_history: pa.Table) -> pa.Table:
+    """05 CO-01's competitor_prices: each rival checks its products once a week, on a fixed weekday, from launch on.
+
+    A price follows Voltmarkt's list price on the check date, times the rival's level, the product's offset and
+    weekly noise, with occasional runs of undercut weeks; it is held inside COMPETITOR_BAND and ends in 9 like a
+    shelf price. Every draw is made in fixed shapes before any data-dependent step, so the stream stays aligned.
+    """
+    n = len(pf["child"])
+    price = daily_prices(price_history, n)
+    nd = price.shape[0]
+    weeks = (nd + 6) // 7                                  # the window starts on a Monday (2024-01-01)
+    epoch = (WINDOW_START - dt.date(1970, 1, 1)).days
+    weights = demand ** COMPETITOR_TRACK_POWER
+    rows = []                                              # (product_id, competitor, seconds since 1970, cents)
+    for name in COMPETITORS:
+        k = COMPETITOR_TRACKED[name]
+        tracked = np.sort(rng.choice(n, size=k, replace=False, p=weights / weights.sum()))
+        weekday = rng.integers(0, 7, k)
+        offset = rng.normal(0.0, COMPETITOR_PRODUCT_SIGMA, k)
+        noise = rng.normal(0.0, COMPETITOR_WEEK_SIGMA, (k, weeks))
+        run_start = rng.random((k, weeks)) < UNDERCUT_START
+        run_weeks = rng.integers(*UNDERCUT_WEEKS, (k, weeks))
+        run_depth = rng.uniform(*UNDERCUT_DEPTH, (k, weeks))
+        hour = rng.integers(*OBSERVED_HOURS, (k, weeks))
+        minute = rng.integers(0, 60, (k, weeks))
+        second = rng.integers(0, 60, (k, weeks))
+        recheck = rng.random((k, weeks)) < RECHECK_SHARE
+        recheck_gap = rng.integers(*RECHECK_GAP_HOURS, (k, weeks))
+        recheck_noise = rng.normal(0.0, COMPETITOR_WEEK_SIGMA, (k, weeks))
+        for j, i in enumerate(tracked):
+            left, depth = 0, 1.0
+            for w in range(weeks):
+                if left == 0 and run_start[j, w]:
+                    left, depth = int(run_weeks[j, w]), float(run_depth[j, w])
+                mult = depth if left > 0 else 1.0
+                left = max(left - 1, 0)
+                day = 7 * w + int(weekday[j])
+                if day >= nd or day < pf["launch"][i] or price[day, i] <= 0:
+                    continue
+                at = (epoch + day) * 86400 + int(hour[j, w]) * 3600 + int(minute[j, w]) * 60 + int(second[j, w])
+                checks = [(at, noise[j, w])]
+                if recheck[j, w]:
+                    checks.append((at + int(recheck_gap[j, w]) * 3600, recheck_noise[j, w]))
+                for seconds, e in checks:
+                    factor = COMPETITOR_LEVEL[name] * np.exp(offset[j] + e) * mult
+                    factor = min(max(factor, COMPETITOR_BAND[0]), COMPETITOR_BAND[1])
+                    rows.append((int(i) + 1, name, seconds, retail_cents(price[day, i] * factor)))
+    rows.sort(key=lambda r: (r[0], r[1], r[2]))
+    return pa.table({
+        "product_id": pa.array([r[0] for r in rows], pa.int32()),
+        "competitor": pa.array([r[1] for r in rows], pa.string()),
+        "observed_ts": pa.array((np.array([r[2] for r in rows], dtype=np.int64) * 1_000_000).astype("datetime64[us]"),
+                                pa.timestamp("us")),
+        "price_eur": decimal_array(np.array([r[3] for r in rows], dtype=np.int64)),
+    })
+
+
 def sinterklaas_days() -> list[dt.date]:
     """E-079: 20 Nov to 5 Dec of each year, without Black Week (the Monday before Black Friday to Cyber Monday)."""
     out = []
@@ -890,6 +969,8 @@ def generate(seed: int = SEED) -> tuple[dict, dict]:
     clean["promotion_products"] = promo_products
     clean["orders"], clean["order_lines"] = build_orders(r, pf, demand, clean["stores"], clean["promotions"],
                                                          promo_products, clean["price_history"])
+    # Sprint 4a (S4-02): competitor prices, from their reserved stream, after every other table; nothing above changes.
+    clean["competitor_prices"] = build_competitor_prices(r["competitor_prices"], pf, demand, clean["price_history"])
     raw = dict(clean)
     raw["products"] = inject_product_quirks(r["quirks"], clean["products"])
     truth = {
@@ -912,6 +993,10 @@ def generate(seed: int = SEED) -> tuple[dict, dict]:
             "thin_margin_children": list(THIN_MARGIN_CHILDREN),
             "stockout": STOCKOUT,
             "elasticity": {"Laptops": ELASTICITY["Laptops"], "Cables": ELASTICITY["Cables"], "promo": PROMO_ELASTICITY},
+            # Sprint 4a. FIND-01-15 (units fall when a rival undercuts) is not planted: the orders were drawn before
+            # these prices and may not change (S4-02), so the measured gap is whatever the data holds.
+            "competitor_prices": {"competitors": list(COMPETITORS), "levels": COMPETITOR_LEVEL,
+                                  "undercut_depth": list(UNDERCUT_DEPTH), "band": list(COMPETITOR_BAND)},
         },
     }
     return {"clean": clean, "raw": raw}, truth
@@ -1097,13 +1182,52 @@ def validate_orders(tables: dict) -> dict:
     return {k: v for k, v in m.items() if k != "integrity"}
 
 
+def validate_competitor_prices(tables: dict) -> dict:
+    """Sprint 4a (S4-02): 05 CO-01's row count, keys and value bands for competitor_prices, measured in SQL."""
+    c = tables["clean"]
+    con = duckdb.connect(config=NO_NETWORK)
+    con.execute("SET TimeZone = 'UTC'")
+    try:
+        for name in ("competitor_prices", "price_history", "products"):
+            con.register(name, c[name])
+        rows, keys, missing, orphans, before_launch = con.execute("""SELECT count(*), count(DISTINCT (product_id, competitor, observed_ts)),
+                4 * count(*) - count(product_id) - count(competitor) - count(observed_ts) - count(price_eur),
+                count(*) FILTER (WHERE product_id NOT IN (SELECT product_id FROM products)),
+                count(*) FILTER (WHERE CAST(observed_ts AS DATE) < (SELECT launch_date FROM products p WHERE p.product_id = competitor_prices.product_id))
+            FROM competitor_prices""").fetchone()
+        names = [r[0] for r in con.execute("SELECT DISTINCT competitor FROM competitor_prices ORDER BY 1").fetchall()]
+        first, last = con.execute("SELECT min(CAST(observed_ts AS DATE)), max(CAST(observed_ts AS DATE)) FROM competitor_prices").fetchone()
+        matched, low, high, undercut = con.execute("""SELECT count(*), min(r), max(r), avg(CASE WHEN r < 0.95 THEN 1 ELSE 0 END)
+            FROM (SELECT c.price_eur / ph.list_price_eur AS r FROM competitor_prices c JOIN price_history ph
+                  ON ph.product_id = c.product_id
+                 AND CAST(c.observed_ts AS DATE) BETWEEN ph.valid_from AND coalesce(ph.valid_to, DATE '9999-12-31'))""").fetchone()
+        medians = dict(con.execute("""SELECT c.competitor, median(c.price_eur / ph.list_price_eur) FROM competitor_prices c
+            JOIN price_history ph ON ph.product_id = c.product_id
+             AND CAST(c.observed_ts AS DATE) BETWEEN ph.valid_from AND coalesce(ph.valid_to, DATE '9999-12-31') GROUP BY 1""").fetchall())
+    finally:
+        con.close()
+    _check(140_000 <= rows <= 160_000, f"competitor_prices: {rows} rows, 05 CO-01 gives about 150,000")
+    _check(names == sorted(COMPETITORS), f"competitor_prices: rivals {names}, expected {sorted(COMPETITORS)}")
+    _check(keys == rows, f"competitor_prices: {rows - keys} repeated (product_id, competitor, observed_ts)")
+    _check(missing == 0 and orphans == 0, f"competitor_prices: {missing} missing values, {orphans} unknown products")
+    _check(before_launch == 0, f"competitor_prices: {before_launch} prices before the product's launch")
+    _check(first >= WINDOW_START and last <= WINDOW_END, f"competitor_prices: checks run {first} to {last}")
+    _check(matched == rows, f"competitor_prices: {rows - matched} checks meet no single list price version")
+    _check(0.75 <= float(low) and float(high) <= 1.25, f"competitor_prices: price against list price runs {low} to {high}")
+    _check(0.10 <= float(undercut) <= 0.35, f"competitor_prices: {float(undercut):.3f} of checks undercut by more than 5%")
+    return {"rows": rows, "undercut_share": round(float(undercut), 4),
+            "median_ratio": {k: round(float(v), 4) for k, v in sorted(medians.items())}}
+
+
 def validate(tables: dict, truth: dict) -> dict:
     """GEN-06 on clean data (design §10): the v0 facts, then the order data. Returns the measured findings.
 
     Raises ValueError on the first failed check. Explicit raises, not assert, so `python -O` still checks.
     """
     validate_v0(tables, truth)
-    return validate_orders(tables)
+    measured = validate_orders(tables)
+    measured["competitor_prices"] = validate_competitor_prices(tables)
+    return measured
 
 
 def validate_v0(tables: dict, truth: dict) -> None:

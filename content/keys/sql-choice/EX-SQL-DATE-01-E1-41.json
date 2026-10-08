@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-DATE-01-E1-41",
+  "item_version": 1,
+  "value": 3,
+  "explanation": "date_trunc('month', order_ts) turns every order time into the first day of its month, and GROUP BY makes one row for each different value. The WHERE keeps January, February and March 2025, so the query returns 3 rows, one per month, not one per order or per day.",
+  "solver": {
+    "prompt_hash": "e51c470bce0ebcbf",
+    "grader_version": "choice.2",
+    "chosen": null,
+    "typed": "3",
+    "at": "2026-10-07T09:58:58.574Z"
+  }
+}

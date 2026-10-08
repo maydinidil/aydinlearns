@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-CTE-01-E3-02",
+  "item_version": 1,
+  "reference_sql": "WITH order_totals AS (\n  SELECT order_id, SUM(quantity * unit_price_eur - line_discount_eur) AS order_eur\n  FROM order_lines\n  GROUP BY order_id\n),\ncustomer_averages AS (\n  SELECT o.customer_id, AVG(t.order_eur) AS avg_order_eur\n  FROM orders o\n  JOIN order_totals t ON t.order_id = o.order_id\n  WHERE o.customer_id IS NOT NULL\n  GROUP BY o.customer_id\n)\nSELECT COUNT(*) AS n_customers\nFROM customer_averages\nWHERE avg_order_eur > 500",
+  "alternatives": [
+    "WITH order_totals AS (SELECT order_id, SUM(quantity * unit_price_eur - line_discount_eur) AS order_eur FROM order_lines GROUP BY order_id), big_spenders AS (SELECT o.customer_id FROM orders o JOIN order_totals t ON t.order_id = o.order_id WHERE o.customer_id IS NOT NULL GROUP BY o.customer_id HAVING AVG(t.order_eur) > 500) SELECT COUNT(*) AS n_customers FROM big_spenders",
+    "WITH customer_averages AS (SELECT o.customer_id, SUM(ol.quantity * ol.unit_price_eur - ol.line_discount_eur) / COUNT(DISTINCT o.order_id) AS avg_order_eur FROM orders o JOIN order_lines ol ON ol.order_id = o.order_id WHERE o.customer_id IS NOT NULL GROUP BY o.customer_id) SELECT COUNT(*) AS n_customers FROM customer_averages WHERE avg_order_eur > 500"
+  ],
+  "other_way": {
+    "sql": "WITH customer_averages AS (SELECT o.customer_id, SUM(ol.quantity * ol.unit_price_eur - ol.line_discount_eur) / COUNT(DISTINCT o.order_id) AS avg_order_eur FROM orders o JOIN order_lines ol ON ol.order_id = o.order_id WHERE o.customer_id IS NOT NULL GROUP BY o.customer_id) SELECT COUNT(*) AS n_customers FROM customer_averages WHERE avg_order_eur > 500",
+    "tradeoff": "Dividing each customer's total by different orders saves a step, but the order step is easier to check."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-07",
+      "sql": "WITH customer_averages AS (SELECT o.customer_id, AVG(ol.quantity * ol.unit_price_eur - ol.line_discount_eur) AS avg_order_eur FROM orders o JOIN order_lines ol ON ol.order_id = o.order_id WHERE o.customer_id IS NOT NULL GROUP BY o.customer_id) SELECT COUNT(*) AS n_customers FROM customer_averages WHERE avg_order_eur > 500"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-14",
+      "sql": "WITH order_totals AS (SELECT order_id, SUM(quantity * unit_price_eur - line_discount_eur) AS order_eur FROM order_lines GROUP BY order_id), customer_averages AS (SELECT o.customer_id, MAX(t.order_eur) AS avg_order_eur FROM orders o JOIN order_totals t ON t.order_id = o.order_id WHERE o.customer_id IS NOT NULL GROUP BY o.customer_id) SELECT COUNT(*) AS n_customers FROM customer_averages WHERE avg_order_eur > 500"
+    }
+  ],
+  "hint3_partial": "WITH order_totals AS (\n  SELECT order_id, SUM(quantity * unit_price_eur - line_discount_eur) AS order_eur\n  FROM order_lines\n  GROUP BY order_id\n),\ncustomer_averages AS (\n  SELECT o.customer_id, AVG(___) AS avg_order_eur\n  FROM orders o\n  JOIN order_totals t ON ___\n  WHERE ___\n  GROUP BY o.customer_id\n)\nSELECT COUNT(*) AS n_customers\nFROM customer_averages\nWHERE ___",
+  "solver": {
+    "prompt_hash": "13e37f6cd661b90a",
+    "schema_version": "2b3ae373ff81",
+    "dataset_version": "e1545e4258743033",
+    "grader_version": "1b.3",
+    "query": "WITH per_order AS (\n  SELECT o.order_id, o.customer_id, SUM(l.quantity * l.unit_price_eur - l.line_discount_eur) AS order_eur\n  FROM orders o\n  JOIN order_lines l ON l.order_id = o.order_id\n  WHERE o.customer_id IS NOT NULL\n  GROUP BY o.order_id, o.customer_id\n), per_customer AS (\n  SELECT customer_id, AVG(order_eur) AS avg_eur\n  FROM per_order\n  GROUP BY customer_id\n)\nSELECT COUNT(*) AS n_customers\nFROM per_customer\nWHERE avg_eur > 500",
+    "at": "2026-10-07T10:41:35.937Z"
+  }
+}

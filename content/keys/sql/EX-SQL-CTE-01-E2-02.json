@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-CTE-01-E2-02",
+  "item_version": 1,
+  "reference_sql": "-- Step 1: one row per store and day. Step 2: one row per store.\nWITH daily_revenue AS (\n  SELECT store_code, order_date, SUM(net_revenue_eur) AS revenue_eur\n  FROM sales\n  WHERE order_date BETWEEN DATE '2025-03-01' AND DATE '2025-03-31'\n  GROUP BY store_code, order_date\n)\nSELECT store_code, AVG(revenue_eur) AS avg_daily_revenue_eur\nFROM daily_revenue\nGROUP BY store_code",
+  "alternatives": [
+    "SELECT store_code, SUM(net_revenue_eur) / COUNT(DISTINCT order_date) AS avg_daily_revenue_eur FROM sales WHERE order_date >= DATE '2025-03-01' AND order_date < DATE '2025-04-01' GROUP BY store_code",
+    "WITH daily_revenue AS (SELECT store_code, order_date, SUM(net_revenue_eur) AS revenue_eur FROM sales GROUP BY store_code, order_date) SELECT store_code, AVG(revenue_eur) AS avg_daily_revenue_eur FROM daily_revenue WHERE order_date BETWEEN '2025-03-01' AND '2025-03-31' GROUP BY store_code"
+  ],
+  "other_way": {
+    "sql": "SELECT store_code, SUM(net_revenue_eur) / COUNT(DISTINCT order_date) AS avg_daily_revenue_eur FROM sales WHERE order_date >= DATE '2025-03-01' AND order_date < DATE '2025-04-01' GROUP BY store_code",
+    "tradeoff": "Dividing the month's total by the number of different days works in one step, but the daily step shows each day you average."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-07",
+      "sql": "SELECT store_code, AVG(net_revenue_eur) AS avg_daily_revenue_eur FROM sales WHERE order_date BETWEEN DATE '2025-03-01' AND DATE '2025-03-31' GROUP BY store_code"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-23",
+      "sql": "WITH daily_revenue AS (SELECT store_code, order_date, SUM(net_revenue_eur) AS revenue_eur FROM sales WHERE order_date >= DATE '2025-03-01' AND order_date < DATE '2025-03-31' GROUP BY store_code, order_date) SELECT store_code, AVG(revenue_eur) AS avg_daily_revenue_eur FROM daily_revenue GROUP BY store_code"
+    }
+  ],
+  "hint3_partial": "-- Step 1: one row per store and day. Step 2: one row per store.\nWITH daily_revenue AS (\n  SELECT store_code, order_date, SUM(net_revenue_eur) AS revenue_eur\n  FROM sales\n  WHERE order_date BETWEEN ___\n  GROUP BY ___\n)\nSELECT store_code, AVG(revenue_eur) AS avg_daily_revenue_eur\nFROM daily_revenue\nGROUP BY store_code",
+  "solver": {
+    "prompt_hash": "f8bf854fc337d8c8",
+    "schema_version": "cebf75df442f",
+    "dataset_version": "e1545e4258743033",
+    "grader_version": "1b.3",
+    "query": "WITH per_day AS (\n  SELECT store_code, order_date, SUM(net_revenue_eur) AS day_eur\n  FROM sales\n  WHERE order_date >= DATE '2025-03-01' AND order_date <= DATE '2025-03-31'\n  GROUP BY store_code, order_date\n)\nSELECT store_code, AVG(day_eur) AS avg_daily_revenue_eur\nFROM per_day\nGROUP BY store_code",
+    "at": "2026-10-07T10:41:34.774Z"
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "item_id": "EX-SQL-JOIN-05-E2-06",
+  "item_version": 1,
+  "reference_sql": "WITH day_orders AS (SELECT store_id, CAST(order_ts AS DATE) AS order_date, COUNT(*) AS n_orders FROM orders WHERE order_ts >= TIMESTAMP '2025-03-03' AND order_ts < TIMESTAMP '2025-03-10' GROUP BY store_id, CAST(order_ts AS DATE))\nSELECT s.store_code, COUNT(*) FILTER (WHERE d.n_orders IS NULL) AS days_without_orders\nFROM stores s\nCROSS JOIN calendar c\nLEFT JOIN day_orders d ON d.store_id = s.store_id AND d.order_date = c.cal_date\nWHERE s.country_code = 'BE' AND c.cal_date BETWEEN DATE '2025-03-03' AND DATE '2025-03-09'\nGROUP BY s.store_code",
+  "alternatives": [
+    "WITH day_orders AS (SELECT store_id, CAST(order_ts AS DATE) AS order_date, COUNT(*) AS n_orders FROM orders WHERE order_ts >= TIMESTAMP '2025-03-03' AND order_ts < TIMESTAMP '2025-03-10' GROUP BY store_id, CAST(order_ts AS DATE)) SELECT s.store_code, SUM(CASE WHEN d.n_orders IS NULL THEN 1 ELSE 0 END) AS days_without_orders FROM stores s CROSS JOIN calendar c LEFT JOIN day_orders d ON d.store_id = s.store_id AND d.order_date = c.cal_date WHERE s.country_code = 'BE' AND c.cal_date BETWEEN DATE '2025-03-03' AND DATE '2025-03-09' GROUP BY s.store_code",
+    "SELECT s.store_code, 7 - COUNT(DISTINCT CAST(o.order_ts AS DATE)) AS days_without_orders FROM stores s LEFT JOIN orders o ON o.store_id = s.store_id AND o.order_ts >= TIMESTAMP '2025-03-03' AND o.order_ts < TIMESTAMP '2025-03-10' WHERE s.country_code = 'BE' GROUP BY s.store_code"
+  ],
+  "other_way": {
+    "sql": "SELECT s.store_code, 7 - COUNT(DISTINCT CAST(o.order_ts AS DATE)) AS days_without_orders FROM stores s LEFT JOIN orders o ON o.store_id = s.store_id AND o.order_ts >= TIMESTAMP '2025-03-03' AND o.order_ts < TIMESTAMP '2025-03-10' WHERE s.country_code = 'BE' GROUP BY s.store_code",
+    "tradeoff": "Taking the days with orders away from 7 skips the grid, but the 7 has to change by hand whenever the range does."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-11",
+      "sql": "WITH day_orders AS (SELECT store_id, CAST(order_ts AS DATE) AS order_date, COUNT(*) AS n_orders FROM orders WHERE order_ts >= TIMESTAMP '2025-03-03' AND order_ts < TIMESTAMP '2025-03-10' GROUP BY store_id, CAST(order_ts AS DATE)) SELECT s.store_code, COUNT(*) FILTER (WHERE d.n_orders IS NULL) AS days_without_orders FROM stores s CROSS JOIN calendar c JOIN day_orders d ON d.store_id = s.store_id AND d.order_date = c.cal_date WHERE s.country_code = 'BE' AND c.cal_date BETWEEN DATE '2025-03-03' AND DATE '2025-03-09' GROUP BY s.store_code"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-04",
+      "sql": "WITH day_orders AS (SELECT store_id, CAST(order_ts AS DATE) AS order_date, COUNT(*) AS n_orders FROM orders WHERE order_ts >= TIMESTAMP '2025-03-03' AND order_ts < TIMESTAMP '2025-03-10' GROUP BY store_id, CAST(order_ts AS DATE)) SELECT s.store_code, COUNT(*) AS days_without_orders FROM stores s CROSS JOIN calendar c LEFT JOIN day_orders d ON d.store_id = s.store_id AND d.order_date = c.cal_date WHERE s.country_code = 'BE' AND c.cal_date BETWEEN DATE '2025-03-03' AND DATE '2025-03-09' GROUP BY s.store_code"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-23",
+      "sql": "WITH day_orders AS (SELECT store_id, CAST(order_ts AS DATE) AS order_date, COUNT(*) AS n_orders FROM orders WHERE order_ts >= TIMESTAMP '2025-03-03' AND order_ts < TIMESTAMP '2025-03-10' GROUP BY store_id, CAST(order_ts AS DATE)) SELECT s.store_code, COUNT(*) FILTER (WHERE d.n_orders IS NULL) AS days_without_orders FROM stores s CROSS JOIN calendar c LEFT JOIN day_orders d ON d.store_id = s.store_id AND d.order_date = c.cal_date WHERE s.country_code = 'BE' AND c.cal_date > DATE '2025-03-03' AND c.cal_date < DATE '2025-03-09' GROUP BY s.store_code"
+    }
+  ],
+  "hint3_partial": "WITH day_orders AS (SELECT store_id, CAST(order_ts AS DATE) AS order_date, COUNT(*) AS n_orders FROM orders WHERE order_ts >= TIMESTAMP '2025-03-03' AND order_ts < TIMESTAMP '2025-03-10' GROUP BY store_id, CAST(order_ts AS DATE))\nSELECT s.store_code, COUNT(*) FILTER (WHERE ___) AS days_without_orders\nFROM stores s\n___ calendar c\nLEFT JOIN day_orders d ON d.store_id = s.store_id AND d.order_date = c.cal_date\nWHERE s.country_code = 'BE' AND c.cal_date BETWEEN DATE '2025-03-03' AND DATE '2025-03-09'\nGROUP BY s.store_code",
+  "solver": {
+    "prompt_hash": "485272cbdf9f86d7",
+    "schema_version": "4164178cf568",
+    "dataset_version": "e1545e4258743033",
+    "grader_version": "1b.3",
+    "query": "WITH grid AS (\n  SELECT s.store_id, s.store_code, c.cal_date, COUNT(o.order_id) AS n_orders\n  FROM stores s\n  CROSS JOIN calendar c\n  LEFT JOIN orders o ON o.store_id = s.store_id AND CAST(o.order_ts AS DATE) = c.cal_date\n  WHERE s.country_code = 'BE'\n    AND c.cal_date >= DATE '2025-03-03' AND c.cal_date <= DATE '2025-03-09'\n  GROUP BY s.store_id, s.store_code, c.cal_date\n)\nSELECT store_code, COUNT(CASE WHEN n_orders = 0 THEN 1 END) AS days_without_orders\nFROM grid\nGROUP BY store_id, store_code",
+    "at": "2026-10-07T10:41:42.091Z"
+  }
+}

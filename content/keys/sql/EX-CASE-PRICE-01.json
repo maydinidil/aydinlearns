@@ -1,0 +1,49 @@
+{
+  "item_id": "EX-CASE-PRICE-01",
+  "item_version": 2,
+  "reference_sql": "SELECT p.category_id,\n       s.category_name,\n       SUM(s.units) AS units,\n       SUM(s.net_revenue_eur) AS net_revenue_eur,\n       SUM(s.net_revenue_eur) / SUM(s.units) AS asp_eur\nFROM sales AS s\nJOIN orders AS o ON o.order_id = s.order_id\nJOIN products AS p ON p.product_id = s.product_id\nWHERE CAST(timezone('Europe/Amsterdam', timezone('UTC', o.order_ts)) AS DATE) BETWEEN DATE '2025-03-01' AND DATE '2025-03-31'\nGROUP BY p.category_id, s.category_name\nORDER BY p.category_id",
+  "alternatives": [
+    "SELECT p.category_id,\n       c.category_name,\n       SUM(ol.quantity) AS units,\n       SUM(ol.quantity * ol.unit_price_eur - ol.line_discount_eur) AS net_revenue_eur,\n       SUM(ol.quantity * ol.unit_price_eur - ol.line_discount_eur) / SUM(ol.quantity) AS asp_eur\nFROM order_lines AS ol\nJOIN orders AS o ON o.order_id = ol.order_id\nJOIN products AS p ON p.product_id = ol.product_id\nJOIN categories AS c ON c.category_id = p.category_id\nWHERE date_trunc('month', timezone('Europe/Amsterdam', timezone('UTC', o.order_ts))) = DATE '2025-03-01'\nGROUP BY p.category_id, c.category_name\nORDER BY p.category_id",
+    "SELECT p.category_id,\n       s.category_name,\n       SUM(s.units) AS units,\n       SUM(s.net_revenue_eur) AS net_revenue_eur,\n       SUM(s.net_revenue_eur) / SUM(s.units) AS asp_eur\nFROM sales AS s\nJOIN orders AS o ON o.order_id = s.order_id\nJOIN products AS p ON p.product_id = s.product_id\nWHERE o.order_ts >= TIMESTAMP '2025-02-28 23:00:00'\n  AND o.order_ts < TIMESTAMP '2025-03-31 22:00:00'\nGROUP BY p.category_id, s.category_name\nORDER BY p.category_id"
+  ],
+  "other_way": {
+    "sql": "SELECT p.category_id,\n       s.category_name,\n       SUM(s.units) AS units,\n       SUM(s.net_revenue_eur) AS net_revenue_eur,\n       SUM(s.net_revenue_eur) / SUM(s.units) AS asp_eur\nFROM sales AS s\nJOIN orders AS o ON o.order_id = s.order_id\nJOIN products AS p ON p.product_id = s.product_id\nWHERE o.order_ts >= TIMESTAMP '2025-02-28 23:00:00'\n  AND o.order_ts < TIMESTAMP '2025-03-31 22:00:00'\nGROUP BY p.category_id, s.category_name\nORDER BY p.category_id",
+    "tradeoff": "Comparing order_ts with the month's start and end in UTC skips the conversion, but you must work out the clock change yourself."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-26",
+      "sql": "SELECT p.category_id,\n       s.category_name,\n       SUM(s.units) AS units,\n       SUM(s.net_revenue_eur) AS net_revenue_eur,\n       SUM(s.net_revenue_eur) / SUM(s.units) AS asp_eur\nFROM sales AS s\nJOIN products AS p ON p.product_id = s.product_id\nWHERE s.order_date BETWEEN DATE '2025-03-01' AND DATE '2025-03-31'\nGROUP BY p.category_id, s.category_name\nORDER BY p.category_id"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-20",
+      "sql": "SELECT p.category_id,\n       s.category_name,\n       SUM(s.units) AS units,\n       SUM(s.net_revenue_eur) AS net_revenue_eur,\n       AVG(s.net_revenue_eur / s.units) AS asp_eur\nFROM sales AS s\nJOIN orders AS o ON o.order_id = s.order_id\nJOIN products AS p ON p.product_id = s.product_id\nWHERE CAST(timezone('Europe/Amsterdam', timezone('UTC', o.order_ts)) AS DATE) BETWEEN DATE '2025-03-01' AND DATE '2025-03-31'\nGROUP BY p.category_id, s.category_name\nORDER BY p.category_id"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-14",
+      "sql": "SELECT p.category_id,\n       s.category_name,\n       COUNT(*) AS units,\n       SUM(s.net_revenue_eur) AS net_revenue_eur,\n       SUM(s.net_revenue_eur) / COUNT(*) AS asp_eur\nFROM sales AS s\nJOIN orders AS o ON o.order_id = s.order_id\nJOIN products AS p ON p.product_id = s.product_id\nWHERE CAST(timezone('Europe/Amsterdam', timezone('UTC', o.order_ts)) AS DATE) BETWEEN DATE '2025-03-01' AND DATE '2025-03-31'\nGROUP BY p.category_id, s.category_name\nORDER BY p.category_id"
+    },
+    {
+      "id": "PW4",
+      "error_id": "ERR-LOG-25",
+      "sql": "SELECT p.category_id,\n       s.category_name,\n       SUM(s.units) AS units,\n       SUM(s.net_revenue_eur) AS net_revenue_eur,\n       SUM(s.net_revenue_eur) / SUM(s.units) AS asp_eur\nFROM sales AS s\nJOIN orders AS o ON o.order_id = s.order_id\nJOIN products AS p ON p.product_id = s.product_id\nWHERE month(timezone('Europe/Amsterdam', timezone('UTC', o.order_ts))) = 3\nGROUP BY p.category_id, s.category_name\nORDER BY p.category_id"
+    },
+    {
+      "id": "PW5",
+      "error_id": "ERR-LOG-18",
+      "sql": "SELECT p.category_id,\n       s.category_name,\n       SUM(s.units) AS units,\n       SUM(s.net_revenue_eur) AS net_revenue_eur,\n       SUM(s.net_revenue_eur) / SUM(s.units) AS asp_eur\nFROM sales AS s\nJOIN orders AS o ON o.order_id = s.order_id\nJOIN products AS p ON p.product_id = s.product_id\nWHERE CAST(timezone('Europe/Amsterdam', timezone('UTC', o.order_ts)) AS DATE) BETWEEN DATE '2025-03-01' AND DATE '2025-03-31'\nGROUP BY p.category_id, s.category_name\nORDER BY asp_eur DESC"
+    }
+  ],
+  "hint3_partial": "SELECT p.category_id,\n       s.category_name,\n       SUM(s.units) AS units,\n       SUM(s.net_revenue_eur) AS net_revenue_eur,\n       ___ AS asp_eur\nFROM sales AS s\nJOIN orders AS o ON ___\nJOIN products AS p ON ___\nWHERE CAST(timezone('Europe/Amsterdam', timezone('UTC', o.order_ts)) AS DATE) BETWEEN ___\nGROUP BY ___\nORDER BY ___",
+  "solver": {
+    "prompt_hash": "d2a67b39f9a9f969",
+    "schema_version": "7843c8ec0bf6",
+    "dataset_version": "7f30f5a797e6a9ce",
+    "grader_version": "4b.1",
+    "query": "SELECT c.category_id, c.category_name,\n       SUM(ol.quantity) AS units,\n       SUM(ol.quantity * ol.unit_price_eur - ol.line_discount_eur) AS net_revenue_eur,\n       SUM(ol.quantity * ol.unit_price_eur - ol.line_discount_eur) / SUM(ol.quantity) AS asp_eur\nFROM orders o\nJOIN order_lines ol ON ol.order_id = o.order_id\nJOIN products pr ON pr.product_id = ol.product_id\nJOIN categories c ON c.category_id = pr.category_id\nWHERE CAST(timezone('Europe/Amsterdam', timezone('UTC', o.order_ts)) AS DATE) BETWEEN DATE '2025-03-01' AND DATE '2025-03-31'\nGROUP BY c.category_id, c.category_name\nHAVING SUM(ol.quantity) >= 1\nORDER BY c.category_id",
+    "at": "2026-10-07T22:25:32.390Z"
+  }
+}

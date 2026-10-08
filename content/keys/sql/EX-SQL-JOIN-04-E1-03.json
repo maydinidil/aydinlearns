@@ -1,0 +1,39 @@
+{
+  "item_id": "EX-SQL-JOIN-04-E1-03",
+  "item_version": 1,
+  "reference_sql": "SELECT s.city, SUM(ol.quantity) AS units\nFROM order_lines ol\nJOIN orders o ON o.order_id = ol.order_id\nJOIN stores s ON s.store_id = o.store_id\nWHERE o.order_ts >= TIMESTAMP '2025-03-03' AND o.order_ts < TIMESTAMP '2025-03-10'\nGROUP BY s.city",
+  "alternatives": [
+    "SELECT s.city, SUM(ol.quantity) AS units FROM stores s JOIN orders o ON o.store_id = s.store_id JOIN order_lines ol ON ol.order_id = o.order_id WHERE CAST(o.order_ts AS DATE) BETWEEN DATE '2025-03-03' AND DATE '2025-03-09' GROUP BY s.city",
+    "WITH week_orders AS (SELECT order_id, store_id FROM orders WHERE order_ts >= TIMESTAMP '2025-03-03' AND order_ts < TIMESTAMP '2025-03-10') SELECT s.city, SUM(ol.quantity) AS units FROM week_orders w JOIN order_lines ol ON ol.order_id = w.order_id JOIN stores s ON s.store_id = w.store_id GROUP BY s.city"
+  ],
+  "other_way": {
+    "sql": "WITH week_orders AS (SELECT order_id, store_id FROM orders WHERE order_ts >= TIMESTAMP '2025-03-03' AND order_ts < TIMESTAMP '2025-03-10') SELECT s.city, SUM(ol.quantity) AS units FROM week_orders w JOIN order_lines ol ON ol.order_id = w.order_id JOIN stores s ON s.store_id = w.store_id GROUP BY s.city",
+    "tradeoff": "Picking the week's orders in a CTE first keeps each join small, but it adds a step to read."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-12",
+      "sql": "SELECT s.city, SUM(ol.quantity) AS units FROM order_lines ol JOIN orders o ON o.order_id = ol.order_id JOIN stores s ON s.store_id = o.order_id WHERE o.order_ts >= TIMESTAMP '2025-03-03' AND o.order_ts < TIMESTAMP '2025-03-10' GROUP BY s.city"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-06",
+      "sql": "SELECT s.city, SUM(ol.quantity) AS units FROM order_lines ol JOIN orders o ON o.order_id = ol.order_id JOIN stores s ON s.store_id = o.store_id WHERE o.order_ts BETWEEN '2025-03-03' AND '2025-03-09' GROUP BY s.city"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-14",
+      "sql": "SELECT s.city, COUNT(*) AS units FROM order_lines ol JOIN orders o ON o.order_id = ol.order_id JOIN stores s ON s.store_id = o.store_id WHERE o.order_ts >= TIMESTAMP '2025-03-03' AND o.order_ts < TIMESTAMP '2025-03-10' GROUP BY s.city"
+    }
+  ],
+  "hint3_partial": "SELECT s.city, SUM(ol.quantity) AS units\nFROM order_lines ol\nJOIN orders o ON o.order_id = ol.order_id\nJOIN stores s ON s.store_id = ___\nWHERE o.order_ts >= TIMESTAMP '2025-03-03' AND o.order_ts < TIMESTAMP '2025-03-10'\nGROUP BY s.city",
+  "solver": {
+    "prompt_hash": "e1274c2c56995b07",
+    "schema_version": "6ef9ff4e4ad1",
+    "dataset_version": "e1545e4258743033",
+    "grader_version": "1b.3",
+    "query": "SELECT s.city, SUM(l.quantity) AS units\nFROM order_lines l\nJOIN orders o ON o.order_id = l.order_id\nJOIN stores s ON s.store_id = o.store_id\nWHERE o.order_ts >= TIMESTAMP '2025-03-03 00:00:00' AND o.order_ts < TIMESTAMP '2025-03-10 00:00:00'\nGROUP BY s.city",
+    "at": "2026-10-07T10:41:40.929Z"
+  }
+}

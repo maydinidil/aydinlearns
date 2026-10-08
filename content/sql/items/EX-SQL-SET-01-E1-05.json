@@ -1,0 +1,116 @@
+{
+  "id": "EX-SQL-SET-01-E1-05",
+  "version": 2,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "set",
+    "except",
+    "competitor_prices"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-SET-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "retest",
+  "target_concept_id": "SQL-SET-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-TYPE-01",
+    "SQL-SET-01"
+  ],
+  "template_id": "T-SET-01-except-list",
+  "template_params": {
+    "table": "competitor_prices",
+    "day": "2025-05-13"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_set",
+  "prompt": "Which products did Bliksem check on 2025-05-13 that Stroomhuis did not check on that day? Use the competitor_prices table. observed_ts holds the time of the check in UTC, so take the day in UTC. Return one column, product_id, with one row for each product. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "product_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the list of products Stroomhuis checked that day and take it away from Bliksem's list.",
+    "EXCEPT keeps the rows of the first query that the second does not return, so Bliksem's list comes first. observed_ts is a time, so compare its date, not the time itself, with the day."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 17,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 18,
+      "to": 40,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 41,
+      "to": 121,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 122,
+      "to": 146,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 147,
+      "to": 169,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 170,
+      "to": 253,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "EXCEPT keeps each product on Bliksem's list for the day that is not on Stroomhuis's list, once."
+}

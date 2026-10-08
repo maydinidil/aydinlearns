@@ -6,7 +6,10 @@
     "SELECT store_code, store_type, CASE store_type WHEN 'flagship' THEN 'big' WHEN 'outlet' THEN 'small' WHEN 'web' THEN 'online' ELSE 'regular' END AS store_format FROM stores",
     "SELECT store_code, store_type, CASE WHEN store_type = 'web' THEN 'online' WHEN store_type = 'outlet' THEN 'small' WHEN store_type = 'flagship' THEN 'big' ELSE 'regular' END AS store_format FROM stores"
   ],
-  "other_way": null,
+  "other_way": {
+    "sql": "SELECT store_code, store_type, CASE store_type WHEN 'flagship' THEN 'big' WHEN 'outlet' THEN 'small' WHEN 'web' THEN 'online' ELSE 'regular' END AS store_format FROM stores",
+    "tradeoff": "Names the column once, but only works for equality tests."
+  },
   "planted_wrong": [
     {
       "id": "PW1",

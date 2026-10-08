@@ -1,0 +1,122 @@
+{
+  "id": "EX-SQL-JOIN-02-E1-02",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "left_join",
+    "order_lines",
+    "promotions",
+    "utc_day"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-JOIN-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pretest",
+  "target_concept_id": "SQL-JOIN-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02"
+  ],
+  "template_id": "T-JOIN-02-optional-lookup",
+  "template_params": {
+    "from": "orders",
+    "join": "order_lines, promotions",
+    "channel": "web",
+    "day": "2025-03-08"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_join",
+  "prompt": "List the order lines of the web orders (channel web) placed on 8 March 2025, with the name of each line's promotion. order_ts holds UTC time: take the day in UTC. Keep every line: promo_name is missing for a line with no promotion, or whose promotion is not in promotions. Return two columns, in this order: order_line_id and promo_name. Return one row for each order line. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "order_line_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "promo_name",
+        "type_class": "text"
+      }
+    ],
+    "grain": "one row per order line"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "order_line_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "promo_name",
+        "type_class": "text",
+        "precision": "exact"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "order_line_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, add the promotions so that a line without one stays in the result.",
+    "Most lines have a missing promo_id, and an inner join would drop them. Keep the lines whole and let promo_name be missing."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 37,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 38,
+      "to": 51,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 52,
+      "to": 97,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 98,
+      "to": 149,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 150,
+      "to": 274,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "LEFT JOIN keeps every line of those orders and fills promo_name with a missing value when no promotion matches."
+}

@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-JOIN-03-E2-05",
+  "item_version": 1,
+  "reference_sql": "WITH march_units AS (\n  SELECT product_id, SUM(units) AS units\n  FROM sales\n  WHERE parent_category = 'Audio'\n    AND order_date BETWEEN DATE '2025-03-01' AND DATE '2025-03-31'\n  GROUP BY product_id\n),\nmarch_checks AS (\n  SELECT product_id, COUNT(*) AS n_checks\n  FROM competitor_prices\n  WHERE observed_ts >= TIMESTAMP '2025-03-01 00:00:00' AND observed_ts < TIMESTAMP '2025-04-01 00:00:00'\n  GROUP BY product_id\n)\nSELECT u.product_id, u.units, COALESCE(c.n_checks, 0) AS n_checks\nFROM march_units u\nLEFT JOIN march_checks c ON c.product_id = u.product_id",
+  "alternatives": [
+    "WITH march_units AS (SELECT product_id, SUM(units) AS units FROM sales WHERE parent_category = 'Audio' AND order_date BETWEEN DATE '2025-03-01' AND DATE '2025-03-31' GROUP BY product_id) SELECT u.product_id, u.units, COUNT(cp.product_id) AS n_checks FROM march_units u LEFT JOIN competitor_prices cp ON cp.product_id = u.product_id AND cp.observed_ts >= TIMESTAMP '2025-03-01 00:00:00' AND cp.observed_ts < TIMESTAMP '2025-04-01 00:00:00' GROUP BY u.product_id, u.units",
+    "WITH march_units AS (SELECT ol.product_id, SUM(ol.quantity) AS units FROM order_lines ol JOIN orders o ON o.order_id = ol.order_id JOIN products p ON p.product_id = ol.product_id JOIN categories c ON c.category_id = p.category_id WHERE c.parent_category = 'Audio' AND date_trunc('month', o.order_ts) = TIMESTAMP '2025-03-01 00:00:00' GROUP BY ol.product_id), march_checks AS (SELECT product_id, COUNT(*) AS n_checks FROM competitor_prices WHERE date_trunc('month', observed_ts) = TIMESTAMP '2025-03-01 00:00:00' GROUP BY product_id) SELECT u.product_id, u.units, COALESCE(mc.n_checks, 0) AS n_checks FROM march_units u LEFT JOIN march_checks mc ON mc.product_id = u.product_id"
+  ],
+  "other_way": {
+    "sql": "WITH march_units AS (SELECT product_id, SUM(units) AS units FROM sales WHERE parent_category = 'Audio' AND order_date BETWEEN DATE '2025-03-01' AND DATE '2025-03-31' GROUP BY product_id) SELECT u.product_id, u.units, COUNT(cp.product_id) AS n_checks FROM march_units u LEFT JOIN competitor_prices cp ON cp.product_id = u.product_id AND cp.observed_ts >= TIMESTAMP '2025-03-01 00:00:00' AND cp.observed_ts < TIMESTAMP '2025-04-01 00:00:00' GROUP BY u.product_id, u.units",
+    "tradeoff": "Joining the checks to one row of units per product and counting them saves a step, but the March test must then sit in ON."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-01",
+      "sql": "SELECT s.product_id, SUM(s.units) AS units, COUNT(cp.product_id) AS n_checks FROM sales s LEFT JOIN competitor_prices cp ON cp.product_id = s.product_id AND cp.observed_ts >= TIMESTAMP '2025-03-01 00:00:00' AND cp.observed_ts < TIMESTAMP '2025-04-01 00:00:00' WHERE s.parent_category = 'Audio' AND s.order_date BETWEEN DATE '2025-03-01' AND DATE '2025-03-31' GROUP BY s.product_id"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-10",
+      "sql": "WITH march_units AS (SELECT product_id, SUM(units) AS units FROM sales WHERE parent_category = 'Audio' AND order_date BETWEEN DATE '2025-03-01' AND DATE '2025-03-31' GROUP BY product_id) SELECT u.product_id, u.units, COUNT(cp.product_id) AS n_checks FROM march_units u LEFT JOIN competitor_prices cp ON cp.product_id = u.product_id WHERE cp.observed_ts >= TIMESTAMP '2025-03-01 00:00:00' AND cp.observed_ts < TIMESTAMP '2025-04-01 00:00:00' GROUP BY u.product_id, u.units"
+    }
+  ],
+  "hint3_partial": "WITH march_units AS (\n  SELECT product_id, SUM(units) AS units\n  FROM sales\n  WHERE parent_category = 'Audio'\n    AND ___\n  GROUP BY product_id\n),\nmarch_checks AS (\n  SELECT product_id, COUNT(*) AS n_checks\n  FROM competitor_prices\n  WHERE ___\n  GROUP BY product_id\n)\nSELECT u.product_id, u.units, COALESCE(___, 0) AS n_checks\nFROM march_units u\nLEFT JOIN march_checks c ON ___",
+  "solver": {
+    "prompt_hash": "8312efad26d2de48",
+    "schema_version": "b84cbb63bf9d",
+    "dataset_version": "e1545e4258743033",
+    "grader_version": "1b.3",
+    "query": "WITH sold AS (\n  SELECT product_id, SUM(units) AS units\n  FROM sales\n  WHERE parent_category = 'Audio'\n    AND order_date >= DATE '2025-03-01' AND order_date <= DATE '2025-03-31'\n  GROUP BY product_id\n), checks AS (\n  SELECT product_id, COUNT(*) AS n_checks\n  FROM competitor_prices\n  WHERE observed_ts >= TIMESTAMP '2025-03-01 00:00:00' AND observed_ts < TIMESTAMP '2025-04-01 00:00:00'\n  GROUP BY product_id\n)\nSELECT s.product_id, s.units, COALESCE(c.n_checks, 0) AS n_checks\nFROM sold s\nLEFT JOIN checks c ON c.product_id = s.product_id",
+    "at": "2026-10-07T10:41:40.029Z"
+  }
+}

@@ -1,6 +1,6 @@
 {
   "item_id": "EX-SQL-SORT-01-E2-32",
-  "item_version": 1,
+  "item_version": 2,
   "reference_sql": "SELECT product_id, product_name, unit_cost_eur\nFROM products\nWHERE category_id = 3\nORDER BY unit_cost_eur DESC, product_name\nLIMIT 3",
   "alternatives": [
     "SELECT product_id, product_name, unit_cost_eur\nFROM products\nWHERE category_id = 3\nORDER BY unit_cost_eur DESC, product_name ASC\nLIMIT 3",
@@ -26,11 +26,11 @@
   ],
   "hint3_partial": "SELECT product_id, product_name, unit_cost_eur\nFROM products\nWHERE category_id = 3\nORDER BY unit_cost_eur DESC, ___\nLIMIT 3",
   "solver": {
-    "prompt_hash": "99ca4a415feb55df",
+    "prompt_hash": "b662f9302ddee880",
     "schema_version": "d77fe1c31a0e",
-    "dataset_version": "506a9858f862fdfb",
-    "grader_version": "1b.3",
-    "query": "SELECT product_id, product_name, unit_cost_eur FROM products WHERE category_id = 3 AND unit_cost_eur IS NOT NULL ORDER BY unit_cost_eur DESC, product_name ASC LIMIT 3\n",
-    "at": "2026-10-04T14:33:18.560Z"
+    "dataset_version": "7b5183c35ff26d5b",
+    "grader_version": "4c.1",
+    "query": "SELECT product_id, product_name, unit_cost_eur\nFROM products\nWHERE category_id = 3 AND unit_cost_eur IS NOT NULL\nORDER BY unit_cost_eur DESC, product_name ASC\nLIMIT 3",
+    "at": "2026-10-08T14:11:56.305Z"
   }
 }

@@ -1,0 +1,143 @@
+{
+  "id": "EX-SQL-JOIN-01-E3-03",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "join",
+    "price_history",
+    "competitor_prices",
+    "products",
+    "current_price",
+    "utc_day"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-JOIN-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-JOIN-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-NULL-01",
+    "SQL-JOIN-01"
+  ],
+  "template_id": "T-JOIN-01-compare-current-price",
+  "template_params": {
+    "from": "competitor_prices",
+    "join": "price_history, products",
+    "competitor": "Bliksem",
+    "week": "2025-03-03"
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_join",
+  "prompt": "Which price checks by the competitor Bliksem from 3 March 2025 to 9 March 2025 found a price below the product's current list price? The current list price is the price version with a missing valid_to. observed_ts holds UTC time: take those UTC days, both included. Return four columns, in this order: product_name, observed_ts, price_eur (the competitor's price) and list_price_eur. Return one row for each such price check. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "product_name",
+        "type_class": "text"
+      },
+      {
+        "name": "observed_ts",
+        "type_class": "temporal"
+      },
+      {
+        "name": "price_eur",
+        "type_class": "numeric"
+      },
+      {
+        "name": "list_price_eur",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "product_name",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "observed_ts",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "price_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "list_price_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "product_name",
+      "observed_ts"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, join each price check to its product's current price version and to the product.",
+    "price_history has several rows per product. Keep only the version with no end date before comparing the two prices."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 70,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 71,
+      "to": 96,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 97,
+      "to": 151,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 152,
+      "to": 199,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 200,
+      "to": 405,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "Keeping only the version with no end date gives each product one list price, so each check is compared once."
+}

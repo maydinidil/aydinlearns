@@ -1,0 +1,127 @@
+{
+  "id": "EX-SQL-CTE-01-E1-08",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "cte",
+    "avg",
+    "competitor_prices",
+    "grain"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-CTE-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-CTE-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CTE-01"
+  ],
+  "template_id": "T-CTE-01-avg-of-step-per-group",
+  "template_params": {
+    "table": "competitor_prices",
+    "step_grain": "competitor and product",
+    "group_by": "competitor"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_join",
+  "prompt": "For each competitor, how many times on average did it check the price of a product? Average over the products that the competitor checked at least once. Return two columns, in this order: competitor and avg_checks_per_product. Return one row for each competitor. Do not round. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "competitor",
+        "type_class": "text"
+      },
+      {
+        "name": "avg_checks_per_product",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "competitor",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "avg_checks_per_product",
+        "type_class": "numeric",
+        "precision": "ratio"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "competitor"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, count the checks of each competitor and product pair in a first step.",
+    "The average runs over the rows of that step, one per competitor and product, grouped by competitor."
+  ],
+  "subgoals": [
+    {
+      "from": 31,
+      "to": 82,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 85,
+      "to": 107,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 110,
+      "to": 141,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 144,
+      "to": 202,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 203,
+      "to": 226,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 227,
+      "to": 246,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "The step has one row per competitor and product with its number of checks, so AVG averages products, not checks."
+}

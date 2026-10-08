@@ -6,7 +6,10 @@
     "SELECT category_name, parent_category, CASE WHEN parent_category = 'TV & Video' OR parent_category = 'Computing' OR parent_category = 'Phones' THEN 'yes' ELSE 'no' END AS big_ticket FROM categories",
     "SELECT category_name, parent_category, CASE parent_category WHEN 'TV & Video' THEN 'yes' WHEN 'Computing' THEN 'yes' WHEN 'Phones' THEN 'yes' ELSE 'no' END AS big_ticket FROM categories"
   ],
-  "other_way": null,
+  "other_way": {
+    "sql": "SELECT category_name, parent_category, CASE WHEN parent_category = 'TV & Video' OR parent_category = 'Computing' OR parent_category = 'Phones' THEN 'yes' ELSE 'no' END AS big_ticket FROM categories",
+    "tradeoff": "An OR chain returns the same rows, but repeats the column for every value, while IN keeps the list short."
+  },
   "planted_wrong": [
     {
       "id": "PW1",

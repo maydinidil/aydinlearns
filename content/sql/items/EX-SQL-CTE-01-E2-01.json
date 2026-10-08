@@ -1,0 +1,141 @@
+{
+  "id": "EX-SQL-CTE-01-E2-01",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "cte",
+    "count",
+    "where",
+    "sales",
+    "grain"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-CTE-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "lesson",
+  "target_concept_id": "SQL-CTE-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-AGG-03",
+    "SQL-AGG-04",
+    "SQL-CTE-01"
+  ],
+  "template_id": "T-CTE-01-filter-on-step",
+  "template_params": {
+    "table": "sales",
+    "step_grain": "order",
+    "group_by": "channel",
+    "threshold": 1000
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_join",
+  "prompt": "How many orders worth more than 1,000 EUR did each channel take? Use the sales table; an order's value is the sum of its lines' net_revenue_eur. Count an order when its value is above 1000, not when it is exactly 1000. Return two columns, in this order: channel and n_big_orders. Return one row for each channel. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "channel",
+        "type_class": "text"
+      },
+      {
+        "name": "n_big_orders",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per channel"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "channel",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "n_big_orders",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "channel"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the first step: one row per order with its value and its channel.",
+    "The 1,000 EUR test needs a whole order's value, so the step adds up the lines by order and the filter comes after it."
+  ],
+  "subgoals": [
+    {
+      "from": 84,
+      "to": 143,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 146,
+      "to": 156,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 159,
+      "to": 185,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 188,
+      "to": 228,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 229,
+      "to": 246,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 247,
+      "to": 269,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 270,
+      "to": 286,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": {
+    "stage1": 59,
+    "stage2": 59
+  },
+  "faded_shape": "-- Step 1: one row per order. Step 2: one row per channel.\n",
+  "faded_suffix": "\nSELECT channel, COUNT(*) AS n_big_orders\nFROM order_totals\nWHERE order_eur > 1000\nGROUP BY channel",
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "The step gives each order its full value, so the filter on 1,000 EUR tests whole orders and COUNT(*) counts orders."
+}

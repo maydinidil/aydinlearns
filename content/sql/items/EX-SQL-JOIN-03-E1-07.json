@@ -1,0 +1,149 @@
+{
+  "id": "EX-SQL-JOIN-03-E1-07",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "fan_out",
+    "cte",
+    "left_join",
+    "orders",
+    "order_lines"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-JOIN-03"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-JOIN-03",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-JOIN-03"
+  ],
+  "template_id": "T-JOIN-03-aggregate-child-first",
+  "template_params": {
+    "parent": "orders",
+    "child": "order_lines",
+    "group_by": "customer_id",
+    "customers": "1001-1500"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_join",
+  "prompt": "How many orders did each customer with a customer_id from 1001 to 1500 place, and how many units did those orders hold? Count every order, including an order with no lines, and add up quantity over the lines of the customer's orders; a customer whose orders have no lines has 0 units. Return three columns, in this order: customer_id, n_orders and units. Return one row for each customer from 1001 to 1500 with at least one order. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "customer_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "n_orders",
+        "type_class": "numeric"
+      },
+      {
+        "name": "units",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "customer_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "n_orders",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "units",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "customer_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, add up the units of each order in a step, so every order has one row.",
+    "Joining the order lines straight to orders repeats each order once per line; join the per-order step instead, and keep orders that have no lines."
+  ],
+  "subgoals": [
+    {
+      "from": 24,
+      "to": 63,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 66,
+      "to": 82,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 85,
+      "to": 102,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 105,
+      "to": 183,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 184,
+      "to": 248,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 249,
+      "to": 290,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 291,
+      "to": 313,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "The step has one row per order, so the join keeps one row per order: COUNT(*) counts orders and the LEFT JOIN keeps orders with no lines."
+}

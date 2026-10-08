@@ -1,0 +1,118 @@
+{
+  "id": "EX-SQL-DATE-01-E3-01",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "date",
+    "date_part",
+    "isodow",
+    "weekend",
+    "case",
+    "ratio",
+    "sales"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-DATE-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-DATE-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CASE-01",
+    "SQL-TYPE-01",
+    "SQL-DATE-01"
+  ],
+  "template_id": "T-DATE-01-weekend-vs-weekday",
+  "template_params": {
+    "table": "sales",
+    "part": "isodow",
+    "measure": "units per order"
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_date",
+  "prompt": "Do customers buy bigger orders at the weekend? Use the sales table, where order_date is the UTC day of the order, and count every order line. Split the lines into 'weekend' (Saturday and Sunday) and 'weekday' (Monday to Friday) by their order_date. Return two columns, in this order: day_type, 'weekend' or 'weekday', and units_per_order, the total units divided by the number of different orders (order_id), rounded to 2 decimals with ROUND(x, 2). Return one row for each day type. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "day_type",
+        "type_class": "text"
+      },
+      {
+        "name": "units_per_order",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "day_type",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "units_per_order",
+        "type_class": "numeric",
+        "precision": "ratio",
+        "require_rounding": 2
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "day_type"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the calculated column day_type: 'weekend' for a Saturday or Sunday order_date, 'weekday' for the rest.",
+    "isodow gives 6 for Saturday and 7 for Sunday. One order can have several lines, so count each order once, and make the division keep its decimals."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 167,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 168,
+      "to": 178,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 179,
+      "to": 189,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "isodow 6 and 7 are Saturday and Sunday, and dividing the units by the number of different orders gives the units in an average order of each day type."
+}

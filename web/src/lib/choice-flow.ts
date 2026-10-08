@@ -19,6 +19,11 @@ export const mapHref = (section: Section): string => (section === 'sql' ? '#/map
 export const readingHref = (section: ChoiceSection, conceptId: string): string => `#/reading/${section}/${conceptId}`;
 export const practiceHref = (section: ChoiceSection, conceptId: string): string => `#/practice/${section}/${conceptId}`;
 
+/** A confidence button's accessible name (s2:L62#1): the visible text first, then what the number means (1 guessing to 4 certain, D16). */
+export const confidenceName = (n: 1 | 2 | 3 | 4 | null): string => (n === null ? 'Skip: no confidence rating' : `${n}: ${['guessing', 'unsure', 'fairly sure', 'certain'][n - 1]}`);
+/** The map's Reading and Practice links name their concept (s2:L86), the visible word first. */
+export const rowLinkName = (kind: 'Reading' | 'Practice', title: string): string => `${kind}: ${title}`;
+
 /** The sections with a concept map, reading and practice, and the refusal for any other (a mistyped address, Task C6). */
 export const CHOICE_SECTIONS: readonly ChoiceSection[] = ['ga4', 'methodology'];
 export function choiceSectionOf(s: string | undefined): { section: ChoiceSection } | { error: string } {

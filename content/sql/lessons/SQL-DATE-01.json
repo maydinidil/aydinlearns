@@ -1,0 +1,140 @@
+{
+  "concept_id": "SQL-DATE-01",
+  "version": 1,
+  "reading_md": "# Dates: types, parts, truncation\n\nDates are real types in SQL. A DATE holds a day, such as `DATE '2025-03-15'`. A TIMESTAMP holds a day and a time, such as `TIMESTAMP '2025-03-15 23:30:00'`. Store dates as dates, not as text: then you can compare them, cut them into periods and take their parts.\n\n## Truncate to group by a period\n\n`date_trunc('month', order_ts)` cuts a time back to the start of its month: any time in March 2025 becomes 2025-03-01. When a question asks for the first day of a period as a date, a date or a midnight timestamp both pass. Other units are `'year'`, `'quarter'`, `'week'` and `'day'`. Group by the truncated value to get one row per period. The year stays in it, so March 2024 and March 2025 stay apart.\n\n`GROUP BY 1` groups by the first column of the SELECT list, so you need not repeat a long date expression.\n\n## Take a part of a date\n\n`year(d)`, `quarter(d)`, `month(d)`, `hour(ts)` and `dayname(d)` each take one part. `EXTRACT(month FROM d)` is the standard spelling, and `date_part('month', d)` works too. A part on its own loses the rest of the date: `month(d)` gives 3 for March of every year. Group by the month number only within one year, or keep the year beside it.\n\n## ISO weeks\n\nAn ISO week starts on Monday, and week 1 is the week with the year's first Thursday. So 29, 30 and 31 December 2025 are in week 1 of 2026. `week(d)` gives the ISO week number and `isoyear(d)` the year that week belongs to. Pair the week with `isoyear`, never with `year`. `date_trunc('week', d)` gives the Monday that starts the week.\n\nWeekday numbers differ: `isodow(d)` counts Monday as 1 and Sunday as 7, while `dayofweek(d)` counts Sunday as 0.\n\n## Times are stored in UTC\n\nEvery `_ts` column, such as `orders.order_ts` and `competitor_prices.observed_ts`, holds the moment in UTC. Amsterdam is 1 hour ahead of UTC in winter and 2 hours in summer, so an order at 23:30 UTC is already the next day in Amsterdam. When a question asks for an Amsterdam day, week, month or hour, convert first:\n\n```sql\ntimezone('Europe/Amsterdam', timezone('UTC', order_ts))\n```\n\nThe inner call marks the stored time as UTC; the outer one gives the Amsterdam clock time for that moment. Then take the date with a CAST, or truncate it. A single `order_ts AT TIME ZONE 'Europe/Amsterdam'` is not enough: it reads the stored time as Amsterdam time and moves it the wrong way. The `order_date`, `order_week` and `order_month` columns of `sales` are UTC days.\n\n## Ranges on times\n\nOn a TIMESTAMP, an end date means midnight at its start. For all of 2025, keep `order_ts >= TIMESTAMP '2025-01-01 00:00:00'` and `order_ts < TIMESTAMP '2026-01-01 00:00:00'`.\n\n## How to answer a date question\n\n1. Find the clock: UTC, or Amsterdam time. Convert first if it is Amsterdam.\n2. Find the period: a day, ISO week, month, quarter or year, or a part such as the weekday.\n3. Truncate to group by periods; take a part when the question wants a number or a name.\n4. Filter with a range that keeps every moment of the first and last day.",
+  "syntax_md": "```sql\nSELECT date_trunc('month', order_ts) AS order_month,   -- metrics: the start of each month, year kept\n       COUNT(*) AS orders                             -- metrics: one count per month\nFROM orders                                           -- source and grain: one row per order\nWHERE order_ts >= TIMESTAMP '2025-01-01 00:00:00'     -- row filter: every moment of 2025\n  AND order_ts < TIMESTAMP '2026-01-01 00:00:00'\nGROUP BY 1;                                           -- one row per month\n```\n\n- Truncate: `date_trunc('day' | 'week' | 'month' | 'quarter' | 'year', d)`. Weeks start on Monday.\n- Parts: `year(d)`, `quarter(d)`, `month(d)`, `week(d)` (ISO), `isoyear(d)`, `isodow(d)` (Monday 1 to Sunday 7), `dayofweek(d)` (Sunday 0), `hour(ts)`, `dayname(d)`. Portable: `EXTRACT(month FROM d)`.\n- Literals: `DATE '2025-06-30'`, `TIMESTAMP '2025-06-30 23:30:00'`.\n- Amsterdam time from a UTC column: `timezone('Europe/Amsterdam', timezone('UTC', order_ts))`, then `CAST(... AS DATE)` for the Amsterdam day.\n- A day from a timestamp: `CAST(order_ts AS DATE)`.",
+  "dialect_note": "In DuckDB 1.5, date_trunc on a DATE returns a TIMESTAMP: date_trunc('month', DATE '2025-03-15') gives 2025-03-01 00:00:00. CAST it to DATE when you want to show a date; the grader treats a DATE and a TIMESTAMP as the same kind of value, so either passes. date_trunc('month', d) has the same argument order in PostgreSQL, while SQLite uses date(d, 'start of month'). date_trunc('week', d) starts weeks on Monday, as ISO weeks do: week(d) is the ISO week number and isoyear(d) its year. Weekday numbers differ by engine: DuckDB's dayofweek counts Sunday as 0 and isodow counts Monday as 1 and Sunday as 7; PostgreSQL's dow counts Sunday as 0, and BigQuery's DAYOFWEEK runs from 1 for Sunday to 7. BigQuery's WEEK begins on Sunday and its ISOWEEK on Monday. Every _ts column in this course holds UTC time, so convert it before you take an Amsterdam day.",
+  "worked_examples": [
+    {
+      "title": "Web orders per calendar month",
+      "prompt": "How many web orders did Voltmarkt take in each calendar month of 2025? Use the orders table and keep the orders with channel 'web'. order_ts holds the time in UTC, so take the month in UTC. Return order_month, the first day of the month, and orders, one row for each month.",
+      "clauses": [
+        {
+          "text": "SELECT date_trunc('month', order_ts) AS order_month,",
+          "subgoal": "metrics",
+          "why": "date_trunc cuts each order time back to the first day of its month and keeps the year."
+        },
+        {
+          "text": "       COUNT(*) AS orders",
+          "subgoal": "metrics",
+          "why": "COUNT(*) counts every web order in the month, guest orders included."
+        },
+        {
+          "text": "FROM orders",
+          "subgoal": "source_grain",
+          "why": "orders has one row per order, so each row counted is one order."
+        },
+        {
+          "text": "WHERE channel = 'web'",
+          "subgoal": "row_filter",
+          "why": "Keep only the web orders."
+        },
+        {
+          "text": "  AND order_ts >= TIMESTAMP '2025-01-01 00:00:00'",
+          "subgoal": "row_filter",
+          "why": "From the first moment of 2025."
+        },
+        {
+          "text": "  AND order_ts < TIMESTAMP '2026-01-01 00:00:00'",
+          "subgoal": "row_filter",
+          "why": "Up to but not including the first moment of 2026, so the whole of 31 December stays in."
+        },
+        {
+          "text": "GROUP BY date_trunc('month', order_ts)",
+          "subgoal": "output_grain",
+          "why": "One row per month: the same expression as in SELECT."
+        }
+      ]
+    },
+    {
+      "title": "Web orders per Amsterdam day",
+      "prompt": "How many web orders did Voltmarkt take on each Amsterdam calendar day from 2025-10-24 to 2025-10-27? order_ts holds the time in UTC. Return order_day, the Amsterdam date, and orders, one row for each day.",
+      "clauses": [
+        {
+          "text": "SELECT CAST(timezone('Europe/Amsterdam', timezone('UTC', order_ts)) AS DATE) AS order_day,",
+          "subgoal": "metrics",
+          "why": "Mark the stored time as UTC, turn it into Amsterdam clock time, then keep the date."
+        },
+        {
+          "text": "       COUNT(*) AS orders",
+          "subgoal": "metrics",
+          "why": "One count for each Amsterdam day."
+        },
+        {
+          "text": "FROM orders",
+          "subgoal": "source_grain",
+          "why": "One row per order."
+        },
+        {
+          "text": "WHERE channel = 'web'",
+          "subgoal": "row_filter",
+          "why": "Keep only the web orders."
+        },
+        {
+          "text": "  AND CAST(timezone('Europe/Amsterdam', timezone('UTC', order_ts)) AS DATE) BETWEEN DATE '2025-10-24' AND DATE '2025-10-27'",
+          "subgoal": "row_filter",
+          "why": "Pick the days by their Amsterdam date too, so both ends of the range are Amsterdam midnights; the clock change on 26 October needs no extra care."
+        },
+        {
+          "text": "GROUP BY 1",
+          "subgoal": "output_grain",
+          "why": "One row per Amsterdam day: GROUP BY 1 groups by the first column of the SELECT list."
+        }
+      ]
+    }
+  ],
+  "pretest_item_ids": [
+    "EX-SQL-DATE-01-E1-01",
+    "EX-SQL-DATE-01-E1-02"
+  ],
+  "lesson_item_ids": [
+    "EX-SQL-DATE-01-E1-03",
+    "EX-SQL-DATE-01-E1-04",
+    "EX-SQL-DATE-01-E2-01",
+    "EX-SQL-DATE-01-E2-02"
+  ],
+  "retest_item_id": "EX-SQL-DATE-01-E1-05",
+  "pool_item_ids": [
+    "EX-SQL-DATE-01-E1-06",
+    "EX-SQL-DATE-01-E1-07",
+    "EX-SQL-DATE-01-E1-08",
+    "EX-SQL-DATE-01-E2-03",
+    "EX-SQL-DATE-01-E2-04",
+    "EX-SQL-DATE-01-E2-05",
+    "EX-SQL-DATE-01-E2-06",
+    "EX-SQL-DATE-01-E3-01",
+    "EX-SQL-DATE-01-E3-02",
+    "EX-SQL-DATE-01-E1-31",
+    "EX-SQL-DATE-01-E2-31",
+    "EX-SQL-DATE-01-E1-42",
+    "EX-SQL-DATE-01-E2-41",
+    "EX-SQL-DATE-01-E2-42"
+  ],
+  "source_ids": [
+    "01:SQL-DATE-01"
+  ],
+  "why_clause": {
+    "clause": "CAST(timezone('Europe/Amsterdam', timezone('UTC', order_ts)) AS DATE) AS order_day",
+    "stem": "Why is order_ts wrapped in two timezone calls before the CAST to DATE?",
+    "options": [
+      {
+        "id": "a",
+        "text": "The inner call marks the stored time as UTC, and the outer one gives the Amsterdam clock time for that moment."
+      },
+      {
+        "id": "b",
+        "text": "The two calls cancel each other out, so the date stays the UTC day."
+      },
+      {
+        "id": "c",
+        "text": "One call would also work; the second only makes the query portable."
+      },
+      {
+        "id": "d",
+        "text": "The inner call rounds the time to the hour, and the outer one removes the time of day."
+      }
+    ],
+    "correct_id": "a",
+    "explanation": "order_ts holds a UTC moment with no time zone attached. timezone('UTC', order_ts) says which moment that is, and timezone('Europe/Amsterdam', ...) shows that moment on an Amsterdam clock, 1 or 2 hours later. Only then does the CAST take the Amsterdam date. A single AT TIME ZONE 'Europe/Amsterdam' reads the stored time as Amsterdam time and moves it the wrong way."
+  }
+}

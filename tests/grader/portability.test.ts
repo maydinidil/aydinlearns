@@ -6,7 +6,10 @@ import { handle, openLockedInstance } from '../../server/runner/child.ts';
 import { startRunner, type RunnerClient, type RunnerReq, type RunnerResult } from '../../server/runner/client.ts';
 import type { ParseTreeOk } from '../../server/runner/protocol.ts';
 import { grade } from '../../server/grader/grade.ts';
-import { portabilityNotes } from '../../server/grader/portability.ts';
+import {
+  CAST_NOTE, COUNT_NOTE, EXCLUDE_NOTE, FROM_FIRST_NOTE, GROUP_BY_ALL_NOTE, ILIKE_NOTE, QUALIFY_NOTE, TRAILING_COMMA_NOTE, integerDivisionCheck, portabilityNotes,
+} from '../../server/grader/portability.ts';
+import type { DisplayOk, RunnerError } from '../../server/runner/protocol.ts';
 import { DEFAULT_RULES, type SqlItem } from '../../schemas/item.ts';
 import type { SqlKey } from '../../schemas/keys.ts';
 import type { TableNote } from '../../schemas/schema-notes.ts';
@@ -69,7 +72,7 @@ test('parse_tree op: a gated query gives its tree and is never run', async () =>
 test('parse_tree op: under --no-parse-tree there is no tree, and no error', async () => {
   assert.deepEqual(await parseTree('SELECT city FROM stores', false), { id: 1, ok: true, data: { tree: null } });
 });
-test('parse_tree op: the runner client carries it under the gate\'s deadline', async () => {
+test('parse_tree op: through the runner client, a query gives a tree of one statement', async () => {
   const r = await runner.request<ParseTreeOk>({ op: 'parse_tree', schema: 'vis', allowedSchemas: [], sql: 'SELECT city FROM stores' });
   assert.ok(r.ok && (r.data.tree as any).statements.length === 1, JSON.stringify(r));
 });
@@ -201,4 +204,195 @@ test('a rejected or unrun query, and a clean one, get no notes', async () => {
 test('without schema notes the grader still gives the == note', async () => {
   const r = await grade({ item, key, sql: "SELECT city AS town FROM stores WHERE town == 'Gent'" }, { runner, edge: null, feedback });
   assert.deepEqual(r.portabilityNotes, [EQ]);
+});
+
+// ---- Task E3, S4B-25: the lint grows. Each construct gives one note, never a fail, never a check ----------------------
+
+test('S4B-25: each new construct gives its own note, once however often it is used', async () => {
+  const cases: [string, string][] = [
+    ['SELECT country_code, count(*) AS n FROM stores GROUP BY ALL', GROUP_BY_ALL_NOTE],
+    ['FROM stores SELECT city', FROM_FIRST_NOTE],
+    ['FROM stores', FROM_FIRST_NOTE],
+    ['SELECT city, store_code, FROM stores', TRAILING_COMMA_NOTE],
+    ['SELECT store_id::VARCHAR AS id, store_code::VARCHAR AS code FROM stores', CAST_NOTE],
+    ["SELECT city FROM stores WHERE city ILIKE 'g%' OR city NOT ILIKE 'a%'", ILIKE_NOTE],
+    ['SELECT count() AS n, count( ) AS m FROM stores', COUNT_NOTE],
+    ['SELECT * EXCLUDE (city) FROM stores', EXCLUDE_NOTE],
+    ['SELECT s.* EXCLUDE (city, store_code) FROM stores s', EXCLUDE_NOTE],
+    ['SELECT city, row_number() OVER (ORDER BY city) AS rn FROM stores QUALIFY rn = 1', QUALIFY_NOTE],
+  ];
+  for (const [sql, note] of cases) assert.deepEqual(await lint(sql), [note], sql);
+});
+test('S4B-25: the notes come in a fixed order after the alias and == notes, and each construct inside a nested query counts too', async () => {
+  const sql = "FROM (SELECT city::VARCHAR AS town, country_code, FROM stores WHERE city ILIKE 'g%') q SELECT country_code, count() AS n GROUP BY ALL";
+  assert.deepEqual(await lint(sql), [GROUP_BY_ALL_NOTE, FROM_FIRST_NOTE, TRAILING_COMMA_NOTE, CAST_NOTE, ILIKE_NOTE, COUNT_NOTE]);
+  assert.deepEqual(await lint("SELECT city AS town, count(*) AS n FROM stores WHERE town == 'Gent' GROUP BY ALL"), [WHERE('town'), EQ, GROUP_BY_ALL_NOTE]);
+  assert.deepEqual(await lint('SELECT store_id FROM stores WHERE store_id IN (SELECT store_id FROM stores QUALIFY row_number() OVER (ORDER BY store_id) = 1)'), [QUALIFY_NOTE]);
+  assert.deepEqual(await lint('SELECT n FROM (SELECT * EXCLUDE (city) FROM stores) q(n)'), [EXCLUDE_NOTE]);
+  assert.deepEqual(await lint('WITH s AS (SELECT city FROM stores) FROM s'), [FROM_FIRST_NOTE], 'FROM first after a CTE');
+  assert.deepEqual(await lint('SELECT city FROM stores UNION ALL FROM stores SELECT city'), [FROM_FIRST_NOTE], 'FROM first after UNION ALL');
+});
+test('S4B-25: the standard forms, and the words inside strings, comments or quoted names, get no note', async () => {
+  for (const sql of [
+    'SELECT country_code, count(*) AS n FROM stores GROUP BY country_code',
+    'SELECT CAST(store_id AS VARCHAR) AS id FROM stores',
+    "SELECT city FROM stores WHERE lower(city) LIKE 'g%'",
+    'SELECT city, store_code FROM stores',
+    'SELECT count(*) AS n, count(city) AS m FROM stores',
+    'SELECT store_id, sum(store_id) OVER (ORDER BY store_id ROWS BETWEEN 1 PRECEDING AND CURRENT ROW EXCLUDE CURRENT ROW) AS s FROM stores',
+    "SELECT extract(year FROM DATE '2025-01-01') AS y, substring(city FROM 1 FOR 2) AS c, trim(BOTH 'x' FROM city) AS t FROM stores",
+    'SELECT count(*) AS n FROM (SELECT city FROM stores) q',
+    'WITH s AS (SELECT city FROM stores) SELECT city FROM s',
+    'SELECT city FROM stores WHERE store_id IN (1, 2)',
+    "SELECT city FROM stores WHERE city <> 'a::b, FROM x ILIKE count() QUALIFY' -- GROUP BY ALL, ::, ILIKE, count(), EXCLUDE (x), QUALIFY",
+    'SELECT city AS "x::y" FROM stores /* FROM stores SELECT city, */',
+    "SELECT city, row_number() OVER (ORDER BY city) AS rn FROM stores",
+    'SELECT city, "store_code" FROM stores',
+    'SELECT coalesce(city, "store_code") AS c FROM stores',
+    'SELECT city, count(*) AS n FROM stores GROUP BY city, "store_code"',
+    'SELECT city FROM stores ORDER BY city, "store_code"',
+    'SELECT n FROM (SELECT city, "store_code" FROM stores) q(n, m)',
+  ]) {
+    await noNotes(sql);
+  }
+});
+test('S4B-25: a new note comes with a pass and never stops it, and stays out of notes and checks', async () => {
+  const r = await grade({ item, key, sql: 'SELECT city FROM stores WHERE city IS NOT NULL QUALIFY count(*) OVER () > 0' }, deps);
+  assert.deepEqual([r.outcome, r.graded, r.portabilityNotes, r.notes], ['pass', true, [QUALIFY_NOTE], ['It keeps the stores with a city.']]);
+  const from = await grade({ item, key, sql: 'FROM stores SELECT city WHERE city IS NOT NULL' }, deps);
+  assert.deepEqual([from.outcome, from.portabilityNotes], ['pass', [FROM_FIRST_NOTE]]);
+});
+test('S4B-25: the notes are plain English with no em dash, each naming the engines it fails on', () => {
+  for (const n of [GROUP_BY_ALL_NOTE, FROM_FIRST_NOTE, TRAILING_COMMA_NOTE, CAST_NOTE, ILIKE_NOTE, COUNT_NOTE, EXCLUDE_NOTE, QUALIFY_NOTE]) {
+    assert.ok(!/—/.test(n), n);
+    assert.match(n, /PostgreSQL|SQL Server|MySQL/, n);
+  }
+});
+
+// ---- Codex F24: the integer division re-run's outcome (S4B-24), one of four, so JR-04 can tell a comparison from none ----------
+
+/** The pass's own display of `sql` on vis, as the grader shows it. */
+const shownOf = async (sql: string): Promise<DisplayOk> => {
+  const r = await runner.request<DisplayOk>({ op: 'display', schema: 'vis', allowedSchemas: [], sql, cap: 1000, deadlineMs: 5000 });
+  assert.ok(r.ok, `${sql}: ${JSON.stringify(r)}`);
+  return r.data;
+};
+/** A client that records each request; the re-run (integerDivision) gets `rerun`'s answer, or throws when `rerun` does. */
+const rerunClient = (rerun: (req: RunnerReq) => Promise<RunnerResult>) => {
+  const reruns: RunnerReq[] = [];
+  const client: RunnerClient = { restarts: 0, close: async () => {}, request: async <T>(req: RunnerReq) => {
+    if (req.op !== 'display' || req.integerDivision !== true) return runner.request<T>(req);
+    reruns.push(req);
+    return (await rerun(req)) as RunnerResult<T>;
+  } };
+  return { client, reruns };
+};
+const check = (client: RunnerClient, sql: string, shown: DisplayOk) => integerDivisionCheck(client, 'vis', sql, shown, 1000, 5000);
+const HALVES = 'SELECT store_id / 2 AS half FROM stores';            // 0.5, 1 and 1.5; with integer division 0, 1 and 1
+const WHOLE = 'SELECT store_id * 2 / 2 AS id FROM stores';           // 1, 2 and 3 either way
+
+test('Codex F24: no / is no_division, and nothing re-runs; a / inside a string, a comment or a quoted name is none either', async () => {
+  for (const sql of ['SELECT store_id FROM stores', "SELECT city FROM stores WHERE city <> 'a/b' /* 7 / 2 */", 'SELECT city AS "a/b" FROM stores']) {
+    const c = rerunClient((req) => runner.request(req));
+    assert.equal(await check(c.client, sql, await shownOf(sql)), 'no_division', sql);
+    assert.equal(c.reruns.length, 0, sql);
+  }
+});
+test('Codex F24: a compared re-run is changed when integer division gives another result, same when it does not', async () => {
+  const changed = rerunClient((req) => runner.request(req));
+  assert.equal(await check(changed.client, HALVES, await shownOf(HALVES)), 'changed');
+  assert.deepEqual(changed.reruns.map((q) => [q.op, 'schema' in q ? q.schema : null]), [['display', 'vis']], 'one re-run, on the same schema');
+  const same = rerunClient((req) => runner.request(req));
+  assert.equal(await check(same.client, WHOLE, await shownOf(WHOLE)), 'same');
+});
+test('Codex F24: a shown display cut at the cap is not_compared, and nothing re-runs', async () => {
+  const c = rerunClient((req) => runner.request(req));
+  assert.equal(await check(c.client, HALVES, { ...(await shownOf(HALVES)), truncated: true }), 'not_compared');
+  assert.equal(c.reruns.length, 0);
+});
+test('Codex F24: a re-run that answers ok: false (an engine error, a time-out, a crash, a gate refusal) is not_compared', async () => {
+  for (const error of [{ kind: 'engine', phase: 'runtime', message: 'Out of Range Error' }, { kind: 'timeout' }, { kind: 'crash', message: 'gone' },
+    { kind: 'gate', reason: 'not_select', message: 'no' }] as RunnerError[]) {
+    const c = rerunClient(async () => ({ ok: false, error }));
+    assert.equal(await check(c.client, HALVES, await shownOf(HALVES)), 'not_compared', error.kind);
+    assert.equal(c.reruns.length, 1, error.kind);
+  }
+});
+test('Codex F24: a re-run request that throws is not_compared, never an error', async () => {
+  const c = rerunClient(async () => { throw new Error('runner exited'); });
+  assert.equal(await check(c.client, HALVES, await shownOf(HALVES)), 'not_compared');
+  assert.equal(c.reruns.length, 1);
+});
+test('Codex F24: a re-run result cut at the cap cannot be compared, so it is not_compared', async () => {
+  const c = rerunClient(async (req) => {
+    const r = await runner.request<DisplayOk>(req);
+    return r.ok ? { ok: true, data: { ...r.data, truncated: true } } : r;
+  });
+  assert.equal(await check(c.client, HALVES, await shownOf(HALVES)), 'not_compared');
+});
+
+// ---- Sprint 4c, Task B2, D52: a control run with integer division off comes before the integer division run ----------------------
+
+/** A client that records every request; the control (a display with integerDivision false) gets `control`'s answer. */
+const controlClient = (control: (req: RunnerReq) => Promise<RunnerResult>) => {
+  const seen: RunnerReq[] = [];
+  const client: RunnerClient = { restarts: 0, close: async () => {}, request: async <T>(req: RunnerReq) => {
+    seen.push(req);
+    if (req.op === 'display' && req.integerDivision === false) return (await control(req)) as RunnerResult<T>;
+    return runner.request<T>(req);
+  } };
+  return { client, seen, reruns: () => seen.filter((q) => q.op === 'display' && q.integerDivision === true) };
+};
+const sleep = (ms: number) => new Promise((res) => setTimeout(res, ms));
+/** Its `/` keeps the decimals, so integer division cannot change it, but its rows change from run to run. */
+const UNREPEATABLE = 'SELECT id * 1.0 / 2 AS h FROM big ORDER BY random() LIMIT 5';
+
+test('D52: a query whose rows change between two runs (random ordering under a LIMIT) is not_compared, and the integer division run never runs', async () => {
+  const c = controlClient((req) => runner.request(req));
+  assert.equal(await check(c.client, UNREPEATABLE, await shownOf(UNREPEATABLE)), 'not_compared');
+  assert.deepEqual(c.seen, [{ op: 'display', schema: 'vis', allowedSchemas: [], sql: UNREPEATABLE, cap: 1000, deadlineMs: 5000, integerDivision: false }],
+    'the control only: the same query, data, cap and deadline, with integer division off');
+});
+test('D52: a deterministic ratio query still gives changed or same, after one control run and then one integer division run', async () => {
+  for (const [sql, want] of [[HALVES, 'changed'], [WHOLE, 'same']] as const) {
+    const c = controlClient((req) => runner.request(req));
+    assert.equal(await check(c.client, sql, await shownOf(sql)), want, sql);
+    assert.deepEqual(c.seen.map((q) => (q.op === 'display' ? [q.sql, q.integerDivision] : q.op)), [[sql, false], [sql, true]], `${sql}: the control first`);
+  }
+});
+test('D52: a control that times out, fails, crashes, throws or is cut at the cap is not_compared, and the integer division run never runs', async () => {
+  const answers: [string, (req: RunnerReq) => Promise<RunnerResult>][] = [
+    ['timeout', async () => ({ ok: false, error: { kind: 'timeout' } })],
+    ['engine', async () => ({ ok: false, error: { kind: 'engine', phase: 'runtime', message: 'Out of Range Error' } })],
+    ['crash', async () => ({ ok: false, error: { kind: 'crash', message: 'gone' } })],
+    ['throws', async () => { throw new Error('runner exited'); }],
+    ['cut', async (req) => {
+      const r = await runner.request<DisplayOk>(req);
+      return r.ok ? { ok: true, data: { ...r.data, truncated: true } } : r;
+    }],
+  ];
+  for (const [why, answer] of answers) {
+    const c = controlClient(answer);
+    assert.equal(await check(c.client, HALVES, await shownOf(HALVES)), 'not_compared', why);
+    assert.equal(c.reruns().length, 0, why);
+  }
+});
+test('D52: on the real runner, a slow query whose control runs past the deadline is not_compared, and the runner answers again', async () => {
+  const sql = 'SELECT count(*) / 2 AS n FROM big a, big b';
+  const shown: DisplayOk = { columns: [{ name: 'n', type: 'DOUBLE' }], rows: [[1]], rowCount: 1, truncated: false };
+  const answers: RunnerResult[] = [];
+  const c = controlClient(async (req) => { const r = await runner.request(req); answers.push(r); return r; });
+  assert.equal(await integerDivisionCheck(c.client, 'vis', sql, shown, 1000, 300), 'not_compared');
+  assert.deepEqual(answers.map((a) => (a.ok ? 'ok' : a.error.kind)), ['timeout'], 'the control itself answered a timeout');
+  assert.equal(c.reruns().length, 0);
+  assert.equal(await check(c.client, HALVES, await shownOf(HALVES)), 'changed', 'the next check runs as usual');
+});
+test('D52: the two runs share the one deadline: the integer division run gets what the control left, and nothing left is not_compared', async () => {
+  const slow = controlClient(async (req) => { await sleep(200); return runner.request(req); });
+  assert.equal(await integerDivisionCheck(slow.client, 'vis', HALVES, await shownOf(HALVES), 1000, 5000), 'changed');
+  const [rerun] = slow.reruns();
+  assert.ok(rerun?.op === 'display' && rerun.deadlineMs > 0 && rerun.deadlineMs <= 4805, JSON.stringify(rerun));
+  const spent = controlClient(async (req) => { await sleep(250); return runner.request(req); });
+  assert.equal(await integerDivisionCheck(spent.client, 'vis', HALVES, await shownOf(HALVES), 1000, 200), 'not_compared', 'the control used the whole deadline');
+  assert.equal(spent.reruns().length, 0);
 });

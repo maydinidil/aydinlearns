@@ -1,0 +1,31 @@
+{
+  "item_id": "EX-SQL-JOIN-01-E1-07",
+  "item_version": 1,
+  "reference_sql": "SELECT c.parent_category, COUNT(*) AS n_products\nFROM products p\nJOIN categories c ON c.category_id = p.category_id\nGROUP BY c.parent_category",
+  "alternatives": [
+    "SELECT c.parent_category, COUNT(p.product_id) AS n_products FROM categories c JOIN products p ON p.category_id = c.category_id GROUP BY c.parent_category",
+    "SELECT c.parent_category, COUNT(*) AS n_products FROM products p, categories c WHERE c.category_id = p.category_id GROUP BY 1"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-12",
+      "sql": "SELECT c.parent_category, COUNT(*) AS n_products FROM products p JOIN categories c ON c.category_id = p.product_id GROUP BY c.parent_category"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-SEM-03",
+      "sql": "SELECT c.parent_category, COUNT(*) AS n_products FROM products p, categories c GROUP BY c.parent_category"
+    }
+  ],
+  "hint3_partial": "SELECT c.parent_category, COUNT(*) AS n_products\nFROM products p\nJOIN categories c ON ___\nGROUP BY ___",
+  "solver": {
+    "prompt_hash": "c2e423ade2ffc708",
+    "schema_version": "81419b0500f4",
+    "dataset_version": "e1545e4258743033",
+    "grader_version": "1b.3",
+    "query": "SELECT c.parent_category, COUNT(*) AS n_products\nFROM products p\nJOIN categories c ON c.category_id = p.category_id\nGROUP BY c.parent_category",
+    "at": "2026-10-07T10:41:37.890Z"
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-JOIN-03-E2-42",
+  "item_version": 1,
+  "correct_oid": "oafe387b",
+  "explanation": "promotion_products is a bridge table with one row per promotion and product; its key is the pair promo_id and product_id. A product listed in two promotions has two rows, so product_id alone is not unique. That is why joining order lines to this table on product_id can repeat a line once per promotion.",
+  "solver": {
+    "prompt_hash": "9d2b219e2b3343a4",
+    "grader_version": "choice.2",
+    "chosen": "oafe387b",
+    "typed": null,
+    "at": "2026-10-07T09:58:58.597Z"
+  }
+}

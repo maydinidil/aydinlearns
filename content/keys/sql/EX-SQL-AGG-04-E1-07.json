@@ -6,7 +6,10 @@
     "SELECT COUNT(*) AS n_lines, COUNT(*) - COUNT(units) AS lines_missing_units, COUNT(*) - COUNT(net_revenue_eur) AS lines_missing_revenue, COUNT(*) - COUNT(unit_cost_eur) AS lines_missing_cost FROM sales",
     "SELECT COUNT(*) AS n_lines, COUNT(CASE WHEN units IS NULL THEN 1 END) AS lines_missing_units, COUNT(CASE WHEN net_revenue_eur IS NULL THEN 1 END) AS lines_missing_revenue, COUNT(CASE WHEN unit_cost_eur IS NULL THEN 1 END) AS lines_missing_cost FROM sales"
   ],
-  "other_way": null,
+  "other_way": {
+    "sql": "SELECT COUNT(*) AS n_lines, COUNT(*) - COUNT(units) AS lines_missing_units, COUNT(*) - COUNT(net_revenue_eur) AS lines_missing_revenue, COUNT(*) - COUNT(unit_cost_eur) AS lines_missing_cost FROM sales",
+    "tradeoff": "Shorter, but relies on COUNT skipping missing values, which is easy to forget."
+  },
   "planted_wrong": [
     {
       "id": "PW1",

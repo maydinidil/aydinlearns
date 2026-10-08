@@ -1,0 +1,207 @@
+{
+  "id": "EX-OPENER-L3-01",
+  "version": 2,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "opener",
+    "fan_out",
+    "cte",
+    "bridge",
+    "left_join",
+    "margin",
+    "promotions"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-JOIN-03"
+  ],
+  "verified": true,
+  "as_of": "2026-10-07",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "opener",
+  "target_concept_id": "SQL-JOIN-03",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-JOIN-03",
+    "SQL-JOIN-04"
+  ],
+  "template_id": "T-OPENER-L3-promo-margin",
+  "template_params": {
+    "from": "2025-01-01",
+    "to": "2025-12-31"
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_set",
+  "prompt": "Fleur, who runs trade marketing, is planning next year's promotion calendar and asks how much margin each 2025 promotion made. Return one row for every promotion with a start_date from 2025-01-01 to 2025-12-31, both days included, including a promotion that no order line carried, which then has 0 for revenue_eur and margin_eur. Return six columns, in this order: promo_code; promo_type; discount_pct; n_products, the number of products the promotion covers, whether or not they sold; revenue_eur, the net revenue of all order lines that carry the promotion, where a line's net revenue is quantity times unit_price_eur minus line_discount_eur; and margin_eur, the gross margin of those same lines, where a line's gross margin is its net revenue minus quantity times the product's unit_cost_eur. Each order line counts once. Do not round. Sort by discount_pct from highest to lowest; when promotions share a discount_pct, sort them by promo_code from A to Z.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "promo_code",
+        "type_class": "text"
+      },
+      {
+        "name": "promo_type",
+        "type_class": "text"
+      },
+      {
+        "name": "discount_pct",
+        "type_class": "numeric"
+      },
+      {
+        "name": "n_products",
+        "type_class": "numeric"
+      },
+      {
+        "name": "revenue_eur",
+        "type_class": "numeric"
+      },
+      {
+        "name": "margin_eur",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": true,
+    "sort_keys": [
+      {
+        "column": "discount_pct",
+        "desc": true
+      },
+      {
+        "column": "promo_code",
+        "desc": false
+      }
+    ],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "promo_code",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "promo_type",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "discount_pct",
+        "type_class": "numeric",
+        "precision": "ratio"
+      },
+      {
+        "name": "n_products",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "revenue_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "margin_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "promo_code"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, plan one step per source, each at one row per promotion: the products it covers, and the money of the lines that carry it.",
+    "The product list and the lines both hold many rows per promotion, so add each up on its own before they meet; then keep every 2025 promotion, sold or not."
+  ],
+  "subgoals": [
+    {
+      "from": 27,
+      "to": 66,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 69,
+      "to": 92,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 95,
+      "to": 112,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 135,
+      "to": 354,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 357,
+      "to": 432,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 435,
+      "to": 464,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 467,
+      "to": 487,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 490,
+      "to": 691,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 692,
+      "to": 830,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 831,
+      "to": 898,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 899,
+      "to": 943,
+      "subgoal": "sort_limit"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "Each step ends at one row per promotion, so the final joins pair single rows and no order line is added once per product."
+}

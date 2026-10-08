@@ -1,0 +1,39 @@
+{
+  "item_id": "EX-SQL-JOIN-04-E2-03",
+  "item_version": 1,
+  "reference_sql": "SELECT p.product_name, a.list_price_eur AS price_mar_2_eur, b.list_price_eur AS price_mar_6_eur\nFROM products p\nJOIN price_history a ON a.product_id = p.product_id AND DATE '2025-03-02' >= a.valid_from AND (a.valid_to IS NULL OR DATE '2025-03-02' <= a.valid_to)\nJOIN price_history b ON b.product_id = p.product_id AND DATE '2025-03-06' >= b.valid_from AND (b.valid_to IS NULL OR DATE '2025-03-06' <= b.valid_to)\nWHERE p.brand = 'Vistara'",
+  "alternatives": [
+    "SELECT p.product_name, a.list_price_eur AS price_mar_2_eur, b.list_price_eur AS price_mar_6_eur FROM products p JOIN price_history a ON a.product_id = p.product_id AND DATE '2025-03-02' BETWEEN a.valid_from AND COALESCE(a.valid_to, DATE '9999-12-31') JOIN price_history b ON b.product_id = p.product_id AND DATE '2025-03-06' BETWEEN b.valid_from AND COALESCE(b.valid_to, DATE '9999-12-31') WHERE p.brand = 'Vistara'",
+    "WITH prices AS (SELECT product_id, valid_from, COALESCE(valid_to, DATE '9999-12-31') AS valid_until, list_price_eur FROM price_history) SELECT p.product_name, a.list_price_eur AS price_mar_2_eur, b.list_price_eur AS price_mar_6_eur FROM products p JOIN prices a ON a.product_id = p.product_id AND DATE '2025-03-02' BETWEEN a.valid_from AND a.valid_until JOIN prices b ON b.product_id = p.product_id AND DATE '2025-03-06' BETWEEN b.valid_from AND b.valid_until WHERE p.brand = 'Vistara'"
+  ],
+  "other_way": {
+    "sql": "SELECT p.product_name, a.list_price_eur AS price_mar_2_eur, b.list_price_eur AS price_mar_6_eur FROM products p JOIN price_history a ON a.product_id = p.product_id AND DATE '2025-03-02' BETWEEN a.valid_from AND COALESCE(a.valid_to, DATE '9999-12-31') JOIN price_history b ON b.product_id = p.product_id AND DATE '2025-03-06' BETWEEN b.valid_from AND COALESCE(b.valid_to, DATE '9999-12-31') WHERE p.brand = 'Vistara'",
+    "tradeoff": "BETWEEN with COALESCE is shorter, but the far-off end date is a stand-in for a missing valid_to."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-03",
+      "sql": "SELECT p.product_name, a.list_price_eur AS price_mar_2_eur, b.list_price_eur AS price_mar_6_eur FROM products p JOIN price_history a ON a.product_id = p.product_id AND DATE '2025-03-02' >= a.valid_from AND DATE '2025-03-02' <= a.valid_to JOIN price_history b ON b.product_id = p.product_id AND DATE '2025-03-06' >= b.valid_from AND DATE '2025-03-06' <= b.valid_to WHERE p.brand = 'Vistara'"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-01",
+      "sql": "SELECT p.product_name, a.list_price_eur AS price_mar_2_eur, b.list_price_eur AS price_mar_6_eur FROM products p JOIN price_history a ON a.product_id = p.product_id AND DATE '2025-03-02' >= a.valid_from AND (a.valid_to IS NULL OR DATE '2025-03-02' <= a.valid_to) JOIN price_history b ON b.product_id = p.product_id WHERE p.brand = 'Vistara'"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-23",
+      "sql": "SELECT p.product_name, a.list_price_eur AS price_mar_2_eur, b.list_price_eur AS price_mar_6_eur FROM products p JOIN price_history a ON a.product_id = p.product_id AND DATE '2025-03-02' > a.valid_from AND (a.valid_to IS NULL OR DATE '2025-03-02' < a.valid_to) JOIN price_history b ON b.product_id = p.product_id AND DATE '2025-03-06' > b.valid_from AND (b.valid_to IS NULL OR DATE '2025-03-06' < b.valid_to) WHERE p.brand = 'Vistara'"
+    }
+  ],
+  "hint3_partial": "SELECT p.product_name, a.list_price_eur AS price_mar_2_eur, b.list_price_eur AS price_mar_6_eur\nFROM products p\nJOIN price_history a ON a.product_id = p.product_id AND DATE '2025-03-02' >= a.valid_from AND (a.valid_to IS NULL OR DATE '2025-03-02' <= a.valid_to)\nJOIN price_history b ON ___\nWHERE p.brand = 'Vistara'",
+  "solver": {
+    "prompt_hash": "efa1dfc22662466b",
+    "schema_version": "c41fcd8f0eee",
+    "dataset_version": "e1545e4258743033",
+    "grader_version": "1b.3",
+    "query": "SELECT p.product_name, h2.list_price_eur AS price_mar_2_eur, h6.list_price_eur AS price_mar_6_eur\nFROM products p\nJOIN price_history h2 ON h2.product_id = p.product_id\n  AND h2.valid_from <= DATE '2025-03-02' AND (h2.valid_to IS NULL OR h2.valid_to >= DATE '2025-03-02')\nJOIN price_history h6 ON h6.product_id = p.product_id\n  AND h6.valid_from <= DATE '2025-03-06' AND (h6.valid_to IS NULL OR h6.valid_to >= DATE '2025-03-06')\nWHERE p.brand = 'Vistara'",
+    "at": "2026-10-07T10:41:41.139Z"
+  }
+}

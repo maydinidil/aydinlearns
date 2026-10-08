@@ -1,0 +1,155 @@
+{
+  "id": "EX-SQL-JOIN-03-E2-02",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "fan_out",
+    "cte",
+    "bridge",
+    "promotion_products",
+    "order_lines"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-JOIN-03"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "lesson",
+  "target_concept_id": "SQL-JOIN-03",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-JOIN-03"
+  ],
+  "template_id": "T-JOIN-03-two-children",
+  "template_params": {
+    "parent": "promotions",
+    "child_a": "promotion_products",
+    "child_b": "order_lines"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_join",
+  "prompt": "For each promotion, how many products does it cover, and how many units were sold with that promotion? A promotion covers the products it lists, and a unit is sold with a promotion when its order line carries that promotion's promo_id. Return three columns, in this order: promo_id, n_products and units. Return one row for each promotion that covers at least one product and has at least one line sold with it. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "promo_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "n_products",
+        "type_class": "numeric"
+      },
+      {
+        "name": "units",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per promotion"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "promo_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "n_products",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "units",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "promo_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the second step: the units sold with each promotion, one row per promotion.",
+    "Both the products and the order lines are many-side rows of a promotion; each needs its own step before the two meet in the join."
+  ],
+  "subgoals": [
+    {
+      "from": 24,
+      "to": 63,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 66,
+      "to": 89,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 92,
+      "to": 109,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 132,
+      "to": 171,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 174,
+      "to": 190,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 193,
+      "to": 210,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 213,
+      "to": 253,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 254,
+      "to": 318,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": {
+    "stage1": 113,
+    "stage2": 5
+  },
+  "faded_shape": "WITH promo_sizes AS (\n  SELECT promo_id, COUNT(*) AS n_products\n  FROM promotion_products\n  GROUP BY promo_id\n),\n",
+  "faded_suffix": "\nSELECT s.promo_id, s.n_products, u.units\nFROM promo_sizes s\nJOIN promo_units u ON u.promo_id = s.promo_id",
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "Each step has one row per promotion, so the join meets one row with one row and neither count is repeated."
+}

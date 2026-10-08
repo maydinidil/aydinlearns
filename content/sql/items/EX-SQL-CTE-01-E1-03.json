@@ -1,0 +1,133 @@
+{
+  "id": "EX-SQL-CTE-01-E1-03",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "cte",
+    "avg",
+    "count",
+    "sales",
+    "grain"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-CTE-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "lesson",
+  "target_concept_id": "SQL-CTE-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CTE-01"
+  ],
+  "template_id": "T-CTE-01-avg-of-step-per-group",
+  "template_params": {
+    "table": "sales",
+    "step_grain": "order",
+    "group_by": "channel",
+    "metric": "avg_lines"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_join",
+  "prompt": "On average, how many order lines does an order have in each channel? Use the sales table, which has one row per order line, with the order's order_id and channel on every line. Return two columns, in this order: channel and avg_lines, the average number of lines per order in that channel. Return one row for each channel. Do not round. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "channel",
+        "type_class": "text"
+      },
+      {
+        "name": "avg_lines",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per channel"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "channel",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "avg_lines",
+        "type_class": "numeric",
+        "precision": "ratio"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "channel"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the first step: one row per order with its number of lines, keeping the channel.",
+    "Start with WITH and the step's name that the final query reads, and group the lines by order inside the brackets."
+  ],
+  "subgoals": [
+    {
+      "from": 89,
+      "to": 134,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 137,
+      "to": 147,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 150,
+      "to": 176,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 179,
+      "to": 220,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 221,
+      "to": 243,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 244,
+      "to": 260,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": {
+    "stage1": 59,
+    "stage2": 59
+  },
+  "faded_shape": "-- Step 1: one row per order. Step 2: one row per channel.\n",
+  "faded_suffix": "\nSELECT channel, AVG(n_lines) AS avg_lines\nFROM order_line_counts\nGROUP BY channel",
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "The named step turns the lines into one row per order, so AVG then averages orders, not lines."
+}

@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-DATE-01-E2-42",
+  "item_version": 1,
+  "correct_oid": "od90098d",
+  "explanation": "timezone('UTC', order_ts) marks the stored time as UTC, and timezone('Europe/Amsterdam', ...) turns that moment into Amsterdam clock time, so the date and the filter both use the Amsterdam day. A plain CAST takes the UTC day. A single AT TIME ZONE reads the stored time as Amsterdam time and moves it the wrong way. Converting in SELECT but filtering on the UTC day keeps the wrong orders at both ends of the range.",
+  "solver": {
+    "prompt_hash": "8eb3c3084777fda0",
+    "grader_version": "choice.2",
+    "chosen": "od90098d",
+    "typed": null,
+    "at": "2026-10-07T09:58:58.578Z"
+  }
+}

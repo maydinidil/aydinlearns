@@ -6,7 +6,10 @@
     "SELECT order_line_id, net_revenue_eur, CASE WHEN net_revenue_eur < 50 OR net_revenue_eur IS NULL THEN 'paid' ELSE 'free' END AS shipping FROM sales WHERE order_id >= 1 AND order_id <= 10",
     "SELECT order_line_id, net_revenue_eur, CASE WHEN net_revenue_eur >= 50.00 THEN 'free' ELSE 'paid' END AS shipping FROM sales WHERE order_id IN (1, 2, 3, 4, 5, 6, 7, 8, 9, 10)"
   ],
-  "other_way": null,
+  "other_way": {
+    "sql": "SELECT order_line_id, net_revenue_eur, CASE WHEN net_revenue_eur < 50 OR net_revenue_eur IS NULL THEN 'paid' ELSE 'free' END AS shipping FROM sales WHERE order_id >= 1 AND order_id <= 10",
+    "tradeoff": "Two comparisons give the same rows, but BETWEEN states the range in one short test."
+  },
   "planted_wrong": [
     {
       "id": "PW1",

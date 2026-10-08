@@ -1,7 +1,6 @@
 // web/src/screens/ReadingScreen.tsx: a GA4 or Methodology concept's short reading (design §4, §8, §9, §14; D12, E-117, E-122;
-// Task C5), at #/reading/<section>/<concept>, and the panel Today shows it in. "(Unverified)" and "(New in 2026)" marks show
-// as badges at the claim. Showing the text logs one `reading` exposure from an effect, and none if the learner has left; a
-// micro-lesson or a refresher logs its own at "Done". Practice is one click away, read or not (nothing is locked).
+// Task C5), at #/reading/<section>/<concept>, and in Today's panel. Marks show as badges; the reading logs one exposure from an
+// effect (none if left), a micro-lesson or refresher its own at "Done". Practice is always one click away (nothing is locked).
 import { useEffect, useState, type ReactNode } from 'react';
 import { api, type ChoiceSection, type ReadingView } from '../api.ts';
 import { badgeSegments, loadReading, logReadingShown, mapHref, practiceHref, SECTION_LABEL, type ReadingUse } from '../lib/choice-flow.ts';
@@ -47,10 +46,13 @@ type PanelProps = {
   onPractice?: () => void;
   /** "Done" for a micro-lesson or a refresher, after its exposure is logged; "Back" for a reading. */
   onDone?: () => void;
+  /** The reading is the whole page (#/reading/...), so its title is the page's h1 (s2:L85); inside Today it stays an h2 under Today's h1. */
+  asPage?: boolean;
 };
 
 /** One reading. Keyed by its caller per concept, so each showing logs its own exposure once. */
-export function ReadingPanel({ section, conceptId, use = 'reading', onPractice, onDone }: PanelProps) {
+export function ReadingPanel({ section, conceptId, use = 'reading', onPractice, onDone, asPage = false }: PanelProps) {
+  const Title = asPage ? 'h1' : 'h2';
   const [reading, setReading] = useState<ReadingView | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [note, setNote] = useState<string | null>(null);
@@ -87,7 +89,7 @@ export function ReadingPanel({ section, conceptId, use = 'reading', onPractice, 
   if (!reading) return <p>Loading the reading...</p>;
   return (
     <article className="read-col">
-      <h2>{use === 'micro_lesson' ? 'Micro-lesson: ' : use === 'refresher' ? 'Refresher: ' : ''}{reading.title}</h2>
+      <Title>{use === 'micro_lesson' ? 'Micro-lesson: ' : use === 'refresher' ? 'Refresher: ' : ''}{reading.title}</Title>
       {use !== 'reading' && <p className="callout">{INTRO[use]}</p>}
       {!reading.verified && <p className="callout"><strong className="badge">Unverified</strong> Parts of this concept are not confirmed for the current product.</p>}
       <ReadingText text={reading.reading_md} />
@@ -108,7 +110,7 @@ export function ReadingScreen({ section, conceptId }: { section: ChoiceSection; 
     <section className="read-col">
       <Crumb section={section} crumb={crumbParts({ section, place: 'Reading', hideLabels: false })} />
       <p><a href={mapHref(section)}>{SECTION_LABEL[section]} map</a></p>
-      <ReadingPanel key={`${section}:${conceptId}`} section={section} conceptId={conceptId} onPractice={() => { location.hash = practiceHref(section, conceptId); }} />
+      <ReadingPanel key={`${section}:${conceptId}`} section={section} conceptId={conceptId} asPage onPractice={() => { location.hash = practiceHref(section, conceptId); }} />
     </section>
   );
 }

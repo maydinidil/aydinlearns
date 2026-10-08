@@ -1,0 +1,123 @@
+{
+  "id": "EX-SQL-SET-01-E1-01",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "set",
+    "union_all",
+    "price_history",
+    "competitor_prices"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-SET-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pretest",
+  "target_concept_id": "SQL-SET-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-SET-01"
+  ],
+  "template_id": "T-SET-01-stack-with-source",
+  "template_params": {
+    "tables": "price_history, competitor_prices",
+    "product_id": 2
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_set",
+  "prompt": "Build one list of every price seen for product 2: each list price version in price_history and each competitor price check in competitor_prices. Return two columns, in this order: source, the text 'Voltmarkt' for a list price version or the competitor's name for a price check, and price_eur, the list price or the checked price. Return one row for each list price version and one for each price check, so a price that repeats appears every time it was set or seen. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "source",
+        "type_class": "text"
+      },
+      {
+        "name": "price_eur",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per list price version or price check"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "source",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "price_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, stack the price checks under the list price versions, with the same two columns in the same order.",
+    "UNION ALL keeps every row of both parts. UNION would drop the repeats, so a price seen in many weeks would count once. The column names come from the first SELECT."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 57,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 58,
+      "to": 76,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 77,
+      "to": 97,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 98,
+      "to": 136,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 137,
+      "to": 159,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 160,
+      "to": 180,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "UNION ALL stacks the two lists as they are, so every list price version and every check stays, repeats included."
+}

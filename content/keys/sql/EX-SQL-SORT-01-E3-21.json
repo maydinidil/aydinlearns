@@ -7,7 +7,10 @@
     "SELECT promo_code,\n       promo_type,\n       discount_pct,\n       start_date\nFROM promotions\nWHERE start_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\nORDER BY 3 DESC, 4\nLIMIT 3",
     "SELECT promo_code,\n       promo_type,\n       discount_pct,\n       start_date\nFROM promotions\nWHERE start_date >= DATE '2025-01-01' AND start_date < DATE '2026-01-01'\nORDER BY discount_pct DESC NULLS LAST, start_date\nLIMIT 3"
   ],
-  "other_way": null,
+  "other_way": {
+    "sql": "SELECT promo_code,\n       promo_type,\n       discount_pct,\n       start_date\nFROM promotions\nWHERE start_date >= DATE '2025-01-01' AND start_date < DATE '2026-01-01'\nORDER BY discount_pct DESC NULLS LAST, start_date\nLIMIT 3",
+    "tradeoff": "A start date with an exclusive next date also works for timestamps, while BETWEEN is shorter for plain dates."
+  },
   "planted_wrong": [
     {
       "id": "PW1",

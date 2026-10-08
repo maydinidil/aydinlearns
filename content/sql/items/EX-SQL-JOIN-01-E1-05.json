@@ -1,0 +1,125 @@
+{
+  "id": "EX-SQL-JOIN-01-E1-05",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "join",
+    "orders",
+    "order_lines",
+    "utc_day"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-JOIN-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "retest",
+  "target_concept_id": "SQL-JOIN-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-JOIN-01"
+  ],
+  "template_id": "T-JOIN-01-header-to-lines",
+  "template_params": {
+    "from": "orders",
+    "join": "order_lines",
+    "country": "LU",
+    "day": "2025-03-08"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_join",
+  "prompt": "List the order lines of the orders shipped to Luxembourg (ship_to_country LU) that were placed on 8 March 2025. order_ts holds UTC time: take the day in UTC. Return three columns, in this order: order_line_id, order_id and quantity. Return one row for each order line. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "order_line_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "order_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "quantity",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "order_line_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "order_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "quantity",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "order_line_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, join each order to its lines.",
+    "The country and the time belong to the order, the quantity to the line. Match the line's order_id to the order."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 46,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 47,
+      "to": 60,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 61,
+      "to": 106,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 107,
+      "to": 238,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "One order has many lines, so joining lines to their order gives one row per line, each carrying its order's country and time."
+}

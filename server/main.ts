@@ -194,6 +194,7 @@ async function start(): Promise<void> {
     backup_folder: (latest('backup_folder') as string | null | undefined) ?? null,
     exam_date: (latest('exam_date') as string | null | undefined) ?? null,
     goal_dates: (latest('goal_dates') as Record<string, string> | undefined) ?? {},
+    portfolio_folder: (latest('portfolio_folder') as string | null | undefined) ?? null,   // D35 (log version 4)
   };
   const { content, check: contentCheck } = await loadContentOrSetup(at('content'), at('data/truth/voltmarkt.json'));
   const endHooks: AppDeps['endHooks'] = [];

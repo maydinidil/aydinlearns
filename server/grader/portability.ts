@@ -1,10 +1,14 @@
-// server/grader/portability.ts: portability notes on the learner's own query (design §6, rulings S2-53 to S2-56).
-// DuckDB accepts conveniences that the engines on real screens reject. These are notes only: never a fail, never a
-// check, so they leave GRADER_VERSION alone. They read only the gated text and its parse tree, from the runner's
-// parse_tree op (the gate, then the prepared json_serialize_sql); learner text never reaches any other path here.
+// server/grader/portability.ts: portability notes on the learner's own query (design §6, rulings S2-53 to S2-56, and from
+// Task E3 S4B-24 and S4B-25). DuckDB accepts conveniences that the engines on real screens reject. These are notes only: never
+// a fail, never a check. They read only the gated text and its parse tree, from the runner's parse_tree op (the gate, then
+// the prepared json_serialize_sql), and the integer division re-run is a gated display on the second locked runner; learner
+// text never reaches any other path here. GRADER_VERSION moved to 4b.1 with the new notes and screen mode (D41), and to 4c.1 with
+// the re-run's control run (D52).
 import type { RunnerClient } from '../runner/client.ts';
-import type { ParseTreeOk } from '../runner/protocol.ts';
+import type { DisplayOk, ParseTreeOk } from '../runner/protocol.ts';
 import { maskSql } from '../runner/tables.ts';
+import { typeClassOf } from './typeclass.ts';
+import type { DivisionCheck } from './types.ts';
 import type { TableNote } from '../../schemas/schema-notes.ts';
 
 type Clause = 'WHERE' | 'GROUP BY' | 'HAVING';
@@ -22,6 +26,18 @@ const ALIAS_NOTES: Record<Clause, (alias: string) => string> = {
 /** None of the three engines' comparison operator lists has `==` (PostgreSQL, SQL Server and MySQL docs, D6). */
 export const DOUBLE_EQUALS_NOTE = '`==` is not standard SQL. DuckDB accepts it; PostgreSQL, SQL Server and MySQL use `=`.';
 export const aliasNote = (clause: Clause, alias: string): string => ALIAS_NOTES[clause](alias);
+
+// S4B-25: DuckDB's friendly SQL (design §6, the lint grows). One note per construct, in this order, however often it is used.
+export const GROUP_BY_ALL_NOTE = 'GROUP BY ALL is a DuckDB shortcut. PostgreSQL and MySQL do not have it, and in SQL Server it means something else. List the grouping columns instead.';
+export const FROM_FIRST_NOTE = 'Starting a query with FROM works only in DuckDB. PostgreSQL, SQL Server and MySQL need SELECT first.';
+export const TRAILING_COMMA_NOTE = 'A comma with nothing after it works in DuckDB, but PostgreSQL, SQL Server and MySQL reject it. Remove the extra comma.';
+export const CAST_NOTE = '`::` casts work in DuckDB and PostgreSQL, but not in SQL Server or MySQL. CAST(x AS type) works everywhere.';
+export const ILIKE_NOTE = "ILIKE works in DuckDB and PostgreSQL, but not in SQL Server or MySQL. LOWER(x) LIKE 'pattern' works everywhere.";
+export const COUNT_NOTE = 'count() with nothing inside works only in DuckDB. PostgreSQL, SQL Server and MySQL need count(*) to count rows.';
+export const EXCLUDE_NOTE = 'SELECT * EXCLUDE works only in DuckDB. PostgreSQL, SQL Server and MySQL need the columns you want listed.';
+export const QUALIFY_NOTE = 'QUALIFY works in DuckDB, but not in PostgreSQL, SQL Server or MySQL. Filter the window result in an outer query instead.';
+/** S4B-24: after a pass, the integer division re-run gave another result. */
+export const INT_DIVISION_NOTE = 'On PostgreSQL or SQL Server this division cuts off the decimals (7 / 2 = 3). Cast one side to a decimal.';
 
 /** A table's columns in order, or null when they are not known. `schema` is null for an unqualified name. */
 export type ColumnsOf = (schema: string | null, table: string) => string[] | null;
@@ -186,15 +202,89 @@ function lintQuery(node: Obj | null, scope: Scope, columnsOf: ColumnsOf, add: (c
   for (const q of nestedQueries(rest)) lintQuery(q, { ctes: s.ctes, outer: visible }, columnsOf, add);
 }
 
+/**
+ * The text with strings and comments blanked, and each quoted name replaced by a same-length run of `x`, so a scan sees only the
+ * SQL itself. A quoted name stays a word (not spaces), so a comma after it is not mistaken for a trailing one.
+ */
+const bareText = (sql: string): string => maskSql(sql).replace(/"(?:[^"]|"")*"/g, (m) => 'x'.repeat(m.length));
+
 /** S2-55: the parse tree turns `==` into `=`, so the masked text is scanned, with strings, comments and quoted names blanked. */
 export function hasDoubleEquals(sql: string): boolean {
-  const masked = maskSql(sql).replace(/"(?:[^"]|"")*"/g, (m) => ' '.repeat(m.length));
-  return /(?<![<>=!])==(?!=)/.test(masked);
+  return /(?<![<>=!])==(?!=)/.test(bareText(sql));
+}
+
+/** Words that may stand before a bracket that opens a query, so a FROM right after that bracket starts the query. */
+const BEFORE_QUERY = new Set(['from', 'join', 'in', 'exists', 'as', 'any', 'all', 'some', 'lateral', 'select', 'where', 'and', 'or', 'not',
+  'on', 'then', 'else', 'when', 'having', 'by', 'materialized', 'union', 'intersect', 'except', 'distinct', 'with', 'case', 'qualify', 'is']);
+const SET_OPERATIONS = ['union', 'intersect', 'except'];
+
+/**
+ * S4B-25, FROM first: the parse tree reads `FROM t SELECT x` as `SELECT x FROM t`, so the bare text is scanned. A FROM starts a
+ * query when what comes before it is the start of the text, a bracket that opens a query (not a call such as extract(year FROM d)),
+ * a set operation, or the closing bracket of a CTE's body (`AS (...)`).
+ */
+export function hasFromFirst(sql: string): boolean {
+  const tokens = bareText(sql).match(/[A-Za-z_][\w$]*|[()]|[^\s\w()]+/g) ?? [];
+  const low = (t: string | undefined): string => (t ?? '').toLowerCase();
+  const openers: (string | undefined)[] = [];          // the token before each bracket still open
+  const opened = new Map<number, string | undefined>(); // a closing bracket's index -> the token before its opening bracket
+  tokens.forEach((t, i) => {
+    if (t === '(') openers.push(tokens[i - 1]);
+    else if (t === ')') opened.set(i, openers.pop());
+  });
+  return tokens.some((t, i) => {
+    if (low(t) !== 'from') return false;
+    if (i === 0) return true;
+    const prev = tokens[i - 1]!;
+    if (prev === ';') return true;
+    if (prev === '(') {
+      const before = tokens[i - 2];
+      return before === undefined || !/^[A-Za-z_]/.test(before) || BEFORE_QUERY.has(low(before));
+    }
+    if (prev === ')') return ['as', 'materialized'].includes(low(opened.get(i - 1)));
+    if (SET_OPERATIONS.includes(low(prev))) return true;
+    return ['all', 'distinct'].includes(low(prev)) && SET_OPERATIONS.includes(low(tokens[i - 2]));
+  });
+}
+
+/** The S4B-25 constructs the parse tree shows: GROUP BY ALL, QUALIFY and a star's EXCLUDE list, anywhere in the statement. */
+function treeConstructs(statement: unknown): { groupByAll: boolean; qualify: boolean; exclude: boolean } {
+  const found = { groupByAll: false, qualify: false, exclude: false };
+  walk(statement, (o) => {
+    if (o.type === 'SELECT_NODE') {
+      if (o.aggregate_handling === 'FORCE_AGGREGATES') found.groupByAll = true;
+      if (o.qualify !== null && o.qualify !== undefined) found.qualify = true;
+    }
+    if (o.class === 'STAR' && (list(o.exclude_list).length > 0 || list(o.qualified_exclude_list).length > 0)) found.exclude = true;
+    return true;
+  });
+  return found;
+}
+
+/** A comma with nothing after it: before a closing bracket, the end, or the next clause. */
+const TRAILING_COMMA = /,\s*(?:\)|;|$|\b(?:from|where|group|having|order|limit|offset|qualify|window|union|intersect|except)\b)/i;
+
+/** S4B-25: the friendly-SQL notes for one statement, in their fixed order. The text constructs are read from the bare text. */
+function friendlySqlNotes(statement: unknown, sql: string): string[] {
+  const tree = treeConstructs(statement);
+  const bare = bareText(sql);
+  const found: [boolean, string][] = [
+    [tree.groupByAll, GROUP_BY_ALL_NOTE],
+    [hasFromFirst(sql), FROM_FIRST_NOTE],
+    [TRAILING_COMMA.test(bare), TRAILING_COMMA_NOTE],
+    [bare.includes('::'), CAST_NOTE],
+    [/\bilike\b/i.test(bare), ILIKE_NOTE],
+    [/\bcount\s*\(\s*\)/i.test(bare), COUNT_NOTE],
+    [tree.exclude, EXCLUDE_NOTE],
+    [tree.qualify, QUALIFY_NOTE],
+  ];
+  return found.flatMap(([on, note]) => (on ? [note] : []));
 }
 
 /**
  * The notes for one statement: alias notes grouped by clause (WHERE, GROUP BY, HAVING), one per alias and clause,
- * then the `==` note. `tree` is json_serialize_sql's reply for `sql`, and `sql` must be the text the gate passed.
+ * then the `==` note, then the friendly-SQL notes (S4B-25). `tree` is json_serialize_sql's reply for `sql`, and `sql` must be
+ * the text the gate passed.
  */
 export function lintPortability(tree: unknown, sql: string, columnsOf: ColumnsOf): string[] {
   const statements = isObj(tree) && tree.error === false ? list(tree.statements) : [];
@@ -202,7 +292,66 @@ export function lintPortability(tree: unknown, sql: string, columnsOf: ColumnsOf
   const found: Record<Clause, Set<string>> = { 'WHERE': new Set(), 'GROUP BY': new Set(), 'HAVING': new Set() };
   lintQuery(queryOf(statements[0]), { ctes: new Map(), outer: new Set() }, columnsOf, (clause, alias) => { found[clause].add(alias); });
   const notes = (Object.keys(found) as Clause[]).flatMap((clause) => [...found[clause]].map((a) => aliasNote(clause, a)));
-  return hasDoubleEquals(sql) ? [...notes, DOUBLE_EQUALS_NOTE] : notes;
+  return [...notes, ...(hasDoubleEquals(sql) ? [DOUBLE_EQUALS_NOTE] : []), ...friendlySqlNotes(statements[0], sql)];
+}
+
+/** S4B-24: a `/` in the SQL itself, not in a string, a comment or a quoted name. */
+export const hasDivision = (sql: string): boolean => bareText(sql).includes('/');
+
+/** A displayed value as the re-run compares it: numbers to 12 significant digits, so 2 and 2.0 agree and float noise does not count. */
+function comparable(v: unknown, numeric: boolean): string {
+  if (v === null || v === undefined) return 'null';
+  if (numeric) {
+    const n = typeof v === 'number' ? v : typeof v === 'string' ? Number(v) : NaN;
+    if (Number.isFinite(n)) return `n:${Number(n.toPrecision(12))}`;
+  }
+  return JSON.stringify(v);
+}
+
+/**
+ * S4B-24: whether a re-run (the D52 control, or the integer division run) gave another result than the pass did, comparing the
+ * rows as bags (row order may differ between runs and runners). Null when either result was cut at the display cap: the rows
+ * shown cannot be compared.
+ */
+export function divisionChanged(shown: DisplayOk, rerun: DisplayOk): boolean | null {
+  if (shown.truncated || rerun.truncated) return null;
+  if (shown.columns.length !== rerun.columns.length || shown.rows.length !== rerun.rows.length) return true;
+  const numeric = shown.columns.map((c, i) => typeClassOf(c.type) === 'numeric' || typeClassOf(rerun.columns[i]!.type) === 'numeric');
+  const bag = (rows: unknown[][]): string[] => rows.map((r) => JSON.stringify(r.map((v, i) => comparable(v, numeric[i]!)))).sort();
+  const [a, b] = [bag(shown.rows), bag(rerun.rows)];
+  return a.some((row, i) => row !== b[i]);
+}
+
+/**
+ * S4B-24 (design §6, spike A X9): after a pass, a query with a `/` runs again on the visible data in the second locked runner,
+ * where integer_division is on, under the same gate, deadline and kill. Codex F24: the outcome is returned, not a note, so JR-04
+ * can tell a real comparison from none. No `/` is 'no_division' (integer division only changes `/`). A shown display cut at the
+ * cap, a re-run that fails, times out or crashes, or a result that cannot be compared is 'not_compared'. Otherwise 'changed' or
+ * 'same'. Nothing here ever changes the grade. `shown` is the pass's own display of the same query on the same data, capped at `cap` rows.
+ *
+ * D52 (sprint 4c, Task B2): a result that does not repeat (a LIMIT without ORDER BY, random()) would differ under integer division
+ * for no reason of its own, and a false note teaches the wrong lesson. So the query first runs again with integer division off, as
+ * the control. A control that differs from `shown`, cannot be compared, fails, times out or throws is 'not_compared', and the integer
+ * division run is skipped. The two runs share the one `deadlineMs`: the integer division run gets what the control left, and with
+ * nothing left the outcome is 'not_compared', so a slow query never gives a wrong note or a late grade. The control is a display
+ * without integer division, so it runs on the first locked instance: the second one has integer_division locked on.
+ */
+export async function integerDivisionCheck(runner: RunnerClient, schema: string, sql: string, shown: DisplayOk, cap: number, deadlineMs: number): Promise<DivisionCheck> {
+  if (!hasDivision(sql)) return 'no_division';
+  if (shown.truncated) return 'not_compared';
+  const started = performance.now();
+  try {
+    const control = await runner.request<DisplayOk>({ op: 'display', schema, allowedSchemas: [], sql, cap, deadlineMs, integerDivision: false });
+    if (!control.ok || divisionChanged(shown, control.data) !== false) return 'not_compared';
+    const left = Math.floor(deadlineMs - (performance.now() - started));
+    if (left <= 0) return 'not_compared';
+    const r = await runner.request<DisplayOk>({ op: 'display', schema, allowedSchemas: [], sql, cap, deadlineMs: left, integerDivision: true });
+    if (!r.ok) return 'not_compared';
+    const changed = divisionChanged(shown, r.data);
+    return changed === null ? 'not_compared' : changed ? 'changed' : 'same';
+  } catch {
+    return 'not_compared';
+  }
 }
 
 /**

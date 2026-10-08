@@ -6,7 +6,10 @@
     "SELECT COUNT(*) AS n_closing_stores FROM stores WHERE close_date IS NOT NULL",
     "SELECT COUNT(store_id) AS n_closing_stores FROM stores WHERE close_date IS NOT NULL"
   ],
-  "other_way": null,
+  "other_way": {
+    "sql": "SELECT COUNT(*) AS n_closing_stores FROM stores WHERE close_date IS NOT NULL",
+    "tradeoff": "Filters first and then counts rows, which reads plainly, but needs an extra WHERE step."
+  },
   "planted_wrong": [
     {
       "id": "EX-SQL-AGG-01-E1-07-PW1",

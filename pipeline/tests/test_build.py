@@ -1,3 +1,4 @@
+import datetime as dt
 import json
 import pathlib
 import re
@@ -15,10 +16,34 @@ from voltmarkt import notes as vm_notes  # noqa: E402
 
 LEVEL1_TABLES = {"calendar", "stores", "categories", "products", "promotions"}
 ORDER_TABLES = {"price_history", "promotion_products", "orders", "order_lines"}
-VOLTMARKT_TABLES = LEVEL1_TABLES | ORDER_TABLES
+LEVEL2_TABLES = LEVEL1_TABLES | ORDER_TABLES            # voltmarkt before sprint 4a, and each level 2 edge schema
+LEVEL3_TABLES = {"competitor_prices"}                   # sprint 4a (S4-02)
+VOLTMARKT_TABLES = LEVEL2_TABLES | LEVEL3_TABLES
 VIEWS = {"sales"}
+WEEKLY = "competitor_price_weekly"                      # S4B-31: its own build step, only where competitor_prices exists
+WEEKLY_SCHEMAS = ["voltmarkt", "voltmarkt_edge_join", "voltmarkt_edge_date", "voltmarkt_edge_set"]
+WEEKLY_COLUMNS = [("product_id", "INTEGER"), ("iso_year", "BIGINT"), ("iso_week", "BIGINT"),
+                  ("avg_competitor_price_eur", "DOUBLE"), ("competitors_seen", "BIGINT")]
 LEVEL1_EDGE_SCHEMAS = ["voltmarkt_edge_basics", "voltmarkt_edge_filter", "voltmarkt_edge_sort", "voltmarkt_edge_null"]
 LEVEL2_EDGE_SCHEMAS = ["voltmarkt_edge_agg", "voltmarkt_edge_case", "voltmarkt_edge_type"]
+LEVEL3_EDGE_SCHEMAS = ["voltmarkt_edge_date", "voltmarkt_edge_join", "voltmarkt_edge_set"]   # S4-03
+ORDER_EDGE_SCHEMAS = LEVEL2_EDGE_SCHEMAS + LEVEL3_EDGE_SCHEMAS
+# R37 and S4-02: data/manifest.json's entries as built before sprint 4a. Level 3 only adds objects.
+BEFORE_LEVEL3 = json.loads((pathlib.Path(__file__).resolve().parent / "manifest_before_level3.json").read_text(encoding="utf-8"))["tables"]
+# S4-01: the order and price tables join the schema panel from level 3: (grain, primary key, foreign keys as
+# (column, referenced table, referenced column), each 1:N). Levels 1 and 2 keep today's tables (from_level 1).
+LEVEL3_NOTES = {
+    "orders": ("one row per order (customer_id is missing for a guest order)", ["order_id"], [("store_id", "stores", "store_id")]),
+    "order_lines": ("one row per order line", ["order_line_id"],
+                    [("order_id", "orders", "order_id"), ("product_id", "products", "product_id"), ("promo_id", "promotions", "promo_id")]),
+    "price_history": ("one row per product per price version (valid_to is missing for the current price)", ["product_id", "valid_from"],
+                      [("product_id", "products", "product_id")]),
+    "promotion_products": ("one row per promotion and product (a bridge table: a product can be in several promotions)",
+                           ["promo_id", "product_id"], [("promo_id", "promotions", "promo_id"), ("product_id", "products", "product_id")]),
+    "competitor_prices": ("one row per competitor price check of a product", ["product_id", "competitor", "observed_ts"],
+                          [("product_id", "products", "product_id")]),
+}
+AMSTERDAM = "timezone('Europe/Amsterdam', timezone('UTC', order_ts))"   # a UTC TIMESTAMP as Amsterdam wall-clock time
 # Ruling R17: no extension downloads from DuckDB, ever.
 NO_NETWORK = {"autoinstall_known_extensions": False, "autoload_known_extensions": False}
 # Design §10: the canonical beginner sales view, at order-line grain, with no order-level measure.
@@ -115,16 +140,18 @@ class CourseDb(unittest.TestCase):
         return tables, views
 
     def test_schemas_and_tables(self):
-        self.assertEqual(self.names("voltmarkt"), (VOLTMARKT_TABLES, VIEWS))
+        self.assertEqual(self.names("voltmarkt"), (VOLTMARKT_TABLES, VIEWS | {WEEKLY}))
         for s in LEVEL1_EDGE_SCHEMAS:
             self.assertEqual(self.names(s), (LEVEL1_TABLES, set()), s)
             for t in LEVEL1_TABLES:
                 self.assertEqual(self.columns(s, t), self.columns("voltmarkt", t), f"{s}.{t} mirrors voltmarkt.{t}")
                 rows = self.one(f"SELECT count(*) FROM {s}.{t}")[0]
                 self.assertTrue(4 <= rows <= 8, f"{s}.{t} has {rows} rows, not 4-8")
-        for s in LEVEL2_EDGE_SCHEMAS:
-            self.assertEqual(self.names(s), (VOLTMARKT_TABLES, VIEWS), f"{s} has the same table and view names as voltmarkt")
-            for t in VOLTMARKT_TABLES | VIEWS:
+        # Level 2 edge schemas keep the names voltmarkt had when level 2 was written (no competitor_prices).
+        for s, names, views in ([(s, LEVEL2_TABLES, VIEWS) for s in LEVEL2_EDGE_SCHEMAS]
+                                + [(s, VOLTMARKT_TABLES, VIEWS | {WEEKLY}) for s in LEVEL3_EDGE_SCHEMAS]):
+            self.assertEqual(self.names(s), (names, views), f"{s} has the same table and view names as voltmarkt")
+            for t in names | views:
                 self.assertEqual(self.columns(s, t), self.columns("voltmarkt", t), f"{s}.{t} mirrors voltmarkt.{t}")
                 rows = self.one(f"SELECT count(*) FROM {s}.{t}")[0]
                 self.assertTrue(1 <= rows <= 40, f"{s}.{t} has {rows} rows, not 1-40")
@@ -135,7 +162,7 @@ class CourseDb(unittest.TestCase):
         self.assertEqual(self.one("SELECT count(*) FROM duckdb_views() WHERE schema_name = 'main' AND NOT internal")[0], 0)
 
     def test_sales_view_at_order_line_grain(self):
-        for s in ["voltmarkt", *LEVEL2_EDGE_SCHEMAS]:
+        for s in ["voltmarkt", *ORDER_EDGE_SCHEMAS]:
             self.assertEqual(self.columns(s, "sales"), SALES_COLUMNS, s)
             views, lines = self.one(f"SELECT (SELECT count(*) FROM {s}.sales), (SELECT count(*) FROM {s}.order_lines)")
             self.assertEqual(views, lines, f"{s}.sales has one row per order line")
@@ -156,7 +183,7 @@ class CourseDb(unittest.TestCase):
 
     def test_view_bodies_hold_no_data_literals_and_read_their_own_schema(self):
         views = self.con.execute("SELECT schema_name, view_name, sql FROM duckdb_views() WHERE NOT internal").fetchall()
-        self.assertEqual(len(views), 1 + len(LEVEL2_EDGE_SCHEMAS))
+        self.assertEqual(len(views), 1 + len(ORDER_EDGE_SCHEMAS) + len(WEEKLY_SCHEMAS))
         for schema, name, sql in views:
             tokens = duckdb.tokenize(sql)
             for k, (start, kind) in enumerate(tokens):
@@ -178,13 +205,25 @@ class CourseDb(unittest.TestCase):
         for name, sha in LEVEL1_SHA256.items():
             self.assertEqual(self.manifest["tables"][name]["sha256"], sha, name)
 
+    def test_every_existing_table_is_unchanged(self):
+        # R37 and S4-02: level 3 data is appended. Every table and view built before sprint 4a keeps its rows and hash
+        # (a view its SQL text), so no level 1 or 2 key reads a changed table and no blind solve goes stale.
+        self.assertEqual(len(BEFORE_LEVEL3), 60)
+        for name, entry in BEFORE_LEVEL3.items():
+            self.assertEqual(self.manifest["tables"].get(name), entry, name)
+        added = sorted(set(self.manifest["tables"]) - set(BEFORE_LEVEL3))
+        expected = (["voltmarkt.competitor_prices", f"voltmarkt.{WEEKLY}"]
+                    + [f"{s}.{t}" for s in LEVEL3_EDGE_SCHEMAS for t in sorted(VOLTMARKT_TABLES | VIEWS | {WEEKLY})])
+        self.assertEqual(added, sorted(expected), "only competitor_prices, the weekly view and the level 3 edge schemas are new")
+
     def test_manifest(self):
         m = self.manifest
         self.assertEqual(m["duckdb_version"], duckdb.__version__)
         self.assertEqual(m["library_version"], f"v{duckdb.__version__}", "pragma_version(), as the Node runner reports it")
         self.assertEqual(m["tables"]["voltmarkt.products"]["rows"], 1200)
         self.assertEqual(m["tables"]["voltmarkt.sales"]["rows"], m["tables"]["voltmarkt.order_lines"]["rows"])
-        for s in ["voltmarkt", *LEVEL1_EDGE_SCHEMAS, *LEVEL2_EDGE_SCHEMAS]:
+        self.assertTrue(140_000 <= m["tables"]["voltmarkt.competitor_prices"]["rows"] <= 160_000)
+        for s in ["voltmarkt", *LEVEL1_EDGE_SCHEMAS, *ORDER_EDGE_SCHEMAS]:
             tables, views = self.names(s)
             for t in tables | views:
                 self.assertIn(f"{s}.{t}", m["tables"])
@@ -214,9 +253,9 @@ class CourseDb(unittest.TestCase):
     def test_notes_truth_and_descriptions(self):
         notes = json.loads((self.dir / "schema-notes.json").read_text(encoding="utf-8"))
         visible = [n for n in notes if n["schema"] == "voltmarkt"]
-        self.assertEqual({n["table"] for n in visible}, LEVEL1_TABLES | VIEWS)
+        self.assertEqual({n["table"] for n in visible}, LEVEL1_TABLES | set(LEVEL3_NOTES) | VIEWS | {WEEKLY})
         sales = {n["schema"]: n for n in notes if n["table"] == "sales"}
-        self.assertEqual(set(sales), {"voltmarkt", *LEVEL2_EDGE_SCHEMAS}, "the view and every edge copy have notes")
+        self.assertEqual(set(sales), {"voltmarkt", *ORDER_EDGE_SCHEMAS}, "the view and every edge copy have notes")
         for s, n in sales.items():
             self.assertEqual(n["grain"], "one row per order line")
             self.assertEqual(n["primary_key"], ["order_line_id"])
@@ -236,6 +275,47 @@ class CourseDb(unittest.TestCase):
         families = {json.loads((root / "content" / "sql" / "edge" / f"{s}.json").read_text(encoding="utf-8"))["family"]
                     for s in LEVEL2_EDGE_SCHEMAS}
         self.assertEqual(families, {"agg", "case", "type"})
+        families = {s: json.loads((root / "content" / "sql" / "edge" / f"{s}.json").read_text(encoding="utf-8"))["family"]
+                    for s in LEVEL3_EDGE_SCHEMAS}
+        self.assertEqual(families, {"voltmarkt_edge_date": "date", "voltmarkt_edge_join": "join", "voltmarkt_edge_set": "set"})
+
+    def test_level3_tables_in_the_schema_notes(self):
+        # S4-01: grain, primary key, foreign keys labelled 1:N, row count, a 5-row sample, allowed values of code columns.
+        notes = json.loads((self.dir / "schema-notes.json").read_text(encoding="utf-8"))
+        visible = {n["table"]: n for n in notes if n["schema"] == "voltmarkt"}
+        for table, (grain, pk, fks) in LEVEL3_NOTES.items():
+            n = visible[table]
+            self.assertEqual(n["grain"], grain, table)
+            self.assertEqual(n["primary_key"], pk, table)
+            self.assertEqual(n["foreign_keys"], [{"columns": [c], "references": f"{t}.{rc}", "ref_table": t, "ref_columns": [rc],
+                                                  "cardinality": "1:N"} for c, t, rc in fks], table)
+            self.assertEqual(n["row_count"], self.one(f"SELECT count(*) FROM voltmarkt.{table}")[0], table)
+            self.assertEqual(n["sample"]["columns"], [c for c, _ in self.columns("voltmarkt", table)], table)
+            self.assertEqual(len(n["sample"]["rows"]), 5, table)
+            self.assertEqual(n["from_level"], 3, f"{table} shows from level 3 on")
+            keys = self.one(f"SELECT count(*) = count(DISTINCT ({', '.join(pk)})) FROM voltmarkt.{table}")[0]
+            self.assertTrue(keys, f"{table}'s primary key is unique")
+        self.assertEqual(visible["orders"]["allowed_values"], {"channel": ["store", "web"], "ship_to_country": ["BE", "LU", "NL"]})
+        self.assertEqual(visible["competitor_prices"]["allowed_values"], {"competitor": sorted(build_course_db.vm.COMPETITORS)})
+        for table in ("order_lines", "price_history", "promotion_products"):
+            self.assertNotIn("allowed_values", visible[table], table)
+        # Levels 1 and 2 keep today's tables: every other note shows from level 1.
+        for n in notes:
+            if n["table"] == WEEKLY:
+                self.assertEqual(n["from_level"], 3, "the weekly view shows from level 3 on, with competitor_prices")
+            elif n["table"] not in LEVEL3_NOTES:
+                self.assertEqual(n["from_level"], 1, f"{n['schema']}.{n['table']}")
+        # Every foreign key of every note carries its referenced table and columns as data (Task B2 renders them).
+        for n in notes:
+            for f in n["foreign_keys"]:
+                self.assertEqual(f["references"], f"{f['ref_table']}.{', '.join(f['ref_columns'])}", f"{n['table']}: {f}")
+                self.assertIn(f["ref_table"], VOLTMARKT_TABLES, f"{n['table']}: {f}")
+                self.assertEqual(f["cardinality"], "1:N")
+        for name in LEVEL3_NOTES:
+            for f in visible[name]["foreign_keys"]:
+                orphans = self.one(f"""SELECT count(*) FROM voltmarkt.{name} x WHERE x.{f['columns'][0]} IS NOT NULL AND NOT EXISTS
+                                       (SELECT 1 FROM voltmarkt.{f['ref_table']} r WHERE r.{f['ref_columns'][0]} = x.{f['columns'][0]})""")[0]
+                self.assertEqual(orphans, 0, f"voltmarkt.{name}.{f['columns'][0]} always meets {f['references']}")
 
     def test_notes_list_allowed_values_of_category_like_columns(self):
         # E-019: the notes list the allowed values of each category-like column, from the visible data only.
@@ -288,16 +368,146 @@ class CourseDb(unittest.TestCase):
         bands = self.one("SELECT count(DISTINCT net_revenue_eur) FROM voltmarkt_edge_case.sales WHERE net_revenue_eur IN (50, 100, 500)")[0]
         self.assertEqual(bands, 3)
 
+    # S4-03: each level 3 edge schema holds each of its cases (one assertion per case).
+
+    def test_join_edge_schema_plants_its_cases(self):
+        s = "voltmarkt_edge_join"
+        no_lines = self.one(f"SELECT count(*) FROM {s}.orders o WHERE NOT EXISTS (SELECT 1 FROM {s}.order_lines l WHERE l.order_id = o.order_id)")[0]
+        self.assertGreater(no_lines, 0, "an order with no lines")
+        promo = self.one(f"""SELECT count(*) FILTER (WHERE promo_id IS NOT NULL AND promo_id NOT IN (SELECT promo_id FROM {s}.promotions)),
+                                    count(*) FILTER (WHERE promo_id IS NULL) FROM {s}.order_lines""")
+        self.assertTrue(all(x > 0 for x in promo), f"a line whose promotion has no row in promotions, beside lines with no promotion {promo}")
+        two = self.one(f"""SELECT count(*) FROM (SELECT product_id FROM {s}.promotion_products GROUP BY 1 HAVING count(*) >= 2) p
+                           WHERE p.product_id IN (SELECT product_id FROM {s}.order_lines)""")[0]
+        self.assertGreater(two, 0, "a product in two promotions, with sales, so a join on product repeats its lines")
+        prices = self.one(f"""WITH v AS (SELECT product_id, date_trunc('week', valid_from) AS wk FROM {s}.price_history GROUP BY ALL HAVING count(*) >= 2)
+                              SELECT count(DISTINCT l.unit_price_eur) FROM {s}.order_lines l JOIN {s}.orders o USING (order_id)
+                              JOIN v ON v.product_id = l.product_id AND v.wk = date_trunc('week', o.order_ts)""")[0]
+        self.assertGreaterEqual(prices, 2, "two price versions in one week, each with a sale")
+        idle = self.one(f"SELECT count(*) FROM {s}.stores s WHERE NOT EXISTS (SELECT 1 FROM {s}.orders o WHERE o.store_id = s.store_id)")[0]
+        self.assertGreater(idle, 0, "a store with no orders")
+        guest = self.one(f"SELECT count(*) FROM {s}.orders WHERE customer_id IS NULL AND order_id IN (SELECT order_id FROM {s}.order_lines)")[0]
+        self.assertGreater(guest, 0, "a guest order with a missing customer")
+        # SQL-JOIN-03's third fan-out source: several competitor rows for a product in a week it sold.
+        rivals = self.one(f"""SELECT count(*) FROM (SELECT product_id, date_trunc('week', observed_ts) AS wk FROM {s}.competitor_prices
+                              GROUP BY ALL HAVING count(*) >= 2) c
+                              WHERE EXISTS (SELECT 1 FROM {s}.sales x WHERE x.product_id = c.product_id AND x.order_week = c.wk)""")[0]
+        self.assertGreater(rivals, 0, "competitor rows that fan out a product's sales in one week")
+
+    def test_date_edge_schema_plants_its_cases(self):
+        s = "voltmarkt_edge_date"
+        late = {r[0] for r in self.con.execute(f"""SELECT date_diff('hour', order_ts, {AMSTERDAM}) FROM {s}.orders
+            WHERE channel = 'web' AND strftime(order_ts, '%H:%M') = '23:30'
+              AND CAST({AMSTERDAM} AS DATE) = CAST(order_ts AS DATE) + 1""").fetchall()}
+        self.assertEqual(late, {1, 2}, "23:30 UTC web orders that fall on the next Amsterdam day, in winter and in summer time")
+        repeated = self.one(f"""SELECT count(DISTINCT order_ts) FROM {s}.orders
+                                WHERE channel = 'web' AND {AMSTERDAM} = TIMESTAMP '2025-10-26 02:30:00'""")[0]
+        self.assertEqual(repeated, 2, "the 2025-10-26 clock change: two UTC times that read 02:30 in Amsterdam")
+        ends = {r[0] for r in self.con.execute(f"""SELECT DISTINCT CAST(order_ts AS DATE) FROM {s}.orders
+            WHERE CAST(order_ts AS DATE) = last_day(CAST(order_ts AS DATE)) AND order_ts > CAST(CAST(order_ts AS DATE) AS TIMESTAMP)""").fetchall()}
+        self.assertTrue(ends >= {dt.date(2024, 2, 29), dt.date(2024, 12, 31), dt.date(2025, 1, 31), dt.date(2025, 6, 30)},
+                        f"orders after midnight on month ends, the leap day among them {sorted(ends)}")
+        iso = {r[0] for r in self.con.execute(f"""SELECT DISTINCT isoyear(order_ts) FROM {s}.orders
+                                                  WHERE week(order_ts) = 1 AND year(order_ts) <> isoyear(order_ts)""").fetchall()}
+        self.assertEqual(iso, {2025, 2026}, "ISO week 1 across a year: late December orders in week 1 of the next ISO year")
+
+    def test_set_edge_schema_plants_its_cases(self):
+        s = "voltmarkt_edge_set"
+        both = self.one(f"""SELECT count(*) FROM (SELECT product_id FROM {s}.sales WHERE channel = 'web'
+                            INTERSECT SELECT product_id FROM {s}.sales WHERE channel = 'store')""")[0]
+        self.assertGreater(both, 0, "rows in both inputs")
+        dupes = self.one(f"SELECT count(*) - count(DISTINCT product_id) FROM {s}.sales WHERE channel = 'web'")[0]
+        self.assertGreater(dupes, 0, "duplicates inside one input")
+        missing = self.one(f"""SELECT
+            (SELECT count(*) FROM (SELECT customer_id FROM {s}.orders WHERE channel = 'web'
+                                   INTERSECT SELECT customer_id FROM {s}.orders WHERE channel = 'store') WHERE customer_id IS NULL),
+            (SELECT count(*) FROM {s}.orders WHERE channel = 'web'
+                AND customer_id NOT IN (SELECT customer_id FROM {s}.orders WHERE channel = 'store')),
+            (SELECT count(*) FROM (SELECT customer_id FROM {s}.orders WHERE channel = 'web'
+                                   EXCEPT SELECT customer_id FROM {s}.orders WHERE channel = 'store'))""")
+        self.assertTrue(missing[0] == 1 and missing[1] == 0 and missing[2] > 0,
+                        f"missing values in compared columns: INTERSECT keeps one missing row, NOT IN finds nothing, EXCEPT does {missing}")
+
+    def test_weekly_view_exists_in_the_four_schemas_and_nowhere_else(self):
+        # S4B-31: built by its own step, not by ddl.sql's view list, so the level 2 edge schemas never see it.
+        found = sorted(r[0] for r in self.con.execute(
+            "SELECT schema_name FROM duckdb_views() WHERE view_name = ? AND NOT internal", [WEEKLY]).fetchall())
+        self.assertEqual(found, sorted(WEEKLY_SCHEMAS))
+        self.assertEqual(self.one("SELECT count(*) FROM duckdb_tables() WHERE table_name = ?", [WEEKLY])[0], 0)
+        for s in WEEKLY_SCHEMAS:
+            self.assertEqual(self.columns(s, WEEKLY), WEEKLY_COLUMNS, s)
+        for s in [*LEVEL1_EDGE_SCHEMAS, *LEVEL2_EDGE_SCHEMAS]:
+            self.assertNotIn(WEEKLY, self.names(s)[1], s)
+
+    def test_weekly_view_one_row_per_product_and_iso_week(self):
+        for s in WEEKLY_SCHEMAS:
+            rows, distinct_view = self.one(f"SELECT count(*), count(DISTINCT (product_id, iso_year, iso_week)) FROM {s}.{WEEKLY}")
+            weeks = self.one(f"SELECT count(*) FROM (SELECT DISTINCT product_id, isoyear(observed_ts), week(observed_ts) "
+                             f"FROM {s}.competitor_prices)")[0]
+            self.assertGreater(rows, 0, s)
+            self.assertEqual(rows, distinct_view, f"{s}: the grain is unique")
+            self.assertEqual(rows, weeks, f"{s}: one row per product and ISO week present in competitor_prices")
+            bad = self.one(f"SELECT count(*) FROM {s}.{WEEKLY} WHERE competitors_seen < 1 OR avg_competitor_price_eur IS NULL")[0]
+            self.assertEqual(bad, 0, s)
+
+    def test_weekly_view_average_and_count_match_a_recomputation(self):
+        top = self.con.execute("SELECT product_id FROM voltmarkt.competitor_prices GROUP BY 1 ORDER BY count(*) DESC, 1 LIMIT 2").fetchall()
+        self.assertEqual(len(top), 2)
+        for (pid,) in top:
+            raw = self.con.execute("SELECT competitor, observed_ts, price_eur FROM voltmarkt.competitor_prices WHERE product_id = ?", [pid]).fetchall()
+            expected = {}
+            for competitor, ts, price in raw:
+                iso = ts.isocalendar()   # the stored instant is UTC and the connection's TimeZone is UTC
+                expected.setdefault((iso[0], iso[1]), []).append((competitor, float(price)))
+            got = {(y, w): (a, n) for y, w, a, n in self.con.execute(
+                f"SELECT iso_year, iso_week, avg_competitor_price_eur, competitors_seen FROM voltmarkt.{WEEKLY} WHERE product_id = ?", [pid]).fetchall()}
+            self.assertEqual(set(got), set(expected), f"product {pid}")
+            for key, obs in expected.items():
+                self.assertAlmostEqual(got[key][0], sum(p for _, p in obs) / len(obs), places=9, msg=f"product {pid} {key}")
+                self.assertEqual(got[key][1], len({c for c, _ in obs}), f"product {pid} {key}")
+
+    def test_weekly_view_uses_the_iso_year_across_new_year(self):
+        # A day in late December or early January belongs to the ISO year of its week, not its calendar year.
+        mismatch = self.one(f"""SELECT count(*) FROM (SELECT DISTINCT product_id, isoyear(observed_ts) AS y, week(observed_ts) AS w
+                                FROM voltmarkt.competitor_prices WHERE month(observed_ts) = 12 AND day(observed_ts) >= 29
+                                OR month(observed_ts) = 1 AND day(observed_ts) <= 3) c
+                                LEFT JOIN voltmarkt.{WEEKLY} v ON v.product_id = c.product_id AND v.iso_year = c.y AND v.iso_week = c.w
+                                WHERE v.product_id IS NULL""")[0]
+        self.assertEqual(mismatch, 0)
+
+    def test_weekly_view_notes_and_ship_to_country_note(self):
+        notes = json.loads((self.dir / "schema-notes.json").read_text(encoding="utf-8"))
+        by_schema = {n["schema"]: n for n in notes if n["table"] == WEEKLY}
+        self.assertEqual(set(by_schema), set(WEEKLY_SCHEMAS))
+        for s, n in by_schema.items():
+            self.assertEqual(n["grain"], "one row per product and ISO week, built from competitor_prices", s)
+            self.assertEqual(n["primary_key"], ["product_id", "iso_year", "iso_week"], s)
+            self.assertEqual(n["sample"]["columns"], [c for c, _ in WEEKLY_COLUMNS], s)
+            self.assertEqual(n["row_count"], self.one(f"SELECT count(*) FROM {s}.{WEEKLY}")[0], s)
+            self.assertEqual(set(n["column_notes"]), {"iso_year", "iso_week", "avg_competitor_price_eur", "competitors_seen"}, s)
+            self.assertIn("UTC", n["column_notes"]["iso_week"], s)
+        sales = [n for n in notes if n["table"] == "sales"]
+        self.assertEqual({n["schema"] for n in sales}, {"voltmarkt", *ORDER_EDGE_SCHEMAS})
+        for n in sales:
+            self.assertIn("ship-to country", n["column_notes"]["country_code"], n["schema"])
+
+    def test_weekly_view_is_deterministic(self):
+        again = build_course_db.build(self.dir / "again2" / "course.duckdb", data_dir=self.dir / "again2")
+        for s in WEEKLY_SCHEMAS:
+            self.assertEqual(again["tables"][f"{s}.{WEEKLY}"], self.manifest["tables"][f"{s}.{WEEKLY}"], s)
+
 
 class CheckpointTruth(unittest.TestCase):
-    """Task C7: each CP4 truth query runs on the visible schema at build time, and only its value is written (design §7)."""
+    """Task C7, S4B-02: each case's CP2 and CP4 truth queries run on the visible schema at build time, and only their values are
+    written (design §7). A case key is {case_id, truths: {CP2?, CP4?}, choices: {CP1?, CP5?}}."""
 
     QUERY = "SELECT ROUND(AVG(discount_pct), 2) FROM promotions WHERE discount_pct IS NOT NULL"
+    COUNT = "WITH p AS (SELECT promo_id FROM promotions WHERE discount_pct IS NOT NULL) SELECT count(*) FROM p"
 
-    def key(self, keys_dir, case_id="CASE-FAKE-L1", query=QUERY):
+    def key(self, keys_dir, case_id="CASE-FAKE-L1", query=QUERY, truths=None, **extra):
         keys_dir.mkdir(parents=True, exist_ok=True)
-        (keys_dir / f"{case_id}.json").write_text(
-            json.dumps({"case_id": case_id, "checkpoint_id": "CP4", "truth_query": query}), encoding="utf-8")
+        key = {"case_id": case_id, "truths": {"CP4": query} if truths is None else truths, "choices": {}, **extra}
+        (keys_dir / f"{case_id}.json").write_text(json.dumps(key), encoding="utf-8")
 
     def build(self, root, keys_dir, name="a"):
         out = root / name
@@ -333,17 +543,58 @@ class CheckpointTruth(unittest.TestCase):
         self.key(root / "keys", query="SELECT promo_id FROM promotions")
         with self.assertRaises(ValueError) as caught:
             self.build(root, root / "keys")
-        self.assertIn("CASE-FAKE-L1", str(caught.exception))
+        self.assertIn("CASE-FAKE-L1:CP4", str(caught.exception))
         self.assertNotIn("promo_id", str(caught.exception))
 
+    def test_two_truths_per_case_are_written_as_case_id_cp2_and_cp4(self):
+        """S4B-02: a case with CP2 and CP4 gets both values, CP2 first, beside a case that has only a CP4."""
+        root = pathlib.Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, root, ignore_errors=True)
+        self.key(root / "keys", "CASE-FAKE-02", truths={"CP4": self.QUERY, "CP2": self.COUNT})
+        self.key(root / "keys", "CASE-FAKE-01")
+        out, truth = self.build(root, root / "keys")
+        con = duckdb.connect(str(out / "course.duckdb"), read_only=True, config=NO_NETWORK)
+        con.execute("SET TimeZone = 'UTC'")
+        con.execute("SET search_path = 'voltmarkt'")
+        average = float(con.execute(self.QUERY).fetchone()[0])
+        count = float(con.execute(self.COUNT).fetchone()[0])
+        con.close()
+        self.assertEqual(list(truth["checkpoints"].items()),
+                         [("CASE-FAKE-01:CP4", average), ("CASE-FAKE-02:CP2", count), ("CASE-FAKE-02:CP4", average)])
+        for path in out.rglob("*.json"):
+            self.assertNotIn("discount_pct IS NOT NULL", path.read_text(encoding="utf-8"), f"{path.name} holds no truth query")
+
+    def test_a_key_without_truths_or_with_another_checkpoints_truth_fails_the_build_naming_the_case_only(self):
+        """The old key shape, a key without truths, and a truth for a checkpoint other than CP2 or CP4 each stop the build."""
+        for name, extra in [("old shape", {"truths": None}), ("CP3", {"truths": {"CP3": self.QUERY}})]:
+            with self.subTest(name):
+                root = pathlib.Path(tempfile.mkdtemp())
+                self.addCleanup(shutil.rmtree, root, ignore_errors=True)
+                (root / "keys").mkdir(parents=True)
+                key = {"case_id": "CASE-FAKE-03", "choices": {}}
+                if extra["truths"] is None:
+                    key.update({"checkpoint_id": "CP4", "truth_query": self.QUERY})
+                else:
+                    key["truths"] = extra["truths"]
+                (root / "keys" / "CASE-FAKE-03.json").write_text(json.dumps(key), encoding="utf-8")
+                con = duckdb.connect(config=NO_NETWORK)
+                con.execute("SET TimeZone = 'UTC'")
+                self.addCleanup(con.close)
+                with self.assertRaises(ValueError) as caught:
+                    build_course_db.checkpoint_truth(con, root / "keys")
+                self.assertIn("CASE-FAKE-03", str(caught.exception))
+                self.assertNotIn("discount_pct", str(caught.exception))
+
     def test_the_real_openers_each_get_a_value(self):
+        """Every CP2 and CP4 of the real cases, the openers and content/sql/cases/ alike, gets its value, and nothing else does."""
         content = build_course_db.ROOT / "content"
         wanted = {}
-        for path in sorted((content / "sql" / "openers").glob("*.json")):
-            record = json.loads(path.read_text(encoding="utf-8"))
-            for cp in record["checkpoints"]:
-                if cp["kind"] == "CP4":
-                    wanted[cp["truth_key"]] = cp
+        for folder in ("openers", "cases"):
+            for path in sorted((content / "sql" / folder).glob("*.json")):
+                record = json.loads(path.read_text(encoding="utf-8"))
+                for cp in record["checkpoints"]:
+                    if cp["kind"] in ("CP2", "CP4"):
+                        wanted[cp["truth_key"]] = cp
         self.assertTrue(wanted, "the openers have a CP4")
         root = pathlib.Path(tempfile.mkdtemp())
         self.addCleanup(shutil.rmtree, root, ignore_errors=True)

@@ -7,7 +7,10 @@
     "SELECT store_code, city, store_type\nFROM stores\nWHERE close_date IS NULL AND (store_type = 'outlet' OR store_type = 'standard')",
     "SELECT store_code, city, store_type\nFROM stores\nWHERE (store_type = 'standard' AND close_date IS NULL) OR (store_type = 'outlet' AND close_date IS NULL)"
   ],
-  "other_way": null,
+  "other_way": {
+    "sql": "SELECT store_code, city, store_type\nFROM stores\nWHERE store_type IN ('standard', 'outlet') AND close_date IS NULL",
+    "tradeoff": "IN lists the values once and reads shorter, while the OR version repeats the column name for each value."
+  },
   "planted_wrong": [
     {
       "id": "M1",

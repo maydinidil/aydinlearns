@@ -165,7 +165,7 @@ test('pickForm: never two items of one enemy group, a group across topics includ
   for (const seed of SEEDS) {
     const f = form(pool, seed);
     assertWellFormed(f, pool, `seed ${seed}`);
-    assert.equal(f.picks.length, 25, `seed ${seed}: 30 groups are enough for 25 items`);
+    assert.equal(f.picks.length, 25, `seed ${seed}: 25 groups are enough for 25 items`);
     assert.equal(f.allFresh, true);
   }
 });
@@ -299,6 +299,11 @@ const nextDate = (n: number, h: History = H, today = '2026-10-10'): string | nul
 const unseenCount = (h: History, date: string): number => POOL.filter((id) => isUnseen(id, h, new Date(`${date}T10:00:00Z`), 21, amsterdamDate)).length;
 const dayBefore = (date: string): string => new Date(Date.parse(`${date}T00:00:00Z`) - 86_400_000).toISOString().slice(0, 10);
 
+test('an opening at the same instant as the last showing does not hold the item (strict greater-than)', () => {
+  const h = { showings: [shown('Q-1', '2026-10-01T08:00:00Z')], openings: [opened('Q-1', '2026-10-01T08:00:00Z')] };
+  assert.equal(unseenAt(h, '2026-10-23T10:00:00Z'), true);
+  assert.equal(nextUnseenDate(['Q-1'], h, 1, '2026-10-10', 21, amsterdamDate), '2026-10-23');
+});
 test('nextUnseenDate: today when enough items are unseen', () => {
   assert.equal(nextDate(0), '2026-10-10');
   assert.equal(nextDate(2), '2026-10-10');

@@ -89,6 +89,8 @@ Read with: `2026-10-03-build-handoff.md` (what happened and what is next).
 
 ## Deferred findings
 
+Triaged on 2026-10-07: what is still open is in [`backlog.md`](backlog.md); the closed ones are in the section at the end.
+
 Minor findings from the per-task reviews, and the final review's "later" items.
 
 - Task 1: minor (deferred): import-check regexes are path-naive (one level of ..) and miss bare `import 'x'` and require() (plan-mandated).
@@ -204,8 +206,70 @@ Entries above that were deferred and later fixed or settled. A minors batch shou
 | Task 22, area D | NULL wording in SORT-01 and FILTER-01-E1-07; FILTER-02-E3-03's wording; NULL-01's "started in 2025" bound | sprint 2 Task A5 (14 prompts reworded and blind-solved again) |
 | F2 | "I was right" after a session end gets 400, not 409 | sprint 2 Task A3 (a 409 reopens the exercise) |
 | F2, Task 19 | the "Done." note stays when the URL jumps from item to item | sprint 2 Task A6 (`ItemScreen` keyed by item and phase); smoke row J |
+| Task 16 | re-test anchor uses lesson_item_ids not phase lesson_block | Replay carries a lesson_block phase now |
+| Task 18 | re-test callout shows concept ID not title | The callout takes the concept title |
+| Task 19 | helped before request succeeds, double hint, unmount close, stale fetch, not-found alert, busy guard, null vs NULL | A busy gate, alive flags, an alert role and a shared cell formatter, with tests |
+| Task 20 | GET /api/goals test, lesson position reset, concept and item IDs in headings | A route test covers the goals call; position reset and concept titles in headings |
+| Task 20 | re-test callout wording and screen-logic test | The callout shows the date and the remaining count; screen-logic tests added |
+| Later (docs) | add CHK-KEY-FAILED to the design's check ID list | The design spec names CHK-KEY-FAILED |
+| F5 | /api/items sends faded_suffix at every stage | The items route sends the faded fields only at stages 1 and 2 |
+| Missed in the first copy | content-style rules exist as tests and in the generator brief | Done: the content-style tests and the generator brief exist |
 
 ## Corrections
 
 - **The "Ruling (aydinlearns F3)" above is wrong** in its reason. It says a failed log write already refuses every later write until restart. Only HTTP writes are refused: a session end, the idle timer and shutdown still run the end hooks, and the logger attempts every append. Codex raised this on PR #29 as aydinlearns F4 (`../reviews/codex-findings.md`); the fix (restore the claim when the append fails) landed in sprint 2, Task A3.
 - **Two slice references above are off by one level** (found while writing `roadmap.md`). ERR-SEM-05 "matters from level 3, SQL-SUBQ-01": SQL-SUBQ-01 is level 4, built in slice 5. The Task 21 note that rank cutoffs have no tie check "(slice 5)": window functions are level 5, built in slice 6.
+
+## Closed on 2026-10-07 (backlog cleanup)
+
+Every deferred finding in this record was triaged on 2026-10-07. The ones still open are in
+[`backlog.md`](backlog.md). These tables hold the rest.
+
+### Fixed in the hygiene PR
+
+| Item | Fix |
+|---|---|
+| test name says G1-G13 but covers a subset | Test title now names the rules it covers |
+| word cap not tested at 550/551 boundary | New test: 550 words pass, 551 fail |
+
+### Won't do
+
+| Item | Reason |
+|---|---|
+| import-check regexes path-naive, miss bare import and require | Plan-mandated dev guard; no effect worth a change. |
+| typescript, vite and @types sit in dependencies | Plan-mandated install commands; lockfile churn without an install, no effect. |
+| .gitignore duplicates pipeline/.venv and web/dist | Plan-mandated and harmless; no effect worth a change. |
+| no test for import-check main(); Python pins | Test-only nicety needing process fixtures; no effect. |
+| case-format test does not validate rule names or reject values | Needs the allowed reject values enumerated first and could fail on existing cases; no effect. |
+| parseErrata returns [] silently on an unrecognised header | Changes parser behaviour; check-errata already catches an empty result. |
+| validateEnvelope checks date shape only | Tighter validation could reject existing content; no effect on use. |
+| content and errata tests miss some cases | Open-ended list of test gaps; no effect worth a change. |
+| ExternalResult kind and data not a discriminated pair | Type change ripples to callers; no effect. |
+| cell ending in backslash read as escaped pipe | Parser edge no ERRATA cell hits; no effect. |
+| extract test, mutable CURRICULUM_ERRATA, levelNo NaN | Mixed tooling edges with no learner effect. |
+| stage2 integer and sort_keys shape not validated | Content already checked by check-content and blind solves; no effect. |
+| promotion names repeat, flat product mix | Changing generated data risks every key; needs re-solve. |
+| P-2024-29 baseline overlaps P-2024-20 window | Content change needs a blind re-solve; results unaffected. |
+| research_prompts.md index lacks row 11 | The file is append-only by instruction; an index row inserted mid-file breaks that. |
+| spike report wording and missing re-check scripts | Throwaway spike documentation; no effect. |
+| RIGHT JOIN placed under left_join in knowledge | Knowledge text is the record and is never edited (ERRATA intro). |
+| sort file tie comments overstate, sidecar swaps not atomic | Comments and a rare crash edge in a build tool. |
+| malformed ts, lexical ISO compare, append not serialised, torn-line warning | Core log code; single-user local app. |
+| fixture temp folders not removed, JSON error drops cause | Spread over several test files; test hygiene with no effect. |
+| backup runs inside session queue, partial backup folder, logger.writable never resets | Log and crash-recovery code; matches design section 18. |
+| ERRATA intro cites issue 101 oddly, E-032 label | Wording in a record file that is not edited. |
+| rows/one_row materialise whole result, flaky deadline test, temp folders | Runner code; composed SQL keeps LIMITs. |
+| runner constant tie one-directional, respawn limits, execArgv --inspect | Runner code; no observed problem. |
+| degraded-mode header shows above setup placeholder | Cosmetic, degraded mode only; layout choice needed. |
+| pipe in code span, non-JSON OK body, status never retried, test gaps, vite.config not type-checked | Mixed list, local single user; no effect. |
+| Task 13 comparison edges (6-plan cap, DOUBLE compare, empty sort lists, set_semantics unread) | Grader code; no item has the failing shape. |
+| grader runner failures after a fail degrade silently, feedback gaps | Grader code; only affects an already failed attempt. |
+| window.confirm, hint 3 code wrapping, GradePanel "Why this works" label, Vite chunk warning | Mixed cosmetic bundle with wording choices; never reported. |
+| --no-parse-tree text check rejects the grader's own statements | Runner fallback mode, not used today. |
+| content checks miss ifnull/IIF, current_localtimestamp, tablesample and more | New rules could flag existing items and force re-solves; blind solves pass. |
+| step moves log item_close toward re-test; "block runs out, take from pool" unbuilt | Unbuilt design clause; behaviour change in the engine area. |
+| later exposure success clears alert, h3 under h1, empty Goal dates heading, goals cast, clause order doc | Mixed bundle needing small design choices; cosmetic or defensive. |
+| smoke test depends on today's content and is Windows-only | The owner's Windows gate by design. |
+| area D leftovers: word counts, syntax_md labels, pretests probe basics, drill minutes | Content edits need a blind re-solve. |
+| unused named WINDOW not in the parse tree; add to the section 17 probes | Edits the locked upgrade gate list; the probe would need running on the engine first. |
+| no test double-clicks the per-row "I was right" buttons | Needs a DOM harness the repo lacks; server guard protects the log. |

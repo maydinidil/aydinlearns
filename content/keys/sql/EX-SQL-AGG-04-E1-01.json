@@ -6,7 +6,10 @@
     "SELECT COUNT(*) AS n_lines, COUNT(CASE WHEN channel = 'web' THEN 1 END) AS web_lines FROM sales",
     "SELECT COUNT(*) AS n_lines, COUNT(*) FILTER (WHERE channel = 'web') AS web_lines FROM sales"
   ],
-  "other_way": null,
+  "other_way": {
+    "sql": "SELECT COUNT(*) AS n_lines, COUNT(*) FILTER (WHERE channel = 'web') AS web_lines FROM sales",
+    "tradeoff": "Reads closer to plain English, but FILTER is not available in every SQL dialect."
+  },
   "planted_wrong": [
     {
       "id": "PW1",

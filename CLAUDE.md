@@ -26,15 +26,23 @@ holds the evidence behind those changes.
 
 ## The state you will find it in
 
-**Slices 0, 1a, 1b, 2a and 2b are built: SQL levels 1 and 2, GA4 and Methodology level 1 can be
-studied, with the scheduler, Today, drills and the level openers.** Slice 2b (GA4 lessons, timed
+**Slices 0, 1a, 1b, 2a and 2b and sprints 4a, 4b and 4c are built: SQL levels 1 to 3, GA4 and
+Methodology level 1 can be studied, with the scheduler, Today, drills, the level openers, mistake
+cards, cases, the portfolio export and the Progress screen.** Slice 2b (GA4 lessons, timed
 GA4 mini drills and half-mocks, SQL choice items) reached `main` through PR #34. Sprint 3b gave
 every screen the direction C look (tokens, a top bar with section tabs, cards, a two-column
 Today), merged in PR #36; the spec is
 [`docs/superpowers/specs/2026-10-06-aydinlearns-visuals-design.md`](docs/superpowers/specs/2026-10-06-aydinlearns-visuals-design.md),
 and every colour lives in `web/src/styles/tokens.css`. Its rulings and deferred findings are in
 [`docs/planning/2026-10-06-sprint-3b-record.md`](docs/planning/2026-10-06-sprint-3b-record.md).
-The next plan is sprint 4a: the first part of slice 3 (SQL level 3, mistake cards and review).
+Sprint 4a, the first part of slice 3, built SQL level 3, mistake cards with the Mistakes and
+review screen, and "other ways to write this", merged in PR #38. Sprint 4b, the rest of slice 3,
+built cases and the inbox, the level 3 opener, the portfolio export, the Progress screen, the
+dataset explorer, screen mode and live reps, merged in PR #40 (2026-10-08). Sprint 4c, a cleanup of
+the SQL learner-facing backlog, is built on `feat/aydinlearns-sprint-4c`, with its pull request
+still to be merged. Open deferred work lives in
+[`docs/planning/backlog.md`](docs/planning/backlog.md). The next sprint is 5 (GA4 and Methodology
+complete); read the roadmap first.
 - Slice 0: the domain-free types in `core/`, the app schemas in `schemas/`, the curriculum and
   error catalogue extracted into `content/sql/`, and the adjudicated fixes in
   `knowledge/ERRATA.md`. `knowledge/` itself still holds the research bank: 11 files, plus an
@@ -56,6 +64,32 @@ The next plan is sprint 4a: the first part of slice 3 (SQL level 3, mistake card
   `/api/run/*`, the exam engine in `core/exam.ts`), more Methodology metrics, SQL choice kinds
   and the predict pretest. Its deferred findings are in
   [`docs/planning/2026-10-06-sprint-3-record.md`](docs/planning/2026-10-06-sprint-3-record.md).
+- Sprint 4a (plan
+  [`docs/superpowers/plans/2026-10-06-aydinlearns-sprint-4a.md`](docs/superpowers/plans/2026-10-06-aydinlearns-sprint-4a.md)):
+  SQL level 3 (8 concepts, 213 items, the order tables, `competitor_prices` and three edge
+  schemas, the level 3 drill); mistake cards derived by replay (`core/replay.ts`) and served by
+  Today, the Mistakes and review screen (`server/routes/mistakes.ts`); wheel-spinning; "other ways
+  to write this" (`POST /api/other-way`); log format version 3 (`card_id` on attempts and help
+  records, the `other_way_opened` record). Its rulings and deferred findings are in
+  [`docs/planning/2026-10-07-sprint-4a-record.md`](docs/planning/2026-10-07-sprint-4a-record.md).
+- Sprint 4b (plan
+  [`docs/superpowers/plans/2026-10-07-aydinlearns-sprint-4b.md`](docs/superpowers/plans/2026-10-07-aydinlearns-sprint-4b.md)):
+  cases (`content/sql/cases/`, the level openers in `content/sql/openers/`, their keys in
+  `content/keys/cases/`) served and graded by `server/routes/cases.ts`, with their status, score and
+  solve date derived by replay (`core/replay.ts`); the inbox and case screens; the daily case and
+  the opener sketch on Today; the portfolio export (`server/routes/portfolio.ts`); the Progress
+  screen and the shared goal view (`server/goal-view.ts`, `server/progress.ts`); the dataset
+  explorer; screen mode, screen-mode drills and live reps; the integer division re-run
+  (`server/grader/portability.ts`); log format version 4 (`portfolio_folder`, `case_export`,
+  `self_check`). Its rulings and deferred findings are in
+  [`docs/planning/2026-10-07-sprint-4b-record.md`](docs/planning/2026-10-07-sprint-4b-record.md).
+- Sprint 4c (plan
+  [`docs/superpowers/plans/2026-10-08-aydinlearns-sprint-4c.md`](docs/superpowers/plans/2026-10-08-aydinlearns-sprint-4c.md)):
+  no new feature. Error IDs `ERR-LOG-28` and `ERR-LOG-29`, wider `ERR-LOG-06` and `ERR-OUT-02`
+  feedback, wording fixes, edge data for two cases, live rep fallback and a history tick, export
+  hardening, the division control re-run (grader `4c.1`), a memory-limit message, a skipped
+  unservable mistake card and keyboard focus. Its rulings and deferred findings are in
+  [`docs/planning/2026-10-08-sprint-4c-record.md`](docs/planning/2026-10-08-sprint-4c-record.md).
 - Every check in the README's "Run and ship" passes, and so does the browser smoke test,
   `npm run test:e2e`. It runs its own server on `AYDINLEARNS_PORT` (default 5174) against an
   empty temporary logs folder, set through `AYDINLEARNS_LOGS_DIR`; never point a test at the real

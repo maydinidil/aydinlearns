@@ -1,0 +1,145 @@
+{
+  "id": "EX-SQL-CTE-01-E2-21",
+  "version": 2,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "cte",
+    "date_trunc",
+    "count",
+    "orders",
+    "utc_month",
+    "null",
+    "drill"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-CTE-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-CTE-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-AGG-03",
+    "SQL-TYPE-01",
+    "SQL-DATE-01",
+    "SQL-CTE-01"
+  ],
+  "template_id": "T-CTE-01-count-filtered-step-per-month",
+  "template_params": {
+    "table": "orders",
+    "step_grain": "customer and UTC month",
+    "year": 2025
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_join",
+  "prompt": "For each month of 2025, how many customers placed two or more orders in that month? order_ts holds the order time in UTC; use the UTC month, and count orders placed from 1 January 2025 to 31 December 2025, UTC. Count every order, including an order with no lines; guest orders, which have a missing customer_id, do not count. Return two columns, in this order: order_month, the first day of the month, and n_customers. Return one row for each month that has at least one such customer. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "order_month",
+        "type_class": "temporal"
+      },
+      {
+        "name": "n_customers",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "order_month",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "n_customers",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "order_month"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, count each customer's orders per UTC month of 2025 in a first step.",
+    "The step's grain is a customer and a month; the final query keeps the rows with at least two orders and counts them per month."
+  ],
+  "subgoals": [
+    {
+      "from": 27,
+      "to": 127,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 130,
+      "to": 141,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 144,
+      "to": 272,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 275,
+      "to": 326,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 329,
+      "to": 372,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 373,
+      "to": 392,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 393,
+      "to": 412,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 413,
+      "to": 433,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "The step has one row per customer and UTC month, so the final query counts customers, not orders, in each month."
+}

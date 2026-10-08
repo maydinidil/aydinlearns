@@ -1,0 +1,41 @@
+{
+  "item_id": "EX-CASE-DAILY-L2-02",
+  "item_version": 2,
+  "reference_sql": "SELECT product_id, product_name, parent_category, SUM(net_revenue_eur) AS revenue_eur, SUM(units * unit_cost_eur) - SUM(net_revenue_eur) AS loss_eur\nFROM sales\nWHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31' AND net_revenue_eur IS NOT NULL AND units IS NOT NULL AND unit_cost_eur IS NOT NULL\nGROUP BY product_id, product_name, parent_category\nHAVING SUM(units * unit_cost_eur) > SUM(net_revenue_eur)\nORDER BY parent_category, product_id",
+  "alternatives": [
+    "SELECT product_id, product_name, parent_category, SUM(net_revenue_eur) AS revenue_eur, SUM(units * unit_cost_eur - net_revenue_eur) AS loss_eur FROM sales WHERE order_date >= DATE '2025-01-01' AND order_date <= DATE '2025-12-31' AND NOT (net_revenue_eur IS NULL OR units IS NULL OR unit_cost_eur IS NULL) GROUP BY 1, 2, 3 HAVING SUM(units * unit_cost_eur - net_revenue_eur) > 0 ORDER BY 3, 1",
+    "SELECT product_id, product_name, parent_category, SUM(net_revenue_eur) AS revenue_eur, SUM(units * unit_cost_eur) - SUM(net_revenue_eur) AS loss_eur FROM sales WHERE order_date BETWEEN '2025-01-01' AND '2025-12-31' AND net_revenue_eur IS NOT NULL AND units IS NOT NULL AND unit_cost_eur IS NOT NULL GROUP BY product_id, product_name, parent_category HAVING SUM(net_revenue_eur) < SUM(units * unit_cost_eur) ORDER BY parent_category ASC, product_id ASC"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-02",
+      "sql": "SELECT product_id, product_name, parent_category, SUM(net_revenue_eur) AS revenue_eur, SUM(units * unit_cost_eur) - SUM(net_revenue_eur) AS loss_eur FROM sales WHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31' AND net_revenue_eur IS NOT NULL AND units IS NOT NULL AND unit_cost_eur IS NOT NULL AND units * unit_cost_eur > net_revenue_eur GROUP BY product_id, product_name, parent_category ORDER BY parent_category, product_id"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-17",
+      "sql": "SELECT product_id, product_name, parent_category, SUM(net_revenue_eur) AS revenue_eur, SUM(units * unit_cost_eur) - SUM(net_revenue_eur) AS loss_eur FROM sales WHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31' GROUP BY product_id, product_name, parent_category HAVING SUM(units * unit_cost_eur) > SUM(net_revenue_eur) ORDER BY parent_category, product_id"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-SEM-01",
+      "sql": "SELECT product_id, product_name, parent_category, SUM(net_revenue_eur) AS revenue_eur, SUM(units * unit_cost_eur) - SUM(net_revenue_eur) AS loss_eur FROM sales WHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31' AND net_revenue_eur IS NOT NULL AND units IS NOT NULL AND unit_cost_eur IS NOT NULL GROUP BY product_id HAVING SUM(units * unit_cost_eur) > SUM(net_revenue_eur) ORDER BY parent_category, product_id"
+    },
+    {
+      "id": "PW4",
+      "error_id": "ERR-LOG-18",
+      "sql": "SELECT product_id, product_name, parent_category, SUM(net_revenue_eur) AS revenue_eur, SUM(units * unit_cost_eur) - SUM(net_revenue_eur) AS loss_eur FROM sales WHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31' AND net_revenue_eur IS NOT NULL AND units IS NOT NULL AND unit_cost_eur IS NOT NULL GROUP BY product_id, product_name, parent_category HAVING SUM(units * unit_cost_eur) > SUM(net_revenue_eur) ORDER BY parent_category DESC, product_id"
+    }
+  ],
+  "hint3_partial": "SELECT product_id, product_name, parent_category, SUM(net_revenue_eur) AS revenue_eur, ___ AS loss_eur\nFROM sales\nWHERE order_date BETWEEN ___ AND ___ AND ___\nGROUP BY ___\nHAVING ___\nORDER BY ___",
+  "solver": {
+    "prompt_hash": "b957c02f2b4816ca",
+    "schema_version": "cebf75df442f",
+    "dataset_version": "7b5183c35ff26d5b",
+    "grader_version": "4c.1",
+    "query": "SELECT product_id, product_name, parent_category,\n       SUM(net_revenue_eur) AS revenue_eur,\n       SUM(units * unit_cost_eur) - SUM(net_revenue_eur) AS loss_eur\nFROM sales\nWHERE order_date BETWEEN '2025-01-01' AND '2025-12-31'\n  AND net_revenue_eur IS NOT NULL AND units IS NOT NULL AND unit_cost_eur IS NOT NULL\nGROUP BY product_id, product_name, parent_category\nHAVING SUM(units * unit_cost_eur) > SUM(net_revenue_eur)\nORDER BY parent_category ASC, product_id ASC\n",
+    "at": "2026-10-08T14:11:55.843Z"
+  }
+}

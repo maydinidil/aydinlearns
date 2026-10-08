@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-JOIN-02-E1-42",
+  "item_version": 1,
+  "correct_oid": "o68110ab",
+  "explanation": "RIGHT JOIN keeps every row of the table written second, categories, that passes WHERE: categories 1, 2 and 3. Only products 1 and 2 may match in ON, so category 3 keeps its row with a missing product_name. An inner join would drop it.",
+  "solver": {
+    "prompt_hash": "67be578543643dd7",
+    "grader_version": "choice.2",
+    "chosen": "o68110ab",
+    "typed": null,
+    "at": "2026-10-07T09:58:58.588Z"
+  }
+}

@@ -6,7 +6,10 @@
     "SELECT country_code, ROUND(SUM(net_revenue_eur) * 1.0 / COUNT(DISTINCT order_id), 2) AS avg_order_value_eur FROM sales WHERE order_date >= DATE '2025-12-01' AND order_date < DATE '2026-01-01' GROUP BY country_code",
     "SELECT country_code, ROUND(CAST(SUM(net_revenue_eur) AS DOUBLE) / COUNT(DISTINCT order_id), 2) AS avg_order_value_eur FROM sales WHERE order_date BETWEEN '2025-12-01' AND '2025-12-31' GROUP BY 1"
   ],
-  "other_way": null,
+  "other_way": {
+    "sql": "SELECT country_code, ROUND(SUM(net_revenue_eur) * 1.0 / COUNT(DISTINCT order_id), 2) AS avg_order_value_eur FROM sales WHERE order_date >= DATE '2025-12-01' AND order_date < DATE '2026-01-01' GROUP BY country_code",
+    "tradeoff": "Stays correct if the column later holds times of day, but you must write the day after the end date."
+  },
   "planted_wrong": [
     {
       "id": "EX-SQL-TYPE-01-E1-32-PW1",

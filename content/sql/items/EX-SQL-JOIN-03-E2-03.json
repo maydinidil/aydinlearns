@@ -1,0 +1,160 @@
+{
+  "id": "EX-SQL-JOIN-03-E2-03",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "fan_out",
+    "cte",
+    "left_join",
+    "price_history",
+    "competitor_prices",
+    "null"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-JOIN-03"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-JOIN-03",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-JOIN-03"
+  ],
+  "template_id": "T-JOIN-03-two-children",
+  "template_params": {
+    "parent": "products",
+    "child_a": "price_history",
+    "child_b": "competitor_prices",
+    "brands": "Vistara, Sonora"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_join",
+  "prompt": "For every product of the brands Vistara and Sonora, how many list price versions does it have, and how many competitor price checks? A product with no competitor price check shows 0 checks. Return three columns, in this order: product_id, n_versions and n_checks. Return one row for each product of those two brands. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "n_versions",
+        "type_class": "numeric"
+      },
+      {
+        "name": "n_checks",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "n_versions",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "n_checks",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "product_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, count the versions and the checks of each product in two separate steps.",
+    "A product with 3 versions and 3 checks gives 9 rows when both tables are joined to it at once; each count needs its own step at one row per product."
+  ],
+  "subgoals": [
+    {
+      "from": 21,
+      "to": 62,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 65,
+      "to": 83,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 86,
+      "to": 105,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 123,
+      "to": 162,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 165,
+      "to": 187,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 190,
+      "to": 209,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 212,
+      "to": 282,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 283,
+      "to": 395,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 396,
+      "to": 434,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "Each step has one row per product, so joining both to products multiplies nothing, and the LEFT JOIN keeps products with no checks."
+}

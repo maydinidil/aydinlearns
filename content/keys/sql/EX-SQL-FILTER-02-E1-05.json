@@ -6,7 +6,10 @@
     "SELECT promo_code, promo_type, discount_pct\nFROM promotions\nWHERE discount_pct >= 15\n  AND promo_type IN ('bundle', 'clearance')",
     "SELECT promo_code, promo_type, discount_pct\nFROM promotions\nWHERE (promo_type = 'clearance' OR promo_type = 'bundle')\n  AND discount_pct >= 15"
   ],
-  "other_way": null,
+  "other_way": {
+    "sql": "SELECT promo_code, promo_type, discount_pct\nFROM promotions\nWHERE (promo_type = 'clearance' OR promo_type = 'bundle')\n  AND discount_pct >= 15",
+    "tradeoff": "An OR chain returns the same rows, but repeats the column for every value, while IN keeps the list short."
+  },
   "planted_wrong": [
     {
       "id": "EX-SQL-FILTER-02-E1-05-PW1",

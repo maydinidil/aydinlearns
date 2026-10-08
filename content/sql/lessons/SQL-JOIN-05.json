@@ -1,0 +1,128 @@
+{
+  "concept_id": "SQL-JOIN-05",
+  "version": 1,
+  "reading_md": "## FULL OUTER JOIN: keep the unmatched rows of both sides\n\nAn INNER JOIN keeps the rows that match. A LEFT JOIN keeps every row of the left table. A **FULL OUTER JOIN** keeps every row of both tables: where a row has no match, the other table's columns are missing.\n\nUse it to reconcile two lists, such as the products Bliksem checked against the products Stroomhuis checked, or the days in calendar against the days with orders.\n\n- After a FULL OUTER JOIN, the key can be missing on either side, so take it with `COALESCE(a.product_id, b.product_id)`.\n- A count from the side that did not match is missing, not 0: write `COALESCE(n, 0)` when the question wants 0.\n- Bring each list to one row per key first, in a CTE, or the join repeats rows.\n- A filter in WHERE on one side's column drops the other side's unmatched rows. Filter each list in its own CTE.\n\n## CROSS JOIN: every combination\n\nA **CROSS JOIN** pairs every row of one table with every row of the other, with no ON: 26 stores times 7 days gives 182 rows. Use it to build a grid that has a row even where nothing happened, then LEFT JOIN the facts onto it:\n\n```sql\nFROM stores s\nCROSS JOIN calendar c\nLEFT JOIN orders o ON o.store_id = s.store_id AND CAST(o.order_ts AS DATE) = c.cal_date\n```\n\n- Count with `COUNT(o.order_id)`, which gives 0 for a pair with no order; `COUNT(*)` counts the grid row itself and gives 1.\n- Keep the grid small: filter both sides. A cross join of two large tables can run for minutes.\n- A one-row CTE, such as a total or an average, can be CROSS JOINed onto every row without repeating anything. That is how a share of the total is built.\n\n## The calendar has limits\n\ncalendar covers 1 January 2024 to 31 December 2025. An order at 23:30 UTC on 31 December 2025 falls on 1 January 2026 in Amsterdam, a day calendar does not have. An inner join to calendar drops that order without a warning; a FULL OUTER JOIN keeps it.\n\n## Mistakes to avoid\n\n1. **A grid built from the facts.** Taking store and day pairs from orders leaves out every pair with no order.\n2. **No COALESCE.** The key or the count stays missing instead of showing the ID or 0.\n3. **A LEFT JOIN where both sides can have rows the other lacks.** One side's unmatched rows vanish.\n4. **An INNER JOIN after the grid.** Joining the order lines with an inner join after a LEFT JOIN of orders drops the pairs with no order again.\n5. **A missing ON by accident.** A join that pairs everything when one key was meant is a cross join that nobody asked for.",
+  "syntax_md": "```sql\n-- a grid: every store and every day, then the facts\nSELECT s.store_code, c.cal_date, COUNT(o.order_id) AS n_orders   -- metrics\nFROM stores s                                                      -- one side of the grid\nCROSS JOIN calendar c                                              -- every pair, no ON\nLEFT JOIN orders o ON o.store_id = s.store_id\n  AND CAST(o.order_ts AS DATE) = c.cal_date                        -- facts onto the grid\nWHERE row_condition                                                -- keep the grid small\nGROUP BY s.store_code, c.cal_date;                                 -- output grain\n\n-- reconcile two lists, one row per key each\nSELECT COALESCE(a.k, b.k) AS k, COALESCE(a.n, 0) AS n_a, COALESCE(b.n, 0) AS n_b\nFROM a\nFULL OUTER JOIN b ON b.k = a.k;\n```\n\n- CROSS JOIN has no ON. FULL OUTER JOIN needs one.\n- After FULL OUTER JOIN, take the key with COALESCE from both sides.\n- Filter each side before a FULL OUTER JOIN, not after it.",
+  "dialect_note": "In DuckDB, FULL JOIN is short for FULL OUTER JOIN, and a comma between two tables in FROM pairs every row like CROSS JOIN (both checked on 1.5.6). Write CROSS JOIN when you mean every pair, so a reader does not take it for a forgotten ON.",
+  "worked_examples": [
+    {
+      "title": "Orders for every store and every day",
+      "prompt": "For every store located in Luxembourg (country_code LU) and every calendar day from 1 to 5 March 2025, how many orders did the store get (the UTC date of order_ts), with 0 when none? Return store_code, cal_date and n_orders, one row per store and day.",
+      "clauses": [
+        {
+          "text": "SELECT s.store_code, c.cal_date, COUNT(o.order_id) AS n_orders",
+          "subgoal": "metrics",
+          "why": "COUNT of a column from orders gives 0 for a pair with no order; COUNT(*) would count the grid row itself."
+        },
+        {
+          "text": "FROM stores s",
+          "subgoal": "source_grain",
+          "why": "One side of the grid: the stores."
+        },
+        {
+          "text": "CROSS JOIN calendar c",
+          "subgoal": "source_grain",
+          "why": "The other side: the days. CROSS JOIN pairs every store with every day, so the grid exists before any order."
+        },
+        {
+          "text": "LEFT JOIN orders o ON o.store_id = s.store_id AND CAST(o.order_ts AS DATE) = c.cal_date",
+          "subgoal": "source_grain",
+          "why": "Orders attach to their store and UTC day; LEFT JOIN keeps the pairs that have none."
+        },
+        {
+          "text": "WHERE s.country_code = 'LU' AND c.cal_date BETWEEN DATE '2025-03-01' AND DATE '2025-03-05'",
+          "subgoal": "row_filter",
+          "why": "Keep the grid small: only the stores and days the question asks about."
+        },
+        {
+          "text": "GROUP BY s.store_code, c.cal_date",
+          "subgoal": "output_grain",
+          "why": "One row per store and day."
+        }
+      ]
+    },
+    {
+      "title": "Covered and sold: every row of both lists",
+      "prompt": "For promotion 2 (promo_id), compare the products it covers with the products sold with it. Return product_id, covered (true or false) and lines, the number of order lines sold with the promotion (0 when none), one row per product in either list.",
+      "clauses": [
+        {
+          "text": "WITH covered AS (SELECT product_id FROM promotion_products WHERE promo_id = 2),",
+          "subgoal": "source_grain",
+          "why": "First list: one row per product the promotion covers."
+        },
+        {
+          "text": "sold AS (SELECT product_id, COUNT(*) AS lines FROM order_lines WHERE promo_id = 2 GROUP BY product_id)",
+          "subgoal": "source_grain",
+          "why": "Second list: one row per product sold with it."
+        },
+        {
+          "text": "SELECT COALESCE(c.product_id, s.product_id) AS product_id, c.product_id IS NOT NULL AS covered, COALESCE(s.lines, 0) AS lines",
+          "subgoal": "metrics",
+          "why": "Either side can be missing after the join: COALESCE takes the ID from the side that has it, and a missing count becomes 0."
+        },
+        {
+          "text": "FROM covered c",
+          "subgoal": "source_grain",
+          "why": "Start from one list."
+        },
+        {
+          "text": "FULL OUTER JOIN sold s ON s.product_id = c.product_id",
+          "subgoal": "source_grain",
+          "why": "Keep every product of both lists, whether or not it is in the other one."
+        }
+      ]
+    }
+  ],
+  "pretest_item_ids": [
+    "EX-SQL-JOIN-05-E1-01",
+    "EX-SQL-JOIN-05-E1-02"
+  ],
+  "lesson_item_ids": [
+    "EX-SQL-JOIN-05-E1-03",
+    "EX-SQL-JOIN-05-E1-04",
+    "EX-SQL-JOIN-05-E2-01",
+    "EX-SQL-JOIN-05-E2-02"
+  ],
+  "retest_item_id": "EX-SQL-JOIN-05-E1-05",
+  "pool_item_ids": [
+    "EX-SQL-JOIN-05-E1-06",
+    "EX-SQL-JOIN-05-E1-07",
+    "EX-SQL-JOIN-05-E2-03",
+    "EX-SQL-JOIN-05-E2-04",
+    "EX-SQL-JOIN-05-E2-05",
+    "EX-SQL-JOIN-05-E2-06",
+    "EX-SQL-JOIN-05-E3-01",
+    "EX-SQL-JOIN-05-E3-02",
+    "EX-SQL-JOIN-05-E1-31",
+    "EX-SQL-JOIN-05-E1-42",
+    "EX-SQL-JOIN-05-E1-43",
+    "EX-SQL-JOIN-05-E2-41"
+  ],
+  "source_ids": [
+    "01:SQL-JOIN-05"
+  ],
+  "why_clause": {
+    "clause": "CROSS JOIN calendar c",
+    "stem": "Why does the grid start with CROSS JOIN instead of taking the store and day pairs from orders?",
+    "options": [
+      {
+        "id": "a",
+        "text": "CROSS JOIN removes the days on which a store had no orders."
+      },
+      {
+        "id": "b",
+        "text": "CROSS JOIN runs faster than any other join on small tables."
+      },
+      {
+        "id": "c",
+        "text": "CROSS JOIN gives every store and day a row before the orders come in, so a day with no order still shows up with 0."
+      },
+      {
+        "id": "d",
+        "text": "CROSS JOIN makes sure each order is counted only once."
+      }
+    ],
+    "correct_id": "c",
+    "explanation": "Pairs taken from orders exist only where an order exists, so a store and day with no order would be missing instead of showing 0. CROSS JOIN pairs every store with every day first, and the LEFT JOIN then fills in the orders where there are some."
+  }
+}

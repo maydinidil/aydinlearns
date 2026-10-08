@@ -5,7 +5,9 @@
 // as promptHash (R37) covers it (S2-48, Task B9); items without one keep the same five fields, byte
 // for byte. Hints, why_this_works, the faded shape, the starter's error ID and every key stay out.
 // Only active write and fix items are exported, as only they are checked here (SQL choice items: export:choice-view); .json files from an earlier export are
-// removed first. It prints counts only, never SQL.
+// removed first. It prints counts only, never SQL. A case's CP3 item (sprint 4b: use `case`, EX-CASE-<case tail>; an opener's,
+// use `opener`) is an SQL item like any other, so it is exported here with the same fields; the case's CP1, CP2, CP4 and CP5 are
+// in export:choice-view, and the case record, its key and its model texts are never exported.
 // Usage: node tools/export-solver-view.ts [content-root] [out-dir]   (defaults: content/, tools/.solver-view/)
 import { mkdir, readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';

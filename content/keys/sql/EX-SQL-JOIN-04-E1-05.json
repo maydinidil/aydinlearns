@@ -1,0 +1,39 @@
+{
+  "item_id": "EX-SQL-JOIN-04-E1-05",
+  "item_version": 1,
+  "reference_sql": "SELECT c.parent_category, SUM(ol.quantity) AS units\nFROM order_lines ol\nJOIN orders o ON o.order_id = ol.order_id\nJOIN stores s ON s.store_id = o.store_id\nJOIN products p ON p.product_id = ol.product_id\nJOIN categories c ON c.category_id = p.category_id\nWHERE s.country_code = 'BE' AND o.order_ts >= TIMESTAMP '2025-03-01' AND o.order_ts < TIMESTAMP '2025-04-01'\nGROUP BY c.parent_category",
+  "alternatives": [
+    "SELECT c.parent_category, SUM(ol.quantity) AS units FROM stores s JOIN orders o ON o.store_id = s.store_id JOIN order_lines ol ON ol.order_id = o.order_id JOIN products p ON p.product_id = ol.product_id JOIN categories c ON c.category_id = p.category_id WHERE s.country_code = 'BE' AND CAST(o.order_ts AS DATE) BETWEEN DATE '2025-03-01' AND DATE '2025-03-31' GROUP BY c.parent_category",
+    "WITH be_orders AS (SELECT o.order_id FROM orders o JOIN stores s ON s.store_id = o.store_id WHERE s.country_code = 'BE' AND o.order_ts >= TIMESTAMP '2025-03-01' AND o.order_ts < TIMESTAMP '2025-04-01') SELECT c.parent_category, SUM(ol.quantity) AS units FROM be_orders b JOIN order_lines ol ON ol.order_id = b.order_id JOIN products p ON p.product_id = ol.product_id JOIN categories c ON c.category_id = p.category_id GROUP BY c.parent_category"
+  ],
+  "other_way": {
+    "sql": "WITH be_orders AS (SELECT o.order_id FROM orders o JOIN stores s ON s.store_id = o.store_id WHERE s.country_code = 'BE' AND o.order_ts >= TIMESTAMP '2025-03-01' AND o.order_ts < TIMESTAMP '2025-04-01') SELECT c.parent_category, SUM(ol.quantity) AS units FROM be_orders b JOIN order_lines ol ON ol.order_id = b.order_id JOIN products p ON p.product_id = ol.product_id JOIN categories c ON c.category_id = p.category_id GROUP BY c.parent_category",
+    "tradeoff": "A CTE of the Belgian stores' March orders splits the two branches of the chain, at the cost of a longer query."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-12",
+      "sql": "SELECT c.parent_category, SUM(ol.quantity) AS units FROM order_lines ol JOIN orders o ON o.order_id = ol.order_id JOIN stores s ON s.store_id = o.store_id JOIN products p ON p.product_id = ol.product_id JOIN categories c ON c.category_id = p.product_id WHERE s.country_code = 'BE' AND o.order_ts >= TIMESTAMP '2025-03-01' AND o.order_ts < TIMESTAMP '2025-04-01' GROUP BY c.parent_category"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-12",
+      "sql": "SELECT c.parent_category, SUM(ol.quantity) AS units FROM order_lines ol JOIN orders o ON o.order_id = ol.order_id JOIN stores s ON s.country_code = o.ship_to_country JOIN products p ON p.product_id = ol.product_id JOIN categories c ON c.category_id = p.category_id WHERE s.country_code = 'BE' AND o.order_ts >= TIMESTAMP '2025-03-01' AND o.order_ts < TIMESTAMP '2025-04-01' GROUP BY c.parent_category"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-06",
+      "sql": "SELECT c.parent_category, SUM(ol.quantity) AS units FROM order_lines ol JOIN orders o ON o.order_id = ol.order_id JOIN stores s ON s.store_id = o.store_id JOIN products p ON p.product_id = ol.product_id JOIN categories c ON c.category_id = p.category_id WHERE s.country_code = 'BE' AND o.order_ts BETWEEN '2025-03-01' AND '2025-03-31' GROUP BY c.parent_category"
+    }
+  ],
+  "hint3_partial": "SELECT c.parent_category, SUM(ol.quantity) AS units\nFROM order_lines ol\nJOIN orders o ON o.order_id = ol.order_id\nJOIN stores s ON ___\nJOIN products p ON p.product_id = ol.product_id\nJOIN categories c ON ___\nWHERE s.country_code = 'BE' AND o.order_ts >= TIMESTAMP '2025-03-01' AND o.order_ts < TIMESTAMP '2025-04-01'\nGROUP BY c.parent_category",
+  "solver": {
+    "prompt_hash": "666d37a510a625fc",
+    "schema_version": "a8bfb3e0d10e",
+    "dataset_version": "e1545e4258743033",
+    "grader_version": "1b.3",
+    "query": "SELECT c.parent_category, SUM(l.quantity) AS units\nFROM order_lines l\nJOIN orders o ON o.order_id = l.order_id\nJOIN stores s ON s.store_id = o.store_id\nJOIN products p ON p.product_id = l.product_id\nJOIN categories c ON c.category_id = p.category_id\nWHERE s.country_code = 'BE'\n  AND o.order_ts >= TIMESTAMP '2025-03-01 00:00:00' AND o.order_ts < TIMESTAMP '2025-04-01 00:00:00'\nGROUP BY c.parent_category",
+    "at": "2026-10-07T10:41:40.968Z"
+  }
+}

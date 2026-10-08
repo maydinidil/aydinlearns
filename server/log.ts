@@ -1,6 +1,6 @@
 // server/log.ts
 import type { JsonlLog, LogFile } from '../core/jsonl.ts';
-import type { BlockClose, Exposure, HintOpened, ItemClose, SolutionOpened } from '../core/envelope.ts';
+import type { BlockClose, Exposure, HintOpened, ItemClose, OtherWayOpened, SelfCheck, SolutionOpened } from '../core/envelope.ts';
 import type { AppEvent } from '../core/events.ts';
 import type { AydinAttempt } from '../schemas/log-ext.ts';
 
@@ -24,6 +24,10 @@ export class AttemptLogger {
   hintOpened(h: HintOpened): Promise<void> { return this.#write('attempts', h); }
   solutionOpened(s: SolutionOpened): Promise<void> { return this.#write('attempts', s); }
   exposure(e: Exposure): Promise<void> { return this.#write('attempts', e); }
+  /** D29 (log version 3): one "other ways to write this" opened after a pass. */
+  otherWayOpened(o: OtherWayOpened): Promise<void> { return this.#write('attempts', o); }
+  /** D38 (log version 4, S4B-09): a plan, plan check, sketch, insight, rubric or "explained aloud" self-check. Replay rates nothing from it. */
+  selfCheck(s: SelfCheck): Promise<void> { return this.#write('attempts', s); }
   event(e: AppEvent): Promise<void> { return this.#write(e.event === 'content_report' ? 'reports' : 'events', e); }
   readAll(file: LogFile): Promise<object[]> { return this.#log.readAll(file); }
 }

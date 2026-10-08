@@ -1,0 +1,129 @@
+{
+  "id": "EX-SQL-SET-01-E2-05",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "set",
+    "intersect",
+    "cte",
+    "count",
+    "customers",
+    "orders"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-SET-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-SET-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-CTE-01",
+    "SQL-SET-01"
+  ],
+  "template_id": "T-SET-01-intersect-count",
+  "template_params": {
+    "table": "orders",
+    "years": "2024, 2025"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_set",
+  "prompt": "How many customers ordered in 2024 and also ordered in 2025? Use the orders table. order_ts holds the time of the order in UTC, so take the years in UTC: 2024 runs from 2024-01-01 00:00 up to but not including 2025-01-01 00:00, and 2025 from 2025-01-01 00:00 up to but not including 2026-01-01 00:00. Leave out guest orders, whose customer_id is missing, and count each customer once. Return one column, customers, the number of customers, in one row. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "customers",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "customers",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the two lists of customers inside a CTE, one per year, and keep only the customers in both.",
+    "INTERSECT keeps each customer once, however many orders that customer placed. INTERSECT ALL would keep repeats and inflate the count."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 41,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 42,
+      "to": 55,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 56,
+      "to": 190,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 191,
+      "to": 223,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 224,
+      "to": 237,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 238,
+      "to": 374,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 375,
+      "to": 403,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 404,
+      "to": 419,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "INTERSECT leaves one row for each customer with orders in both years, so COUNT(*) counts each returning customer once."
+}

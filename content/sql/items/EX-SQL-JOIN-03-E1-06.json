@@ -1,0 +1,125 @@
+{
+  "id": "EX-SQL-JOIN-03-E1-06",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "fan_out",
+    "bridge",
+    "promotion_products",
+    "products"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-JOIN-03"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-JOIN-03",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-JOIN-03"
+  ],
+  "template_id": "T-JOIN-03-bridge-distinct-count",
+  "template_params": {
+    "bridge": "promotion_products",
+    "parent": "products",
+    "group_by": "brand"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_join",
+  "prompt": "For each brand, how many of its products take part in at least one promotion? A product takes part when at least one promotion lists it; count each product once, however many promotions list it. Return two columns, in this order: brand and n_promo_products. Return one row for each brand with at least one such product. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "brand",
+        "type_class": "text"
+      },
+      {
+        "name": "n_promo_products",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "brand",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "n_promo_products",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "brand"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, make a list of promoted products that holds each product once.",
+    "The bridge table has one row per promotion and product, so a product in two promotions would be counted twice."
+  ],
+  "subgoals": [
+    {
+      "from": 27,
+      "to": 53,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 56,
+      "to": 79,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 82,
+      "to": 126,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 127,
+      "to": 197,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 198,
+      "to": 214,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "The step holds each promoted product once, so the join keeps one row per product and COUNT(*) counts products."
+}

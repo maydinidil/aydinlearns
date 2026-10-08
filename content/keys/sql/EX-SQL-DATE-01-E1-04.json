@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-DATE-01-E1-04",
+  "item_version": 1,
+  "reference_sql": "SELECT dayname(order_date) AS weekday,\n       SUM(units) AS units\nFROM sales\nGROUP BY 1",
+  "alternatives": [
+    "SELECT strftime(order_date, '%A') AS weekday, SUM(units) AS units FROM sales GROUP BY strftime(order_date, '%A')",
+    "SELECT CASE isodow(order_date) WHEN 1 THEN 'Monday' WHEN 2 THEN 'Tuesday' WHEN 3 THEN 'Wednesday' WHEN 4 THEN 'Thursday' WHEN 5 THEN 'Friday' WHEN 6 THEN 'Saturday' ELSE 'Sunday' END AS weekday, SUM(units) AS units FROM sales GROUP BY 1"
+  ],
+  "other_way": {
+    "sql": "SELECT CASE isodow(order_date) WHEN 1 THEN 'Monday' WHEN 2 THEN 'Tuesday' WHEN 3 THEN 'Wednesday' WHEN 4 THEN 'Thursday' WHEN 5 THEN 'Friday' WHEN 6 THEN 'Saturday' ELSE 'Sunday' END AS weekday, SUM(units) AS units FROM sales GROUP BY 1",
+    "tradeoff": "A CASE on isodow spells out each name and needs no name function, but it is far longer to write."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-14",
+      "sql": "SELECT dayname(order_date) AS weekday, COUNT(*) AS units FROM sales GROUP BY 1"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-25",
+      "sql": "SELECT monthname(order_date) AS weekday, SUM(units) AS units FROM sales GROUP BY 1"
+    }
+  ],
+  "hint3_partial": "SELECT ___(order_date) AS weekday,\n       SUM(units) AS units\nFROM sales\nGROUP BY 1",
+  "solver": {
+    "prompt_hash": "97bc888e92929ce8",
+    "schema_version": "cebf75df442f",
+    "dataset_version": "e1545e4258743033",
+    "grader_version": "1b.3",
+    "query": "SELECT dayname(order_date) AS weekday, SUM(units) AS units\nFROM sales\nGROUP BY 1",
+    "at": "2026-10-07T10:41:36.372Z"
+  }
+}

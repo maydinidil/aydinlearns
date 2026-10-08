@@ -1,0 +1,37 @@
+{
+  "item_id": "EX-SQL-JOIN-01-E2-02",
+  "item_version": 2,
+  "reference_sql": "SELECT c.parent_category, COUNT(*) AS n_lines, COUNT(DISTINCT p.brand) AS n_brands\nFROM order_lines l\nJOIN products p ON p.product_id = l.product_id\nJOIN categories c ON c.category_id = p.category_id\nGROUP BY c.parent_category",
+  "alternatives": [
+    "SELECT c.parent_category, COUNT(l.order_line_id) AS n_lines, COUNT(DISTINCT p.brand) AS n_brands FROM categories c JOIN products p ON p.category_id = c.category_id JOIN order_lines l ON l.product_id = p.product_id GROUP BY 1",
+    "SELECT c.parent_category, COUNT(*) AS n_lines, COUNT(DISTINCT p.brand) AS n_brands FROM order_lines l, products p, categories c WHERE p.product_id = l.product_id AND c.category_id = p.category_id GROUP BY c.parent_category",
+    "SELECT s.parent_category, COUNT(*) AS n_lines, COUNT(DISTINCT p.brand) AS n_brands FROM sales s JOIN products p ON p.product_id = s.product_id GROUP BY s.parent_category"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-12",
+      "sql": "SELECT c.parent_category, COUNT(*) AS n_lines, COUNT(DISTINCT p.brand) AS n_brands FROM order_lines l JOIN products p ON p.product_id = l.product_id JOIN categories c ON c.category_id = p.product_id GROUP BY c.parent_category"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-SYN-03",
+      "sql": "SELECT parent_category, COUNT(*) AS n_lines, COUNT(DISTINCT brand) AS n_brands FROM order_lines l JOIN products p ON p.product_id = l.product_id JOIN categories c ON c.category_id = category_id GROUP BY parent_category"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-14",
+      "sql": "SELECT c.parent_category, COUNT(*) AS n_lines, COUNT(p.brand) AS n_brands FROM order_lines l JOIN products p ON p.product_id = l.product_id JOIN categories c ON c.category_id = p.category_id GROUP BY c.parent_category"
+    }
+  ],
+  "hint3_partial": "SELECT c.parent_category, COUNT(*) AS n_lines, COUNT(DISTINCT p.brand) AS n_brands\nFROM order_lines l\nJOIN products p ON p.product_id = l.product_id\nJOIN categories c ON ___\nGROUP BY c.parent_category",
+  "solver": {
+    "prompt_hash": "68c1e7c75749864a",
+    "schema_version": "230e40018d62",
+    "dataset_version": "e1545e4258743033",
+    "grader_version": "1b.3",
+    "query": "SELECT c.parent_category, COUNT(*) AS n_lines, COUNT(DISTINCT p.brand) AS n_brands\nFROM order_lines l\nJOIN products p ON p.product_id = l.product_id\nJOIN categories c ON c.category_id = p.category_id\nGROUP BY c.parent_category",
+    "at": "2026-10-07T10:41:38.022Z"
+  }
+}

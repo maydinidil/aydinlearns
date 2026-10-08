@@ -1,0 +1,93 @@
+{
+  "id": "EX-SQL-JOIN-03-E2-41",
+  "version": 1,
+  "kind": "choose_query",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "choose_query",
+    "fan_out",
+    "bridge",
+    "promotion_products",
+    "order_lines"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-JOIN-03"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-JOIN-03",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-JOIN-03"
+  ],
+  "template_id": "T-JOIN-03-choose-bridge-fix",
+  "template_params": {
+    "bridge": "promotion_products",
+    "fact": "order_lines"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_join",
+  "prompt": "How many units were sold, in total, of the products that take part in at least one promotion? A product takes part when at least one promotion lists it, and each order line's quantity counts once. Return one column, units. Which query returns it?",
+  "output_contract": null,
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [],
+  "subgoals": [],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 90000,
+  "why_this_works": "",
+  "options": [
+    {
+      "oid": "o61ee8c3",
+      "text": "SELECT SUM(ol.quantity) AS units\nFROM order_lines ol\nJOIN promotion_products pp ON pp.product_id = ol.product_id",
+      "misconception_id": "ERR-LOG-01"
+    },
+    {
+      "oid": "oda780c0",
+      "text": "SELECT SUM(DISTINCT ol.quantity) AS units\nFROM order_lines ol\nJOIN promotion_products pp ON pp.product_id = ol.product_id",
+      "misconception_id": "ERR-LOG-09"
+    },
+    {
+      "oid": "o0cb4978",
+      "text": "WITH promo_products AS (\n  SELECT DISTINCT product_id\n  FROM promotion_products\n)\nSELECT SUM(ol.quantity) AS units\nFROM order_lines ol\nJOIN promo_products pp ON pp.product_id = ol.product_id",
+      "misconception_id": null
+    },
+    {
+      "oid": "o15163bf",
+      "text": "WITH promo_products AS (\n  SELECT DISTINCT product_id\n  FROM promotion_products\n)\nSELECT SUM(ol.quantity) AS units\nFROM order_lines ol\nLEFT JOIN promo_products pp ON pp.product_id = ol.product_id",
+      "misconception_id": "ERR-LOG-11"
+    }
+  ]
+}

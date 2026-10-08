@@ -1,0 +1,140 @@
+{
+  "id": "EX-SQL-JOIN-05-E2-06",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "cross-join",
+    "grid",
+    "stores",
+    "calendar",
+    "missing-days"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-JOIN-05"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-JOIN-05",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-AGG-04",
+    "SQL-TYPE-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-JOIN-01",
+    "SQL-JOIN-05"
+  ],
+  "template_id": "T-JOIN-05-grid-days-without-orders",
+  "template_params": {
+    "country_code": "BE",
+    "from": "2025-03-03",
+    "to": "2025-03-09"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_join",
+  "prompt": "For each store located in Belgium (country_code BE), on how many calendar days from 3 to 9 March 2025 did it get no order at all? order_ts holds UTC time: use its UTC date. Return two columns, in this order: store_code and days_without_orders, which is 0 when the store had orders every day. Return one row for each Belgian store. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "store_code",
+        "type_class": "text"
+      },
+      {
+        "name": "days_without_orders",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "store_code",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "days_without_orders",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "store_code"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, build every store and day of the week as a grid, so that a day with no order still has a row to count.",
+    "Only a grid of all stores times all days has rows for the days without orders; after a LEFT JOIN of the day's orders, those rows have a missing count."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 229,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 230,
+      "to": 316,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 317,
+      "to": 330,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 331,
+      "to": 352,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 353,
+      "to": 432,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 433,
+      "to": 523,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 524,
+      "to": 545,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "The grid gives each store a row for every day, and after the LEFT JOIN the days with no orders are the rows whose count is missing."
+}

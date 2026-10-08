@@ -1,0 +1,109 @@
+{
+  "id": "EX-SQL-JOIN-04-E1-01",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "self-join",
+    "products",
+    "sister"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-JOIN-04"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pretest",
+  "target_concept_id": "SQL-JOIN-04",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-JOIN-01",
+    "SQL-JOIN-04"
+  ],
+  "template_id": "T-JOIN-04-self-join-sister-names",
+  "template_params": {
+    "table": "products",
+    "link": "sister_product_id"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_join",
+  "prompt": "Some products have a sister product: a product's sister_product_id holds the product_id of its sister. For every product that has a sister product, return two columns, in this order: product_name and sister_name, the product_name of its sister product. Return one row for each product that has a sister product. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "product_name",
+        "type_class": "text"
+      },
+      {
+        "name": "sister_name",
+        "type_class": "text"
+      }
+    ],
+    "grain": "one row per product that has a sister product"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "product_name",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "sister_name",
+        "type_class": "text",
+        "precision": "exact"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "product_name"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, join products to itself under a second alias, so each product can sit next to its sister.",
+    "Give the second copy of products its own alias, and link that copy's product_id to the first copy's sister_product_id."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 52,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 53,
+      "to": 68,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 69,
+      "to": 122,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "A second alias of products stands for the sister, found through sister_product_id, so both names sit in one row."
+}

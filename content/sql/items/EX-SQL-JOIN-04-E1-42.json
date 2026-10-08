@@ -1,0 +1,85 @@
+{
+  "id": "EX-SQL-JOIN-04-E1-42",
+  "version": 1,
+  "kind": "choose_query",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "choose_query",
+    "bridge",
+    "promotion_products"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-JOIN-04"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-JOIN-04",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-JOIN-01",
+    "SQL-JOIN-04"
+  ],
+  "template_id": "T-JOIN-04-choose-bridge-path",
+  "template_params": {
+    "promo_code": "P-2024-01"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_join",
+  "prompt": "Which query returns the product_name of every product that the promotion with promo_code 'P-2024-01' covers, one row per covered product? Any row order is fine.",
+  "output_contract": null,
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [],
+  "subgoals": [],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 60000,
+  "why_this_works": "",
+  "options": [
+    {
+      "oid": "o5b7f5d7",
+      "text": "SELECT p.product_name\nFROM promotions pr\nJOIN promotion_products pp ON pp.promo_id = pr.promo_id\nJOIN products p ON p.product_id = pp.promo_id\nWHERE pr.promo_code = 'P-2024-01'",
+      "misconception_id": "ERR-LOG-12"
+    },
+    {
+      "oid": "o25d851b",
+      "text": "SELECT p.product_name\nFROM promotions pr\nJOIN promotion_products pp ON pp.promo_id = pr.promo_id\nJOIN products p ON p.product_id = pp.product_id\nWHERE pr.promo_code = 'P-2024-01'",
+      "misconception_id": null
+    },
+    {
+      "oid": "o523fd94",
+      "text": "SELECT p.product_name\nFROM promotions pr\nJOIN products p ON p.product_id = pr.promo_id\nWHERE pr.promo_code = 'P-2024-01'",
+      "misconception_id": "ERR-LOG-12"
+    },
+    {
+      "oid": "o942eede",
+      "text": "SELECT p.product_name\nFROM promotions pr\nJOIN order_lines ol ON ol.promo_id = pr.promo_id\nJOIN products p ON p.product_id = ol.product_id\nWHERE pr.promo_code = 'P-2024-01'",
+      "misconception_id": "ERR-LOG-01"
+    }
+  ]
+}

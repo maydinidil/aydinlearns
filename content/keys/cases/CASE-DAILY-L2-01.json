@@ -1,0 +1,7 @@
+{
+  "case_id": "CASE-DAILY-L2-01",
+  "truths": {
+    "CP4": "SELECT ROUND(100.0 * SUM(CASE WHEN channel = 'store' THEN units ELSE 0 END) / SUM(units), 1)\nFROM sales\nWHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-03-31'"
+  },
+  "choices": {}
+}

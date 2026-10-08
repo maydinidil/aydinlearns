@@ -6,7 +6,7 @@ import type { TableNote } from '../../schemas/schema-notes.ts';
 import type { CloseReason, Exposure, Phase, Section } from '../../core/envelope.ts';
 import type { Goal } from '../../core/goals.ts';
 import type { CriterionResult } from '../../core/goal-eval.ts';
-import type { TodayPlan } from '../../core/session.ts';
+import type { TodayPlan, TodayStep } from '../../core/session.ts';
 import type { ConceptStateName } from '../../core/states.ts';
 import type { GradeResult } from '../../server/grader/types.ts';
 import type { DisplayOk, RunnerError } from '../../server/runner/protocol.ts';
@@ -25,7 +25,9 @@ export interface RetestView { conceptId: string; itemId: string; readyAt: string
  * suffix come only for stage 1 or 2; `item()` fills a missing faded_shape with null, so the lesson helpers read one shape.
  */
 export type ItemView = Omit<SqlItem, 'hints' | 'subgoals' | 'why_this_works' | 'starter_error_id' | 'faded_shape' | 'faded_suffix'>
-  & { faded_shape: string | null; faded_suffix?: string | null };
+  & { faded_shape: string | null; faded_suffix?: string | null;
+      /** S4-11: whether the key holds an "other ways" entry. Never its text: /api/other-way serves that after a pass (Task D1). */
+      has_other_way: boolean };
 type SentItem = Omit<ItemView, 'faded_shape'> & { faded_shape?: string | null };
 export type { Section, TodayPlan, CriterionResult };
 /**
@@ -35,10 +37,26 @@ export type { Section, TodayPlan, CriterionResult };
 export interface OpenerView { case_id: string; level: number; title: string; cp3_item_id: string }
 /** A goal as Today and the progress view send it: the evaluated criteria stand in for their definitions. */
 export interface GoalSummary { id: string; title: string; target_date: string; stage: number | null }
-export interface TodayView { plan: TodayPlan; goal: { goal: GoalSummary; effective_date: string; criteria: CriterionResult[] } | null }
+/**
+ * Today's SQL steps as server/routes/today.ts sends them: the composer's, plus the wheel-spinning step (S4-10, Task C2), declared here
+ * as server/session-composer.ts declares it. Any step kind the browser does not know gets a safe row (lib/today-flow.ts).
+ */
+export interface WheelSpinningStep { kind: 'wheel_spinning'; concept_id: string; item_id: string | null }
+export type TodayStepView = TodayStep | WheelSpinningStep;
+export interface TodayPlanView extends Omit<TodayPlan, 'steps' | 'minimumDay'> { steps: TodayStepView[]; minimumDay: TodayStepView[] }
+/** The wrap-up's corrected query (S4-13): the learner's own failed and passing queries on one item. Null for GA4 and Methodology, or when there is none. */
+export interface CorrectedQuery {
+  item_id: string; concept_id: string; error_id: string | null; error_name: string | null;
+  failed_query: string; passed_query: string; failed_at: string; passed_at: string;
+}
+export interface TodayView {
+  plan: TodayPlanView; goal: { goal: GoalSummary; effective_date: string; criteria: CriterionResult[] } | null;
+  /** Absent from a server older than Task C2. */
+  corrected_query?: CorrectedQuery | null;
+}
 export interface GoalProgress { goal: GoalSummary; effective_date: string; met: boolean; criteria: CriterionResult[] }
-/** `practice` (Task C5): GA4 and Methodology practice, of the named concept or of Today's practice step. */
-export type ServePurpose = 'review' | 'new_concept' | 'retest' | 'relearning' | 'opener' | 'practice';
+/** `wheel_spinning` (S4-10, Task C3): the easier exercise of a concept that keeps slipping. `practice` (Task C5): GA4 and Methodology practice, of the named concept or of Today's practice step. */
+export type ServePurpose = 'review' | 'new_concept' | 'retest' | 'relearning' | 'opener' | 'practice' | 'wheel_spinning';
 export interface ServeBody { section: Section; purpose: ServePurpose; concept_id?: string; case_id?: string }
 /** A served item (Task B13). `hide_labels`: hide the concept name, lesson title, level badge and item ID until after submission (S2-39). */
 export interface Served { item_id: string; item_instance_id: string; phase: Phase; block_id: string | null; repeat_exposure: boolean; hide_labels: boolean }
@@ -92,15 +110,33 @@ export interface ChoiceConceptView {
 }
 export interface ReadingView { concept_id: string; section: ChoiceSection; version: number; title: string; reading_md: string; verified: boolean; as_of: string }
 
+/**
+ * The mistake cards (S4-13, Task C2), declared here as server/routes/mistakes.ts answers them. `original` is the learner's own
+ * logged query and the diff summary logged with that attempt; nothing in it is read from a key.
+ */
+export interface MistakeCardView {
+  card_id: string; concept_id: string; error_id: string; error_name: string | null;
+  state: 'new' | 'learning' | 'review' | 'relearning'; due: string; is_due: boolean; created_at: string; last_review: string | null; occurrences: number;
+  original: { attempt_id: string; item_id: string; submitted_at: string; query: string | null; diff_summary: string | null } | null;
+}
+export interface MistakesView { cards: MistakeCardView[]; untrapped_candidates: number }
+/** A served try: `card_id` is set when the card was due (the try rates it); null is free practice. */
+export interface MistakeTryView { item_id: string; item_instance_id: string; phase: 'review' | 'free'; block_id: null; repeat_exposure: boolean; hide_labels: boolean; card_id: string | null }
+
 /** The drill routes (Task B14), declared here as server/routes/drill.ts answers them (the browser build has no node types). */
 export interface DrillScoreView { passed: number; questions: number; pct: number; run_passed: boolean; unseen: number; unseen_pct: number; counts_for_level: boolean }
 export interface DrillStarted {
   block_id: string; kind: 'level' | 'chosen'; level: number | null; phase: 'drill'; hide_labels: boolean; questions: number; minutes: number;
   pass_pct: number; unseen_min_pct: number; ends_at: string; servings: { item_id: string; item_instance_id: string }[];
+  /** S4B-23 (Task E3): the run was started in screen mode, so its items are served and graded in screen mode. */
+  screen_mode?: boolean;
 }
+/** S4B-23: a drill start names a level or the chosen concepts, and screen mode when the learner chose it. */
+export type DrillStartBody = ({ level: number } | { concept_ids: string[] }) & { screen_mode?: boolean };
 export interface DrillSpecView { level: number; questions: number; minutes: number; pass_pct: number; unseen_min_pct: number; available: boolean }
-export interface DrillHistoryRow extends DrillScoreView { block_id: string; kind: 'level' | 'chosen'; level: number | null; date: string }
-export interface DrillEnded { block_id: string; kind: 'level' | 'chosen'; level: number | null; score: DrillScoreView }
+/** `screen_mode` (S4B-23): the run's mode, which the history shows. `live_rep` (S4B-26, Task E4): a live rep, never a level or chosen run. */
+export interface DrillHistoryRow extends DrillScoreView { block_id: string; kind: 'level' | 'chosen' | 'live_rep'; level: number | null; date: string; screen_mode: boolean }
+export interface DrillEnded { block_id: string; kind: 'level' | 'chosen' | 'live_rep'; level: number | null; score: DrillScoreView }
 
 /**
  * The GA4 timed runs (Task B3), declared here as server/routes/run.ts answers them. A run is a mini drill (practice mode) or a
@@ -165,6 +201,9 @@ async function call<T>(method: 'GET' | 'POST', path: string, body?: unknown, kee
   return data as T;
 }
 
+/** The fetch wrapper every screen's calls share. Per-feature call files (web/src/lib/<feature>-api.ts) build on it (sprint 4b). */
+export { call as apiCall };
+
 export const api = {
   status: () => call<StatusView>('GET', '/api/status'),
   curriculum: () => call<{ levels: Level[]; concepts: ConceptView[] }>('GET', '/api/curriculum'),
@@ -172,7 +211,7 @@ export const api = {
   /** `stage` 1 or 2 asks for the faded shape the lesson block shows at that stage; any other stage gets a blank editor. */
   item: (id: string, stage?: 1 | 2 | 3) =>
     call<{ item: SentItem; schemaNotes: TableNote[] }>('GET', `/api/items/${encodeURIComponent(id)}${stage === 1 || stage === 2 ? `?stage=${stage}` : ''}`)
-      .then((d): { item: ItemView; schemaNotes: TableNote[] } => ({ ...d, item: { ...d.item, faded_shape: d.item.faded_shape ?? null } })),
+      .then((d): { item: ItemView; schemaNotes: TableNote[] } => ({ ...d, item: { ...d.item, faded_shape: d.item.faded_shape ?? null, has_other_way: d.item.has_other_way === true } })),
   today: (section: Section) => call<TodayView>('GET', `/api/today?section=${section}`),
   goalsProgress: () => call<{ goals: GoalProgress[] }>('GET', '/api/goals/progress'),
   /** The level openers (S2-51, Task B15 follow-up): read only, so the map and Today's preview serve nothing. */
@@ -186,6 +225,8 @@ export const api = {
   // Hint, show answer and close can each open an instance on the server, so each carries the panel's phase.
   hint: (item_id: string, item_instance_id: string, level: 1 | 2 | 3, phase: Phase) => call<{ text: string }>('POST', '/api/hint', { item_id, item_instance_id, level, phase }),
   showAnswer: (item_id: string, item_instance_id: string, phase: Phase) => call<{ sql: string; display: DisplayOk | null }>('POST', '/api/show-answer', { item_id, item_instance_id, phase }),
+  /** S4-12: one different correct query and its trade-off, after a pass. Each served response is logged as other_way_opened. */
+  otherWay: (item_id: string, item_instance_id: string, phase: Phase) => call<{ sql: string; tradeoff: string }>('POST', '/api/other-way', { item_id, item_instance_id, phase }),
   override: (item_id: string, item_instance_id: string, disputed_row: unknown[] | null) => call<{ ok: true }>('POST', '/api/override', { item_id, item_instance_id, disputed_row }),
   /** `started_at` is when the item was first shown, so a close without an attempt still logs its active time. */
   itemClose: (item_id: string, item_instance_id: string, reason: CloseReason, phase: Phase, started_at: string) =>
@@ -195,10 +236,14 @@ export const api = {
   settings: (key: 'backup_folder' | 'exam_date' | 'goal_dates', value: unknown) => call<{ ok: true }>('POST', '/api/settings', { key, value }),
   outsidePractice: (b: { source: string; description: string; score?: string }) => call<{ ok: true }>('POST', '/api/outside-practice', b),
   externalResult: (b: { kind: 'ga4_exam' | 'portfolio_piece'; data: unknown }) => call<{ ok: true }>('POST', '/api/external-result', b),
-  drillStart: (b: { level: number } | { concept_ids: string[] }) => call<DrillStarted>('POST', '/api/drill/start', b),
+  drillStart: (b: DrillStartBody) => call<DrillStarted>('POST', '/api/drill/start', b),
   drillCurrent: () => call<{ run: DrillStarted | null }>('GET', '/api/drill/current'),
   drillEnd: (block_id: string) => call<DrillEnded>('POST', '/api/drill/end', { block_id }),
   drillHistory: (level?: number) => call<{ drill: DrillSpecView | null; runs: DrillHistoryRow[] }>('GET', `/api/drill/history${level === undefined ? '' : `?level=${level}`}`),
+  /** Read only: starts no session and logs nothing. */
+  mistakes: () => call<MistakesView>('GET', '/api/mistakes'),
+  /** "Try again": serves a trap item for the card's pair. Then the usual exercise routes run it with this instance. */
+  mistakeTry: (card_id: string) => call<MistakeTryView>('POST', `/api/mistakes/${encodeURIComponent(card_id)}/try`, {}),
   report: (item_id: string, text: string) => call<{ ok: true }>('POST', '/api/report', { item_id, text }),
   /** Shows a GA4, Methodology or SQL choice question in the instance (`phase` only for section sql, S3-17); a new instance gets a fresh shuffle. */
   choice: (id: string, section: ChoicePanelSection, item_instance_id: string, phase?: 'pretest' | 'free') =>

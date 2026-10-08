@@ -1,5 +1,7 @@
 {
   "case_id": "CASE-VOLT-L2",
-  "checkpoint_id": "CP4",
-  "truth_query": "SELECT ROUND(100.0 * SUM(CASE WHEN parent_category = 'TV & Video' THEN net_revenue_eur END) / SUM(net_revenue_eur), 1)\nFROM sales\nWHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\n  AND parent_category IN (\n    SELECT parent_category\n    FROM sales\n    WHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\n    GROUP BY parent_category\n    HAVING AVG(net_revenue_eur) > 150\n  )"
+  "truths": {
+    "CP4": "SELECT ROUND(100.0 * SUM(CASE WHEN parent_category = 'TV & Video' THEN net_revenue_eur END) / SUM(net_revenue_eur), 1)\nFROM sales\nWHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\n  AND parent_category IN (\n    SELECT parent_category\n    FROM sales\n    WHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\n    GROUP BY parent_category\n    HAVING AVG(net_revenue_eur) > 150\n  )"
+  },
+  "choices": {}
 }

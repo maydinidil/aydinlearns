@@ -1,0 +1,81 @@
+{
+  "id": "EX-SQL-JOIN-03-E2-42",
+  "version": 1,
+  "kind": "is_unique",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "is_unique",
+    "bridge",
+    "grain",
+    "promotion_products",
+    "primary_key"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-JOIN-03"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-JOIN-03",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-JOIN-03"
+  ],
+  "template_id": "T-JOIN-03-is-unique-bridge",
+  "template_params": {
+    "table": "promotion_products",
+    "column": "product_id"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_join",
+  "prompt": "In the promotion_products table, is product_id unique: does each product_id value appear on only one row?",
+  "output_contract": null,
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [],
+  "subgoals": [],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 90000,
+  "why_this_works": "",
+  "options": [
+    {
+      "oid": "o20fca28",
+      "text": "Yes",
+      "misconception_id": "ERR-LOG-01"
+    },
+    {
+      "oid": "oafe387b",
+      "text": "No",
+      "misconception_id": null
+    }
+  ],
+  "unique_check": {
+    "table": "promotion_products",
+    "column": "product_id"
+  }
+}

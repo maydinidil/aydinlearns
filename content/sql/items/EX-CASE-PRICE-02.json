@@ -1,0 +1,187 @@
+{
+  "id": "EX-CASE-PRICE-02",
+  "version": 2,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "case",
+    "inbox",
+    "pricing",
+    "price_index",
+    "case_when",
+    "sales",
+    "competitor_price_weekly",
+    "calendar",
+    "products",
+    "weekly"
+  ],
+  "level": 3,
+  "source_ids": [
+    "04:CASE-PRICE-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-07",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "case",
+  "target_concept_id": "SQL-JOIN-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CASE-01",
+    "SQL-TYPE-01",
+    "SQL-JOIN-01"
+  ],
+  "template_id": "T-CASE-PRICE-02-price-index-by-category",
+  "template_params": {
+    "iso_year": 2025,
+    "iso_week_from": 9,
+    "iso_week_to": 11,
+    "premium_above": 102,
+    "discount_below": 98,
+    "decimals": 1
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_join",
+  "prompt": "Sanne, the category manager, asks how each category was priced against the two rivals, week by week, in ISO weeks 9 to 11 of 2025, the three weeks from Monday 2025-02-24 to Sunday 2025-03-16, with days in UTC. In each week, compare only the products that sold that week and have an average competitor price for that same ISO week. For each category and week, the price index is 100 times the net revenue of those products' order lines that week, divided by the sum over the same lines of units times the product's average competitor price for that week; above 100 means Voltmarkt charged more. Return one row for each category and ISO week with at least one compared product, with six columns in this order: category_id; category_name; iso_week, the ISO week number; products_matched, the number of different products compared in that week; price_index, rounded to 1 decimal; and position, which is 'premium' when the rounded price_index is above 102.0, 'discount' when it is below 98.0, and 'parity' otherwise. Sort by iso_week from low to high; within a week, sort by the rounded price_index from highest to lowest, and when two categories have the same rounded price_index in a week, sort them by category_id from low to high.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "category_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "category_name",
+        "type_class": "text"
+      },
+      {
+        "name": "iso_week",
+        "type_class": "numeric"
+      },
+      {
+        "name": "products_matched",
+        "type_class": "numeric"
+      },
+      {
+        "name": "price_index",
+        "type_class": "numeric"
+      },
+      {
+        "name": "position",
+        "type_class": "text"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": true,
+    "sort_keys": [
+      {
+        "column": "iso_week",
+        "desc": false
+      },
+      {
+        "column": "price_index",
+        "desc": true
+      },
+      {
+        "column": "category_id",
+        "desc": false
+      }
+    ],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "category_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "category_name",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "iso_week",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "products_matched",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "price_index",
+        "type_class": "numeric",
+        "precision": "ratio",
+        "require_rounding": 1
+      },
+      {
+        "name": "position",
+        "type_class": "text",
+        "precision": "exact"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "category_id",
+      "iso_week"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, match each line to its product's competitor price for the ISO week the line was sold in, then decide what one row stands for.",
+    "Weight the competitor price by the units on each line, keep only products with a competitor price that week, and take the position from the rounded index."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 521,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 522,
+      "to": 760,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 761,
+      "to": 827,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 828,
+      "to": 879,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 880,
+      "to": 932,
+      "subgoal": "sort_limit"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "The weekly view has one row per product and week, so matching on the product and the week keeps each line once, and dividing two sums weights every unit."
+}

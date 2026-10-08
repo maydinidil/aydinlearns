@@ -15,6 +15,8 @@ screens, C = content and SQL choice kinds, D = smoke rows and the seams review).
 
 ## Open deferred findings
 
+Triaged on 2026-10-07: what is still open is in [`backlog.md`](backlog.md); the closed ones are in the section at the end.
+
 Eight areas follow.
 
 ### Exam engine and timed runs
@@ -151,3 +153,93 @@ Eight areas follow.
 | Today rendered an SQL choice serving in the write panel (smoke rows T3 and T4 failed) | D1 blocker | Fixed in d344023 |
 | Smoke row 2b-4 had no positive control; row T3 had lost its failed-pretest log assertion | D1 I1, M4 | Fixed in D1's fix round |
 | A near-mirror GA4 item was ungrouped | C2 | The item joined the existing item's enemy group |
+
+## Resolved since
+
+| Finding | Source | Status |
+|---|---|---|
+| nextUnseenDate today string vs now undocumented | B1 | Already fixed (the doc comment names the date it uses) |
+| skipped half-mock question counts as unseen | D2 S2 | Obsolete (owner decision 4: as built) |
+| Today can serve an item in the live mini drill | D2 S3 | Already fixed (Today skips items held by a live mini drill) |
+| thousand-euro typed items graded wrong with no scale hint | C3b | Already fixed (a scale example in the stems) |
+| count typed 1,000 reads as 1 | D2 | Already fixed (typed counts accept one thousands separator) |
+
+## Closed on 2026-10-07 (backlog cleanup)
+
+Every deferred finding in this record was triaged on 2026-10-07. The ones still open are in
+[`backlog.md`](backlog.md). These tables hold the rest.
+
+### Fixed in the hygiene PR
+
+| Item | Fix |
+|---|---|
+| B1 nextUnseenDate null has two causes, name both | Doc comment names both causes of a null date |
+| B1 opening at exactly showing time untested | New test: an opening at the same instant as the last showing leaves the item unseen |
+| B1 test message says 30 groups, pool has 25 | Message now says 25 groups |
+| A1 comment on why advancing and nextGate both guard Next | One-line comment added above the next step |
+| A1 ReadingScreen header comment too long | Header comment trimmed |
+| C2-tool held-out.json ID not in bank throws TypeError | The held-out tool refuses an unknown held-out ID with a plain message |
+| C2-tool --logs folder with no attempts files passes silently | The held-out tool refuses an empty logs folder with a plain message |
+
+### Won't do
+
+| Item | Reason |
+|---|---|
+| B1 unparseable time skipped, retake rule fails open | App cannot write such a time; no effect worth a change. |
+| B1 only one record order tested | Reversed showing order is already tested (isUnseen test); the code uses max and some, so order cannot matter. |
+| B2 next_unseen_date ignores enemy groups | Unreachable while one item per group; handling groups is a design change. |
+| B2 practice close raw_outcome.passed means any answer passed | Written into the log record; changing it touches the log format, and nothing reads it. |
+| B2 SQL drill start during GA4 run says drill is already running | Needs a branch on the kind of the running run, not just a wording change; the run screen shows its own text. |
+| B2 clock-driven end of practice item tested in core only | Behaviour already covered in core; no effect worth a change. |
+| B2 half-mock replay after crash reads first answer's time | Crash recovery and replay path, core-engine risk; conservative and rare. |
+| D2 S4 reviewOf mini drill branch ignores heldOut | Unreachable while extend runs use --logs; no effect. |
+| C4 mixedBlock first pass can fall back to non-write items | Only for a concept with no write item, and none exists; composer change is a design choice. |
+| C4 phase=pretest accepted for any active SQL choice item | A learner can only mislabel their own phase; the check would change what gets logged. |
+| C4 servableSqlChoiceItem does not ask heldOut | No effect: the held-out set is built from GA4 and Methodology files only, so the check would be dead code. |
+| C4 nothing flags stray keys/sql choice item key | A new content check could fail existing content; needs a content-author mistake to matter. |
+| C4 GA4 and Methodology GET 404 when no key | By design; C20 keeps every key present. |
+| C4 /api/run accepts an SQL choice item ID | Harmless free run through the gate; closing it is a route design choice. |
+| C4 predict_rows typed check accepts empty unit_label and extra keys | Tightening the schema could reject existing items and needs a content check run; no effect. |
+| A1 showAnswer confirm() runs before the gate | Harmless (the gate drops the duplicate); no DOM test layer to prove a reorder. |
+| A1 Next wiring has no DOM test | No DOM test layer exists; e2e covers it. |
+| B3 Half-mock click during a mini drill resumes it silently | Needs a second tab; rare; fix is a UI behaviour decision. |
+| B3 SQL drill 409 has no link to the SQL drill | Server text already says what to do; a link is new UI. |
+| B3 mini drill answer cannot change only its confidence | Changes what can be sent and logged; no scheduling effect. |
+| B3 practice mode mounts 20 panels, 20 GETs | Kept on purpose; GETs are not logged. |
+| B3 run keeps servings in state after half-mock ends | Never reaches the DOM or a request; local app. |
+| B3 ChoicePanel run branch has no DOM test | No DOM test layer; smoke rows cover it. |
+| C5 result table inside option label | Accepted as fine for a single-user app; a markup change risks layout. |
+| C5 choicePhaseFor logs non-pretest phase as free | Unreachable while re-test items are write items; touches what is logged. |
+| C5 ItemPanel routing and why panel have no test | No DOM test layer. |
+| C5 why-this-clause panel resets on step change | Harmless: re-answerable; no effect worth a change. |
+| C4 C33 compares column order, grading ignores it | Stricter check only; relaxing it is a content-check decision that could pass bad items. |
+| C4 C31 gates composed count only, not shown_sql alone | A new gate could fail existing items; composed statement runs the same text. |
+| C4 C02 accepts SQL choice item in lesson or retest ids | A new check could fail existing content; guarded elsewhere (C4 M5). |
+| C4 test gaps (route-level review or mixed choice, phase on GA4) | Route-level tests need fixtures and logs; too big; smoke rows cover it. |
+| C2-tool tests do not pin add hash order or release card order | A pinned order is brittle against the hash rule; determinism is already tested. |
+| C2-tool writes not atomic | C25 catches a split; atomic writes are a larger change. |
+| C2-tool header and README claim holds only with --logs | README.md:164 and the tool header already explain --logs; nothing left to fix. |
+| D2 S5 C35 skips edge check silently if edge schema lacks the table | Skipping is right when the table is absent; a warning is new behaviour. |
+| D1 smoke 2b-3 no positive control for normalisation | Smoke e2e change; cannot be run quickly to prove. |
+| D1 smoke 2b-5 takes first pretest item by file name | Smoke e2e change; no effect worth a change. |
+| D1 smoke 2b-5 listener never removed, fixed sleep | Smoke e2e change; e2e runs pass. |
+| C1 attribution lookback definition not in files 06 or 10 | Standard fact; a sourcing note with no effect on the learner. |
+| C1 integrations bullets long; events lesson over-generalises | Style only; rewriting a reading text needs a fresh check of the claims. |
+| C1 metrics lesson Skillshop pointer is an inference | Already marked Unverified; covered by the owner's Skillshop check. |
+| C2 attribution item explanation says two models | Item key wording needs a version bump and blind re-solve. |
+| C2 lookback item explanation says under any attribution model | Item key wording needs a blind re-solve. |
+| C2 Google Ads link item rests on Marketer role entry only | Sourcing note; the claim is correct. |
+| C2 attribution item calls a distractor session-scoped too | True in GA4; key wording change needs a re-solve. |
+| C2 lookback item options not in one writing order | Changing options needs a re-solve. |
+| C2 observation: two lookback items quote one Help page | Observation only, nothing to change. |
+| C3a MET-MKT-07 item has two options sharing one verdict | Optional rewrite of options; needs a re-solve. |
+| C3a two MET-MKT-11 items test same rule, no shared group | Enemy groups are not used by Methodology runs; no effect. |
+| C3a MET-MKT-12 item reuses reading's worked numbers | Minor repetition; changing numbers needs a re-solve. |
+| C3b MET-RETAIL-01 stem store count one too few | A stem change needs a re-solve. |
+| C3b MET-RETAIL-01 Easter dates from general knowledge | Correct; no source ID needed. |
+| C3b MET-SAAS-11 option-length cue not counted by C22 | Faint cue; options change needs a re-solve. |
+| C3b nothing is wrong and always most accurate distractors | Style note; options change needs a re-solve. |
+| C6 M-4 distractors differ only on hidden or edge data | By design; each prompt states the deciding rule. |
+| C6 M-4b EX-SQL-SORT-01-E1-43 depends on DuckDB 1.5.6 tie pick | Kept by ruling; C33 fails by ID if an upgrade changes it. |
+| C6 M-8 near-duplicate SQL items | Never served in one run while drills stay write and fix; removal needs content work. |
+| C6 M-9 choose-the-query keys at position 3 in 8 of 20 | Options are shuffled for the learner; moving keys needs a re-solve. |

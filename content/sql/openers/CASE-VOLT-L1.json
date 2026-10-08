@@ -1,5 +1,7 @@
 {
   "case_id": "CASE-VOLT-L1",
+  "kind": "opener",
+  "level": 1,
   "world": "PRICE",
   "company_id": "voltmarkt",
   "title": "Tablet prices in the 2025 promotions",
@@ -10,6 +12,28 @@
   "brief": {
     "decision": "Which discount depths to plan again in next year's percent-off and clearance promotions",
     "deadline": "Before next year's promotion calendar is fixed"
+  },
+  "data_needed": [
+    "promotions"
+  ],
+  "expected_output": {
+    "columns": [
+      "promo_code",
+      "promo_name",
+      "discount_pct",
+      "sale_price_eur"
+    ],
+    "grain": "one row per promotion",
+    "sort": [
+      {
+        "column": "sale_price_eur",
+        "desc": false
+      },
+      {
+        "column": "promo_code",
+        "desc": false
+      }
+    ]
   },
   "checkpoints": [
     {
@@ -42,6 +66,12 @@
   ],
   "model_plan": "Metric: the sale price of a 400.00 euro tablet, 400.00 minus discount_pct percent of it, with a missing discount read as no discount. Output grain: one row per promotion. Table: promotions, keyed by promo_id. Filters: promo_type is percent_off or clearance, and start_date falls in the first half of 2025 with both ends included. Edge cases: a missing discount_pct, a missing promo_name, a missing promo_type (not one of the two types, so left out), and promotions with the same discount, which the second sort key orders. Sort: sale price from low to high, then promo_code from A to Z.",
   "model_answer_template": "In the first half of 2025, the deepest of these promotions took the tablet down to {lowest_sale_price} euros ({deepest_promo_codes}), and the shallowest left it at {highest_sale_price} euros. Most promotions priced it between {typical_low} and {typical_high} euros, so {recommendation}.",
+  "follow_up_question": "Did the promotions with the deepest discounts also sell the most tablets?",
+  "data_source": {
+    "label": "Fictional, generated data: Voltmarkt",
+    "real": false,
+    "licence": null
+  },
   "difficulty": 1,
   "concept_ids": [
     "SQL-BASICS-01",

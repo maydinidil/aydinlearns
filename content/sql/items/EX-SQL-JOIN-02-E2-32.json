@@ -1,0 +1,120 @@
+{
+  "id": "EX-SQL-JOIN-02-E2-32",
+  "version": 1,
+  "kind": "fix",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "left_join",
+    "fix",
+    "wrong_join_type",
+    "products",
+    "promotion_products",
+    "bridge"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-JOIN-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-JOIN-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02"
+  ],
+  "template_id": "T-JOIN-02-fix-wrong-join-type",
+  "template_params": {
+    "from": "products",
+    "join": "promotion_products",
+    "brand": "Basswell"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_join",
+  "prompt": "The query in the editor has one mistake. Fix it so that it lists every product of the brand Basswell with the ID of each promotion that covers it. Keep a product that no promotion covers: promo_id is missing for it. Return two columns, in this order: product_name and promo_id. Return one row for each product and promotion pair, plus one row for each Basswell product that no promotion covers. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "product_name",
+        "type_class": "text"
+      },
+      {
+        "name": "promo_id",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "product_name",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "promo_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "product_name",
+      "promo_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, change the join so that a product with no promotion stays.",
+    "An inner join keeps only the products that appear in promotion_products. The question keeps every Basswell product."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 34,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 35,
+      "to": 50,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 51,
+      "to": 114,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 115,
+      "to": 141,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": "SELECT p.product_name, pp.promo_id\nFROM products p\nJOIN promotion_products pp ON pp.product_id = p.product_id\nWHERE p.brand = 'Basswell'",
+  "starter_error_id": "ERR-LOG-11",
+  "time_target_ms": 180000,
+  "why_this_works": "LEFT JOIN keeps every Basswell product and gives a missing promo_id to one that no promotion covers; an inner join drops it."
+}

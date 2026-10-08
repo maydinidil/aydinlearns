@@ -1,0 +1,126 @@
+{
+  "id": "EX-SQL-JOIN-04-E1-06",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "multi-table",
+    "bridge",
+    "promotions",
+    "promotion_products",
+    "products",
+    "categories"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-JOIN-04"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-JOIN-04",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-JOIN-01",
+    "SQL-JOIN-04"
+  ],
+  "template_id": "T-JOIN-04-bridge-products-of-promotion",
+  "template_params": {
+    "promo_code": "P-2025-05"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_join",
+  "prompt": "Which products does the promotion with promo_code 'P-2025-05' cover? Return two columns, in this order: product_name and category_name. Return one row for each product the promotion covers. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "product_name",
+        "type_class": "text"
+      },
+      {
+        "name": "category_name",
+        "type_class": "text"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "product_name",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "category_name",
+        "type_class": "text",
+        "precision": "exact"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "product_name"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, go from the promotion through promotion_products to each product it covers, then on to its category.",
+    "promotion_products has two key columns: link one to the promotion and the other to the product."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 38,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 39,
+      "to": 57,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 58,
+      "to": 113,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 114,
+      "to": 161,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 162,
+      "to": 212,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 213,
+      "to": 246,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "promotion_products is the bridge, one row per promotion and product, so joining through it lists exactly the products the promotion covers."
+}

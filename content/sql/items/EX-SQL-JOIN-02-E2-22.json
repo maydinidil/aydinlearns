@@ -1,0 +1,133 @@
+{
+  "id": "EX-SQL-JOIN-02-E2-22",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "left_join",
+    "filter_in_on",
+    "count_zero",
+    "bridge",
+    "promotions",
+    "promotion_products",
+    "products"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-JOIN-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-JOIN-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02"
+  ],
+  "template_id": "T-JOIN-02-chain-count-keep-zero",
+  "template_params": {
+    "from": "promotions",
+    "join": "promotion_products, products",
+    "brand": "Sonora",
+    "year": 2025
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_join",
+  "prompt": "How many products of the brand Sonora does each promotion that started in 2025 cover? Count promotions with a start_date from 1 January 2025 to 31 December 2025, both included. Include every such promotion, with 0 for one that covers no Sonora product. Return two columns, in this order: promo_code and n_sonora_products. Return one row for each promotion that started in 2025. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "promo_code",
+        "type_class": "text"
+      },
+      {
+        "name": "n_sonora_products",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "promo_code",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "n_sonora_products",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "promo_code"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, join each promotion to its bridge rows and to the Sonora products among them, keeping every promotion.",
+    "The brand test is about products. In WHERE it would remove a promotion with no Sonora product; in ON it only decides which products match."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 62,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 63,
+      "to": 81,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 82,
+      "to": 142,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 143,
+      "to": 218,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 219,
+      "to": 286,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 287,
+      "to": 309,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "Both LEFT JOINs keep every promotion, the brand test in ON matches only Sonora products, and COUNT(p.product_id) counts them."
+}

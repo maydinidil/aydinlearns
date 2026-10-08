@@ -6,7 +6,10 @@
     "SELECT parent_category, SUM(CASE WHEN order_date >= DATE '2024-01-01' AND order_date < DATE '2025-01-01' THEN net_revenue_eur ELSE 0 END) AS revenue_2024_eur, SUM(CASE WHEN order_date >= DATE '2025-01-01' AND order_date < DATE '2026-01-01' THEN net_revenue_eur ELSE 0 END) AS revenue_2025_eur FROM sales GROUP BY parent_category",
     "SELECT parent_category, COALESCE(SUM(net_revenue_eur) FILTER (WHERE order_date BETWEEN '2024-01-01' AND '2024-12-31'), 0) AS revenue_2024_eur, COALESCE(SUM(net_revenue_eur) FILTER (WHERE order_date BETWEEN '2025-01-01' AND '2025-12-31'), 0) AS revenue_2025_eur FROM sales GROUP BY 1"
   ],
-  "other_way": null,
+  "other_way": {
+    "sql": "SELECT parent_category, COALESCE(SUM(net_revenue_eur) FILTER (WHERE order_date BETWEEN '2024-01-01' AND '2024-12-31'), 0) AS revenue_2024_eur, COALESCE(SUM(net_revenue_eur) FILTER (WHERE order_date BETWEEN '2025-01-01' AND '2025-12-31'), 0) AS revenue_2025_eur FROM sales GROUP BY 1",
+    "tradeoff": "Reads closer to plain English, but FILTER is not available in every SQL dialect."
+  },
   "planted_wrong": [
     {
       "id": "PW1",

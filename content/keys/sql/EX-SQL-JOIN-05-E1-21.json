@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-JOIN-05-E1-21",
+  "item_version": 1,
+  "reference_sql": "WITH channels AS (SELECT DISTINCT channel FROM orders),\ncountries AS (SELECT DISTINCT ship_to_country FROM orders),\nmarch AS (SELECT channel, ship_to_country, COUNT(*) AS n_orders FROM orders o WHERE o.order_ts >= TIMESTAMP '2025-03-01' AND o.order_ts < TIMESTAMP '2025-04-01' GROUP BY channel, ship_to_country)\nSELECT ch.channel, co.ship_to_country, COALESCE(m.n_orders, 0) AS n_orders\nFROM channels ch\nCROSS JOIN countries co\nLEFT JOIN march m ON m.channel = ch.channel AND m.ship_to_country = co.ship_to_country",
+  "alternatives": [
+    "WITH channels AS (SELECT DISTINCT channel FROM orders), countries AS (SELECT DISTINCT ship_to_country FROM orders) SELECT ch.channel, co.ship_to_country, COUNT(o.order_id) AS n_orders FROM channels ch CROSS JOIN countries co LEFT JOIN orders o ON o.channel = ch.channel AND o.ship_to_country = co.ship_to_country AND o.order_ts >= TIMESTAMP '2025-03-01' AND o.order_ts < TIMESTAMP '2025-04-01' GROUP BY ch.channel, co.ship_to_country",
+    "WITH channels AS (SELECT DISTINCT channel FROM orders), countries AS (SELECT DISTINCT ship_to_country FROM orders), march AS (SELECT channel, ship_to_country, COUNT(*) AS n_orders FROM orders o WHERE o.order_ts >= TIMESTAMP '2025-03-01' AND o.order_ts < TIMESTAMP '2025-04-01' GROUP BY channel, ship_to_country) SELECT ch.channel, co.ship_to_country, COALESCE(m.n_orders, 0) AS n_orders FROM countries co CROSS JOIN channels ch LEFT JOIN march m ON m.ship_to_country = co.ship_to_country AND m.channel = ch.channel"
+  ],
+  "other_way": {
+    "sql": "WITH channels AS (SELECT DISTINCT channel FROM orders), countries AS (SELECT DISTINCT ship_to_country FROM orders) SELECT ch.channel, co.ship_to_country, COUNT(o.order_id) AS n_orders FROM channels ch CROSS JOIN countries co LEFT JOIN orders o ON o.channel = ch.channel AND o.ship_to_country = co.ship_to_country AND o.order_ts >= TIMESTAMP '2025-03-01' AND o.order_ts < TIMESTAMP '2025-04-01' GROUP BY ch.channel, co.ship_to_country",
+    "tradeoff": "Joining the orders straight onto the grid and counting o.order_id skips a CTE, but joins far more rows before grouping."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-11",
+      "sql": "WITH channels AS (SELECT DISTINCT channel FROM orders), countries AS (SELECT DISTINCT ship_to_country FROM orders), march AS (SELECT channel, ship_to_country, COUNT(*) AS n_orders FROM orders o WHERE o.order_ts >= TIMESTAMP '2025-03-01' AND o.order_ts < TIMESTAMP '2025-04-01' GROUP BY channel, ship_to_country) SELECT ch.channel, co.ship_to_country, COALESCE(m.n_orders, 0) AS n_orders FROM channels ch CROSS JOIN countries co JOIN march m ON m.channel = ch.channel AND m.ship_to_country = co.ship_to_country"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-17",
+      "sql": "WITH channels AS (SELECT DISTINCT channel FROM orders), countries AS (SELECT DISTINCT ship_to_country FROM orders), march AS (SELECT channel, ship_to_country, COUNT(*) AS n_orders FROM orders o WHERE o.order_ts >= TIMESTAMP '2025-03-01' AND o.order_ts < TIMESTAMP '2025-04-01' GROUP BY channel, ship_to_country) SELECT ch.channel, co.ship_to_country, m.n_orders FROM channels ch CROSS JOIN countries co LEFT JOIN march m ON m.channel = ch.channel AND m.ship_to_country = co.ship_to_country"
+    }
+  ],
+  "hint3_partial": "WITH channels AS (SELECT DISTINCT channel FROM orders),\ncountries AS (SELECT DISTINCT ship_to_country FROM orders),\nmarch AS (SELECT channel, ship_to_country, COUNT(*) AS n_orders FROM orders o WHERE o.order_ts >= TIMESTAMP '2025-03-01' AND o.order_ts < TIMESTAMP '2025-04-01' GROUP BY channel, ship_to_country)\nSELECT ch.channel, co.ship_to_country, COALESCE(m.n_orders, 0) AS n_orders\nFROM channels ch\n___ countries co\nLEFT JOIN march m ON ___",
+  "solver": {
+    "prompt_hash": "f917d7092b01865d",
+    "schema_version": "7ed366279088",
+    "dataset_version": "e1545e4258743033",
+    "grader_version": "1b.3",
+    "query": "WITH grid AS (\n  SELECT ch.channel, co.ship_to_country\n  FROM (SELECT DISTINCT channel FROM orders) ch\n  CROSS JOIN (SELECT DISTINCT ship_to_country FROM orders) co\n), mar AS (\n  SELECT channel, ship_to_country, COUNT(*) AS n_orders\n  FROM orders\n  WHERE order_ts >= TIMESTAMP '2025-03-01 00:00:00' AND order_ts < TIMESTAMP '2025-04-01 00:00:00'\n  GROUP BY channel, ship_to_country\n)\nSELECT g.channel, g.ship_to_country, COALESCE(m.n_orders, 0) AS n_orders\nFROM grid g\nLEFT JOIN mar m ON m.channel = g.channel AND m.ship_to_country = g.ship_to_country",
+    "at": "2026-10-07T10:41:41.786Z"
+  }
+}

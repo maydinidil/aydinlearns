@@ -1,0 +1,39 @@
+{
+  "item_id": "EX-SQL-JOIN-03-E2-02",
+  "item_version": 1,
+  "reference_sql": "WITH promo_sizes AS (\n  SELECT promo_id, COUNT(*) AS n_products\n  FROM promotion_products\n  GROUP BY promo_id\n),\npromo_units AS (\n  SELECT promo_id, SUM(quantity) AS units\n  FROM order_lines\n  GROUP BY promo_id\n)\nSELECT s.promo_id, s.n_products, u.units\nFROM promo_sizes s\nJOIN promo_units u ON u.promo_id = s.promo_id",
+  "alternatives": [
+    "WITH promo_units AS (SELECT promo_id, SUM(quantity) AS units FROM order_lines GROUP BY promo_id) SELECT pp.promo_id, COUNT(*) AS n_products, u.units FROM promotion_products pp JOIN promo_units u ON u.promo_id = pp.promo_id GROUP BY pp.promo_id, u.units",
+    "WITH promo_sizes AS (SELECT promo_id, COUNT(product_id) AS n_products FROM promotion_products GROUP BY promo_id), promo_units AS (SELECT promo_id, SUM(quantity) AS units FROM order_lines WHERE promo_id IS NOT NULL GROUP BY promo_id) SELECT s.promo_id, s.n_products, u.units FROM promo_sizes s JOIN promo_units u ON u.promo_id = s.promo_id"
+  ],
+  "other_way": {
+    "sql": "WITH promo_units AS (SELECT promo_id, SUM(quantity) AS units FROM order_lines GROUP BY promo_id) SELECT pp.promo_id, COUNT(*) AS n_products, u.units FROM promotion_products pp JOIN promo_units u ON u.promo_id = pp.promo_id GROUP BY pp.promo_id, u.units",
+    "tradeoff": "One step is enough when the units side is already one row per promotion, but the units must then join the GROUP BY."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-01",
+      "sql": "SELECT pp.promo_id, COUNT(*) AS n_products, SUM(ol.quantity) AS units FROM promotion_products pp JOIN order_lines ol ON ol.promo_id = pp.promo_id GROUP BY pp.promo_id"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-01",
+      "sql": "SELECT pp.promo_id, COUNT(DISTINCT pp.product_id) AS n_products, SUM(ol.quantity) AS units FROM promotion_products pp JOIN order_lines ol ON ol.promo_id = pp.promo_id GROUP BY pp.promo_id"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-12",
+      "sql": "SELECT pp.promo_id, COUNT(DISTINCT pp.product_id) AS n_products, SUM(ol.quantity) AS units FROM promotion_products pp JOIN order_lines ol ON ol.product_id = pp.product_id GROUP BY pp.promo_id"
+    }
+  ],
+  "hint3_partial": "WITH promo_sizes AS (\n  SELECT promo_id, COUNT(*) AS n_products\n  FROM promotion_products\n  GROUP BY promo_id\n),\npromo_units AS (\n  SELECT promo_id, SUM(___) AS units\n  FROM order_lines\n  GROUP BY ___\n)\nSELECT s.promo_id, s.n_products, u.units\nFROM promo_sizes s\nJOIN promo_units u ON ___",
+  "solver": {
+    "prompt_hash": "8e609ba93b86482b",
+    "schema_version": "8c8adf903d4b",
+    "dataset_version": "e1545e4258743033",
+    "grader_version": "1b.3",
+    "query": "WITH covered AS (\n  SELECT promo_id, COUNT(*) AS n_products\n  FROM promotion_products\n  GROUP BY promo_id\n), sold AS (\n  SELECT promo_id, SUM(quantity) AS units\n  FROM order_lines\n  WHERE promo_id IS NOT NULL\n  GROUP BY promo_id\n)\nSELECT c.promo_id, c.n_products, s.units\nFROM covered c\nJOIN sold s ON s.promo_id = c.promo_id",
+    "at": "2026-10-07T10:41:39.816Z"
+  }
+}

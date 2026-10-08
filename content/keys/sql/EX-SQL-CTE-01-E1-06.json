@@ -1,0 +1,31 @@
+{
+  "item_id": "EX-SQL-CTE-01-E1-06",
+  "item_version": 1,
+  "reference_sql": "WITH versions_per_product AS (\n  SELECT product_id, COUNT(*) AS n_versions\n  FROM price_history\n  GROUP BY product_id\n)\nSELECT n_versions, COUNT(*) AS n_products\nFROM versions_per_product\nGROUP BY n_versions",
+  "alternatives": [
+    "WITH v AS (SELECT product_id, COUNT(valid_from) AS n_versions FROM price_history GROUP BY 1) SELECT n_versions, COUNT(product_id) AS n_products FROM v GROUP BY 1",
+    "WITH versions_per_product AS (SELECT price_history.product_id, COUNT(*) AS n_versions FROM price_history GROUP BY price_history.product_id) SELECT versions_per_product.n_versions, COUNT(*) AS n_products FROM versions_per_product GROUP BY versions_per_product.n_versions"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-14",
+      "sql": "WITH versions_per_product AS (SELECT product_id, COUNT(*) AS n_versions FROM price_history GROUP BY product_id) SELECT n_versions, SUM(n_versions) AS n_products FROM versions_per_product GROUP BY n_versions"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-07",
+      "sql": "WITH versions_per_product AS (SELECT product_id, valid_to, COUNT(*) AS n_versions FROM price_history GROUP BY product_id, valid_to) SELECT n_versions, COUNT(*) AS n_products FROM versions_per_product GROUP BY n_versions"
+    }
+  ],
+  "hint3_partial": "WITH versions_per_product AS (\n  SELECT product_id, COUNT(*) AS n_versions\n  FROM price_history\n  GROUP BY ___\n)\nSELECT n_versions, COUNT(*) AS n_products\nFROM versions_per_product\nGROUP BY ___",
+  "solver": {
+    "prompt_hash": "cc29843e1bb37938",
+    "schema_version": "e8cea7c4eacc",
+    "dataset_version": "e1545e4258743033",
+    "grader_version": "1b.3",
+    "query": "WITH per_product AS (\n  SELECT product_id, COUNT(*) AS n_versions\n  FROM price_history\n  GROUP BY product_id\n)\nSELECT n_versions, COUNT(*) AS n_products\nFROM per_product\nGROUP BY n_versions",
+    "at": "2026-10-07T10:41:34.174Z"
+  }
+}

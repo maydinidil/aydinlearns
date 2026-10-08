@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-JOIN-04-E1-41",
+  "item_version": 1,
+  "value": 9,
+  "explanation": "Product 1 has 3 price versions. The self-join pairs each version in a with every version of the same product in b, itself included, so 3 times 3 gives 9 rows.",
+  "solver": {
+    "prompt_hash": "729ad022f1bfc464",
+    "grader_version": "choice.2",
+    "chosen": null,
+    "typed": "9",
+    "at": "2026-10-07T09:58:58.598Z"
+  }
+}

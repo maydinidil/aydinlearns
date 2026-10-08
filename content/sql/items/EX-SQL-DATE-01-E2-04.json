@@ -1,0 +1,122 @@
+{
+  "id": "EX-SQL-DATE-01-E2-04",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "date",
+    "time-zone",
+    "amsterdam",
+    "day",
+    "competitor_prices"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-DATE-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-DATE-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-DATE-01"
+  ],
+  "template_id": "T-DATE-01-count-per-day-amsterdam",
+  "template_params": {
+    "table": "competitor_prices",
+    "from": "2025-06-28",
+    "to": "2025-07-04",
+    "clock": "Europe/Amsterdam"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_date",
+  "prompt": "How many competitor price checks were made on each Amsterdam calendar day from 2025-06-28 to 2025-07-04? Use the competitor_prices table and count the checks of both competitors. observed_ts holds the time of the check in UTC: turn it into Amsterdam time first, then take the date, and keep the checks whose Amsterdam date falls in that range, both days included. Return two columns, in this order: check_day, the Amsterdam date, and checks, the number of price checks. Return one row for each day. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "check_day",
+        "type_class": "temporal"
+      },
+      {
+        "name": "checks",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "check_day",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "checks",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "check_day"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the calculated column check_day: the Amsterdam date of each price check.",
+    "The hidden test case holds a check at 23:30 UTC on 30 June, which is already 1 July in Amsterdam, 2 hours ahead in summer; the visible checks are all earlier in the day. Convert observed_ts to Amsterdam time before you take the date, in SELECT and in WHERE."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 119,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 120,
+      "to": 142,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 143,
+      "to": 269,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 270,
+      "to": 280,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "Converting observed_ts to Amsterdam time before taking the date puts a late-evening UTC check on the Amsterdam day it was made."
+}

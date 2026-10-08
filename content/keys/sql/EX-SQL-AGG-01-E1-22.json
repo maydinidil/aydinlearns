@@ -6,7 +6,10 @@
     "SELECT SUM(units) * 1.0 / COUNT(units) AS avg_units_per_line FROM sales WHERE channel = 'web'",
     "SELECT AVG(units) AS avg_units_per_line FROM sales WHERE channel = 'web' AND units IS NOT NULL"
   ],
-  "other_way": null,
+  "other_way": {
+    "sql": "SELECT SUM(units) * 1.0 / COUNT(units) AS avg_units_per_line FROM sales WHERE channel = 'web'",
+    "tradeoff": "Builds the average from a sum and a count, which shows the idea, but AVG is shorter."
+  },
   "planted_wrong": [
     {
       "id": "PW1",

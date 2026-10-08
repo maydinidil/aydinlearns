@@ -1,0 +1,118 @@
+{
+  "id": "EX-SQL-SET-01-E2-06",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "set",
+    "union",
+    "join",
+    "promotion_products",
+    "promotions"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-SET-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-SET-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-JOIN-01",
+    "SQL-SET-01"
+  ],
+  "template_id": "T-SET-01-union-with-join",
+  "template_params": {
+    "tables": "promotion_products, promotions",
+    "promo_codes": "P-2025-14, P-2025-16"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_set",
+  "prompt": "Which products were in promotion P-2025-14 or in promotion P-2025-16? The promotions are named by promo_code. Return one column, product_id, and list each product once, even when it was in both promotions. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "product_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the products of the second promotion the same way and stack them under the first list, each product once.",
+    "promotion_products holds promo_id, not the code, so each part joins to promotions on promo_id to filter by promo_code. UNION, not UNION ALL, lists a product in both promotions once."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 20,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 21,
+      "to": 93,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 94,
+      "to": 126,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 127,
+      "to": 153,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 154,
+      "to": 226,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 227,
+      "to": 259,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "Each part finds one promotion through its promo_code, and UNION merges the two lists with each product once."
+}

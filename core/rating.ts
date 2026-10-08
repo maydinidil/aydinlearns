@@ -157,8 +157,9 @@ export function rateCheckpoint(s: InstanceSummary, f: InstanceFacts, ctx: Rating
   const none = { ratings: [], countsAsPass };
   if (ctx.lessonPhase || ctx.credits.length === 0) return none;
   if (s.revealBeforeFirstGraded) return ctx.cardRated ? one(AGAIN) : none;
-  // D16: a correct typed CP4 at confidence 1 or 2 is Hard. The CP4's item id is <case_id>:CP4 (server/routes/cp4.ts); the CP3 asks no confidence.
-  const unsure = f.item_id.endsWith(':CP4') && (s.passAttempt?.confidence === 1 || s.passAttempt?.confidence === 2);
+  // D16: a correct answer at confidence 1 or 2 is Hard on every case checkpoint that asks confidence: CP1, CP2, CP4 and CP5, whose
+  // item IDs are <case_id>:CP1, :CP2, :CP4 and :CP5 (server/routes/cases.ts). The CP3 is an SQL item ID and asks no confidence.
+  const unsure = /:CP[1245]$/.test(f.item_id) && (s.passAttempt?.confidence === 1 || s.passAttempt?.confidence === 2);
   if (s.passedBy === 'auto' && s.unassistedFirstAttemptPass && !unsure) return all(GOOD);
   if (s.passedBy !== null) return all(HARD);
   // A graded failure, a reverted override included (the summary gives it no pass), fails the checkpoint.

@@ -1,0 +1,132 @@
+{
+  "id": "EX-SQL-JOIN-01-E2-21",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "join",
+    "group_by",
+    "sum",
+    "order_lines",
+    "orders",
+    "products",
+    "utc_day"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-JOIN-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-JOIN-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-JOIN-01"
+  ],
+  "template_id": "T-JOIN-01-sum-per-dimension-week",
+  "template_params": {
+    "from": "order_lines",
+    "join": "orders, products",
+    "group": "brand",
+    "week": "2025-03-03"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_join",
+  "prompt": "How many units of each brand were sold in orders placed from 3 March 2025 to 9 March 2025? order_ts holds UTC time: take those UTC days, both included. Return two columns, in this order: brand and units, the sum of quantity. Return one row for each brand that sold at least one unit that week. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "brand",
+        "type_class": "text"
+      },
+      {
+        "name": "units",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "brand",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "units",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "brand"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, join each line to its order for the time and to its product for the brand, then group.",
+    "The time sits with the order, the brand with the product and the units on the line."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 40,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 41,
+      "to": 59,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 60,
+      "to": 100,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 101,
+      "to": 147,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 148,
+      "to": 248,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 249,
+      "to": 265,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "Each line joins to one order and one product, so each line's quantity is added once, under its product's brand."
+}

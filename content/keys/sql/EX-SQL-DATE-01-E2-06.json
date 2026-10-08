@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-DATE-01-E2-06",
+  "item_version": 1,
+  "reference_sql": "SELECT isodow(timezone('Europe/Amsterdam', timezone('UTC', order_ts))) AS iso_weekday,\n       COUNT(*) AS orders\nFROM orders\nWHERE channel = 'web'\n  AND year(timezone('Europe/Amsterdam', timezone('UTC', order_ts))) = 2025\nGROUP BY 1",
+  "alternatives": [
+    "SELECT EXTRACT(isodow FROM timezone('Europe/Amsterdam', timezone('UTC', order_ts))) AS iso_weekday, COUNT(*) AS orders FROM orders WHERE channel = 'web' AND timezone('Europe/Amsterdam', timezone('UTC', order_ts)) >= TIMESTAMP '2025-01-01 00:00:00' AND timezone('Europe/Amsterdam', timezone('UTC', order_ts)) < TIMESTAMP '2026-01-01 00:00:00' GROUP BY 1",
+    "SELECT CASE WHEN dayofweek(timezone('Europe/Amsterdam', timezone('UTC', order_ts))) = 0 THEN 7 ELSE dayofweek(timezone('Europe/Amsterdam', timezone('UTC', order_ts))) END AS iso_weekday, COUNT(*) AS orders FROM orders WHERE channel = 'web' AND year(timezone('Europe/Amsterdam', timezone('UTC', order_ts))) = 2025 GROUP BY 1"
+  ],
+  "other_way": {
+    "sql": "SELECT CASE WHEN dayofweek(timezone('Europe/Amsterdam', timezone('UTC', order_ts))) = 0 THEN 7 ELSE dayofweek(timezone('Europe/Amsterdam', timezone('UTC', order_ts))) END AS iso_weekday, COUNT(*) AS orders FROM orders WHERE channel = 'web' AND year(timezone('Europe/Amsterdam', timezone('UTC', order_ts))) = 2025 GROUP BY 1",
+    "tradeoff": "A CASE that turns dayofweek's Sunday 0 into 7 works, but isodow already counts Monday 1 to Sunday 7."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-26",
+      "sql": "SELECT isodow(order_ts) AS iso_weekday, COUNT(*) AS orders FROM orders WHERE channel = 'web' AND year(order_ts) = 2025 GROUP BY 1"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-26",
+      "sql": "SELECT isodow(order_ts AT TIME ZONE 'Europe/Amsterdam') AS iso_weekday, COUNT(*) AS orders FROM orders WHERE channel = 'web' AND year(order_ts AT TIME ZONE 'Europe/Amsterdam') = 2025 GROUP BY 1"
+    }
+  ],
+  "hint3_partial": "SELECT ___(timezone('Europe/Amsterdam', timezone('UTC', order_ts))) AS iso_weekday,\n       COUNT(*) AS orders\nFROM orders\nWHERE channel = 'web'\n  AND year(___) = 2025\nGROUP BY 1",
+  "solver": {
+    "prompt_hash": "cae3b913ca904e76",
+    "schema_version": "7ed366279088",
+    "dataset_version": "e1545e4258743033",
+    "grader_version": "1b.3",
+    "query": "SELECT isodow((order_ts AT TIME ZONE 'UTC') AT TIME ZONE 'Europe/Amsterdam') AS iso_weekday, COUNT(*) AS orders\nFROM orders\nWHERE channel = 'web'\n  AND year((order_ts AT TIME ZONE 'UTC') AT TIME ZONE 'Europe/Amsterdam') = 2025\nGROUP BY 1",
+    "at": "2026-10-07T10:41:37.112Z"
+  }
+}

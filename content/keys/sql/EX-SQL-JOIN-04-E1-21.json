@@ -1,0 +1,31 @@
+{
+  "item_id": "EX-SQL-JOIN-04-E1-21",
+  "item_version": 1,
+  "reference_sql": "SELECT p.product_name, p.launch_date, s.launch_date AS sister_launch_date\nFROM products p\nJOIN products s ON s.product_id = p.sister_product_id\nWHERE p.launch_date > s.launch_date",
+  "alternatives": [
+    "SELECT p.product_name, p.launch_date, s.launch_date AS sister_launch_date FROM products s JOIN products p ON p.sister_product_id = s.product_id WHERE s.launch_date < p.launch_date",
+    "SELECT p.product_name, p.launch_date, s.launch_date AS sister_launch_date FROM products p JOIN products s ON s.product_id = p.sister_product_id AND s.launch_date < p.launch_date"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-15",
+      "sql": "SELECT p.product_name, p.launch_date, s.launch_date AS sister_launch_date FROM products p JOIN products s ON s.product_id = p.sister_product_id WHERE p.launch_date < s.launch_date"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-12",
+      "sql": "SELECT p.product_name, p.launch_date, s.launch_date AS sister_launch_date FROM products p JOIN products s ON s.sister_product_id = p.sister_product_id WHERE p.launch_date >= s.launch_date"
+    }
+  ],
+  "hint3_partial": "SELECT p.product_name, p.launch_date, s.launch_date AS sister_launch_date\nFROM products p\nJOIN products s ON ___\nWHERE p.launch_date > s.launch_date",
+  "solver": {
+    "prompt_hash": "6f09e58a572af550",
+    "schema_version": "d77fe1c31a0e",
+    "dataset_version": "e1545e4258743033",
+    "grader_version": "1b.3",
+    "query": "SELECT p.product_name, p.launch_date, s.launch_date AS sister_launch_date\nFROM products p\nJOIN products s ON s.product_id = p.sister_product_id\nWHERE p.launch_date > s.launch_date",
+    "at": "2026-10-07T10:41:41.039Z"
+  }
+}

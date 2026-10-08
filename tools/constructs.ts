@@ -36,7 +36,10 @@ export const DETECTORS: Record<string, RegExp> = {
   date_trunc: /\bdate_trunc\s*\(/i,
   date_part: /\b(extract|date_part|datepart|strftime|year|isoyear|quarter|month|week|weekofyear|day|dayofweek|dayofmonth|dayofyear|isodow|weekday|hour|minute|second|monthname|dayname)\s*\(/i,
   join: /\bjoin\b|\bfrom\s+\w+(\s+(as\s+)?\w+)?\s*,\s*\w+/i,
-  left_join: /\b(left|right)\s+(outer\s+)?join\b/i,
+  left_join: /\bleft\s+(outer\s+)?join\b/i,
+  // Sprint 4a Task B2: RIGHT JOIN is its own construct (01 is silent; build record, Task 7 minor), so an
+  // "other way" that swaps the sides of a LEFT JOIN reads as another join type (S4-11).
+  right_join: /\bright\s+(outer\s+)?join\b/i,
   cte: /(^|\()\s*with\s+(recursive\s+)?\w+/i,
   full_cross_join: /\bfull\s+(outer\s+)?join\b|\bcross\s+join\b/i,
   set_op: /\b(union|intersect|except)\b/i,

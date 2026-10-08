@@ -1,0 +1,181 @@
+{
+  "id": "EX-SQL-JOIN-03-E3-01",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "fan_out",
+    "cte",
+    "chained",
+    "price_history",
+    "competitor_prices",
+    "order_lines",
+    "ratio"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-JOIN-03"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-JOIN-03",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CASE-01",
+    "SQL-AGG-04",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-JOIN-03"
+  ],
+  "template_id": "T-JOIN-03-three-sources",
+  "template_params": {
+    "history": "price_history",
+    "child_a": "competitor_prices",
+    "child_b": "order_lines",
+    "price_above": 400
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_join",
+  "prompt": "For each product whose current list price is above 400 EUR and that has at least one competitor price check, return its units sold, its current list price, and the share of its competitor checks that found a price below that current list price. The current list price is the price version with a missing valid_to. Each order line's quantity counts once, and a product that never sold has 0 units. Return four columns, in this order: product_id, units, list_price_eur and share_below, a fraction from 0 to 1. Return one row for each such product. Do not round. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "units",
+        "type_class": "numeric"
+      },
+      {
+        "name": "list_price_eur",
+        "type_class": "numeric"
+      },
+      {
+        "name": "share_below",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "units",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "list_price_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "share_below",
+        "type_class": "numeric",
+        "precision": "ratio"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "product_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, plan one step per source, each at one row per product: the current price, the checks' share and the units.",
+    "The share compares each check with one price, so keep only the current price row first; the units must not meet the checks before they are added up."
+  ],
+  "subgoals": [
+    {
+      "from": 27,
+      "to": 60,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 63,
+      "to": 81,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 84,
+      "to": 135,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 159,
+      "to": 264,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 267,
+      "to": 348,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 351,
+      "to": 373,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 398,
+      "to": 439,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 442,
+      "to": 458,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 461,
+      "to": 480,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 483,
+      "to": 566,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 567,
+      "to": 696,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "Every step ends at one row per product, so the final joins pair single rows and no units or checks are repeated."
+}

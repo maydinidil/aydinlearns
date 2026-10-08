@@ -6,7 +6,10 @@
     "SELECT order_line_id, country_code, net_revenue_eur, CASE WHEN (country_code = 'BE' OR country_code = 'LU') AND net_revenue_eur >= 100 THEN 'yes' ELSE 'no' END AS priority FROM sales WHERE order_id >= 1 AND order_id <= 10",
     "SELECT order_line_id, country_code, net_revenue_eur, CASE WHEN country_code NOT IN ('BE', 'LU') THEN 'no' WHEN net_revenue_eur >= 100 THEN 'yes' ELSE 'no' END AS priority FROM sales WHERE order_id BETWEEN 1 AND 10"
   ],
-  "other_way": null,
+  "other_way": {
+    "sql": "SELECT order_line_id, country_code, net_revenue_eur, CASE WHEN (country_code = 'BE' OR country_code = 'LU') AND net_revenue_eur >= 100 THEN 'yes' ELSE 'no' END AS priority FROM sales WHERE order_id >= 1 AND order_id <= 10",
+    "tradeoff": "An OR chain returns the same rows, but repeats the column for every value, while IN keeps the list short."
+  },
   "planted_wrong": [
     {
       "id": "PW1",

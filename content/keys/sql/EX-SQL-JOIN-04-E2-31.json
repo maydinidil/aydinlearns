@@ -1,0 +1,39 @@
+{
+  "item_id": "EX-SQL-JOIN-04-E2-31",
+  "item_version": 1,
+  "reference_sql": "WITH units AS (SELECT ol.product_id, SUM(ol.quantity) AS units FROM order_lines ol JOIN orders o ON o.order_id = ol.order_id WHERE o.order_ts >= TIMESTAMP '2025-03-01' AND o.order_ts < TIMESTAMP '2025-04-01' GROUP BY ol.product_id),\nchecks AS (SELECT product_id, COUNT(*) AS n_checks FROM competitor_prices WHERE observed_ts >= TIMESTAMP '2025-03-01' AND observed_ts < TIMESTAMP '2025-04-01' GROUP BY product_id)\nSELECT p.product_name, u.units, COALESCE(c.n_checks, 0) AS n_checks\nFROM products p\nJOIN units u ON u.product_id = p.product_id\nLEFT JOIN checks c ON c.product_id = p.product_id\nWHERE p.brand = 'Sonora'",
+  "alternatives": [
+    "WITH units AS (SELECT ol.product_id, SUM(ol.quantity) AS units FROM order_lines ol JOIN orders o ON o.order_id = ol.order_id JOIN products p ON p.product_id = ol.product_id WHERE p.brand = 'Sonora' AND CAST(o.order_ts AS DATE) BETWEEN DATE '2025-03-01' AND DATE '2025-03-31' GROUP BY ol.product_id), checks AS (SELECT product_id, COUNT(*) AS n_checks FROM competitor_prices WHERE CAST(observed_ts AS DATE) BETWEEN DATE '2025-03-01' AND DATE '2025-03-31' GROUP BY product_id) SELECT p.product_name, u.units, COALESCE(c.n_checks, 0) AS n_checks FROM units u JOIN products p ON p.product_id = u.product_id LEFT JOIN checks c ON c.product_id = u.product_id",
+    "WITH units AS (SELECT ol.product_id, SUM(ol.quantity) AS units FROM order_lines ol JOIN orders o ON o.order_id = ol.order_id WHERE o.order_ts >= TIMESTAMP '2025-03-01' AND o.order_ts < TIMESTAMP '2025-04-01' GROUP BY ol.product_id) SELECT p.product_name, u.units, COUNT(cp.observed_ts) AS n_checks FROM products p JOIN units u ON u.product_id = p.product_id LEFT JOIN competitor_prices cp ON cp.product_id = p.product_id AND cp.observed_ts >= TIMESTAMP '2025-03-01' AND cp.observed_ts < TIMESTAMP '2025-04-01' WHERE p.brand = 'Sonora' GROUP BY p.product_name, u.units"
+  ],
+  "other_way": {
+    "sql": "WITH units AS (SELECT ol.product_id, SUM(ol.quantity) AS units FROM order_lines ol JOIN orders o ON o.order_id = ol.order_id WHERE o.order_ts >= TIMESTAMP '2025-03-01' AND o.order_ts < TIMESTAMP '2025-04-01' GROUP BY ol.product_id) SELECT p.product_name, u.units, COUNT(cp.observed_ts) AS n_checks FROM products p JOIN units u ON u.product_id = p.product_id LEFT JOIN competitor_prices cp ON cp.product_id = p.product_id AND cp.observed_ts >= TIMESTAMP '2025-03-01' AND cp.observed_ts < TIMESTAMP '2025-04-01' WHERE p.brand = 'Sonora' GROUP BY p.product_name, u.units",
+    "tradeoff": "Once units is one row per product, the raw checks can be counted in the main query, but units must then join the GROUP BY."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-01",
+      "sql": "SELECT p.product_name, SUM(ol.quantity) AS units, COUNT(cp.observed_ts) AS n_checks FROM products p JOIN order_lines ol ON ol.product_id = p.product_id JOIN orders o ON o.order_id = ol.order_id LEFT JOIN competitor_prices cp ON cp.product_id = p.product_id AND cp.observed_ts >= TIMESTAMP '2025-03-01' AND cp.observed_ts < TIMESTAMP '2025-04-01' WHERE p.brand = 'Sonora' AND o.order_ts >= TIMESTAMP '2025-03-01' AND o.order_ts < TIMESTAMP '2025-04-01' GROUP BY p.product_name"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-11",
+      "sql": "WITH units AS (SELECT ol.product_id, SUM(ol.quantity) AS units FROM order_lines ol JOIN orders o ON o.order_id = ol.order_id WHERE o.order_ts >= TIMESTAMP '2025-03-01' AND o.order_ts < TIMESTAMP '2025-04-01' GROUP BY ol.product_id), checks AS (SELECT product_id, COUNT(*) AS n_checks FROM competitor_prices WHERE observed_ts >= TIMESTAMP '2025-03-01' AND observed_ts < TIMESTAMP '2025-04-01' GROUP BY product_id) SELECT p.product_name, u.units, c.n_checks FROM products p JOIN units u ON u.product_id = p.product_id JOIN checks c ON c.product_id = p.product_id WHERE p.brand = 'Sonora'"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-17",
+      "sql": "WITH units AS (SELECT ol.product_id, SUM(ol.quantity) AS units FROM order_lines ol JOIN orders o ON o.order_id = ol.order_id WHERE o.order_ts >= TIMESTAMP '2025-03-01' AND o.order_ts < TIMESTAMP '2025-04-01' GROUP BY ol.product_id), checks AS (SELECT product_id, COUNT(*) AS n_checks FROM competitor_prices WHERE observed_ts >= TIMESTAMP '2025-03-01' AND observed_ts < TIMESTAMP '2025-04-01' GROUP BY product_id) SELECT p.product_name, u.units, c.n_checks FROM products p JOIN units u ON u.product_id = p.product_id LEFT JOIN checks c ON c.product_id = p.product_id WHERE p.brand = 'Sonora'"
+    }
+  ],
+  "hint3_partial": "WITH units AS (SELECT ol.product_id, SUM(ol.quantity) AS units FROM order_lines ol JOIN orders o ON o.order_id = ol.order_id WHERE o.order_ts >= TIMESTAMP '2025-03-01' AND o.order_ts < TIMESTAMP '2025-04-01' GROUP BY ol.product_id),\nchecks AS (SELECT product_id, COUNT(*) AS n_checks FROM ___ GROUP BY product_id)\nSELECT p.product_name, u.units, COALESCE(c.n_checks, 0) AS n_checks\nFROM products p\nJOIN units u ON u.product_id = p.product_id\n___ checks c ON c.product_id = p.product_id\nWHERE p.brand = 'Sonora'",
+  "solver": {
+    "prompt_hash": "87578ab947ae940a",
+    "schema_version": "34b3f557f624",
+    "dataset_version": "e1545e4258743033",
+    "grader_version": "1b.3",
+    "query": "WITH sold AS (\n  SELECT ol.product_id, SUM(ol.quantity) AS units\n  FROM order_lines ol\n  JOIN orders o ON o.order_id = ol.order_id\n  WHERE o.order_ts >= TIMESTAMP '2025-03-01' AND o.order_ts < TIMESTAMP '2025-04-01'\n  GROUP BY ol.product_id\n), checks AS (\n  SELECT product_id, COUNT(*) AS n_checks\n  FROM competitor_prices\n  WHERE observed_ts >= TIMESTAMP '2025-03-01' AND observed_ts < TIMESTAMP '2025-04-01'\n  GROUP BY product_id\n)\nSELECT p.product_name, s.units, COALESCE(c.n_checks, 0) AS n_checks\nFROM products p\nJOIN sold s ON s.product_id = p.product_id\nLEFT JOIN checks c ON c.product_id = p.product_id\nWHERE p.brand = 'Sonora'",
+    "at": "2026-10-07T10:41:41.453Z"
+  }
+}

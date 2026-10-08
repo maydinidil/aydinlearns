@@ -1,0 +1,124 @@
+{
+  "id": "EX-SQL-JOIN-02-E1-22",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "left_join",
+    "filter_in_on",
+    "count_zero",
+    "guest_orders",
+    "stores",
+    "orders",
+    "utc_day"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-JOIN-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-JOIN-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02"
+  ],
+  "template_id": "T-JOIN-02-count-keep-zero-filtered",
+  "template_params": {
+    "from": "stores",
+    "join": "orders",
+    "guest": "yes",
+    "day": "2025-03-08"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_join",
+  "prompt": "How many guest orders (orders with a missing customer_id) did each store take on 8 March 2025? order_ts holds UTC time: take the day in UTC. Include every store, with 0 for a store that took none. Return two columns, in this order: store_code and n_guest_orders. Return one row for each store. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "store_code",
+        "type_class": "text"
+      },
+      {
+        "name": "n_guest_orders",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "store_code",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "n_guest_orders",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "store_code"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, join the guest orders of that day so that every store stays.",
+    "Put the missing-customer test and the day test in ON, and count a column of orders."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 56,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 57,
+      "to": 70,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 71,
+      "to": 241,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 242,
+      "to": 263,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "The tests in ON choose the guest orders of the day, LEFT JOIN keeps every store, and COUNT(o.order_id) gives 0 when none matched."
+}

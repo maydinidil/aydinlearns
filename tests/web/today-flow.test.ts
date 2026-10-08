@@ -6,12 +6,14 @@ import { readdir, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { TodayStep } from '../../core/session.ts';
-import { api, type MixedBlock, type OpenerView, type RetestView, type Served, type TodayPlan, type TodayView } from '../../web/src/api.ts';
+import type { MixedBlock, RetestView, Served, TodayPlan, TodayView } from '../../web/src/api.ts';
+import { askedStep, caseStepHref, firstStep, startStep } from '../../web/src/lib/case-flow.ts';
+import type { CaseCheckpointView, CaseView } from '../../web/src/lib/cases-api.ts';
 import { titlesFrom } from '../../web/src/lib/labels.ts';
 import { closesOnUnmount, noteSessionEnd, sessionEndsSeen } from '../../web/src/lib/exercise.ts';
 import {
-  ANOTHER_NEW_CONCEPT, BlockMemory, LIST, MINIMUM_DAY, NOT_OPEN, NO_NOTICES, SECTIONS, afterItemClosed, afterSessionEnd, anotherNewConcept, exerciseOf,
-  noticeLines, notices, openerQuestion, resumeBlock, runMixed, runServed, stepViews, wrapUp, type Running,
+  ANOTHER_NEW_CONCEPT, BlockMemory, LIST, MINIMUM_DAY, NOT_OPEN, NO_NOTICES, SECTIONS, SQL_LINKS, afterItemClosed, afterSessionEnd, anotherNewConcept, exerciseOf,
+  noticeLines, notices, resumeBlock, runMixed, runServed, stepViews, wrapUp, type Running,
 } from '../../web/src/lib/today-flow.ts';
 
 const titles = titlesFrom({ concepts: [
@@ -26,13 +28,15 @@ const now = new Date('2026-10-04T11:50:00Z');                // 13:50 in Amsterd
 const micro: TodayStep = { kind: 'micro_lesson', concept_id: 'SQL-FILTER-01' };
 const refresher: TodayStep = { kind: 'refresher', concept_id: 'SQL-AGG-02' };
 const reviews: TodayStep = { kind: 'reviews', card_ids: ['CARD-SQL-FILTER-01', 'CARD-SQL-AGG-02', 'CARD-SQL-AGG-01'] };
-const preview: TodayStep = { kind: 'opener', case_id: 'CASE-VOLT-L2', mode: 'preview' };
+const preview: TodayStep = { kind: 'opener', case_id: 'CASE-VOLT-L2', mode: 'preview', sketch: true };
 const fresh: TodayStep = { kind: 'new_concept', concept_id: 'SQL-AGG-03', held_back: null, reason: null };
 const mixed: TodayStep = { kind: 'mixed', concept_ids: ['SQL-AGG-02', 'SQL-FILTER-01', 'SQL-AGG-01', 'SQL-AGG-03', 'SQL-SORT-01', 'SQL-CASE-01'] };
-const solve: TodayStep = { kind: 'opener', case_id: 'CASE-VOLT-L1', mode: 'solve' };
+const daily: TodayStep = { kind: 'daily_case', case_id: 'CASE-DAILY-L1-01', done: false };
+const solve: TodayStep = { kind: 'opener', case_id: 'CASE-VOLT-L1', mode: 'solve', checkpoint: 'CP4' };
+const check: TodayStep = { kind: 'opener', case_id: 'CASE-VOLT-L3', mode: 'check' };
 const retest: TodayStep = { kind: 'retest', concept_id: 'SQL-AGG-02', item_id: 'EX-SQL-AGG-02-RT-01', ready: false, ready_at: '2026-10-04T12:05:00Z' };
 const relearning: TodayStep = { kind: 'relearning', card_ids: ['CARD-SQL-AGG-02', 'CARD-SQL-FILTER-01'] };
-const ORDERED = [micro, refresher, reviews, preview, fresh, mixed, solve, retest, relearning];
+const ORDERED = [micro, refresher, reviews, preview, fresh, mixed, daily, solve, check, retest, relearning];
 
 function planOf(steps: TodayStep[], over: Partial<TodayPlan> = {}): TodayPlan {
   return {
@@ -55,14 +59,16 @@ test('every step, in the order of S2-40, with its text', () => {
     "Level opener: read the manager's question",
     'New concept: HAVING',
     'Mixed practice: 6 exercises',
+    'Daily case',
     "Level opener: solve the manager's question",
+    'Level opener: what would you need to answer it?',
     'Re-test: GROUP BY',
     'Again today: 2',
   ]);
 });
 
 test('the steps keep the order of S2-40 even when the plan lists them in another order', () => {
-  const shuffled = [relearning, mixed, retest, fresh, reviews, solve, micro, preview, refresher];
+  const shuffled = [relearning, mixed, retest, fresh, daily, reviews, solve, micro, preview, check, refresher];
   assert.deepEqual(labels(planOf(shuffled)), labels(planOf(ORDERED)));
   // Two of one kind keep their own order.
   const two = planOf([{ kind: 'refresher', concept_id: 'SQL-AGG-03' }, { kind: 'micro_lesson', concept_id: 'SQL-AGG-01' }, refresher]);
@@ -75,10 +81,12 @@ test('what each step starts', () => {
     { kind: 'micro_lesson', concept_id: 'SQL-FILTER-01' },
     { kind: 'refresher', concept_id: 'SQL-AGG-02' },
     { kind: 'serve', purpose: 'review' },
-    { kind: 'opener_preview', case_id: 'CASE-VOLT-L2' },
+    { kind: 'case', href: '#/opener/CASE-VOLT-L2?step=sketch' },
     { kind: 'lesson', concept_id: 'SQL-AGG-03' },
     { kind: 'mixed' },
-    { kind: 'serve', purpose: 'opener', case_id: 'CASE-VOLT-L1' },
+    { kind: 'case', href: '#/case/CASE-DAILY-L1-01' },
+    { kind: 'case', href: '#/opener/CASE-VOLT-L1?step=CP4' },
+    { kind: 'case', href: '#/opener/CASE-VOLT-L3?step=CP1' },
     null,                                                    // the re-test opens at 14:05
     { kind: 'serve', purpose: 'relearning' },
   ]);
@@ -175,11 +183,9 @@ test('a served review: its own instance id, the hidden labels and a heading that
   assert.deepEqual(exerciseOf(r), { key: 'inst-1', item_id: 'EX-SQL-AGG-02-E2-01', instance_id: 'inst-1', phase: 'review', hide_labels: true, heading: 'Review exercise' });
   assert.equal(exerciseOf(runServed('relearning', served({}), titles, null))!.heading, 'Review exercise');
 });
-test('a served re-test shows its concept; the opener is a CP3 item in phase case with hidden labels', () => {
+test('a served re-test shows its concept', () => {
   const rt = exerciseOf(runServed('retest', served({ phase: 'retest', hide_labels: false, item_instance_id: 'inst-2' }), titles, 'SQL-AGG-02'))!;
   assert.deepEqual([rt.phase, rt.hide_labels, rt.heading], ['retest', false, 'Re-test: GROUP BY']);
-  const op = exerciseOf(runServed('opener', served({ item_id: 'EX-OPENER-L1-01', phase: 'case', hide_labels: true, item_instance_id: 'inst-3' }), titles, null))!;
-  assert.deepEqual([op.item_id, op.phase, op.hide_labels, op.heading], ['EX-OPENER-L1-01', 'case', true, 'Level opener']);
 });
 
 test('the mixed block runs its servings in order, "exercise k of n", then returns to Today', () => {
@@ -208,17 +214,12 @@ test('reviews go on to the next one while the refreshed plan still has reviews d
   // An item left without a graded attempt goes back to Today, so leaving never serves the same card again and again.
   assert.deepEqual(afterItemClosed(r, untouched, planOf(ORDERED), 'full'), LIST);
 });
-test('cards due again go on the same way; a re-test and an opener return to Today', () => {
+test('cards due again go on the same way; a re-test returns to Today', () => {
   const again = runServed('relearning', served({}), titles, null);
   assert.deepEqual(afterItemClosed(again, passed, planOf(ORDERED), 'full'), { kind: 'serve_next', purpose: 'relearning' });
   assert.deepEqual(afterItemClosed(again, passed, planOf([reviews]), 'full'), LIST);
   assert.deepEqual(afterItemClosed(runServed('retest', served({ phase: 'retest' }), titles, 'SQL-AGG-02'), passed, planOf(ORDERED), 'full'), LIST);
-  assert.deepEqual(afterItemClosed(runServed('opener', served({ phase: 'case' }), titles, null, 'CASE-L2-01'), graded, planOf(ORDERED), 'full'), LIST, 'a failed CP3 goes back');
-  assert.deepEqual(afterItemClosed(runServed('opener', served({ phase: 'case' }), titles, null, 'CASE-L2-01'), untouched, planOf(ORDERED), 'full'), LIST, 'an abandoned CP3 goes back');
-  assert.deepEqual(afterItemClosed(runServed('opener', served({ phase: 'case' }), titles, null), passed, planOf(ORDERED), 'full'), LIST, 'no case id: back to the list');
-  // An opener solved from Today's step goes on to the case's follow-up number.
-  assert.deepEqual(afterItemClosed(runServed('opener', served({ phase: 'case' }), titles, null, 'CASE-L2-01'), passed, planOf(ORDERED), 'full'),
-    { kind: 'cp4', case_id: 'CASE-L2-01' });
+  assert.deepEqual(afterItemClosed(runServed('retest', served({ phase: 'retest' }), titles, 'SQL-AGG-02'), graded, planOf(ORDERED), 'full'), LIST);
   assert.deepEqual(afterItemClosed(LIST, passed, planOf(ORDERED), 'full'), LIST);
 });
 test('a session end returns Today to its list, so no stale serving is ever shown', () => {
@@ -278,30 +279,66 @@ test("a refused serve keeps the server's reason on screen after the plan is fetc
   assert.deepEqual(noticeLines(notices(n, { kind: 'reset' })), [], 'a section change or a session end clears both');
 });
 
-// ---- the opener preview (S2-51, Task B15 follow-up) -----------------------------------------------
+// ---- the case steps open the case screen (sprint 4b, Task D3: S4B-13 to S4B-15, the B2 review) ------------------------------
 
-const OPENERS: OpenerView[] = [
-  { case_id: 'CASE-VOLT-L1', level: 1, title: 'Which stores sell the most?', cp3_item_id: 'EX-OPENER-L1-01' },
-  { case_id: 'CASE-VOLT-L2', level: 2, title: 'Where do margins fall?', cp3_item_id: 'EX-OPENER-L2-01' },
-];
+const one = (s: TodayStep) => stepViews(planOf([s]), 'full', titles, now)[0]!;
+const row = (s: TodayStep) => { const v = one(s); return [v.label, v.detail, v.actionLabel, v.action]; };
 
-test('the opener preview reads GET /api/openers and the CP3 item, and serves nothing', async (t) => {
-  const sent: string[] = [];
-  t.mock.method(globalThis, 'fetch', async (path: string, init: RequestInit) => {
-    sent.push(`${init.method} ${path}`);
-    const body = path === '/api/openers' ? OPENERS : { item: { id: 'EX-OPENER-L2-01', prompt: 'The manager asks a question.' }, schemaNotes: [] };
-    return new Response(JSON.stringify(body), { status: 200, headers: { 'content-type': 'application/json' } });
-  });
-  const q = await openerQuestion('CASE-VOLT-L2', { openers: api.openers, item: (id) => api.item(id) });
-  assert.deepEqual(q, { case_id: 'CASE-VOLT-L2', level: 2, title: 'Where do margins fall?', item_id: 'EX-OPENER-L2-01', prompt: 'The manager asks a question.' });
-  assert.deepEqual(sent, ['GET /api/openers', 'GET /api/items/EX-OPENER-L2-01'], 'two reads; no POST /api/serve, so no unused serving');
+test('S4B-13: the opener preview offers the sketch on the case screen while the opener has none; otherwise it opens the question', () => {
+  assert.deepEqual(row(preview), ["Level opener: read the manager's question",
+    "Sketch a first answer if you like: one row per what, which tables, which metric. Today suggests solving it once the level's concepts are practised.",
+    'Read and sketch', { kind: 'case', href: '#/opener/CASE-VOLT-L2?step=sketch' }]);
+  assert.deepEqual(row({ ...preview, sketch: false }), ["Level opener: read the manager's question",
+    "Today suggests solving it once the level's concepts are practised. You can try it at any time.", 'Read it', { kind: 'case', href: '#/opener/CASE-VOLT-L2' }]);
 });
-test('the opener preview of a case that is not in the list: null, and no item is read', async () => {
-  const read: string[] = [];
-  const io = { openers: async () => OPENERS, item: async (id: string) => { read.push(id); return { item: { prompt: 'x' } }; } };
-  assert.equal(await openerQuestion('CASE-NOPE', io), null);
-  assert.equal(await openerQuestion('CASE-VOLT-L1', { ...io, openers: async () => [] }), null, 'no openers at all');
-  assert.deepEqual(read, []);
+
+test('S4B-14: the mid-level step opens the opener\'s CP1 on the case screen', () => {
+  assert.deepEqual(row(check), ['Level opener: what would you need to answer it?', 'One question about the manager\'s request, now that half of the level is practised.',
+    'Answer it', { kind: 'case', href: '#/opener/CASE-VOLT-L3?step=CP1' }]);
+});
+
+test('S4B-15: the daily case opens on the case screen; once solved it shows as done and still opens', () => {
+  assert.deepEqual(row(daily), ['Daily case', 'A short question from a manager, on concepts you have practised.', 'Open it', { kind: 'case', href: '#/case/CASE-DAILY-L1-01' }]);
+  assert.deepEqual(row({ ...daily, done: true }), ['Daily case: solved', 'The next one comes tomorrow.', 'Open it', { kind: 'case', href: '#/case/CASE-DAILY-L1-01' }]);
+  assert.deepEqual(labels(planOf([daily]), 'minimum'), [], 'not in a minimum day');
+});
+
+/** A case view as GET /api/cases/:id sends it: an opener with CP3 and CP4. */
+const cpView = (kind: CaseCheckpointView['kind'], passed: boolean, answered = passed): CaseCheckpointView => ({ id: kind, kind, prompt: 'p', item_id: `x:${kind}`,
+  options: null, typed: null, passed, last: answered ? { passed, submitted_at: '2026-10-03T10:00:00Z' } : null });
+const caseView = (over: Partial<CaseView>): CaseView => ({ case_id: 'CASE-VOLT-L1', kind: 'opener', level: 1, title: 't', persona: { name: 'Joost', role: 'Pricing lead' },
+  brief: { decision: 'd', deadline: 'x' }, data_needed: null, expected_output: { columns: ['city'], sort: [], grain: null }, follow_up_question: 'q', data_source: null,
+  status: 'new', score: 0, solved_at: null, checkpoints: [cpView('CP3', false), cpView('CP4', false)], sketch: null, plan: null, insight: null, plan_fields: [], sketch_fields: [], ...over });
+
+test('B2 review: the solve step opens the case screen at the first checkpoint with no pass (CP4 after a CP3 pass), never the CP3 item on Today', () => {
+  const [label, detail, actionLabel, action] = row(solve);
+  assert.deepEqual([label, detail, actionLabel, action], ["Level opener: solve the manager's question", 'Next: CP4 Headline number', 'Open it',
+    { kind: 'case', href: '#/opener/CASE-VOLT-L1?step=CP4' }]);
+  // The case screen starts where the link asks: CP4 for the opener whose CP3 passed.
+  const cp3Passed = caseView({ status: 'started', score: 0.5, checkpoints: [cpView('CP3', true), cpView('CP4', false)] });
+  assert.equal(startStep(cp3Passed, { said: false }, askedStep((action as { href: string }).href)), 'CP4');
+  // A new opener would start at its sketch; the solve step's link starts it at CP3.
+  const fresh = caseView({});
+  assert.equal(firstStep(fresh, { said: false }), 'sketch');
+  assert.equal(startStep(fresh, { said: false }, askedStep(caseStepHref('CASE-VOLT-L1', 'CP3', 'opener'))), 'CP3');
+  assert.deepEqual(row({ ...solve, checkpoint: null }).slice(1), [null, 'Open it', { kind: 'case', href: '#/opener/CASE-VOLT-L1' }], 'no checkpoint named: the screen picks');
+});
+
+test('a case route\'s step: read from the hash, kept only when the case has that step', () => {
+  assert.equal(askedStep('#/opener/CASE-VOLT-L3?step=CP1'), 'CP1');
+  assert.equal(askedStep('#/case/CASE-DAILY-L1-01'), null);
+  assert.equal(askedStep('#/case/CASE-DAILY-L1-01?other=1'), null);
+  assert.equal(caseStepHref('CASE X/1', 'CP1', 'case'), '#/case/CASE%20X%2F1?step=CP1');
+  assert.equal(caseStepHref('CASE-VOLT-L1', null, 'opener'), '#/opener/CASE-VOLT-L1');
+  const solved = caseView({ status: 'solved', score: 1, checkpoints: [cpView('CP3', true), cpView('CP4', true)] });
+  assert.equal(startStep(solved, { said: false }, 'sketch'), 'score', 'a solved opener with no sketch has no sketch step: the screen picks');
+  assert.equal(startStep(solved, { said: false }, 'CP1'), 'score', 'no CP1 in this case');
+  assert.equal(startStep(solved, { said: false }, 'CP3'), 'CP3', 'a step the case has opens, solved or not');
+  assert.equal(startStep(solved, { said: false }, null), 'score');
+});
+
+test('Today (SQL) links to Mistakes and review, the case inbox and the portfolio', () => {
+  assert.deepEqual(SQL_LINKS, [{ href: '#/mistakes', text: 'Mistakes and review' }, { href: '#/inbox', text: 'Case inbox' }, { href: '#/portfolio', text: 'Portfolio' }, { href: '#/explore', text: 'Dataset explorer' }]);
 });
 
 // ---- no study time anywhere (design §4: goals, not hours) -----------------------------------------

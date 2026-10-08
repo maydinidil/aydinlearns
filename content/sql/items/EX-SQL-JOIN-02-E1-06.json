@@ -1,0 +1,125 @@
+{
+  "id": "EX-SQL-JOIN-02-E1-06",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "left_join",
+    "count_zero",
+    "orders",
+    "order_lines",
+    "utc_day"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-JOIN-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-JOIN-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02"
+  ],
+  "template_id": "T-JOIN-02-count-keep-zero-day",
+  "template_params": {
+    "from": "orders",
+    "join": "order_lines",
+    "day": "2025-03-07"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_join",
+  "prompt": "How many order lines does each order placed on 7 March 2025 have? order_ts holds UTC time: take the day in UTC. Include every order of that day, with 0 for an order that has no lines. Return two columns, in this order: order_id and n_lines. Return one row for each order. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "order_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "n_lines",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "order_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "n_lines",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "order_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, join the lines so that an order with none still counts, then group by order.",
+    "Count a column of order_lines: it is missing on the one row that an order with no lines gets."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 52,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 53,
+      "to": 66,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 67,
+      "to": 117,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 118,
+      "to": 218,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 219,
+      "to": 238,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "LEFT JOIN keeps the order with no lines as one row with missing line columns, and COUNT of a line column turns that into 0."
+}

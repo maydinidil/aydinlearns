@@ -4,17 +4,19 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import type { CardReview, Rating } from '../../core/envelope.ts';
-import type { InstanceResult, ReplayResult } from '../../core/replay.ts';
+import type { InstanceResult, ReplayCase, ReplayResult } from '../../core/replay.ts';
 import { emptyCard } from '../../core/scheduler.ts';
-import { DAILY_NEW_CAP, planToday } from '../../core/session.ts';
+import { DAILY_NEW_CAP, planToday, type ComposerConcept, type ComposerInput, type ComposerOpener } from '../../core/session.ts';
+import type { ConceptStateName } from '../../core/states.ts';
+import type { CaseRecord, Checkpoint } from '../../schemas/case.ts';
 import type { Curriculum } from '../../schemas/concepts.ts';
 import type { SqlItem } from '../../schemas/item.ts';
 import type { Lesson } from '../../schemas/lesson.ts';
 import type { ContentStore } from '../../server/content.ts';
 import {
-  PAIRS_PATH, activePairs, composerInput, loadPairs, mixedBlock, newConceptsToday, parsePairs, pickItem, reviewStats, type PickInput,
+  PAIRS_PATH, activePairs, composerInput, dailyCase, loadPairs, mixedBlock, newConceptsToday, openerInputs, parsePairs, pickItem, reviewStats, type PickInput,
 } from '../../server/session-composer.ts';
-import { cardReset, exposure, growLeech, instance, item as itemId, run, sessionStart, type Log } from '../helpers/replay-fixture.ts';
+import { cardReset, exposure, growLeech, instance, item as itemId, run, sessionStart, testCatalog, type Log } from '../helpers/replay-fixture.ts';
 
 const curriculum = JSON.parse(await readFile('content/sql/curriculum.json', 'utf8')) as Curriculum;
 const levelOf = new Map(curriculum.concepts.map((c) => [c.id, c.level]));
@@ -27,9 +29,10 @@ const store = (withContent: string[]): ContentStore => ({
 });
 
 // ---- the confusable-pairs registry (design §5) ---------------------------------------------------
-test('the registry holds the four level 1-2 pairs of design §5, each applying from its later concept\'s level', async () => {
+test('the registry holds the four level 1-2 pairs of design §5 and the four level 3 pairs of Task B3, each applying from its later concept\'s level', async () => {
   const pairs = await loadPairs();
-  assert.deepEqual(pairs.map((p) => p.concepts), [['SQL-FILTER-01', 'SQL-AGG-03'], ['SQL-SORT-01', 'SQL-AGG-02'], ['SQL-FILTER-01', 'SQL-CASE-01'], ['SQL-CASE-01', 'SQL-AGG-04']]);
+  assert.deepEqual(pairs.map((p) => p.concepts), [['SQL-FILTER-01', 'SQL-AGG-03'], ['SQL-SORT-01', 'SQL-AGG-02'], ['SQL-FILTER-01', 'SQL-CASE-01'], ['SQL-CASE-01', 'SQL-AGG-04'],
+    ['SQL-JOIN-01', 'SQL-JOIN-02'], ['SQL-SET-01', 'SQL-JOIN-02'], ['SQL-JOIN-01', 'SQL-JOIN-03'], ['SQL-AGG-02', 'SQL-CTE-01']]);
   for (const p of pairs) {
     assert.ok(p.concepts.every((c) => levelOf.has(c)), `${p.concepts.join(' / ')} names a curriculum concept`);
     assert.equal(p.from_level, Math.max(...p.concepts.map((c) => levelOf.get(c)!)));
@@ -132,7 +135,7 @@ function result(instances: Spec[]): ReplayResult {
       block_id: null, repeat_exposure: false, started_at: started, closed_at: s.closed, rating, why: '',
       countsAsPass: true, qualifying: false, firstGradedAt: started, card_reviews: reviews, ...(s.unreached ? { unreached: true } : {}) });
   });
-  return { cards: new Map(), instances: map, concepts: new Map(), blocks: new Map(), sessions: [], pendingResets: [], warnings: [] };
+  return { cards: new Map(), instances: map, concepts: new Map(), blocks: new Map(), sessions: [], pendingResets: [], warnings: [], mistakeCards: new Map(), mistakeCandidatesWithoutTraps: [], cases: new Map() };
 }
 const on = (date: string, n = 0) => `${date}T${String(8 + n).padStart(2, '0')}:00:00Z`;
 
@@ -250,11 +253,172 @@ test('S2-32: the mixed block has 6 items, one rated instance per card, at least 
   assert.ok(block.every((b) => b.item.target_concept_id === b.concept_id));
   assert.deepEqual(block.filter((b) => b.item.kind === 'fix').map((b) => b.item.id), ['EX-SQL-AGG-04-E2-20'], 'exactly the one fix item');
   const order = block.map((b) => b.concept_id);
-  for (const [a, b] of pairs) {
+  const inBlock = pairs.filter(([a, b]) => order.includes(a) && order.includes(b));
+  assert.equal(inBlock.length, 4, 'the four level 1-2 pairs; the level 3 pairs name no concept of this block');
+  for (const [a, b] of inBlock) {
     const i = order.indexOf(a), j = order.indexOf(b);
     assert.equal(Math.abs(i - j), 1, `${a} next to ${b}: ${order.join(' ')}`);
   }
   // Two concepts that share a card (a GA4 child and its parent, E-110) give one item, not two.
   const shared = mixedBlock({ concepts: ['SQL-AGG-03', 'SQL-FILTER-01'], poolOf: (c) => pools.get(c)!, cardOf: () => 'CARD-ONE', seen: [], firstExposureOf: () => ago(3), now: NOW, pairs });
   assert.equal(shared.length, 1);
+});
+
+// ---- sprint 4b, Task D3: the daily case, the opener's sketch and the mid-level question (S4B-13 to S4B-15) --------------------
+
+const D3_NOW = new Date('2026-10-12T08:00:00Z');                              // 10:00 in Amsterdam (summer time)
+const LEVEL = (n: number) => curriculum.concepts.filter((c) => c.level === n).sort((a, b) => a.order - b.order).map((c) => c.id);
+const ON = (concepts: string[], state: ConceptStateName): Record<string, ConceptStateName> => Object.fromEntries(concepts.map((c) => [c, state]));
+/** Every curriculum concept, at the state named (New otherwise); one concept may be first exposed in the last 7 days. */
+function conceptsAt(states: Record<string, ConceptStateName>, recent: string | null = null): ComposerConcept[] {
+  return curriculum.concepts.map((c) => ({ id: c.id, order: c.order, level: c.level, state: states[c.id] ?? 'new', hasContent: true,
+    firstExposureAt: c.id === recent ? '2026-10-11T08:00:00Z' : states[c.id] ? '2026-09-01T08:00:00Z' : null, leech: false, refresherDue: false }));
+}
+const planInput = (over: Partial<ComposerInput>): ComposerInput => ({
+  section: 'sql', now: D3_NOW, cards: [], concepts: conceptsAt({}), stats: { completedPerStudyDay: [], scheduledLast7: { passed: 0, total: 0 } },
+  newConceptsToday: 0, dailyNewCap: DAILY_NEW_CAP, pairs: [], useIntakeGuard: false, retest: null, sessionNewConceptDone: false, ...over });
+const stepKinds = (steps: { kind: string; mode?: string }[]) => steps.map((s) => (s.kind === 'opener' ? `opener:${s.mode}` : s.kind));
+
+test('S4B-15: the daily case comes after mixed practice, before the opener, the re-test and the cards due again; it is never in the minimum day', () => {
+  const states = ON([...LEVEL(1), ...LEVEL(2).slice(0, 5)], 'practised');
+  const base = planInput({
+    concepts: conceptsAt(states, 'SQL-AGG-04'), sessionNewConceptDone: true,
+    openers: [{ case_id: 'CASE-VOLT-L1', level: 1, solved: false, nextCheckpoint: 'CP3' }],
+    retest: { concept_id: 'SQL-AGG-04', item_id: 'EX-SQL-AGG-04-E1-07', ready: true, ready_at: '2026-10-12T07:00:00Z' },
+    cards: [{ card_id: 'CARD-SQL-AGG-01', concept_id: 'SQL-AGG-01', due: '2026-10-12T07:50:00Z', retrievability: 0.8, rated: true }],
+    sessionStart: '2026-10-12T07:30:00Z',
+  });
+  const plan = planToday({ ...base, dailyCase: { case_id: 'CASE-DAILY-L1-01', done: false } });
+  assert.deepEqual(stepKinds(plan.steps), ['mixed', 'daily_case', 'opener:solve', 'retest', 'relearning']);
+  assert.deepEqual(plan.steps[1], { kind: 'daily_case', case_id: 'CASE-DAILY-L1-01', done: false });
+  assert.deepEqual(plan.minimumDay.map((s) => s.kind), ['relearning'], 'a minimum day runs reviews only');
+  const done = planToday({ ...base, dailyCase: { case_id: 'CASE-DAILY-L1-01', done: true } });
+  assert.deepEqual(done.steps.find((s) => s.kind === 'daily_case'), { kind: 'daily_case', case_id: 'CASE-DAILY-L1-01', done: true }, 'solved today: shown as done');
+  assert.ok(!planToday({ ...base, dailyCase: null }).steps.some((s) => s.kind === 'daily_case'), 'none qualifies: no step');
+  assert.ok(!planToday(base).steps.some((s) => s.kind === 'daily_case'), 'a caller with no daily case: no step');
+});
+
+test('S4B-14: the mid-level step appears once half the level\'s concepts are practised or better, while CP1 has no answer; the solve step replaces it when the level is done', () => {
+  const l3 = LEVEL(3);
+  assert.equal(l3.length, 8);
+  const below = ON([...LEVEL(1), ...LEVEL(2)], 'retained');
+  const opener: ComposerOpener = { case_id: 'CASE-VOLT-L3', level: 3, solved: false, cp1Unanswered: true, nextCheckpoint: 'CP1' };
+  const openerSteps = (states: Record<string, ConceptStateName>, o: ComposerOpener = opener) =>
+    planToday(planInput({ concepts: conceptsAt({ ...below, ...states }), openers: [o], sessionNewConceptDone: true })).steps.filter((s) => s.kind === 'opener');
+  assert.deepEqual(openerSteps(ON(l3.slice(0, 3), 'practised')), [], '3 of 8: not yet');
+  assert.deepEqual(openerSteps({ ...ON(l3.slice(0, 3), 'practised'), [l3[3]!]: 'learning' }), [], 'Learning is not practised');
+  assert.deepEqual(openerSteps({ ...ON(l3.slice(0, 2), 'practised'), [l3[2]!]: 'mastered', [l3[5]!]: 'retained' }),
+    [{ kind: 'opener', case_id: 'CASE-VOLT-L3', mode: 'check' }], '4 of 8 at practised or better, in any order');
+  assert.deepEqual(openerSteps(ON(l3.slice(0, 4), 'practised'), { ...opener, cp1Unanswered: false }), [], 'CP1 has an answer: gone');
+  assert.deepEqual(openerSteps(ON(l3.slice(0, 4), 'practised'), { case_id: 'CASE-VOLT-L2X', level: 3, solved: false }), [], 'S4B-06: an opener with no CP1 asks nothing mid-level');
+  assert.deepEqual(openerSteps(ON(l3, 'practised')), [{ kind: 'opener', case_id: 'CASE-VOLT-L3', mode: 'solve', checkpoint: 'CP1' }],
+    'the whole level: the solve step, which opens at CP1 itself');
+  assert.deepEqual(openerSteps(ON(l3, 'practised'), { ...opener, solved: true, cp1Unanswered: false }), [], 'solved: nothing');
+});
+
+// The level 3 opener's checkpoints, as S4B-05 lists them, and a level 1 opener's (CP3 and CP4 only, S4B-06).
+const cp = (kind: Checkpoint['kind'], caseId: string, credits: string[], item = `${caseId}:${kind}`): Checkpoint => ({ id: kind, kind, prompt: 'p', credits_concepts: credits, item_id: item });
+function caseOf(case_id: string, kind: CaseRecord['kind'], level: number, checkpoints: Checkpoint[]): CaseRecord {
+  return { case_id, kind, level, world: 'PRICE', company_id: 'voltmarkt', title: case_id, persona: { name: 'Yara', role: 'Retail operations' }, brief: { decision: 'd', deadline: 'x' },
+    data_needed: ['sales'], expected_output: { columns: ['x'], grain: 'g', sort: [{ column: 'x', desc: false }] }, checkpoints, model_plan: 'm', model_answer_template: 'a',
+    follow_up_question: 'q', data_source: { label: 'Fictional, generated data: Voltmarkt', real: false, licence: null }, difficulty: 1,
+    concept_ids: [...new Set(checkpoints.flatMap((p) => p.credits_concepts))], metric_ids: [], find_ids: [], uses_raw: false };
+}
+const L3 = caseOf('CASE-VOLT-L3', 'opener', 3, [cp('CP1', 'CASE-VOLT-L3', []), cp('CP3', 'CASE-VOLT-L3', ['SQL-JOIN-01', 'SQL-DATE-01'], 'EX-OPENER-L3-01'),
+  cp('CP4', 'CASE-VOLT-L3', [])]);
+const L1 = caseOf('CASE-VOLT-L1', 'opener', 1, [cp('CP3', 'CASE-VOLT-L1', ['SQL-BASICS-01', 'SQL-FILTER-01'], 'EX-OPENER-L1-01'), cp('CP4', 'CASE-VOLT-L1', [])]);
+const replayCase = (c: CaseRecord): ReplayCase => ({ case_id: c.case_id, checkpoints: c.checkpoints.filter((p) => p.kind !== 'CP6' && p.item_id).map((p) => ({ kind: p.kind, item_id: p.item_id! })) });
+const replayWith = (cases: CaseRecord[], attempts: object[]) => run({ attempts, events: [] }, { catalog: { ...testCatalog, cases: () => cases.map(replayCase) } });
+/** One answer to a checkpoint item in its own instance (phase case). */
+const answer = (inst: string, item: string, at: string, pass: boolean, kind = 'write', submit: 'pass' | 'fail' | 'crash' = pass ? 'pass' : 'fail') =>
+  instance({ id: inst, item, concept: 'SQL-BASICS-01', phase: 'case', kind, version: 2, start: at, steps: [{ at: new Date(Date.parse(at) + 20_000).toISOString(), submit }] });
+const sketchOf = (caseId: string, ts: string) => ({ record: 'self_check', schema_version: 4, ts, session_id: 'S-1', kind: 'sketch', phase: 'opener_preview', case_id: caseId,
+  item_instance_id: null, block_id: null, text: null, fields: { one_row_per: 'a store', tables: 'stores', metric: 'revenue' }, ticked: [] });
+
+test('S4B-13, S4B-14 and the B2 review: openerInputs reads the sketch, the CP1 answer and the first checkpoint with no pass from replay', () => {
+  const inputs = (attempts: object[]) => openerInputs([L3, L1], curriculum, replayWith([L3, L1], attempts));
+  assert.deepEqual(inputs([]), [
+    { case_id: 'CASE-VOLT-L3', level: 3, solved: false, sketch: true, cp1Unanswered: true, nextCheckpoint: 'CP1' },
+    { case_id: 'CASE-VOLT-L1', level: 1, solved: false, sketch: true, cp1Unanswered: false, nextCheckpoint: 'CP3' },
+  ], 'S4B-06: the level 1 opener has no CP1');
+  const sketched = inputs([sketchOf('CASE-VOLT-L3', '2026-10-01T08:00:00Z')]);
+  assert.equal(sketched[0]!.sketch, false, 'S4B-13: the day-1 sketch is logged, so the preview offers no other');
+  const wrongCp1 = inputs([...answer('A1', 'CASE-VOLT-L3:CP1', '2026-10-02T08:00:00Z', false, 'mcq')]);
+  assert.deepEqual([wrongCp1[0]!.cp1Unanswered, wrongCp1[0]!.nextCheckpoint], [false, 'CP1'], 'S4B-14: a wrong answer is an answer; CP1 still has no pass');
+  // B2 review: a CP3 pass with no CP4 pass. The solve step opens the case screen at CP4, never at the CP3 item again.
+  const cp3Only = inputs([...answer('A2', 'EX-OPENER-L1-01', '2026-10-02T08:00:00Z', true)]);
+  assert.deepEqual(cp3Only[1], { case_id: 'CASE-VOLT-L1', level: 1, solved: false, sketch: false, cp1Unanswered: false, nextCheckpoint: 'CP4' },
+    'S4B-13: a passing CP3 ends the sketch offer');
+  const plan = planToday(planInput({ concepts: conceptsAt(ON(LEVEL(1), 'practised')), openers: cp3Only, sessionNewConceptDone: true }));
+  assert.deepEqual(plan.steps.filter((s) => s.kind === 'opener'), [{ kind: 'opener', case_id: 'CASE-VOLT-L1', mode: 'solve', checkpoint: 'CP4' }]);
+  const solved = inputs([...answer('A2', 'EX-OPENER-L1-01', '2026-10-02T08:00:00Z', true), ...answer('A3', 'CASE-VOLT-L1:CP4', '2026-10-02T08:10:00Z', true, 'typed')]);
+  assert.deepEqual([solved[1]!.solved, solved[1]!.nextCheckpoint], [true, null]);
+});
+
+test('S4B-14: the mid-level step disappears once the opener\'s CP1 has an answer (replay to plan)', () => {
+  const states = { ...ON([...LEVEL(1), ...LEVEL(2)], 'practised'), ...ON(LEVEL(3).slice(0, 4), 'practised') };
+  const plan = (attempts: object[]) => planToday(planInput({ concepts: conceptsAt(states), sessionNewConceptDone: true,
+    openers: openerInputs([L3], curriculum, replayWith([L3], attempts)) })).steps.filter((s) => s.kind === 'opener');
+  assert.deepEqual(plan([]), [{ kind: 'opener', case_id: 'CASE-VOLT-L3', mode: 'check' }]);
+  assert.deepEqual(plan(answer('A1', 'CASE-VOLT-L3:CP1', '2026-10-11T08:00:00Z', true, 'mcq')), [], 'answered right');
+  assert.deepEqual(plan(answer('A1', 'CASE-VOLT-L3:CP1', '2026-10-11T08:00:00Z', false, 'mcq')), [], 'answered wrong: the case screen offers it again');
+});
+
+test('S4B-13: the preview carries whether it offers the sketch', () => {
+  const preview = (o: ComposerOpener) => planToday(planInput({ openers: [o] })).steps.filter((s) => s.kind === 'opener');
+  const L1_IN = { case_id: 'CASE-VOLT-L1', level: 1, solved: false };
+  assert.deepEqual(preview({ ...L1_IN, sketch: true }), [{ kind: 'opener', case_id: 'CASE-VOLT-L1', mode: 'preview', sketch: true }]);
+  assert.deepEqual(preview({ ...L1_IN, sketch: false }), [{ kind: 'opener', case_id: 'CASE-VOLT-L1', mode: 'preview', sketch: false }]);
+  assert.deepEqual(preview(L1_IN), [{ kind: 'opener', case_id: 'CASE-VOLT-L1', mode: 'preview', sketch: false }], 'nothing known: not offered');
+});
+
+// S4B-15: three daily cases (two at level 1, one at level 2), listed out of order, and an inbox case on practised concepts.
+const A = 'SQL-BASICS-01', B = 'SQL-BASICS-02', C = 'SQL-FILTER-01', AGG = 'SQL-AGG-01';
+const daily = (id: string, level: number, credits: string[]) => caseOf(id, 'daily', level, [cp('CP3', id, credits, `EX-${id}`), cp('CP4', id, [])]);
+const DAILY = [daily('CASE-DAILY-L2-01', 2, [AGG]), daily('CASE-DAILY-L1-02', 1, [C]), daily('CASE-DAILY-L1-01', 1, [A, B]),
+  caseOf('CASE-PRICE-01', 'inbox', 1, [cp('CP3', 'CASE-PRICE-01', [A], 'EX-CASE-PRICE-01')])];
+/** A reading, then three passes on three different items, 20 days before D3_NOW: the concept is at Practised (S2-20). */
+const practisedIn = (concepts: string[]) => [...concepts.map((c) => exposure(c, '2026-09-21T08:00:00Z')), ...concepts.flatMap((c, n) => ['E1-08', 'E1-09', 'E2-10'].flatMap((it, k) =>
+  instance({ id: `P-${c}-${it}`, item: itemId(c, it), concept: c, version: 2, start: `2026-09-22T0${k + 1}:${String(10 + n).padStart(2, '0')}:00Z`,
+    steps: [{ at: `2026-09-22T0${k + 1}:${String(10 + n).padStart(2, '0')}:30Z`, submit: 'pass' }] })))];
+const pickDaily = (attempts: object[], now = D3_NOW) => dailyCase({ cases: DAILY, replay: replayWith(DAILY, attempts), records: attempts, now });
+
+test('S4B-15: the composer offers a daily case only when its credited concepts are all practised or better: lowest level first, then case ID', () => {
+  const r = replayWith(DAILY, practisedIn([A, C]));
+  assert.equal(r.concepts.get(A)!.state, 'practised', 'the fixture reaches Practised');
+  assert.equal(pickDaily([]), null, 'nothing practised');
+  assert.deepEqual(pickDaily(practisedIn([A])), null, 'CASE-DAILY-L1-01 needs both its concepts; the inbox case is never a daily case');
+  assert.deepEqual(pickDaily(practisedIn([A, C])), { case_id: 'CASE-DAILY-L1-02', done: false });
+  assert.deepEqual(pickDaily(practisedIn([AGG])), { case_id: 'CASE-DAILY-L2-01', done: false }, 'a level 2 case on its own practised concept');
+  assert.deepEqual(pickDaily(practisedIn([A, B, C, AGG])), { case_id: 'CASE-DAILY-L1-01', done: false }, 'all qualify: level 1 first, then the case ID');
+  // Lowest level first, even when a higher level's case ID sorts first.
+  const odd = [daily('CASE-DAILY-A', 2, [C]), daily('CASE-DAILY-B', 1, [C])];
+  assert.deepEqual(dailyCase({ cases: odd, replay: replayWith(odd, practisedIn([C])), records: [], now: D3_NOW }), { case_id: 'CASE-DAILY-B', done: false });
+});
+
+test('S4B-15: a solved daily case is passed over; none is offered when every daily case is solved', () => {
+  const practice = practisedIn([A, B, C, AGG]);
+  const solve = (id: string, day: string) => [...answer(`S3-${id}`, `EX-${id}`, `${day}T08:00:00Z`, true), ...answer(`S4-${id}`, `${id}:CP4`, `${day}T08:05:00Z`, true, 'typed')];
+  assert.deepEqual(pickDaily([...practice, ...solve('CASE-DAILY-L1-01', '2026-10-10')]), { case_id: 'CASE-DAILY-L1-02', done: false });
+  assert.equal(pickDaily([...practice, ...solve('CASE-DAILY-L1-01', '2026-10-09'), ...solve('CASE-DAILY-L1-02', '2026-10-10'), ...solve('CASE-DAILY-L2-01', '2026-10-11')]), null);
+});
+
+test('S4B-15: the day\'s case is the daily case first answered on that Amsterdam day, shown as done once solved, with no second one that day', () => {
+  const practice = practisedIn([A, B, C, AGG]);
+  const l2Cp3 = (at: string, pass: boolean, submit?: 'crash') => answer(`T3-${at}`, 'EX-CASE-DAILY-L2-01', at, pass, 'write', submit);
+  assert.deepEqual(pickDaily([...practice, ...l2Cp3('2026-10-12T07:00:00Z', false)]), { case_id: 'CASE-DAILY-L2-01', done: false },
+    'answered today, though CASE-DAILY-L1-01 comes first by the rule');
+  const solvedToday = [...practice, ...l2Cp3('2026-10-12T07:00:00Z', true), ...answer('T4', 'CASE-DAILY-L2-01:CP4', '2026-10-12T07:10:00Z', true, 'typed')];
+  assert.deepEqual(pickDaily(solvedToday), { case_id: 'CASE-DAILY-L2-01', done: true }, 'solved: still the day\'s case, shown as done');
+  assert.deepEqual(pickDaily(solvedToday, new Date('2026-10-12T21:59:00Z')), { case_id: 'CASE-DAILY-L2-01', done: true }, '23:59 the same day');
+  assert.deepEqual(pickDaily(solvedToday, new Date('2026-10-12T22:01:00Z')), { case_id: 'CASE-DAILY-L1-01', done: false }, 'the next Amsterdam day: the next case');
+  // Two daily cases answered today: the first one answered is the day's.
+  const both = [...practice, ...answer('T5', 'CASE-DAILY-L1-02:CP4', '2026-10-12T06:30:00Z', false, 'typed'), ...l2Cp3('2026-10-12T07:00:00Z', true)];
+  assert.deepEqual(pickDaily(both), { case_id: 'CASE-DAILY-L1-02', done: false });
+  // Amsterdam dates: 22:30Z on the 11th is 00:30 on the 12th; 21:59Z on the 11th is 23:59 on the 11th.
+  assert.deepEqual(pickDaily([...practice, ...l2Cp3('2026-10-11T22:30:00Z', false)]), { case_id: 'CASE-DAILY-L2-01', done: false });
+  assert.deepEqual(pickDaily([...practice, ...l2Cp3('2026-10-11T21:59:00Z', false)]), { case_id: 'CASE-DAILY-L1-01', done: false }, 'yesterday in Amsterdam');
+  assert.deepEqual(pickDaily([...practice, ...l2Cp3('2026-10-12T07:00:00Z', false, 'crash')]), { case_id: 'CASE-DAILY-L1-01', done: false }, 'a crash is no answer');
+  // Derived from the log alone: a fresh replay of the same log gives the same case.
+  assert.deepEqual(pickDaily(solvedToday), pickDaily(JSON.parse(JSON.stringify(solvedToday)) as object[]));
 });

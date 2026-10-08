@@ -34,11 +34,11 @@ test('levels 1-2 keep their 12 concepts; the graph has no cycle', () => {
     seen.add(c.id);
   }
 });
-test('41 error types (37 + 4 new), each tied to a known concept', async () => {
+test('47 error types (37 + 10 new), each tied to a known concept', async () => {
   const j02 = extractJsonBlock(await readFile('knowledge/02_mistakes_and_learning.md', 'utf8')) as any;
   const map = JSON.parse(await readFile('content/sql/error-concepts.json', 'utf8'));
   const cat = buildErrors(j02, map);
-  assert.equal(cat.errors.length, 41);
+  assert.equal(cat.errors.length, 47);
   for (const e of cat.errors) assert.ok(byId.has(e.concept_id), `${e.id} -> ${e.concept_id}`);
 });
 test('R38: ERR-LOG-22 (LIKE pattern) and ERR-LOG-23 (BETWEEN range) belong to SQL-FILTER-02, with ERRATA entries and refutation feedback', async () => {
@@ -57,6 +57,33 @@ test('R38: ERR-LOG-22 (LIKE pattern) and ERR-LOG-23 (BETWEEN range) belong to SQ
   }
   assert.match(cat.errors.find((x) => x.id === 'ERR-LOG-22')!.name, /LIKE/);
   assert.match(cat.errors.find((x) => x.id === 'ERR-LOG-23')!.name, /BETWEEN/);
+});
+test('sprint 4a Task B2: the level 3 IDs ERR-LOG-24 (UNION), -25 (date truncation) and -26 (UTC day) have their concepts, ERRATA entries and refutation feedback', async () => {
+  const j02 = extractJsonBlock(await readFile('knowledge/02_mistakes_and_learning.md', 'utf8')) as any;
+  const cat = buildErrors(j02, JSON.parse(await readFile('content/sql/error-concepts.json', 'utf8')));
+  const written = JSON.parse(await readFile('content/sql/errors.json', 'utf8'));
+  const feedback = JSON.parse(await readFile('content/sql/error-feedback.json', 'utf8'));
+  const errata = await readFile('knowledge/ERRATA.md', 'utf8');
+  const want: Record<string, { concept: string; name: RegExp; row: string }> = {
+    'ERR-LOG-24': { concept: 'SQL-SET-01', name: /UNION ALL/, row: 'E-162' },
+    'ERR-LOG-25': { concept: 'SQL-DATE-01', name: /truncation/, row: 'E-163' },
+    'ERR-LOG-26': { concept: 'SQL-DATE-01', name: /UTC day/, row: 'E-164' },
+  };
+  for (const [id, w] of Object.entries(want)) {
+    const e = cat.errors.find((x) => x.id === id);
+    assert.equal(e?.concept_id, w.concept, id);
+    assert.equal(e?.category, 'LOG', id);
+    assert.deepEqual(e?.detection_checks, ['CHK-MUTANT-MATCH'], id);
+    assert.match(e!.name, w.name, id);
+    assert.deepEqual(written.errors.find((x: { id: string }) => x.id === id), e, `${id}: run npm run extract`);
+    assert.ok(feedback[id]?.assumed && feedback[id]?.why && feedback[id]?.model, `${id} feedback`);
+    assert.match(errata, new RegExp(`^\\| ${w.row} \\| fix \\|[^\\n]*\\| ${id} \\|`, 'm'), `${id} ERRATA entry`);
+  }
+});
+test('errors.json is exactly what the extract builds, so npm run extract never drops an ID', async () => {
+  const j02 = extractJsonBlock(await readFile('knowledge/02_mistakes_and_learning.md', 'utf8')) as any;
+  const cat = buildErrors(j02, JSON.parse(await readFile('content/sql/error-concepts.json', 'utf8')));
+  assert.deepEqual(JSON.parse(await readFile('content/sql/errors.json', 'utf8')), cat);
 });
 test('levels 3 and 4 carry the E-149 titles and ready_when text', () => {
   const lvl = (id: string) => cur.levels.find((l) => l.id === id)!;

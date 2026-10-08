@@ -6,7 +6,10 @@
     "SELECT store_code, order_month, COUNT(DISTINCT order_id) AS n_orders FROM sales WHERE order_date >= DATE '2025-01-01' AND order_date < DATE '2026-01-01' GROUP BY store_code, order_month HAVING COUNT(DISTINCT order_id) <= 349 ORDER BY store_code ASC, order_month ASC",
     "SELECT store_code, order_month, COUNT(DISTINCT order_id) AS n_orders FROM sales WHERE order_month BETWEEN DATE '2025-01-01' AND DATE '2025-12-01' GROUP BY 1, 2 HAVING 350 > COUNT(DISTINCT order_id) ORDER BY 1, 2"
   ],
-  "other_way": null,
+  "other_way": {
+    "sql": "SELECT store_code, order_month, COUNT(DISTINCT order_id) AS n_orders FROM sales WHERE order_month BETWEEN DATE '2025-01-01' AND DATE '2025-12-01' GROUP BY 1, 2 HAVING 350 > COUNT(DISTINCT order_id) ORDER BY 1, 2",
+    "tradeoff": "Filters on the month column, which is short, but only works when the range is whole months."
+  },
   "planted_wrong": [
     {
       "id": "PW1",

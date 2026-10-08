@@ -1,0 +1,150 @@
+{
+  "id": "EX-SQL-CTE-01-E1-42",
+  "version": 1,
+  "kind": "predict_result",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "predict_result",
+    "cte",
+    "group_by",
+    "stores",
+    "grain"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-CTE-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-CTE-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CTE-01"
+  ],
+  "template_id": "T-CTE-01-predict-result-step-of-step",
+  "template_params": {
+    "table": "stores"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_join",
+  "prompt": "Which result does this query return? The tables panel gives the stores table's row count and the allowed values of store_type.",
+  "output_contract": null,
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [],
+  "subgoals": [],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 60000,
+  "why_this_works": "",
+  "shown_sql": "WITH type_counts AS (\n  SELECT store_type, COUNT(*) AS n_stores\n  FROM stores\n  GROUP BY store_type\n)\nSELECT COUNT(*) AS n_types, SUM(n_stores) AS n_stores\nFROM type_counts",
+  "options": [
+    {
+      "oid": "o6cca8d6",
+      "text": "One row: 26 types holding 26 stores",
+      "misconception_id": "ERR-LOG-07",
+      "table": {
+        "columns": [
+          "n_types",
+          "n_stores"
+        ],
+        "rows": [
+          [
+            26,
+            26
+          ]
+        ]
+      }
+    },
+    {
+      "oid": "o5898915",
+      "text": "One row: 4 types holding 26 stores",
+      "misconception_id": null,
+      "table": {
+        "columns": [
+          "n_types",
+          "n_stores"
+        ],
+        "rows": [
+          [
+            4,
+            26
+          ]
+        ]
+      }
+    },
+    {
+      "oid": "oc185934",
+      "text": "One row: 4 types holding 4 stores",
+      "misconception_id": "ERR-LOG-14",
+      "table": {
+        "columns": [
+          "n_types",
+          "n_stores"
+        ],
+        "rows": [
+          [
+            4,
+            4
+          ]
+        ]
+      }
+    },
+    {
+      "oid": "obf6e60f",
+      "text": "Four rows, one per store type",
+      "misconception_id": "ERR-LOG-07",
+      "table": {
+        "columns": [
+          "store_type",
+          "n_stores"
+        ],
+        "rows": [
+          [
+            "flagship",
+            3
+          ],
+          [
+            "outlet",
+            2
+          ],
+          [
+            "standard",
+            20
+          ],
+          [
+            "web",
+            1
+          ]
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,117 @@
+{
+  "id": "EX-SQL-SET-01-E1-07",
+  "version": 3,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "set",
+    "except",
+    "anti-join",
+    "stores",
+    "orders"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-SET-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-SET-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-SET-01"
+  ],
+  "template_id": "T-SET-01-except-anti-join",
+  "template_params": {
+    "tables": "stores, orders",
+    "month": "2025-07"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_set",
+  "prompt": "Which physical stores took no store orders in July 2025? Use the stores and orders tables: a physical store is a store whose store_type is not 'web', and a store order has channel 'store'. order_ts holds the time of the order in UTC, so take July in UTC: from 2025-07-01 00:00 up to but not including 2025-08-01 00:00. Return one column, store_id, with one row for each store. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "store_id",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "store_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "store_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the list of stores that did take a store order in July, and take it away from the list of physical stores.",
+    "EXCEPT keeps the rows of the first query that the second does not return, so the stores come first and the stores with July orders second. Keep the web shop out of the first list."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 15,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 16,
+      "to": 27,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 28,
+      "to": 53,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 54,
+      "to": 76,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 77,
+      "to": 88,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 89,
+      "to": 211,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "EXCEPT removes every store that has a July store order from the list of physical stores, which leaves the stores with none."
+}

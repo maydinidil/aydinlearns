@@ -7,6 +7,7 @@ import { join } from 'node:path';
 import { promisify } from 'node:util';
 import { exportSolverView } from '../../tools/export-solver-view.ts';
 import { makeContentFixture } from '../helpers/content-fixture.ts';
+import { makeCaseFixture } from '../helpers/case-fixture.ts';
 
 const outDir = async () => join(await mkdtemp(join(tmpdir(), 'al-view-')), '.solver-view');
 const read = async (path: string) => JSON.parse(await readFile(path, 'utf8'));
@@ -82,4 +83,18 @@ test('the CLI takes a content root and an output folder, and prints counts only'
   assert.match(stdout, /13 items/);
   assert.doesNotMatch(stdout, /select/i);
   assert.equal((await readdir(out)).length, 13);
+});
+// Task B2 of sprint 4b: a case's CP3 item (use case, EX-CASE-<case tail>) and an opener's (use opener) are SQL items like any
+// other, so the solver sees them with the same five fields, and never the case record, its key or its model texts.
+test('case CP3 items are exported with the same five fields as every write item', async () => {
+  const { root } = await makeCaseFixture();
+  const out = await outDir();
+  const ids = await exportSolverView(root, out);
+  for (const id of ['EX-CASE-DAILY-L1-01', 'EX-CASE-PRICE-01', 'EX-OPENER-L1-01']) {
+    assert.ok(ids.includes(id), id);
+    const item = await read(join(root, 'sql/items', `${id}.json`));
+    assert.deepEqual(await read(join(out, `${id}.json`)), { id, prompt: item.prompt, output_contract: item.output_contract, rules: item.rules, schema: item.schema });
+  }
+  const files = await readdir(out);
+  assert.ok(files.every((f) => f.startsWith('EX-')), 'no case record or checkpoint is exported here');
 });

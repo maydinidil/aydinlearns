@@ -1,0 +1,89 @@
+{
+  "id": "EX-SQL-JOIN-01-E2-41",
+  "version": 1,
+  "kind": "choose_query",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "choose_query",
+    "join",
+    "join_key",
+    "order_lines",
+    "products"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-JOIN-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-JOIN-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-JOIN-01"
+  ],
+  "template_id": "T-JOIN-01-choose-join-key",
+  "template_params": {
+    "from": "order_lines",
+    "join": "products",
+    "order_id": 2
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_join",
+  "prompt": "List the order lines of order 2 with the name of the product each one sold. Return order_line_id and product_name, one row for each order line of order 2. Any row order is fine. Which query returns it?",
+  "output_contract": null,
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [],
+  "subgoals": [],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 90000,
+  "why_this_works": "",
+  "options": [
+    {
+      "oid": "oaba868e",
+      "text": "SELECT l.order_line_id, p.product_name\nFROM order_lines l\nJOIN products p ON p.product_id = l.order_id\nWHERE l.order_id = 2",
+      "misconception_id": "ERR-LOG-12"
+    },
+    {
+      "oid": "of70c2f0",
+      "text": "SELECT l.order_line_id, p.product_name\nFROM order_lines l, products p\nWHERE l.order_id = 2",
+      "misconception_id": "ERR-SEM-03"
+    },
+    {
+      "oid": "ocb8d5f2",
+      "text": "SELECT l.order_line_id, p.product_name\nFROM order_lines l\nJOIN products p ON p.product_id = l.product_id\nWHERE l.order_id = 2",
+      "misconception_id": null
+    },
+    {
+      "oid": "o94fb9b9",
+      "text": "SELECT l.order_line_id, p.product_name\nFROM order_lines l\nJOIN products p ON p.product_id = l.order_line_id\nWHERE l.order_id = 2",
+      "misconception_id": "ERR-LOG-12"
+    }
+  ]
+}

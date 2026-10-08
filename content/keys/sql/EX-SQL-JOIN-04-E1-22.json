@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-JOIN-04-E1-22",
+  "item_version": 1,
+  "reference_sql": "SELECT c.parent_category, COUNT(*) AS n_products\nFROM promotions pr\nJOIN promotion_products pp ON pp.promo_id = pr.promo_id\nJOIN products p ON p.product_id = pp.product_id\nJOIN categories c ON c.category_id = p.category_id\nWHERE pr.promo_code = 'P-2025-06'\nGROUP BY c.parent_category",
+  "alternatives": [
+    "SELECT c.parent_category, COUNT(DISTINCT p.product_id) AS n_products FROM categories c JOIN products p ON p.category_id = c.category_id JOIN promotion_products pp ON pp.product_id = p.product_id JOIN promotions pr ON pr.promo_id = pp.promo_id WHERE pr.promo_code = 'P-2025-06' GROUP BY c.parent_category",
+    "WITH covered AS (SELECT pp.product_id FROM promotion_products pp JOIN promotions pr ON pr.promo_id = pp.promo_id WHERE pr.promo_code = 'P-2025-06') SELECT c.parent_category, COUNT(*) AS n_products FROM covered cv JOIN products p ON p.product_id = cv.product_id JOIN categories c ON c.category_id = p.category_id GROUP BY c.parent_category"
+  ],
+  "other_way": {
+    "sql": "WITH covered AS (SELECT pp.product_id FROM promotion_products pp JOIN promotions pr ON pr.promo_id = pp.promo_id WHERE pr.promo_code = 'P-2025-06') SELECT c.parent_category, COUNT(*) AS n_products FROM covered cv JOIN products p ON p.product_id = cv.product_id JOIN categories c ON c.category_id = p.category_id GROUP BY c.parent_category",
+    "tradeoff": "Listing the covered products in a CTE first separates the bridge step, but one chain of joins is shorter."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-12",
+      "sql": "SELECT c.parent_category, COUNT(*) AS n_products FROM promotions pr JOIN promotion_products pp ON pp.promo_id = pr.promo_id JOIN products p ON p.product_id = pp.promo_id JOIN categories c ON c.category_id = p.category_id WHERE pr.promo_code = 'P-2025-06' GROUP BY c.parent_category"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-04",
+      "sql": "SELECT c.parent_category, COUNT(DISTINCT p.category_id) AS n_products FROM promotions pr JOIN promotion_products pp ON pp.promo_id = pr.promo_id JOIN products p ON p.product_id = pp.product_id JOIN categories c ON c.category_id = p.category_id WHERE pr.promo_code = 'P-2025-06' GROUP BY c.parent_category"
+    }
+  ],
+  "hint3_partial": "SELECT c.parent_category, COUNT(*) AS n_products\nFROM promotions pr\nJOIN promotion_products pp ON pp.promo_id = pr.promo_id\nJOIN products p ON ___\nJOIN categories c ON ___\nWHERE pr.promo_code = 'P-2025-06'\nGROUP BY c.parent_category",
+  "solver": {
+    "prompt_hash": "6385c6380aee886d",
+    "schema_version": "b7f4a8c3ec45",
+    "dataset_version": "e1545e4258743033",
+    "grader_version": "1b.3",
+    "query": "SELECT c.parent_category, COUNT(*) AS n_products\nFROM promotions pr\nJOIN promotion_products pp ON pp.promo_id = pr.promo_id\nJOIN products p ON p.product_id = pp.product_id\nJOIN categories c ON c.category_id = p.category_id\nWHERE pr.promo_code = 'P-2025-06'\nGROUP BY c.parent_category",
+    "at": "2026-10-07T10:41:41.058Z"
+  }
+}

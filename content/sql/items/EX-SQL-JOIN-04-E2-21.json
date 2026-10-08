@@ -1,0 +1,132 @@
+{
+  "id": "EX-SQL-JOIN-04-E2-21",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "self-join",
+    "price_history",
+    "products",
+    "price-change"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-JOIN-04"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-JOIN-04",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-JOIN-01",
+    "SQL-JOIN-04"
+  ],
+  "template_id": "T-JOIN-04-self-join-price-change-amount",
+  "template_params": {
+    "brand": "Vistara",
+    "year": 2025
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_join",
+  "prompt": "For each price change in 2025 of a product of brand Vistara, by how much did the list price change? A product's next price version always starts the day after its previous version's valid_to. Return three columns, in this order: product_name, changed_on (the new version's valid_from, from 1 January to 31 December 2025) and change_eur, the new list_price_eur minus the old one (negative for a price cut). Return one row for each price change. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "product_name",
+        "type_class": "text"
+      },
+      {
+        "name": "changed_on",
+        "type_class": "temporal"
+      },
+      {
+        "name": "change_eur",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "product_name",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "changed_on",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "change_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "product_name",
+      "changed_on"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, join price_history twice, once for the old version and once for the version that replaced it.",
+    "Both copies belong to the same product, and the new one starts the day after the old one's valid_to."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 106,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 107,
+      "to": 122,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 123,
+      "to": 178,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 179,
+      "to": 274,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 275,
+      "to": 367,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "The old and new versions sit in one row through two aliases of price_history, so the change is one subtraction."
+}

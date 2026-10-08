@@ -1,0 +1,171 @@
+{
+  "id": "EX-SQL-JOIN-03-E3-21",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "fan_out",
+    "cte",
+    "chained",
+    "price_history",
+    "competitor_prices",
+    "order_lines",
+    "left_join",
+    "drill"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-JOIN-03"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-JOIN-03",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-JOIN-03"
+  ],
+  "template_id": "T-JOIN-03-three-sources",
+  "template_params": {
+    "history": "price_history",
+    "child_a": "competitor_prices",
+    "child_b": "order_lines",
+    "brands": "Vistara, Sonora, PlayBox"
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_join",
+  "prompt": "For each product of the brands Vistara, Sonora and PlayBox with at least one competitor price check, return its current list price, the lowest price a competitor was seen asking, and the units sold. The current list price is the price version with a missing valid_to; each order line's quantity counts once, and a product that never sold has 0 units. Return four columns, in this order: product_id, list_price_eur, lowest_competitor_eur and units. Return one row for each such product. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "list_price_eur",
+        "type_class": "numeric"
+      },
+      {
+        "name": "lowest_competitor_eur",
+        "type_class": "numeric"
+      },
+      {
+        "name": "units",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "list_price_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "lowest_competitor_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "units",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "product_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, bring the checks and the order lines each down to one row per product, then meet the current price row.",
+    "Three many-side sources hang off a product: price versions, checks and lines; keep one current price row and add up the other two before they meet."
+  ],
+  "subgoals": [
+    {
+      "from": 26,
+      "to": 84,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 87,
+      "to": 109,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 112,
+      "to": 131,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 156,
+      "to": 197,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 200,
+      "to": 216,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 219,
+      "to": 238,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 241,
+      "to": 337,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 338,
+      "to": 544,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 545,
+      "to": 594,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "Each source meets the product as one row: the current version, the lowest check and the summed units, so nothing is repeated."
+}

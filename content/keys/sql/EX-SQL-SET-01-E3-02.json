@@ -1,0 +1,35 @@
+{
+  "item_id": "EX-SQL-SET-01-E3-02",
+  "item_version": 1,
+  "reference_sql": "WITH events AS (\n  SELECT CAST(timezone('Europe/Amsterdam', timezone('UTC', order_ts)) AS DATE) AS event_day\n  FROM orders\n  UNION ALL\n  SELECT CAST(timezone('Europe/Amsterdam', timezone('UTC', observed_ts)) AS DATE)\n  FROM competitor_prices\n)\nSELECT event_day, COUNT(*) AS events\nFROM events\nWHERE event_day BETWEEN DATE '2025-05-12' AND DATE '2025-05-18'\nGROUP BY event_day",
+  "alternatives": [
+    "WITH order_days AS (SELECT CAST(timezone('Europe/Amsterdam', timezone('UTC', order_ts)) AS DATE) AS event_day, COUNT(*) AS n FROM orders GROUP BY 1), check_days AS (SELECT CAST(timezone('Europe/Amsterdam', timezone('UTC', observed_ts)) AS DATE) AS event_day, COUNT(*) AS n FROM competitor_prices GROUP BY 1) SELECT COALESCE(o.event_day, c.event_day) AS event_day, COALESCE(o.n, 0) + COALESCE(c.n, 0) AS events FROM order_days o FULL OUTER JOIN check_days c ON c.event_day = o.event_day WHERE COALESCE(o.event_day, c.event_day) BETWEEN DATE '2025-05-12' AND DATE '2025-05-18'",
+    "WITH events AS (SELECT CAST(timezone('Europe/Amsterdam', timezone('UTC', observed_ts)) AS DATE) AS event_day FROM competitor_prices UNION ALL SELECT CAST(timezone('Europe/Amsterdam', timezone('UTC', order_ts)) AS DATE) FROM orders) SELECT event_day, COUNT(*) AS events FROM events WHERE event_day >= DATE '2025-05-12' AND event_day < DATE '2025-05-19' GROUP BY 1",
+    "WITH order_days AS (SELECT CAST(timezone('Europe/Amsterdam', timezone('UTC', order_ts)) AS DATE) AS event_day, COUNT(*) AS n FROM orders GROUP BY 1), check_days AS (SELECT CAST(timezone('Europe/Amsterdam', timezone('UTC', observed_ts)) AS DATE) AS event_day, COUNT(*) AS n FROM competitor_prices GROUP BY 1), stacked AS (SELECT event_day, n FROM order_days UNION ALL SELECT event_day, n FROM check_days) SELECT event_day, SUM(n) AS events FROM stacked WHERE event_day BETWEEN DATE '2025-05-12' AND DATE '2025-05-18' GROUP BY event_day"
+  ],
+  "other_way": {
+    "sql": "WITH order_days AS (SELECT CAST(timezone('Europe/Amsterdam', timezone('UTC', order_ts)) AS DATE) AS event_day, COUNT(*) AS n FROM orders GROUP BY 1), check_days AS (SELECT CAST(timezone('Europe/Amsterdam', timezone('UTC', observed_ts)) AS DATE) AS event_day, COUNT(*) AS n FROM competitor_prices GROUP BY 1) SELECT COALESCE(o.event_day, c.event_day) AS event_day, COALESCE(o.n, 0) + COALESCE(c.n, 0) AS events FROM order_days o FULL OUTER JOIN check_days c ON c.event_day = o.event_day WHERE COALESCE(o.event_day, c.event_day) BETWEEN DATE '2025-05-12' AND DATE '2025-05-18'",
+    "tradeoff": "A FULL OUTER JOIN of two per-day counts gives the same totals, but it needs COALESCE wherever one side has no rows."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-24",
+      "sql": "WITH events AS (SELECT CAST(timezone('Europe/Amsterdam', timezone('UTC', order_ts)) AS DATE) AS event_day FROM orders UNION SELECT CAST(timezone('Europe/Amsterdam', timezone('UTC', observed_ts)) AS DATE) FROM competitor_prices) SELECT event_day, COUNT(*) AS events FROM events WHERE event_day BETWEEN DATE '2025-05-12' AND DATE '2025-05-18' GROUP BY event_day"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-26",
+      "sql": "WITH events AS (SELECT CAST(order_ts AS DATE) AS event_day FROM orders UNION ALL SELECT CAST(observed_ts AS DATE) FROM competitor_prices) SELECT event_day, COUNT(*) AS events FROM events WHERE event_day BETWEEN DATE '2025-05-12' AND DATE '2025-05-18' GROUP BY event_day"
+    }
+  ],
+  "hint3_partial": "WITH events AS (\n  SELECT CAST(timezone('Europe/Amsterdam', timezone('UTC', order_ts)) AS DATE) AS event_day\n  FROM orders\n  ___\n  SELECT CAST(timezone(___, timezone(___, observed_ts)) AS DATE)\n  FROM competitor_prices\n)\nSELECT event_day, COUNT(*) AS events\nFROM events\nWHERE event_day BETWEEN DATE '2025-05-12' AND DATE '2025-05-18'\nGROUP BY ___",
+  "solver": {
+    "prompt_hash": "920e98237b14e638",
+    "schema_version": "a85b005a7923",
+    "dataset_version": "e1545e4258743033",
+    "grader_version": "1b.3",
+    "query": "WITH ev AS (\n  SELECT CAST((order_ts AT TIME ZONE 'UTC') AT TIME ZONE 'Europe/Amsterdam' AS DATE) AS event_day FROM orders\n  UNION ALL\n  SELECT CAST((observed_ts AT TIME ZONE 'UTC') AT TIME ZONE 'Europe/Amsterdam' AS DATE) AS event_day FROM competitor_prices\n)\nSELECT event_day, COUNT(*) AS events\nFROM ev\nWHERE event_day BETWEEN DATE '2025-05-12' AND DATE '2025-05-18'\nGROUP BY event_day",
+    "at": "2026-10-07T10:41:43.188Z"
+  }
+}

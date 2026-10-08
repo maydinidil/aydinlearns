@@ -1,0 +1,142 @@
+{
+  "id": "EX-SQL-JOIN-03-E1-05",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "fan_out",
+    "cte",
+    "left_join",
+    "products",
+    "categories",
+    "order_lines"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-JOIN-03"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "retest",
+  "target_concept_id": "SQL-JOIN-03",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-JOIN-03"
+  ],
+  "template_id": "T-JOIN-03-aggregate-child-first",
+  "template_params": {
+    "parent": "products",
+    "child": "order_lines",
+    "group_by": "parent_category"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_join",
+  "prompt": "For each parent category, how many products does it have, and how many units of them were sold? Count every product, including a product that never sold; a parent category whose products never sold has 0 units. Return three columns, in this order: parent_category, n_products and units. Return one row for each parent category that has at least one product. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "parent_category",
+        "type_class": "text"
+      },
+      {
+        "name": "n_products",
+        "type_class": "numeric"
+      },
+      {
+        "name": "units",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "parent_category",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "n_products",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "units",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "parent_category"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, bring the order lines down to one row per product before they meet the products.",
+    "Joining the lines straight to products repeats a product once per line, so a row count would count lines; keep the products that never sold as well."
+  ],
+  "subgoals": [
+    {
+      "from": 26,
+      "to": 67,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 70,
+      "to": 86,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 89,
+      "to": 108,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 111,
+      "to": 196,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 197,
+      "to": 322,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 323,
+      "to": 349,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "The step has one row per product, so the LEFT JOIN keeps one row per product and COUNT(*) counts products, including those that never sold."
+}

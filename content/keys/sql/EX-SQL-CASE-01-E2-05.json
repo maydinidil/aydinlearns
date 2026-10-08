@@ -1,6 +1,6 @@
 {
   "item_id": "EX-SQL-CASE-01-E2-05",
-  "item_version": 1,
+  "item_version": 2,
   "reference_sql": "SELECT promo_code, promo_type, discount_pct,\n       CASE WHEN promo_type = 'clearance' THEN 'clearance'\n            WHEN discount_pct >= 30 THEN 'deep'\n            ELSE 'standard'\n       END AS promo_class\nFROM promotions",
   "alternatives": [
     "SELECT promo_code, promo_type, discount_pct, CASE WHEN promo_type <> 'clearance' AND discount_pct >= 30 THEN 'deep' WHEN promo_type = 'clearance' THEN 'clearance' ELSE 'standard' END AS promo_class FROM promotions",
@@ -10,7 +10,7 @@
   "planted_wrong": [
     {
       "id": "PW1",
-      "error_id": "ERR-LOG-00",
+      "error_id": "ERR-LOG-29",
       "sql": "SELECT promo_code, promo_type, discount_pct, CASE WHEN discount_pct >= 30 THEN 'deep' WHEN promo_type = 'clearance' THEN 'clearance' ELSE 'standard' END AS promo_class FROM promotions"
     },
     {

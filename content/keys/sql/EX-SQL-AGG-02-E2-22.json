@@ -6,7 +6,10 @@
     "SELECT order_week, SUM(units) AS units_sold FROM sales WHERE order_date >= DATE '2025-02-01' AND order_date < DATE '2025-03-01' GROUP BY 1 ORDER BY 1",
     "SELECT order_week, SUM(units) AS units_sold FROM sales WHERE order_date BETWEEN '2025-02-01' AND '2025-02-28' GROUP BY order_week ORDER BY order_week ASC"
   ],
-  "other_way": null,
+  "other_way": {
+    "sql": "SELECT order_week, SUM(units) AS units_sold FROM sales WHERE order_date >= DATE '2025-02-01' AND order_date < DATE '2025-03-01' GROUP BY 1 ORDER BY 1",
+    "tradeoff": "Stays correct if the column later holds times of day, but you must write the day after the end date."
+  },
   "planted_wrong": [
     {
       "id": "PW1",

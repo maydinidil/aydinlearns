@@ -1,0 +1,136 @@
+{
+  "id": "EX-SQL-SET-01-E1-06",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "set",
+    "union_all",
+    "promotions"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-SET-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-SET-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SET-01"
+  ],
+  "template_id": "T-SET-01-unpivot-events",
+  "template_params": {
+    "table": "promotions",
+    "from": "2025-06-01",
+    "to": "2025-06-30"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_set",
+  "prompt": "Build a promotion calendar for the promotions that start in June 2025. Use the promotions table and keep the promotions whose start_date is from 2025-06-01 to 2025-06-30, both included. Give each of them two rows: one for its start and one for its end. Return three columns, in this order: promo_code, event, the text 'start' or 'end', and event_date, the start_date for a start row and the end_date for an end row. Return one row for each promotion and event. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "promo_code",
+        "type_class": "text"
+      },
+      {
+        "name": "event",
+        "type_class": "text"
+      },
+      {
+        "name": "event_date",
+        "type_class": "temporal"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "promo_code",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "event",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "event_date",
+        "type_class": "temporal",
+        "precision": "exact"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "promo_code",
+      "event"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the end rows: a second query over the same promotions, stacked under the start rows.",
+    "Both parts need the same three columns in the same order: the code, a fixed text such as 'end', and a date. Keep the same filter on start_date in both parts, so each promotion gets both rows."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 61,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 62,
+      "to": 77,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 78,
+      "to": 142,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 143,
+      "to": 187,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 188,
+      "to": 203,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 204,
+      "to": 268,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "Each part of the UNION ALL turns one date column into rows with a fixed label, so every promotion gets a start row and an end row."
+}

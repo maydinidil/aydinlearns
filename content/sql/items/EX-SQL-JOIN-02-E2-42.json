@@ -1,0 +1,74 @@
+{
+  "id": "EX-SQL-JOIN-02-E2-42",
+  "version": 1,
+  "kind": "predict_rows",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "predict_rows",
+    "left_join",
+    "filter_in_where",
+    "stores",
+    "orders"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-JOIN-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-JOIN-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02"
+  ],
+  "template_id": "T-JOIN-02-predict-rows-filter-in-where",
+  "template_params": {
+    "from": "stores",
+    "join": "orders"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_join",
+  "prompt": "How many rows does this query return? Type the number. The sample rows in the tables panel show orders 1 to 5.",
+  "output_contract": null,
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [],
+  "subgoals": [],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 90000,
+  "why_this_works": "",
+  "shown_sql": "SELECT s.store_code, o.order_id\nFROM stores s\nLEFT JOIN orders o ON o.store_id = s.store_id\nWHERE o.order_id <= 5",
+  "typed": {
+    "precision": "count",
+    "scale": "plain",
+    "decimals": 0,
+    "unit_label": "rows"
+  }
+}

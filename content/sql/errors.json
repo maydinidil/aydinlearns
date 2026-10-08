@@ -214,7 +214,7 @@
         "CHK-ROWS-MORE",
         "CHK-STATIC-PATTERN"
       ],
-      "feedback_template": "The rows you missed or added all fall on {boundary_date}. For timestamps, use >= start AND < day after end.",
+      "feedback_template": "The rows you missed or added all fall on {boundary_date}, the first or last day of the range or of a period. For timestamps, DATE ranges and periods such as weeks, use >= the first day AND < the day after the last one.",
       "concept_id": "SQL-FILTER-02"
     },
     {
@@ -461,6 +461,66 @@
       ],
       "feedback_template": "",
       "concept_id": "SQL-FILTER-02"
+    },
+    {
+      "id": "ERR-LOG-24",
+      "category": "LOG",
+      "name": "UNION where UNION ALL was needed",
+      "detection_checks": [
+        "CHK-MUTANT-MATCH"
+      ],
+      "feedback_template": "",
+      "concept_id": "SQL-SET-01"
+    },
+    {
+      "id": "ERR-LOG-25",
+      "category": "LOG",
+      "name": "Date truncation slip: the wrong period, or a month or week number without its year",
+      "detection_checks": [
+        "CHK-MUTANT-MATCH"
+      ],
+      "feedback_template": "",
+      "concept_id": "SQL-DATE-01"
+    },
+    {
+      "id": "ERR-LOG-26",
+      "category": "LOG",
+      "name": "UTC day where the Amsterdam day was asked",
+      "detection_checks": [
+        "CHK-MUTANT-MATCH"
+      ],
+      "feedback_template": "",
+      "concept_id": "SQL-DATE-01"
+    },
+    {
+      "id": "ERR-LOG-27",
+      "category": "LOG",
+      "name": "The wrong set operator, or EXCEPT the wrong way round",
+      "detection_checks": [
+        "CHK-MUTANT-MATCH"
+      ],
+      "feedback_template": "",
+      "concept_id": "SQL-SET-01"
+    },
+    {
+      "id": "ERR-LOG-28",
+      "category": "LOG",
+      "name": "A set operator treats missing values as equal",
+      "detection_checks": [
+        "CHK-MUTANT-MATCH"
+      ],
+      "feedback_template": "UNION, INTERSECT and EXCEPT count two missing values as the same. Leave out the missing values in each query when the question does.",
+      "concept_id": "SQL-SET-01"
+    },
+    {
+      "id": "ERR-LOG-29",
+      "category": "LOG",
+      "name": "CASE branch order: an earlier WHEN catches rows meant for a later one",
+      "detection_checks": [
+        "CHK-MUTANT-MATCH"
+      ],
+      "feedback_template": "CASE takes the first WHEN that is true. Put the narrower or more important test first.",
+      "concept_id": "SQL-CASE-01"
     }
   ]
 }

@@ -1,0 +1,119 @@
+{
+  "id": "EX-SQL-JOIN-02-E1-04",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "left_join",
+    "orders",
+    "order_lines",
+    "utc_day"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-JOIN-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "lesson",
+  "target_concept_id": "SQL-JOIN-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02"
+  ],
+  "template_id": "T-JOIN-02-keep-unmatched-day",
+  "template_params": {
+    "from": "orders",
+    "join": "order_lines",
+    "channel": "web",
+    "day": "2025-03-07"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_join",
+  "prompt": "List the web orders (channel web) placed on 7 March 2025 with the product of each of their order lines. order_ts holds UTC time: take the day in UTC. Keep an order that has no lines: product_id is missing for it. Return two columns, in this order: order_id and product_id. Return one row for each order line, plus one row for each order with no lines. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "order_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "product_id",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per order line, plus one per order with no lines"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "order_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "product_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, join the order lines so that an order with no lines still shows.",
+    "The channel and date tests are on orders, the table you keep whole, so they can stay in WHERE."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 31,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 32,
+      "to": 45,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 46,
+      "to": 96,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 97,
+      "to": 221,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": {
+    "stage1": 46,
+    "stage2": 46
+  },
+  "faded_shape": "SELECT o.order_id, l.product_id\nFROM orders o\n",
+  "faded_suffix": "\nWHERE o.channel = 'web'\n  AND o.order_ts >= TIMESTAMP '2025-03-07 00:00:00' AND o.order_ts < TIMESTAMP '2025-03-08 00:00:00'",
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "LEFT JOIN keeps each web order of the day; an order with no lines gets one row with a missing product_id."
+}

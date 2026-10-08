@@ -6,7 +6,10 @@
     "SELECT store_code, city, country_code\nFROM stores\nWHERE NOT country_code IN ('BE', 'NL')",
     "SELECT store_code, city, country_code\nFROM stores\nWHERE country_code <> 'NL'\n  AND country_code <> 'BE'"
   ],
-  "other_way": null,
+  "other_way": {
+    "sql": "SELECT store_code, city, country_code\nFROM stores\nWHERE country_code <> 'NL'\n  AND country_code <> 'BE'",
+    "tradeoff": "Separate <> tests give the same rows, but NOT IN stays short as the list of values grows."
+  },
   "planted_wrong": [
     {
       "id": "EX-SQL-FILTER-02-E2-04-PW1",

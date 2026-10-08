@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-JOIN-03-E1-04",
+  "item_version": 1,
+  "reference_sql": "WITH order_totals AS (\n  SELECT order_id, SUM(quantity * unit_price_eur - line_discount_eur) AS order_eur\n  FROM order_lines\n  GROUP BY order_id\n)\nSELECT o.channel, COUNT(*) AS n_orders, SUM(t.order_eur) AS value_eur\nFROM orders o\nJOIN order_totals t ON t.order_id = o.order_id\nGROUP BY o.channel",
+  "alternatives": [
+    "SELECT o.channel, COUNT(DISTINCT o.order_id) AS n_orders, SUM(ol.quantity * ol.unit_price_eur - ol.line_discount_eur) AS value_eur FROM orders o JOIN order_lines ol ON ol.order_id = o.order_id GROUP BY o.channel",
+    "SELECT channel, COUNT(DISTINCT order_id) AS n_orders, SUM(net_revenue_eur) AS value_eur FROM sales GROUP BY channel"
+  ],
+  "other_way": {
+    "sql": "SELECT o.channel, COUNT(DISTINCT o.order_id) AS n_orders, SUM(ol.quantity * ol.unit_price_eur - ol.line_discount_eur) AS value_eur FROM orders o JOIN order_lines ol ON ol.order_id = o.order_id GROUP BY o.channel",
+    "tradeoff": "COUNT(DISTINCT order_id) after the join gives the same numbers in one query, but it repairs only the count, not other order values."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-01",
+      "sql": "SELECT o.channel, COUNT(*) AS n_orders, SUM(ol.quantity * ol.unit_price_eur - ol.line_discount_eur) AS value_eur FROM orders o JOIN order_lines ol ON ol.order_id = o.order_id GROUP BY o.channel"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-11",
+      "sql": "WITH order_totals AS (SELECT order_id, SUM(quantity * unit_price_eur - line_discount_eur) AS order_eur FROM order_lines GROUP BY order_id) SELECT o.channel, COUNT(*) AS n_orders, SUM(t.order_eur) AS value_eur FROM orders o LEFT JOIN order_totals t ON t.order_id = o.order_id GROUP BY o.channel"
+    }
+  ],
+  "hint3_partial": "WITH order_totals AS (\n  SELECT order_id, SUM(quantity * unit_price_eur - line_discount_eur) AS order_eur\n  FROM order_lines\n  GROUP BY ___\n)\nSELECT o.channel, COUNT(*) AS n_orders, SUM(t.order_eur) AS value_eur\nFROM orders o\nJOIN order_totals t ON t.order_id = o.order_id\nGROUP BY o.channel",
+  "solver": {
+    "prompt_hash": "421a25a3e4c415e0",
+    "schema_version": "2b3ae373ff81",
+    "dataset_version": "e1545e4258743033",
+    "grader_version": "1b.3",
+    "query": "WITH order_values AS (\n  SELECT o.order_id, o.channel, SUM(l.quantity * l.unit_price_eur - l.line_discount_eur) AS value_eur\n  FROM orders o\n  JOIN order_lines l ON l.order_id = o.order_id\n  GROUP BY o.order_id, o.channel\n)\nSELECT channel, COUNT(*) AS n_orders, SUM(value_eur) AS value_eur\nFROM order_values\nGROUP BY channel",
+    "at": "2026-10-07T10:41:39.402Z"
+  }
+}

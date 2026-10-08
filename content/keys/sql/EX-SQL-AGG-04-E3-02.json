@@ -6,7 +6,10 @@
     "SELECT channel, order_week, COUNT(DISTINCT order_id) AS n_orders, SUM(net_revenue_eur) AS revenue_eur, COALESCE(SUM(CASE WHEN parent_category = 'Accessories' THEN net_revenue_eur END), 0) AS accessories_revenue_eur, COUNT(CASE WHEN units >= 2 THEN 1 END) AS multi_unit_lines FROM sales WHERE order_date >= DATE '2025-01-01' AND order_date <= DATE '2025-03-31' GROUP BY channel, order_week ORDER BY channel ASC, order_week ASC",
     "SELECT channel, order_week, COUNT(DISTINCT order_id) AS n_orders, SUM(net_revenue_eur) AS revenue_eur, COALESCE(SUM(net_revenue_eur) FILTER (WHERE parent_category = 'Accessories'), 0) AS accessories_revenue_eur, COUNT(*) FILTER (WHERE units >= 2) AS multi_unit_lines FROM sales WHERE order_date BETWEEN '2025-01-01' AND '2025-03-31' GROUP BY 1, 2 ORDER BY 1, 2"
   ],
-  "other_way": null,
+  "other_way": {
+    "sql": "SELECT channel, order_week, COUNT(DISTINCT order_id) AS n_orders, SUM(net_revenue_eur) AS revenue_eur, COALESCE(SUM(net_revenue_eur) FILTER (WHERE parent_category = 'Accessories'), 0) AS accessories_revenue_eur, COUNT(*) FILTER (WHERE units >= 2) AS multi_unit_lines FROM sales WHERE order_date BETWEEN '2025-01-01' AND '2025-03-31' GROUP BY 1, 2 ORDER BY 1, 2",
+    "tradeoff": "Reads closer to plain English, but FILTER is not available in every SQL dialect."
+  },
   "planted_wrong": [
     {
       "id": "PW1",

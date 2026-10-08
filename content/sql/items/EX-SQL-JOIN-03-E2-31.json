@@ -1,0 +1,127 @@
+{
+  "id": "EX-SQL-JOIN-03-E2-31",
+  "version": 1,
+  "kind": "fix",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "fan_out",
+    "bridge",
+    "promotion_products",
+    "sales",
+    "fix"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-JOIN-03"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-JOIN-03",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-JOIN-03"
+  ],
+  "template_id": "T-JOIN-03-fix-bridge",
+  "template_params": {
+    "bridge": "promotion_products",
+    "fact": "sales",
+    "group_by": "parent_category"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_join",
+  "prompt": "The query in the editor has one mistake. Fix it so that it answers this question: what is the net revenue of each parent category from the products that take part in at least one promotion? A product takes part when at least one promotion lists it, and every order line of such a product counts once, whether or not the line was sold with a promotion. Use net_revenue_eur from the sales table. Return two columns, in this order: parent_category and revenue_eur. Return one row for each parent category with such products. Do not round. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "parent_category",
+        "type_class": "text"
+      },
+      {
+        "name": "revenue_eur",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "parent_category",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "revenue_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "parent_category"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, check the grain of the bridge table: how many rows does a product in two promotions have?",
+    "Each line of such a product meets two bridge rows, so its revenue is added twice; join the lines to a list that holds each product once."
+  ],
+  "subgoals": [
+    {
+      "from": 27,
+      "to": 53,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 56,
+      "to": 79,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 82,
+      "to": 145,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 146,
+      "to": 213,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 214,
+      "to": 240,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": "SELECT s.parent_category, SUM(s.net_revenue_eur) AS revenue_eur\nFROM sales s\nJOIN promotion_products pp ON pp.product_id = s.product_id\nGROUP BY s.parent_category",
+  "starter_error_id": "ERR-LOG-01",
+  "time_target_ms": 180000,
+  "why_this_works": "The step lists each promoted product once, so every line meets one row and its revenue is added once."
+}

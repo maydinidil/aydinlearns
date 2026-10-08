@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-JOIN-02-E1-41",
+  "item_version": 1,
+  "value": 3,
+  "explanation": "Orders 1 to 5 were all taken by store 99, so stores 1, 2 and 3 match none of them. LEFT JOIN still keeps each of the 3 stores, with a missing order_id, so the query returns 3 rows, not 0.",
+  "solver": {
+    "prompt_hash": "d68c2e57bd569adb",
+    "grader_version": "choice.2",
+    "chosen": null,
+    "typed": "3",
+    "at": "2026-10-07T09:58:58.586Z"
+  }
+}

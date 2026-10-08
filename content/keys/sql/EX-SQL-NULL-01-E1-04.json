@@ -7,7 +7,10 @@
     "SELECT promo_code, promo_type, discount_pct\nFROM promotions\nWHERE (promo_type = 'clearance' OR promo_type = 'loyalty') AND (discount_pct < 20 OR discount_pct IS NULL)",
     "SELECT promo_code, promo_type, discount_pct\nFROM promotions\nWHERE COALESCE(discount_pct, 0) < 20 AND (promo_type = 'loyalty' OR promo_type = 'clearance')"
   ],
-  "other_way": null,
+  "other_way": {
+    "sql": "SELECT promo_code, promo_type, discount_pct\nFROM promotions\nWHERE (promo_type = 'clearance' OR promo_type = 'loyalty') AND (discount_pct < 20 OR discount_pct IS NULL)",
+    "tradeoff": "Spelling out IS NULL makes the missing case visible, while COALESCE is shorter but hides that missing counts as zero."
+  },
   "planted_wrong": [
     {
       "id": "M1",

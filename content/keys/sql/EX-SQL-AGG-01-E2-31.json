@@ -6,7 +6,10 @@
     "SELECT SUM(net_revenue_eur) / SUM(units) AS avg_unit_price_eur FROM sales WHERE channel = 'web' AND parent_category = 'Accessories' AND order_date >= DATE '2025-01-01' AND order_date < DATE '2026-01-01' AND net_revenue_eur IS NOT NULL AND units IS NOT NULL",
     "SELECT SUM(net_revenue_eur) * 1.0 / SUM(units) AS avg_unit_price_eur FROM sales WHERE parent_category = 'Accessories' AND channel = 'web' AND order_date BETWEEN '2025-01-01' AND '2025-12-31' AND NOT (units IS NULL OR net_revenue_eur IS NULL)"
   ],
-  "other_way": null,
+  "other_way": {
+    "sql": "SELECT SUM(net_revenue_eur) / SUM(units) AS avg_unit_price_eur FROM sales WHERE channel = 'web' AND parent_category = 'Accessories' AND order_date >= DATE '2025-01-01' AND order_date < DATE '2026-01-01' AND net_revenue_eur IS NOT NULL AND units IS NOT NULL",
+    "tradeoff": "Stays correct if the column later holds times of day, but you must write the day after the end date."
+  },
   "planted_wrong": [
     {
       "id": "EX-SQL-AGG-01-E2-31-PW1",

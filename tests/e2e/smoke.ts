@@ -4,9 +4,8 @@
 // It starts its own server on 127.0.0.1 at AYDINLEARNS_PORT (5174 when it is not set; a worktree uses its own,
 // such as 5184) against an empty temporary logs folder (AYDINLEARNS_LOGS_DIR), so no test record ever reaches
 // the real logs/, and every row sees the same history wherever the test runs. Row 12 restarts that server;
-// row 13 runs a temporary
-// copy of the app with an edited manifest, so the real data/manifest.json is never touched. Row 14
-// reads netstat. Each server is stopped through its shutdown path (the same handler as Ctrl+C),
+// row 13 runs a temporary copy of the app with an edited manifest, so the real data/manifest.json is never
+// touched. Row 14 reads netstat. Each server is stopped through its shutdown path (the same handler as Ctrl+C),
 // except in row 12, which stops one abruptly on purpose.
 //
 // Rows E, R and J (sprint 2) click "End session" while an answer grades, double-click a per-row "I was right",
@@ -24,6 +23,17 @@
 // second tab and a reload resume after the last answer, a review without stems or keys), a held-out GA4 ID that every route answers 404
 // for, a SQL lesson with a predict pretest item and "why this clause?", and one of the Methodology metrics added in sprint 3. The held-out
 // ID is read from content/ga4/held-out.json while the test runs and is never printed: assertion messages name the row and the step.
+//
+// Rows 4a-1 to 4a-6 (sprint 4a, Task E1) run after them, on servers of their own over empty logs folders: a level 3 lesson and its schema
+// panel, a fan-out fix item, a mistake card (made twice, reviewed from Today, listed on the Mistakes screen), "other ways", the level 3 drill, and
+// a typed count with a thousands separator.
+//
+// Rows 4b-1 to 4b-7 (sprint 4b, Task F1) run after them: a case worked on its screen (plan, CP1 to CP6, rubric, the 60-second card), its portfolio export
+// into a temporary folder (two files, then -2, none holding key SQL), Progress after that export, Today's opener sketch and daily case on the seeded
+// history, a screen-mode drill (banner, no autocomplete), a live rep with "explained aloud", and the dataset explorer. Rows T1 and T3 follow the 4b
+// Today (a daily case step; the opener is solved on the case screen, CP3 and CP4).
+// Rows 4c-1 to 4c-3 (sprint 4c, Task F1): focus lands on the SQL map heading after Today, a live rep left unticked is ticked from the drill history, and the
+// 4b-2 export's CSV starts with the BOM once and holds no raw formula cell. Row G covers the real logs/ and manifest for all of them.
 //
 // Key text is never printed. The one reference answer it submits is read from content/keys/ here and
 // only typed into the editor, and every line it prints is withheld if it holds key text.
@@ -43,12 +53,14 @@ import type { Lesson } from '../../schemas/lesson.ts';
 import { SCHEMA_VERSION } from '../../core/envelope.ts';
 import { loadContent, type ContentStore } from '../../server/content.ts';
 import { portFromEnv } from '../../server/port.ts';
+import { buildCsv } from '../../server/routes/portfolio.ts';
 import { LearnerState } from '../../server/state.ts';
 import type { DrillHistoryRow, DrillStarted, MixedBlock, RunStarted, Served, TodayView } from '../../web/src/api.ts';
 import { HISTORY, seedHistory } from '../helpers/history-fixture.ts';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 // AYDINLEARNS_PORT (owner decision D5): a worktree runs this test on its own port while the owner studies on 5174.
+// Reads the port from AYDINLEARNS_PORT (5174 by default); on a bad value it prints the message and exits with code 1.
 const PORT = (() => { try { return portFromEnv(); } catch (e) { console.log((e as Error).message); return process.exit(1); } })();
 const BASE = `http://127.0.0.1:${PORT}`;
 const KEEP = process.argv.includes('--keep');            // keep the temporary folder to inspect it
@@ -133,6 +145,31 @@ for (const n of (await readdir(join(ROOT, 'content/keys/sql-choice'))).filter((n
 const curriculum = await readJson<Curriculum>(join(ROOT, 'content/sql/curriculum.json'));
 const basics = await readJson<Lesson>(join(ROOT, 'content/sql/lessons/SQL-BASICS-01.json'));
 const item = (id: string) => readJson<SqlItem>(join(ROOT, 'content/sql/items', `${id}.json`));
+
+// ---- case answers (sprint 4b), read here and never printed ----------------------------------------------------------------------
+// A case's typed answers come from the truth file the build wrote, its right options from content/keys/cases/. Test messages name IDs only.
+const OPENER_L1 = 'CASE-VOLT-L1';
+const CASE_PRICE = 'CASE-PRICE-01';
+interface CasePublic { case_id: string; title: string; level: number; checkpoints: { kind: string; item_id?: string; typed?: { decimals: number } }[] }
+const casePublic = async (id: string): Promise<CasePublic> => {
+  for (const dir of ['cases', 'openers']) {
+    try { return await readJson<CasePublic>(join(ROOT, 'content/sql', dir, `${id}.json`)); } catch { /* the other folder */ }
+  }
+  throw new Error(`there is no case ${id}`);
+};
+const truthFile = await readJson<{ checkpoints: Record<string, number> }>(join(ROOT, 'data/truth/voltmarkt.json'));
+/** The text a learner types for a case's CP2 or CP4: the true value, to the decimals the question asks for. */
+async function caseTyped(caseId: string, cp: 'CP2' | 'CP4'): Promise<string> {
+  const value = truthFile.checkpoints[`${caseId}:${cp}`];
+  const spec = (await casePublic(caseId)).checkpoints.find((c) => c.kind === cp)?.typed;
+  if (value === undefined || !spec) throw new Error(`${caseId} ${cp} has no true value or no typed spec`);
+  return value.toFixed(spec.decimals);
+}
+/** The right option of a case's CP1 or CP5. */
+async function caseOid(caseId: string, cp: 'CP1' | 'CP5'): Promise<string> {
+  const k = await readJson<{ choices: Record<string, { correct_oid: string }> }>(join(ROOT, 'content/keys/cases', `${caseId}.json`));
+  return k.choices[cp]!.correct_oid;
+}
 
 const squash = (s: string) => s.replace(/\s+/g, ' ').trim();
 const keyTexts = [...keys.values()]
@@ -330,7 +367,7 @@ async function answerChoice(p: Page, typed: string): Promise<'mcq' | 'typed'> {
   await radio.or(box).first().waitFor();
   const isTyped = (await box.count()) > 0;
   if (isTyped) await box.fill(typed); else await radio.check();
-  await p.getByRole('button', { name: '3', exact: true }).click();
+  await p.getByRole('button', { name: '3: fairly sure', exact: true }).click();
   await p.locator('.grade h3').filter({ hasText: /^(Right\.|Not quite\.)$/ }).waitFor();
   return isTyped ? 'typed' : 'mcq';
 }
@@ -716,7 +753,8 @@ async function main(): Promise<number> {
       return 'one request; the confirmation and no error shown; one override attempt on that instance and one content report naming the disputed attempt';
     });
 
-    // Roadmap A7: a URL that jumps from one item to another shows the new item, not the last one's "Done.".
+    // Roadmap A7: a URL that jumps from one item to another shows the new item, not the last one's "Done.". The row checks what
+    // the page shows; it does not isolate which part of the app (such as ItemScreen's key) resets the screen.
     await row('J', `the URL jumps from ${JUMP_FROM} (left, "Done.") straight to ${JUMP_TO}: the new exercise shows`, async () => {
       await openItem(page, JUMP_FROM);
       await page.getByRole('button', { name: 'Leave this item' }).click();
@@ -887,7 +925,7 @@ async function main(): Promise<number> {
         await p.locator('section.choice').waitFor();
         if (choice.correct_oid !== undefined) await p.locator(`section.choice input[type="radio"][value="${choice.correct_oid}"]`).check();
         else await p.getByLabel('Your answer').fill(String(choice.value));
-        await p.getByRole('button', { name: '3', exact: true }).click();
+        await p.getByRole('button', { name: '3: fairly sure', exact: true }).click();
         await p.locator('.grade h3', { hasText: 'Right.' }).waitFor();
         await p.getByRole('button', { name: 'Next', exact: true }).click();
         return;
@@ -915,7 +953,7 @@ async function main(): Promise<number> {
       expect(!server.output.join('').includes('aydinlearns: replay:'), 'the startup replay warned about the seeded history');
       expect((await attempts(logs1b)).length === h.attempts && (await events(logs1b)).length === h.events, 'the start wrote records: the seeded history left something to recover');
       const plan = (await getJson<TodayView>('/api/today?section=sql')).body.plan;
-      expect(plan.steps.map((s) => s.kind).join() === 'reviews,opener,new_concept,mixed,retest', `the plan's steps are ${plan.steps.map((s) => s.kind).join(', ')}`);
+      expect(plan.steps.map((s) => s.kind).join() === 'reviews,opener,new_concept,mixed,daily_case,retest', `the plan's steps are ${plan.steps.map((s) => s.kind).join(', ')}`);
       const reviews = plan.steps[0] as { card_ids: string[] };
       expect(reviews.card_ids.join() === `CARD-${HISTORY.struggled},CARD-${HISTORY.overdue}`, `the due cards are ${reviews.card_ids.join(', ')}`);
 
@@ -928,7 +966,7 @@ async function main(): Promise<number> {
       await shot(today, 'today');
       const shown = await stepLabels(today);
       const expected = ['Reviews due: 2', "Level opener: read the manager's question", `New concept: ${title(HISTORY.next)}`, 'Mixed practice: 3 exercises',
-        `Re-test: ${title(HISTORY.struggled)}`];
+        'Daily case', `Re-test: ${title(HISTORY.struggled)}`];
       expect(JSON.stringify(shown) === JSON.stringify(expected), `Today lists: ${shown.join(' | ')}`);
       await stepRow(today, `Re-test: ${title(HISTORY.struggled)}`).getByText('Ready now').waitFor();
       const goal = await today.getByText(/^Next goal: .+, by \d{1,2} [A-Z][a-z]+( \d{4})?$/).innerText();
@@ -1030,7 +1068,7 @@ async function main(): Promise<number> {
       await page.goto(`${BASE}/#/`);
       await page.getByRole('heading', { name: 'Wrap-up', level: 2 }).waitFor();
       const midway = await stepLabels(page);
-      expect(JSON.stringify(midway) === JSON.stringify(['Mixed practice: 4 exercises', `Re-test: ${title(HISTORY.struggled)}`]), `Today lists: ${midway.join(' | ')}`);
+      expect(JSON.stringify(midway) === JSON.stringify(['Mixed practice: 4 exercises', 'Daily case', `Re-test: ${title(HISTORY.struggled)}`]), `Today lists: ${midway.join(' | ')}`);
       const started = page.waitForResponse((r) => r.url().endsWith('/api/mixed/start'));
       await stepRow(page, 'Mixed practice: 4 exercises').getByRole('button', { name: 'Start' }).click();
       const block = (await (await started).json()) as MixedBlock;
@@ -1051,22 +1089,36 @@ async function main(): Promise<number> {
       await page.getByRole('heading', { name: `Re-test: ${title(HISTORY.struggled)}`, level: 2 }).waitFor();
       await answerAndGoOn(page, retest.item_id);
       await page.getByRole('heading', { name: 'Wrap-up', level: 2 }).waitFor();
-      await stepRow(page, "Level opener: solve the manager's question").waitFor();
+      // S4B-08: the opener is solved on the case screen (Today's step is a link now): CP3 and CP4, any pass.
+      const solveRow = stepRow(page, "Level opener: solve the manager's question");
+      await solveRow.waitFor();
+      await solveRow.getByRole('link', { name: /^Open it/ }).click();
+      const strip = page.getByRole('navigation', { name: 'Case steps' });
+      await strip.waitFor();
+      await strip.locator('button[data-step-button="CP3"]').click();
       served = page.waitForResponse(isServe);
-      await stepRow(page, "Level opener: solve the manager's question").getByRole('button', { name: 'Start' }).click();
+      await page.locator('[data-serve="CP3"]').click();
       const opener = (await (await served).json()) as Served;
       expect(opener.phase === 'case' && opener.hide_labels, `the opener was served in phase ${opener.phase}`);
-      await page.getByRole('heading', { name: 'Level opener', level: 2 }).waitFor();
-      await answerAndGoOn(page, opener.item_id);
-      // The CP3 pass offers the typed CP4 on Today too; level 1's CP4 credits nothing (S2-106), so the row skips it.
-      await page.getByRole('heading', { name: 'Follow-up question', level: 2 }).waitFor();
-      await page.getByRole('button', { name: 'Skip', exact: true }).click();
+      await page.locator('[data-step="CP3"] .cm-content').waitFor();
+      await replaceSql(page, reference(opener.item_id));
+      await submit(page);
+      await outcome(page, 'Correct');
+      await page.getByRole('button', { name: 'Next', exact: true }).click();
+      await strip.locator('button[data-step-button="CP4"]').click();
+      const cp4 = page.locator('[data-step="CP4"]');
+      await cp4.getByLabel('Your answer').fill(await caseTyped(OPENER_L1, 'CP4'));
+      await cp4.getByRole('button', { name: 'Check', exact: true }).click();
+      await cp4.getByRole('button', { name: '3: fairly sure', exact: true }).click();
+      await cp4.locator('.grade h3').first().waitFor();
+      await page.locator('.case-status[data-status="solved"]').waitFor();
+      await page.goto(`${BASE}/#/`);
 
       // The wrap-up: only the new concept's own re-test is left, opening later, with no Start (S2-101).
       await page.getByRole('heading', { name: 'Wrap-up', level: 2 }).waitFor();
       await stepRow(page, `Re-test: ${title(HISTORY.next)}`).waitFor();
       const last = await stepLabels(page);
-      expect(JSON.stringify(last) === JSON.stringify([`Re-test: ${title(HISTORY.next)}`]), `Today lists: ${last.join(' | ')}`);
+      expect(JSON.stringify(last) === JSON.stringify(['Daily case', `Re-test: ${title(HISTORY.next)}`]), `Today lists: ${last.join(' | ')}`);
       const opens = await stepRow(page, `Re-test: ${title(HISTORY.next)}`).locator('span.muted').innerText();
       expect(/^Opens at \d\d:\d\d$/.test(opens) && (await stepRow(page, `Re-test: ${title(HISTORY.next)}`).getByRole('button').count()) === 0,
         `the new concept's re-test says "${opens}" and has a button`);
@@ -1075,8 +1127,8 @@ async function main(): Promise<number> {
       await page.getByRole('button', { name: 'Another new concept' }).waitFor();
       await page.getByText(`Next in order: ${title('SQL-AGG-02')}`).waitFor();
       return `review 2 Correct; ${HISTORY.next}: pretest (Not yet, left), reading, worked example, lesson block (4 items left); Today then listed ${midway.join(' and ')}; ` +
-        `mixed block of ${block.servings.length} (${mixedConcepts.join(', ')}), all Correct; re-test Correct; the level 1 opener (phase case) Correct, its CP4 offered and skipped; ` +
-        `wrap-up: ${last[0]} "${opens}" with no Start, "${goal}", "${tomorrow}", and "Another new concept" offering ${title('SQL-AGG-02')}`;
+        `mixed block of ${block.servings.length} (${mixedConcepts.join(', ')}), all Correct; re-test Correct; the level 1 opener solved on the case screen (CP3 phase case Correct, CP4 answered); ` +
+        `wrap-up: ${last.join(' and ')}, the re-test "${opens}" with no Start, "${goal}", "${tomorrow}", and "Another new concept" offering ${title('SQL-AGG-02')}`;
     });
 
     await row('T4', 'the session\'s records: reviews rated at their close, the lesson phase unrated, one block_close with one review per card, the re-test and the opener rated; the folder replays with no warning', async () => {
@@ -1103,7 +1155,7 @@ async function main(): Promise<number> {
       for (const c of [HISTORY.struggled, ...HISTORY.recent]) expect(blockCards.includes(`CARD-${c}`), `the block_close has no review for ${c}`);
       const retest = phase('retest');
       expect(retest.length === 1 && retest[0]!.instance_rating === 3 && reviewsOf(retest[0]!).length === 1, 'the re-test close is not Good with one review (S2-09: never Easy)');
-      const opener = phase('case');
+      const opener = phase('case').filter((c) => String(c.item_id).startsWith('EX-'));   // CP3's close; CP4's follows it (S4B-08)
       const credits = opener[0] ? content1b!.checkpointCredits?.(String(opener[0].item_id)) ?? [] : [];
       expect(opener.length === 1 && opener[0]!.instance_rating === 3 && credits.length > 0
         && JSON.stringify(reviewsOf(opener[0]!).map((c) => `${c.card_id}:${c.rating}`).sort()) === JSON.stringify(credits.map((c) => `CARD-${c}:3`).sort()),
@@ -1127,7 +1179,7 @@ async function main(): Promise<number> {
       await page.getByRole('heading', { name: 'Drill', level: 1 }).waitFor();
       await page.getByText('Level 1 drill: 10 questions, 20 minutes, pass at 90%.').waitFor();
       const startedP = page.waitForResponse((r) => r.url().endsWith('/api/drill/start'));
-      await page.getByRole('button', { name: 'Start level 1 drill' }).click();
+      await page.getByRole('button', { name: 'Start drill: level 1' }).click();
       const run = (await (await startedP).json()) as DrillStarted;
       expect(run.kind === 'level' && run.questions === 10 && run.minutes === 20 && run.servings.length === 10, `the run: ${run.questions} questions, ${run.minutes} minutes`);
       await page.getByRole('heading', { name: 'Level 1 drill', level: 1 }).waitFor();
@@ -1197,14 +1249,14 @@ async function main(): Promise<number> {
       await radio.or(box).first().waitFor();
       const isTyped = await box.count() > 0;
       if (isTyped) await box.fill(typed); else await radio.check();
-      await page2a.getByRole('button', { name: '3', exact: true }).click();
+      await page2a.getByRole('button', { name: '3: fairly sure', exact: true }).click();
       await page2a.locator('.grade h3').filter({ hasText: /^(Right\.|Not quite\.)$/ }).waitFor();
       return isTyped ? 'typed' : 'mcq';
     };
 
     await row('2a-1', `a GA4 reading (${GA4_CONCEPT}), then a practice answer with a confidence of 3 and its result`, async () => {
       await page2a.goto(`${BASE}/#/reading/ga4/${GA4_CONCEPT}`);
-      await page2a.getByRole('heading', { name: ga4Reading.title, level: 2, exact: true }).waitFor();
+      await page2a.getByRole('heading', { name: ga4Reading.title, level: 1, exact: true }).waitFor();
       await page2a.getByRole('button', { name: 'Practise this concept' }).click();
       await page2a.getByRole('heading', { name: /^Practice: /, level: 1 }).waitFor();
       await answerWith('');
@@ -1282,7 +1334,7 @@ async function main(): Promise<number> {
       const radios = panel.locator('input[type="radio"]');
       await radios.first().or(box).first().waitFor();
       if ((await box.count()) > 0) await box.fill(which === 0 ? '10' : '20'); else await radios.nth(which).check();
-      if (confidence) await panel.getByRole('button', { name: '3', exact: true }).click(); else await panel.getByRole('button', { name: 'Save answer', exact: true }).click();
+      if (confidence) await panel.getByRole('button', { name: '3: fairly sure', exact: true }).click(); else await panel.getByRole('button', { name: 'Save answer', exact: true }).click();
     }
     const solutionsOf = async (instances: string[]) =>
       (await attempts2b()).filter((r) => r.record === 'solution_opened' && instances.includes(String(r.item_instance_id)));
@@ -1296,7 +1348,7 @@ async function main(): Promise<number> {
       expect(ga4New !== '', 'no GA4 concept of topic T-GA4-03 has a reading');
       const reading = await readJson<{ title: string }>(join(ROOT, 'content/ga4/readings', `${ga4New}.json`));
       await page2b.goto(`${BASE}/#/reading/ga4/${ga4New}`);
-      await page2b.getByRole('heading', { name: reading.title, level: 2, exact: true }).waitFor();
+      await page2b.getByRole('heading', { name: reading.title, level: 1, exact: true }).waitFor();
       await waitFor('the reading exposure', async () => (await attempts2b()).find((r) => r.record === 'exposure' && r.concept_id === ga4New && r.kind === 'reading'));
       await sleep(500);                                  // a second, duplicate record would land by now
       const all = (await attempts2b()).filter((r) => r.record === 'exposure');
@@ -1389,7 +1441,7 @@ async function main(): Promise<number> {
       // No way back: no Previous, no question list, no flag, no confidence question; the screen says so.
       expect((await page2b.getByRole('button', { name: /^(Previous|Flag this question)/ }).count()) === 0 && (await page2b.getByRole('navigation', { name: 'Questions' }).count()) === 0, 'a half-mock offers a way back or a flag');
       await page2b.getByText('You cannot come back to a question.').waitFor();
-      expect((await page2b.getByRole('button', { name: '3', exact: true }).count()) === 0, 'a half-mock asks a confidence');
+      expect((await page2b.getByRole('button', { name: '3: fairly sure', exact: true }).count()) === 0, 'a half-mock asks a confidence');
       const sent = page2b.waitForRequest((r) => r.url().endsWith('/api/choice/answer') && r.method() === 'POST');
       await answerRunQuestion(page2b, 0, false);
       const firstBody = (await sent).postData() ?? '';
@@ -1549,7 +1601,7 @@ async function main(): Promise<number> {
       expect(metNew !== '', 'no Methodology metric without a level has a reading');
       const reading = await readJson<{ title: string }>(join(ROOT, 'content/methodology/readings', `${metNew}.json`));
       await page2b.goto(`${BASE}/#/reading/methodology/${metNew}`);
-      await page2b.getByRole('heading', { name: reading.title, level: 2, exact: true }).waitFor();
+      await page2b.getByRole('heading', { name: reading.title, level: 1, exact: true }).waitFor();
       await shot(page2b, 'methodology-reading');
       await waitFor('the reading exposure', async () => (await attempts2b()).find((r) => r.record === 'exposure' && r.concept_id === metNew && r.kind === 'reading'));
       await page2b.getByRole('button', { name: 'Practise this concept' }).click();
@@ -1575,6 +1627,761 @@ async function main(): Promise<number> {
     browser = null;
     await stopServer(server);
     server = null;
+    // ---- sprint 4a rows (Task E1): level 3 content, fan-out fix items, mistake cards, other ways, the level 3 drill, typed counts ----
+    // Rows 4a-1 and 4a-2 run on one server over an empty logs folder, 4a-3 on one of its own (a clean history, so its mistake card is the only
+    // review due), and 4a-4 to 4a-6 on a third. No key or answer is ever printed: messages name the row, the step and item IDs.
+    interface Boot { dir: string; page: Page; attemptsOf: () => Promise<LogRec[]> }
+    async function boot4a(name: string): Promise<Boot> {
+      const dir = join(tmp, name);
+      await mkdir(dir);
+      server = await startServer(ROOT, dir);
+      browser = await chromium.launch();
+      const page = await newPage(browser, dialogs);
+      page.on('pageerror', () => { pageErrors++; });
+      return { dir, page, attemptsOf: () => attempts(dir) };
+    }
+    async function shut4a(): Promise<void> {
+      await browser!.close();
+      browser = null;
+      await stopServer(server!);
+      server = null;
+    }
+    const schemaNotes4a = await readJson<{ table: string; from_level?: number }[]>(join(ROOT, 'data/schema-notes.json'));
+    const feedback4a = await readJson<Record<string, { assumed: string; why: string; model: string }>>(join(ROOT, 'content/sql/error-feedback.json'));
+    const noSpace = (s: string) => s.replace(/\s+/g, '');
+    const FAN_OUT = 'ERR-LOG-01';
+    const fixItem = (id: string) => readJson<SqlItem & { starter_sql: string; starter_error_id: string }>(join(ROOT, 'content/sql/items', `${id}.json`));
+
+    {
+      const b = await boot4a('logs-4a-1');
+      const p4 = b.page;
+      const lesson3 = await readJson<Lesson>(join(ROOT, 'content/sql/lessons/SQL-JOIN-01.json'));
+      const tablesIn = (p: Page) => p.locator('aside[aria-label="Tables"] summary code').allInnerTexts();
+
+      await row('4a-1', 'a level 3 lesson (SQL-JOIN-01): the schema panel shows the order tables with 1:N keys, the reading opens, a pretest item grades', async () => {
+        const first = lesson3.pretest_item_ids[0]!;
+        await p4.goto(`${BASE}/#/lesson/SQL-JOIN-01`);
+        await p4.getByRole('heading', { name: title('SQL-JOIN-01'), level: 1, exact: true }).waitFor();
+        await p4.getByRole('button', { name: 'Start the pretest' }).click();
+        await p4.getByText('Question 1 of 2.').waitFor();
+        await p4.locator('.cm-content').waitFor();
+        const panel = p4.locator('aside[aria-label="Tables"]');
+        await panel.waitFor();
+        const shown = new Set(await tablesIn(p4));
+        const level3 = schemaNotes4a.filter((n) => (n.from_level ?? 1) <= 3).map((n) => n.table);
+        const orderTables = ['orders', 'order_lines', 'price_history', 'promotion_products', 'competitor_prices'];
+        expect(orderTables.every((t) => shown.has(t)), `the schema panel of a level 3 item lacks one of the order tables (shows ${[...shown].join(', ')})`);
+        expect(level3.every((t) => shown.has(t)), 'the schema panel of a level 3 item does not show every table of level 3 and below');
+        const text = squash((await panel.textContent()) ?? '');
+        for (const fk of ['order_id → orders (1:N)', 'store_id → stores (1:N)', 'product_id → products (1:N)']) {
+          expect(text.includes(fk), `the schema panel has no key line "${fk}"`);
+        }
+        await shot(p4, 'level3-schema-panel');
+        // Grade the first pretest item with the reference answer.
+        await replaceSql(p4, reference(first));
+        await submit(p4);
+        await outcome(p4, 'Correct');
+        const graded = await waitFor('the pretest attempt', async () => (await b.attemptsOf()).find((r) => r.record === 'attempt' && r.item_id === first && r.phase === 'pretest' && r.outcome === 'pass'));
+        // The reading opens from the step bar and logs one exposure.
+        await p4.getByRole('navigation', { name: 'Lesson steps' }).getByRole('button', { name: 'Reading', exact: true }).click();
+        const readingTitle = /^## (.+)$/m.exec(lesson3.reading_md)![1]!.trim();
+        await p4.getByRole('heading', { name: readingTitle }).waitFor();
+        await waitFor('the reading exposure', async () => (await b.attemptsOf()).find((r) => r.record === 'exposure' && r.concept_id === 'SQL-JOIN-01' && r.kind === 'reading'));
+        await shot(p4, 'level3-reading');
+        // A level 1 item still sees only the level 1 tables.
+        await openItem(p4, 'EX-SQL-BASICS-01-E1-06');
+        await p4.locator('aside[aria-label="Tables"]').waitFor();
+        const level1 = new Set(await tablesIn(p4));
+        expect(level1.size > 0 && !level1.has('orders') && !level1.has('order_lines'), 'a level 1 item shows the order tables');
+        return `SQL-JOIN-01 (level 3): the schema panel showed ${level3.length} tables (${orderTables.join(', ')} among them) with the 1:N lines for order_id, store_id and product_id, while a level 1 item (EX-SQL-BASICS-01-E1-06) showed none of the order tables; pretest item ${first} graded Correct (logged phase ${String(graded.phase)}, outcome ${String(graded.outcome)}); the reading "${readingTitle}" opened and logged one exposure`;
+      });
+
+      await row('4a-2', 'a fan-out fix item: the starter fails with ERR-LOG-01\'s feedback; the fix passes', async () => {
+        const id = 'EX-SQL-JOIN-03-E1-31';
+        const it = await fixItem(id);
+        expect(it.kind === 'fix' && it.starter_error_id === FAN_OUT, `${id} is not a fix item with the fan-out starter`);
+        await openItem(p4, id);
+        await waitFor('the starter in the editor', async () => squash(await editorText(p4)) === squash(it.starter_sql));
+        await submit(p4);
+        await outcome(p4, 'Not yet');
+        const grade = p4.locator('section.grade');
+        const parts = await grade.locator('.diagnosis p').allInnerTexts();
+        const shownId = (await grade.locator('.diagnosis p.muted').innerText()).trim();
+        const fb = feedback4a[FAN_OUT]!;
+        expect(shownId === FAN_OUT, `the starter's diagnosis is ${shownId}`);
+        expect(squash(parts[0] ?? '') === squash(fb.assumed) && squash(parts[1] ?? '') === squash(fb.why) && squash(parts[2] ?? '') === squash(`Try: ${fb.model}`),
+          'the starter\'s feedback is not the catalogue text of ERR-LOG-01');
+        const failed = await waitFor('the failed attempt', async () => (await b.attemptsOf()).find((r) => r.record === 'attempt' && r.item_id === id && r.outcome === 'fail'));
+        expect((failed.error_ids as string[] | undefined)?.includes(FAN_OUT), 'the failed attempt does not log ERR-LOG-01');
+        await replaceSql(p4, reference(id));
+        await submit(p4);
+        await outcome(p4, 'Correct');
+        return `${id}: the starter was in the editor, graded Not yet with ${FAN_OUT} and its assumed, why and "Try:" text from the catalogue (logged error_ids ${JSON.stringify(failed.error_ids)}); the reference fix then graded Correct`;
+      });
+      await shut4a();
+    }
+
+    {
+      const b = await boot4a('logs-4a-3');
+      const p4 = b.page;
+      const fixes = ['EX-SQL-JOIN-03-E1-31', 'EX-SQL-JOIN-03-E2-31'];
+      const CARD = `CARD-SQL-JOIN-03~${FAN_OUT}`;
+      await row('4a-3', 'a mistake card: a planted error made twice creates the card; Today serves its review with card_id in the attempt; "Mistakes and review" lists it with the original query', async () => {
+        const starters: string[] = [];
+        for (const id of fixes) {
+          const it = await fixItem(id);
+          expect(it.kind === 'fix' && it.starter_error_id === FAN_OUT && it.target_concept_id === 'SQL-JOIN-03', `${id} does not plant ${FAN_OUT} on SQL-JOIN-03`);
+          starters.push(it.starter_sql);
+          await openItem(p4, id);
+          await waitFor('the starter in the editor', async () => squash(await editorText(p4)) === squash(it.starter_sql));
+          await submit(p4);
+          await outcome(p4, 'Not yet');
+          expect((await p4.locator('section.grade .diagnosis p.muted').innerText()).trim() === FAN_OUT, `${id}: the diagnosis is not ${FAN_OUT}`);
+          await waitFor('the failed attempt', async () => (await b.attemptsOf()).find((r) => r.record === 'attempt' && r.item_id === id && r.outcome === 'fail'));
+        }
+        type MCard = { card_id: string; occurrences: number; is_due: boolean; original: { item_id: string } | null };
+        const mistakes = (await getJson<{ cards: MCard[] }>('/api/mistakes')).body;
+        expect(mistakes.cards.length === 1 && mistakes.cards[0]!.card_id === CARD, `/api/mistakes lists ${mistakes.cards.length} cards (${mistakes.cards.map((c) => c.card_id).join(', ')})`);
+        const card = mistakes.cards[0]!;
+        expect(card.occurrences === 2 && card.is_due && card.original?.item_id === fixes[0], `the card: ${card.occurrences} occurrences, due ${String(card.is_due)}, original on ${String(card.original?.item_id)}`);
+
+        // Today: the review step holds the card, and serving it carries card_id into the attempt.
+        const plan = (await getJson<TodayView>('/api/today?section=sql')).body.plan;
+        const reviews = plan.steps.find((s) => s.kind === 'reviews') as { card_ids: string[] } | undefined;
+        expect(reviews !== undefined && reviews.card_ids.join() === CARD, `Today's review step holds ${reviews?.card_ids.join(', ') ?? 'nothing'}`);
+        await p4.goto(`${BASE}/#/`);
+        await p4.getByRole('heading', { name: 'Today', level: 1 }).waitFor();
+        await stepRow(p4, 'Reviews due: 1').waitFor();
+        const served = p4.waitForResponse(isServe);
+        await stepRow(p4, 'Reviews due: 1').getByRole('button', { name: 'Start' }).click();
+        const s1 = (await (await served).json()) as Served;
+        expect(s1.phase === 'review' && s1.block_id === null, `served phase ${s1.phase}`);
+        const trap = await item(s1.item_id);
+        expect(trap.target_concept_id === 'SQL-JOIN-03' && (trap.kind === 'fix' || trap.kind === 'write'), `the review item ${s1.item_id} is not a trap item of SQL-JOIN-03`);
+        await p4.locator('.cm-content').waitFor();
+        await replaceSql(p4, reference(s1.item_id));
+        await submit(p4);
+        await outcome(p4, 'Correct');
+        const reviewed = await waitFor('the review attempt', async () => (await b.attemptsOf()).find((r) => r.record === 'attempt' && r.item_instance_id === s1.item_instance_id));
+        expect(reviewed.card_id === CARD && reviewed.phase === 'review' && reviewed.outcome === 'pass', `the review attempt carries card_id ${String(reviewed.card_id)}, phase ${String(reviewed.phase)}`);
+        const withCard = (await b.attemptsOf()).filter((r) => r.record === 'attempt' && r.card_id !== undefined).length;
+        expect(withCard === 1, `${withCard} attempts carry a card_id`);
+
+        // Mistakes and review: the card, with the learner's original query.
+        await p4.locator('a[href="#/mistakes"]').first().click();
+        await p4.getByRole('heading', { name: 'Mistakes and review', level: 1 }).waitFor();
+        const cards = p4.locator('li.mistake-card');
+        await cards.first().waitFor();
+        expect((await cards.count()) === 1 && (await cards.first().getAttribute('data-card')) === CARD, 'the Mistakes screen does not list the one card');
+        await p4.locator('select[aria-label="Filter by error"]').waitFor();
+        await cards.first().locator('summary', { hasText: 'Your original attempt' }).click();
+        const original = noSpace(await cards.first().locator('.mistake-detail').innerText());
+        expect(original.includes(noSpace(starters[0]!)), 'the card does not show the original query');
+        expect((await cards.first().getByRole('button', { name: 'Try again' }).count()) === 1, 'the card has no "Try again"');
+        await shot(p4, 'mistakes');
+        return `${fixes.join(' and ')} started with ${FAN_OUT} (graded Not yet each time) and made ${CARD} (2 occurrences, due); Today's review step held it ("Reviews due: 1"), served ${s1.item_id} in phase review, and the passing attempt carries card_id ${CARD}; "Mistakes and review" lists the card with the original query and "Try again"`;
+      });
+      await shut4a();
+    }
+
+    {
+      const b = await boot4a('logs-4a-4');
+      const p4 = b.page;
+      await row('4a-4', '"other ways" after a pass logs one other_way_opened; before a pass the button is absent', async () => {
+        const id = 'EX-SQL-JOIN-01-E2-03';
+        expect(keys.get(id)?.other_way != null, `${id} has no other way`);
+        const other = p4.getByRole('button', { name: 'Other ways to write this' });
+        await openItem(p4, id);
+        await p4.locator('.cm-content').waitFor();            // the exercise has loaded, so the absence check below cannot pass on an empty page
+        expect((await other.count()) === 0 && (await p4.locator('.other-way').count()) === 0, 'the button is on screen before any answer');
+        await replaceSql(p4, NOT_IT);
+        await submit(p4);
+        await outcome(p4, 'Not yet');
+        expect((await other.count()) === 0, 'the button is on screen after a failed answer');
+        await replaceSql(p4, reference(id));
+        await submit(p4);
+        await outcome(p4, 'Correct');
+        await other.waitFor();
+        expect((await b.attemptsOf()).filter((r) => r.record === 'other_way_opened').length === 0, 'an other_way_opened record was logged before the button was pressed');
+        const answered = p4.waitForResponse((r) => r.url().endsWith('/api/other-way') && r.request().method() === 'POST');
+        await other.click();
+        expect((await answered).status() === 200, 'the other-way request was refused');
+        await p4.locator('.other-way p.muted').waitFor();
+        expect((await p4.locator('.other-way p.muted').innerText()).trim() !== '', 'the other way shows no trade-off line');
+        const logged = await waitFor('the other_way_opened record', async () => {
+          const l = (await b.attemptsOf()).filter((r) => r.record === 'other_way_opened');
+          return l.length > 0 ? l : null;
+        });
+        // Close and open again: the same text, no second request, no second record.
+        let again = 0;
+        p4.on('request', (r) => { if (r.url().endsWith('/api/other-way')) again++; });
+        await other.click();
+        await other.click();
+        await p4.locator('.other-way p.muted').waitFor();
+        await sleep(500);
+        const after = (await b.attemptsOf()).filter((r) => r.record === 'other_way_opened');
+        expect(logged.length === 1 && after.length === 1 && again === 0, `${after.length} other_way_opened records, ${again} further requests`);
+        const rec = after[0]!;
+        expect(rec.item_id === id && rec.phase === 'free' && rec.schema_version === SCHEMA_VERSION && typeof rec.item_instance_id === 'string', 'the other_way_opened record has the wrong item, phase or version');
+        await shot(p4, 'other-way');
+        return `${id}: no "Other ways to write this" button before an answer or after a failed one; after the pass it appeared, opened with a trade-off line and logged one other_way_opened (item ${id}, phase ${String(rec.phase)}, schema_version ${String(rec.schema_version)}); closing and opening again sent no request and logged nothing more`;
+      });
+
+      await row('4a-5', 'the level 3 drill starts and ends with a review', async () => {
+        const spec = (await readJson<{ drills: { level: number; questions: number; minutes: number; pass_pct: number; concepts: string[]; pool_item_ids: string[] }[] }>(join(ROOT, 'content/sql/drills.json'))).drills.find((d) => d.level === 3);
+        expect(spec !== undefined && spec.pool_item_ids.length >= spec.questions, 'the level 3 drill has no pool');
+        await p4.goto(`${BASE}/#/drill`);
+        await p4.getByRole('heading', { name: 'Drill', level: 1, exact: true }).waitFor();
+        await p4.getByText(`Level 3 drill: ${spec.questions} questions, ${spec.minutes} minutes, pass at ${spec.pass_pct}%.`).waitFor();
+        const startedP = p4.waitForResponse((r) => r.url().endsWith('/api/drill/start'));
+        await p4.getByRole('button', { name: 'Start drill: level 3' }).click();
+        const started = await startedP;
+        expect(started.status() === 200, `the level 3 drill start answered ${started.status()}`);
+        const run = (await started.json()) as DrillStarted;
+        expect(run.kind === 'level' && run.questions === 10 && run.servings.length === 10, `the run: ${run.questions} questions`);
+        expect(run.servings.every((s) => spec.pool_item_ids.includes(s.item_id)), 'a served item is not in the level 3 drill pool');
+        const concepts = new Set(await Promise.all(run.servings.map(async (s) => (await item(s.item_id)).target_concept_id)));
+        expect([...concepts].every((c) => spec.concepts.includes(c)), 'a served item belongs to a concept outside level 3');
+        await p4.getByRole('heading', { name: 'Level 3 drill', level: 1, exact: true }).waitFor();
+        const question = (k: number) => p4.locator('.exercise').filter({ has: p4.getByRole('heading', { name: `Question ${k} of 10`, exact: true }) });
+        async function answer(k: number, sql: string, expected: string): Promise<void> {
+          if (k > 1) await p4.getByRole('navigation', { name: 'Questions' }).getByRole('button', { name: `Question ${k}`, exact: true }).click();
+          const q = question(k);
+          await q.locator('.cm-content').click();
+          await p4.keyboard.press('Control+A');
+          await p4.keyboard.insertText(sql);
+          await p4.keyboard.press('Escape');
+          await q.getByRole('button', { name: /^Submit/ }).click();
+          await q.locator('section.grade h3', { hasText: expected }).waitFor({ timeout: 30_000 });
+        }
+        await answer(1, reference(run.servings[0]!.item_id), 'Correct');
+        await answer(2, NOT_IT, 'Not yet');
+        await p4.getByRole('button', { name: 'End the drill and see the review' }).click();
+        await p4.getByRole('heading', { name: 'Level 3 drill: review', level: 1 }).waitFor();
+        const score = await p4.getByText(/^Score: /).innerText();
+        expect(score === 'Score: 1 of 10 (10%). Not passed.', `the review shows "${score}"`);
+        const recs = await b.attemptsOf();
+        const closes = recs.filter((r) => r.record === 'item_close' && r.block_id === run.block_id);
+        const blocks = recs.filter((r) => r.record === 'block_close' && r.block_id === run.block_id);
+        expect(closes.length === 10 && closes.every((c) => c.phase === 'drill') && blocks.length === 1, `${closes.length} closes and ${blocks.length} block_close records`);
+        const history = (await getJson<{ runs: DrillHistoryRow[] }>('/api/drill/history?level=3')).body.runs;
+        expect(history.length === 1 && history[0]!.block_id === run.block_id && history[0]!.questions === 10 && history[0]!.passed === 1, `the history: ${JSON.stringify(history.map((x) => [x.passed, x.questions]))}`);
+        expect((await getJson<{ run: unknown }>('/api/drill/current')).body.run === null, 'the run is still current after its review opened');
+        await shot(p4, 'level3-drill-review');
+        return `level 3 drill: ${run.questions} questions, ${run.minutes} minutes, all ${run.servings.length} items from its ${spec.pool_item_ids.length}-item pool and from ${concepts.size} level 3 concepts; question 1 Correct, question 2 Not yet; ended: "Level 3 drill: review", "${score}", ${closes.length} drill closes and one block_close, listed in the history, no run current`;
+      });
+
+      await row('4a-6', 'a typed count answer with a thousands separator (1,000 style) is accepted', async () => {
+        const id = 'EX-SQL-JOIN-03-E1-42';
+        const ck = choiceKeys.get(id);
+        expect(ck?.value !== undefined && Number.isInteger(ck.value) && ck.value >= 1000, `${id} has no count answer of 1000 or more`);
+        const typed = String(ck.value).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+        expect(/^\d{1,3}(,\d{3})+$/.test(typed), 'the typed count has no comma separator');
+        await p4.goto(`${BASE}/#/map`);
+        await p4.getByRole('heading', { name: 'SQL map', level: 1 }).waitFor();
+        await p4.goto(`${BASE}/#/item/${id}`);
+        const kind = await answerChoice(p4, typed);
+        expect(kind === 'typed', `${id} did not ask for a typed answer`);
+        expect((await p4.locator('p[role="alert"]').count()) === 0, 'the typed count drew an alert');
+        expect((await p4.locator('.grade h3').innerText()).trim() === 'Right.', 'the typed count with a comma was not accepted');
+        const att = await waitFor('the typed attempt', async () => (await b.attemptsOf()).find((r) => r.record === 'attempt' && r.item_id === id));
+        expect(att.outcome === 'pass' && (att.payload as { typed?: string } | undefined)?.typed === typed, 'the attempt is not logged as a passed typed answer');
+        return `${id} (a count of 1000 or more, level 3): the key's count typed with comma thousands separators was graded Right. with no alert, and logged as a passed typed attempt (item kind ${String(att.item_kind)}, grader ${String(att.grader_version)})`;
+      });
+      await shut4a();
+    }
+
+    // ---- sprint 4b rows (Task F1): cases, the portfolio export, Progress, Today's opener sketch and daily case, screen mode, live reps, the explorer ----
+    // Rows 4b-1 to 4b-3 run in order on one server over an empty logs folder (4b-3 needs 4b-2's export, 4b-2 needs 4b-1's solved case). 4b-4 has a
+    // seeded history of its own, and 4b-5 to 4b-7 an empty folder. A right answer is read from content/keys/ or the truth file here and only typed
+    // into the page; messages name IDs and steps, never an option, a value or SQL from a key.
+    const isServeCase = (r: { url(): string; request(): { method(): string } }) => r.url().endsWith('/api/serve') && r.request().method() === 'POST';
+    const stripBtn = (p: Page, id: string) => p.getByRole('navigation', { name: 'Case steps' }).locator(`button[data-step-button="${id}"]`);
+    const caseAs = (p: Page, id: string) => p.locator(`[data-step="${id}"]`);
+    /** Opens a checkpoint step and answers its served choice question with the right option and a confidence of 3. */
+    async function caseChoice(p: Page, id: 'CP1' | 'CP5'): Promise<void> {
+      await stripBtn(p, id).click();
+      const step = caseAs(p, id);
+      try { await step.locator(`input[type="radio"][value="${await caseOid(CASE_PRICE, id)}"]`).check(); }
+      catch { throw new Error(`${CASE_PRICE} ${id}: could not pick the option`); }     // Playwright's own error would print the selector, so the option id
+      await step.getByRole('button', { name: '3: fairly sure', exact: true }).click();
+      await step.locator('.grade h3', { hasText: 'Right.' }).waitFor();
+    }
+    /** Opens a typed checkpoint step and answers it with the true value. */
+    async function caseValue(p: Page, id: 'CP2' | 'CP4'): Promise<void> {
+      await stripBtn(p, id).click();
+      const step = caseAs(p, id);
+      await step.getByLabel('Your answer').fill(await caseTyped(CASE_PRICE, id));
+      await step.getByRole('button', { name: 'Check', exact: true }).click();
+      await step.getByRole('button', { name: '3: fairly sure', exact: true }).click();
+      await step.locator('.grade h3', { hasText: 'Right.' }).waitFor();
+    }
+
+    {
+      const dir = join(tmp, 'logs-4b-1');
+      const portfolioDir = join(tmp, 'portfolio-4b');
+      await mkdir(dir);
+      await mkdir(portfolioDir);
+      server = await startServer(ROOT, dir);
+      browser = await chromium.launch();
+      const p = await newPage(browser, dialogs);
+      p.on('pageerror', () => { pageErrors++; });
+      const price = await casePublic(CASE_PRICE);
+      const cp3Item = price.checkpoints.find((c) => c.kind === 'CP3')!.item_id!;
+      const cp3Key = keys.get(cp3Item);
+      if (!cp3Key) throw new Error(`there is no answer key for ${cp3Item}`);
+
+      await row('4b-1', `the inbox lists ${CASE_PRICE}; its case screen runs the plan, CP1 to CP6, the rubric and the 60-second card; the case shows solved with its score`, async () => {
+        await p.goto(`${BASE}/#/map`);
+        await p.getByRole('heading', { name: 'SQL map', level: 1 }).waitFor();
+        await p.getByRole('link', { name: 'Case inbox' }).click();
+        const entry = p.locator(`.inbox-list li[data-case="${CASE_PRICE}"]`);
+        await entry.waitFor();
+        await entry.getByText('New', { exact: true }).waitFor();
+        const open = await getJson<{ case_id: string }[]>('/api/cases');
+        expect(open.status === 200 && open.body.some((c) => c.case_id === CASE_PRICE), `GET /api/cases does not list ${CASE_PRICE}`);
+        const view0 = await getJson<unknown>(`/api/cases/${CASE_PRICE}`);
+        // Walk the strings (JSON.stringify would turn a newline or a quote into an escape and hide the text), and the field names for a correct-option field.
+        const caseKey0 = await readJson<{ truths: Record<string, string>; choices: Record<string, { explanation: string }> }>(join(ROOT, 'content/keys/cases', `${CASE_PRICE}.json`));
+        const caseMaterial = [...Object.values(caseKey0.truths), ...Object.values(caseKey0.choices).map((c) => c.explanation)].map(squash).filter((t) => t.length >= 12);
+        const holdsCaseKey = (body: unknown) => strings(body).some((x) => holdsKeyText(x) || caseMaterial.some((t) => squash(x).includes(t)));
+        const fieldNames = (v: unknown): string[] => Array.isArray(v) ? v.flatMap(fieldNames) : v && typeof v === 'object' ? Object.entries(v).flatMap(([k, x]) => [k, ...fieldNames(x)]) : [];
+        const holdsCorrectField = (body: unknown) => fieldNames(body).some((k) => /^correct/.test(k));
+        expect(!holdsCaseKey(view0.body), `GET /api/cases/${CASE_PRICE} holds key text`);
+        expect(!holdsCorrectField(view0.body), `GET /api/cases/${CASE_PRICE} holds a correct-option field`);
+        expect(!holdsCaseKey(open.body) && !holdsCorrectField(open.body), `GET /api/cases holds key material for ${CASE_PRICE}`);
+        await entry.getByRole('link', { name: price.title }).click();
+        await p.locator('.case-status[data-status="new"]').waitFor();
+
+        // The plan, first: before CP1 has an answer the reply is a note, not the model plan.
+        await stripBtn(p, 'plan').click();
+        const plan = caseAs(p, 'plan');
+        const boxes = plan.locator('textarea');
+        const nBoxes = await boxes.count();
+        expect(nBoxes === 6, `the plan has ${nBoxes} fields, not 6`);
+        for (let i = 0; i < nBoxes; i++) await boxes.nth(i).fill(i === nBoxes - 1 ? '5' : `plan part ${i + 1}`);
+        await plan.getByRole('button', { name: 'Save the plan' }).click();
+        await plan.locator('p.notice[role="status"]').first().waitFor();
+        expect((await plan.locator('.case-model').count()) === 0, `${CASE_PRICE}: the model plan showed before CP1 had an answer`);
+
+        await caseChoice(p, 'CP1');
+        await stripBtn(p, 'plan').click();                               // now the plan, sent again, meets the model plan and its ticks
+        await plan.getByRole('button', { name: 'Save and compare' }).click();
+        await plan.locator('.case-model h3', { hasText: 'The model plan' }).waitFor();
+        await plan.locator('.case-ticks input[type="checkbox"]').first().check();
+        await plan.getByRole('button', { name: 'Save the ticks' }).click();
+        await plan.getByText('Ticks saved.').waitFor();
+
+        await caseValue(p, 'CP2');
+        await stripBtn(p, 'CP3').click();
+        const served = p.waitForResponse(isServeCase);
+        await caseAs(p, 'CP3').locator('[data-serve="CP3"]').click();
+        const sv = (await (await served).json()) as Served;
+        expect(sv.phase === 'case' && sv.hide_labels && sv.item_id === cp3Item, `${CASE_PRICE}: CP3 was served in phase ${sv.phase} as ${sv.item_id}`);
+        await caseAs(p, 'CP3').locator('.cm-content').waitFor();
+        await replaceSql(p, cp3Key.reference_sql);
+        await submit(p);
+        await outcome(p, 'Correct');
+        await caseAs(p, 'CP3').locator('[data-row-count]').waitFor();
+        await p.getByRole('button', { name: 'Next', exact: true }).click();
+        await caseValue(p, 'CP4');
+        await caseChoice(p, 'CP5');
+
+        await stripBtn(p, 'CP6').click();
+        const cp6 = caseAs(p, 'CP6');
+        await cp6.getByLabel('Your insight').fill('Prices differ by category, so report them by category.');
+        await cp6.getByRole('button', { name: 'Save the insight' }).click();
+        await cp6.locator('.case-model h3', { hasText: 'The model answer' }).waitFor();
+        await cp6.locator('.case-ticks input[type="checkbox"]').first().check();
+        await cp6.getByRole('button', { name: 'Save the rubric' }).click();
+        await cp6.getByText('Rubric saved.').waitFor();
+
+        await stripBtn(p, 'say').click();
+        await caseAs(p, 'say').getByRole('button', { name: 'Start the 60 seconds' }).click();
+        // The timer reads 1:00 before the click too, so wait for it to move on (or finish), or for the button to become "Start again".
+        const say60 = caseAs(p, 'say');
+        await Promise.any([
+          say60.getByRole('timer').filter({ hasText: /^0:\d\d$/ }).waitFor(),
+          say60.getByText('Time is up.').waitFor(),
+          say60.getByRole('button', { name: 'Start again' }).waitFor(),
+        ]);
+
+        await stripBtn(p, 'score').click();
+        const statusLine = p.locator('.case-status[data-status="solved"]');
+        await statusLine.waitFor();
+        const scoreLine = (await statusLine.innerText()).replace(/\s+/g, ' ');
+        const checkpointsOf = price.checkpoints.filter((c) => c.kind !== 'CP6').length;
+        expect(new RegExp(`${checkpointsOf} of ${checkpointsOf}`).test(scoreLine), `${CASE_PRICE}: the status line reads "${scoreLine}"`);
+        await caseAs(p, 'score').locator('.checklist li').first().waitFor();
+        await p.goto(`${BASE}/#/inbox`);
+        const done = p.locator(`.inbox-list li[data-case="${CASE_PRICE}"]`);
+        await done.getByText('Solved', { exact: true }).waitFor();
+        const recs = await attempts(dir);
+        const kinds = new Set(recs.filter((r) => r.record === 'self_check').map((r) => String(r.kind)));
+        for (const k of ['plan', 'plan_check', 'insight', 'rubric']) expect(kinds.has(k), `${CASE_PRICE}: no ${k} self_check was logged`);
+        expect(recs.every((r) => r.schema_version === SCHEMA_VERSION), `${CASE_PRICE}: a record has a schema_version other than ${SCHEMA_VERSION}`);
+        const solved = (await getJson<{ status: string }>(`/api/cases/${CASE_PRICE}`)).body.status;
+        expect(solved === 'solved', `${CASE_PRICE} is ${solved}`);
+        return `${CASE_PRICE} (level ${String(price.level)} inbox case): listed as New and read with no key text; the plan met a note before CP1 and the model plan after it, ticks saved; CP1 to CP5 answered rightly (CP3 served in phase case, labels hidden, row count line shown); CP6's insight met the model answer and the rubric was saved; the 60-second card counted down; the case reads "${scoreLine}", the inbox shows Solved; plan, plan_check, insight and rubric self_checks logged at schema_version ${SCHEMA_VERSION}`;
+      });
+
+      await row('4b-2', 'Settings takes a temporary portfolio folder; export writes the two files; a second export on the same day writes -2; the files hold no key SQL', async () => {
+        await p.goto(`${BASE}/#/setup`);
+        await p.getByLabel(/^Portfolio folder [(]/).fill(portfolioDir);
+        await p.getByRole('button', { name: 'Save portfolio folder' }).click();
+        await p.getByText('Portfolio folder saved.').waitFor();
+        await p.goto(`${BASE}/#/portfolio`);
+        await p.locator('p[data-folder="ready"]').waitFor();
+        const entry = p.locator(`li[data-case="${CASE_PRICE}"]`);
+        await entry.waitFor();
+        const exportBtn = entry.getByRole('button', { name: /^Export/ });
+        await exportBtn.click();
+        const first = p.getByRole('status').filter({ hasText: /^Saved / });
+        await first.waitFor();
+        const m = /^Saved (CASE-PRICE-01-\d{4}-\d{2}-\d{2})\.md and (CASE-PRICE-01-\d{4}-\d{2}-\d{2})\.csv in /.exec((await first.innerText()).trim());
+        expect(m !== null && m[1] === m[2], `${CASE_PRICE}: the first export's status line is not "Saved <name>.md and <name>.csv"`);
+        const stem = m![1]!;
+        expect((await exists(join(portfolioDir, `${stem}.md`))) && (await exists(join(portfolioDir, `${stem}.csv`))), `${CASE_PRICE}: the two files are not in the folder`);
+        await p.locator('[data-export-date]').getByText(/^Last exported /).waitFor();
+
+        await exportBtn.click();
+        // If Amsterdam midnight passed between the two exports the second name has the new date and no suffix, so either name is accepted.
+        const second = p.getByRole('status').filter({ hasText: /^Saved CASE-PRICE-01-\d{4}-\d{2}-\d{2}(-2)?\.md and / }).filter({ hasNotText: new RegExp(`^Saved ${stem}\\.md `) });
+        await second.waitFor();
+        const m2 = /^Saved (CASE-PRICE-01-\d{4}-\d{2}-\d{2}(?:-2)?)\.md and /.exec((await second.innerText()).trim());
+        const stem2 = m2![1]!;
+        expect(stem2 === `${stem}-2` || (/^CASE-PRICE-01-\d{4}-\d{2}-\d{2}$/.test(stem2) && stem2 !== stem), `${CASE_PRICE}: the second export's file name is neither the -2 name nor a new-date name`);
+        expect((await exists(join(portfolioDir, `${stem2}.md`))) && (await exists(join(portfolioDir, `${stem2}.csv`))), `${CASE_PRICE}: the second export's files are not in the folder`);
+        await p.locator('[data-export-date]').getByText(/\(2 exports\)/).waitFor();
+        const names = (await readdir(portfolioDir)).sort();
+        expect(names.length === 4, `${CASE_PRICE}: the folder holds ${names.length} files, not 4`);
+
+        // No key SQL in the files. The learner's own passing query is allowed (the page shows it), so it is taken out first; what is left must hold
+        // no other key text (alternatives, a partial hint, planted wrong answers, another way, the CP2 and CP4 truth queries, an explanation).
+        const caseKey = await readJson<{ truths: Record<string, string>; choices: Record<string, { explanation: string }> }>(join(ROOT, 'content/keys/cases', `${CASE_PRICE}.json`));
+        const material = [cp3Key.reference_sql, ...cp3Key.alternatives, cp3Key.hint3_partial, ...cp3Key.planted_wrong.map((x) => x.sql), ...(cp3Key.other_way ? [cp3Key.other_way.sql] : []),
+          ...Object.values(caseKey.truths), ...Object.values(caseKey.choices).map((c) => c.explanation)].map(squash).filter((t) => t.length >= 12);
+        const own = squash(cp3Key.reference_sql);
+        let sawOwn = 0;
+        for (const [k, n] of names.entries()) {
+          const text = squash(await readFile(join(portfolioDir, n), 'utf8'));
+          if (text.includes(own)) sawOwn++;
+          const rest = text.split(own).join(' ');
+          expect(!material.some((t) => rest.includes(t)), `${CASE_PRICE}: exported file ${k + 1} of ${names.length} holds key text beyond the learner's own query`);
+        }
+        expect(sawOwn > 0, `${CASE_PRICE}: no exported file holds the learner's passing query, so the scan proves nothing`);
+        const ev = (await events(dir)).filter((e) => e.event === 'case_export');
+        expect(ev.length === 2, `${CASE_PRICE}: ${ev.length} case_export events, not 2`);
+        return `${CASE_PRICE}: the temporary folder was saved in Settings; the first export wrote ${stem}.md and .csv, the second wrote ${stem}-2.md and .csv (4 files, "(2 exports)" shown, 2 case_export events); none of the 4 files holds key text beyond the learner's own passing query (${sawOwn} of them show it, so the scan can see key text)`;
+      });
+
+      await row('4b-3', 'Progress shows G-SQL-LEVEL-3\'s case criterion met after the export, the readiness board and the job-ready list', async () => {
+        await p.goto(`${BASE}/#/progress`);
+        await p.locator('section.progress').waitFor();
+        expect((await p.locator('nav.tabs a[href="#/progress"]').getAttribute('aria-current')) === 'page', 'the Progress tab is not current on #/progress');
+        const goal = p.locator('[data-progress="goals"] li[data-goal="G-SQL-LEVEL-3"]');
+        await goal.waitFor();
+        await goal.locator('[data-criterion-met="true"]').filter({ hasText: '1 case solved and exported: done' }).waitFor();
+        const board = p.locator('[data-progress="board"]');
+        await board.waitFor();
+        const ready = (await board.locator('p[data-ready]').innerText()).trim();
+        expect(/^Recruitment-ready when every stage test is passed: \d of 6 so far\.$/.test(ready), `the board's readiness line reads "${ready}"`);
+        for (let n = 1; n <= 6; n++) expect((await board.locator(`li[data-goal="G-STAGE-${n}"]`).count()) === 1, `the board has no row for G-STAGE-${n}`);
+        for (const n of [2, 3, 4, 5]) expect((await board.locator(`li[data-goal="G-STAGE-${n}"]`).getByText('Not yet available').count()) > 0, `G-STAGE-${n} is not marked "Not yet available"`);
+        const jr = p.locator('[data-progress="job-ready"] li[data-jr]');
+        const n = await jr.count();
+        expect(n === 17, `the job-ready list has ${n} rows, not 17`);
+        for (let i = 1; i <= 17; i++) {
+          const id = `JR-${String(i).padStart(2, '0')}`;
+          const st = await p.locator(`[data-progress="job-ready"] li[data-jr="${id}"]`).getAttribute('data-jr-status');
+          expect(st !== null && st !== '', `${id} has no status`);
+        }
+        const statuses = await jr.evaluateAll((els) => els.map((e) => e.getAttribute('data-jr-status')));
+        const links = await p.locator('p.progress-links a').allInnerTexts();
+        expect(['Case inbox', 'Portfolio', 'Dataset explorer'].every((l) => links.includes(l)), `the Progress links are ${links.join(', ')}`);
+        return `G-SQL-LEVEL-3's case criterion reads "1 case solved and exported: done"; the board: "${ready}", stages 2 to 5 not yet available; the job-ready list has 17 rows (${[...new Set(statuses)].join(', ')}); links to the inbox, portfolio and explorer`;
+      });
+
+      await row('4c-3', 'an export\'s CSV starts with the UTF-8 BOM once and holds no raw formula cell', async () => {
+        const csvs = (await readdir(portfolioDir)).filter((n) => n.endsWith('.csv')).sort();
+        expect(csvs.length === 2, `the portfolio folder holds ${csvs.length} CSV files, not 2`);
+        /** RFC 4180 fields: quoted fields may hold commas, quotes (doubled) and line breaks. */
+        const fieldsOf = (text: string): string[] => {
+          const out: string[] = [];
+          let cur = '', quoted = false, atStart = true;
+          for (let i = 0; i < text.length; i++) {
+            const ch = text[i]!;
+            if (quoted) {
+              if (ch === '"' && text[i + 1] === '"') { cur += '"'; i++; }
+              else if (ch === '"') quoted = false;
+              else cur += ch;
+            } else if (ch === '"' && atStart) { quoted = true; atStart = false; }
+            else if (ch === ',' || ch === '\n') { out.push(cur); cur = ''; atStart = true; }
+            else if (ch === '\r' && text[i + 1] === '\n') { /* the CRLF's \n ends the record */ }
+            else { cur += ch; atStart = false; }
+          }
+          out.push(cur);
+          return out;
+        };
+        /** A number may start with a minus sign (a whole numeric match); any other cell that opens with a formula character is a raw formula. */
+        const isRaw = (f: string): boolean => /^[=+@\t\r]/.test(f) || (/^-/.test(f) && !/^-\d+(\.\d+)?$/.test(f));
+        /** Positive control: the app's own CSV writer, given text cells that start with a formula character, writes them with the guard. */
+        const control = fieldsOf(buildCsv(['t'], [['=1+1'], ['-x'], ['@y']], ['VARCHAR'])).slice(1);
+        expect(control.filter((f) => /^'[=+\-@\t\r]/.test(f)).length === 3 && !control.some(isRaw), `the control CSV reads ${JSON.stringify(control)}: the guard did not show, or the scan flagged a guarded cell`);
+        expect(['=1+1', '-x', '@y', '+z', '-5x'].every(isRaw) && !isRaw('-5') && !isRaw('-12.5'), 'the scan does not flag every raw formula cell, or flags a number');
+        let cells = 0;
+        for (const [k, n] of csvs.entries()) {
+          const bytes = await readFile(join(portfolioDir, n));
+          expect(bytes.length > 3 && bytes[0] === 0xef && bytes[1] === 0xbb && bytes[2] === 0xbf, `CSV ${k + 1} of ${csvs.length} does not start with the bytes EF BB BF`);
+          expect(!(bytes[3] === 0xef && bytes[4] === 0xbb && bytes[5] === 0xbf), `CSV ${k + 1} of ${csvs.length} starts with the BOM twice`);
+          const text = bytes.toString('utf8').slice(1);
+          expect(!text.includes('﻿'), `CSV ${k + 1} of ${csvs.length} holds a BOM after its first character`);
+          for (const f of fieldsOf(text)) {
+            cells++;
+            expect(!isRaw(f), `CSV ${k + 1} of ${csvs.length} holds a raw formula cell (it starts with a formula character)`);
+          }
+        }
+        expect(cells > 0, 'the CSV scan read no cell, so it proves nothing');
+        return `both CSV files of the 4b-2 export start with EF BB BF once and hold no other BOM; ${cells} cells read, none starts with =, +, @, a tab or a carriage return, and none starts with a minus sign unless it is a whole number; a control CSV from the app's writer shows the guard on its three formula-like text cells, and the scan flags the raw forms`;
+      });
+
+      await browser.close();
+      browser = null;
+      await stopServer(server);
+      server = null;
+    }
+
+    {
+      // 4b-4: a seeded history (the one rows T1 to T4 use): level 1's opener is up next with its sketch, and a daily case qualifies.
+      const dir = join(tmp, 'logs-4b-4');
+      const content4b = await loadContent(join(ROOT, 'content'));
+      await seedHistory(dir, content4b);
+      server = await startServer(ROOT, dir);
+      browser = await chromium.launch();
+      const p = await newPage(browser, dialogs);
+      p.on('pageerror', () => { pageErrors++; });
+
+      await row('4b-4', 'Today offers the opener\'s sketch and a daily case on the seeded history', async () => {
+        const plan = (await getJson<TodayView>('/api/today?section=sql')).body.plan;
+        const opener = plan.steps.find((s) => s.kind === 'opener') as { case_id: string; mode: string; sketch: boolean } | undefined;
+        const daily = plan.steps.find((s) => s.kind === 'daily_case') as { case_id: string; done: boolean } | undefined;
+        expect(opener?.mode === 'preview' && opener.sketch === true, 'the plan has no opener preview with a sketch');
+        expect(daily !== undefined && !daily.done, 'the plan has no open daily case');
+        await p.goto(`${BASE}/#/`);
+        await p.getByRole('heading', { name: 'Today', level: 1 }).waitFor();
+        const previewRow = p.locator(`ol.today-steps > li[data-today-step="opener:${opener!.case_id}:preview"]`);
+        const dailyRow = p.locator(`ol.today-steps > li[data-today-step="daily_case:${daily!.case_id}"]`);
+        await previewRow.waitFor();
+        await dailyRow.waitFor();
+        const links = (await p.locator('p.today-links a').allInnerTexts()).map((t) => t.trim());
+        expect(['Mistakes and review', 'Case inbox', 'Portfolio'].every((l) => links.includes(l)), `the SQL links on Today are ${links.join(', ')}`);
+        const sketchLink = previewRow.getByRole('link', { name: /^Read and sketch/ });
+        expect((await sketchLink.getAttribute('href')) === `#/opener/${opener!.case_id}?step=sketch`, 'the preview link does not open the sketch step');
+        expect((await dailyRow.getByRole('link', { name: /^Open it/ }).getAttribute('href')) === `#/case/${daily!.case_id}`, 'the daily case link does not open its case');
+        await sketchLink.click();
+        await p.getByRole('navigation', { name: 'Case steps' }).waitFor();
+        expect((await stripBtn(p, 'sketch').getAttribute('aria-current')) === 'step', `${opener!.case_id}: the case screen did not open on its sketch`);
+        await p.goto(`${BASE}/#/`);
+        await dailyRow.getByRole('link', { name: /^Open it/ }).click();
+        await p.locator('.case-status').waitFor();
+        expect(p.url().endsWith(`#/case/${daily!.case_id}`), `the daily case link went to ${p.url().replace(BASE, '')}`);
+        return `the plan lists the opener ${opener!.case_id} (preview, with a sketch) and the daily case ${daily!.case_id}; Today shows both rows and the SQL links (${links.join(', ')}); "Read and sketch" opens the case on its sketch step and the daily case's link opens its case`;
+      });
+
+      await browser.close();
+      browser = null;
+      await stopServer(server);
+      server = null;
+    }
+
+    {
+      const dir = join(tmp, 'logs-4b-5');
+      await mkdir(dir);
+      server = await startServer(ROOT, dir);
+      browser = await chromium.launch();
+      const p = await newPage(browser, dialogs);
+      p.on('pageerror', () => { pageErrors++; });
+      const SCREEN_NOTE = 'Screen mode: no autocomplete, and types and rounding are checked as an online test does';
+      const completion = p.locator('.cm-tooltip-autocomplete');
+
+      await row('4b-5', 'a screen-mode drill shows the banner and no autocomplete (a normal exercise does autocomplete)', async () => {
+        // The control: an ordinary exercise offers completions for "SEL", so the absence below means something.
+        await openItem(p, RUN_ITEM);
+        await p.locator('.cm-content').click();
+        await p.keyboard.press('Control+End');
+        await p.keyboard.type('SEL');
+        await completion.waitFor({ timeout: 10_000 });
+        await p.keyboard.press('Escape');
+
+        await p.goto(`${BASE}/#/drill`);
+        await p.getByRole('heading', { name: 'Drill', level: 1, exact: true }).waitFor();
+        await p.getByLabel('Screen mode', { exact: true }).check();
+        const startedP = p.waitForResponse((r) => r.url().endsWith('/api/drill/start'));
+        await p.getByRole('button', { name: 'Start drill: level 1' }).click();
+        const started = await startedP;
+        const run = (await started.json()) as DrillStarted;
+        expect(started.status() === 200 && run.screen_mode === true, `the screen-mode start answered ${started.status()} with screen_mode ${String(run.screen_mode)}`);
+        await p.getByRole('heading', { name: 'Level 1 drill (screen mode)', level: 1 }).waitFor();
+        // The first question that is a query to write (a choice question has no editor).
+        let at = 0;
+        for (; at < run.servings.length; at++) {
+          if (at > 0) await p.getByRole('navigation', { name: 'Questions' }).getByRole('button', { name: `Question ${at + 1}`, exact: true }).click();
+          if (!choiceKeys.has(run.servings[at]!.item_id)) break;
+        }
+        expect(at < run.servings.length, 'no question of the level 1 drill is a query to write');
+        const q = p.locator('.exercise').filter({ has: p.getByRole('heading', { name: `Question ${at + 1} of ${run.servings.length}`, exact: true }) });
+        await q.getByText(SCREEN_NOTE).waitFor();
+        await q.locator('.cm-content').click();
+        await p.keyboard.press('Control+End');
+        await p.keyboard.type('SEL');
+        await sleep(1500);   // a negative check: the wait gives a list that would open time to appear; the ordinary-exercise control earlier in this row shows it does open
+        expect((await completion.count()) === 0, 'an autocomplete list opened in the screen-mode drill');
+        await p.keyboard.press('Control+A');
+        await p.keyboard.insertText(NOT_IT);
+        await p.keyboard.press('Escape');
+        await q.getByRole('button', { name: /^Submit/ }).click();
+        await q.locator('section.grade h3', { hasText: 'Not yet' }).waitFor({ timeout: 30_000 });
+        const att = await waitFor('the screen-mode attempt', async () => (await attempts(dir)).find((r) => r.record === 'attempt' && r.item_id === run.servings[at]!.item_id && r.phase === 'drill'));
+        expect(att.screen_mode === true, `the attempt on ${att.item_id} is not logged with screen_mode true`);
+        await p.getByRole('button', { name: 'End the drill and see the review' }).click();
+        await p.getByRole('heading', { name: 'Level 1 drill: review', level: 1 }).waitFor();
+        const history = (await getJson<{ runs: DrillHistoryRow[] }>('/api/drill/history')).body.runs;
+        expect(history.length === 1 && history[0]!.screen_mode === true, 'the drill history does not show the run as screen mode');
+        return `control: the ordinary exercise ${RUN_ITEM} opened an autocomplete list for "SEL"; the level 1 drill started in screen mode, heading "(screen mode)", the banner shown on question ${at + 1}, typing "SEL" opened no list; the attempt on ${String(att.item_id)} is logged screen_mode true and the history lists the run as screen mode`;
+      });
+
+      await row('4b-6', 'a live rep: "explained aloud" makes a passed exercise count as passed, and without it the rep is logged only', async () => {
+        await p.getByRole('button', { name: 'Back to drills' }).click();    // the drill screen is still on its review (the same address)
+        await p.getByTestId('live-rep-start').waitFor();
+        const startedP = p.waitForResponse((r) => r.url().endsWith('/api/drill/live/start'));
+        await p.getByTestId('live-rep-start').click();
+        const started = await startedP;
+        expect(started.status() === 200, `the live rep start answered ${started.status()}`);
+        const rep = (await started.json()) as { block_id: string; live: boolean; screen_mode: boolean; servings: { item_id: string }[] };
+        expect(rep.live === true && rep.screen_mode === true && rep.servings.length === 1 && rep.block_id.startsWith('live-'), 'the live rep is not one screen-mode serving');
+        const itemId = rep.servings[0]!.item_id;
+        await p.getByRole('heading', { name: 'Live rep (screen mode)', level: 1 }).waitFor();
+        const choice = choiceKeys.get(itemId);
+        if (choice) {
+          await p.locator('section.choice').waitFor();
+          if (choice.correct_oid !== undefined) {
+            try { await p.locator(`section.choice input[type="radio"][value="${choice.correct_oid}"]`).check(); }
+            catch { throw new Error(`live rep ${itemId}: could not pick the option`); }    // Playwright's own error would print the option id
+          }
+          else await p.getByLabel('Your answer').fill(String(choice.value));
+          await p.getByRole('button', { name: '3: fairly sure', exact: true }).click();
+          await p.locator('.grade h3', { hasText: 'Right.' }).waitFor();
+        } else {
+          await p.locator('.cm-content').waitFor();
+          await replaceSql(p, reference(itemId));
+          await submit(p);
+          await outcome(p, 'Correct');
+        }
+        await p.getByRole('button', { name: 'End the rep and see the review' }).click();
+        await p.getByRole('heading', { name: 'Live rep: review', level: 1 }).waitFor();
+        const result = p.getByTestId('live-rep-result');
+        await result.waitFor();
+        const before = (await result.innerText()).trim();
+        expect(/^Logged only/.test(before), `before the tick the rep reads "${before}"`);
+        const historyOf = async () => (await getJson<{ runs: DrillHistoryRow[] }>('/api/drill/history')).body.runs.filter((r) => r.kind === 'live_rep');
+        const h0 = await historyOf();
+        expect(h0.length === 1 && h0[0]!.run_passed === false, 'the rep counts as passed before "explained aloud" is ticked');
+        await p.getByTestId('live-rep-explained').click();           // click, not check(): the box follows the server's answer
+        await result.filter({ hasText: 'Live rep passed.' }).waitFor();
+        const after = await waitFor('the rep counted as passed', async () => { const h = await historyOf(); return h.length === 1 && h[0]!.run_passed === true ? h : null; });
+        const checks = (await attempts(dir)).filter((r) => r.record === 'self_check' && r.kind === 'explained_aloud' && r.block_id === rep.block_id);
+        expect(checks.length === 1 && Array.isArray(checks[0]!.ticked) && (checks[0]!.ticked as string[]).includes('explained_aloud'), `${checks.length} explained_aloud self_checks were logged for the rep`);
+        return `live rep on ${itemId} (screen mode, one question): the exercise passed; before the tick the rep read "Logged only" and the history showed it not passed; after "explained aloud" it read "Live rep passed.", the history shows run_passed ${String(after[0]!.run_passed)} and one explained_aloud self_check is logged`;
+      });
+
+      await row('4b-7', 'the dataset explorer runs a SELECT and refuses a second statement, logging nothing', async () => {
+        const before = (await attempts(dir)).length;
+        await p.goto(`${BASE}/#/explore`);
+        await p.getByRole('heading', { name: 'Dataset explorer', level: 1 }).waitFor();
+        await p.locator('[data-explore-editor] .cm-content').waitFor();
+        await p.locator('aside.schema-panel details summary code').first().waitFor();
+        await replaceSql(p, 'SELECT store_id FROM stores LIMIT 3');
+        await p.getByRole('button', { name: 'Run', exact: true }).click();
+        await resultTable(p).waitFor();
+        expect((await p.locator('.result table').count()) > 0 && (await p.locator('[data-explore-error]').count()) === 0, 'the SELECT drew no table or drew an error');
+        await replaceSql(p, 'SELECT 1; SELECT 2');
+        await p.getByRole('button', { name: 'Run', exact: true }).click();
+        await p.locator('[data-explore-error]').waitFor();
+        const refusal = (await p.locator('[data-explore-error]').innerText()).trim();
+        expect(/one statement/i.test(refusal) && (await p.getByRole('button', { name: /^Submit/ }).count()) === 0, 'the refusal does not mention one statement, or the explorer has a Submit button');
+        expect((await p.locator('.result table').count()) === 0, 'the earlier result table is still on screen after the refusal');
+        const after = (await attempts(dir)).length;
+        expect(after === before, `the explorer logged ${after - before} records`);
+        return `the explorer ran a SELECT on stores and showed its table; "SELECT 1; SELECT 2" was refused with a message (${refusal.length} characters); no Submit button; nothing was logged`;
+      });
+
+      await row('4c-1', 'after Today, the SQL tab moves focus to the SQL map\'s heading', async () => {
+        await p.goto(`${BASE}/#/`);
+        await p.getByRole('heading', { name: 'Today', level: 1 }).waitFor();
+        await p.locator('nav.tabs a[href="#/map"]').click();
+        await p.getByRole('heading', { name: 'SQL map', level: 1 }).waitFor();
+        const focused = await waitFor('focus on the SQL map heading', async () => p.evaluate(() => {
+          const a = document.activeElement;
+          return a && a.tagName === 'H1' ? { text: a.textContent?.trim() ?? '', tabindex: a.getAttribute('tabindex'), inMain: a.closest('main') !== null } : null;
+        }));
+        expect(focused.text === 'SQL map' && focused.tabindex === '-1' && focused.inMain, `focus is on "${focused.text}" (tabindex ${String(focused.tabindex)}), not the SQL map heading`);
+        return 'from Today, the SQL tab opened the map and document.activeElement is its h1 "SQL map" (tabindex -1, inside main)';
+      });
+
+      await row('4c-2', 'a live rep left unticked is ticked from the drill history and shows as passed', async () => {
+        await p.goto(`${BASE}/#/drill`);
+        await p.getByTestId('live-rep-start').waitFor();
+        const startedP = p.waitForResponse((r) => r.url().endsWith('/api/drill/live/start'));
+        await p.getByTestId('live-rep-start').click();
+        const rep = (await (await startedP).json()) as { block_id: string; servings: { item_id: string }[] };
+        const itemId = rep.servings[0]!.item_id;
+        await p.getByRole('heading', { name: 'Live rep (screen mode)', level: 1 }).waitFor();
+        const choice = choiceKeys.get(itemId);
+        if (choice) {
+          await p.locator('section.choice').waitFor();
+          if (choice.correct_oid !== undefined) {
+            try { await p.locator(`section.choice input[type="radio"][value="${choice.correct_oid}"]`).check(); }
+            catch { throw new Error(`live rep ${itemId}: could not pick the option`); }
+          }
+          else await p.getByLabel('Your answer').fill(String(choice.value));
+          await p.getByRole('button', { name: '3: fairly sure', exact: true }).click();
+          await p.locator('.grade h3', { hasText: 'Right.' }).waitFor();
+        } else {
+          await p.locator('.cm-content').waitFor();
+          await replaceSql(p, reference(itemId));
+          await submit(p);
+          await outcome(p, 'Correct');
+        }
+        await p.getByRole('button', { name: 'End the rep and see the review' }).click();
+        await p.getByRole('heading', { name: 'Live rep: review', level: 1 }).waitFor();
+        await p.getByTestId('live-rep-result').waitFor();      // the rep is left unticked
+        await p.getByRole('button', { name: 'Back to drills' }).click();
+        await p.getByRole('heading', { name: 'Drill', level: 1, exact: true }).waitFor();
+        const box = p.getByTestId(`history-explained-${rep.block_id}`);
+        await box.waitFor();
+        const tr = p.locator('tbody tr').filter({ has: box });
+        const passedCell = async () => ((await tr.locator('td').nth(3).innerText()).trim());
+        expect((await passedCell()) === 'Logged only' && !(await box.isChecked()), `before the tick the rep's Passed cell reads "${await passedCell()}"`);
+        expect(/^Explained aloud: live rep on /.test((await box.getAttribute('aria-label')) ?? ''), 'the history box has no "Explained aloud: live rep on <date>" label');
+        await box.focus();
+        await p.keyboard.press('Space');                        // the keyboard, not a click: the box follows the server's answer and keeps focus
+        await waitFor('the Passed cell to read Yes', async () => ((await passedCell()) === 'Yes' ? true : null));
+        await waitFor('the box to show ticked', async () => ((await box.isChecked()) ? true : null));
+        const checks = (await attempts(dir)).filter((r) => r.record === 'self_check' && r.kind === 'explained_aloud' && r.block_id === rep.block_id);
+        expect(checks.length === 1 && Array.isArray(checks[0]!.ticked) && (checks[0]!.ticked as string[]).includes('explained_aloud'), `${checks.length} explained_aloud self_checks were logged for the rep`);
+        const h = (await getJson<{ runs: DrillHistoryRow[] }>('/api/drill/history')).body.runs.find((r) => r.block_id === rep.block_id);
+        expect(h?.run_passed === true, 'the history does not count the rep as passed after the tick');
+        // F2 I1: the box is not disabled while its tick saves, so it is still the focused element once the tick is saved.
+        const focusedId = await p.evaluate(() => document.activeElement?.getAttribute('data-testid') ?? document.activeElement?.tagName ?? '');
+        expect(focusedId === `history-explained-${rep.block_id}`, `after the tick was saved, focus is on ${focusedId}, not the history box`);
+        return `a second live rep on ${itemId} ended unticked and the history row read "Logged only"; its "Explained aloud" box was clicked, the cell reads "Yes", the box is ticked, one explained_aloud self_check is logged and the history counts the rep as passed; ticked with the Space key, the box still holds keyboard focus`;
+      });
+
+      await browser.close();
+      browser = null;
+      await stopServer(server);
+      server = null;
+    }
   } catch (e) {
     results.push({ row: '!', ok: false, detail: (e instanceof Error ? e.message : String(e)).split('\n')[0]! });
     say(`STOPPED: ${results.at(-1)!.detail}`);

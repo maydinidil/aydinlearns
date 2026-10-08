@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-CTE-01-E1-05",
+  "item_version": 1,
+  "reference_sql": "WITH orders_per_customer AS (\n  SELECT customer_id, COUNT(*) AS n_orders\n  FROM orders\n  WHERE customer_id IS NOT NULL\n  GROUP BY customer_id\n)\nSELECT n_orders, COUNT(*) AS n_customers\nFROM orders_per_customer\nGROUP BY n_orders",
+  "alternatives": [
+    "WITH c AS (SELECT customer_id, COUNT(order_id) AS n_orders FROM orders GROUP BY customer_id) SELECT n_orders, COUNT(*) AS n_customers FROM c WHERE customer_id IS NOT NULL GROUP BY n_orders",
+    "WITH orders_per_customer AS (SELECT customer_id, COUNT(*) AS n_orders FROM orders WHERE customer_id IS NOT NULL GROUP BY 1) SELECT n_orders, COUNT(customer_id) AS n_customers FROM orders_per_customer GROUP BY 1"
+  ],
+  "other_way": {
+    "sql": "WITH c AS (SELECT customer_id, COUNT(order_id) AS n_orders FROM orders GROUP BY customer_id) SELECT n_orders, COUNT(*) AS n_customers FROM c WHERE customer_id IS NOT NULL GROUP BY n_orders",
+    "tradeoff": "Dropping the guest row after the step gives the same counts, but the step then builds a row for guests that nothing uses."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-14",
+      "sql": "WITH orders_per_customer AS (SELECT customer_id, COUNT(*) AS n_orders FROM orders WHERE customer_id IS NOT NULL GROUP BY customer_id) SELECT n_orders, SUM(n_orders) AS n_customers FROM orders_per_customer GROUP BY n_orders"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-07",
+      "sql": "WITH orders_per_customer AS (SELECT customer_id, store_id, COUNT(*) AS n_orders FROM orders WHERE customer_id IS NOT NULL GROUP BY customer_id, store_id) SELECT n_orders, COUNT(*) AS n_customers FROM orders_per_customer GROUP BY n_orders"
+    }
+  ],
+  "hint3_partial": "WITH orders_per_customer AS (\n  SELECT customer_id, COUNT(*) AS n_orders\n  FROM orders\n  WHERE ___\n  GROUP BY customer_id\n)\nSELECT n_orders, COUNT(*) AS n_customers\nFROM orders_per_customer\nGROUP BY ___",
+  "solver": {
+    "prompt_hash": "c4d0a62d6086771a",
+    "schema_version": "7ed366279088",
+    "dataset_version": "e1545e4258743033",
+    "grader_version": "1b.3",
+    "query": "WITH per_customer AS (\n  SELECT customer_id, COUNT(*) AS n_orders\n  FROM orders\n  WHERE customer_id IS NOT NULL\n  GROUP BY customer_id\n)\nSELECT n_orders, COUNT(*) AS n_customers\nFROM per_customer\nGROUP BY n_orders",
+    "at": "2026-10-07T10:41:34.155Z"
+  }
+}

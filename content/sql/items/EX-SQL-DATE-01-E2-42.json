@@ -1,0 +1,95 @@
+{
+  "id": "EX-SQL-DATE-01-E2-42",
+  "version": 1,
+  "kind": "choose_query",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "date",
+    "choose_query",
+    "time-zone",
+    "amsterdam",
+    "day",
+    "orders"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-DATE-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-DATE-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-DATE-01"
+  ],
+  "template_id": "T-DATE-01-choose-amsterdam-day",
+  "template_params": {
+    "table": "orders",
+    "from": "2025-12-29",
+    "to": "2025-12-31"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_date",
+  "prompt": "How many web orders did Voltmarkt take on each Amsterdam calendar day from 2025-12-29 to 2025-12-31? order_ts holds the time of the order in UTC. The answer has two columns, order_day, the Amsterdam date, and orders, with one row for each day. Which query returns it?",
+  "output_contract": null,
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [],
+  "subgoals": [],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 90000,
+  "why_this_works": "",
+  "options": [
+    {
+      "oid": "o0a1f57d",
+      "text": "SELECT CAST(order_ts AS DATE) AS order_day, COUNT(*) AS orders\nFROM orders\nWHERE channel = 'web'\n  AND CAST(order_ts AS DATE) BETWEEN DATE '2025-12-29' AND DATE '2025-12-31'\nGROUP BY 1",
+      "misconception_id": "ERR-LOG-26"
+    },
+    {
+      "oid": "ocfb132d",
+      "text": "SELECT CAST(order_ts AT TIME ZONE 'Europe/Amsterdam' AS DATE) AS order_day, COUNT(*) AS orders\nFROM orders\nWHERE channel = 'web'\n  AND CAST(order_ts AT TIME ZONE 'Europe/Amsterdam' AS DATE) BETWEEN DATE '2025-12-29' AND DATE '2025-12-31'\nGROUP BY 1",
+      "misconception_id": "ERR-LOG-26"
+    },
+    {
+      "oid": "od90098d",
+      "text": "SELECT CAST(timezone('Europe/Amsterdam', timezone('UTC', order_ts)) AS DATE) AS order_day, COUNT(*) AS orders\nFROM orders\nWHERE channel = 'web'\n  AND CAST(timezone('Europe/Amsterdam', timezone('UTC', order_ts)) AS DATE) BETWEEN DATE '2025-12-29' AND DATE '2025-12-31'\nGROUP BY 1",
+      "misconception_id": null
+    },
+    {
+      "oid": "oc17af1e",
+      "text": "SELECT CAST(timezone('Europe/Amsterdam', timezone('UTC', order_ts)) AS DATE) AS order_day, COUNT(*) AS orders\nFROM orders\nWHERE channel = 'web'\n  AND CAST(order_ts AS DATE) BETWEEN DATE '2025-12-29' AND DATE '2025-12-31'\nGROUP BY 1",
+      "misconception_id": "ERR-LOG-26"
+    }
+  ]
+}

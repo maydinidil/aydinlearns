@@ -1,0 +1,131 @@
+{
+  "id": "EX-SQL-DATE-01-E2-22",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "date",
+    "date_part",
+    "iso-week",
+    "isoyear",
+    "competitor_prices"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-DATE-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-DATE-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-DATE-01"
+  ],
+  "template_id": "T-DATE-01-count-per-iso-week",
+  "template_params": {
+    "table": "competitor_prices",
+    "competitor": "Bliksem",
+    "from": "2024-12-23",
+    "to": "2025-01-12",
+    "clock": "UTC"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_date",
+  "prompt": "How many price checks did Bliksem make in each ISO week from Monday 2024-12-23 to Sunday 2025-01-12? Use the competitor_prices table and keep the checks with competitor 'Bliksem'. observed_ts holds the time of the check in UTC, so work in UTC and keep the checks from 2024-12-23 00:00 up to but not including 2025-01-13 00:00. Return three columns, in this order: iso_year, the year the ISO week belongs to, iso_week, the ISO week number, and checks, the number of price checks. Return one row for each ISO week. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "iso_year",
+        "type_class": "numeric"
+      },
+      {
+        "name": "iso_week",
+        "type_class": "numeric"
+      },
+      {
+        "name": "checks",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "iso_year",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "iso_week",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "checks",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "iso_year",
+      "iso_week"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the calculated columns: the ISO year and the ISO week number of each check, and the count.",
+    "Monday 30 December 2024 starts ISO week 1 of 2025, so take the year with isoyear, not year, and the ISO week number with week."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 104,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 105,
+      "to": 127,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 128,
+      "to": 261,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 262,
+      "to": 310,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "isoyear and week label every check with its ISO week, so the checks of 30 and 31 December 2024 count in week 1 of 2025."
+}

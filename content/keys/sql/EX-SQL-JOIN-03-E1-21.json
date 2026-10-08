@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-JOIN-03-E1-21",
+  "item_version": 2,
+  "reference_sql": "SELECT pr.promo_type, COUNT(DISTINCT pr.promo_id) AS n_promotions, COUNT(*) AS n_listings\nFROM promotions pr\nJOIN promotion_products pp ON pp.promo_id = pr.promo_id\nGROUP BY pr.promo_type",
+  "alternatives": [
+    "WITH promo_sizes AS (SELECT promo_id, COUNT(*) AS n_products FROM promotion_products GROUP BY promo_id) SELECT pr.promo_type, COUNT(*) AS n_promotions, SUM(s.n_products) AS n_listings FROM promotions pr JOIN promo_sizes s ON s.promo_id = pr.promo_id GROUP BY pr.promo_type",
+    "SELECT pr.promo_type, COUNT(DISTINCT pp.promo_id) AS n_promotions, COUNT(pp.product_id) AS n_listings FROM promotion_products pp JOIN promotions pr ON pr.promo_id = pp.promo_id GROUP BY 1"
+  ],
+  "other_way": {
+    "sql": "WITH promo_sizes AS (SELECT promo_id, COUNT(*) AS n_products FROM promotion_products GROUP BY promo_id) SELECT pr.promo_type, COUNT(*) AS n_promotions, SUM(s.n_products) AS n_listings FROM promotions pr JOIN promo_sizes s ON s.promo_id = pr.promo_id GROUP BY pr.promo_type",
+    "tradeoff": "Counting each promotion's products in a step first keeps one row per promotion, but COUNT(DISTINCT) does it in one query."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-01",
+      "sql": "SELECT pr.promo_type, COUNT(*) AS n_promotions, COUNT(*) AS n_listings FROM promotions pr JOIN promotion_products pp ON pp.promo_id = pr.promo_id GROUP BY pr.promo_type"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-04",
+      "sql": "SELECT pr.promo_type, COUNT(DISTINCT pr.promo_id) AS n_promotions, COUNT(DISTINCT pp.product_id) AS n_listings FROM promotions pr JOIN promotion_products pp ON pp.promo_id = pr.promo_id GROUP BY pr.promo_type"
+    }
+  ],
+  "hint3_partial": "SELECT pr.promo_type, COUNT(___) AS n_promotions, COUNT(*) AS n_listings\nFROM promotions pr\nJOIN promotion_products pp ON ___\nGROUP BY pr.promo_type",
+  "solver": {
+    "prompt_hash": "cfdf47bd4c4a7bb2",
+    "schema_version": "12e1ed68031d",
+    "dataset_version": "e1545e4258743033",
+    "grader_version": "1b.3",
+    "query": "SELECT p.promo_type, COUNT(DISTINCT p.promo_id) AS n_promotions, COUNT(*) AS n_listings\nFROM promotions p\nJOIN promotion_products pp ON pp.promo_id = p.promo_id\nGROUP BY p.promo_type",
+    "at": "2026-10-07T10:41:39.573Z"
+  }
+}

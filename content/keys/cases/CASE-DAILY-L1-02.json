@@ -1,0 +1,7 @@
+{
+  "case_id": "CASE-DAILY-L1-02",
+  "truths": {
+    "CP4": "SELECT ROUND(MAX(unit_cost_eur * 1.6), 2)\nFROM products\nWHERE category_id IN (15, 16) AND unit_cost_eur < 40"
+  },
+  "choices": {}
+}

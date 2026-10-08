@@ -23,8 +23,8 @@ root=$(git rev-parse --show-toplevel)
 # The target must be a clone of the public repo, and no checkout or worktree of this monorepo.
 [ -d "$clone/.git" ] || [ -f "$clone/.git" ] || { echo "not a git clone: $clone" >&2; exit 2; }
 origin=$(git -C "$clone" remote get-url origin 2>/dev/null || true)
-[[ "$origin" =~ github\.com[:/]$PUBLIC_REPO(\.git)?$ ]] || { echo "the clone's origin is not $PUBLIC_REPO: ${origin:-none}" >&2; exit 2; }
-[ "$(git -C "$clone" rev-parse --git-common-dir | xargs realpath)" != "$(git -C "$root" rev-parse --git-common-dir | xargs realpath)" ] \
+[[ "$origin" =~ ^(https://github\.com/|git@github\.com:|ssh://git@github\.com/)$PUBLIC_REPO(\.git)?$ ]] || { echo "the clone's origin is not $PUBLIC_REPO: ${origin:-none}" >&2; exit 2; }
+[ "$(git -C "$clone" rev-parse --path-format=absolute --git-common-dir)" != "$(git -C "$root" rev-parse --path-format=absolute --git-common-dir)" ] \
   || { echo "the clone shares this monorepo's repository" >&2; exit 2; }
 clonetop=$(git -C "$clone" rev-parse --show-toplevel)
 case "$clonetop/" in "$root"/*) echo "the clone must be outside the monorepo" >&2; exit 2 ;; esac

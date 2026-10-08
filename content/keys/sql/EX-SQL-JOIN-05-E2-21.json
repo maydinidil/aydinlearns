@@ -1,0 +1,39 @@
+{
+  "item_id": "EX-SQL-JOIN-05-E2-21",
+  "item_version": 1,
+  "reference_sql": "SELECT s.store_code, c.cal_date, COALESCE(SUM(ol.quantity), 0) AS units\nFROM stores s\nCROSS JOIN calendar c\nLEFT JOIN orders o ON o.store_id = s.store_id AND CAST(o.order_ts AS DATE) = c.cal_date\nLEFT JOIN order_lines ol ON ol.order_id = o.order_id\nWHERE s.country_code = 'NL' AND c.cal_date BETWEEN DATE '2025-03-06' AND DATE '2025-03-09'\nGROUP BY s.store_code, c.cal_date",
+  "alternatives": [
+    "WITH day_units AS (SELECT o.store_id, CAST(o.order_ts AS DATE) AS order_date, SUM(ol.quantity) AS units FROM orders o JOIN order_lines ol ON ol.order_id = o.order_id GROUP BY o.store_id, CAST(o.order_ts AS DATE)) SELECT s.store_code, c.cal_date, COALESCE(d.units, 0) AS units FROM stores s CROSS JOIN calendar c LEFT JOIN day_units d ON d.store_id = s.store_id AND d.order_date = c.cal_date WHERE s.country_code = 'NL' AND c.cal_date BETWEEN DATE '2025-03-06' AND DATE '2025-03-09'",
+    "SELECT s.store_code, c.cal_date, COALESCE(SUM(ol.quantity), 0) AS units FROM calendar c CROSS JOIN stores s LEFT JOIN orders o ON o.store_id = s.store_id AND o.order_ts >= c.cal_date AND o.order_ts < c.cal_date + 1 LEFT JOIN order_lines ol ON ol.order_id = o.order_id WHERE s.country_code = 'NL' AND c.cal_date >= DATE '2025-03-06' AND c.cal_date <= DATE '2025-03-09' GROUP BY s.store_code, c.cal_date"
+  ],
+  "other_way": {
+    "sql": "WITH day_units AS (SELECT o.store_id, CAST(o.order_ts AS DATE) AS order_date, SUM(ol.quantity) AS units FROM orders o JOIN order_lines ol ON ol.order_id = o.order_id GROUP BY o.store_id, CAST(o.order_ts AS DATE)) SELECT s.store_code, c.cal_date, COALESCE(d.units, 0) AS units FROM stores s CROSS JOIN calendar c LEFT JOIN day_units d ON d.store_id = s.store_id AND d.order_date = c.cal_date WHERE s.country_code = 'NL' AND c.cal_date BETWEEN DATE '2025-03-06' AND DATE '2025-03-09'",
+    "tradeoff": "Adding up units per store and day in a CTE first avoids a chain of two LEFT JOINs, but the CTE reads every order."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-11",
+      "sql": "SELECT s.store_code, c.cal_date, COALESCE(SUM(ol.quantity), 0) AS units FROM stores s CROSS JOIN calendar c LEFT JOIN orders o ON o.store_id = s.store_id AND CAST(o.order_ts AS DATE) = c.cal_date JOIN order_lines ol ON ol.order_id = o.order_id WHERE s.country_code = 'NL' AND c.cal_date BETWEEN DATE '2025-03-06' AND DATE '2025-03-09' GROUP BY s.store_code, c.cal_date"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-17",
+      "sql": "SELECT s.store_code, c.cal_date, SUM(ol.quantity) AS units FROM stores s CROSS JOIN calendar c LEFT JOIN orders o ON o.store_id = s.store_id AND CAST(o.order_ts AS DATE) = c.cal_date LEFT JOIN order_lines ol ON ol.order_id = o.order_id WHERE s.country_code = 'NL' AND c.cal_date BETWEEN DATE '2025-03-06' AND DATE '2025-03-09' GROUP BY s.store_code, c.cal_date"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-14",
+      "sql": "SELECT s.store_code, c.cal_date, COUNT(ol.order_line_id) AS units FROM stores s CROSS JOIN calendar c LEFT JOIN orders o ON o.store_id = s.store_id AND CAST(o.order_ts AS DATE) = c.cal_date LEFT JOIN order_lines ol ON ol.order_id = o.order_id WHERE s.country_code = 'NL' AND c.cal_date BETWEEN DATE '2025-03-06' AND DATE '2025-03-09' GROUP BY s.store_code, c.cal_date"
+    }
+  ],
+  "hint3_partial": "SELECT s.store_code, c.cal_date, COALESCE(SUM(ol.quantity), 0) AS units\nFROM stores s\nCROSS JOIN calendar c\nLEFT JOIN orders o ON o.store_id = s.store_id AND CAST(o.order_ts AS DATE) = c.cal_date\n___ order_lines ol ON ol.order_id = o.order_id\nWHERE s.country_code = 'NL' AND c.cal_date BETWEEN DATE '2025-03-06' AND DATE '2025-03-09'\nGROUP BY s.store_code, c.cal_date",
+  "solver": {
+    "prompt_hash": "c9bff613500597ca",
+    "schema_version": "1643a7016c6e",
+    "dataset_version": "e1545e4258743033",
+    "grader_version": "1b.3",
+    "query": "WITH order_units AS (\n  SELECT o.store_id, CAST(o.order_ts AS DATE) AS d, SUM(l.quantity) AS units\n  FROM orders o\n  JOIN order_lines l ON l.order_id = o.order_id\n  WHERE o.order_ts >= TIMESTAMP '2025-03-06 00:00:00' AND o.order_ts < TIMESTAMP '2025-03-10 00:00:00'\n  GROUP BY o.store_id, CAST(o.order_ts AS DATE)\n)\nSELECT s.store_code, c.cal_date, COALESCE(ou.units, 0) AS units\nFROM stores s\nCROSS JOIN calendar c\nLEFT JOIN order_units ou ON ou.store_id = s.store_id AND ou.d = c.cal_date\nWHERE (s.country_code = 'NL' OR s.store_code = 'WEB-01')\n  AND c.cal_date >= DATE '2025-03-06' AND c.cal_date <= DATE '2025-03-09'",
+    "at": "2026-10-07T10:41:42.116Z"
+  }
+}

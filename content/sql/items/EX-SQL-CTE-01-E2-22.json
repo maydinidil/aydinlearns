@@ -1,0 +1,134 @@
+{
+  "id": "EX-SQL-CTE-01-E2-22",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "cte",
+    "avg",
+    "join",
+    "calendar",
+    "orders",
+    "order_lines",
+    "utc_day",
+    "drill"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-CTE-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-CTE-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-DATE-01",
+    "SQL-JOIN-01",
+    "SQL-CTE-01"
+  ],
+  "template_id": "T-CTE-01-avg-of-step-joined",
+  "template_params": {
+    "step_table": "order_lines",
+    "join_table": "calendar",
+    "group_by": "weekday_name"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_join",
+  "prompt": "What is the average number of units per order on each weekday? An order's units are the quantity summed over its lines. order_ts holds the order time in UTC; use the weekday of the UTC day. Orders with no lines do not count. Return two columns, in this order: weekday_name, the weekday's English name such as Monday, and avg_units. Return one row for each weekday that has orders. Do not round. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "weekday_name",
+        "type_class": "text"
+      },
+      {
+        "name": "avg_units",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "weekday_name",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "avg_units",
+        "type_class": "numeric",
+        "precision": "ratio"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "weekday_name"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, add up each order's units in a first step, keeping the order's UTC day.",
+    "The weekday name comes from the calendar row of that day; join it to the step, not to the single lines."
+  ],
+  "subgoals": [
+    {
+      "from": 24,
+      "to": 107,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 110,
+      "to": 173,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 176,
+      "to": 221,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 224,
+      "to": 272,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 273,
+      "to": 335,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 336,
+      "to": 359,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "The step has one row per order with its units and day, so AVG per weekday averages orders, not lines."
+}

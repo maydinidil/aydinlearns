@@ -1,0 +1,141 @@
+{
+  "id": "EX-SQL-JOIN-03-E2-04",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "fan_out",
+    "cte",
+    "avg",
+    "orders",
+    "order_lines",
+    "stores"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-JOIN-03"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-JOIN-03",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-JOIN-03"
+  ],
+  "template_id": "T-JOIN-03-aggregate-child-first",
+  "template_params": {
+    "parent": "orders",
+    "child": "order_lines",
+    "group_by": "store_code",
+    "metric": "avg_order_eur"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_join",
+  "prompt": "For each store, how many orders with at least one line did it take, and what was their average order value? An order's value is the sum, over its order lines, of quantity times unit_price_eur minus line_discount_eur. Orders with no lines do not count. Return three columns, in this order: store_code, n_orders and avg_order_eur. Return one row for each store with at least one such order; the webshop, WEB-01, counts as a store. Do not round. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "store_code",
+        "type_class": "text"
+      },
+      {
+        "name": "n_orders",
+        "type_class": "numeric"
+      },
+      {
+        "name": "avg_order_eur",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "store_code",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "n_orders",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "avg_order_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "store_code"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, add up each order's value in a step, one row per order.",
+    "After joining the lines, both a row count and an average run over lines; the per-order step makes them run over orders."
+  ],
+  "subgoals": [
+    {
+      "from": 25,
+      "to": 105,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 108,
+      "to": 124,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 127,
+      "to": 144,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 147,
+      "to": 223,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 224,
+      "to": 325,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 326,
+      "to": 347,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "The step has one row per order, and orders and stores add one row each, so COUNT(*) and AVG both run over orders."
+}

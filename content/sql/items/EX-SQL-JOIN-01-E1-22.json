@@ -1,0 +1,125 @@
+{
+  "id": "EX-SQL-JOIN-01-E1-22",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "join",
+    "products",
+    "categories",
+    "date_range"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-JOIN-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-JOIN-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-JOIN-01"
+  ],
+  "template_id": "T-JOIN-01-dimension-lookup-filter",
+  "template_params": {
+    "from": "products",
+    "join": "categories",
+    "year": 2022
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_join",
+  "prompt": "List the products launched in 2022 (launch_date from 1 January 2022 to 31 December 2022, both days included), with their parent category. Return three columns, in this order: product_name, launch_date and parent_category. Return one row for each such product. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "product_name",
+        "type_class": "text"
+      },
+      {
+        "name": "launch_date",
+        "type_class": "temporal"
+      },
+      {
+        "name": "parent_category",
+        "type_class": "text"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "product_name",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "launch_date",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "parent_category",
+        "type_class": "text",
+        "precision": "exact"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "product_name"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, join each product to its category, then keep the 2022 launches.",
+    "parent_category is a column of categories. Keep launch dates from 1 January to 31 December 2022."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 55,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 56,
+      "to": 71,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 72,
+      "to": 122,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 123,
+      "to": 190,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "Each product has one category, so the join adds one parent category per product before WHERE keeps the 2022 launches."
+}

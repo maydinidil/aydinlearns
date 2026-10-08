@@ -1,0 +1,31 @@
+{
+  "item_id": "EX-SQL-JOIN-01-E2-04",
+  "item_version": 1,
+  "reference_sql": "SELECT pr.promo_type, SUM(l.line_discount_eur) AS total_discount_eur\nFROM order_lines l\nJOIN promotions pr ON pr.promo_id = l.promo_id\nGROUP BY pr.promo_type",
+  "alternatives": [
+    "SELECT pr.promo_type, SUM(l.line_discount_eur) AS total_discount_eur FROM promotions pr JOIN order_lines l ON l.promo_id = pr.promo_id GROUP BY 1",
+    "SELECT pr.promo_type, SUM(l.line_discount_eur) AS total_discount_eur FROM order_lines l, promotions pr WHERE pr.promo_id = l.promo_id GROUP BY pr.promo_type"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-12",
+      "sql": "SELECT pr.promo_type, SUM(l.line_discount_eur) AS total_discount_eur FROM order_lines l JOIN promotions pr ON pr.promo_id = l.product_id GROUP BY pr.promo_type"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-SYN-03",
+      "sql": "SELECT promo_type, SUM(line_discount_eur) AS total_discount_eur FROM order_lines l JOIN promotions pr ON pr.promo_id = promo_id GROUP BY promo_type"
+    }
+  ],
+  "hint3_partial": "SELECT pr.promo_type, SUM(l.line_discount_eur) AS total_discount_eur\nFROM order_lines l\nJOIN promotions pr ON ___\nGROUP BY ___",
+  "solver": {
+    "prompt_hash": "7a567e9ca30669ec",
+    "schema_version": "deaba44a0c00",
+    "dataset_version": "e1545e4258743033",
+    "grader_version": "1b.3",
+    "query": "SELECT pr.promo_type, SUM(l.line_discount_eur) AS total_discount_eur\nFROM order_lines l\nJOIN promotions pr ON pr.promo_id = l.promo_id\nGROUP BY pr.promo_type",
+    "at": "2026-10-07T10:41:38.062Z"
+  }
+}

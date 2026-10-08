@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-JOIN-02-E2-01",
+  "item_version": 1,
+  "reference_sql": "SELECT s.store_code, COUNT(o.order_id) AS n_orders\nFROM stores s\nLEFT JOIN orders o ON o.store_id = s.store_id AND o.ship_to_country = 'LU' AND o.order_ts >= TIMESTAMP '2025-03-01 00:00:00' AND o.order_ts < TIMESTAMP '2025-04-01 00:00:00'\nGROUP BY s.store_code",
+  "alternatives": [
+    "SELECT s.store_code, COUNT(o.order_id) AS n_orders FROM orders o RIGHT JOIN stores s ON s.store_id = o.store_id AND o.ship_to_country = 'LU' AND o.order_ts >= TIMESTAMP '2025-03-01 00:00:00' AND o.order_ts < TIMESTAMP '2025-04-01 00:00:00' GROUP BY 1",
+    "SELECT s.store_code, COUNT(*) FILTER (WHERE o.ship_to_country = 'LU' AND o.order_ts >= TIMESTAMP '2025-03-01 00:00:00' AND o.order_ts < TIMESTAMP '2025-04-01 00:00:00') AS n_orders FROM stores s LEFT JOIN orders o ON o.store_id = s.store_id GROUP BY s.store_code"
+  ],
+  "other_way": {
+    "sql": "SELECT s.store_code, COUNT(*) FILTER (WHERE o.ship_to_country = 'LU' AND o.order_ts >= TIMESTAMP '2025-03-01 00:00:00' AND o.order_ts < TIMESTAMP '2025-04-01 00:00:00') AS n_orders FROM stores s LEFT JOIN orders o ON o.store_id = s.store_id GROUP BY s.store_code",
+    "tradeoff": "Counting with FILTER after a plain LEFT JOIN also works, but it joins every order before throwing most of them away."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-10",
+      "sql": "SELECT s.store_code, COUNT(o.order_id) AS n_orders FROM stores s LEFT JOIN orders o ON o.store_id = s.store_id WHERE o.ship_to_country = 'LU' AND o.order_ts >= TIMESTAMP '2025-03-01 00:00:00' AND o.order_ts < TIMESTAMP '2025-04-01 00:00:00' GROUP BY s.store_code"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-04",
+      "sql": "SELECT s.store_code, COUNT(*) AS n_orders FROM stores s LEFT JOIN orders o ON o.store_id = s.store_id AND o.ship_to_country = 'LU' AND o.order_ts >= TIMESTAMP '2025-03-01 00:00:00' AND o.order_ts < TIMESTAMP '2025-04-01 00:00:00' GROUP BY s.store_code"
+    }
+  ],
+  "hint3_partial": "SELECT s.store_code, COUNT(o.order_id) AS n_orders\nFROM stores s\nLEFT JOIN orders o ON o.store_id = s.store_id AND ___\nGROUP BY s.store_code",
+  "solver": {
+    "prompt_hash": "0bfa46772ef050a6",
+    "schema_version": "b1c1a5d57d7d",
+    "dataset_version": "e1545e4258743033",
+    "grader_version": "1b.3",
+    "query": "SELECT s.store_code, COUNT(o.order_id) AS n_orders\nFROM stores s\nLEFT JOIN orders o ON o.store_id = s.store_id\n  AND o.ship_to_country = 'LU'\n  AND o.order_ts >= TIMESTAMP '2025-03-01 00:00:00' AND o.order_ts < TIMESTAMP '2025-04-01 00:00:00'\nGROUP BY s.store_id, s.store_code",
+    "at": "2026-10-07T10:41:38.513Z"
+  }
+}

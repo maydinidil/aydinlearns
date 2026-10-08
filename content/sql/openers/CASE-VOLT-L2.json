@@ -1,5 +1,7 @@
 {
   "case_id": "CASE-VOLT-L2",
+  "kind": "opener",
+  "level": 2,
   "world": "RETAIL",
   "company_id": "voltmarkt",
   "title": "High-ticket categories and the web",
@@ -10,6 +12,24 @@
   "brief": {
     "decision": "Which high-ticket parent categories to show in the board pack, and how much each relies on the web",
     "deadline": "The next board meeting"
+  },
+  "data_needed": [
+    "sales"
+  ],
+  "expected_output": {
+    "columns": [
+      "parent_category",
+      "n_orders",
+      "revenue_eur",
+      "web_revenue_pct"
+    ],
+    "grain": "one row per parent category",
+    "sort": [
+      {
+        "column": "revenue_eur",
+        "desc": true
+      }
+    ]
   },
   "checkpoints": [
     {
@@ -44,6 +64,12 @@
   ],
   "model_plan": "Metrics: the number of different orders, the net revenue, and the web share of that revenue as a percentage of sums (web revenue over all revenue, times 100, rounded once at the end). Output grain: one row per parent category. Table: the sales view, one row per order line. Row filter: order_date in 2025, both ends included. Group filter: the average net revenue per line above 150 euros, tested after grouping. Edge cases: lines with a missing net revenue, a category with no web lines (its share is 0.0, not missing), and orders with several lines in one category. Sort: revenue from high to low.",
   "model_answer_template": "In 2025, {n_categories} parent categories averaged more than 150 euros per order line. {top_category} led with {top_revenue} euros of net revenue from {top_orders} orders. Their web share ran from {lowest_web_pct}% to {highest_web_pct}%, so {so_what}.",
+  "follow_up_question": "How did the web share of each of these categories change from 2024 to 2025?",
+  "data_source": {
+    "label": "Fictional, generated data: Voltmarkt",
+    "real": false,
+    "licence": null
+  },
   "difficulty": 2,
   "concept_ids": [
     "SQL-BASICS-01",

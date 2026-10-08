@@ -3,7 +3,7 @@
 import type { ChoiceItem, ChoiceKey, TypedSpec } from '../../schemas/choice.ts';
 
 /** Logged on every choice attempt. Bump it whenever pass or fail or the diagnosis changes (Global Constraints). */
-export const CHOICE_GRADER_VERSION = 'choice.1';
+export const CHOICE_GRADER_VERSION = 'choice.2';
 /** E-143: a share typed where a percentage was asked, or the reverse. */
 export const PERCENT_SCALE_ERROR = 'ERR-LOG-21';
 
@@ -19,7 +19,6 @@ export const TYPED_REFUSALS = {
   unit: 'Type only the number, without the unit.',
   notPercent: 'This answer is not a percentage. Type the number without %.',
   whole: 'This answer is a whole number. Type it without decimals.',
-  thousands: 'This answer is a whole number, and a thousands separator is not accepted. Type it without one, for example 1234.',
   notNumber: 'That is not a number. Type digits with a decimal point or comma, for example 12.5.',
 } as const;
 const MAX_LENGTH = 40;
@@ -39,8 +38,9 @@ export function gradeChoice(item: Pick<ChoiceItem, 'id' | 'options'>, key: Choic
 /**
  * D15: a number as a person types it. Accepted: spaces around it, a decimal point or a decimal comma, a space between
  * groups of three digits (1 234,5), a leading + or minus sign, and a trailing % (with or without a space) when the
- * answer is a percentage. Refused with a plain message: an empty answer, two decimal marks or a thousands separator
- * (1.234,5 is ambiguous), e notation, other spaces, a currency sign, a % on an answer that is not a percentage, decimals on
+ * answer is a percentage. A count (S4-14) also takes one thousands separator, comma or point, per group of three digits
+ * (1,000 or 12.345.678). Refused with a plain message: an empty answer, two decimal marks or a thousands separator
+ * on any other kind (1.234,5 is ambiguous), e notation, other spaces, a currency sign, a % on an answer that is not a percentage, decimals on
  * a count, and anything else that is not a number.
  */
 export function parseTyped(text: string, spec: TypedSpec): ParsedTyped {
@@ -55,6 +55,10 @@ export function parseTyped(text: string, spec: TypedSpec): ParsedTyped {
   if (/\d[eE][+-]?\d/.test(s)) return refuse(TYPED_REFUSALS.eNotation);
   const sign = s.startsWith('-') || s.startsWith('+') ? s[0] : '';
   let body = s.slice(sign.length);
+  const whole = spec.precision === 'count';
+  // S4-14: a whole-number answer may use one thousands separator, a comma or a point, before every group of three digits.
+  if (whole && /^[1-9]\d{0,2}(,\d{3})+$|^[1-9]\d{0,2}(\.\d{3})+$/.test(body)) body = body.replace(/[.,]/g, '');
+  else if (whole && /^\d+,\d{2,}$/.test(body)) return refuse(TYPED_REFUSALS.whole);   // P-7a: 1,00 or 1,0000, a comma that is not a thousands group, is refused; a dot there stays a decimal point (12.00 is 12)
   if (/[.,].*[.,]/.test(body)) return refuse(TYPED_REFUSALS.oneMark);
   if (/\s/.test(body)) {
     if (!/^\d{1,3}( \d{3})+([.,]\d+)?$/.test(body)) return refuse(TYPED_REFUSALS.spaces);
@@ -64,7 +68,7 @@ export function parseTyped(text: string, spec: TypedSpec): ParsedTyped {
   const value = Number(sign + body.replace(',', '.'));
   if (!Number.isFinite(value)) return refuse(TYPED_REFUSALS.notNumber);
   if (percent && spec.scale !== 'percent') return refuse(TYPED_REFUSALS.notPercent);
-  if (spec.precision === 'count' && !Number.isInteger(value)) return refuse(/^[1-9]\d{0,2}[.,]\d{3}$/.test(body) ? TYPED_REFUSALS.thousands : TYPED_REFUSALS.whole);
+  if (spec.precision === 'count' && !Number.isInteger(value)) return refuse(TYPED_REFUSALS.whole);
   return { ok: true, value };
 }
 

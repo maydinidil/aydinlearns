@@ -1,0 +1,31 @@
+{
+  "item_id": "EX-SQL-JOIN-01-E1-02",
+  "item_version": 1,
+  "reference_sql": "SELECT p.product_name, ph.valid_from, ph.list_price_eur\nFROM price_history ph\nJOIN products p ON p.product_id = ph.product_id\nWHERE p.brand = 'Sonora'",
+  "alternatives": [
+    "SELECT p.product_name, ph.valid_from, ph.list_price_eur FROM price_history ph JOIN products p ON p.product_id = ph.product_id AND p.brand = 'Sonora'",
+    "SELECT products.product_name, price_history.valid_from, price_history.list_price_eur FROM products JOIN price_history ON price_history.product_id = products.product_id WHERE products.brand = 'Sonora'"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-12",
+      "sql": "SELECT p.product_name, ph.valid_from, ph.list_price_eur FROM price_history ph JOIN products p ON p.category_id = ph.product_id WHERE p.brand = 'Sonora'"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-SYN-03",
+      "sql": "SELECT product_name, valid_from, list_price_eur FROM price_history ph JOIN products p ON product_id = p.product_id WHERE brand = 'Sonora'"
+    }
+  ],
+  "hint3_partial": "SELECT p.product_name, ph.valid_from, ph.list_price_eur\nFROM price_history ph\nJOIN products p ON ___\nWHERE p.brand = 'Sonora'",
+  "solver": {
+    "prompt_hash": "2a5abca561542ef0",
+    "schema_version": "c41fcd8f0eee",
+    "dataset_version": "e1545e4258743033",
+    "grader_version": "1b.3",
+    "query": "SELECT p.product_name, h.valid_from, h.list_price_eur\nFROM products p\nJOIN price_history h ON h.product_id = p.product_id\nWHERE p.brand = 'Sonora'",
+    "at": "2026-10-07T10:41:37.797Z"
+  }
+}

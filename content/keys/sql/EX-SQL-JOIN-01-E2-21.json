@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-JOIN-01-E2-21",
+  "item_version": 1,
+  "reference_sql": "SELECT p.brand, SUM(l.quantity) AS units\nFROM order_lines l\nJOIN orders o ON o.order_id = l.order_id\nJOIN products p ON p.product_id = l.product_id\nWHERE o.order_ts >= TIMESTAMP '2025-03-03 00:00:00' AND o.order_ts < TIMESTAMP '2025-03-10 00:00:00'\nGROUP BY p.brand",
+  "alternatives": [
+    "SELECT p.brand, SUM(s.units) AS units FROM sales s JOIN products p ON p.product_id = s.product_id WHERE s.order_date BETWEEN DATE '2025-03-03' AND DATE '2025-03-09' GROUP BY p.brand",
+    "SELECT p.brand, SUM(l.quantity) AS units FROM products p JOIN order_lines l ON l.product_id = p.product_id JOIN orders o ON o.order_id = l.order_id AND CAST(o.order_ts AS DATE) BETWEEN DATE '2025-03-03' AND DATE '2025-03-09' GROUP BY 1"
+  ],
+  "other_way": {
+    "sql": "SELECT p.brand, SUM(s.units) AS units FROM sales s JOIN products p ON p.product_id = s.product_id WHERE s.order_date BETWEEN DATE '2025-03-03' AND DATE '2025-03-09' GROUP BY p.brand",
+    "tradeoff": "Starting from sales needs one join less, but sales gives only the UTC day, which this question happens to want."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-12",
+      "sql": "SELECT p.brand, SUM(l.quantity) AS units FROM order_lines l JOIN orders o ON o.order_id = l.order_id JOIN products p ON p.product_id = l.order_line_id WHERE o.order_ts >= TIMESTAMP '2025-03-03 00:00:00' AND o.order_ts < TIMESTAMP '2025-03-10 00:00:00' GROUP BY p.brand"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-06",
+      "sql": "SELECT p.brand, SUM(l.quantity) AS units FROM order_lines l JOIN orders o ON o.order_id = l.order_id JOIN products p ON p.product_id = l.product_id WHERE o.order_ts >= TIMESTAMP '2025-03-03 00:00:00' AND o.order_ts <= TIMESTAMP '2025-03-09 00:00:00' GROUP BY p.brand"
+    }
+  ],
+  "hint3_partial": "SELECT p.brand, SUM(l.quantity) AS units\nFROM order_lines l\nJOIN orders o ON ___\nJOIN products p ON ___\nWHERE ___\nGROUP BY p.brand",
+  "solver": {
+    "prompt_hash": "7b3796d9851a3549",
+    "schema_version": "f6cc3f56f764",
+    "dataset_version": "e1545e4258743033",
+    "grader_version": "1b.3",
+    "query": "SELECT p.brand, SUM(l.quantity) AS units\nFROM order_lines l\nJOIN orders o ON o.order_id = l.order_id\nJOIN products p ON p.product_id = l.product_id\nWHERE o.order_ts >= TIMESTAMP '2025-03-03 00:00:00' AND o.order_ts < TIMESTAMP '2025-03-10 00:00:00'\nGROUP BY p.brand",
+    "at": "2026-10-07T10:41:38.123Z"
+  }
+}

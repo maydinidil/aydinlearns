@@ -1,6 +1,6 @@
 -- Voltmarkt clean tables (knowledge/05 CO-01 plus design §10's first-build changes).
 -- {schema} is replaced by the build script. Slice 1a: the five level 1 tables. Slice 1b: the order data
--- (E-016 adds orders.ship_to_country) and the canonical beginner sales view.
+-- (E-016 adds orders.ship_to_country) and the canonical beginner sales view. Sprint 4a: competitor_prices.
 CREATE SCHEMA IF NOT EXISTS {schema};
 CREATE TABLE {schema}.calendar (cal_date DATE PRIMARY KEY, iso_year INTEGER, iso_week INTEGER, week_start DATE, month_start DATE, month INTEGER, quarter INTEGER, weekday_name VARCHAR, is_weekend BOOLEAN, event VARCHAR);
 CREATE TABLE {schema}.stores (store_id INTEGER PRIMARY KEY, store_code VARCHAR, city VARCHAR, country_code VARCHAR, store_type VARCHAR, timezone VARCHAR, opened_on DATE, close_date DATE);
@@ -11,6 +11,9 @@ CREATE TABLE {schema}.price_history (product_id INTEGER, valid_from DATE, valid_
 CREATE TABLE {schema}.promotion_products (promo_id INTEGER, product_id INTEGER, PRIMARY KEY (promo_id, product_id));
 CREATE TABLE {schema}.orders (order_id BIGINT PRIMARY KEY, customer_id BIGINT, store_id INTEGER, order_ts TIMESTAMP, channel VARCHAR, ship_to_country VARCHAR);
 CREATE TABLE {schema}.order_lines (order_line_id BIGINT PRIMARY KEY, order_id BIGINT, product_id INTEGER, quantity INTEGER, unit_price_eur DECIMAL(10,2), promo_id INTEGER, line_discount_eur DECIMAL(10,2));
+-- Sprint 4a (S4-02): 05 CO-01's competitor prices, appended. 05 gives this time series no key; the generator makes
+-- (product, competitor, check time) unique, and the key states the grain the schema panel shows.
+CREATE TABLE {schema}.competitor_prices (product_id INTEGER, competitor VARCHAR, observed_ts TIMESTAMP, price_eur DECIMAL(10,2), PRIMARY KEY (product_id, competitor, observed_ts));
 -- The canonical beginner sales view (design §10, T-15): one row per order line, no order-level measure.
 -- Net revenue follows E-103, country is the ship-to country (E-016), parent_category is E-147's.
 -- It reads only its own schema's tables, by qualified name, and holds no data literal: the build applies

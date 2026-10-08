@@ -1,12 +1,16 @@
 // server/session-composer.ts: what the server feeds Today's composer (core/session.ts), and how it picks the items it serves
 // (design §4 "A study day", §5 "Days and look-alikes", §12 difficulty and sub-skills; rulings S2-29 to S2-37, S2-51).
+// Sprint 4a (Task C2): mistake cards in the SQL review step (S4-07, S4-08) and the wheel-spinning step (S4-10).
 // Everything here reads the replay (server/state.ts) and the content; nothing writes.
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import type { Section } from '../core/envelope.ts';
-import type { InstanceResult, ReplayResult } from '../core/replay.ts';
+import { parseMistakeCardId, type InstanceResult, type ReplayResult } from '../core/replay.ts';
 import { configFor, retrievability, type CardSnapshot } from '../core/scheduler.ts';
-import { DAILY_NEW_CAP, interleave, type ComposerCard, type ComposerConcept, type ComposerInput, type ComposerOpener, type ReviewStats } from '../core/session.ts';
+import {
+  AT_LEAST_PRACTISED, DAILY_NEW_CAP, interleave, type ComposerCard, type ComposerConcept, type ComposerDailyCase, type ComposerInput, type ComposerOpener,
+  type ReviewStats, type TodayPlan, type TodayStep,
+} from '../core/session.ts';
 import { amsterdamDate } from '../core/time.ts';
 import type { CaseRecord } from '../schemas/case.ts';
 import { choiceTarget, type ChoiceConcept, type ChoiceItem, type ChoiceSection } from '../schemas/choice.ts';
@@ -96,10 +100,15 @@ export function newConceptsToday(r: ReplayResult, section: Section, now: Date): 
   return [...r.concepts.values()].filter((v) => v.section === section && v.firstExposureDate === today && r.cards.get(v.card_id)?.origin !== 'reset').length;
 }
 
-/** S2-31: an instance served as a review for a card that was due when it was served, closed with a rating. */
+/**
+ * S2-31: an instance served as a review for a card that was due when it was served, closed with a rating. A mistake card's review
+ * (S4-08) is left out: the intake guard's due count is the concept cards' (core/session.ts), so its history is too.
+ */
 function isScheduledReview(i: InstanceResult): boolean {
   if (i.phase !== 'review' || i.rating === null) return false;
-  const before = i.card_reviews[0]?.state_before as CardSnapshot | undefined;
+  const review = i.card_reviews[0];
+  if (review && parseMistakeCardId(review.card_id) !== null) return false;
+  const before = review?.state_before as CardSnapshot | undefined;
   return !!before && typeof before.due === 'string' && Date.parse(before.due) <= Date.parse(i.started_at);
 }
 
@@ -144,16 +153,79 @@ export function openerLevel(c: CaseRecord, curriculum: Curriculum): number | nul
 /** The CP3 checkpoint's item, which /api/serve hands out for an opener (S2-49). */
 export const openerItem = (c: CaseRecord): string | null => c.checkpoints.find((p) => p.kind === 'CP3' && p.item_id)?.item_id ?? null;
 
-/** S2-51: each opener with its level, solved once its CP3 item has a counted pass. */
+/** The auto-graded checkpoints a case lists (CP1 to CP5), as replay tracks them (core/replay.ts, server/state.ts). */
+const AUTO_GRADED: ReadonlySet<string> = new Set(['CP1', 'CP2', 'CP3', 'CP4', 'CP5']);
+
+/**
+ * S2-51: each opener with its level. S4B-08: solved as replay derives it (core/replay.ts, `cases`): every auto-graded checkpoint the
+ * opener lists has a pass, at any time, a pass after a reveal included. So an opener solved with CP3 only now shows its CP4 to finish.
+ * Sprint 4b (Task D3), from the same case status: the preview offers the sketch while the opener has no passing CP3 and no sketch
+ * (S4B-13); its CP1 waits for an answer (S4B-14); and the first checkpoint with no pass, where the solve step opens the case screen
+ * (B2 review: CP4 after a CP3 pass, never the CP3 item again). A case the replay does not track counts as nothing answered or passed.
+ */
 export function openerInputs(cases: readonly CaseRecord[], curriculum: Curriculum, r: ReplayResult): ComposerOpener[] {
   const out: ComposerOpener[] = [];
   for (const c of cases) {
     const level = openerLevel(c, curriculum);
     const item = openerItem(c);
     if (level === null || item === null) continue;
-    out.push({ case_id: c.case_id, level, solved: [...r.instances.values()].some((i) => i.item_id === item && i.countsAsPass) });
+    const status = r.cases.get(c.case_id);
+    const checkpoints: readonly { kind: string; passed: boolean; latest: unknown }[] = status?.checkpoints
+      ?? c.checkpoints.filter((p) => AUTO_GRADED.has(p.kind) && typeof p.item_id === 'string').map((p) => ({ kind: p.kind, passed: false, latest: null }));
+    const cp1 = checkpoints.find((p) => p.kind === 'CP1');
+    out.push({
+      case_id: c.case_id, level, solved: status?.solved ?? false,
+      sketch: !checkpoints.some((p) => p.kind === 'CP3' && p.passed) && (status?.sketch ?? null) === null,
+      cp1Unanswered: cp1 !== undefined && cp1.latest === null,
+      nextCheckpoint: checkpoints.find((p) => !p.passed)?.kind ?? null,
+    });
   }
   return out;
+}
+
+// ---- the daily case (sprint 4b, Task D3: S4B-15, design §4 block 4) ------------------------------------------------------
+
+export interface DailyCaseArgs {
+  /** Every case; only the daily ones (`kind: 'daily'`) are read. */
+  cases: readonly CaseRecord[];
+  /** The replay: each case's status (S4B-08's solved) and each concept's state. */
+  replay: ReplayResult;
+  /** The attempt file's records: only `attempt` records naming a daily case's checkpoint item are read. */
+  records: readonly object[];
+  now: Date;
+}
+/** The concepts a case's checkpoints credit (S4B-03). */
+const creditedConcepts = (c: CaseRecord): string[] => [...new Set(c.checkpoints.flatMap((p) => p.credits_concepts))];
+
+/**
+ * S4B-15: the day's daily case. The daily case first answered on today's Amsterdam date, if any: it stays the day's case, shown as
+ * done once solved (S4B-08), so solving it never brings a second one that day. Otherwise the first unsolved daily case whose credited
+ * concepts are all practised or better, lowest level first, then case ID; null when none qualifies. An answer is counted as replay
+ * counts one (core/replay.ts): never the copy an "I was right" override logs, a crash or a refused statement. Derived from the log
+ * alone, so a restart gives the same case, and nothing is logged.
+ */
+export function dailyCase(a: DailyCaseArgs): ComposerDailyCase | null {
+  const order = (x: CaseRecord, y: CaseRecord): number => x.level - y.level || (x.case_id < y.case_id ? -1 : x.case_id > y.case_id ? 1 : 0);
+  const daily = a.cases.filter((c) => c.kind === 'daily').sort(order);
+  if (!daily.length) return null;
+  const owner = new Map<string, CaseRecord>();
+  for (const c of daily) for (const p of c.checkpoints) if (typeof p.item_id === 'string' && !owner.has(p.item_id)) owner.set(p.item_id, c);
+  const today = amsterdamDate(a.now);
+  const t = a.now.getTime();
+  let first: { at: number; c: CaseRecord } | null = null;
+  for (const r of a.records as { record?: unknown; item_id?: unknown; submitted_at?: unknown; grading_source?: unknown; outcome?: unknown }[]) {
+    if (r.record !== 'attempt' || typeof r.item_id !== 'string' || typeof r.submitted_at !== 'string') continue;
+    const c = owner.get(r.item_id);
+    if (!c || r.grading_source === 'override' || r.outcome === 'crash' || r.outcome === 'rejected') continue;
+    const at = Date.parse(r.submitted_at);
+    if (Number.isNaN(at) || at > t || amsterdamDate(new Date(at)) !== today) continue;
+    if (first === null || at < first.at || (at === first.at && order(c, first.c) < 0)) first = { at, c };
+  }
+  const solved = (id: string): boolean => a.replay.cases.get(id)?.solved ?? false;
+  if (first) return { case_id: first.c.case_id, done: solved(first.c.case_id) };
+  const practised = (id: string): boolean => AT_LEAST_PRACTISED.has(a.replay.concepts.get(id)?.state ?? 'new');
+  const pick = daily.find((c) => !solved(c.case_id) && creditedConcepts(c).every(practised));
+  return pick ? { case_id: pick.case_id, done: false } : null;
 }
 
 export interface ComposeArgs {
@@ -163,6 +235,8 @@ export interface ComposeArgs {
   pairs: readonly PairEntry[]; retest: ComposerInput['retest']; openers: ComposerOpener[];
   /** Fix round 1, I-1: a choice section's cards still inside their lesson window (lessonWindowEnds). Their due reviews wait. */
   lessonWindows?: ReadonlyMap<string, number>;
+  /** Sprint 4b (S4B-15): the day's daily case (dailyCase), SQL only. Absent: none. */
+  dailyCase?: ComposerDailyCase | null;
 }
 
 /**
@@ -204,7 +278,7 @@ export function composerInput(a: ComposeArgs): ComposerInput {
     stats: a.section === 'sql' ? reviewStats(r, a.now) : NO_STATS,
     newConceptsToday: newConceptsToday(r, a.section, a.now), dailyNewCap: DAILY_NEW_CAP,
     pairs: activePairs(a.pairs, r, a.section, a.content.curriculum), useIntakeGuard: a.section === 'sql', retest: a.retest,
-    sessionNewConceptDone: concepts.some(startedInSession), sessionMixedDone, sessionStart, openers: a.openers,
+    sessionNewConceptDone: concepts.some(startedInSession), sessionMixedDone, sessionStart, openers: a.openers, dailyCase: a.dailyCase ?? null,
   };
 }
 
@@ -354,7 +428,7 @@ export function pretestItemIds(content: ContentStore, conceptId: string): string
   return write === undefined ? [predict.id] : [write, predict.id];
 }
 
-/** Every closed instance's item and start, the history "seen in the last 30 days" reads. */
+/** The item and start of every instance except an unreached drill item: the list the history reads for "seen in the last 30 days". */
 export function seenIn(r: ReplayResult): { item_id: string; started_at: string }[] {
   // S2-97: an unreached drill item was never seen, so it never makes a later serving a repeat exposure.
   return [...r.instances.values()].filter((i) => !i.unreached).map((i) => ({ item_id: i.item_id, started_at: i.started_at }));
@@ -460,4 +534,136 @@ export function mixedBlock(a: BlockArgs): BlockPick[] {
     if (choice) picks[choice.i] = { concept_id: picks[choice.i]!.concept_id, ...choice.pick };
   }
   return interleave(picks, a.pairs);
+}
+
+// ---- mistake cards and wheel-spinning (sprint 4a Task C2; S4-07, S4-08, S4-10) ----------------------------------------------------
+
+/** S4-07: Today introduces at most this many New mistake cards per Amsterdam date. */
+export const MISTAKE_NEW_PER_DAY = 3;
+
+/**
+ * S4-07 and S4-08: the mistake cards Today's review step holds now, in order. The due active cards, lowest retrievability first
+ * (on the SQL preset; a New card has none), then the earliest due, then the card ID. A New card (never reviewed) joins only while
+ * fewer than 3 cards were introduced on today's Amsterdam date, a card being introduced on the date of its first review (C1). A
+ * card already reviewed always joins when due. The review step puts these after the concept reviews (withSqlSteps).
+ */
+export function mistakeReviewQueue(r: ReplayResult, now: Date, examDate: string | null): string[] {
+  const cfg = configFor(PRESETS.sql, now, examDate);
+  const today = amsterdamDate(now);
+  const cards = [...r.mistakeCards.values()];
+  let room = Math.max(0, MISTAKE_NEW_PER_DAY - cards.filter((c) => c.first_review !== null && amsterdamDate(new Date(c.first_review)) === today).length);
+  const due = cards.filter((c) => !c.retired && Date.parse(c.due) <= now.getTime())
+    .map((c) => ({ c, r: retrievability(c.snapshot, now, cfg) }))
+    .sort((a, b) => a.r - b.r || Date.parse(a.c.due) - Date.parse(b.c.due) || (a.c.card_id < b.c.card_id ? -1 : a.c.card_id > b.c.card_id ? 1 : 0));
+  const out: string[] = [];
+  for (const { c } of due) {
+    if (c.first_review === null) {
+      if (room === 0) continue;
+      room--;
+    }
+    out.push(c.card_id);
+  }
+  return out;
+}
+
+/**
+ * S4-10 (T-17): Today's recommendation for a wheel-spinning concept: its worked example (the lesson's stage 0 example, as a
+ * refresher shows it) and an easier E1 item (`item_id`, null when the concept has none). POST /api/serve with purpose
+ * `wheel_spinning` serves that item in phase free. It recommends; nothing waits for it.
+ */
+export interface WheelSpinningStep { kind: 'wheel_spinning'; concept_id: string; item_id: string | null }
+/** Today's SQL steps: the composer's (core/session.ts), plus the wheel-spinning step the server adds (Task C2). */
+export type TodayStepView = TodayStep | WheelSpinningStep;
+export interface TodayPlanView extends Omit<TodayPlan, 'steps' | 'minimumDay'> { steps: TodayStepView[]; minimumDay: TodayStepView[] }
+
+/**
+ * Today's SQL plan with the sprint 4a additions. The due mistake cards (mistakeReviewQueue) join the review step after the
+ * concept reviews (S4-07); when no concept review is due, the step comes where planToday puts reviews, after the micro-lessons
+ * and refreshers. The wheel-spinning steps come there too, before the reviews. The minimum day (reviews only) counts the mistake
+ * cards. Mistake cards never join the relearning step: S4-08 serves them in the review step only.
+ */
+export function withSqlSteps(plan: TodayPlan, x: { mistakeReviews: readonly string[]; wheelSpinning: readonly WheelSpinningStep[] }): TodayPlanView {
+  if (!x.mistakeReviews.length && !x.wheelSpinning.length) return plan;
+  const steps: TodayStepView[] = [...plan.steps];
+  const top = steps.findIndex((s) => s.kind !== 'micro_lesson' && s.kind !== 'refresher');
+  const at = top === -1 ? steps.length : top;
+  if (x.mistakeReviews.length) {
+    const i = steps.findIndex((s) => s.kind === 'reviews');
+    const reviews = i >= 0 ? (steps[i] as Extract<TodayStep, { kind: 'reviews' }>).card_ids : [];
+    const step: TodayStep = { kind: 'reviews', card_ids: [...reviews, ...x.mistakeReviews] };
+    if (i >= 0) steps[i] = step;
+    else steps.splice(at, 0, step);
+  }
+  steps.splice(at, 0, ...x.wheelSpinning);
+  return { ...plan, steps, minimumDay: steps.filter((s) => s.kind === 'reviews' || s.kind === 'relearning') };
+}
+
+/** Each item's latest start at or before `t`, in ms. */
+function lastSeenMs(seen: readonly { item_id: string; started_at: string }[], t: number): Map<string, number> {
+  const last = new Map<string, number>();
+  for (const s of seen) {
+    const at = Date.parse(s.started_at);
+    if (!Number.isNaN(at) && at <= t && at > (last.get(s.item_id) ?? -Infinity)) last.set(s.item_id, at);
+  }
+  return last;
+}
+
+/**
+ * Items not seen in the 30 days before `now` first, best `rank` first, then content order; when every item was seen, the least
+ * recently seen (or, with `rankFirst`, the best rank first and then the least recently seen), flagged repeat_exposure.
+ */
+function pickRanked(items: readonly SqlItem[], now: Date, seen: readonly { item_id: string; started_at: string }[], rank: (i: SqlItem) => number, rankFirst: boolean): Pick | null {
+  if (!items.length) return null;
+  const t = now.getTime();
+  const last = lastSeenMs(seen, t);
+  const order = new Map(items.map((i, n) => [i.id, n]));
+  const byRank = (a: SqlItem, b: SqlItem): number => rank(a) - rank(b) || order.get(a.id)! - order.get(b.id)!;
+  const unseen = items.filter((i) => (last.get(i.id) ?? -Infinity) < t - SEEN_WINDOW_MS);
+  if (unseen.length) return { item: [...unseen].sort(byRank)[0]!, repeat_exposure: false };
+  const age = (a: SqlItem, b: SqlItem): number => last.get(a.id)! - last.get(b.id)!;
+  return { item: [...items].sort((a, b) => (rankFirst ? byRank(a, b) || age(a, b) : age(a, b) || byRank(a, b)))[0]!, repeat_exposure: true };
+}
+
+export interface TrapPickInput {
+  now: Date;
+  /** The pair's trap items in content order (server/state.ts trapItems), less any item a live timed run holds (S4-15). */
+  traps: readonly SqlItem[];
+  /** The card's error: a fix item whose starter makes it comes first. */
+  errorId: string;
+  /** Instances of any item, at their start: closed ones from the replay, plus what was served and is still open. */
+  seen: readonly { item_id: string; started_at: string }[];
+}
+/**
+ * S4-08: the item a mistake-card review serves. A trap item not seen in 30 days: a fix item whose starter makes the card's error
+ * first (C1's fix round), then a write item, then any other fix item (P-21: a write item plants the card's own error); within each, a pool item before a drill item (so the level
+ * drill pools stay unseen where they can), then content order. When every trap item was seen in 30 days, the least recently seen,
+ * flagged repeat_exposure, as pickItem does. Null when the pair has no trap item.
+ */
+export function pickTrapItem(p: TrapPickInput): Pick | null {
+  const kindRank = (i: SqlItem): number => (i.kind === 'fix' ? (i.starter_error_id === p.errorId ? 0 : 2) : 1);
+  return pickRanked(p.traps.filter((i) => i.kind === 'fix' || i.kind === 'write'), p.now, p.seen, (i) => kindRank(i) * 2 + (i.use === 'drill' ? 1 : 0), false);
+}
+
+/**
+ * S4-10: the easier item a wheel-spinning concept is offered: an E1 pool item of the concept (write or fix), one not seen in 30
+ * days first, a write item before a fix item, then content order. When every E1 item was seen: a write item before a fix item,
+ * the least recently seen first, flagged repeat_exposure. Null when the pool has no E1 item.
+ */
+export function wheelSpinningItem(p: { now: Date; pool: readonly SqlItem[]; seen: readonly { item_id: string; started_at: string }[] }): Pick | null {
+  const easy = p.pool.filter((i) => i.use === 'pool' && i.difficulty === 'E1' && (i.kind === 'write' || i.kind === 'fix'));
+  return pickRanked(easy, p.now, p.seen, (i) => (i.kind === 'write' ? 0 : 1), true);
+}
+
+/**
+ * S4-10: one wheel-spinning step per SQL concept whose flag is set (core/states.ts, T-17) and that has a lesson (its worked
+ * example), in curriculum order, each with its easier item (wheelSpinningItem). `held`: the items a live timed run holds (S4-15).
+ */
+export function wheelSpinningSteps(a: { content: ContentStore; replay: ReplayResult; now: Date; seen: readonly { item_id: string; started_at: string }[];
+  held?: ReadonlySet<string> }): WheelSpinningStep[] {
+  return [...a.content.curriculum.concepts].sort((x, y) => x.order - y.order)
+    .filter((c) => a.replay.concepts.get(c.id)?.flags.wheelSpinning === true && a.content.lesson(c.id) !== undefined)
+    .map((c) => {
+      const pool = poolOf(a.content, c.id).filter((i) => !a.held?.has(i.id));
+      return { kind: 'wheel_spinning' as const, concept_id: c.id, item_id: wheelSpinningItem({ now: a.now, pool, seen: a.seen })?.item.id ?? null };
+    });
 }

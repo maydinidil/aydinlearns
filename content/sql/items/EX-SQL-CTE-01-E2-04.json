@@ -1,0 +1,129 @@
+{
+  "id": "EX-SQL-CTE-01-E2-04",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "cte",
+    "avg",
+    "join",
+    "orders",
+    "order_lines"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-CTE-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-CTE-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-JOIN-01",
+    "SQL-CTE-01"
+  ],
+  "template_id": "T-CTE-01-avg-of-step-joined",
+  "template_params": {
+    "step_table": "order_lines",
+    "join_table": "orders",
+    "group_by": "ship_to_country"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_join",
+  "prompt": "What is the average order value for each country that orders ship to? An order's value is the sum, over its order lines, of quantity times unit_price_eur minus line_discount_eur, and ship_to_country is the order's country. Average over the orders that have at least one line. Return two columns, in this order: ship_to_country and avg_order_eur. Return one row for each country. Do not round. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "ship_to_country",
+        "type_class": "text"
+      },
+      {
+        "name": "avg_order_eur",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "ship_to_country",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "avg_order_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "ship_to_country"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, add up each order's lines into one value per order in a first step.",
+    "The country sits on the order, not on its lines, so join the step's one row per order to the order's own row before averaging."
+  ],
+  "subgoals": [
+    {
+      "from": 25,
+      "to": 105,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 108,
+      "to": 124,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 127,
+      "to": 144,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 147,
+      "to": 206,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 207,
+      "to": 267,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 268,
+      "to": 294,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "The step makes one row per order, and joining it to orders keeps one row per order, so AVG weighs each order once."
+}

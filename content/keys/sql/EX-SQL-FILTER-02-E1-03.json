@@ -6,7 +6,10 @@
     "SELECT promo_code, promo_name, discount_pct\nFROM promotions\nWHERE discount_pct >= 10\n  AND discount_pct <= 20",
     "SELECT promo_code, promo_name, discount_pct\nFROM promotions\nWHERE discount_pct BETWEEN 10.00 AND 20.00"
   ],
-  "other_way": null,
+  "other_way": {
+    "sql": "SELECT promo_code, promo_name, discount_pct\nFROM promotions\nWHERE discount_pct >= 10\n  AND discount_pct <= 20",
+    "tradeoff": "Two comparisons give the same rows, but BETWEEN states the range in one short test."
+  },
   "planted_wrong": [
     {
       "id": "EX-SQL-FILTER-02-E1-03-PW1",

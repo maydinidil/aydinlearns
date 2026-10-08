@@ -1,0 +1,156 @@
+{
+  "id": "EX-SQL-JOIN-03-E1-22",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "fan_out",
+    "cte",
+    "price_history",
+    "sales",
+    "drill"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-JOIN-03"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-JOIN-03",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-JOIN-03"
+  ],
+  "template_id": "T-JOIN-03-two-children",
+  "template_params": {
+    "parent": "products",
+    "child_a": "sales",
+    "child_b": "price_history",
+    "parent_category": "TV & Video"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_join",
+  "prompt": "For each TV & Video product (parent_category 'TV & Video') that sold at least one unit, how many units were sold, and how many list price versions does the product have? Use units and parent_category from the sales table. Each order line's units count once, and each version counts once. Return three columns, in this order: product_id, units and n_versions. Return one row for each such product. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "units",
+        "type_class": "numeric"
+      },
+      {
+        "name": "n_versions",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "units",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "n_versions",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "product_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, add up the units and count the versions in two separate steps, each at one row per product.",
+    "A product with three versions pairs each of its lines with all three, so its units would be added three times."
+  ],
+  "subgoals": [
+    {
+      "from": 26,
+      "to": 64,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 67,
+      "to": 77,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 80,
+      "to": 116,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 119,
+      "to": 138,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 158,
+      "to": 199,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 202,
+      "to": 220,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 223,
+      "to": 242,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 245,
+      "to": 287,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 288,
+      "to": 355,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "Both steps have one row per product, so the join pairs one row with one row and nothing is repeated."
+}

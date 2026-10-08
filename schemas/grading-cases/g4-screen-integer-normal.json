@@ -1,0 +1,23 @@
+{
+  "id": "g4-screen-integer-normal",
+  "rule": "G4",
+  "screen_mode": false,
+  "setup_sql": [
+    "CREATE SCHEMA g",
+    "CREATE TABLE g.screen_int AS SELECT 9 AS n"
+  ],
+  "key_sql": "SELECT n FROM g.screen_int",
+  "learner_sql": "SELECT n * 1.0 AS n FROM g.screen_int",
+  "rules": {
+    "columns": [
+      {
+        "name": "n",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ]
+  },
+  "expect": {
+    "pass": true
+  }
+}

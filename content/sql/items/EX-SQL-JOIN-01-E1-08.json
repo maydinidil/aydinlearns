@@ -1,0 +1,123 @@
+{
+  "id": "EX-SQL-JOIN-01-E1-08",
+  "version": 2,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "join",
+    "order_lines",
+    "promotions"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-JOIN-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-JOIN-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-JOIN-01"
+  ],
+  "template_id": "T-JOIN-01-fact-to-dimension-filter",
+  "template_params": {
+    "from": "order_lines",
+    "join": "promotions",
+    "promo_code": "P-2025-06"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_join",
+  "prompt": "Which order lines were sold with the promotion that has the code P-2025-06? A line counts when the line's own promotion is that one. Return three columns, in this order: order_line_id, promo_name and line_discount_eur. Return one row for each such order line. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "order_line_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "promo_name",
+        "type_class": "text"
+      },
+      {
+        "name": "line_discount_eur",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "order_line_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "promo_name",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "line_discount_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "order_line_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, join each order line to the promotion it used.",
+    "The line holds promo_id; the code and the name sit with the promotion. Lines with no promotion find no match, which is fine here."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 58,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 59,
+      "to": 77,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 78,
+      "to": 124,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 125,
+      "to": 158,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "Only lines with a promotion find a match, and WHERE keeps those whose promotion has that code."
+}

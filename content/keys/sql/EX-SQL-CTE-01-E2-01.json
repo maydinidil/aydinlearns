@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-CTE-01-E2-01",
+  "item_version": 1,
+  "reference_sql": "-- Step 1: one row per order. Step 2: one row per channel.\nWITH order_totals AS (\n  SELECT order_id, channel, SUM(net_revenue_eur) AS order_eur\n  FROM sales\n  GROUP BY order_id, channel\n)\nSELECT channel, COUNT(*) AS n_big_orders\nFROM order_totals\nWHERE order_eur > 1000\nGROUP BY channel",
+  "alternatives": [
+    "WITH big_orders AS (SELECT order_id, channel FROM sales GROUP BY order_id, channel HAVING SUM(net_revenue_eur) > 1000) SELECT channel, COUNT(*) AS n_big_orders FROM big_orders GROUP BY channel",
+    "WITH order_totals AS (SELECT order_id, channel, SUM(net_revenue_eur) AS order_eur FROM sales GROUP BY order_id, channel) SELECT channel, COUNT(*) FILTER (WHERE order_eur > 1000) AS n_big_orders FROM order_totals GROUP BY channel"
+  ],
+  "other_way": {
+    "sql": "WITH big_orders AS (SELECT order_id, channel FROM sales GROUP BY order_id, channel HAVING SUM(net_revenue_eur) > 1000) SELECT channel, COUNT(*) AS n_big_orders FROM big_orders GROUP BY channel",
+    "tradeoff": "HAVING inside the step keeps only the big orders, but then the step no longer shows every order's value to check."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-07",
+      "sql": "SELECT channel, COUNT(*) AS n_big_orders FROM sales WHERE net_revenue_eur > 1000 GROUP BY channel"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-14",
+      "sql": "WITH order_totals AS (SELECT order_id, channel, SUM(net_revenue_eur) AS order_eur FROM sales GROUP BY order_id, channel) SELECT channel, SUM(order_eur) AS n_big_orders FROM order_totals WHERE order_eur > 1000 GROUP BY channel"
+    }
+  ],
+  "hint3_partial": "-- Step 1: one row per order. Step 2: one row per channel.\nWITH order_totals AS (\n  SELECT order_id, channel, SUM(net_revenue_eur) AS order_eur\n  FROM sales\n  GROUP BY ___\n)\nSELECT channel, COUNT(*) AS n_big_orders\nFROM order_totals\nWHERE ___\nGROUP BY channel",
+  "solver": {
+    "prompt_hash": "4a9c4e7aaf5b4c19",
+    "schema_version": "cebf75df442f",
+    "dataset_version": "e1545e4258743033",
+    "grader_version": "1b.3",
+    "query": "WITH per_order AS (\n  SELECT order_id, channel, SUM(net_revenue_eur) AS order_eur\n  FROM sales\n  GROUP BY order_id, channel\n)\nSELECT channel, COUNT(CASE WHEN order_eur > 1000 THEN 1 END) AS n_big_orders\nFROM per_order\nGROUP BY channel",
+    "at": "2026-10-07T10:41:34.733Z"
+  }
+}

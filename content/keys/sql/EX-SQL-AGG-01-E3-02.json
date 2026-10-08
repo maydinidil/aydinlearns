@@ -1,12 +1,15 @@
 {
   "item_id": "EX-SQL-AGG-01-E3-02",
-  "item_version": 1,
+  "item_version": 2,
   "reference_sql": "SELECT COUNT(DISTINCT order_id) AS n_orders,\n       COUNT(*) / COUNT(DISTINCT order_id) AS avg_lines_per_order,\n       SUM(units) / COUNT(DISTINCT order_id) AS avg_units_per_order\nFROM sales\nWHERE channel = 'web'\n  AND order_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'",
   "alternatives": [
     "SELECT COUNT(DISTINCT order_id) AS n_orders, COUNT(order_line_id) * 1.0 / COUNT(DISTINCT order_id) AS avg_lines_per_order, SUM(units) * 1.0 / COUNT(DISTINCT order_id) AS avg_units_per_order FROM sales WHERE channel = 'web' AND order_date >= DATE '2025-01-01' AND order_date < DATE '2026-01-01'",
     "SELECT COUNT(DISTINCT order_id) AS n_orders, COUNT(*) / COUNT(DISTINCT order_id) AS avg_lines_per_order, SUM(COALESCE(units, 0)) / COUNT(DISTINCT order_id) AS avg_units_per_order FROM sales WHERE order_date BETWEEN '2025-01-01' AND '2025-12-31' AND channel = 'web'"
   ],
-  "other_way": null,
+  "other_way": {
+    "sql": "SELECT COUNT(DISTINCT order_id) AS n_orders, COUNT(order_line_id) * 1.0 / COUNT(DISTINCT order_id) AS avg_lines_per_order, SUM(units) * 1.0 / COUNT(DISTINCT order_id) AS avg_units_per_order FROM sales WHERE channel = 'web' AND order_date >= DATE '2025-01-01' AND order_date < DATE '2026-01-01'",
+    "tradeoff": "Stays correct if the column later holds times of day, but you must write the day after the end date."
+  },
   "planted_wrong": [
     {
       "id": "EX-SQL-AGG-01-E3-02-PW1",
@@ -27,6 +30,11 @@
       "id": "EX-SQL-AGG-01-E3-02-PW4",
       "error_id": "ERR-OUT-01",
       "sql": "SELECT COUNT(*) / COUNT(DISTINCT order_id) AS avg_lines_per_order, SUM(units) / COUNT(DISTINCT order_id) AS avg_units_per_order FROM sales WHERE channel = 'web' AND order_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'"
+    },
+    {
+      "id": "EX-SQL-AGG-01-E3-02-PW5",
+      "error_id": "ERR-LOG-04",
+      "sql": "SELECT COUNT(DISTINCT order_id) AS n_orders, COUNT(units) / COUNT(DISTINCT order_id) AS avg_lines_per_order, SUM(units) / COUNT(DISTINCT order_id) AS avg_units_per_order FROM sales WHERE channel = 'web' AND order_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'"
     }
   ],
   "hint3_partial": "SELECT COUNT(DISTINCT order_id) AS n_orders,\n       COUNT(*) / ___ AS avg_lines_per_order,\n       SUM(units) / ___ AS avg_units_per_order\nFROM sales\nWHERE channel = 'web'\n  AND order_date BETWEEN ___ AND ___",

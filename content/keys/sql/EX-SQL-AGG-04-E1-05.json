@@ -6,7 +6,10 @@
     "SELECT SUM(CASE WHEN country_code = 'NL' THEN net_revenue_eur END) AS nl_revenue_eur, SUM(CASE WHEN country_code = 'BE' THEN net_revenue_eur END) AS be_revenue_eur, SUM(CASE WHEN country_code = 'LU' THEN net_revenue_eur END) AS lu_revenue_eur FROM sales WHERE order_date >= DATE '2025-01-01' AND order_date <= DATE '2025-03-31'",
     "SELECT SUM(net_revenue_eur) FILTER (WHERE country_code = 'NL') AS nl_revenue_eur, SUM(net_revenue_eur) FILTER (WHERE country_code = 'BE') AS be_revenue_eur, SUM(net_revenue_eur) FILTER (WHERE country_code = 'LU') AS lu_revenue_eur FROM sales WHERE order_date BETWEEN '2025-01-01' AND '2025-03-31'"
   ],
-  "other_way": null,
+  "other_way": {
+    "sql": "SELECT SUM(net_revenue_eur) FILTER (WHERE country_code = 'NL') AS nl_revenue_eur, SUM(net_revenue_eur) FILTER (WHERE country_code = 'BE') AS be_revenue_eur, SUM(net_revenue_eur) FILTER (WHERE country_code = 'LU') AS lu_revenue_eur FROM sales WHERE order_date BETWEEN '2025-01-01' AND '2025-03-31'",
+    "tradeoff": "Reads closer to plain English, but FILTER is not available in every SQL dialect."
+  },
   "planted_wrong": [
     {
       "id": "PW1",

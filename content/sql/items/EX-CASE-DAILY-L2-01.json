@@ -1,0 +1,156 @@
+{
+  "id": "EX-CASE-DAILY-L2-01",
+  "version": 2,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-02",
+    "case",
+    "daily",
+    "sales",
+    "group_by",
+    "conditional-aggregation",
+    "limit"
+  ],
+  "level": 2,
+  "source_ids": [
+    "01:SQL-AGG-04"
+  ],
+  "verified": true,
+  "as_of": "2026-10-07",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "case",
+  "target_concept_id": "SQL-AGG-04",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CASE-01",
+    "SQL-AGG-04"
+  ],
+  "template_id": "T-CASE-DAILY-L2-top-units-store-units",
+  "template_params": {
+    "table": "sales",
+    "from": "2025-01-01",
+    "to": "2025-03-31",
+    "top_n": 10,
+    "channel": "store"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_agg",
+  "prompt": "Fleur, who runs trade marketing, is planning next spring's in-store displays and asks which products sold the most units in the first quarter of 2025, and how many of those units were sold in the stores rather than on the web. Use the order lines in the sales table with an order_date from 2025-01-01 to 2025-03-31, both days included. Return four columns, in this order: product_id; product_name; units, the total units sold; and store_units, the units sold on lines whose channel is 'store', which is 0 for a product with no store lines. A line with a missing units value adds nothing to either total. Return one row for each product, and only the 10 products with the most units. Sort by units from highest to lowest; when products have the same units, sort them by product_id from low to high.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "product_name",
+        "type_class": "text"
+      },
+      {
+        "name": "units",
+        "type_class": "numeric"
+      },
+      {
+        "name": "store_units",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": true,
+    "sort_keys": [
+      {
+        "column": "units",
+        "desc": true
+      },
+      {
+        "column": "product_id",
+        "desc": false
+      }
+    ],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "product_name",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "units",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "store_units",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "product_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, choose the rows: the first quarter of 2025 in sales. Then decide what one row stands for.",
+    "The store units are a total over the store lines only, so the condition goes inside that total, not in the row filter. Then sort, settle ties on the product and keep the top 10."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 123,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 124,
+      "to": 134,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 135,
+      "to": 199,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 200,
+      "to": 233,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 234,
+      "to": 274,
+      "subgoal": "sort_limit"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "A conditional SUM adds only the store units while the plain SUM adds them all, and product_id settles ties before LIMIT cuts the list."
+}

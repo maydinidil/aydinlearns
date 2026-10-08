@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-JOIN-04-E2-05",
+  "item_version": 1,
+  "reference_sql": "SELECT ol.order_line_id, p.product_name, pr.promo_code\nFROM order_lines ol\nJOIN orders o ON o.order_id = ol.order_id\nJOIN products p ON p.product_id = ol.product_id\nLEFT JOIN promotions pr ON pr.promo_id = ol.promo_id\nWHERE CAST(o.order_ts AS DATE) = DATE '2025-03-08'",
+  "alternatives": [
+    "SELECT ol.order_line_id, p.product_name, pr.promo_code FROM order_lines ol LEFT JOIN promotions pr ON pr.promo_id = ol.promo_id JOIN orders o ON o.order_id = ol.order_id JOIN products p ON p.product_id = ol.product_id WHERE o.order_ts >= TIMESTAMP '2025-03-08' AND o.order_ts < TIMESTAMP '2025-03-09'",
+    "SELECT ol.order_line_id, p.product_name, pr.promo_code FROM promotions pr RIGHT JOIN order_lines ol ON pr.promo_id = ol.promo_id JOIN orders o ON o.order_id = ol.order_id JOIN products p ON p.product_id = ol.product_id WHERE CAST(o.order_ts AS DATE) = DATE '2025-03-08'"
+  ],
+  "other_way": {
+    "sql": "SELECT ol.order_line_id, p.product_name, pr.promo_code FROM promotions pr RIGHT JOIN order_lines ol ON pr.promo_id = ol.promo_id JOIN orders o ON o.order_id = ol.order_id JOIN products p ON p.product_id = ol.product_id WHERE CAST(o.order_ts AS DATE) = DATE '2025-03-08'",
+    "tradeoff": "Swapping the sides with RIGHT JOIN keeps the same lines, but most teams read a LEFT JOIN faster."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-11",
+      "sql": "SELECT ol.order_line_id, p.product_name, pr.promo_code FROM order_lines ol JOIN orders o ON o.order_id = ol.order_id JOIN products p ON p.product_id = ol.product_id JOIN promotions pr ON pr.promo_id = ol.promo_id WHERE CAST(o.order_ts AS DATE) = DATE '2025-03-08'"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-12",
+      "sql": "SELECT ol.order_line_id, p.product_name, pr.promo_code FROM order_lines ol JOIN orders o ON o.order_id = ol.order_id JOIN products p ON p.product_id = ol.product_id LEFT JOIN promotions pr ON pr.promo_id = ol.product_id WHERE CAST(o.order_ts AS DATE) = DATE '2025-03-08'"
+    }
+  ],
+  "hint3_partial": "SELECT ol.order_line_id, p.product_name, pr.promo_code\nFROM order_lines ol\nJOIN orders o ON o.order_id = ol.order_id\nJOIN products p ON p.product_id = ol.product_id\n___ promotions pr ON pr.promo_id = ol.promo_id\nWHERE CAST(o.order_ts AS DATE) = DATE '2025-03-08'",
+  "solver": {
+    "prompt_hash": "2a140d62dcb82c40",
+    "schema_version": "2d8c58288532",
+    "dataset_version": "e1545e4258743033",
+    "grader_version": "1b.3",
+    "query": "SELECT l.order_line_id, p.product_name, pr.promo_code\nFROM order_lines l\nJOIN orders o ON o.order_id = l.order_id\nJOIN products p ON p.product_id = l.product_id\nLEFT JOIN promotions pr ON pr.promo_id = l.promo_id\nWHERE o.order_ts >= TIMESTAMP '2025-03-08 00:00:00' AND o.order_ts < TIMESTAMP '2025-03-09 00:00:00'",
+    "at": "2026-10-07T10:41:41.182Z"
+  }
+}

@@ -1,6 +1,6 @@
 {
   "item_id": "EX-SQL-AGG-03-E3-01",
-  "item_version": 1,
+  "item_version": 2,
   "reference_sql": "SELECT category_name, SUM(net_revenue_eur) / SUM(units) AS price_per_unit_eur\nFROM sales\nGROUP BY category_name\nHAVING SUM(net_revenue_eur) / SUM(units) < 25",
   "alternatives": [
     "SELECT category_name, SUM(net_revenue_eur) / SUM(units) AS price_per_unit_eur FROM sales GROUP BY 1 HAVING SUM(net_revenue_eur) < 25 * SUM(units)",
@@ -12,6 +12,11 @@
       "id": "PW1",
       "error_id": "ERR-LOG-20",
       "sql": "SELECT category_name, AVG(net_revenue_eur / units) AS price_per_unit_eur FROM sales GROUP BY category_name HAVING AVG(net_revenue_eur / units) < 25"
+    },
+    {
+      "id": "PW5",
+      "error_id": "ERR-LOG-17",
+      "sql": "SELECT category_name, SUM(net_revenue_eur) / SUM(units) AS price_per_unit_eur FROM sales WHERE net_revenue_eur IS NOT NULL AND units IS NOT NULL GROUP BY category_name HAVING SUM(net_revenue_eur) / SUM(units) < 25"
     },
     {
       "id": "PW2",

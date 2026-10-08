@@ -1,0 +1,36 @@
+{
+  "item_id": "EX-CASE-DAILY-L1-01",
+  "item_version": 1,
+  "reference_sql": "SELECT store_id, store_code, city, store_type, opened_on\nFROM stores\nWHERE country_code = 'NL' AND store_type <> 'web' AND close_date IS NULL\nORDER BY store_type, store_id",
+  "alternatives": [
+    "SELECT store_id, store_code, city, store_type, opened_on FROM stores WHERE country_code = 'NL' AND store_type IN ('flagship', 'standard', 'outlet') AND close_date IS NULL ORDER BY 4, 1",
+    "SELECT store_id, store_code, city, store_type, opened_on FROM stores WHERE close_date IS NULL AND NOT store_type = 'web' AND country_code = 'NL' ORDER BY store_type ASC, store_id ASC"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-SEM-04",
+      "sql": "SELECT store_id, store_code, city, store_type, opened_on FROM stores WHERE country_code = 'NL' AND store_type <> 'web' AND close_date = NULL ORDER BY store_type, store_id"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-13",
+      "sql": "SELECT store_id, store_code, city, store_type, opened_on FROM stores WHERE country_code = 'NL' AND close_date IS NULL AND store_type = 'flagship' OR store_type = 'standard' OR store_type = 'outlet' ORDER BY store_type, store_id"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-18",
+      "sql": "SELECT store_id, store_code, city, store_type, opened_on FROM stores WHERE country_code = 'NL' AND store_type <> 'web' AND close_date IS NULL ORDER BY store_type DESC, store_id"
+    }
+  ],
+  "hint3_partial": "SELECT store_id, store_code, city, store_type, opened_on\nFROM stores\nWHERE country_code = 'NL' AND store_type <> 'web' AND ___\nORDER BY ___, ___",
+  "solver": {
+    "prompt_hash": "946db19d3f417534",
+    "schema_version": "9a8d01143702",
+    "dataset_version": "7f30f5a797e6a9ce",
+    "grader_version": "4b.1",
+    "query": "SELECT store_id, store_code, city, store_type, opened_on\nFROM stores\nWHERE country_code = 'NL' AND store_type <> 'web' AND close_date IS NULL\nORDER BY store_type ASC, store_id ASC",
+    "at": "2026-10-07T22:25:30.829Z"
+  }
+}

@@ -1,0 +1,154 @@
+{
+  "id": "EX-CASE-DAILY-L3-01",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "case",
+    "daily",
+    "price_history",
+    "join",
+    "multi-table",
+    "top-n"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-JOIN-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-07",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "case",
+  "target_concept_id": "SQL-JOIN-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-JOIN-01"
+  ],
+  "template_id": "T-CASE-DAILY-L3-new-prices-per-product",
+  "template_params": {
+    "parent_category": "TV & Video",
+    "from": "2025-01-01",
+    "to": "2025-12-31",
+    "top_n": 10
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_join",
+  "prompt": "Joost, the pricing lead, thinks the TV & Video range was repriced too often in 2025 and asks which of its products got the most new list prices that year. A new list price is a price version whose valid_from is from 2025-01-01 to 2025-12-31, both days included, so a product launched in 2025 counts its first price too. A product belongs to TV & Video when its category's parent_category is 'TV & Video'. Return one row for each product, and only the 10 products with the most new list prices. Return four columns, in this order: product_id, product_name, category_name and n_new_prices, the number of new list prices the product got in 2025. Sort by n_new_prices from highest to lowest; when products have the same number, sort them by product_id from low to high.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "product_name",
+        "type_class": "text"
+      },
+      {
+        "name": "category_name",
+        "type_class": "text"
+      },
+      {
+        "name": "n_new_prices",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": true,
+    "sort_keys": [
+      {
+        "column": "n_new_prices",
+        "desc": true
+      },
+      {
+        "column": "product_id",
+        "desc": false
+      }
+    ],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "product_name",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "category_name",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "n_new_prices",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "product_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, choose the tables: the price versions hold the dates, and two other tables hold the product names and the parent category.",
+    "Each price version points at one product, and each product at one category, so the joined rows stay one per price version. Count them per product, then sort, settle ties and keep 10."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 78,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 79,
+      "to": 199,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 200,
+      "to": 304,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 305,
+      "to": 359,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 360,
+      "to": 409,
+      "subgoal": "sort_limit"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "Joining the price versions to their product and category keeps one row per price version, so a count per product gives its new prices."
+}

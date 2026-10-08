@@ -1,0 +1,148 @@
+{
+  "id": "EX-CASE-DAILY-L3-02",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "case",
+    "daily",
+    "orders",
+    "date",
+    "time-zone",
+    "amsterdam",
+    "month"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-DATE-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-07",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "case",
+  "target_concept_id": "SQL-DATE-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-DATE-01"
+  ],
+  "template_id": "T-CASE-DAILY-L3-orders-per-store-month",
+  "template_params": {
+    "table": "orders",
+    "from": "2025-10-01",
+    "to": "2025-12-31",
+    "clock": "Europe/Amsterdam"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_date",
+  "prompt": "Yara, who runs retail operations, is planning staff for the busy end of the year and asks how many orders each store took in each month of the last quarter of 2025, the webshop (store_id 99) included. Use Amsterdam time: order_ts holds the moment of the order in UTC, so turn it into Amsterdam time first, then take the month, and keep the orders whose Amsterdam date is from 2025-10-01 to 2025-12-31, both days included. Return one row for each store and month in which the store took at least one order. Return three columns, in this order: month_start, the first day of the Amsterdam month; store_id; and n_orders, the number of orders. Sort by month_start from earliest to latest; within a month, sort by store_id from low to high.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "month_start",
+        "type_class": "temporal"
+      },
+      {
+        "name": "store_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "n_orders",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": true,
+    "sort_keys": [
+      {
+        "column": "month_start",
+        "desc": false
+      },
+      {
+        "column": "store_id",
+        "desc": false
+      }
+    ],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "month_start",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "store_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "n_orders",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "month_start",
+      "store_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, turn each order's UTC time into Amsterdam time, then work out its month.",
+    "The month must come from the converted time, both in the filter and in what one row stands for. Count the orders for each month and store, then sort by month and store."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 144,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 145,
+      "to": 156,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 157,
+      "to": 280,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 281,
+      "to": 311,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 312,
+      "to": 342,
+      "subgoal": "sort_limit"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "Converting order_ts from UTC to Amsterdam time before taking the month puts each late-evening order in the right month."
+}

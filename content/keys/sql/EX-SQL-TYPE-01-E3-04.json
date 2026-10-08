@@ -6,7 +6,10 @@
     "SELECT order_month, COUNT(DISTINCT order_id) AS n_orders, ROUND(CAST(SUM(units) AS DOUBLE) / COUNT(DISTINCT order_id), 2) AS units_per_order, ROUND(SUM(CASE WHEN channel = 'web' THEN units ELSE 0 END) * 100.0 / SUM(units), 1) AS web_units_pct FROM sales WHERE order_date >= DATE '2025-10-01' AND order_date <= DATE '2025-12-31' GROUP BY order_month",
     "SELECT order_month, COUNT(DISTINCT order_id) AS n_orders, ROUND(SUM(COALESCE(units, 0)) / CAST(COUNT(DISTINCT order_id) AS DOUBLE), 2) AS units_per_order, ROUND(100 * CAST(SUM(units) FILTER (WHERE channel = 'web') AS DOUBLE) / SUM(units), 1) AS web_units_pct FROM sales WHERE order_date BETWEEN '2025-10-01' AND '2025-12-31' GROUP BY 1"
   ],
-  "other_way": null,
+  "other_way": {
+    "sql": "SELECT order_month, COUNT(DISTINCT order_id) AS n_orders, ROUND(CAST(SUM(units) AS DOUBLE) / COUNT(DISTINCT order_id), 2) AS units_per_order, ROUND(SUM(CASE WHEN channel = 'web' THEN units ELSE 0 END) * 100.0 / SUM(units), 1) AS web_units_pct FROM sales WHERE order_date >= DATE '2025-10-01' AND order_date <= DATE '2025-12-31' GROUP BY order_month",
+    "tradeoff": "Works in every SQL dialect, but is wordier than FILTER."
+  },
   "planted_wrong": [
     {
       "id": "PW1",

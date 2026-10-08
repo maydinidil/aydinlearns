@@ -1,0 +1,31 @@
+{
+  "item_id": "EX-SQL-JOIN-01-E1-05",
+  "item_version": 1,
+  "reference_sql": "SELECT l.order_line_id, o.order_id, l.quantity\nFROM orders o\nJOIN order_lines l ON l.order_id = o.order_id\nWHERE o.ship_to_country = 'LU'\n  AND o.order_ts >= TIMESTAMP '2025-03-08 00:00:00' AND o.order_ts < TIMESTAMP '2025-03-09 00:00:00'",
+  "alternatives": [
+    "SELECT l.order_line_id, l.order_id, l.quantity FROM order_lines l JOIN orders o ON o.order_id = l.order_id WHERE o.ship_to_country = 'LU' AND CAST(o.order_ts AS DATE) = DATE '2025-03-08'",
+    "SELECT l.order_line_id, o.order_id, l.quantity FROM orders o JOIN order_lines l ON l.order_id = o.order_id AND o.ship_to_country = 'LU' AND o.order_ts >= TIMESTAMP '2025-03-08 00:00:00' AND o.order_ts < TIMESTAMP '2025-03-09 00:00:00'"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-12",
+      "sql": "SELECT l.order_line_id, o.order_id, l.quantity FROM orders o JOIN order_lines l ON l.order_line_id = o.order_id WHERE o.ship_to_country = 'LU' AND o.order_ts >= TIMESTAMP '2025-03-08 00:00:00' AND o.order_ts < TIMESTAMP '2025-03-09 00:00:00'"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-SYN-03",
+      "sql": "SELECT order_line_id, order_id, quantity FROM orders o JOIN order_lines l ON l.order_id = o.order_id WHERE o.ship_to_country = 'LU' AND o.order_ts >= TIMESTAMP '2025-03-08 00:00:00' AND o.order_ts < TIMESTAMP '2025-03-09 00:00:00'"
+    }
+  ],
+  "hint3_partial": "SELECT l.order_line_id, o.order_id, l.quantity\nFROM orders o\nJOIN order_lines l ON ___\nWHERE o.ship_to_country = 'LU'\n  AND ___",
+  "solver": {
+    "prompt_hash": "3990d93887cd559f",
+    "schema_version": "2b3ae373ff81",
+    "dataset_version": "e1545e4258743033",
+    "grader_version": "1b.3",
+    "query": "SELECT l.order_line_id, l.order_id, l.quantity\nFROM order_lines l\nJOIN orders o ON o.order_id = l.order_id\nWHERE o.ship_to_country = 'LU'\n  AND o.order_ts >= TIMESTAMP '2025-03-08 00:00:00' AND o.order_ts < TIMESTAMP '2025-03-09 00:00:00'",
+    "at": "2026-10-07T10:41:37.852Z"
+  }
+}

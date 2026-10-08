@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import { api, type StatusView } from '../api.ts';
 import type { Goal } from '../../../core/goals.ts';
+import { PORTFOLIO_HREF, portfolioApi } from '../lib/portfolio-api.ts';
 
 const OUTSIDE_SOURCES = ['SQLBolt', 'LeetCode', 'HackerRank', 'Skillshop', 'Monthly outside benchmark', 'Other'];
 const NO_REPORT = { item_id: '', text: '' };
@@ -15,6 +16,9 @@ export function SetupScreen() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [backup, setBackup] = useState('');
+  const [portfolio, setPortfolio] = useState('');
+  /** D4-m11: the saved portfolio folder has loaded (or failed to): until then its field and Save wait, so Save never clears it. */
+  const [portfolioLoaded, setPortfolioLoaded] = useState(false);
   const [exam, setExam] = useState('');
   const [goalDates, setGoalDates] = useState<Record<string, string>>({});
   const [report, setReport] = useState(NO_REPORT);
@@ -28,7 +32,13 @@ export function SetupScreen() {
       setBackup(s.settings?.backup_folder ?? '');
       setExam(s.settings?.exam_date ?? '');
       setGoalDates(s.settings?.goal_dates ?? {});
-      if (!s.degraded) api.goals().then(setGoals, (e: Error) => setError(`The goals could not be loaded: ${e.message}`));
+      if (!s.degraded) {
+        api.goals().then(setGoals, (e: Error) => setError(`The goals could not be loaded: ${e.message}`));
+        // S4B-19: the portfolio folder is read from the portfolio route; /api/status stays as it was.
+        // A failed load leaves the field empty and usable, as before.
+        portfolioApi.view().then((v) => setPortfolio(v.folder ?? ''), (e: Error) => setError(`The portfolio folder could not be loaded: ${e.message}`))
+          .finally(() => setPortfolioLoaded(true));
+      }
     }, (e: Error) => setError(e.message));
   }, []);
 
@@ -77,6 +87,15 @@ export function SetupScreen() {
               <button type="button" disabled={busy} onClick={() => send(() => api.settings('goal_dates', goalDates), 'Goal dates saved.')}>Save goal dates</button>
             </>
           )}
+          </div>
+
+          <div className="card settings-card">
+          <h2>Portfolio</h2>
+          <p><label>Portfolio folder (each solved case you export is saved here as a page and a CSV){' '}
+            <input value={portfolio} placeholder="D:\Portfolio" disabled={!portfolioLoaded} onChange={(e) => setPortfolio(e.target.value)} /></label>{' '}
+            <button type="button" aria-label="Save portfolio folder" disabled={busy || !portfolioLoaded}
+              onClick={() => send(() => portfolioApi.setFolder(portfolio.trim()), 'Portfolio folder saved.')}>Save</button></p>
+          <p className="muted">Use a full path to a folder that exists. Export your solved cases from the <a href={PORTFOLIO_HREF}>portfolio</a>.</p>
           </div>
 
           <div className="card settings-card">

@@ -1,0 +1,138 @@
+{
+  "id": "EX-SQL-JOIN-05-E1-04",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "cross-join",
+    "share",
+    "orders",
+    "stores"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-JOIN-05"
+  ],
+  "verified": true,
+  "as_of": "2026-10-06",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "lesson",
+  "target_concept_id": "SQL-JOIN-05",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-CTE-01",
+    "SQL-JOIN-01",
+    "SQL-JOIN-05"
+  ],
+  "template_id": "T-JOIN-05-cross-join-one-row-total-share",
+  "template_params": {
+    "month": "2025-03",
+    "decimals": 4
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_join",
+  "prompt": "What share of all orders placed in March 2025 did the stores of each country get? Use the country_code of the store that took the order; the webshop counts as NL. order_ts holds UTC time: an order counts when its UTC date is from 1 to 31 March 2025. Return three columns, in this order: country_code, n_orders and share_of_orders, the country's orders divided by all March 2025 orders, as a ratio rounded to 4 decimals. Return one row for each country with orders. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "country_code",
+        "type_class": "text"
+      },
+      {
+        "name": "n_orders",
+        "type_class": "numeric"
+      },
+      {
+        "name": "share_of_orders",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per country"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "country_code",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "n_orders",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "share_of_orders",
+        "type_class": "numeric",
+        "precision": "ratio",
+        "require_rounding": 4
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "country_code"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, attach the one-row total to every country row with a join that needs no condition.",
+    "total has exactly one row, so pairing it with every country row repeats nothing; then divide each country's count by it."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 227,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 228,
+      "to": 284,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 285,
+      "to": 369,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 370,
+      "to": 387,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 388,
+      "to": 406,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": {
+    "stage1": 388,
+    "stage2": 285
+  },
+  "faded_shape": "WITH by_country AS (SELECT s.country_code, COUNT(*) AS n_orders FROM orders o JOIN stores s ON s.store_id = o.store_id WHERE o.order_ts >= TIMESTAMP '2025-03-01' AND o.order_ts < TIMESTAMP '2025-04-01' GROUP BY s.country_code),\ntotal AS (SELECT SUM(n_orders) AS n_all FROM by_country)\nSELECT b.country_code, b.n_orders, ROUND(b.n_orders / t.n_all, 4) AS share_of_orders\nFROM by_country b\n",
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "total has one row, so CROSS JOIN adds n_all to every country row without repeating any, and the division gives each country its share."
+}

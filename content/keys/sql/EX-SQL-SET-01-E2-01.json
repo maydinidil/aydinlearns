@@ -1,0 +1,39 @@
+{
+  "item_id": "EX-SQL-SET-01-E2-01",
+  "item_version": 2,
+  "reference_sql": "WITH both_rivals AS (\n  SELECT product_id\n  FROM competitor_prices\n  WHERE competitor = 'Bliksem'\n    AND observed_ts >= TIMESTAMP '2025-05-01 00:00:00'\n    AND observed_ts < TIMESTAMP '2025-06-01 00:00:00'\n  INTERSECT\n  SELECT product_id\n  FROM competitor_prices\n  WHERE competitor = 'Stroomhuis'\n    AND observed_ts >= TIMESTAMP '2025-05-01 00:00:00'\n    AND observed_ts < TIMESTAMP '2025-06-01 00:00:00'\n)\nSELECT COUNT(*) AS products\nFROM both_rivals",
+  "alternatives": [
+    "SELECT COUNT(DISTINCT b.product_id) AS products FROM competitor_prices b JOIN competitor_prices s ON s.product_id = b.product_id WHERE b.competitor = 'Bliksem' AND s.competitor = 'Stroomhuis' AND b.observed_ts >= TIMESTAMP '2025-05-01 00:00:00' AND b.observed_ts < TIMESTAMP '2025-06-01 00:00:00' AND s.observed_ts >= TIMESTAMP '2025-05-01 00:00:00' AND s.observed_ts < TIMESTAMP '2025-06-01 00:00:00'",
+    "WITH may_checks AS (SELECT product_id, competitor FROM competitor_prices WHERE observed_ts >= TIMESTAMP '2025-05-01 00:00:00' AND observed_ts < TIMESTAMP '2025-06-01 00:00:00'), both_rivals AS (SELECT product_id FROM may_checks WHERE competitor = 'Bliksem' INTERSECT SELECT product_id FROM may_checks WHERE competitor = 'Stroomhuis') SELECT COUNT(*) AS products FROM both_rivals"
+  ],
+  "other_way": {
+    "sql": "SELECT COUNT(DISTINCT b.product_id) AS products FROM competitor_prices b JOIN competitor_prices s ON s.product_id = b.product_id WHERE b.competitor = 'Bliksem' AND s.competitor = 'Stroomhuis' AND b.observed_ts >= TIMESTAMP '2025-05-01 00:00:00' AND b.observed_ts < TIMESTAMP '2025-06-01 00:00:00' AND s.observed_ts >= TIMESTAMP '2025-05-01 00:00:00' AND s.observed_ts < TIMESTAMP '2025-06-01 00:00:00'",
+    "tradeoff": "A self-join with COUNT(DISTINCT ...) gives the same number, but it pairs every check with every other check before it counts."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-08",
+      "sql": "WITH both_rivals AS (SELECT product_id FROM competitor_prices WHERE competitor = 'Bliksem' AND observed_ts >= TIMESTAMP '2025-05-01 00:00:00' AND observed_ts < TIMESTAMP '2025-06-01 00:00:00' INTERSECT ALL SELECT product_id FROM competitor_prices WHERE competitor = 'Stroomhuis' AND observed_ts >= TIMESTAMP '2025-05-01 00:00:00' AND observed_ts < TIMESTAMP '2025-06-01 00:00:00') SELECT COUNT(*) AS products FROM both_rivals"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-27",
+      "sql": "WITH both_rivals AS (SELECT product_id FROM competitor_prices WHERE competitor = 'Bliksem' AND observed_ts >= TIMESTAMP '2025-05-01 00:00:00' AND observed_ts < TIMESTAMP '2025-06-01 00:00:00' UNION SELECT product_id FROM competitor_prices WHERE competitor = 'Stroomhuis' AND observed_ts >= TIMESTAMP '2025-05-01 00:00:00' AND observed_ts < TIMESTAMP '2025-06-01 00:00:00') SELECT COUNT(*) AS products FROM both_rivals"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-01",
+      "sql": "SELECT COUNT(*) AS products FROM competitor_prices b JOIN competitor_prices s ON s.product_id = b.product_id WHERE b.competitor = 'Bliksem' AND s.competitor = 'Stroomhuis' AND b.observed_ts >= TIMESTAMP '2025-05-01 00:00:00' AND b.observed_ts < TIMESTAMP '2025-06-01 00:00:00' AND s.observed_ts >= TIMESTAMP '2025-05-01 00:00:00' AND s.observed_ts < TIMESTAMP '2025-06-01 00:00:00'"
+    }
+  ],
+  "hint3_partial": "WITH both_rivals AS (\n  SELECT product_id\n  FROM competitor_prices\n  WHERE competitor = 'Bliksem'\n    AND observed_ts >= TIMESTAMP '2025-05-01 00:00:00'\n    AND observed_ts < TIMESTAMP '2025-06-01 00:00:00'\n  ___\n  SELECT product_id\n  FROM competitor_prices\n  WHERE competitor = ___\n    AND observed_ts >= TIMESTAMP '2025-05-01 00:00:00'\n    AND observed_ts < TIMESTAMP '2025-06-01 00:00:00'\n)\nSELECT COUNT(*) AS products\nFROM both_rivals",
+  "solver": {
+    "prompt_hash": "bfd848fa3cb69a07",
+    "schema_version": "ffc6be9b2fbc",
+    "dataset_version": "7f30f5a797e6a9ce",
+    "grader_version": "4b.1",
+    "query": "SELECT COUNT(*) AS products FROM (\n  SELECT product_id FROM competitor_prices\n  WHERE competitor = 'Bliksem' AND observed_ts >= TIMESTAMP '2025-05-01 00:00:00' AND observed_ts < TIMESTAMP '2025-06-01 00:00:00'\n  INTERSECT\n  SELECT product_id FROM competitor_prices\n  WHERE competitor = 'Stroomhuis' AND observed_ts >= TIMESTAMP '2025-05-01 00:00:00' AND observed_ts < TIMESTAMP '2025-06-01 00:00:00'\n) t",
+    "at": "2026-10-07T22:25:32.751Z"
+  }
+}

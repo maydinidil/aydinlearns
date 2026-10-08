@@ -1,0 +1,39 @@
+{
+  "item_id": "EX-SQL-JOIN-03-E2-06",
+  "item_version": 1,
+  "reference_sql": "WITH checked AS (\n  SELECT DISTINCT competitor, product_id\n  FROM competitor_prices\n),\nproduct_units AS (\n  SELECT product_id, SUM(quantity) AS units\n  FROM order_lines\n  GROUP BY product_id\n)\nSELECT c.competitor, COUNT(*) AS n_products, COALESCE(SUM(u.units), 0) AS units\nFROM checked c\nLEFT JOIN product_units u ON u.product_id = c.product_id\nGROUP BY c.competitor",
+  "alternatives": [
+    "WITH checked AS (SELECT DISTINCT competitor, product_id FROM competitor_prices) SELECT c.competitor, COUNT(DISTINCT c.product_id) AS n_products, COALESCE(SUM(ol.quantity), 0) AS units FROM checked c LEFT JOIN order_lines ol ON ol.product_id = c.product_id GROUP BY c.competitor",
+    "WITH checked AS (SELECT competitor, product_id FROM competitor_prices GROUP BY competitor, product_id), product_units AS (SELECT product_id, SUM(quantity) AS units FROM order_lines GROUP BY product_id) SELECT c.competitor, COUNT(c.product_id) AS n_products, SUM(COALESCE(u.units, 0)) AS units FROM checked c LEFT JOIN product_units u ON u.product_id = c.product_id GROUP BY 1"
+  ],
+  "other_way": {
+    "sql": "WITH checked AS (SELECT DISTINCT competitor, product_id FROM competitor_prices) SELECT c.competitor, COUNT(DISTINCT c.product_id) AS n_products, COALESCE(SUM(ol.quantity), 0) AS units FROM checked c LEFT JOIN order_lines ol ON ol.product_id = c.product_id GROUP BY c.competitor",
+    "tradeoff": "With one row per competitor and product, the lines can join directly, but the product count then needs DISTINCT."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-01",
+      "sql": "SELECT cp.competitor, COUNT(DISTINCT cp.product_id) AS n_products, COALESCE(SUM(ol.quantity), 0) AS units FROM competitor_prices cp LEFT JOIN order_lines ol ON ol.product_id = cp.product_id GROUP BY cp.competitor"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-01",
+      "sql": "WITH product_units AS (SELECT product_id, SUM(quantity) AS units FROM order_lines GROUP BY product_id) SELECT cp.competitor, COUNT(*) AS n_products, COALESCE(SUM(u.units), 0) AS units FROM competitor_prices cp LEFT JOIN product_units u ON u.product_id = cp.product_id GROUP BY cp.competitor"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-11",
+      "sql": "WITH checked AS (SELECT DISTINCT competitor, product_id FROM competitor_prices), product_units AS (SELECT product_id, SUM(quantity) AS units FROM order_lines GROUP BY product_id) SELECT c.competitor, COUNT(*) AS n_products, COALESCE(SUM(u.units), 0) AS units FROM checked c JOIN product_units u ON u.product_id = c.product_id GROUP BY c.competitor"
+    }
+  ],
+  "hint3_partial": "WITH checked AS (\n  SELECT DISTINCT ___\n  FROM competitor_prices\n),\nproduct_units AS (\n  SELECT product_id, SUM(quantity) AS units\n  FROM order_lines\n  GROUP BY product_id\n)\nSELECT c.competitor, COUNT(*) AS n_products, COALESCE(SUM(u.units), 0) AS units\nFROM checked c\nLEFT JOIN product_units u ON ___\nGROUP BY c.competitor",
+  "solver": {
+    "prompt_hash": "87342a85ea5f7d6c",
+    "schema_version": "f62ab1fdac02",
+    "dataset_version": "e1545e4258743033",
+    "grader_version": "1b.3",
+    "query": "WITH checked AS (\n  SELECT DISTINCT competitor, product_id\n  FROM competitor_prices\n), product_units AS (\n  SELECT product_id, SUM(quantity) AS units\n  FROM order_lines\n  GROUP BY product_id\n)\nSELECT c.competitor, COUNT(*) AS n_products, COALESCE(SUM(pu.units), 0) AS units\nFROM checked c\nLEFT JOIN product_units pu ON pu.product_id = c.product_id\nGROUP BY c.competitor",
+    "at": "2026-10-07T10:41:40.054Z"
+  }
+}

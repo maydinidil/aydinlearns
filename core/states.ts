@@ -1,7 +1,7 @@
 // core/states.ts: the concept-state machine (design §5 "Concept states" and "Flags on top of the states"; rulings S2-20 to
 // S2-28; owner default: Mastered is left only by demotion or a leech reset, and Retained is built).
-// A pure fold over facts the replay produces (Task B6). Domain-free: no SQL, no files, no app code. "No mistake card in
-// relearning" (Mastered) has no input until mistake cards arrive in slice 3.
+// A pure fold over facts the replay produces (Task B6). Domain-free: no SQL, no files, no app code. Sprint 4a (S4-10): Mastered
+// also needs no mistake card of the concept in FSRS relearning, and the wheel-spinning flag (T-17).
 import type { Rating } from './envelope.ts';
 
 export type ConceptStateName = 'new' | 'learning' | 'practised' | 'mastered' | 'retained';
@@ -12,6 +12,8 @@ export interface StateThresholds {
 export const DEFAULT_THRESHOLDS: StateThresholds = Object.freeze({
   practisedItems: 3, masteredSolves: 3, masteredDays: 2, window: 4, retainedDays: 21, demotionAgains: 2, demotionDays: 14, leechLapses: 4,
 });
+/** S4-10, T-17: wheel-spinning is no unassisted pass across this many graded instances, over this many sessions. */
+export const WHEEL_SPINNING: { readonly instances: number; readonly sessions: number } = Object.freeze({ instances: 5, sessions: 2 });
 /** Facts in time order, produced by replay. */
 export type ConceptFact =
   | { kind: 'started'; concept_id: string; ts: string }
@@ -19,12 +21,16 @@ export type ConceptFact =
   | { kind: 'first_attempt'; concept_id: string; item_id: string; ts: string; local_date: string; qualifying: boolean }
   | { kind: 'review'; concept_id: string; ts: string; local_date: string; rating: Rating; elapsed_days: number; unassisted: boolean; lapses: number }
   | { kind: 'reset'; concept_id: string; ts: string }
-  | { kind: 'refresher_done'; concept_id: string; ts: string };
+  | { kind: 'refresher_done'; concept_id: string; ts: string }
+  /** S4-10: a graded instance of the concept closed; `unassisted_pass`: it passed with no override and no help before the pass. */
+  | { kind: 'graded_instance'; concept_id: string; ts: string; session_id: string; unassisted_pass: boolean }
+  /** S4-10: a mistake card of the concept entered or left FSRS relearning (a review, or its retirement). It starts nothing. */
+  | { kind: 'mistake_card'; concept_id: string; card_id: string; ts: string; relearning: boolean };
 export interface ConceptStatus {
   concept_id: string; state: ConceptStateName; practisedItems: number;
   window: { item_id: string; local_date: string; qualifying: boolean }[];
   masteredAt: string | null; retainedAt: string | null;
-  flags: { leech: boolean; refresherDue: boolean; demotedAt: string | null };
+  flags: { leech: boolean; refresherDue: boolean; demotedAt: string | null; wheelSpinning: boolean };
 }
 
 type Entry = ConceptStatus['window'][number];
@@ -32,9 +38,14 @@ interface Acc {
   started: boolean; passed: Set<string>; practisedFloor: boolean; window: Entry[];
   mastered: boolean; retained: boolean; masteredAt: string | null; retainedAt: string | null;
   againDates: Set<string>; leech: boolean; refresherDue: boolean; demotedAt: string | null;
+  /** S4-10: graded instances since the last unassisted pass, and their sessions. */
+  spin: { instances: number; sessions: Set<string> }; wheelSpinning: boolean;
+  /** S4-10: the concept's mistake cards now in FSRS relearning. */
+  relearning: Set<string>;
 }
 const fresh = (): Acc => ({ started: false, passed: new Set(), practisedFloor: false, window: [], mastered: false, retained: false,
-  masteredAt: null, retainedAt: null, againDates: new Set(), leech: false, refresherDue: false, demotedAt: null });
+  masteredAt: null, retainedAt: null, againDates: new Set(), leech: false, refresherDue: false, demotedAt: null,
+  spin: { instances: 0, sessions: new Set() }, wheelSpinning: false, relearning: new Set() });
 
 const DAY_MS = 86_400_000;
 /** Whole calendar days from date a to date b (YYYY-MM-DD Amsterdam dates). A DST change never shifts the count. */
@@ -71,7 +82,7 @@ export function foldConceptStates(facts: ConceptFact[], t: StateThresholds = DEF
       a = fresh();
       accs.set(f.concept_id, a);
     }
-    a.started = true;
+    if (f.kind !== 'mistake_card') a.started = true;
     switch (f.kind) {
       case 'started':
         break;
@@ -83,7 +94,8 @@ export function foldConceptStates(facts: ConceptFact[], t: StateThresholds = DEF
         a.window.push({ item_id: f.item_id, local_date: f.local_date, qualifying: f.qualifying });
         if (a.window.length > t.window) a.window.splice(0, a.window.length - t.window);
         // S2-80: Mastered is entered only at a qualifying solve, so a failing attempt after a demotion never restores it.
-        if (!a.mastered && f.qualifying && meetsMastered(a.window, t)) {
+        // S4-10: and only while no mistake card of the concept is in relearning; it is an entry condition, like the rest.
+        if (!a.mastered && f.qualifying && a.relearning.size === 0 && meetsMastered(a.window, t)) {
           a.mastered = true;
           a.practisedFloor = true;
           a.masteredAt = f.ts;
@@ -112,7 +124,19 @@ export function foldConceptStates(facts: ConceptFact[], t: StateThresholds = DEF
         }
         break;
       case 'reset':                                                          // S2-27: Learning, and everything restarts
-        accs.set(f.concept_id, { ...fresh(), started: true });
+        accs.set(f.concept_id, { ...fresh(), started: true, relearning: a.relearning });   // a mistake card is its own card: kept
+        break;
+      case 'graded_instance':                                                // S4-10, T-17
+        if (f.unassisted_pass) a.spin = { instances: 0, sessions: new Set() };
+        else {
+          a.spin.instances++;
+          a.spin.sessions.add(f.session_id);
+        }
+        a.wheelSpinning = a.spin.instances >= WHEEL_SPINNING.instances && a.spin.sessions.size >= WHEEL_SPINNING.sessions;
+        break;
+      case 'mistake_card':                                                   // S4-10
+        if (f.relearning) a.relearning.add(f.card_id);
+        else a.relearning.delete(f.card_id);
         break;
       case 'refresher_done':                                                 // S2-25
         if (a.refresherDue && a.demotedAt !== null && Date.parse(f.ts) > Date.parse(a.demotedAt)) a.refresherDue = false;
@@ -122,7 +146,7 @@ export function foldConceptStates(facts: ConceptFact[], t: StateThresholds = DEF
   const out = new Map<string, ConceptStatus>();
   for (const [id, a] of accs) {
     out.set(id, { concept_id: id, state: nameOf(a), practisedItems: a.passed.size, window: a.window.map((e) => ({ ...e })),
-      masteredAt: a.masteredAt, retainedAt: a.retainedAt, flags: { leech: a.leech, refresherDue: a.refresherDue, demotedAt: a.demotedAt } });
+      masteredAt: a.masteredAt, retainedAt: a.retainedAt, flags: { leech: a.leech, refresherDue: a.refresherDue, demotedAt: a.demotedAt, wheelSpinning: a.wheelSpinning } });
   }
   return out;
 }

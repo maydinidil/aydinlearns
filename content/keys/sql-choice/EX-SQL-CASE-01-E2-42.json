@@ -1,6 +1,6 @@
 {
   "item_id": "EX-SQL-CASE-01-E2-42",
-  "item_version": 1,
+  "item_version": 2,
   "correct_oid": "ob82f250",
   "explanation": "The first true WHEN wins, so the highest cut-off goes first: a 50% promotion passes both tests and must meet the deep test before the medium one. With 20 first, every deep promotion is labelled medium. > 40 and > 20 put a promotion of exactly 40 or 20 one band too low, and without ELSE a light promotion gets a missing label.",
   "solver": {

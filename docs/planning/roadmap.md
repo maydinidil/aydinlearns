@@ -43,8 +43,9 @@ learner's effort is never the lever. Every slice goes live before the goal it se
 | 2 (done) | minors batch, 1b, 2a | 2026-10-13 | G-STARTING-KNOWLEDGE (2026-10-16): SQL levels 1-2, GA4 foundations and the first metrics practised | Done: PRs #30, #31 and #32 merged |
 | 3 (done) | fixes batch, 2b | 2026-10-20 | G-GA4-CERT (2026-11-13), groundwork | Done: a GA4 half-mock can be taken on unseen items; merged in PR #34. See [the sprint 3 record](2026-10-06-sprint-3-record.md) |
 | 3b (done) | visuals | 2026-10-06 | All goals: a calm, finished look for long study sessions | Done: every screen uses the tokens and the shell ([visuals spec](../superpowers/specs/2026-10-06-aydinlearns-visuals-design.md)); merged in PR #36. See [the sprint 3b record](2026-10-06-sprint-3b-record.md) |
-| 4a | 3 (part 1) | 2026-10-19 | G-SQL-LEVEL-3 (2026-11-06): joins, CTEs, dates | SQL level 3 can be studied end to end, with its drill; mistake cards are scheduled and reviewed |
-| 4b | 3 (part 2) | 2026-10-26 | G-SQL-LEVEL-3 (2026-11-06): first case exported | The first case is solved and exported |
+| 4a (done) | 3 (part 1) | 2026-10-19 | G-SQL-LEVEL-3 (2026-11-06): joins, CTEs, dates | Done: SQL level 3 can be studied end to end, with its drill; mistake cards are scheduled and reviewed; merged in PR #38. See [the sprint 4a record](2026-10-07-sprint-4a-record.md) |
+| 4b (done) | 3 (part 2) | 2026-10-26 | G-SQL-LEVEL-3 (2026-11-06): first case exported | Done: cases and the inbox, the portfolio export, the Progress screen, the dataset explorer, screen mode and live reps are built; a solved case can be exported; merged in PR #40. See [the sprint 4b record](2026-10-07-sprint-4b-record.md) |
+| 4c (built) | 3 (cleanup) | 2026-10-08 | G-SQL-LEVEL-3 (2026-11-06): level 3 and its cases studied on clean content | Built on `feat/aydinlearns-sprint-4c`, pull request to be merged: the SQL learner-facing backlog (four mistake families with better feedback, clearer wording, case edge data, live reps, export hardening, the division control, focus). See [the sprint 4c record](2026-10-08-sprint-4c-record.md) |
 | 5 | 4 | 2026-11-02 | G-GA4-CERT (2026-11-13); Methodology for the knowledge interview | The GA4 readiness check can be taken; all Methodology areas can be practised |
 | 6 | 5 | 2026-11-09 | G-SQL-LEVEL-4 (2026-11-27): level 4 and a first real-data analysis | Level 4 is completable; a first real-data analysis can be done |
 | 7 | 6 | 2026-11-20 | G-STAGE-2 to 5 and G-RECRUITMENT-READY (2026-12-11): the recruiter mocks; applications go out | Every recruiter mock runs end to end, and the readiness board shows all six stages |
@@ -226,6 +227,28 @@ Live by 2026-10-26 (4a by 2026-10-19). Depends on 1b's scheduler, openers and dr
 ERRATA with Slice = 3 or 3+: OD-RULE-03, E-047, E-054, E-092, E-004, E-006. Deferred findings that
 land here: RIGHT JOIN under `left_join` in the construct map; `ExternalResult` typing.
 **Done when:** the first case is solved and exported, and mistake cards are scheduled.
+
+**Status, 4a: done (2026-10-07).** Jobs 1, 2 and 4 and the carried items are built on
+`feat/aydinlearns-sprint-4a` and merged in PR #38: OD-RULE-03, E-047 and the RIGHT JOIN deferral are
+closed. Left for 4b: jobs 3, 5, 6, 7 and 8, the level 3 opener, ERRATA E-004, E-006, E-054 and
+E-092, `ExternalResult` typing, and the findings in
+[the sprint 4a record](2026-10-07-sprint-4a-record.md). A hygiene PR (backlog cleanup, Codex F20
+fixed) comes before 4b; open deferred work lives in [`backlog.md`](backlog.md).
+
+**Status, 4b: done (2026-10-08).** Jobs 3, 5, 6, 7 and 8 are built on `feat/aydinlearns-sprint-4b`,
+with the level 3 opener, `CASE-PRICE-01` and `CASE-PRICE-02` (ERRATA E-004 ported), six daily cases,
+`ExternalResult` typing and Codex F21 to F23. ERRATA E-054 is closed (E-170). E-092 and E-006's case
+part moved to sprint 6 with RETAIL-03, PRICE-03 and PRICE-04 (E-169). Sprint 4 is done: 4a and 4b.
+Open deferred work, including the findings in [the sprint 4b record](2026-10-07-sprint-4b-record.md),
+lives in [`backlog.md`](backlog.md).
+
+**Status, 4c: built (2026-10-08).** The SQL learner-facing backlog is built on
+`feat/aydinlearns-sprint-4c`, with its pull request still to be merged: `ERR-LOG-28` and `ERR-LOG-29`
+(ERRATA E-171 to E-173), clearer wording on a dozen items and five cases, edge data for
+CASE-PRICE-02 and CASE-VOLT-L3, live rep fallback and a history tick, export hardening, the
+division control re-run (`GRADER_VERSION` `4c.1`), the memory-limit message, a skipped unservable
+mistake card and keyboard focus. No new feature and no log change. Its findings are in
+[the sprint 4c record](2026-10-08-sprint-4c-record.md); open work lives in [`backlog.md`](backlog.md).
 
 ## Sprint 5: slice 4, GA4 complete, Methodology complete
 
