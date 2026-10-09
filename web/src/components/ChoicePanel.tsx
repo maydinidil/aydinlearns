@@ -9,7 +9,7 @@ import type { OptionTable } from '../../../schemas/choice-types.ts';
 import { isClosedError } from '../lib/exercise.ts';
 import { ANSWER_FIRST, typedValueText } from '../lib/cp4-flow.ts';
 import { createBusyGate } from '../lib/busy-gate.ts';
-import { canSaveAnswer, classifyRunRefusal, modeRules, runMayBeGone, shownAtAfter, type RunMode } from '../lib/run-flow.ts';
+import { canSaveAnswer, classifyRunRefusal, modeRules, runMayBeGone, savedLine, shownAtAfter, type RunKind, type RunMode } from '../lib/run-flow.ts';
 import { itemBadges } from '../lib/choice-flow.ts';
 import { choicePhaseFor, optionTableView, sqlChoiceLayout } from '../lib/sql-choice.ts';
 import { SchemaPanel } from './SchemaPanel.tsx';
@@ -38,7 +38,7 @@ type Props = {
    * exam takes one. `onStopped`: the server says the run is over. `visible`: this question is the current one; its active time counts
    * from then (B3 I1), and from each save, not from when the run began.
    */
-  run?: { mode: RunMode; confidence: boolean; answeredBefore?: boolean; visible?: boolean; onSaved: () => void; onStopped: (note?: string) => void };
+  run?: { mode: RunMode; kind: RunKind; confidence: boolean; answeredBefore?: boolean; visible?: boolean; onSaved: () => void; onStopped: (note?: string) => void };
 };
 
 const REOPENED = 'Your session ended, so this question was opened again. The options may be in a new order: check your answer, then send it again.';
@@ -211,7 +211,7 @@ function ChoicePanelInner({ itemId, section, phase: asked, schemaNotes, instance
         ? <p><button type="button" disabled={busy} onClick={() => void send(null)}>Save answer</button></p>
         : <ConfidenceRow busy={busy} onPick={(c) => void send(c)} note={run ? 'Your answer is saved when you pick one. The result comes in the review.' : undefined} />)}
       {run && saved !== null && (
-        <p role="status" className="muted">{modeRules(run.mode).changeAnswer ? 'Answer saved. You can change it until the run ends.' : 'Answer saved. A half-mock takes one answer per question.'}</p>
+        <p role="status" className="muted">{savedLine(run.mode, run.kind)}</p>
       )}
       {message && <p role="alert">{message}</p>}
       {result && (

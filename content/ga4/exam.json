@@ -7,6 +7,10 @@
     "T-GA4-04": "Tools and data sources",
     "T-GA4-05": "Administration, privacy and data quality"
   },
-  "mini_drill": { "questions": 20, "minutes": 30, "pass_pct": 80, "mode": "practice" },
-  "half_mock": { "questions": 25, "minutes": 37.5, "pass_pct": 80, "mode": "exam", "retake_days": 21 }
+  "blueprints": [
+    { "from": "2026-10-06",
+      "mini_drill": { "questions": 20, "minutes": 30, "pass_pct": 80, "mode": "practice" },
+      "half_mock": { "questions": 25, "minutes": 37.5, "pass_pct": 80, "mode": "exam", "retake_days": 21 },
+      "full_mock": { "questions": 50, "minutes": 75, "pass_pct": 80, "mode": "exam", "retake_days": 21 } }
+  ]
 }

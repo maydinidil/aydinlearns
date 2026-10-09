@@ -485,6 +485,26 @@ test('S2-47: a learner-started drill on chosen concepts draws their practice ite
   assert.equal((await post(app, '/api/drill/end', { block_id: 'NOPE' })).status, 404);
 });
 
+test('H3: the end reply marks every question in drill order: passed, failed or not_answered, adding up to the score; a repeated end gives the same marks', async () => {
+  const d = await deps();
+  const app = createApp(d);
+  const run = await json(post(app, '/api/drill/start', { level: 1 }));
+  const [a, b, c] = run.servings as Serving[];
+  await submit(app, a!, right(a!.item_id));
+  await submit(app, b!, WRONG);
+  await submit(app, c!, WRONG);
+  await submit(app, c!, right(c!.item_id));            // D9: a pass on a later answer counts
+  const end = await json(post(app, '/api/drill/end', { block_id: run.block_id }));
+  assert.deepEqual(end.items.map((x: any) => x.item_instance_id), run.servings.map((s: Serving) => s.item_instance_id), 'every question, in drill order');
+  assert.deepEqual(end.items.map((x: any) => x.item_id), run.servings.map((s: Serving) => s.item_id));
+  assert.deepEqual(end.items.map((x: any) => x.outcome), ['passed', 'failed', 'passed', ...Array(7).fill('not_answered')]);
+  assert.equal(end.items.filter((x: any) => x.outcome === 'passed').length, end.score.passed, 'the marks add up to the total');
+  const again = await json(post(app, '/api/drill/end', { block_id: run.block_id }));
+  assert.deepEqual(again.score, end.score);
+  const byInstance = (r: any) => Object.fromEntries(r.items.map((x: any) => [x.item_instance_id, x.outcome]));
+  assert.deepEqual(byInstance(again), byInstance(end), 'a drill that has ended in this process or before still knows its marks, by question');
+});
+
 test('a level drill taken before any study: its unreached items leave their concepts New, so Today still offers the first of them as the next new concept (S2-01, S2-29)', async () => {
   const d = await deps({}, openJsonlLog(await mkdtemp(join(tmpdir(), 'al-drill-'))));      // no exposure: nothing studied yet
   const app = createApp(d);

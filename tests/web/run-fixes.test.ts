@@ -58,7 +58,7 @@ test('M1: an "over" reading ends the run only when the server no longer has that
 
 test('Ruling A: the entries say when unseen questions come back, for the half-mock only, and only when the server gave a date', () => {
   const p = { next_unseen_date: { mini_drill: null, half_mock: '2026-10-27' } };
-  assert.equal(f.entryNote('half_mock', p), 'Unseen questions come back on 2026-10-27');
+  assert.equal(f.entryNote('half_mock', p), 'Unseen questions come back on 27 October');
   assert.equal(f.entryNote('mini_drill', p), null);
   assert.equal(f.entryNote('half_mock', { next_unseen_date: { mini_drill: null, half_mock: null } }), null);
   assert.equal(f.entryNote('half_mock', null), null);

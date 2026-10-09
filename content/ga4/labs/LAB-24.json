@@ -1,0 +1,56 @@
+{
+  "id": "LAB-24",
+  "version": 1,
+  "title": "Reading an audience",
+  "concept_id": "GA4-AUDIENCE-01",
+  "topic_id": "T-GA4-03",
+  "property": "MS",
+  "path": "Admin > Data display > Audiences",
+  "path_verified": false,
+  "date": "none",
+  "steps": [
+    "In the Google Merchandise Store property, open Admin (the gear icon at the bottom left).",
+    "Open Data display > Audiences.",
+    "Open the first audience in the list. If its membership duration is not given as a number of days, go back and open the next audience instead.",
+    "Note the audience's name exactly as GA4 shows it, its membership duration in days, and its conditions. Viewer access lets you read them but not change them.",
+    "When you re-check a week later, choose the audience the same way: the first in the list whose membership duration is given in days."
+  ],
+  "parts": [
+    {
+      "id": "P1",
+      "question": "What is the name of the audience you opened? Type it exactly as GA4 shows it.",
+      "answer": "text",
+      "check": "recheck_fixed"
+    },
+    {
+      "id": "P2",
+      "question": "What is its membership duration, in days?",
+      "answer": "number",
+      "unit": "count",
+      "check": "recheck_fixed",
+      "tolerance": {
+        "exact": true
+      }
+    },
+    {
+      "id": "P3",
+      "question": "Read the audience's conditions. Does your screen match the description?",
+      "answer": "text",
+      "check": "self_rubric",
+      "rubric": "The audience's details are open. They show at least one condition that says which users are included, built from events, dimensions or metrics, for example users who triggered a given event. An exclude condition may also be shown. The membership duration shown is the number of days you typed."
+    }
+  ],
+  "rules": [],
+  "interview_relevant": true,
+  "source_ids": [
+    "07:LAB-24",
+    "07:NAV-14",
+    "07:§1.3",
+    "07:[1]",
+    "06:GA4-AUDIENCE-01",
+    "06:Q-GA4-22",
+    "ERRATA:E-023",
+    "ERRATA:E-187"
+  ],
+  "as_of": "2026-10-09"
+}

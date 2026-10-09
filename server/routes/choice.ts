@@ -12,11 +12,13 @@
 // POST /api/choice/show-answer: a version 2 solution_opened, then the key and explanation; the instance stays open.
 //
 // Task B2, a timed GA4 run's items (S3-01 to S3-04, S3-12; Review Focus 2 and 4):
-// - A held-out item is served, and answered, only through its own half-mock instance while that run is on. Anything else about it,
-//   its run's review included, gets the 404 every held-out item gets; show-answer always does.
+// - A held-out item is served, and answered, only through its own mock instance (a half-mock's or a full mock's) while that run is
+//   on. Anything else about it, its run's review included, gets the 404 every held-out item gets; show-answer always does.
 // - An answer to a run's item is logged and leaves the instance open (the run's end closes it): no correctness, key or explanation
-//   comes back. Exam mode (a half-mock) takes one answer per item and logs confidence null; practice mode (a mini drill) logs each
-//   change as a new attempt. Once the run is over, an answer is a 409 (S2-42).
+//   comes back. Exam mode (a half-mock or a full mock) takes one answer per item and logs confidence null; practice mode (a mini
+//   drill) logs each change as a new attempt. Once the run is over, an answer is a 409 (S2-42).
+// - Sprint 5b Task B4 (D68, log version 5): every answer to a run's item logs the run's kind as its payload's run_kind, from the run
+//   clock's entry for the instance, so the log tells a full mock cut short by a crash from a half-mock.
 // - Show-answer inside a run waits (409, S3-03). After a mini drill ends, it opens on the run's closed items, logged (S2-44).
 import { randomInt, randomUUID } from 'node:crypto';
 import type { Context, Hono } from 'hono';
@@ -25,12 +27,12 @@ import { SCHEMA_VERSION, type Phase, type Section } from '../../core/envelope.ts
 import { amsterdamDate } from '../../core/time.ts';
 import { choiceTarget, sqlChoiceShape, type ChoiceItem, type ChoiceKey, type ChoiceSection, type ChoiceShape, type OptionTable, type TypedSpec } from '../../schemas/choice.ts';
 import { isSqlChoiceKind, type SqlChoiceKind, type SqlItem, type UniqueCheck } from '../../schemas/item.ts';
-import type { AydinAttempt } from '../../schemas/log-ext.ts';
+import type { AydinAttempt, LoggedRunKind } from '../../schemas/log-ext.ts';
 import type { ContentStore } from '../content.ts';
 import type { OpenInstance, RouteDeps } from '../app.ts';
 import { CHOICE_GRADER_VERSION, gradeChoice, gradeTyped, parseTyped, TYPED_REFUSALS, type ChoiceGrade } from '../choice/grade.ts';
 import { HELP_WAITS, NO_DRILLS, type DrillGate } from '../drill.ts';
-import { CHOICE_RUN_OVER, CODE_ONE_ANSWER, CODE_RUN_OVER, isChoicePlan, ONE_ANSWER } from '../run.ts';
+import { CHOICE_RUN_OVER, CODE_ONE_ANSWER, CODE_RUN_OVER, isChoicePlan, oneAnswer } from '../run.ts';
 
 /**
  * The question as the browser sees it: never its options in source order, its key, or its misconceptions. `exam_relevance`
@@ -112,7 +114,7 @@ export function servableChoiceItem(content: ContentStore, id: string): ChoiceIte
 }
 
 /**
- * S3-12: an active GA4 or Methodology item, held out or not. Only a half-mock's own instance, while its run is on, reaches a held-out
+ * S3-12: an active GA4 or Methodology item, held out or not. Only a mock's own instance (half or full), while its run is on, reaches a held-out
  * item through it; every other request goes through servableChoiceItem.
  */
 function activeChoiceItem(content: ContentStore, id: string): ChoiceItem | undefined {
@@ -157,7 +159,7 @@ export function mountChoice(app: Hono, d: RouteDeps, runs: DrillGate = NO_DRILLS
   /**
    * The question with this ID in this section (any section when none is named), or undefined: unknown, held out, not active, or
    * of another section. A GA4 or Methodology item comes first; an SQL choice item's ID never takes that form (EX-SQL-*).
-   * `inHalfMock` (S3-12): the request names this held-out item's own half-mock instance, and that run is on.
+   * `inHalfMock` (S3-12): the request names this held-out item's own mock instance (a half-mock's or a full mock's), and that run is on.
    */
   const question = (id: string, section?: Section, inHalfMock = false): Question | undefined | 'no key' => {
     const choice = section === undefined || section === 'ga4' || section === 'methodology'
@@ -184,7 +186,7 @@ export function mountChoice(app: Hono, d: RouteDeps, runs: DrillGate = NO_DRILLS
     return q;
   };
   /**
-   * S3-12: the instance is this held-out item's own serving in a half-mock, and `on` says that run is on. A serving is forgotten
+   * S3-12: the instance is this held-out item's own serving in a mock (half or full), and `on` says that run is on. A serving is forgotten
    * when its run ends and at a restart, so after the run every request for the item is the usual 404.
    */
   const servedInHalfMock = (itemId: unknown, instanceId: unknown, on: boolean): boolean => {
@@ -201,9 +203,12 @@ export function mountChoice(app: Hono, d: RouteDeps, runs: DrillGate = NO_DRILLS
   };
   const open = (id: string, q: Question, s: Shown) => d.openInstance(id, { item_id: q.shape.id, target_concept_id: q.target_concept_id,
     phase: s.phase, section: q.section, started_at: new Date(s.at).toISOString() });
-  /** The logged answer: graded on the server, with the order shown (S2-60) and the instance's phase, block and repeat flag. */
+  /**
+   * The logged answer: graded on the server, with the order shown (S2-60) and the instance's phase, block and repeat flag. `runKind`:
+   * the kind of the timed GA4 run the item belongs to (D68), left out of the payload for any other answer.
+   */
   const attemptOf = (a: { id: string; q: Question; s: Shown; i: OpenInstance; b: Body; at: Date; grade: ChoiceGrade; chosen: string | null;
-    typed: string | undefined; confidence: AydinAttempt['confidence'] }): AydinAttempt => {
+    typed: string | undefined; confidence: AydinAttempt['confidence']; runKind?: LoggedRunKind }): AydinAttempt => {
     const { id, q, s, i, b, at, grade } = a;
     const activeMs = typeof b.active_ms === 'number' && Number.isFinite(b.active_ms) && b.active_ms >= 0 ? b.active_ms : Math.max(0, at.getTime() - i.started);
     return {
@@ -216,7 +221,8 @@ export function mountChoice(app: Hono, d: RouteDeps, runs: DrillGate = NO_DRILLS
       error_ids: grade.error_ids, checks: [], grading_source: 'auto', confidence: a.confidence, content_version: d.content.contentVersion,
       grader_version: CHOICE_GRADER_VERSION, world: q.world, difficulty: q.difficulty, sub_skill: q.sub_skill,
       dataset_version: d.manifest.dataset_version, duckdb_version: d.manifest.library_version,
-      payload: { kind: 'mcq', shown_order: s.order, chosen: a.chosen, ...(a.typed === undefined ? {} : { typed: a.typed }) },
+      payload: { kind: 'mcq', shown_order: s.order, chosen: a.chosen, ...(a.typed === undefined ? {} : { typed: a.typed }),
+        ...(a.runKind === undefined ? {} : { run_kind: a.runKind }) },
     };
   };
 
@@ -224,7 +230,7 @@ export function mountChoice(app: Hono, d: RouteDeps, runs: DrillGate = NO_DRILLS
     const section = c.req.query('section');
     if (section !== 'ga4' && section !== 'methodology' && section !== 'sql') throw refuse(400, 'section must be ga4, methodology or sql.');
     const asked = c.req.query('instance');
-    // S3-12: a held-out item only through its own half-mock instance while the run is on (running() ends a run past its limit first).
+    // S3-12: a held-out item only through its own mock instance (half or full) while the run is on (running() ends a run past its limit first).
     const inHalfMock = section === 'ga4' && d.content.heldOut?.(c.req.param('id')) === true && asked !== undefined
       && servedInHalfMock(c.req.param('id'), asked, await runs.running(asked));
     const q = question(c.req.param('id'), section, inHalfMock);
@@ -299,10 +305,10 @@ export function mountChoice(app: Hono, d: RouteDeps, runs: DrillGate = NO_DRILLS
         // S3-01 to S3-04: a timed GA4 run's item stays open until the run's end. Exam mode takes one answer and asks no
         // confidence (null); practice mode logs each change as a new attempt, and the last one before the end is scored.
         const exam = run.plan.mode === 'exam';
-        if (exam && i.submitted > 0) throw refuse(409, ONE_ANSWER, CODE_ONE_ANSWER);
+        if (exam && i.submitted > 0) throw refuse(409, oneAnswer(run.plan.kind), CODE_ONE_ANSWER);
         i.noteSubmission(true, grade.correct);           // claimed before the first await: a second exam answer gets the 409 above
         const at = new Date();
-        const attempt = attemptOf({ id, q, s, i, b, at, grade, chosen, typed, confidence: exam ? null : confidence });
+        const attempt = attemptOf({ id, q, s, i, b, at, grade, chosen, typed, confidence: exam ? null : confidence, runKind: run.plan.kind });
         await d.logger.attempt(attempt);
         logged = at;
         const body: ChoiceSavedView = { saved: true, attempt_id: attempt.attempt_id };   // help waits: no correctness, key or explanation

@@ -37,6 +37,7 @@ import { mountRun } from './routes/run.ts';
 import { mountMistakes } from './routes/mistakes.ts';
 import { mountPortfolio, uncProblem } from './routes/portfolio.ts';
 import { mountProgress } from './routes/progress.ts';
+import { mountLabs } from './routes/labs.ts';
 import { mountExplore, EXPLORE_RUN_PATH } from './routes/explore.ts';
 import { HELP_WAITS, NO_DRILLS, RUN_OVER, type DrillGate, type DrillRuns } from './drill.ts';
 
@@ -864,6 +865,7 @@ export function createApp(d: AppDeps): Hono {
   mountPortfolio(app, routeDeps);                          // sprint 4b (Task D4): the portfolio export and its screen's data (S4B-16 to S4B-19)
   mountExplore(app, routeDeps);                            // sprint 4b (Task E2): the dataset explorer; its run logs nothing and starts no session (S4B-28)
   mountProgress(app, routeDeps);                           // sprint 4b (Task E1): GET /api/progress, read only (S4B-27)
+  mountLabs(app, routeDeps);                               // sprint 5b (Task B2): the GA4 labs, graded and stated by server/labs.ts (D69)
   // Writes through the logger only: this runs inside the session tracker's queue.
   d.endHooks.push(async (at) => {
     for (const [id, i] of [...instances]) await writeClose(id, i, 'session_end', at);

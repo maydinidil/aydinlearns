@@ -1,7 +1,8 @@
 // tests/core/goal-eval.test.ts: goals and their criteria (design §2, §4 wrap-up; rulings S2-38, D12; Task B13)
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { effectiveDate, evaluateGoal, nextGoal, type GoalView } from '../../core/goal-eval.ts';
+import { readFile } from 'node:fs/promises';
+import { criterionSections, effectiveDate, evaluateGoal, goalInSection, goalOpenInSection, nextGoal, type GoalView } from '../../core/goal-eval.ts';
 import { goalCriterionProblems, type Goal } from '../../core/goals.ts';
 import type { Section } from '../../core/envelope.ts';
 import type { ConceptStateName } from '../../core/states.ts';
@@ -201,4 +202,68 @@ test('D58: the validator refuses concept_ids with concept_id or level, and an em
   assert.match(goalCriterionProblems({ ...ok, concept_ids: ['A', 3] }).join(), /text/);
   assert.match(goalCriterionProblems({ ...ok, concept_ids: ['A', 'A'] }).join(), /repeat/);
   assert.deepEqual(goalCriterionProblems({ kind: 'concept_state', section: 'sql', level: 2, state: 'practised' }), []);
+});
+
+// ---- Hygiene 1.1, H2 (S5A-18): the next goal per section ---------------------------------------------------------------------------
+test('S5A-18: each criterion kind names the sections it belongs to (design §2.1)', () => {
+  assert.deepEqual(criterionSections({ kind: 'concept_state', section: 'ga4', level: 1, state: 'practised' }), ['ga4']);
+  assert.deepEqual(criterionSections({ kind: 'concept_state', section: 'methodology', concept_ids: ['EXP-AB-01'], state: 'practised' }), ['methodology']);
+  assert.deepEqual(criterionSections({ kind: 'concept_state', section: 'sql', concept_id: 'SQL-BASICS-01', state: 'practised' }), ['sql']);
+  assert.deepEqual(criterionSections({ kind: 'mock_pass', mock: 'screen' }), ['sql']);
+  assert.deepEqual(criterionSections({ kind: 'mock_pass', mock: 'knowledge' }), ['ga4', 'methodology'], 'the knowledge mock: held-out GA4 and Methodology items');
+  assert.deepEqual(criterionSections({ kind: 'mock_pass', mock: 'case_round' }), ['sql']);
+  assert.deepEqual(criterionSections({ kind: 'mock_pass', mock: 'take_home' }), ['sql']);
+  assert.deepEqual(criterionSections({ kind: 'mock_pass', mock: 'ga4_readiness' }), ['ga4']);
+  assert.deepEqual(criterionSections({ kind: 'external', result: 'ga4_exam', count: 1 }), ['ga4']);
+  assert.deepEqual(criterionSections({ kind: 'external', result: 'portfolio_piece', count: 2, real_data_min: 1 }), ['sql']);
+  assert.deepEqual(criterionSections({ kind: 'live_rep', window_weeks: 4, min_logged: 4, min_passed: 3 }), ['sql']);
+  assert.deepEqual(criterionSections({ kind: 'case_solved', count: 1, exported: true }), ['sql']);
+  assert.deepEqual(criterionSections({ kind: 'real_data_analysis', count: 1 }), ['sql']);
+});
+
+test('S5A-18: a goal is in a section when at least one of its criteria is', () => {
+  const mixed = goal('G-M', '2026-11-13', [{ kind: 'external', result: 'ga4_exam', count: 1 }, { kind: 'concept_state', section: 'methodology', level: 1, state: 'practised' }]);
+  assert.deepEqual((['sql', 'ga4', 'methodology'] as const).map((s) => goalInSection(mixed, s)), [false, true, true]);
+  assert.equal(goalInSection(goal('G-NONE', '2026-11-13'), 'ga4'), false, 'a goal with no criteria is in no section');
+});
+
+test('S5A-18: nextGoal with a filter keeps the same rule over the goals the filter keeps; without one, nothing changes', () => {
+  const goals = [
+    goal('G-SQL', '2026-10-09', [{ kind: 'concept_state', section: 'sql', level: 1, state: 'practised' }]),
+    goal('G-GA4', '2026-11-13', [{ kind: 'external', result: 'ga4_exam', count: 1 }]),
+    goal('G-GA4-LATER', '2026-12-07', [{ kind: 'mock_pass', mock: 'ga4_readiness' }]),
+  ];
+  const none = () => false;
+  const ga4 = (g: Goal) => goalInSection(g, 'ga4');
+  assert.equal(nextGoal(goals, {}, '2026-10-09', none)?.id, 'G-SQL', 'no filter: the earliest goal overall');
+  assert.equal(nextGoal(goals, {}, '2026-10-09', none, ga4)?.id, 'G-GA4', 'the GA4 goal over the earlier SQL goal');
+  assert.equal(nextGoal(goals, {}, '2026-10-09', (id) => id === 'G-GA4', ga4)?.id, 'G-GA4-LATER', 'a met goal is still skipped');
+  assert.equal(nextGoal(goals, { 'G-GA4-LATER': '2026-10-20' }, '2026-10-09', none, ga4)?.id, 'G-GA4-LATER', 'an override still moves a goal');
+  assert.equal(nextGoal(goals, {}, '2026-10-09', none, (g) => goalInSection(g, 'methodology')), null, 'no goal of the section left');
+});
+
+test('S5A-18 (H-R6): a goal counts for a section only through its unmet criteria there', () => {
+  const SECTIONS = ['sql', 'ga4', 'methodology'] as const;
+  const open = (g: Goal, met: boolean[]) => SECTIONS.map((s) => goalOpenInSection(g, met.map((m) => ({ met: m })), s));
+  const cv = goal('G-CV', '2026-12-07', [{ kind: 'external', result: 'ga4_exam', count: 1 }, { kind: 'external', result: 'portfolio_piece', count: 2, real_data_min: 1 }]);
+  assert.deepEqual(open(cv, [true, false]), [true, false, false], 'the exam passed: only the portfolio (SQL) is left');
+  const cert = goal('G-CERT', '2026-11-13', [{ kind: 'external', result: 'ga4_exam', count: 1 }, { kind: 'concept_state', section: 'methodology', level: 1, state: 'practised' }]);
+  assert.deepEqual(open(cert, [true, false]), [false, false, true], 'the exam passed: only Methodology is left');
+  assert.deepEqual(open(cert, [false, false]), [false, true, true]);
+  const knowledge = goal('G-K', '2026-12-07', [{ kind: 'mock_pass', mock: 'knowledge' }]);
+  assert.deepEqual(open(knowledge, [false]), [false, true, true]);
+  assert.deepEqual(open(knowledge, [true]), [false, false, false]);
+  assert.deepEqual(SECTIONS.map((s) => goalOpenInSection(cert, [], s)), [false, true, true], 'a criterion with no result counts as unmet');
+
+  const later = goal('G-GA4-LATER', '2026-12-07', [{ kind: 'mock_pass', mock: 'ga4_readiness' }]);
+  const results = new Map([['G-CV', [{ met: true }, { met: false }]], ['G-GA4-LATER', [{ met: false }]]]);
+  const ga4 = (g: Goal) => goalOpenInSection(g, results.get(g.id)!, 'ga4');
+  assert.equal(nextGoal([cv, later], {}, '2026-10-09', () => false, ga4)?.id, 'G-GA4-LATER', 'an earlier goal whose only GA4 criterion is met is skipped');
+  results.set('G-GA4-LATER', [{ met: true }]);
+  assert.equal(nextGoal([cv, later], {}, '2026-10-09', () => false, ga4), null, 'no goal with an unmet GA4 criterion is left');
+});
+
+test('S5A-18: every goal in content/goals.json belongs to at least one section', async () => {
+  const { goals } = JSON.parse(await readFile('content/goals.json', 'utf8')) as { goals: Goal[] };
+  for (const g of goals) assert.ok((['sql', 'ga4', 'methodology'] as const).some((s) => goalInSection(g, s)), g.id);
 });

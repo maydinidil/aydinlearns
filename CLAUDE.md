@@ -26,8 +26,8 @@ holds the evidence behind those changes.
 
 ## The state you will find it in
 
-**Slices 0, 1a, 1b, 2a and 2b and sprints 4a, 4b, 4c and 5a are built: SQL levels 1 to 3, the
-GA4 foundations and all of Methodology can be studied, with the scheduler, Today, drills, the
+**Slices 0, 1a, 1b, 2a and 2b and sprints 4a, 4b, 4c, 5a and 5b are built: SQL levels 1 to 3,
+all of GA4 (with full mocks, the readiness check and the interview labs) and all of Methodology can be studied, with the scheduler, Today, drills, the
 level openers, mistake cards, cases, the portfolio export and the Progress screen.** Slice 2b (GA4 lessons, timed
 GA4 mini drills and half-mocks, SQL choice items) reached `main` through PR #34. Sprint 3b gave
 every screen the direction C look (tokens, a top bar with section tabs, cards, a two-column
@@ -41,9 +41,10 @@ built cases and the inbox, the level 3 opener, the portfolio export, the Progres
 dataset explorer, screen mode and live reps, merged in PR #40 (2026-10-08). Sprint 4c, a cleanup of
 the SQL learner-facing backlog, merged in PR #41 (2026-10-08). Open deferred work lives in
 [`docs/planning/backlog.md`](docs/planning/backlog.md). Sprint 5 is split: 5a (Methodology
-complete, polish, release 1.0) is built on `feat/aydinlearns-sprint-5a`, with its pull request
-still to be merged, and 5b (GA4 complete, release 1.1) follows it; read the roadmap first. The
-app's version is in `package.json` (1.0.0); later sprints ship as 1.x releases (D63).
+complete, polish, release 1.0) merged in PR #42 and was released as 1.0 (tag `v1.0.0` on the
+public repo, 2026-10-08), and 5b (GA4 complete, release 1.1) merged in PR #43, followed by a hygiene PR (plan
+[`docs/superpowers/plans/2026-10-09-aydinlearns-hygiene-1-1.md`](docs/superpowers/plans/2026-10-09-aydinlearns-hygiene-1-1.md):
+Codex F27 and ten backlog rows) before the 1.1 release; read the roadmap first. The app's version is in `package.json` (1.1.0); later sprints ship as 1.x releases (D63).
 - Slice 0: the domain-free types in `core/`, the app schemas in `schemas/`, the curriculum and
   error catalogue extracted into `content/sql/`, and the adjudicated fixes in
   `knowledge/ERRATA.md`. `knowledge/` itself still holds the research bank: 12 files (00 to 11), plus an index and a
@@ -101,6 +102,16 @@ app's version is in `package.json` (1.0.0); later sprints ship as 1.x releases (
   pass over every screen, and version 1.0.0 (`server/version.ts`, shown in Settings). No log
   change. Its rulings and deferred findings are in
   [`docs/planning/2026-10-08-sprint-5a-record.md`](docs/planning/2026-10-08-sprint-5a-record.md).
+- Sprint 5b (plan
+  [`docs/superpowers/plans/2026-10-08-aydinlearns-sprint-5b.md`](docs/superpowers/plans/2026-10-08-aydinlearns-sprint-5b.md)):
+  GA4 complete. Ten interview labs (`content/ga4/labs/`, keys in `content/keys/ga4/labs/`, the guide
+  `content/ga4/lab-guide.json`; schema `schemas/lab.ts`, grading `server/labs.ts`, routes
+  `server/routes/labs.ts`, checks C42 to C45, `npm run export:lab-view` and `record:lab-solver`
+  for the blind solve), full mocks on dated blueprints (`content/ga4/exam.json`, Codex F14, check
+  C46), the readiness check (`server/readiness.ts`, `GET /api/ga4/readiness`, cold answers in
+  `server/progress.ts`), log format version 5 (`lab_answer`, `run_kind`), and version 1.1.0. Its
+  rulings and deferred findings are in
+  [`docs/planning/2026-10-08-sprint-5b-record.md`](docs/planning/2026-10-08-sprint-5b-record.md).
 - Every check in the README's "Run and ship" passes, and so does the browser smoke test,
   `npm run test:e2e`. It runs its own server on `AYDINLEARNS_PORT` (default 5174) against an
   empty temporary logs folder, set through `AYDINLEARNS_LOGS_DIR`; never point a test at the real

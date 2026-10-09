@@ -11,7 +11,7 @@ import type { Context, Hono } from 'hono';
 import { HTTPException } from 'hono/http-exception';
 import { randomUUID } from 'node:crypto';
 import type { Phase, Section } from '../../core/envelope.ts';
-import { effectiveDate, evaluateGoal, nextGoal } from '../../core/goal-eval.ts';
+import { effectiveDate, evaluateGoal, goalOpenInSection, nextGoal } from '../../core/goal-eval.ts';
 import { parseMistakeCardId } from '../../core/replay.ts';
 import { mixedConcepts, planToday, type ComposerInput } from '../../core/session.ts';
 import { amsterdamDate } from '../../core/time.ts';
@@ -212,11 +212,17 @@ export function mountToday(app: Hono, d: RouteDeps, liveRuns: () => readonly See
     // The next goal (S2-38) on the one goal view (server/goal-view.ts), evaluated on today's Amsterdam date, as Progress evaluates it.
     const view = await readGoalView(d);
     const evaluated = new Map(d.content.goals.map((g) => [g.id, evaluateGoal(g, view, today)]));
-    const next = nextGoal(d.content.goals, d.settings.goal_dates, today, (id) => evaluated.get(id)?.met ?? false);
+    const met = (id: string): boolean => evaluated.get(id)?.met ?? false;
+    // S5A-18: GA4 and Methodology show the next goal with an unmet criterion in their section (H-R6: a met one does not count); with
+    // none left, the next goal overall, marked `all_sections` so the line says so. SQL keeps S2-38's rule unchanged.
+    const own = section === 'sql' ? null
+      : nextGoal(d.content.goals, d.settings.goal_dates, today, met, (g) => goalOpenInSection(g, evaluated.get(g.id)!.criteria, section));
+    const next = own ?? nextGoal(d.content.goals, d.settings.goal_dates, today, met);
+    const all_sections = section !== 'sql' && own === null;
     // S4-13 (design §4 wrap-up): one corrected query from the mistake log, SQL only. The learner's own text, never a key's.
     const corrected_query = section === 'sql' ? correctedQuery(await d.logger.readAll('attempts'), await names(), held()) : null;
-    return c.json({ plan, goal: next ? { goal: goalSummary(next), effective_date: effectiveDate(next, d.settings.goal_dates), criteria: evaluated.get(next.id)!.criteria } : null,
-      corrected_query });
+    return c.json({ plan, goal: next ? { goal: goalSummary(next), effective_date: effectiveDate(next, d.settings.goal_dates), criteria: evaluated.get(next.id)!.criteria,
+      all_sections } : null, corrected_query });
   });
 
   /** S2-51: every level opener, in the store's case order, so the map can open each one at any time. A case with no level or no CP3 item is left out. */

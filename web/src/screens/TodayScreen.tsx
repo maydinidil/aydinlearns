@@ -12,6 +12,8 @@ import { ChoicePanel } from '../components/ChoicePanel.tsx';
 import { type ClosedResult } from '../components/ExercisePanel.tsx';
 import { ItemPanel } from '../components/ItemPanel.tsx';
 import { Ga4Runs } from '../components/Ga4Runs.tsx';
+import { labApi } from '../lib/lab-api.ts';
+import { dueRechecks } from '../lib/lab-flow.ts';
 import { MicroLesson } from '../components/MicroLesson.tsx';
 import { choiceTitles, mapHref, SECTION_LABEL } from '../lib/choice-flow.ts';
 import { conceptTitle, loadTitles, type Titles } from '../lib/labels.ts';
@@ -25,6 +27,13 @@ import { ReadingPanel } from './ReadingScreen.tsx';
 
 const isChoice = (s: Section): s is ChoiceSection => s === 'ga4' || s === 'methodology';
 const NO_READINGS: ReadonlySet<string> = new Set();
+type DueLab = { id: string; title: string };
+/**
+ * The GA4 labs whose re-check is due (sprint 5b), in the labs list's order; none on another tab, or when the list fails. Fetched with the
+ * plan, so the re-check step draws with the plan and never moves its rows after they show (H-D3).
+ */
+const dueLabsOf = (s: Section): Promise<DueLab[]> => (s !== 'ga4' ? Promise.resolve([])
+  : labApi.list().then((v) => dueRechecks(v.labs).map((l) => ({ id: l.id, title: l.title })), (): DueLab[] => []));
 
 /** `sessionEnds` counts the header's "End session" clicks that worked: each one drops what was served and fetches a fresh plan. */
 export function TodayScreen({ sessionEnds = 0 }: { sessionEnds?: number }) {
@@ -43,18 +52,21 @@ export function TodayScreen({ sessionEnds = 0 }: { sessionEnds?: number }) {
   const open = SECTIONS.find((s) => s.id === section)?.open ?? false;
   // A GA4 or Methodology section's concept titles and which concepts have a reading, from its map (read only).
   const [choiceInfo, setChoiceInfo] = useState<{ section: Section; titles: Titles; readings: ReadonlySet<string> } | null>(null);
+  // GA4 labs whose re-check is due: while one is, the GA4 plan lists one re-check step (H-D3). Set by refresh, with the plan.
+  const [dueLabs, setDueLabs] = useState<DueLab[]>([]);
   const info = choiceInfo?.section === section ? choiceInfo : null;
   const shownTitles = isChoice(section) ? info?.titles ?? null : titles;
   const readings = info?.readings ?? NO_READINGS;
 
-  /** Fetches the plan again (and the re-tests' counts). An answer to an older request is dropped. */
+  /** Fetches the plan again (and the re-tests' counts, and on GA4 the due lab re-checks). An answer to an older request is dropped. */
   async function refresh(): Promise<TodayView | null> {
     const req = ++latest.current;
     try {
-      const [v, r] = await Promise.all([api.today(section), api.retests().catch((): RetestView[] => [])]);
+      const [v, r, labs] = await Promise.all([api.today(section), api.retests().catch((): RetestView[] => []), dueLabsOf(section)]);
       if (req !== latest.current) return null;
       setView(v);
       setRetests(r);
+      setDueLabs(labs);
       say({ kind: 'loaded' });
       return v;
     } catch (e) {
@@ -114,7 +126,7 @@ export function TodayScreen({ sessionEnds = 0 }: { sessionEnds?: number }) {
       return;
     }
     if (a.kind === 'resume_mixed') { const p = blockMemory.paused(); setRunning(p ? resumeBlock(p) : LIST); return; }
-    if (a.kind !== 'mixed') return;                                           // the lesson, the map and a case are links
+    if (a.kind !== 'mixed') return;                                           // the lesson, the map, a case and a lab are links
     setBusy(true);
     say({ kind: 'action_started' });
     try {
@@ -169,7 +181,7 @@ export function TodayScreen({ sessionEnds = 0 }: { sessionEnds?: number }) {
     if (!a || !s.actionLabel) return null;
     if (a.kind === 'lesson') return <a className={cls} href={`#/lesson/${a.concept_id}`} aria-label={actionName(s)}>{s.actionLabel}</a>;
     if (a.kind === 'map') return <a className={cls} href={mapHref(section)} aria-label={actionName(s)}>{s.actionLabel}</a>;
-    if (a.kind === 'case') return <a className={cls} href={a.href} aria-label={actionName(s)}>{s.actionLabel}</a>;
+    if (a.kind === 'case' || a.kind === 'lab') return <a className={cls} href={a.href} aria-label={actionName(s)}>{s.actionLabel}</a>;
     return <button type="button" className={cls} aria-label={actionName(s)} onClick={() => void start(a)} disabled={busy}>{s.actionLabel}</button>;
   }
 
@@ -201,7 +213,7 @@ export function TodayScreen({ sessionEnds = 0 }: { sessionEnds?: number }) {
   } else if (!view) body = note.load ? null : <p>Loading Today...</p>;
   else {
     const now = new Date();
-    const steps = stepViews(view.plan, mode, shownTitles, now, retests, blockMemory.paused(), readings);
+    const steps = stepViews(view.plan, mode, shownTitles, now, retests, blockMemory.paused(), readings, dueLabs);
     const w = wrapUp(view, titles, now);
     const another = anotherNewConcept(view.plan, shownTitles);
     const corrected = section === 'sql' ? correctedQueryView(view, titles) : null;
@@ -215,7 +227,7 @@ export function TodayScreen({ sessionEnds = 0 }: { sessionEnds?: number }) {
                 <span className="marker" aria-hidden="true" />
                 <strong className="grow">{s.label}</strong>
                 {s.detail && <span className="muted step-detail">{s.detail}</span>}
-                {(s.action && s.actionLabel) && <span className="step-control">{control(s, i === 0 ? 'btn-main' : undefined)}</span>}
+                {(s.action && s.actionLabel) && <span className="step-control">{control(s, i === 0 ? 'btn-main' : undefined)}{s.more && <a href={s.more.href}>{s.more.text}</a>}</span>}
               </li>
             ))}</ol>
           )}

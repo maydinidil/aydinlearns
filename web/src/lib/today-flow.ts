@@ -17,6 +17,7 @@ import { sessionEndsSeen } from './exercise.ts';
 import { MISTAKES_HREF, MISTAKES_LINK } from './mistakes-flow.ts';
 import { EXPLORE_HREF, EXPLORE_LINK } from './progress-api.ts';
 import type { ReadingUse } from './choice-flow.ts';
+import { ALL_LABS, LABS_HREF, labHref, RECHECK_STEP_DETAIL, recheckStepLabel } from './lab-flow.ts';
 
 /**
  * The sections Today offers. GA4 and Methodology opened with their content in slice 2a (Task C5 switched GA4 on; Task C6 Methodology,
@@ -54,23 +55,30 @@ export type StepAction =
   | { kind: 'resume_mixed' }
   /** Sprint 4b (Task D3): a link to the case screen, at the step the route names (an opener's sketch, its CP1, its next checkpoint). */
   | { kind: 'case'; href: string }
+  /** H-D3: a link to a GA4 lab's screen, for its due re-check. */
+  | { kind: 'lab'; href: string }
   | { kind: 'map' };
 /** A step's action button is named by its step (s2:L55), so the several "Start" buttons differ; the visible text comes first (WCAG 2.5.3). */
 export const actionName = (s: Pick<StepView, 'label' | 'actionLabel'>): string => `${s.actionLabel}: ${s.label}`;
-export interface StepView { key: string; label: string; detail: string | null; action: StepAction | null; actionLabel: string | null }
+/** `more`: a second link after the action (H-D3: the labs page, when several re-checks are due). */
+export interface StepView { key: string; label: string; detail: string | null; action: StepAction | null; actionLabel: string | null; more?: { href: string; text: string } }
 
 /**
- * S2-40 (with the opener of S2-51 around the new concept): micro-lessons, refreshers, reviews, the new concept, the mixed block, the
- * daily case (S4B-15, design §4 block 4), the opener to solve or its mid-level question (S4B-14), the re-test, relearning.
+ * S2-40 (with the opener of S2-51 around the new concept): micro-lessons, refreshers, reviews, the due lab re-check (GA4, H-D3), the new
+ * concept, the mixed block, the daily case (S4B-15, design §4 block 4), the opener to solve or its mid-level question (S4B-14), the
+ * re-test, relearning.
  */
 /** An unknown step kind (a newer server) sorts last. */
 const UNKNOWN_RANK = 99;
+/** H-D3: the due lab re-check is not a plan step from the server; stepViews adds it at this rank, right after the reviews (recall that is due, like them). */
+const LAB_RECHECK_RANK = 2.5;
 function rank(s: TodayStepView): number {
   switch (s.kind) {
     case 'micro_lesson': return 0;
     case 'refresher': return 1;
     case 'wheel_spinning': return 1.5;                   // S4-10: after the refreshers, before the reviews
     case 'reviews': return 2;
+    // LAB_RECHECK_RANK (2.5): the due lab re-check, added by stepViews (H-D3)
     case 'opener': return s.mode === 'preview' ? 3 : 6;
     case 'new_concept': return 4;
     case 'mixed': return 5;
@@ -170,13 +178,21 @@ function view(s: TodayStepView, i: number, section: Section, titles: Titles | nu
 
 const stepsFor = (plan: TodayPlanView, mode: Mode): TodayStepView[] => (mode === 'minimum' ? plan.minimumDay : plan.steps);
 
+/** H-D3: the GA4 labs whose re-check is due, as one step: the first lab's link, and the labs page's when more are due. */
+function labRecheckView(due: readonly { id: string; title: string }[]): StepView {
+  const first = due[0]!;
+  return { key: 'lab_recheck', label: recheckStepLabel(first.title, due.length - 1), detail: RECHECK_STEP_DETAIL,
+    action: { kind: 'lab', href: labHref(first.id) }, actionLabel: 'Open it', ...(due.length > 1 ? { more: { href: LABS_HREF, text: ALL_LABS } } : {}) };
+}
+
 /**
  * The steps Today lists, in the order of S2-40 whatever order the plan gives (a stable sort keeps two of a kind in order).
  * An unfinished mixed block (`paused`) is listed in the mixed step's place as its continuation, and a fresh block is not
- * offered beside it (fix round 1).
+ * offered beside it (fix round 1). On the GA4 tab, the labs whose re-check is due (`dueLabs`, in the labs list's order) add one
+ * step in both modes, as the wrap-up card they replace showed in both (H-D3).
  */
 export function stepViews(plan: TodayPlanView, mode: Mode, titles: Titles | null, now: Date, retests: readonly RetestView[] = [],
-  paused: PausedBlock | null = null, readings: ReadonlySet<string> = new Set()): StepView[] {
+  paused: PausedBlock | null = null, readings: ReadonlySet<string> = new Set(), dueLabs: readonly { id: string; title: string }[] = []): StepView[] {
   const rows = stepsFor(plan, mode).map((s, i) => ({ s, i })).filter(({ s }) => !(paused && s.kind === 'mixed'))
     .flatMap(({ s, i }) => {
       const row = { rank: rank(s), i, v: view(s, i, plan.section, titles, now, retests, readings) };
@@ -187,6 +203,7 @@ export function stepViews(plan: TodayPlanView, mode: Mode, titles: Titles | null
       return [row, { rank: row.rank, i: i + 0.5, v: exercise }];
     });
   if (paused && mode === 'full') rows.push({ rank: rank({ kind: 'mixed', concept_ids: [] }), i: -1, v: continueView(paused) });
+  if (plan.section === 'ga4' && dueLabs.length > 0) rows.push({ rank: LAB_RECHECK_RANK, i: -1, v: labRecheckView(dueLabs) });
   return rows.sort((a, b) => a.rank - b.rank || a.i - b.i).map((r) => r.v);
 }
 
@@ -200,7 +217,7 @@ function continueView(p: PausedBlock): StepView {
 export function wrapUp(v: TodayView, titles: Titles | null, now: Date): { goal: string | null; criteria: string[]; dueTomorrow: string } {
   const today = amsterdamDate(now);
   return {
-    goal: v.goal ? nextGoalLine(v.goal.goal.title, v.goal.effective_date, today) : null,
+    goal: v.goal ? nextGoalLine(v.goal.goal.title, v.goal.effective_date, today, v.goal.all_sections === true) : null,
     criteria: v.goal ? v.goal.criteria.map((c) => criterionLine(c, titles)) : [],
     dueTomorrow: dueTomorrowLine(v.plan.dueTomorrow),
   };

@@ -1,13 +1,13 @@
 // tests/web/run-flow.test.ts: the GA4 run screens' rules, wording and review rows (Task B3; S3-02, S3-03, S3-04, S3-10, S3-12).
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { ApiError } from '../../web/src/api.ts';
+import { ApiError, type RunHistoryRow } from '../../web/src/api.ts';
 import { runFromRefusal } from '../../web/src/lib/drill-flow.ts';
 import { CODE_ONE_ANSWER, CODE_RUN_OVER } from '../../server/run.ts';
 import {
-  canMoveTo, canSaveAnswer, classifyRunRefusal, endNowText, entryDetail, limitText, startLabel, verdictClass, flagsAfter, ga4RunFromRefusal, historyCells, HISTORY_COLUMNS, listRows,
+  canMoveTo, canSaveAnswer, saveFocusTarget, classifyRunRefusal, endNowText, entryDetail, limitText, startLabel, verdictClass, flagsAfter, ga4RunFromRefusal, historyCells, HISTORY_COLUMNS, listRows,
   modeRules, questionView, recallSet, rememberSet, reviewRows, runHeading, runLine, scoreLine, timeLeft, topicLabel, topicRows, unansweredNumbers,
-  recoveredLine, unseenLine,
+  recoveredLine, unseenLine, kindLabel, RUN_KINDS, isMock, reviewNote, entryNote, savedLine, readinessNote, NOT_COUNTED, NOT_COUNTED_NO_ANSWER,
 } from '../../web/src/lib/run-flow.ts';
 
 test('practice mode: any question, flags, changed answers; exam mode: forward only, one answer', () => {
@@ -61,6 +61,8 @@ test('the end-now text names the unanswered questions and says they count as wro
   assert.match(t, /2 questions are unanswered \(2, 4\)/);
   assert.match(t, /count as wrong/);
   assert.match(endNowText([7]), /1 question is unanswered \(7\)/);
+  assert.equal(endNowText(Array.from({ length: 50 }, (_, i) => i + 1)), 'End the run now? 50 questions are unanswered and count as wrong.');      // S5-24
+  assert.match(endNowText([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]), /\(1, 2, 3, 4, 5, 6, 7, 8, 9, 10\)/);
 });
 
 test('flags toggle and the question list shows answered, flagged and current', () => {
@@ -127,10 +129,10 @@ test('a mini drill review row carries the item and instance so the answer can be
 
 test('history cells: date, kind, score, pass, unseen measure; never minutes', () => {
   assert.deepEqual(HISTORY_COLUMNS, ['Date', 'Kind', 'Score', 'Passed', 'Unseen', 'By topic']);
-  const cells = historyCells({ block_id: 'b', kind: 'half_mock', date: '2026-10-05', correct: 20, of: 25, pct: 80, pass: true, pass_pct: 80, on_unseen: true,
+  const cells = historyCells({ block_id: 'b', kind: 'half_mock', date: '2026-10-05', correct: 20, of: 25, pct: 80, pass: true, pass_pct: 80, on_unseen: true, counts_for_readiness: true,
     by_topic: [{ topic: 'T-GA4-01', correct: 5, of: 6, pct: 83 }] });
   assert.deepEqual(cells, ['2026-10-05', 'Half-mock', '20 of 25 (80%)', 'Yes', 'No question was shown in the last 21 days.', 'Topic 1 5 of 6']);
-  const mini = historyCells({ block_id: 'c', kind: 'mini_drill', date: '2026-10-04', correct: 3, of: 20, pct: 15, pass: false, pass_pct: 80, unseen: 12, unseen_pct: 60, by_topic: [] });
+  const mini = historyCells({ block_id: 'c', kind: 'mini_drill', date: '2026-10-04', correct: 3, of: 20, pct: 15, pass: false, pass_pct: 80, unseen: 12, unseen_pct: 60, counts_for_readiness: false, by_topic: [] });
   assert.deepEqual(mini.slice(1, 5), ['Mini drill', '3 of 20 (15%)', 'No', '12 of 20 unseen']);
   assert.ok(![...cells, ...mini].some((c) => /minute/i.test(c)));
 });
@@ -173,4 +175,67 @@ test('recoveredLine: said on a recovered run only, and never for a normal run or
   assert.equal(recoveredLine({ recovered: true }), 'The app restarted during this run, so its questions are numbered in the order you answered them.');
   assert.equal(recoveredLine({ recovered: false }), null);
   assert.equal(recoveredLine({}), null);
+});
+
+// ---- sprint 5b Task B4: the full mock --------------------------------------------------------------------------------------------
+
+const FULL_LINE = '50 questions, 75 minutes, pass at 80%. One question at a time, no going back, one answer each. These follow Google\'s published exam rules, not yet checked on Skillshop.';
+
+test('the full mock: its labels, and its rules line on the runs card, the chooser and the run screen', () => {
+  assert.deepEqual([kindLabel('full_mock'), startLabel('full_mock'), runHeading('full_mock')], ['Full mock', 'Start a full mock', 'GA4 full mock']);
+  assert.deepEqual(RUN_KINDS, ['mini_drill', 'half_mock', 'full_mock'], 'the order the entries show');
+  assert.equal(runLine({ kind: 'full_mock', questions: 50, minutes: 75, pass_pct: 80, mode: 'exam' }), `${FULL_LINE} Unanswered questions count as wrong.`, 'the bar says it, as the half-mock bar does');
+  assert.equal(savedLine('exam', 'full_mock'), 'Answer saved. A full mock takes one answer per question.');
+  assert.equal(savedLine('exam', 'half_mock'), 'Answer saved. A half-mock takes one answer per question.', 'row 2b-3 waits for this text');
+  assert.equal(savedLine('practice', 'mini_drill'), 'Answer saved. You can change it until the run ends.');
+  assert.equal(entryDetail('full_mock', { questions: 50, minutes: 75, pass_pct: 80 }), FULL_LINE);
+  assert.equal(entryDetail('full_mock', null), FULL_LINE, 'the shipped values when the server has not answered');
+  assert.match(entryDetail('full_mock', { questions: 60, minutes: 90, pass_pct: 70 }), /^60 questions, 90 minutes, pass at 70%\. One question at a time/);
+  // The other kinds keep their lines.
+  assert.equal(entryDetail('half_mock', { questions: 25, minutes: 37.5, pass_pct: 80 }), '25 questions, 37 minutes 30 seconds.');
+  assert.match(runLine({ kind: 'half_mock', questions: 25, minutes: 37.5, pass_pct: 80, mode: 'exam' }), /One question at a time/);
+  assert.deepEqual(questionView('full_mock', 'exam'), { confidence: false, showAnswer: false, resultAfterAnswer: false, flag: false, list: false, conceptLabels: false });
+  assert.deepEqual([isMock('mini_drill'), isMock('half_mock'), isMock('full_mock')], [false, true, true]);
+});
+
+test('the full mock in the history and the review: labelled "Full mock", judged on unseen items, and a review row is number, topic and right or wrong only', () => {
+  const cells = historyCells({ block_id: 'f', kind: 'full_mock', date: '2026-10-09', correct: 42, of: 50, pct: 84, pass: true, pass_pct: 80, on_unseen: true, counts_for_readiness: true,
+    by_topic: [{ topic: 'T-GA4-02', correct: 14, of: 16, pct: 88 }] });
+  assert.deepEqual(cells, ['2026-10-09', 'Full mock', '42 of 50 (84%)', 'Yes', 'No question was shown in the last 21 days.', 'Topic 2 14 of 16']);
+  assert.equal(unseenLine({ kind: 'full_mock', on_unseen: false }), 'Some questions were shown in the last 21 days.');
+  // Even if a row came back with an item, a full mock row never carries it.
+  const rows = reviewRows('full_mock', [{ n: 1, topic: 'T-GA4-01', answered: true, correct: true, item_id: 'Q-X', item_instance_id: 'i', chosen: 'o' }]);
+  assert.deepEqual(rows, [{ n: 1, topic: 'Topic 1', verdict: 'Right' }]);
+  assert.equal(reviewNote('full_mock'), 'A full mock review shows the number, the topic and right or wrong only, so a retake stays a fair test.');
+  assert.equal(reviewNote('half_mock'), 'A half-mock review shows the number, the topic and right or wrong only, so a retake stays a fair test.');
+  assert.equal(entryNote('full_mock', { next_unseen_date: { mini_drill: null, half_mock: null, full_mock: '2026-10-30' } }), 'Unseen questions come back on 30 October');
+});
+
+test('F2 I1 (ruling 24): a mock\'s readiness line follows counts_for_readiness; a crash-shortened mock on unseen questions says no saved question was seen', () => {
+  const row = (over: Partial<RunHistoryRow>): RunHistoryRow => ({ block_id: 'f', kind: 'full_mock', date: '2026-10-09', correct: 20, of: 50, pct: 40, pass: false,
+    pass_pct: 80, on_unseen: true, logged_unseen: true, counts_for_readiness: true, by_topic: [], ...over });
+  // Every question there and unseen; fewer logged than asked (a crash) and every logged one unseen; some logged one seen.
+  const whole = row({}), crashed = row({ on_unseen: false }), seen = row({ on_unseen: false, logged_unseen: false, counts_for_readiness: false });
+  const unseen = (r: RunHistoryRow) => unseenLine({ kind: 'full_mock', on_unseen: r.on_unseen, logged_unseen: r.logged_unseen });
+  assert.deepEqual([whole, crashed, seen].map(unseen), ['No question was shown in the last 21 days.', 'No saved question was shown in the last 21 days.',
+    'Some questions were shown in the last 21 days.']);
+  assert.deepEqual([whole, crashed, seen].map((r) => historyCells(r)[4]), [whole, crashed, seen].map(unseen), 'the history cell says what the review says');
+  assert.equal(unseenLine({ kind: 'half_mock', on_unseen: false, logged_unseen: true }), 'No saved question was shown in the last 21 days.');
+  // The "does not count" line: only for a mock the check leaves out, with the date unseen questions come back when there is one.
+  assert.equal(NOT_COUNTED, 'This mock does not count for the readiness check.');
+  assert.deepEqual([readinessNote(whole, null), readinessNote(crashed, '2026-10-30')], [null, null]);
+  assert.equal(readinessNote(seen, null), NOT_COUNTED);
+  assert.equal(readinessNote(seen, '2026-10-30'), `${NOT_COUNTED} Unseen questions come back on 30 October.`);
+  assert.equal(readinessNote(row({ correct: 0, counts_for_readiness: false }), null), NOT_COUNTED, 'a mock ended with no answer is left out too');
+  assert.equal(readinessNote({ ...row({ correct: 0, counts_for_readiness: false }), items: [{ answered: false }, { answered: false }] }, '2026-10-30'),
+    NOT_COUNTED_NO_ANSWER, 'and its review gives the reason');
+  assert.equal(readinessNote(row({ kind: 'mini_drill', counts_for_readiness: false }), null), null, 'a mini drill is never a mock for the check, and says nothing');
+  for (const l of [unseen(crashed), NOT_COUNTED]) assert.doesNotMatch(l, /—|\b(he|she|his|her)\b/i, l);
+});
+
+test('S5-25: after a saved exam answer, focus goes to Next question, and to the end control on the last question', () => {
+  assert.equal(saveFocusTarget(0, 25), 'next');
+  assert.equal(saveFocusTarget(23, 25), 'next');
+  assert.equal(saveFocusTarget(24, 25), 'end');
+  assert.equal(saveFocusTarget(0, 1), 'end');
 });

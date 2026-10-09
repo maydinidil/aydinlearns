@@ -62,13 +62,22 @@ const byId = new Map(BANK.map((f) => [f.id, f]));
 const HELD = new Set(BANK.filter((f) => f.held).map((f) => f.id));
 const topicOf = (id: string) => byId.get(id)!.topic;
 const RIGHT = (id: string) => optionId(id, 0);
-const EXAM = {
-  topic_weights: { 'T-GA4-01': 25, 'T-GA4-02': 25, 'T-GA4-03': 25, 'T-GA4-04': 10, 'T-GA4-05': 15 },
-  topic_names: { 'T-GA4-01': 'Foundations and data collection', 'T-GA4-02': 'Reports and analysis', 'T-GA4-03': 'Measurement and advertising',
-    'T-GA4-04': 'Tools and data sources', 'T-GA4-05': 'Administration, privacy and data quality' },
+const BLUEPRINTS = {
   mini_drill: { questions: 20, minutes: 30, pass_pct: 80, mode: 'practice' },
   half_mock: { questions: 25, minutes: 37.5, pass_pct: 80, mode: 'exam', retake_days: 21 },
 };
+const SHIPPED_FULL = { questions: 50, minutes: 75, pass_pct: 80, mode: 'exam', retake_days: 21 };
+const HEAD = {
+  topic_weights: { 'T-GA4-01': 25, 'T-GA4-02': 25, 'T-GA4-03': 25, 'T-GA4-04': 10, 'T-GA4-05': 15 },
+  topic_names: { 'T-GA4-01': 'Foundations and data collection', 'T-GA4-02': 'Reports and analysis', 'T-GA4-03': 'Measurement and advertising',
+    'T-GA4-04': 'Tools and data sources', 'T-GA4-05': 'Administration, privacy and data quality' },
+};
+/**
+ * The bank's exam.json (sprint 5b Task B4: one dated entry). Its full mock asks 26 (more than the half-mock's 25, which the parser requires), which the bank's held-out pool fills (34 items, 29
+ * core in the non-core test); tests/server/run-full-mock.test.ts covers the full mock itself.
+ */
+const exam = (over: Record<string, unknown> = {}) => ({ ...HEAD, blueprints: [{ from: '2026-10-06', ...BLUEPRINTS, full_mock: { ...SHIPPED_FULL, questions: 26 }, ...over }] });
+const EXAM = exam();
 
 async function writeBank(root: string, exam: unknown = EXAM, nonCore: ReadonlySet<string> = new Set()): Promise<void> {
   for (const dir of ['ga4/items', 'keys/ga4']) await mkdir(join(root, dir), { recursive: true });
@@ -137,17 +146,18 @@ function endedCleanly(recs: any[], run: { block_id: string; servings: Serving[] 
 
 test('content/ga4/exam.json: the shipped blueprints load as the plan sets them; a malformed file is a startup fault that names it', async () => {
   const shipped = (await loadContent('content')).ga4Exam?.();
-  assert.deepEqual(shipped, EXAM);
+  const entry = { from: '2026-10-06', ...BLUEPRINTS, full_mock: SHIPPED_FULL };
+  assert.deepEqual(shipped, { ...HEAD, dated: [entry], ...BLUEPRINTS, full_mock: SHIPPED_FULL });
   assert.deepEqual(Object.keys(shipped!.topic_weights), TOPICS, 'the file\'s topic order');
   for (const [bad, why] of [
     [{ ...EXAM, topic_weights: {} }, /topic_weights/], [{ ...EXAM, topic_weights: { 'T-X': 1 } }, /not a GA4 topic/],
     [{ ...EXAM, topic_weights: { 'T-GA4-01': -1 } }, /weight of T-GA4-01/], [{ ...EXAM, topic_weights: { 'T-GA4-01': 0 } }, /above 0/],
-    [{ ...EXAM, mini_drill: { ...EXAM.mini_drill, questions: 0 } }, /mini_drill\.questions/], [{ ...EXAM, half_mock: { ...EXAM.half_mock, minutes: 0 } }, /half_mock\.minutes/],
-    [{ ...EXAM, half_mock: { ...EXAM.half_mock, pass_pct: 101 } }, /half_mock\.pass_pct/], [{ ...EXAM, mini_drill: { ...EXAM.mini_drill, mode: 'timed' } }, /mini_drill\.mode/],
-    [{ ...EXAM, half_mock: { ...EXAM.half_mock, retake_days: 1.5 } }, /retake_days/], [{ mini_drill: EXAM.mini_drill }, /topic_weights/], [[], /object/],
+    [exam({ mini_drill: { ...BLUEPRINTS.mini_drill, questions: 0 } }), /mini_drill\.questions/], [exam({ half_mock: { ...BLUEPRINTS.half_mock, minutes: 0 } }), /half_mock\.minutes/],
+    [exam({ half_mock: { ...BLUEPRINTS.half_mock, pass_pct: 101 } }), /half_mock\.pass_pct/], [exam({ mini_drill: { ...BLUEPRINTS.mini_drill, mode: 'timed' } }), /mini_drill\.mode/],
+    [exam({ half_mock: { ...BLUEPRINTS.half_mock, retake_days: 1.5 } }), /retake_days/], [{ blueprints: EXAM.blueprints }, /topic_weights/], [[], /object/],
   ] as const) assert.throws(() => parseGa4Exam(bad), (e: Error) => e.message.startsWith('ga4/exam.json: ') && why.test(e.message), JSON.stringify(bad));
   const broken = await makeContentFixture();
-  await writeBank(broken, { ...EXAM, half_mock: { ...EXAM.half_mock, mode: 'strict' } });
+  await writeBank(broken, exam({ half_mock: { ...BLUEPRINTS.half_mock, mode: 'strict' } }));
   const setup = await loadContentOrSetup(broken);
   assert.match(setup.check!.detail, /content could not be loaded: ga4\/exam\.json/);
   const missing = await makeContentFixture();
@@ -218,7 +228,7 @@ test('a mini drill: 20 practice items by topic weight (5/5/5/2/3), never a held-
 test('S3-08: one timed run at a time across sections: a second start, GA4 or SQL, gets a 409 with the run that is on; two starts at once start one', async () => {
   const d = await deps();
   const app = createApp(d);
-  for (const r of [{ section: 'sql', kind: 'mini_drill' }, { section: 'ga4', kind: 'full_mock' }, {}]) assert.equal((await post(app, '/api/run/start', r)).status, 400);
+  for (const r of [{ section: 'sql', kind: 'mini_drill' }, { section: 'ga4', kind: 'quarter_mock' }, {}]) assert.equal((await post(app, '/api/run/start', r)).status, 400);
   const both = await Promise.all([start(app, 'mini_drill'), start(app, 'half_mock')]);
   assert.deepEqual(both.map((r) => r.status).sort(), [200, 409]);
   const [ok, refused] = await Promise.all(both.map((r) => r.json() as Promise<any>)).then((x) => (both[0]!.status === 200 ? x : [x[1], x[0]]));
@@ -481,7 +491,7 @@ test('the learner ends a run while an answer is in flight: the close is never st
 
 test('the server timer ends a run at its limit with no request at all', async () => {
   const quick = await makeContentFixture();
-  await writeBank(quick, { ...EXAM, mini_drill: { ...EXAM.mini_drill, minutes: 0.004 } });      // 240 ms
+  await writeBank(quick, exam({ mini_drill: { ...BLUEPRINTS.mini_drill, minutes: 0.004 } }));      // 240 ms
   const d = await deps(undefined, await loadContent(quick));
   const app = createApp(d);
   const mini = await json(start(app, 'mini_drill'));
@@ -558,14 +568,15 @@ test('S3-10: the history lists each ended run with date, kind, score, pass, per-
   await post(app, '/api/run/end', { block_id: mock.block_id });
   const h = await json(get(app, '/api/run/history?section=ga4'));
   assert.equal((await get(app, '/api/run/history?section=sql')).status, 400);
-  assert.deepEqual(h.blueprints, { mini_drill: { questions: 20, minutes: 30, pass_pct: 80, mode: 'practice' }, half_mock: { questions: 25, minutes: 37.5, pass_pct: 80, mode: 'exam' } },
-    'the time limits are test rules, shown before a start');
+  assert.deepEqual(h.blueprints, { mini_drill: { questions: 20, minutes: 30, pass_pct: 80, mode: 'practice' }, half_mock: { questions: 25, minutes: 37.5, pass_pct: 80, mode: 'exam' },
+    full_mock: { questions: 26, minutes: 75, pass_pct: 80, mode: 'exam' } }, 'the time limits are test rules, shown before a start');
   assert.deepEqual(h.runs.map((r: any) => r.block_id), [mock.block_id, mini.block_id], 'newest first');
   const [m, md] = h.runs;
-  assert.deepEqual(Object.keys(m).sort(), ['block_id', 'by_topic', 'correct', 'date', 'kind', 'of', 'on_unseen', 'pass', 'pass_pct', 'pct']);
-  assert.deepEqual(Object.keys(md).sort(), ['block_id', 'by_topic', 'correct', 'date', 'kind', 'of', 'pass', 'pass_pct', 'pct', 'unseen', 'unseen_pct']);
+  assert.deepEqual(Object.keys(m).sort(), ['block_id', 'by_topic', 'correct', 'counts_for_readiness', 'date', 'kind', 'logged_unseen', 'of', 'on_unseen', 'pass', 'pass_pct', 'pct']);
+  assert.deepEqual(Object.keys(md).sort(), ['block_id', 'by_topic', 'correct', 'counts_for_readiness', 'date', 'kind', 'of', 'pass', 'pass_pct', 'pct', 'unseen', 'unseen_pct']);
   assert.equal(JSON.stringify(h.runs).includes('minute'), false, 'no study time');
-  assert.deepEqual([m.kind, m.date, m.correct, m.of, m.pct, m.pass, m.on_unseen], ['half_mock', amsterdamDate(new Date()), 1, 25, 4, false, true]);
+  assert.deepEqual([m.kind, m.date, m.correct, m.of, m.pct, m.pass, m.on_unseen, m.logged_unseen, m.counts_for_readiness], ['half_mock', amsterdamDate(new Date()), 1, 25, 4, false, true, true, true]);
+  assert.equal(md.counts_for_readiness, false, 'a mini drill never counts for the readiness check');
   assert.deepEqual([md.kind, md.correct, md.of, md.pct, md.pass, md.unseen, md.unseen_pct], ['mini_drill', 17, 20, 85, true, 20, 100]);
   assert.deepEqual(md.by_topic.map((t: any) => t.topic), TOPICS, 'per topic, in the blueprint\'s order');
   assert.deepEqual(md.by_topic.map((t: any) => t.of), [5, 5, 5, 2, 3]);
@@ -634,13 +645,13 @@ test('B3 Ruling A: /api/run/preview gives the date unseen questions come back, s
   const before = (await records(d)).length;
   const p = await json(get(app, '/api/run/preview'));
   const back = new Date(Date.parse(`${amsterdamDate(new Date(shownAt))}T00:00:00Z`) + 22 * DAY).toISOString().slice(0, 10);
-  assert.deepEqual(p, { next_unseen_date: { mini_drill: null, half_mock: back } });
+  assert.deepEqual(p, { next_unseen_date: { mini_drill: null, half_mock: back, full_mock: back } }, 'the bank\'s full mock asks 26 and its pool fills it');
   assert.equal((await records(d)).length, before, 'nothing logged');
   assert.equal((await json(get(app, '/api/run/current'))).run, null, 'no run started');
   assert.equal(d.servings.get('anything'), undefined);
   // A fresh pool: D27 does not apply, so no date.
   const fresh = createApp(await deps());
-  assert.deepEqual(await json(get(fresh, '/api/run/preview')), { next_unseen_date: { mini_drill: null, half_mock: null } });
+  assert.deepEqual(await json(get(fresh, '/api/run/preview')), { next_unseen_date: { mini_drill: null, half_mock: null, full_mock: null } });
 });
 
 test('B3 Ruling B: the history answer carries the topic names from content/ga4/exam.json', async () => {

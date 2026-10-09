@@ -1,0 +1,89 @@
+{
+  "id": "LAB-08",
+  "version": 1,
+  "title": "Key events by channel group",
+  "concept_id": "GA4-ATTRIB-20",
+  "topic_id": "T-GA4-02",
+  "property": "MS",
+  "path": "Reports > Life cycle > Acquisition > Traffic acquisition",
+  "path_verified": true,
+  "date": "fixed_month",
+  "steps": [
+    "In the Google Merchandise Store property, open Reports > Life cycle > Acquisition > Traffic acquisition.",
+    "Set the date range to the month the app shows, from its first day to its last.",
+    "Make sure the table's first column is Session default channel group. If it shows another dimension, choose Session default channel group from the drop-down at the top of that column.",
+    "Sort the table by the Key events column, highest first, by clicking its header.",
+    "Read the channel group and the key events in the first channel row below the totals row, then the key events in the second channel row below the totals row."
+  ],
+  "parts": [
+    {
+      "id": "P1",
+      "question": "Which session default channel group has the most key events in the month?",
+      "answer": "choice",
+      "options": [
+        "Affiliates",
+        "AI Assistant",
+        "Audio",
+        "Cross-network",
+        "Direct",
+        "Display",
+        "Email",
+        "Mobile Push Notifications",
+        "Organic Search",
+        "Organic Shopping",
+        "Organic Social",
+        "Organic Video",
+        "Paid Other",
+        "Paid Search",
+        "Paid Shopping",
+        "Paid Social",
+        "Paid Video",
+        "Referral",
+        "SMS",
+        "Unassigned"
+      ],
+      "check": "recheck_fixed"
+    },
+    {
+      "id": "P2",
+      "label": "Top group's key events",
+      "question": "How many key events does that channel group have?",
+      "answer": "number",
+      "unit": "count",
+      "check": "recheck_fixed",
+      "tolerance": {
+        "relative_pct": 1
+      }
+    },
+    {
+      "id": "P3",
+      "label": "Second group's key events",
+      "question": "How many key events does the channel group in second place have?",
+      "answer": "number",
+      "unit": "count",
+      "check": "consistency"
+    }
+  ],
+  "rules": [
+    {
+      "kind": "at_most",
+      "part": "P3",
+      "of": "P2"
+    }
+  ],
+  "interview_relevant": true,
+  "source_ids": [
+    "07:LAB-08",
+    "07:NAV-06",
+    "07:§1.5",
+    "07:[16]",
+    "07:[4]",
+    "07:[7]",
+    "10:§4",
+    "10:[4]",
+    "10:GA4-ATTRIB-20",
+    "ERRATA:E-023",
+    "ERRATA:E-187"
+  ],
+  "as_of": "2026-10-09"
+}

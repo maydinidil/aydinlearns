@@ -803,6 +803,27 @@ Rebates are not generated, so MET-PRICE-10 stays out.
   | AP-SELF (LAB-15, LAB-18) | A self-check against a rubric describing the correct screen |
 
   LAB-25 mixes policies across its parts. The lab record gains `parts[]`.
+
+  **(amended 2026-10-09, sprint 5b, as built)** Ten labs ship (D67): LAB-03, -07, -08, -10, -12,
+  -16, -20, -24, -25 and LAB-26 (UTMs, ERRATA E-186). Each part has one check
+  (`schemas/lab.ts`): `structural` (a choice or multi part with a blind-solved key), `consistency`
+  (named rules between parts on one screen: at most, a rate, a member of a list), `recheck_fixed`
+  (the same fixed month a week later), `recheck_range` (the first answer's Last 28 days dates a
+  week later; a `last_28_days` lab only) or `self_rubric` (a self-check). Numbers are compared
+  with 07 §1.5's tolerances on a number re-check part only; any other part compares exactly
+  (S5B ruling 1). A re-check counts from 7 days after the first answer; an earlier one is logged
+  and does not count. A first answer with a wrong part asks for a new first answer ("Look
+  again"). Labs rate no card and move no concept. The content checks are C42 to C45.
+- **Full mocks and the readiness check (amended 2026-10-09, sprint 5b, as built).** A full mock is
+  50 held-out questions in 75 minutes, in exam mode, from the dated blueprint in force on its start
+  day (`content/ga4/exam.json`, D72); C46 checks the held-out pool can fill it. The readiness
+  check follows D70: the newest counted full mock and the newest two counted half-mocks
+  (whatever lies between them) are the two candidates, the one whose newest run started later
+  decides, and only a mock whose every
+  logged item was unseen at its start counts, with unlogged items counted as wrong. A cold answer
+  is the scored answer of an item's first instance with a graded attempt, with no hint or "show
+  answer" on that item in any instance before it, not a repeat exposure and outside its card's
+  lesson window.
 - **2026 features** (the AI Assistant channel and others) are taught with a badge. A feature
   enters scored mocks once the owner finds it in the current Skillshop course material, with the
   course and date recorded.
@@ -1451,6 +1472,13 @@ that leads with:
 | `hint_opened` (LE-13) | Each time a hint opens | `item_instance_id`, level and timestamp |
 | `solution_opened` | Each "show answer" | `item_instance_id` and timestamp |
 | `exposure` | When a reading, worked example, GA4 or Methodology lesson, micro-lesson or refresher is viewed | Concept ID, kind and timestamp. It defines first exposure and the Learning state |
+| `lab_answer` (version 5, sprint 5b) | Each GA4 lab answer, first or re-check | The lab ID and version, `first` or `recheck`, the fixed month or the date range used, each part's value and result, and an optional note. Replay ignores it: labs rate no card, move no concept and never count as a cold answer |
+
+**(amended 2026-10-09, sprint 5b) Log format version 5** (`SCHEMA_VERSION` 5, D68) adds the
+`lab_answer` record above and an optional `run_kind` (`mini_drill`, `half_mock` or `full_mock`) on
+a GA4 run answer's multiple-choice payload, so a full mock cut short by a restart is never read as
+a half-mock. Both changes are additive: a version 4 log reads as before, and a run answer with no
+`run_kind` is read by its question count, as it was.
 
 **The aydinlearns extension:**
 - `world`, `difficulty`, `sub_skill`, `dataset_version`, `duckdb_version`;

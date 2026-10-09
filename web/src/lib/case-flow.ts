@@ -2,7 +2,6 @@
 // S4B-13). Pure, so tests/web/case-flow.test.ts checks the step order, which steps show as done, the countdown and the row count
 // line. Nothing here is locked: every step can be opened, skipped and reopened at any time; these helpers only pick where a visit
 // starts and what each step says.
-import type { SortKey } from '../../../schemas/item.ts';
 import type { TypedView } from '../api.ts';
 import { cp4Feedback } from './cp4-flow.ts';
 import type { CaseCheckpointResult, CaseCheckpointView, CaseKind, CaseListEntry, CaseStatusName, CaseView, CheckpointKind, InsightReply, PlanReply, Point } from './cases-api.ts';
@@ -145,12 +144,6 @@ export function heldBackNote(v: Pick<CaseView, 'kind' | 'sketch' | 'checkpoints'
   if (v.kind === 'opener' && v.sketch === null) needs.push('your sketch');
   if (v.checkpoints.some((c) => c.kind === 'CP1' && c.last === null)) needs.push('the Scope step');
   return needs.length === 0 ? 'Shown once you submit your query.' : `Shown after ${needs.join(' and ')}, or once you submit your query.`;
-}
-
-export function sortText(sort: readonly SortKey[]): string | null {
-  if (sort.length === 0) return null;
-  const key = (k: SortKey) => `${k.column}${k.desc ? ' (highest first)' : ''}`;
-  return `Sorted by ${sort.map(key).join(', then ')}.`;
 }
 
 // ---- the checkpoints ------------------------------------------------------------------------------------------------

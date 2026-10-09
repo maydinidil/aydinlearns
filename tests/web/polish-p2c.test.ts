@@ -71,11 +71,11 @@ test('finding 27: the half-mock review marks each result, and the unseen line is
   assert.ok(s.includes('<td className={verdictClass(r.verdict)}>{r.verdict}</td>'));
 });
 
-test('finding 28: the runs screen and the runs card say "Start a ..."', async () => {
+test('finding 28: the runs screen says "Start a ...", and the runs card links name the run kind', async () => {
   const run = await src('web/src/screens/ChoiceRunScreen.tsx');
   const card = await src('web/src/components/Ga4Runs.tsx');
   assert.ok(run.includes('{startLabel(k)}</button>') && !run.includes('entryLabel'));
-  assert.ok(card.includes('{startLabel(k)}</a>') && card.includes('entryDetail(k,') && !card.includes('entryLabel'));
+  assert.ok(card.includes('{kindLabel(k)}</a>') && !card.includes('startLabel') && card.includes('entryDetail(k,') && !card.includes('entryLabel'));
 });
 
 test('findings 29 and 30: a narrow screen stacks the run bar under a sticky timer, and a question keeps the reading width', async () => {

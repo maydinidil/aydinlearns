@@ -6,6 +6,8 @@ import { noteSessionEnd } from './lib/exercise.ts';
 import { DrillScreen } from './screens/DrillScreen.tsx';
 import { ChoiceRunScreen } from './screens/ChoiceRunScreen.tsx';
 import { blockFromParts } from './lib/run-flow.ts';
+import { LabsScreen } from './screens/LabsScreen.tsx';
+import { LabScreen } from './screens/LabScreen.tsx';
 import { Ga4MapScreen } from './screens/Ga4MapScreen.tsx';
 import { MethodMapScreen } from './screens/MethodMapScreen.tsx';
 import { PracticeScreen } from './screens/PracticeScreen.tsx';
@@ -88,6 +90,8 @@ export function App() {
   else if (parts[0] === 'mistakes') screen = <MistakesScreen />;
   // GA4 (Task C5) and Methodology (Task C6): the concept map, a concept's reading and its practice, each open at any time.
   else if (parts[0] === 'ga4' && parts[1] === 'run') screen = <ChoiceRunScreen block={blockFromParts(parts)} />;
+  else if (parts[0] === 'ga4' && parts[1] === 'labs') screen = <LabsScreen />;
+  else if (parts[0] === 'ga4' && parts[1] === 'lab' && parts[2]) screen = <LabScreen key={parts[2]} id={decodeURIComponent(parts[2])} />;
   else if (parts[0] === 'ga4') screen = <Ga4MapScreen />;
   else if (parts[0] === 'methodology') screen = <MethodMapScreen />;
   else if ((parts[0] === 'reading' || parts[0] === 'practice') && parts[2]) {

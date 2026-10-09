@@ -1,0 +1,29 @@
+{
+  "id": "LAB-20",
+  "version": 1,
+  "title": "An invented funnel lab",
+  "concept_id": "GA4-EXPLORE-01",
+  "topic_id": "T-GA4-02",
+  "property": "MS",
+  "path": "Explore > Invented funnel",
+  "path_verified": false,
+  "date": "last_28_days",
+  "steps": [
+    "Open the invented funnel.",
+    "Set the date range to Last 28 days and note the dates it shows.",
+    "Read each step's users."
+  ],
+  "parts": [
+    { "id": "P1", "question": "Which step loses the most users?", "answer": "choice", "options": ["Step 1", "Step 2", "Step 3"], "check": "recheck_range" },
+    { "id": "P2", "label": "Step 1 users", "question": "How many users reach step 1?", "answer": "number", "unit": "count", "check": "recheck_range", "tolerance": { "relative_pct": 2 } },
+    { "id": "P3", "label": "Step 2 users", "question": "How many users reach step 2?", "answer": "number", "unit": "count", "check": "consistency" },
+    { "id": "P4", "question": "Which invented shapes does this fixture call round?", "answer": "multi", "options": ["Circle marker", "Square marker", "Oval marker", "Triangle marker"], "check": "structural" },
+    { "id": "P5", "question": "Describe the first step of the invented funnel.", "answer": "text", "check": "self_rubric", "rubric": "The screen shows the invented step's name and its one condition." }
+  ],
+  "rules": [
+    { "kind": "at_most", "part": "P3", "of": "P2" }
+  ],
+  "interview_relevant": false,
+  "source_ids": ["test:invented-20"],
+  "as_of": "2026-10-09"
+}

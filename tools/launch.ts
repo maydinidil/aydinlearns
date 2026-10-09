@@ -76,7 +76,10 @@ export async function probe(url: string): Promise<Answer> {
 
 function run(cmd: string, args: string[]): void {
   // npm is a .cmd file on Windows, which needs a shell; the arguments here are fixed, never user input.
-  const r = spawnSync(cmd, args, { cwd: ROOT, stdio: 'inherit', shell: cmd === 'npm' });
+  // With a shell, Node 24 warns (DEP0190) about an argument array, so npm gets one command string instead.
+  const r = cmd === 'npm'
+    ? spawnSync([cmd, ...args].join(' '), { cwd: ROOT, stdio: 'inherit', shell: true })
+    : spawnSync(cmd, args, { cwd: ROOT, stdio: 'inherit' });
   if (r.status !== 0) throw new Error(`"${[cmd, ...args].join(' ')}" failed. The message above says why.`);
 }
 

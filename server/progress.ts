@@ -2,10 +2,11 @@
 // readiness (RULE-08, S2-33). Sprint 4b (Task E1): each part of the Progress screen (design §2, §14; D39, D40, S4B-21, S4B-27), a
 // pure function over replay and the logs, which server/routes/progress.ts puts together for GET /api/progress. No part holds an amount
 // of time: windows are Amsterdam dates and ISO weeks, and every share is a count of instances or attempts ("Goals, not hours").
+// Sprint 5b (Task B5): each GA4 item's cold answer (coldAnswers), the topic part of the readiness check in server/readiness.ts.
 import type { Phase, Section } from '../core/envelope.ts';
 import { EVERY_LEVEL, type CriterionResult, type GoalView } from '../core/goal-eval.ts';
 import type { Goal, GoalCriterion } from '../core/goals.ts';
-import { SQL_RATING_RULES, summarise, type AttemptFact, type HelpFact, type InstanceSummary, type OverrideStatus, type RatingRules } from '../core/rating.ts';
+import { scoredAnswer, SQL_RATING_RULES, summarise, type AttemptFact, type HelpFact, type InstanceSummary, type OverrideStatus, type RatingRules } from '../core/rating.ts';
 import type { ReplayResult } from '../core/replay.ts';
 import type { ConceptStateName } from '../core/states.ts';
 import { amsterdamDate } from '../core/time.ts';
@@ -14,6 +15,7 @@ import type { Lesson } from '../schemas/lesson.ts';
 import type { DrillRun } from './drill.ts';
 import { goalProgress, type GoalSummary } from './goal-view.ts';
 import type { DivisionCheck } from './grader/types.ts';
+import type { ColdAnswer } from './readiness.ts';
 
 /** Each concept's state from the replay; a concept the logs never name is new. */
 export function curriculumStates(r: ReplayResult, conceptIds: string[]): Record<string, ConceptStateName> {
@@ -89,6 +91,8 @@ export interface InstanceFact {
   summary: InstanceSummary;
   /** A hint or "show answer" was opened before the close (help after it is free, S2-44). */
   helped: boolean;
+  /** The instance was served as a repeat exposure (replay's reading: any of its records says so). */
+  repeat_exposure: boolean;
   /**
    * The latest automatic pass: when, the grader version that graded it, its portability notes, and its integer division re-run's
    * outcome from payload.division_check, null when the record has none (JR-04, S4B-24, Codex F24).
@@ -177,6 +181,7 @@ export function instanceFacts(replay: ReplayResult, attempts: readonly object[],
     out.push({
       instance_id: x.instance_id, item_id: x.item_id, section: x.section, concept_id: x.concept_id, phase: x.phase, answer,
       closed_at: x.closed_at, close_date: amsterdamDate(new Date(closed)), summary, helped: help.length > 0,
+      repeat_exposure: x.repeat_exposure,
       latest_pass: latest ? { submitted_at: latest.fact.submitted_at, grader_version: latest.grader_version, notes: latest.notes, division_check: latest.division_check } : null,
     });
   }
@@ -302,27 +307,35 @@ export interface TopicReadinessInput {
   windowMs: number;
 }
 /**
+ * S2-62's lesson window, as replay leaves an answer in it unrated: whether time `t` falls within `windowMs` after a reading or lesson
+ * exposure in `records` of the card `conceptId` is rated on. topicReadiness and coldAnswers share it.
+ */
+export function lessonWindow(records: readonly object[], cardOf: (conceptId: string) => string, windowMs: number): (conceptId: string, t: number) => boolean {
+  const views = new Map<string, number[]>();
+  for (const r of records as Rec[]) {
+    if (r.record !== 'exposure' || (r.kind !== 'reading' && r.kind !== 'lesson')) continue;
+    const concept = text(r.concept_id);
+    const at = Date.parse(text(r.ts) ?? '');
+    if (concept === null || Number.isNaN(at)) continue;
+    const card = cardOf(concept);
+    views.set(card, [...(views.get(card) ?? []), at]);
+  }
+  return (conceptId, t) => (views.get(cardOf(conceptId)) ?? []).some((v) => v <= t && t - v < windowMs);
+}
+
+/**
  * S4B-27: per topic, the accuracy of first answers in the last 30 days (the first answer's Amsterdam date) given outside a lesson
  * window: not within `windowMs` after a reading or lesson exposure of the card, as replay leaves such an answer unrated (S2-62).
  * Right means right with no "show answer" before it.
  */
 export function topicReadiness(a: TopicReadinessInput): SectionReadiness {
   const from = addDays(a.today, 1 - RECENT_DATES);
-  const views = new Map<string, number[]>();
-  for (const r of a.records as Rec[]) {
-    if (r.record !== 'exposure' || (r.kind !== 'reading' && r.kind !== 'lesson')) continue;
-    const concept = text(r.concept_id);
-    const at = Date.parse(text(r.ts) ?? '');
-    if (concept === null || Number.isNaN(at)) continue;
-    const card = a.cardOf(concept);
-    views.set(card, [...(views.get(card) ?? []), at]);
-  }
-  const inLesson = (f: InstanceFact, t: number): boolean => (views.get(a.cardOf(f.concept_id)) ?? []).some((v) => v <= t && t - v < a.windowMs);
+  const inLesson = lessonWindow(a.records, a.cardOf, a.windowMs);
   const counted = new Map<string, { right: number; all: number }>();
   for (const f of a.facts) {
     const first = f.summary.firstGraded;
     if (f.section !== a.section || first === null || first.local_date < from || first.local_date > a.today) continue;
-    if (inLesson(f, Date.parse(first.submitted_at))) continue;
+    if (inLesson(f.concept_id, Date.parse(first.submitted_at))) continue;
     const topic = a.topicOf(f);
     if (topic === null) continue;
     const c = counted.get(topic) ?? { right: 0, all: 0 };
@@ -332,6 +345,45 @@ export function topicReadiness(a: TopicReadinessInput): SectionReadiness {
   }
   return { section: a.section, from, to: a.today,
     topics: a.topics.map((t) => ({ topic_id: t.topic_id, title: t.title, first_answers: share(counted.get(t.topic_id)?.right ?? 0, counted.get(t.topic_id)?.all ?? 0) })) };
+}
+
+/**
+ * The GA4 readiness check's topic part (sprint 5b Task B5, D70): each item's cold answer, by item ID. An item's cold answer is the
+ * scored answer (core/rating.ts scoredAnswer: the last graded one before the close, S3-02) of its first instance with a graded attempt
+ * (the earliest first graded attempt over its closed instances), as S3-07 reads it (Ruling 18). Outside a run an instance has one
+ * answer, so that is its first answer. It is cold when its instance was not a repeat exposure, its first graded attempt was not in a
+ * lesson window of its card (lessonWindow), and every hint or "show answer" opened on the item came after it, in any instance: one
+ * that closed with no graded attempt and a mini drill's review included (Ruling 17). An item whose answer is not cold has none: a
+ * later answer never stands in. Right means correct. `topicOf` gives a fact's GA4 topic; a fact with none is left out. Unlike
+ * topicReadiness, no 30-day window.
+ */
+export function coldAnswers(facts: readonly InstanceFact[], records: readonly object[], cardOf: (conceptId: string) => string, windowMs: number,
+  topicOf: (fact: InstanceFact) => string | null): Map<string, ColdAnswer> {
+  const first = new Map<string, InstanceFact>();
+  for (const f of byFirstAttempt(facts)) if (!first.has(f.item_id)) first.set(f.item_id, f);
+  // Ruling 17: each help record's item, as replay's instance facts name it; an instance they leave out (an unreached drill item whose
+  // review opened its key, or one not closed yet) by the record's own item_id, which every version 2 help record carries (D4).
+  const itemOfInstance = new Map(facts.map((f) => [f.instance_id, f.item_id] as const));
+  const firstHelp = new Map<string, number>();
+  for (const r of records as Rec[]) {
+    if (r.record !== 'hint_opened' && r.record !== 'solution_opened') continue;
+    const id = text(r.item_instance_id);
+    const item = (id === null ? undefined : itemOfInstance.get(id)) ?? text(r.item_id);
+    const at = Date.parse(text(r.ts) ?? '');
+    if (item === null || Number.isNaN(at)) continue;
+    firstHelp.set(item, Math.min(firstHelp.get(item) ?? Infinity, at));
+  }
+  const inLesson = lessonWindow(records, cardOf, windowMs);
+  const out = new Map<string, ColdAnswer>();
+  for (const [item, f] of first) {
+    const answer = scoredAnswer(f.summary)!;
+    const at = Date.parse(answer.submitted_at);
+    // S3-07's timing: help keeps the answer cold only when it came after it.
+    if (f.repeat_exposure || (firstHelp.get(item) ?? Infinity) <= at || inLesson(f.concept_id, Date.parse(f.summary.firstGraded!.submitted_at))) continue;
+    const topic = topicOf(f);
+    if (topic !== null) out.set(item, { topic, right: answer.is_correct });
+  }
+  return out;
 }
 
 // ---- the job-ready criteria (design §14, JR-01 to JR-17; D40, S4B-21, closing ERRATA E-054) ---------------------------------

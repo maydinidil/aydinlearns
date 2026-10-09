@@ -1,0 +1,90 @@
+{
+  "id": "LAB-07",
+  "version": 1,
+  "title": "Key events in Admin",
+  "concept_id": "GA4-EVENTS-03",
+  "topic_id": "T-GA4-03",
+  "property": "MS",
+  "path": "Admin > Data display > Events > Key events tab",
+  "path_verified": true,
+  "date": "none",
+  "steps": [
+    "In the Google Merchandise Store property, open Admin (the gear icon at the bottom left).",
+    "Open the Events area of Admin.",
+    "Open the Key events tab. Every event listed there is a key event; a star marks a key event.",
+    "Note every key event. If one is not among the options, write its name in the note. Viewer access shows this list but cannot mark or unmark an event."
+  ],
+  "parts": [
+    {
+      "id": "P1",
+      "question": "Which events are marked as key events in this property? Tick every one you see.",
+      "answer": "multi",
+      "options": [
+        "add_payment_info",
+        "add_shipping_info",
+        "add_to_cart",
+        "begin_checkout",
+        "first_visit",
+        "generate_lead",
+        "login",
+        "purchase",
+        "remove_from_cart",
+        "select_item",
+        "select_promotion",
+        "session_start",
+        "sign_up",
+        "user_engagement",
+        "view_cart",
+        "view_item",
+        "view_item_list",
+        "view_promotion"
+      ],
+      "check": "recheck_fixed"
+    },
+    {
+      "id": "P2",
+      "question": "Is purchase marked as a key event?",
+      "answer": "choice",
+      "options": [
+        "Yes",
+        "No"
+      ],
+      "check": "consistency"
+    },
+    {
+      "id": "P3",
+      "question": "In which GA4 menu does someone with edit access mark an event as a key event?",
+      "answer": "choice",
+      "options": [
+        "Admin > Data display > Audiences",
+        "Admin > Data display > Channel groups",
+        "Admin > Data display > Events",
+        "Admin > Data collection and modification > Data retention"
+      ],
+      "check": "structural"
+    }
+  ],
+  "rules": [
+    {
+      "kind": "member",
+      "set": "P1",
+      "value": "purchase",
+      "flag": "P2"
+    }
+  ],
+  "interview_relevant": true,
+  "source_ids": [
+    "07:LAB-07",
+    "07:NAV-01",
+    "07:KF-9",
+    "07:§1.3",
+    "07:[1]",
+    "07:[10]",
+    "07:[11]",
+    "06:GA4-EVENTS-03",
+    "06:GA4-EVENTS-01",
+    "ERRATA:E-023",
+    "ERRATA:E-187"
+  ],
+  "as_of": "2026-10-09"
+}

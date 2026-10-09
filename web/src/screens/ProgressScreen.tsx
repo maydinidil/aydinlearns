@@ -1,9 +1,13 @@
 // web/src/screens/ProgressScreen.tsx: Progress at #/progress, the fifth top-bar tab (sprint 4b, Task E1; design §2, §2.1, §14; D39, S4B-21,
 // S4B-27). Goals against their dates with each criterion's gap, the recruitment readiness board, the skill maps, the trends over 8 ISO
 // weeks, the pre-attempt reveal rate, GA4 and Methodology readiness per topic, and the job-ready criteria. Read only (GET /api/progress):
-// it serves and logs nothing, and nothing on it is a gate. No study time anywhere ("Goals, not hours").
+// it serves and logs nothing, and nothing on it is a gate. No study time anywhere ("Goals, not hours"). Sprint 5b (Task B5): the GA4
+// readiness check's lines (GET /api/ga4/readiness, advice only) sit above the topic tables, with a muted line saying what the check counts
+// and what the table below covers (F2 M4).
 import { useEffect, useState } from 'react';
+import { ReadinessCheck } from '../components/Ga4Runs.tsx';
 import { criterionLine, type Titles } from '../lib/labels.ts';
+import { PROGRESS_READINESS_HEADING, PROGRESS_READINESS_NOTE } from '../lib/readiness-flow.ts';
 import {
   PROGRESS_HREF, PROGRESS_INTRO, PROGRESS_LINKS, PROGRESS_SECTIONS, PROGRESS_TITLE, SECTION_LABEL, STATE_LABEL, countsLine, gapFold, gapLine, goalChip, goalDateLine, jobReadyChip, jobReadyLines,
   progressApi, readyLine, revealLine, shareText, stageLabel, stateChipClass, titlesOf, topicLabel, trendRows, type ProgressGoal, type ProgressView,
@@ -117,6 +121,7 @@ export function ProgressScreen() {
 
       <section aria-labelledby="progress-topics" data-progress="topics">
         <h2 id="progress-topics">GA4 and Methodology readiness per topic</h2>
+        <ReadinessCheck heading={PROGRESS_READINESS_HEADING} className="card" note={PROGRESS_READINESS_NOTE} />
         <p className="muted">How often your first answer was right in the last 30 days, leaving out answers given just after the reading.</p>
         <div className="progress-grid">{view.topic_readiness.map((s) => (
           <div key={s.section} className="table-scroll card" data-topics={s.section}>

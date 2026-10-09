@@ -343,7 +343,7 @@ test('JR-02: no missing-value (NULL-tagged) error in the last 20 graded SQL atte
 
 const drillRun = (level: number | null, kind: 'level' | 'chosen', passed: boolean, ended = true): DrillRun => ({
   block_id: `b-${++serial}`, kind, level, screen_mode: false, date: TODAY, started_at: on(TODAY), ended_at: ended ? on(TODAY, '10:20') : null, concept_ids: [],
-  score: scoreOf(passed ? 9 : 5, 10, 10, { pass_pct: 90, unseen_min_pct: 70 }, kind === 'level'),
+  score: scoreOf(passed ? 9 : 5, 10, 10, { pass_pct: 90, unseen_min_pct: 70 }, kind === 'level'), questions: [],
 });
 
 test('JR-03 (restated): a level 2 drill run passed (90%, within its time); a level 1 run, a chosen run or a run still on is not one', () => {

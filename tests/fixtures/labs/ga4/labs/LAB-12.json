@@ -1,0 +1,28 @@
+{
+  "id": "LAB-12",
+  "version": 1,
+  "title": "An invented engagement lab",
+  "concept_id": "GA4-METRICS-01",
+  "topic_id": "T-GA4-02",
+  "property": "MS",
+  "path": "Reports > Invented > Totals",
+  "path_verified": false,
+  "date": "fixed_month",
+  "steps": [
+    "Open the invented report.",
+    "Set the date range to the month the app names.",
+    "Read the totals row."
+  ],
+  "parts": [
+    { "id": "P1", "label": "Sessions", "question": "How many sessions does the totals row show?", "answer": "number", "unit": "count", "check": "recheck_fixed", "tolerance": { "relative_pct": 2 } },
+    { "id": "P2", "label": "Engaged sessions", "question": "How many engaged sessions does the totals row show?", "answer": "number", "unit": "count", "check": "recheck_fixed", "tolerance": { "relative_pct": 2 } },
+    { "id": "P3", "label": "Engagement rate", "question": "What engagement rate does the totals row show?", "answer": "number", "unit": "percent", "check": "consistency" },
+    { "id": "P4", "question": "Which invented marker does this fixture call the busy one?", "answer": "choice", "options": ["Teal marker", "Amber marker", "Plum marker"], "check": "structural" }
+  ],
+  "rules": [
+    { "kind": "rate", "num": "P2", "den": "P1", "pct": "P3", "points": 0.5 }
+  ],
+  "interview_relevant": true,
+  "source_ids": ["test:invented-12"],
+  "as_of": "2026-10-09"
+}

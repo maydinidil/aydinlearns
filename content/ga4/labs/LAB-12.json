@@ -1,0 +1,84 @@
+{
+  "id": "LAB-12",
+  "version": 1,
+  "title": "Engagement rate from the totals row",
+  "concept_id": "GA4-METRICS-01",
+  "topic_id": "T-GA4-02",
+  "property": "MS",
+  "path": "Reports > Life cycle > Acquisition > Traffic acquisition",
+  "path_verified": true,
+  "date": "fixed_month",
+  "steps": [
+    "In the Google Merchandise Store property, open Reports > Life cycle > Acquisition > Traffic acquisition.",
+    "Set the date range to the month the app shows, from its first day to its last.",
+    "Read the totals row at the top of the table: Sessions, Engaged sessions and Engagement rate."
+  ],
+  "parts": [
+    {
+      "id": "P1",
+      "label": "Sessions",
+      "question": "How many sessions does the totals row show?",
+      "answer": "number",
+      "unit": "count",
+      "check": "recheck_fixed",
+      "tolerance": {
+        "relative_pct": 2
+      }
+    },
+    {
+      "id": "P2",
+      "label": "Engaged sessions",
+      "question": "How many engaged sessions does the totals row show?",
+      "answer": "number",
+      "unit": "count",
+      "check": "recheck_fixed",
+      "tolerance": {
+        "relative_pct": 2
+      }
+    },
+    {
+      "id": "P3",
+      "label": "Engagement rate",
+      "question": "What engagement rate does the totals row show?",
+      "answer": "number",
+      "unit": "percent",
+      "check": "consistency"
+    },
+    {
+      "id": "P4",
+      "question": "On default settings, which rule does GA4 use to count a session as engaged?",
+      "answer": "choice",
+      "options": [
+        "All three: longer than 10 seconds, a key event, and 2 or more page or screen views",
+        "Only that it is not a single-page session",
+        "Any one of: longer than 10 seconds, a key event, or 2 or more page or screen views",
+        "Any one of: longer than 60 seconds, a scroll event, or a file download"
+      ],
+      "check": "structural"
+    }
+  ],
+  "rules": [
+    {
+      "kind": "rate",
+      "num": "P2",
+      "den": "P1",
+      "pct": "P3",
+      "points": 0.5
+    }
+  ],
+  "interview_relevant": true,
+  "source_ids": [
+    "07:LAB-12",
+    "07:NAV-06",
+    "07:§1.5",
+    "07:[16]",
+    "07:[7]",
+    "07:[8]",
+    "07:[42]",
+    "06:GA4-METRICS-01",
+    "06:Q-GA4-13",
+    "ERRATA:E-023",
+    "ERRATA:E-187"
+  ],
+  "as_of": "2026-10-09"
+}

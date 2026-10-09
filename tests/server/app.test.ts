@@ -358,8 +358,8 @@ test('after a restart, every instance from before stays closed, and recovery clo
   assert.equal(((await log.readAll('attempts')) as any[]).filter((r) => r.record === 'item_close').length, 3, 'no second close');
   assert.equal((await post(app2, '/api/hint', { item_id, item_instance_id: 'I-4', level: 1, phase: 'free' })).status, 200, 'a new instance id works');
 });
-test('D4: SCHEMA_VERSION (4 since D35 and D38) is on every record the app writes, and help records name their item', async () => {
-  assert.equal(SCHEMA_VERSION, 4);
+test('D4: SCHEMA_VERSION (5 since D68) is on every record the app writes, and help records name their item', async () => {
+  assert.equal(SCHEMA_VERSION, 5);
   const d = await deps({ runner });
   const app = createApp(d);
   const item_id = lesson.pool_item_ids[0]!;

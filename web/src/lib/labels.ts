@@ -116,7 +116,11 @@ export const refresherIntro = (title: string): string => `A quick refresher on $
 
 // ---- the wrap-up (design §4, S2-37, S2-38) ------------------------------------------------------------------------
 
-export const nextGoalLine = (title: string, date: string, today: string): string => `Next goal: ${title}, by ${formatDate(date, today)}`;
+export const NEXT_GOAL = 'Next goal';
+/** S5A-18: a GA4 or Methodology tab with no goal with an unmet criterion in its section left shows the next goal overall, under this label. */
+export const NEXT_GOAL_ALL = 'Next goal (all sections)';
+export const nextGoalLine = (title: string, date: string, today: string, allSections = false): string =>
+  `${allSections ? NEXT_GOAL_ALL : NEXT_GOAL}: ${title}, by ${formatDate(date, today)}`;
 export const dueTomorrowLine = (n: number): string => `Due tomorrow: ${n} review${n === 1 ? '' : 's'}`;
 
 const STATE_SUFFIX = / at (new|learning|practised|mastered|retained)$/;

@@ -1,0 +1,102 @@
+{
+  "id": "LAB-10",
+  "version": 1,
+  "title": "New users by first user channel",
+  "concept_id": "GA4-REPORTS-01",
+  "topic_id": "T-GA4-02",
+  "property": "MS",
+  "path": "Reports > Life cycle > Acquisition > User acquisition",
+  "path_verified": true,
+  "date": "fixed_month",
+  "steps": [
+    "In the Google Merchandise Store property, open Reports > Life cycle > Acquisition > User acquisition.",
+    "Set the date range to the month the app shows, from its first day to its last.",
+    "Make sure the table's first column is the channel group that the first question asks about. If it shows another dimension, choose that one from the drop-down at the top of that column.",
+    "Sort the table by the New users column, highest first, by clicking its header.",
+    "Read the channel group and the new users in the first channel row below the totals row, then the new users in the totals row at the top of the table."
+  ],
+  "parts": [
+    {
+      "id": "P1",
+      "question": "Which first user default channel group brought the most new users in the month?",
+      "answer": "choice",
+      "options": [
+        "Affiliates",
+        "AI Assistant",
+        "Audio",
+        "Cross-network",
+        "Direct",
+        "Display",
+        "Email",
+        "Mobile Push Notifications",
+        "Organic Search",
+        "Organic Shopping",
+        "Organic Social",
+        "Organic Video",
+        "Paid Other",
+        "Paid Search",
+        "Paid Shopping",
+        "Paid Social",
+        "Paid Video",
+        "Referral",
+        "SMS",
+        "Unassigned"
+      ],
+      "check": "recheck_fixed"
+    },
+    {
+      "id": "P2",
+      "label": "Top group's new users",
+      "question": "How many new users did that channel group bring?",
+      "answer": "number",
+      "unit": "count",
+      "check": "recheck_fixed",
+      "tolerance": {
+        "relative_pct": 2
+      }
+    },
+    {
+      "id": "P3",
+      "label": "Total new users",
+      "question": "How many new users does the totals row show?",
+      "answer": "number",
+      "unit": "count",
+      "check": "consistency"
+    },
+    {
+      "id": "P4",
+      "question": "The Traffic acquisition report groups by where each session came from. What does the User acquisition report group by?",
+      "answer": "choice",
+      "options": [
+        "Which channel gets credit for each key event under the attribution model",
+        "How each user was first acquired: first user channel, source or medium",
+        "Where each session came from: session channel, source or medium",
+        "The channel each user came from most recently"
+      ],
+      "check": "structural"
+    }
+  ],
+  "rules": [
+    {
+      "kind": "at_most",
+      "part": "P2",
+      "of": "P3"
+    }
+  ],
+  "interview_relevant": true,
+  "source_ids": [
+    "07:LAB-10",
+    "07:NAV-06",
+    "07:§1.5",
+    "07:[16]",
+    "07:[7]",
+    "07:[8]",
+    "06:GA4-REPORTS-01",
+    "06:Q-GA4-16",
+    "10:§4",
+    "10:[4]",
+    "ERRATA:E-023",
+    "ERRATA:E-187"
+  ],
+  "as_of": "2026-10-09"
+}

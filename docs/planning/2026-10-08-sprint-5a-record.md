@@ -204,3 +204,21 @@ the taller textarea is scoped to form fields; the three assertions now test what
 Q-EXP-AB-11-01's typed scale and Q-MET-PRICE-08-04's stem were fixed (version 2) and blind-solved
 again, 2 of 2 PASS. F2-02 and F2-06 were fixed in the docs. Commit `594b573`: typecheck clean, `npm test` 1778 of 1778, `check:content` 14952 of 14952,
 `build:web` builds, `test:e2e` 58 of 58 on port 5184 with 0 page errors.
+
+## After the merge
+
+PR #42 merged on 2026-10-08 (`fbf6cce`). Codex finished its review with no findings (a +1 and no
+comments), logged in `docs/reviews/codex-findings.md`.
+
+**Release 1.0 (D64), the same day:**
+
+| Step | Result |
+|---|---|
+| Public copy | A fresh clone of `maydinidil/aydinlearns` outside the monorepo; `tools/export-public.sh <clone> origin/main` from the main checkout exported `fbf6cce` as `6af683a` (766 files changed). The scan found no logs, data, `.env`, scratch folders, session links, emails or `C:Users` paths. Pushed `fcb8f35..6af683a` |
+| Fresh-install test | The clone's tree in a second clean folder, started with the launcher (`node tools/launch.ts --no-browser`, `AYDINLEARNS_PORT=5194`, a temporary `AYDINLEARNS_LOGS_DIR`). Setup ran end to end in 37 seconds: `npm ci` 3 s, the venv and `pip install` 18 s (DuckDB 1.5.6), `build:data` 10 s (dataset `6de53e5dbeafe2d5`), `build:web` 1 s, the server answering 3 s later. The status route reported version 1.0.0 with all 9 checks passing; Today answered for SQL and Methodology; EX-SQL-BASICS-01-E1-01 graded a pass and logged to the temporary folder. No README step was wrong. Both folders were deleted after |
+| Tag and release | `v1.0.0` on `6af683a`, release "aydinlearns 1.0": what 1.0 does, how to start it, the known issues, what 1.1 adds |
+| Local checkout | `C:zehirlab` fast-forwarded from `e11b686` to `fbf6cce` (85 commits) with the app closed; untracked folders untouched. The launcher rebuilds the data and the screens at the next start |
+
+Not covered by the install test, and noted in the launcher's backlog row: the browser-opening line
+(the test ran with `--no-browser`) and a machine with no npm or pip cache. The launcher's output
+also shows Node's DEP0190 deprecation warning (a child process started with `shell` and arguments).

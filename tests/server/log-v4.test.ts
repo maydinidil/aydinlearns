@@ -35,7 +35,7 @@ test('selfCheck writes to the monthly attempts file and case_export to events.js
   assert.deepEqual(await logger.readAll('attempts'), [sc]);
   assert.deepEqual(await logger.readAll('events'), [ex]);
   assert.deepEqual(seen, [['attempts', 'self_check'], ['events', 'case_export']]);
-  assert.match(await readFile(join(dir, 'attempts-2026-11.jsonl'), 'utf8'), /"schema_version":4/);
+  assert.match(await readFile(join(dir, 'attempts-2026-11.jsonl'), 'utf8'), /"schema_version":5/);
 });
 
 // tests/fixtures/replay/smoke-history-v2.json holds the smoke test's seeded history and the replay result the code before log

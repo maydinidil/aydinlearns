@@ -1,6 +1,6 @@
 {
   "name": "aydinlearns",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "private": true,
   "type": "module",
   "engines": {
@@ -19,6 +19,8 @@
     "export:solver-view": "node tools/export-solver-view.ts",
     "export:choice-view": "node tools/export-choice-view.ts",
     "record:choice-solver": "node tools/record-choice-solver.ts",
+    "export:lab-view": "node tools/export-lab-view.ts",
+    "record:lab-solver": "node tools/record-lab-solver.ts",
     "report:window": "node tools/report-window.ts",
     "build:data": "pipeline\\.venv\\Scripts\\python.exe pipeline/build_course_db.py",
     "dev:server": "node --watch server/main.ts --dev",

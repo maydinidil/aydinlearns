@@ -177,6 +177,10 @@ export function scoreOf(passed: number, questions: number, unseen: number, marks
     counts_for_level: levelRun && run_passed && unseen * 100 >= marks.unseen_min_pct * questions };
 }
 
+/** H3: how one served question ended. Failed: answered and never passed. Not answered: no submission in the run. */
+export type QuestionOutcome = 'passed' | 'failed' | 'not_answered';
+export interface DrillQuestion { item_instance_id: string; item_id: string | null; outcome: QuestionOutcome }
+
 export interface DrillRun {
   block_id: string; kind: 'level' | 'chosen'; level: number | null;
   /**
@@ -191,10 +195,13 @@ export interface DrillRun {
   ended_at: string | null;
   concept_ids: string[];
   score: DrillScore;
+  /** H3: every question the log holds for the run, each with its outcome; the passed ones are the score's passed. Log order, not drill order. */
+  questions: DrillQuestion[];
 }
 
 type Rec = Record<string, unknown>;
 interface Inst {
+  id: string;
   item_id: string | null; concept: string | null; block: string | null; drill: boolean; start: number; closedAt: number | null;
   /** The section its attempts name; null when it has none (an unreached item). */
   section: string | null;
@@ -236,7 +243,7 @@ export function drillRuns(attempts: object[], events: object[], itemOf: (id: str
     const id = str(r.item_instance_id);
     if (!id || !(r.record === 'attempt' || r.record === 'item_close' || r.record === 'hint_opened' || r.record === 'solution_opened')) continue;
     let x = insts.get(id);
-    if (!x) { x = { item_id: null, concept: null, block: null, drill: false, start: Infinity, closedAt: null, section: null, screen: false, passes: [], reason: null, attempts: 0, helpBefore: 0 }; insts.set(id, x); }
+    if (!x) { x = { id, item_id: null, concept: null, block: null, drill: false, start: Infinity, closedAt: null, section: null, screen: false, passes: [], reason: null, attempts: 0, helpBefore: 0 }; insts.set(id, x); }
     x.item_id ??= str(r.item_id);
     x.concept ??= str(r.target_concept_id);
     if (r.record !== 'hint_opened' && r.record !== 'solution_opened') {
@@ -279,14 +286,15 @@ export function drillRuns(attempts: object[], events: object[], itemOf: (id: str
     const levelSpec = known.every((i) => i?.use === 'drill') && levels.length === 1 ? specs.find((s) => s.level === levels[0]) : undefined;
     const marks: Marks = levelSpec ?? specForLevels(levels, specs) ?? FALLBACK;
     const questions = levelSpec ? Math.max(levelSpec.questions, members.length) : members.length;
-    const passed = members.filter((m) => m.passes.some((p) => (m.closedAt === null || p.at <= m.closedAt)
-      && (p.auto || decided.get(p.attempt_id) === 'confirmed'))).length;
+    const didPass = (m: Inst): boolean => m.passes.some((p) => (m.closedAt === null || p.at <= m.closedAt) && (p.auto || decided.get(p.attempt_id) === 'confirmed'));
+    const passed = members.filter(didPass).length;
     const unseen = members.filter((m) => m.item_id !== null && !(startsOf.get(m.item_id) ?? [])
       .some((o) => o.block !== block_id && o.start < start && o.start >= start - SEEN_WINDOW_MS)).length;
     out.push({ block_id, kind: levelSpec ? 'level' : 'chosen', level: levelSpec?.level ?? null, screen_mode: members.some((m) => m.screen),
       date: amsterdamDate(new Date(start)), started_at: iso(start),
       ended_at: ends.get(block_id) ?? null, concept_ids: [...new Set(members.map((m) => m.concept).filter((c): c is string => c !== null))],
-      score: scoreOf(passed, questions, unseen, marks, levelSpec !== undefined) });
+      score: scoreOf(passed, questions, unseen, marks, levelSpec !== undefined),
+      questions: members.map((m) => ({ item_instance_id: m.id, item_id: m.item_id, outcome: didPass(m) ? 'passed' as const : m.attempts > 0 ? 'failed' as const : 'not_answered' as const })) });
   }
   return out.sort((a, b) => Date.parse(b.started_at) - Date.parse(a.started_at));
 }

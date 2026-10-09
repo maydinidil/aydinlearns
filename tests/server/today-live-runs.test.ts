@@ -111,18 +111,20 @@ test('S4-15: while an SQL drill is on, the wrap-up leaves out the corrected quer
 
 const PARENT = 'GA4-TA-01';
 const ITEMS = ['Q-GA4-P101', 'Q-GA4-P102', 'Q-GA4-P103'];
+/** One held-out item: a full mock may not ask more than the held-out pool (sprint 5b Task B4), and practice never serves it. */
+const HELD_ITEM = 'Q-GA4-H101';
 async function ga4Content(items: readonly string[] = ITEMS): Promise<ContentStore> {
   const root = await makeContentFixture();
   for (const dir of ['ga4/items', 'keys/ga4']) await mkdir(join(root, dir), { recursive: true });
   const put = (rel: string, x: unknown) => writeFile(join(root, rel), JSON.stringify(x, null, 2));
   await put('ga4/concepts.json', { concepts: [{ id: PARENT, parent_id: null, topic_id: 'T-GA4-01', title: 'Invented parent', level: 1, verified: true }] });
-  await put('ga4/held-out.json', { item_ids: [] });
-  await put('ga4/exam.json', { topic_weights: { 'T-GA4-01': 100 }, mini_drill: { questions: 2, minutes: 30, pass_pct: 80, mode: 'practice' },
-    half_mock: { questions: 2, minutes: 30, pass_pct: 80, mode: 'exam', retake_days: 21 } });
-  for (const x of items) {
+  await put('ga4/held-out.json', { item_ids: [HELD_ITEM] });
+  await put('ga4/exam.json', { topic_weights: { 'T-GA4-01': 100 }, blueprints: [{ from: '2026-10-06', mini_drill: { questions: 2, minutes: 30, pass_pct: 80, mode: 'practice' },
+    half_mock: { questions: 2, minutes: 30, pass_pct: 80, mode: 'exam', retake_days: 21 }, full_mock: { questions: 3, minutes: 30, pass_pct: 80, mode: 'exam', retake_days: 21 } }] });
+  for (const x of [...items, HELD_ITEM]) {
     await put(`ga4/items/${x}.json`, { version: 1, tags: [], source_ids: ['test:invented'], verified: true, as_of: '2026-10-04', review_after: null, status: 'active',
       supersedes: [], level: 1, enemy_group: null, id: x, kind: 'mcq', section: 'ga4', legacy_id: null, concept_id: PARENT, parent_id: null, topic_id: 'T-GA4-01',
-      stem: `Invented question about widget ${x}?`, typed: null, exam_relevance: 'core', held_out: false,
+      stem: `Invented question about widget ${x}?`, typed: null, exam_relevance: 'core', held_out: x === HELD_ITEM,
       options: ['Teal widget', 'Gold widget', 'Ruby widget', 'Jade widget'].map((text, i) => ({ oid: optionId(x, i), text, misconception_id: null })) });
     await put(`keys/ga4/${x}.json`, { item_id: x, item_version: 1, correct_oid: optionId(x, 0), explanation: `Made-up explanation for ${x}.`, solver: null });
   }

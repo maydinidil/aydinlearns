@@ -33,9 +33,9 @@
 .today-side .card > :last-child { margin-bottom: 0; }
 ol.today-steps.card { padding: 0; list-style: none; margin: 0; }
 a.btn-main { display: inline-block; padding: var(--s1) var(--s3); border: 1px solid var(--ink); border-radius: var(--r1); font: 600 var(--t1)/var(--lh) var(--font); text-decoration: none; background: var(--ink); color: var(--surface); }
-.today nav.steps, .case nav.steps { display: flex; flex-wrap: wrap; gap: var(--s1); padding: 3px; background: var(--fill); border-radius: 9px; width: fit-content; list-style: none; margin: 0 0 var(--s4); }
-.today nav.steps button, .case nav.steps button { padding: 5px var(--s3); border: 0; border-radius: 7px; background: transparent; font-size: var(--t2); color: var(--ink-2); }
-.today nav.steps button[aria-pressed="true"], .case nav.steps button[aria-current="step"] { background: var(--surface); color: var(--ink); box-shadow: var(--shadow); }
+.today nav.steps, .case nav.steps, .lesson nav.steps { display: flex; flex-wrap: wrap; gap: var(--s1); padding: 3px; background: var(--fill); border-radius: 9px; width: fit-content; list-style: none; margin: 0 0 var(--s4); }
+.today nav.steps button, .case nav.steps button, .lesson nav.steps button { padding: 5px var(--s3); border: 0; border-radius: 7px; background: transparent; font-size: var(--t2); color: var(--ink-2); }
+.today nav.steps button[aria-pressed="true"], .case nav.steps button[aria-current="step"], .lesson nav.steps button[aria-current="step"] { background: var(--surface); color: var(--ink); box-shadow: var(--shadow); }
 .today-steps .row { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; column-gap: var(--s3); row-gap: 0; align-items: center; }
 .today-steps .row .marker { grid-column: 1; grid-row: 1 / span 2; align-self: stretch; }
 .today-steps .row .grow { grid-column: 2; grid-row: 1; }
@@ -78,7 +78,7 @@ a.btn-main { display: inline-block; padding: var(--s1) var(--s3); border: 1px so
 .choice .option > label { flex: 1; min-width: 0; display: flex; align-items: flex-start; gap: var(--s3); padding: var(--s3) var(--s4); cursor: pointer; }
 .choice .option.ok > label, .choice .option.bad > label { padding-left: var(--s2); }
 .choice .option > .muted { align-self: center; padding-right: var(--s4); white-space: nowrap; }
-.choice .option input[type="radio"] { accent-color: var(--section); margin: 3px 0 0; flex: none; }
+.choice .option input[type="radio"], .choice .option input[type="checkbox"] { accent-color: var(--section); margin: 3px 0 0; flex: none; }
 .choice .option .code { display: inline-block; margin: 0; max-width: 100%; vertical-align: top; }
 .choice .option .option-table { display: block; min-width: 0; }
 .confidence-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s2); }
@@ -94,6 +94,10 @@ nav.qstrip button { min-width: 36px; height: 36px; padding: 0 var(--s2); border:
 nav.qstrip button.answered { background: var(--chip-answered-bg); color: var(--chip-answered-fg); }
 nav.qstrip button[aria-pressed="true"] { background: var(--section-text); border-color: var(--section-text); color: var(--surface); }
 nav.qstrip button[aria-pressed="true"] strong { font-weight: 700; }
+/* The drill review marks each square by outcome; the name says it too, and an unanswered one is dashed. */
+nav.qstrip button.q-passed { border-color: var(--ok); border-width: 2px; }
+nav.qstrip button.q-failed { border-color: var(--bad); border-width: 2px; }
+nav.qstrip button.q-not-answered { border-style: dashed; }
 .q-card { margin-bottom: var(--s3); }
 .q-card > h2 { margin-top: 0; }
 .score-card p { margin: 0 0 var(--s1); }
@@ -103,6 +107,11 @@ nav.qstrip button[aria-pressed="true"] strong { font-weight: 700; }
 .table-scroll.card th, .table-scroll.card td, .history-table th, .history-table td { border: 0; border-bottom: 1px solid var(--fill); padding: var(--s2) var(--s3); }
 .history-table { width: 100%; }
 .history-table td { font-variant-numeric: tabular-nums; }
+/* Run history: short cells stay on one line; Unseen and By topic wrap with room to read (S5-27). Topic table in a review: counts stay whole (S5-26). */
+.run-history td { white-space: nowrap; }
+.run-history td:nth-child(5), .run-history td:nth-child(6) { white-space: normal; min-width: 22ch; }
+.score-card + h2 + .table-scroll td + td { white-space: nowrap; }
+[data-readiness].card > h3:first-child { margin-top: 0; }     /* S5-30 */
 ol.review-items { list-style: none; margin: 0 0 var(--s3); padding: 0; }
 ol.review-items > li { padding: var(--s3) var(--s4); }
 ol.review-items > li + li { border-top: 1px solid var(--fill); }
@@ -158,9 +167,7 @@ ol.review-items > li + li { border-top: 1px solid var(--fill); }
 .chip.learning { background: var(--section-soft); color: var(--section-text); }
 .topic-links { margin: 0 0 var(--s4); }
 .settings-card details > summary { cursor: pointer; font-weight: 600; }
-.lesson nav.steps { display: flex; flex-wrap: wrap; gap: var(--s1); padding: 3px; background: var(--fill); border-radius: 9px; width: fit-content; max-width: 100%; list-style: none; margin: 0 0 var(--s4); }
-.lesson nav.steps button { padding: 5px var(--s3); border: 0; border-radius: 7px; background: transparent; font-size: var(--t2); color: var(--ink-2); }
-.lesson nav.steps button[aria-current="step"] { background: var(--surface); color: var(--ink); box-shadow: var(--shadow); }
+.lesson nav.steps { max-width: 100%; }
 
 /* Sprint 5a, Task P2b (P1 findings 5, 10, 11, 13, 17, 43) */
 .explore-main { min-width: 0; }
@@ -186,5 +193,25 @@ ul.checklist { list-style: none; padding-left: 0; }
 }
 .q-card { max-width: var(--read); }
 .today-side .card > div:first-child > :first-child { margin-top: 0; }
-.today-steps .step-control a:not(.btn-main) { display: inline-block; padding: var(--s1) var(--s3); border: 1px solid var(--line); border-radius: var(--r1); background: var(--surface); color: var(--ink); font: 600 var(--t1)/var(--lh) var(--font); text-decoration: none; }
+.today-steps .step-control a:not(.btn-main) { display: inline-block; padding: var(--s1) var(--s3); border: 1px solid var(--control); border-radius: var(--r1); background: var(--surface); color: var(--ink); font: 600 var(--t1)/var(--lh) var(--font); text-decoration: none; }
+.today-steps .step-control > a + a { margin-left: var(--s2); }   /* H-D3: a second link after the action (the labs page) */
 .corrected-query pre { white-space: pre-wrap; overflow-wrap: anywhere; }
+
+/* GA4 labs (sprint 5b, Task B3) */
+.lab-cols { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--s4); align-items: start; }
+@media (min-width: 900px) { .lab-cols { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } }
+.lab-field { margin: 0 0 var(--s3); }
+.lab-field label { display: block; margin-bottom: var(--s1); }
+.lab-field input[type="text"], .lab-field input[type="date"] { width: 100%; max-width: 100%; }
+.lab-field button.lab-self { background: transparent; border: 1px solid var(--control); color: var(--ink); }
+.lab-field button.lab-self[aria-pressed="true"] { background: var(--section-text); border-color: var(--section-text); color: var(--surface); font-weight: 650; }
+.lab-dates { display: flex; flex-wrap: wrap; gap: var(--s3); }
+.lab-input { display: flex; align-items: center; gap: var(--s2); }
+.lab-result.pass { color: var(--ok); }
+.lab-result.fail, .lab-refusal { color: var(--bad); }
+.chip.look-again { color: var(--bad); }
+.lab-guide { margin-top: var(--s3); }
+.lab-guide > summary { padding: var(--s1) 0; cursor: pointer; }
+fieldset.lab-field { border: 0; padding: 0; margin: 0 0 var(--s3); min-width: 0; }
+fieldset.lab-field > legend { padding: 0; margin-bottom: var(--s1); }
+.lab-field.choice label.option { display: flex; align-items: flex-start; padding: var(--s2) var(--s3); gap: var(--s3); cursor: pointer; }

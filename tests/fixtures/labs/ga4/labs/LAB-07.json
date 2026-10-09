@@ -1,0 +1,26 @@
+{
+  "id": "LAB-07",
+  "version": 1,
+  "title": "An invented key events lab",
+  "concept_id": "GA4-EVENTS-03",
+  "topic_id": "T-GA4-03",
+  "property": "FI",
+  "path": "Admin > Invented > Events",
+  "path_verified": true,
+  "date": "none",
+  "steps": [
+    "Open the invented events list.",
+    "Note every event that has the invented star."
+  ],
+  "parts": [
+    { "id": "P1", "question": "Which events have the invented star?", "answer": "multi", "options": ["purchase", "sign_up", "add_to_cart", "invented_event"], "check": "recheck_fixed" },
+    { "id": "P2", "question": "Does purchase have the invented star?", "answer": "choice", "options": ["Yes", "No"], "check": "consistency" },
+    { "id": "P3", "question": "Which invented menu does this fixture call the star menu?", "answer": "choice", "options": ["Admin > Invented A", "Admin > Invented B", "Admin > Invented C"], "check": "structural" }
+  ],
+  "rules": [
+    { "kind": "member", "set": "P1", "value": "purchase", "flag": "P2" }
+  ],
+  "interview_relevant": true,
+  "source_ids": ["test:invented-07"],
+  "as_of": "2026-10-09"
+}

@@ -12,6 +12,27 @@ import type { Goal } from '../core/goals.ts';
 import { choiceTarget, type ChoiceConcept, type ChoiceConceptFile, type ChoiceItem, type ChoiceKey, type ChoiceSection, type HeldOutFile } from '../schemas/choice.ts';
 import { validateReading, type Reading } from '../schemas/reading.ts';
 import { GA4_EXAM_FILE, parseGa4Exam, type Ga4ExamConfig } from '../schemas/ga4-exam.ts';
+import { validateLab, validateLabGuide, validateLabKey, type Lab, type LabGuide, type LabKey } from '../schemas/lab.ts';
+
+/** Sprint 5b (Task B1): where the GA4 labs, their keys and their guide sit under the content root. */
+export const LAB_DIR = 'ga4/labs';
+export const LAB_KEY_DIR = 'keys/ga4/labs';
+export const LAB_GUIDE_FILE = 'ga4/lab-guide.json';
+
+/**
+ * A content file that parsed but failed its validator (sprint 5b: a lab or the lab guide). The load stops, and the message starts
+ * with the file, as a parse error's does ("ga4/labs/LAB-03.json: ..."), so the server names the file. The problems name fields and
+ * part IDs only, never a key.
+ */
+export class ContentFileError extends Error {
+  readonly file: string;
+  readonly problems: string[];
+  constructor(file: string, problems: string[]) {
+    super(`${file}: ${problems.join('; ')}`);
+    this.file = file;
+    this.problems = problems;
+  }
+}
 
 export interface ContentStore {
   curriculum: Curriculum;
@@ -77,10 +98,24 @@ export interface ContentStore {
   /** Task C4: every SQL item (content/sql/items/), choice kinds included, in file-name order: S3-17 finds a predict pretest item here. */
   sqlItems?(): SqlItem[];
   /**
-   * Task B2: content/ga4/exam.json, the GA4 run blueprints (topic weights, mini drill, half-mock), validated at load: a malformed
-   * file stops the load with an error that names it. Undefined when the file does not exist: no GA4 run can start.
+   * Task B2: content/ga4/exam.json, the GA4 run blueprints (topic weights, and dated entries of the mini drill, half-mock and full
+   * mock blueprints), validated at load: a malformed file stops the load with an
+   * error that names it. Undefined when the file does not exist: no GA4 run can start.
    */
   ga4Exam?(): Ga4ExamConfig | undefined;
+  /**
+   * Sprint 5b (Task B1): the GA4 labs (content/ga4/labs/LAB-NN.json), in ID order. Each passed validateLab and is named after its
+   * ID: a malformed lab file stops the load with an error that names it. None when the folder does not exist.
+   */
+  labs?(): Lab[];
+  lab?(id: string): Lab | undefined;
+  /**
+   * Sprint 5b: content/keys/ga4/labs/<id>.json, by the file's name, as loaded: content check C43 validates it against its lab.
+   * Server-side only, like every key: a structural answer goes out only in the reply to that lab's answer.
+   */
+  labKey?(id: string): LabKey | undefined;
+  /** Sprint 5b: content/ga4/lab-guide.json, validated at load like a lab. Undefined when the file does not exist. */
+  labGuide?(): LabGuide | undefined;
 }
 
 /**
@@ -201,8 +236,33 @@ export async function loadContent(root: string, options: LoadOptions = {}): Prom
     readings.set(section, concepts.map((c) => byId.get(c.id)).filter((r): r is Reading => r !== undefined));
   }
   // Task B2: the GA4 run blueprints. Hashed with the rest; a missing file means no GA4 runs, a malformed one is a fault naming it.
+  // A full mock longer than its held-out pool is content check C46, not a load fault (sprint 5b B4 fix, ruling 8).
   const examFile = await optional<unknown>(GA4_EXAM_FILE, undefined);
   const ga4Exam = examFile === undefined ? undefined : parseGa4Exam(examFile);
+  // Sprint 5b (Task B1): the GA4 labs, their keys and their guide, hashed with the rest. A lab file that is not valid JSON (named by
+  // read), fails validateLab, or is not named after its ID stops the load; so does a guide that fails validateLabGuide. A key is
+  // validated against its lab (validateLabKey); a bad key, or a key with no lab, stops the load the same way.
+  const labs: Lab[] = [];
+  for (const { name, data } of await readDirNamed(LAB_DIR)) {
+    const id = name.replace(/\.json$/, '');
+    const problems = validateLab(data);
+    if (!problems.length && (data as Lab).id !== id) problems.push(`id must be ${id}, the file's name`);
+    if (problems.length) throw new ContentFileError(`${LAB_DIR}/${name}`, problems);
+    labs.push(data as Lab);
+  }
+  labs.sort((a, b) => a.id.localeCompare(b.id));
+  const labKeys = new Map<string, LabKey>();
+  for (const { name, data } of await readDirNamed<LabKey>(LAB_KEY_DIR)) {
+    const id = name.replace(/\.json$/, '');
+    const lab = labs.find((l) => l.id === id);
+    const problems = lab ? validateLabKey(data, lab) : ['no lab of this name in ' + LAB_DIR];
+    if (problems.length) throw new ContentFileError(`${LAB_KEY_DIR}/${name}`, problems);
+    labKeys.set(id, data);
+  }
+  const guideFile = await optional<unknown>(LAB_GUIDE_FILE, undefined);
+  const guideProblems = guideFile === undefined ? [] : validateLabGuide(guideFile);
+  if (guideProblems.length) throw new ContentFileError(LAB_GUIDE_FILE, guideProblems);
+  const labGuide = guideFile as LabGuide | undefined;
   return {
     curriculum, feedback, goals, errorConcepts,
     lesson: (c) => lessons.get(c),
@@ -229,6 +289,10 @@ export async function loadContent(root: string, options: LoadOptions = {}): Prom
     sqlChoiceKey: (id) => sqlChoiceKeys.get(id),
     sqlItems: () => [...items.values()],
     ga4Exam: () => ga4Exam,
+    labs: () => [...labs],
+    lab: (id) => labs.find((l) => l.id === id),
+    labKey: (id) => labKeys.get(id),
+    labGuide: () => labGuide,
     contentVersion: hash.digest('hex').slice(0, 12),
   };
 }

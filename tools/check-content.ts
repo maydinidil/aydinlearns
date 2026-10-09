@@ -7,6 +7,8 @@
 // write and fix checks, and a lesson's why_clause takes C36 and C37 from there. Sprint 4a (Task B2) adds the level 3
 // rules to the write and fix checks: C38 (the grain line fades), C39 (the other way) and C40 (the level 3 edge schema).
 // Sprint 4b (Task B2) adds C41, the cases: the openers and content/sql/cases/, their CP3 items, keys and truth values.
+// Sprint 5b (Task B1) adds C42 to C45, the GA4 labs: each lab, its key, its blind solve and the lab guide (checkLabs).
+// Sprint 5b (Task B4 fix) adds C46: the full mock of the entry in force today, and of every later-dated entry, asks no more questions than the held-out pool (checkFullMockPool).
 // Usage: node tools/check-content.ts [content-root]   (default: content/)
 import { createHash } from 'node:crypto';
 import { readdir, readFile } from 'node:fs/promises';
@@ -17,7 +19,10 @@ import type { DisplayOk, GateOk, RowsOk } from '../server/runner/protocol.ts';
 import { maskSql, stripTrailing } from '../server/runner/tables.ts';
 import { grade, type Feedback } from '../server/grader/grade.ts';
 import type { GradeResult } from '../server/grader/types.ts';
-import { loadContent, type ContentStore, type LoadOptions } from '../server/content.ts';
+import { ContentFileError, LAB_GUIDE_FILE, LAB_KEY_DIR, loadContent, type ContentStore, type LoadOptions } from '../server/content.ts';
+import { EM_DASH, sameStructuralAnswer, validateLab, validateLabKey, type Lab, type LabKey } from '../schemas/lab.ts';
+import { readingWords } from '../schemas/reading.ts';
+import { amsterdamDate } from '../core/time.ts';
 import { openerLevel } from '../server/session-composer.ts';
 import { isSqlChoiceKind, validateSqlItem, type SqlItem } from '../schemas/item.ts';
 import { validateSqlKey, type SqlKey } from '../schemas/keys.ts';
@@ -725,6 +730,118 @@ export function checkReadings(store: ContentStore): CheckResult[] {
   return out;
 }
 
+// ---- the GA4 labs (sprint 5b Task B1): C42 to C45 ---------------------------------------------------------------------
+
+/** C45: the most words the lab guide's body may have, as a reading's (design §4, READING_MAX_WORDS). */
+export const LAB_GUIDE_MAX_WORDS = 550;
+export const LAB_CHECK_IDS = ['C42', 'C43', 'C44', 'C45'] as const;
+
+/**
+ * C42 to C45 (sprint 5b, Task B1; D67, D69, design §8 and §12): the GA4 labs, their keys and their guide. One result per lab for
+ * each check, named by lab ID and in ID order; one C45 result for the guide, named by its file; one C43 result per key file with
+ * no lab of its name. With no lab and no guide there is nothing to check. A detail names lab and part IDs, fields, versions and
+ * counts: never a key's answer or a solver's answer.
+ * - C42: the lab is valid (the loader refuses one that is not, so this only re-checks), its concept_id is a GA4 concept and its
+ *   topic_id that concept's topic.
+ * - C43: its key file exists and fits it (validateLabKey): every structural part keyed and no other part, a choice key one of the
+ *   part's options, a multi key some of them.
+ * - C44: every structural part has a solver record that passed, for the lab's current version (the key's lab_version and each record's lab_version equal the
+ *   lab's version), and its recorded answer still matches the key (replayed, as C26 replays a choice record). It reads only a key
+ *   that passed C43 (Codex F22's lesson). A lab with no structural part passes.
+ * - C45: the guide exists once there is a lab, has at most 550 words and no em dash; every lab's source_ids name a source.
+ * `root` is the content root, read only for the names of the key files.
+ */
+export async function checkLabs(store: ContentStore, root: string): Promise<CheckResult[]> {
+  const labs = store.labs?.() ?? [];
+  const guide = store.labGuide?.();
+  const out: CheckResult[] = [];
+  const add = (check: string, id: string, why: string[]) => out.push({ id, check, ok: why.length === 0, detail: why.join('; ') });
+  const concepts = new Map((store.choiceConcepts?.('ga4') ?? []).map((c) => [c.id, c]));
+  const idOf = (lab: Lab): string => (typeof lab?.id === 'string' ? lab.id : '(a lab with no ID)');
+  const valid = new Set<Lab>();
+  for (const lab of labs) {
+    const why = validateLab(lab);
+    if (!why.length) {
+      valid.add(lab);
+      const concept = concepts.get(lab.concept_id);
+      if (!concept) why.push(`its concept_id ${lab.concept_id} is not a GA4 concept`);
+      else if (lab.topic_id !== concept.topic_id) why.push(`its topic_id must be ${concept.topic_id}, the topic of ${lab.concept_id}`);
+    }
+    add('C42', idOf(lab), why);
+  }
+  const keys = new Map<Lab, LabKey>();
+  for (const lab of labs) {
+    if (!valid.has(lab)) { add('C43', idOf(lab), ['the lab is not valid; see C42']); continue; }
+    const key = store.labKey?.(lab.id);
+    const why = key === undefined ? [`content/${LAB_KEY_DIR}/${lab.id}.json is missing`] : validateLabKey(key, lab);
+    if (key !== undefined && !why.length) keys.set(lab, key);
+    add('C43', lab.id, why);
+  }
+  let keyFiles: string[] = [];
+  try { keyFiles = (await readdir(join(root, LAB_KEY_DIR))).filter((n) => n.endsWith('.json')).sort(); }
+  catch (e) { if ((e as NodeJS.ErrnoException).code !== 'ENOENT') throw e; }
+  for (const n of keyFiles) if (!labs.some((l) => `${idOf(l)}.json` === n)) add('C43', `${LAB_KEY_DIR}/${n}`, ['a key file with no lab of its name in content/ga4/labs/']);
+  for (const lab of labs) {
+    if (!valid.has(lab)) { add('C44', idOf(lab), ['the lab is not valid; see C42']); continue; }
+    const structural = lab.parts.filter((p) => p.check === 'structural');
+    const key = keys.get(lab);
+    const why: string[] = [];
+    if (!structural.length) { add('C44', lab.id, why); continue; }
+    if (!key) why.push('the key is missing or not valid; see C43');
+    else if (key.lab_version !== lab.version) {
+      why.push(`the key is for version ${key.lab_version} of ${lab.id}, the lab is version ${lab.version}: update the key, then blind-solve its structural parts again`);
+    } else {
+      for (const p of structural) {
+        const rec = key.solver?.[p.id];
+        if (!rec) why.push(`${p.id} has no solver record: blind-solve it (npm run export:lab-view, then npm run record:lab-solver)`);
+        else if (rec.lab_version !== lab.version) why.push(`${lab.id} ${p.id}: the blind-solve was made on version ${rec.lab_version}, the lab is version ${lab.version}: blind-solve it again`);
+        else if (!rec.pass) why.push(`${p.id}: the blind solver's answer did not match the key; read the question as ambiguous first`);
+        else if (!sameStructuralAnswer(p, rec.answer, key.structural[p.id]!)) why.push(`${p.id}: the solver's recorded answer no longer matches the key`);
+      }
+    }
+    add('C44', lab.id, why);
+  }
+  if (labs.length || guide) {
+    const why: string[] = [];
+    if (!guide) why.push(`the labs need their guide, content/${LAB_GUIDE_FILE}`);
+    else {
+      const n = readingWords(guide.body_md);
+      if (n > LAB_GUIDE_MAX_WORDS) why.push(`the guide has ${n} words; at most ${LAB_GUIDE_MAX_WORDS}`);
+      if (JSON.stringify(guide).includes(EM_DASH)) why.push('the guide holds an em dash; use a comma, a colon or a full stop');
+    }
+    add('C45', LAB_GUIDE_FILE, why);
+  }
+  for (const lab of labs) {
+    const named = Array.isArray(lab?.source_ids) && lab.source_ids.length > 0 && lab.source_ids.every((s) => typeof s === 'string' && s.trim() !== '');
+    add('C45', idOf(lab), named ? [] : ['source_ids must name at least one source (the numbered sources of 07 or 10 it uses, E-136)']);
+  }
+  return out;
+}
+
+/**
+ * C46 (sprint 5b, Task B4 fix; ruling 8): the full mock of the entry in force on `today` (the latest entry dated on or before it, or
+ * the first when all are later) and of every later-dated entry asks no more questions than the held-out pool, the active, core,
+ * keyed GA4 items held out (routes/run.ts poolOf draws from the same set). An older entry only scores older runs, so it is not
+ * checked; a later entry is, so a future one cannot hide a pool too short for it. One result; none when there is no
+ * content/ga4/exam.json. The detail names each failing entry by its `from` date and gives counts only.
+ */
+export function checkFullMockPool(store: ContentStore, today: string = amsterdamDate(new Date())): CheckResult[] {
+  const cfg = store.ga4Exam?.();
+  if (!cfg) return [];
+  const pool = (store.choiceItems?.('ga4') ?? []).filter((i) => i.section === 'ga4' && (store.heldOut?.(i.id) ?? false) && i.status === 'active'
+    && i.exam_relevance === 'core' && store.choiceKey?.(i.id) !== undefined).length;
+  const inForce = Math.max(0, cfg.dated.findLastIndex((d) => d.from <= today));
+  const why = cfg.dated.slice(inForce).filter((d) => d.full_mock.questions > pool)
+    .map((d) => `the full mock from ${d.from} asks ${d.full_mock.questions} questions, more than the ${pool} of the held-out pool (active core GA4 items held out, with a key)`);
+  return [{ id: 'ga4/exam.json', check: 'C46', ok: why.length === 0, detail: why.join('; ') }];
+}
+
+/** The line check:content prints for the lab checks, or null when there are none. */
+export function labTallyLine(results: readonly CheckResult[]): string | null {
+  const parts = LAB_CHECK_IDS.map((c) => { const rs = results.filter((r) => r.check === c); return rs.length ? `${c} ${rs.filter((r) => r.ok).length}/${rs.length}` : ''; }).filter(Boolean);
+  return parts.length ? `lab checks (passed / total): ${parts.join(', ')}` : null;
+}
+
 /** The item IDs a lesson names, in serving order; a malformed lesson (C02 reports it) gives what it can. */
 function lessonItemIds(lesson: Lesson): string[] {
   const list = (v: unknown) => (Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : []);
@@ -751,6 +868,12 @@ export function checkLesson(lesson: Lesson, store: ContentStore): CheckResult[] 
  */
 export async function loadContentForCli(root: string, options: LoadOptions = {}): Promise<ContentStore | null> {
   try { return await loadContent(root, options); } catch (e) {
+    // Sprint 5b: a lab or the lab guide that parsed but failed its validator. Its problems name fields and part IDs only.
+    if (e instanceof ContentFileError) {
+      console.error(`cannot load content: ${e.file} is not valid: ${e.problems.join('; ')}`);
+      process.exitCode = 1;
+      return null;
+    }
     const file = /^([\w./-]+\.json): /.exec(e instanceof Error ? e.message : '')?.[1];
     const code = (e as { code?: unknown } | null)?.code;
     console.error(file ? `cannot load content: ${file} is not valid JSON`
@@ -806,6 +929,8 @@ async function main(): Promise<void> {
   results.push(...checkOpeners(store));
   results.push(...checkCases(store));
   results.push(...checkReadings(store));
+  results.push(...(await checkLabs(store, root)));
+  results.push(...checkFullMockPool(store));
   // C19 reads content/sql/drills.json; a missing file means no drills yet, an unreadable one is one failure.
   try {
     const drills = JSON.parse(await readFile(join(root, 'sql/drills.json'), 'utf8')).drills as DrillSpec[];
@@ -841,6 +966,8 @@ async function main(): Promise<void> {
   const tally = tallyLine(results);
   if (tally) console.log(tally);
   console.log(sqlChoiceTallyLine(results));
+  const labTally = labTallyLine(results);
+  if (labTally) console.log(labTally);
   const failed = results.filter((r) => !r.ok && !r.warn);
   console.log(`${results.length - failed.length}/${results.length} checks passed, ${new Set(results.map((r) => r.id)).size} items and lessons`);
   if (failed.length) process.exitCode = 1;

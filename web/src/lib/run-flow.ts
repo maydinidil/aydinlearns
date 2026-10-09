@@ -1,16 +1,22 @@
 // web/src/lib/run-flow.ts: the GA4 timed run screens' rules, wording and review rows, kept pure so they are testable (design §8,
-// §14; rulings S3-02 to S3-04, S3-10, S3-12; Task B3). Nothing here shows or holds answer keys: the half-mock review is a
-// number, a topic and right or wrong. The time left is display only: the server is the clock.
+// §14; rulings S3-02 to S3-04, S3-10, S3-12; Task B3; the full mock, sprint 5b Task B4). Nothing here shows or holds answer keys: a
+// mock's review (a half-mock's or a full mock's) is a number, a topic and right or wrong. The time left is display only: the server
+// is the clock.
 import {
   ApiError, type RunBlueprint, type RunHistoryRow, type RunKind, type RunMode, type RunPreview, type RunReviewItem, type RunStarted, type TopicScore,
 } from '../api.ts';
+import { dayMonth } from './lab-flow.ts';
 
 export type { RunKind, RunMode };
+/** The run kinds in the order the entries show them. Nothing is locked: each is open at any time. */
+export const RUN_KINDS: readonly RunKind[] = ['mini_drill', 'half_mock', 'full_mock'];
+/** A half-mock or a full mock: exam mode on held-out questions, judged on unseen items, a review with no question in it (S3-12). */
+export const isMock = (k: RunKind): boolean => k !== 'mini_drill';
 
 // ---- the mode rules (S3-02, S3-04) -----------------------------------------------------------------------------------------------
 
 export interface ModeRules { goBack: boolean; jump: boolean; flag: boolean; list: boolean; changeAnswer: boolean }
-/** Practice (a mini drill): any question, flags, a changed answer. Exam (a half-mock): forward only, one answer, no list. */
+/** Practice (a mini drill): any question, flags, a changed answer. Exam (a half-mock or a full mock): forward only, one answer, no list. */
 export function modeRules(mode: RunMode): ModeRules {
   const open = mode === 'practice';
   return { goBack: open, jump: open, flag: open, list: open, changeAnswer: open };
@@ -48,6 +54,7 @@ export function unansweredNumbers(total: number, answered: ReadonlySet<number>):
 export function endNowText(unanswered: readonly number[]): string {
   if (unanswered.length === 0) return 'End the run now? Your answers are scored and the review opens.';
   const n = unanswered.length;
+  if (n > 10) return `End the run now? ${n} questions are unanswered and count as wrong.`;     // S5-24: a long list of numbers helps no one in a forward-only run
   const who = n === 1 ? '1 question is unanswered' : `${n} questions are unanswered`;
   return `End the run now? ${who} (${unanswered.join(', ')}) and ${n === 1 ? 'counts' : 'count'} as wrong.`;
 }
@@ -72,11 +79,20 @@ export const hiddenFlags = (count: number, index: number): boolean[] => Array.fr
 
 // ---- wording ---------------------------------------------------------------------------------------------------------------------
 
-const DEFAULT_BLUEPRINT = { mini_drill: { questions: 20, minutes: 30 }, half_mock: { questions: 25, minutes: 37.5 } } as const;
-const KIND_LABEL: Record<RunKind, string> = { mini_drill: 'Mini drill', half_mock: 'Half-mock' };
+const DEFAULT_BLUEPRINT = {
+  mini_drill: { questions: 20, minutes: 30, pass_pct: 80 }, half_mock: { questions: 25, minutes: 37.5, pass_pct: 80 }, full_mock: { questions: 50, minutes: 75, pass_pct: 80 },
+} as const;
+const KIND_LABEL: Record<RunKind, string> = { mini_drill: 'Mini drill', half_mock: 'Half-mock', full_mock: 'Full mock' };
 export const kindLabel = (k: RunKind): string => KIND_LABEL[k];
 /** What an entry does (finding 28): the line under it carries the numbers, so the button does not repeat them. */
 export const startLabel = (kind: RunKind): string => `Start a ${KIND_LABEL[kind].toLowerCase()}`;
+/** S5-25: where focus goes after an exam answer is saved. The last question has no Next question button, so it goes to the end control. */
+export const saveFocusTarget = (index: number, total: number): 'next' | 'end' => (index >= total - 1 ? 'end' : 'next');
+/** D65: the full mock's rules line, until the Skillshop check confirms Google's published rules. */
+function fullMockLine(b: { questions: number; minutes: number; pass_pct: number }): string {
+  return `${b.questions} questions, ${limitText(b.minutes)}, pass at ${b.pass_pct}%. One question at a time, no going back, one answer each. `
+    + 'These follow Google\'s published exam rules, not yet checked on Skillshop.';
+}
 /** A time limit in words (finding 28): 30 is "30 minutes", 37.5 is "37 minutes 30 seconds". A limit is a test rule, so it may show. */
 export function limitText(total: number): string {
   const whole = Math.floor(total);
@@ -84,30 +100,57 @@ export function limitText(total: number): string {
   const limit = `${whole} minute${whole === 1 ? '' : 's'}`;
   return secs === 0 ? limit : `${limit} ${secs} second${secs === 1 ? '' : 's'}`;
 }
-/** The line under an entry: from the server's blueprint when it is known, else the shipped values. */
-export function entryDetail(kind: RunKind, bp: { questions: number; minutes: number } | null): string {
-  const { questions, minutes } = bp ?? DEFAULT_BLUEPRINT[kind];
-  return `${questions} questions, ${limitText(minutes)}.`;
+/**
+ * The line under an entry: from the server's blueprint when it is known, else the shipped values. The full mock's line also gives
+ * its pass mark and rules, and says they are Google's published ones until the Skillshop check (D65).
+ */
+export function entryDetail(kind: RunKind, bp: { questions: number; minutes: number; pass_pct?: number } | null): string {
+  const b = { ...DEFAULT_BLUEPRINT[kind], ...(bp ?? {}) };
+  if (kind === 'full_mock') return fullMockLine(b);
+  return `${b.questions} questions, ${limitText(b.minutes)}.`;
 }
-export const unseenComesBack = (date: string): string => `Unseen questions come back on ${date}`;
+export const unseenComesBack = (date: string): string => `Unseen questions come back on ${dayMonth(date)}`;     // S5-23: "31 October", as the labs write a date
 
-export const runHeading = (k: RunKind): string => `GA4 ${k === 'mini_drill' ? 'mini drill' : 'half-mock'}`;
+export const runHeading = (k: RunKind): string => `GA4 ${KIND_LABEL[k].toLowerCase()}`;
 export function runLine(r: { kind: RunKind; questions: number; minutes: number; pass_pct: number; mode: RunMode }): string {
+  if (r.kind === 'full_mock') return `${fullMockLine(r)} Unanswered questions count as wrong.`;
   const limit = r.minutes;          // a run's time limit is a test rule, so it may be shown
   const head = `${r.questions} questions, ${limitText(limit)}, pass at ${r.pass_pct}%.`;
   return r.mode === 'exam'
     ? `${head} One question at a time, no going back, one answer each. Unanswered questions count as wrong.`
     : `${head} Go back, flag a question and change an answer at any time.`;
 }
+/** The line after a run answer is saved: the run's kind names what takes one answer (a mini drill takes changes, so it names none). */
+export function savedLine(mode: RunMode, kind: RunKind): string {
+  return modeRules(mode).changeAnswer ? 'Answer saved. You can change it until the run ends.' : `Answer saved. A ${KIND_LABEL[kind].toLowerCase()} takes one answer per question.`;
+}
 export const HELP_LINE = 'Help opens in the end-of-run review.';
 
 export function scoreLine(s: { correct: number; of: number; pct: number; pass: boolean; pass_pct: number }): string {
   return `Score: ${s.correct} of ${s.of} (${s.pct}%). Pass mark ${s.pass_pct}%. ${s.pass ? 'Passed.' : 'Not passed.'}`;
 }
-/** S3-10: a half-mock says whether it was on unseen items (D27); a mini drill gives the unseen share. */
-export function unseenLine(r: { kind: 'half_mock'; on_unseen: boolean | null | undefined } | { kind: 'mini_drill'; unseen: number | null | undefined; unseen_pct: number | null | undefined }): string {
-  if (r.kind === 'half_mock') return r.on_unseen ? 'No question was shown in the last 21 days.' : 'Some questions were shown in the last 21 days.';
+interface MockUnseen { on_unseen?: boolean | null; logged_unseen?: boolean | null }
+/**
+ * A mock's unseen line (D27): every question there and unseen; or, when a crash left fewer questions in the log than the run asked,
+ * every saved one unseen (logged_unseen: the readiness check counts such a run, so the line never says a question was seen, F2 I1);
+ * else some were seen.
+ */
+const mockUnseenText = (r: MockUnseen): string => (r.on_unseen ? 'No question was shown in the last 21 days.'
+  : r.logged_unseen ? 'No saved question was shown in the last 21 days.' : 'Some questions were shown in the last 21 days.');
+/** S3-10: a half-mock or a full mock says whether it was on unseen items (D27); a mini drill gives the unseen share. */
+export function unseenLine(r: ({ kind: 'half_mock' | 'full_mock' } & MockUnseen) | { kind: 'mini_drill'; unseen: number | null | undefined; unseen_pct: number | null | undefined }): string {
+  if (r.kind !== 'mini_drill') return mockUnseenText(r);
   return `Unseen questions: ${r.unseen ?? 0} (${r.unseen_pct ?? 0}%).`;
+}
+/** The review's line for a mock the readiness check leaves out (F2 I1: keyed on the check's own test, counts_for_readiness). */
+export const NOT_COUNTED = 'This mock does not count for the readiness check.';
+/** The same line for a mock ended with no answer, with its reason (Ruling 7 needs at least one answer). */
+export const NOT_COUNTED_NO_ANSWER = 'This mock does not count for the readiness check: no question was answered.';
+/** NOT_COUNTED, with the date unseen questions come back when the run gave one; null for a mock the check counts and for a mini drill. */
+export function readinessNote(r: { kind: RunKind; counts_for_readiness: boolean; items?: readonly { answered: boolean }[] }, nextUnseenDate: string | null | undefined): string | null {
+  if (!isMock(r.kind) || r.counts_for_readiness) return null;
+  if (r.items && !r.items.some((i) => i.answered)) return NOT_COUNTED_NO_ANSWER;
+  return nextUnseenDate ? `${NOT_COUNTED} ${unseenComesBack(nextUnseenDate)}.` : NOT_COUNTED;
 }
 
 export type TopicNames = Readonly<Record<string, string>>;
@@ -128,22 +171,26 @@ export const verdictClass = (verdict: string): 'ok' | 'bad' => (verdict === 'Rig
 export interface ReviewRow { n: number; topic: string; verdict: string; item_id?: string; item_instance_id?: string; chosen?: string | null }
 const verdictOf = (i: { answered: boolean; correct: boolean }): string => (i.correct ? 'Right' : i.answered ? 'Wrong' : 'Wrong (unanswered)');
 /**
- * A half-mock row is a number, a topic and right or wrong, and nothing else: no item, stem, option, key or explanation (S3-12).
- * A mini drill row also names its item and instance, so the screen can show the question and open its answer (S3-03).
+ * A mock row (a half-mock's or a full mock's) is a number, a topic and right or wrong, and nothing else: no item, stem, option, key
+ * or explanation (S3-12). A mini drill row also names its item and instance, so the screen can show the question and open its
+ * answer (S3-03).
  */
 export function reviewRows(kind: RunKind, items: readonly RunReviewItem[], names?: TopicNames): ReviewRow[] {
   return items.map((i): ReviewRow => {
     const row: ReviewRow = { n: i.n, topic: topicLabel(i.topic, names), verdict: verdictOf(i) };
-    if (kind === 'half_mock' || i.item_id === undefined || i.item_instance_id === undefined) return row;
+    if (isMock(kind) || i.item_id === undefined || i.item_instance_id === undefined) return row;
     return { ...row, item_id: i.item_id, item_instance_id: i.item_instance_id, chosen: i.chosen ?? null };
   });
 }
+/** The line above a mock's question table: why it names no question. */
+export const reviewNote = (kind: RunKind): string =>
+  `A ${KIND_LABEL[kind].toLowerCase()} review shows the number, the topic and right or wrong only, so a retake stays a fair test.`;
 
 // ---- the history (S3-10: never minutes) ------------------------------------------------------------------------------------------
 
 export const HISTORY_COLUMNS = ['Date', 'Kind', 'Score', 'Passed', 'Unseen', 'By topic'] as const;
 export function historyCells(r: RunHistoryRow, names?: TopicNames): string[] {
-  const unseen = r.kind === 'half_mock' ? (r.on_unseen ? 'No question was shown in the last 21 days.' : 'Some questions were shown in the last 21 days.') : `${r.unseen ?? 0} of ${r.of} unseen`;
+  const unseen = isMock(r.kind) ? mockUnseenText(r) : `${r.unseen ?? 0} of ${r.of} unseen`;
   return [r.date, kindLabel(r.kind), `${r.correct} of ${r.of} (${r.pct}%)`, r.pass ? 'Yes' : 'No', unseen, r.by_topic.map((t) => `${topicLabel(t.topic, names)} ${t.correct} of ${t.of}`).join('; ')];
 }
 
@@ -246,7 +293,7 @@ export function blockFromParts(parts: readonly string[]): string | null {
   try { return decodeURIComponent(raw); } catch { return null; }
 }
 
-/** Ruling A: the line under an entry when D27 applies (only a half-mock has a date, and only when the server gave one). */
+/** Ruling A: the line under an entry when D27 applies (only a mock has a date, and only when the server gave one). */
 export function entryNote(kind: RunKind, preview: RunPreview | null): string | null {
   const date = preview?.next_unseen_date[kind] ?? null;
   return date ? unseenComesBack(date) : null;

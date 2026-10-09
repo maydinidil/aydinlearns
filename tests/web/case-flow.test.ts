@@ -14,7 +14,7 @@ import type {
 } from '../../web/src/lib/cases-api.ts';
 import {
   INBOX_HREF, SAY_PROMPTS, SCORE_RULE, checkpointLabel, dataSourceLine, mainIsAnswer, actualRowCount, caseHref, caseIdFrom, caseSteps, choiceFeedback, countdown, firstStep, heldBackNote, inboxRow, kindLabel, lastLine,
-  keepLines, modelAnswerOf, modelPlanOf, nextStep, rowCountLine, scoreText, sortText, statusChip, stepName, stepState, typedFeedback, viewScore,
+  keepLines, modelAnswerOf, modelPlanOf, nextStep, rowCountLine, scoreText, statusChip, stepName, stepState, typedFeedback, viewScore,
 } from '../../web/src/lib/case-flow.ts';
 import { parseMarkdown } from '../../web/src/lib/markdown.ts';
 
@@ -209,9 +209,6 @@ test('a held-back grain or table list says what shows it (D1: the sketch and CP1
 });
 
 test('the output\'s sort reads in words; a checkpoint\'s last answer is a line, never the answer itself', () => {
-  assert.equal(sortText([{ column: 'revenue', desc: true }, { column: 'store_id', desc: false }]), 'Sorted by revenue (highest first), then store_id.');
-  assert.equal(sortText([{ column: 'city', desc: false }]), 'Sorted by city.');
-  assert.equal(sortText([]), null);
   assert.equal(lastLine(cp('CP1')), null);
   assert.equal(lastLine(cp('CP1', answered(true))), 'Your last answer was right.');
   assert.equal(lastLine(cp('CP1', answered(false))), 'Your last answer was not right.');

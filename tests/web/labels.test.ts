@@ -119,6 +119,9 @@ test('dates for the goal line: day and month, with the year only when it is not 
   assert.equal(formatDate('2027-01-29', '2026-10-04'), '29 January 2027');
   assert.equal(nextGoalLine('Starting knowledge in SQL, GA4 and metrics', '2026-10-16', '2026-10-04'),
     'Next goal: Starting knowledge in SQL, GA4 and metrics, by 16 October');
+  // S5A-18: a GA4 or Methodology tab with no goal of its own left shows the next goal overall, and says so.
+  assert.equal(nextGoalLine('SQL level 3 practised', '2026-11-06', '2026-10-04', true), 'Next goal (all sections): SQL level 3 practised, by 6 November');
+  assert.equal(nextGoalLine('SQL level 3 practised', '2026-11-06', '2026-10-04', false), 'Next goal: SQL level 3 practised, by 6 November');
 });
 
 test('goal criteria: "n of m concepts", "not yet available", titles instead of concept IDs', () => {

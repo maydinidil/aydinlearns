@@ -36,7 +36,6 @@ const externals = (ts: string): ExternalResult[] => [
   { event: 'external_result', schema_version: SCHEMA_VERSION, ts, kind: 'portfolio_piece', data: { title: 'Tablet prices', data_source: 'Voltmarkt', real_data: false } },
 ];
 
-test('the log version is 4', () => assert.equal(SCHEMA_VERSION, 4));
 
 test('each self_check kind round-trips through the JSONL writer into the monthly attempts file', async () => {
   const dir = await freshDir();

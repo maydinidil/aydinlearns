@@ -1,11 +1,11 @@
 // web/src/screens/ChoiceRunScreen.tsx: the GA4 timed runs at #/ga4/run (design §8, §14; rulings S3-02 to S3-04, S3-10, S3-12;
-// Task B3). A mini drill (practice mode: go back, flag, change an answer) or a half-mock (exam mode: forward only, one answer, no
-// confidence question). Inside a run nothing is graded on screen and help waits (S3-03); at the end the review opens. The
-// countdown only displays: the server is the clock, so at 0 this screen asks the server to end the run and shows its score.
-// Nothing is locked: either run can start at any time.
+// Task B3; the full mock, sprint 5b Task B4). A mini drill (practice mode: go back, flag, change an answer), a half-mock or a full
+// mock (exam mode: forward only, one answer, no confidence question). Inside a run nothing is graded on screen and help waits
+// (S3-03); at the end the review opens. The countdown only displays: the server is the clock, so at 0 this screen asks the server
+// to end the run and shows its score. Nothing is locked: any run can start at any time.
 import { useEffect, useRef, useState } from 'react';
 import {
-  api, type ChoiceItemView, type ChoiceReveal, type ChoiceServed, type RunBlueprint, type RunHistoryRow, type RunKind, type RunReview, type RunStarted,
+  api, type ChoiceItemView, type ChoiceReveal, type ChoiceServed, type RunBlueprint, type RunHistoryRow, type RunKind, type RunPreview, type RunReview, type RunStarted,
 } from '../api.ts';
 import { ChoicePanel } from '../components/ChoicePanel.tsx';
 import { RUN_HREF, RunHistoryTable } from '../components/Ga4Runs.tsx';
@@ -14,14 +14,12 @@ import { crumbParts } from '../lib/crumb.ts';
 import { createBusyGate } from '../lib/busy-gate.ts';
 import { EndGuard, endWithRetry, remainingSeconds } from '../lib/drill-flow.ts';
 import {
-  HELP_LINE, TOPIC_COLUMNS, canMoveTo, endNowText, endReasonLine, endRefusalNote, flagsAfter, ga4RunFromRefusal, hiddenFlags, listRows, modeRules, overConfirmed, reachedEnd,
-  questionsShown, questionView, recallIndex, recallSet, rememberIndex, rememberSet, resumeIndex, recoveredLine, reviewRows, runHeading, runLine, scoreLine, startLabel, timeLeft,
-  topicRows, unansweredNumbers, unlistedLine, unseenComesBack, unseenLine, verdictClass, type ReviewRow, type TopicNames,
+  HELP_LINE, RUN_KINDS, TOPIC_COLUMNS, canMoveTo, endNowText, entryNote, endReasonLine, endRefusalNote, flagsAfter, ga4RunFromRefusal, hiddenFlags, isMock, kindLabel, listRows,
+  modeRules, overConfirmed, reachedEnd, questionsShown, questionView, readinessNote, recallIndex, recallSet, rememberIndex, rememberSet, resumeIndex, recoveredLine, reviewNote, reviewRows,
+  runHeading, runLine, saveFocusTarget, scoreLine, startLabel, timeLeft, topicRows, unansweredNumbers, unlistedLine, unseenComesBack, unseenLine, verdictClass, type ReviewRow, type TopicNames,
 } from '../lib/run-flow.ts';
 
 type State = 'choose' | 'running' | 'review';
-const PLACE: Record<RunKind, string> = { mini_drill: 'Mini drill', half_mock: 'Half-mock' };
-const KINDS: readonly RunKind[] = ['mini_drill', 'half_mock'];
 
 /** `block`: #/ga4/run/<block_id> opens that ended run's review (B3 I3); a run that is on still comes first. */
 export function ChoiceRunScreen({ block = null }: { block?: string | null }) {
@@ -41,12 +39,17 @@ export function ChoiceRunScreen({ block = null }: { block?: string | null }) {
   const [busy, setBusy] = useState(false);
   const [endFailed, setEndFailed] = useState(false);
   const guard = useRef(new EndGuard());
+  const [preview, setPreview] = useState<RunPreview | null>(null);
   const heading = useRef<HTMLHeadingElement>(null);
+  const nextButton = useRef<HTMLButtonElement>(null);
+  const endButton = useRef<HTMLButtonElement>(null);
+  const focusNext = useRef<'next' | 'end' | null>(null);   // S5-25: set by a saved exam answer; the effect below moves focus once the screen has updated
 
   async function loadChoices(): Promise<void> {
     try { const h = await api.runHistory(); setBlueprints(h.blueprints); setHistory(h.runs); setNames(h.topic_names ?? {}); } catch (e) { setMessage((e as Error).message); }
   }
   useEffect(() => { void loadChoices(); void begin(); }, []);
+  useEffect(() => { api.runPreview().then(setPreview, () => {}); }, []);   // read only: no run starts and nothing is logged (Ruling A)
 
   /** A past run's review when the address names one (B3 I3), else a run that is on. A review of a run still on waits (409), so that run resumes. */
   async function begin(): Promise<void> {
@@ -57,6 +60,7 @@ export function ChoiceRunScreen({ block = null }: { block?: string | null }) {
     try { const c = await api.runCurrent(); if (c.run) resume(c.run); } catch { /* the chooser shows */ }
   }
   useEffect(() => { heading.current?.focus(); }, [state]);
+  useEffect(() => { if (focusNext.current) { (focusNext.current === 'end' ? endButton : nextButton).current?.focus(); focusNext.current = null; } }, [answered]);
 
   /** Puts a run that is on back on screen (the learner left the screen, or reloaded it): the same instances, the same clock. */
   function resume(r: RunStarted) {
@@ -76,6 +80,7 @@ export function ChoiceRunScreen({ block = null }: { block?: string | null }) {
   };
   function saved(i: number) {
     if (!run) return;
+    if (!modeRules(run.mode).jump) focusNext.current = saveFocusTarget(i, run.servings.length);
     setAnswered((a) => new Set(a).add(i));
   }
   function toggleFlag(i: number) {
@@ -153,19 +158,19 @@ export function ChoiceRunScreen({ block = null }: { block?: string | null }) {
         <div key={s.item_instance_id} className="card q-card" hidden={rules.jump ? hiddenFlags(total, index)[i] : false}>
           <h2>{`Question ${i + 1} of ${total}`}</h2>
           <ChoicePanel itemId={s.item_id} section="ga4" instanceId={s.item_instance_id}
-            run={{ mode: run.mode, confidence: view.confidence, answeredBefore: answered.has(i), visible: i === index, onSaved: () => saved(i), onStopped: (note) => void stopped(run, note) }} />
+            run={{ mode: run.mode, kind: run.kind, confidence: view.confidence, answeredBefore: answered.has(i), visible: i === index, onSaved: () => saved(i), onStopped: (note) => void stopped(run, note) }} />
         </div>
       );
     };
     return (
       <section>
-        <Crumb section="ga4" crumb={crumbParts({ section: 'ga4', place: PLACE[run.kind], hideLabels: true })} />
+        <Crumb section="ga4" crumb={crumbParts({ section: 'ga4', place: kindLabel(run.kind), hideLabels: true })} />
         <h1 ref={heading} tabIndex={-1}>{runHeading(run.kind)}</h1>
         <div className="card run-bar">
           <div className="run-bar-text">
             <p className="muted">{runLine(run)}</p>
-            {run.kind === 'half_mock' && run.on_unseen === false && (
-              <p className="muted">Some of these questions were seen in the last 21 days.{run.next_unseen_date ? ` ${unseenComesBack(run.next_unseen_date)}.` : ''}</p>
+            {isMock(run.kind) && run.on_unseen === false && (
+              <p className="muted">Some of these questions were seen in the last 21 days. Only a mock on unseen questions counts for the readiness check.{run.next_unseen_date ? ` ${unseenComesBack(run.next_unseen_date)}.` : ''}</p>
             )}
             <p className="muted">{HELP_LINE}</p>
           </div>
@@ -184,7 +189,7 @@ export function ChoiceRunScreen({ block = null }: { block?: string | null }) {
         <p className="toolbar">
           {rules.goBack && <button type="button" disabled={index === 0} onClick={() => goTo(index - 1)}>Previous</button>}
           {rules.flag && <button type="button" aria-pressed={flagged.has(index)} onClick={() => toggleFlag(index)}>{flagged.has(index) ? 'Remove flag' : 'Flag this question'}</button>}
-          {!last && <button type="button" onClick={() => goTo(index + 1)}>{rules.jump ? 'Next' : 'Next question'}</button>}
+          {!last && <button type="button" ref={nextButton} onClick={() => goTo(index + 1)}>{rules.jump ? 'Next' : 'Next question'}</button>}
           {!rules.jump && <span className="muted"> You cannot come back to a question.</span>}
         </p>
         {confirming ? (
@@ -192,11 +197,11 @@ export function ChoiceRunScreen({ block = null }: { block?: string | null }) {
             <p>{endNowText(unansweredNumbers(total, answered))}</p>
             <p>
               <button type="button" onClick={() => void endRun(run.block_id, null)}>End now</button>{' '}
-              <button type="button" onClick={() => setConfirming(false)}>Keep going</button>
+              <button type="button" autoFocus onClick={() => setConfirming(false)}>Keep going</button>
             </p>
           </div>
         ) : (
-          <p><button type="button" onClick={() => setConfirming(true)}>End now</button></p>
+          <p><button type="button" ref={endButton} onClick={() => setConfirming(true)}>End now</button></p>
         )}
         {endFailed && <p><button type="button" onClick={() => { setEndFailed(false); setMessage(null); void endRun(run.block_id, endReasonLine(reachedEnd(run.ends_at, Date.now()))); }}>Try ending the run again</button></p>}
       </section>
@@ -208,17 +213,19 @@ export function ChoiceRunScreen({ block = null }: { block?: string | null }) {
     const rows = reviewRows(review.kind, review.items, names);
     const unlisted = unlistedLine(review.of, rows.length);     // B2 M7
     const renumbered = recoveredLine(review);                  // F13
+    const notCounted = readinessNote(review, run?.next_unseen_date);   // F2 I1: the readiness check's own test
     return (
       <section>
-        <Crumb section="ga4" crumb={crumbParts({ section: 'ga4', place: PLACE[review.kind], hideLabels: true })} />
+        <Crumb section="ga4" crumb={crumbParts({ section: 'ga4', place: kindLabel(review.kind), hideLabels: true })} />
         <h1 ref={heading} tabIndex={-1}>{`${runHeading(review.kind)}: review`}</h1>
         <div className="card score-card">
           {endLine && <p role="status"><strong>{endLine}</strong></p>}
           <p role="status" className="score-line">{scoreLine(review)}</p>
           {unlisted && <p className="muted">{unlisted}</p>}
           {renumbered && <p className="muted">{renumbered}</p>}
-          <p>{review.kind === 'half_mock' ? unseenLine({ kind: 'half_mock', on_unseen: review.on_unseen }) : unseenLine({ kind: 'mini_drill', unseen: review.unseen, unseen_pct: review.unseen_pct })}</p>
-          {review.kind === 'half_mock' && review.on_unseen === false && run?.next_unseen_date && <p className="muted">{unseenComesBack(run.next_unseen_date)}.</p>}
+          <p>{review.kind === 'mini_drill' ? unseenLine({ kind: 'mini_drill', unseen: review.unseen, unseen_pct: review.unseen_pct })
+            : unseenLine({ kind: review.kind, on_unseen: review.on_unseen, logged_unseen: review.logged_unseen })}</p>
+          {notCounted && <p className="muted">{notCounted}</p>}
         </div>
         <h2>By topic</h2>
         <div className="table-scroll card">
@@ -228,9 +235,9 @@ export function ChoiceRunScreen({ block = null }: { block?: string | null }) {
           </table>
         </div>
         <h2>Questions</h2>
-        {review.kind === 'half_mock' ? (
+        {isMock(review.kind) ? (
           <>
-            <p className="muted">A half-mock review shows the number, the topic and right or wrong only, so a retake stays a fair test.</p>
+            <p className="muted">{reviewNote(review.kind)}</p>
             <div className="table-scroll card">
               <table>
                 <thead><tr><th scope="col">Question</th><th scope="col">Topic</th><th scope="col">Result</th></tr></thead>
@@ -254,12 +261,13 @@ export function ChoiceRunScreen({ block = null }: { block?: string | null }) {
     <section>
       <Crumb section="ga4" crumb={crumbParts({ section: 'ga4', place: 'Timed runs', hideLabels: true })} />
       <h1 ref={heading} tabIndex={-1}>GA4 timed runs</h1>
-      <p className="muted">A timed run is a test. Both are open at any time. {HELP_LINE}</p>
+      <p className="muted">A timed run is a test. Each one is open at any time. {HELP_LINE}</p>
       {message && <p role="alert" className="notice">{message}</p>}
-      <ul>{KINDS.map((k) => (
+      <ul>{RUN_KINDS.map((k) => (
         <li key={k}>
           <button type="button" disabled={busy} onClick={() => void start(k)}>{startLabel(k)}</button>
           {blueprints && <><br /><span className="muted">{runLine({ kind: k, ...blueprints[k] })}</span></>}
+          {entryNote(k, preview) && <><br /><span className="muted">{`${entryNote(k, preview)}.`}</span></>}
         </li>
       ))}</ul>
       <h2>History</h2>

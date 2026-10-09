@@ -156,6 +156,7 @@ export function mountDrill(app: Hono, d: RouteDeps): DrillRuns {
     const block = typeof b.block_id === 'string' ? b.block_id : '';
     if (!block) throw refuse(400, 'block_id is missing.');
     const run = runs.get(block);
+    const served = run && isDrillPlan(run.plan) ? run.servings.map((s) => s.item_instance_id) : null;   // the drill order, held while the run is in memory
     if (run && isDrillPlan(run.plan)) await runs.finish(run);          // a GA4 run ends through /api/run/end
     const r = (await history()).find((x) => x.block_id === block);
     if (!r) {
@@ -163,7 +164,9 @@ export function mountDrill(app: Hono, d: RouteDeps): DrillRuns {
       if (live) return c.json({ block_id: live.block_id, kind: 'live_rep', level: null, score: liveScore(live) });
       throw refuse(404, 'Unknown drill run.');
     }
-    return c.json({ block_id: r.block_id, kind: r.kind, level: r.level, score: r.score });
+    // H3: one mark per question, in drill order when the run was in memory, else in log order (a screen matches them by instance).
+    const items = served ? served.flatMap((id) => r.questions.filter((q) => q.item_instance_id === id)) : r.questions;
+    return c.json({ block_id: r.block_id, kind: r.kind, level: r.level, score: r.score, items });
   });
 
   // The run in progress, if any, so the screen can pick it up again after the learner left it (Task B16, fix round 1). Sweeps first:

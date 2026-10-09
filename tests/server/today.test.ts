@@ -8,7 +8,7 @@ import { join } from 'node:path';
 import type { Hono } from 'hono';
 import { openJsonlLog } from '../../core/jsonl.ts';
 import type { Goal } from '../../core/goals.ts';
-import type { Phase } from '../../core/envelope.ts';
+import { SCHEMA_VERSION, type Phase } from '../../core/envelope.ts';
 import type { CaseRecord } from '../../schemas/case.ts';
 import type { Curriculum } from '../../schemas/concepts.ts';
 import { DEFAULT_RULES, type SqlItem } from '../../schemas/item.ts';
@@ -161,7 +161,7 @@ test('GET /api/today: the plan, the next goal with its criteria, and no time or 
   assert.deepEqual(body.plan.steps[1], { kind: 'mixed', concept_ids: ['SQL-BASICS-02', 'SQL-BASICS-01'] });
   assert.deepEqual(body.goal, { goal: { id: 'G-SOON', title: 'SQL level 1 practised', target_date: later(5), stage: null }, effective_date: later(5), criteria: [
     { label: 'SQL level 1 at practised', met: false, available: true, done: 0, total: 6 },
-    { label: 'GA4 level 1 at practised', met: false, available: false, done: null, total: null }] });
+    { label: 'GA4 level 1 at practised', met: false, available: false, done: null, total: null }], all_sections: false });
   assert.deepEqual(timeKeys(body), []);
   // The learner's own date for a goal (goal_dates) decides which goal is next.
   d.settings.goal_dates = { 'G-LATER': later(1) };
@@ -185,6 +185,51 @@ test('GET /api/today: the GA4 and Methodology level 1 criteria count the level 1
   assert.deepEqual(body.goal.criteria, [
     { label: 'GA4 level 1 at practised', met: false, available: true, done: 0, total: 3 },
     { label: 'Methodology level 1 at practised', met: false, available: true, done: 0, total: 2 }]);
+});
+
+test('S5A-18 (GET /api/today): GA4 and Methodology show their own section\'s next goal over an earlier one; SQL keeps the rule; with none left, the next goal overall', async () => {
+  const later = (days: number) => new Date(Date.now() + days * DAY).toISOString().slice(0, 10);
+  const sqlGoal: Goal = { id: 'G-SQL', title: 'SQL first', target_date: later(2), stage: null, criteria: [{ kind: 'concept_state', section: 'sql', level: 1, state: 'practised' }] };
+  const ga4Goal: Goal = { id: 'G-GA4', title: 'GA4 exam', target_date: later(10), stage: null, criteria: [{ kind: 'external', result: 'ga4_exam', count: 1 }] };
+  const metGoal: Goal = { id: 'G-MET', title: 'Methodology basics', target_date: later(20), stage: null, criteria: [{ kind: 'concept_state', section: 'methodology', level: 1, state: 'practised' }] };
+  const d = await deps({ content: memoryContent([sqlGoal, ga4Goal, metGoal]) });
+  const app = createApp(d);
+  const goalOn = async (s: string) => { const g = (await json(get(app, `/api/today?section=${s}`))).goal; return g && [g.goal.id, g.effective_date, g.all_sections]; };
+  assert.deepEqual(await goalOn('sql'), ['G-SQL', later(2), false], 'SQL: the earliest unmet goal, as before');
+  assert.deepEqual(await goalOn('ga4'), ['G-GA4', later(10), false], 'GA4: its own goal over the earlier SQL goal');
+  assert.deepEqual(await goalOn('methodology'), ['G-MET', later(20), false], 'Methodology: its own goal over the earlier SQL and GA4 goals');
+  // The GA4 goal's date moved into the past: GA4 has no goal left, so it shows the next goal overall, marked as such. SQL is unchanged.
+  d.settings.goal_dates = { 'G-GA4': '2026-01-01' };
+  assert.deepEqual(await goalOn('ga4'), ['G-SQL', later(2), true]);
+  assert.deepEqual(await goalOn('sql'), ['G-SQL', later(2), false]);
+  assert.deepEqual(await goalOn('methodology'), ['G-MET', later(20), false]);
+  // No goal left anywhere: no goal on any tab.
+  d.settings.goal_dates = { 'G-SQL': '2026-01-01', 'G-GA4': '2026-01-01', 'G-MET': '2026-01-01' };
+  for (const s of ['sql', 'ga4', 'methodology']) assert.equal(await goalOn(s), null, s);
+});
+
+test('S5A-18 (H-R6, GET /api/today): a goal stays on the GA4 tab only through an unmet GA4 criterion; the SQL tab is never filtered', async () => {
+  const later = (days: number) => new Date(Date.now() + days * DAY).toISOString().slice(0, 10);
+  const goals: Goal[] = [
+    { id: 'G-SQL', title: 'SQL first', target_date: later(2), stage: null, criteria: [{ kind: 'concept_state', section: 'sql', level: 1, state: 'practised' }] },
+    { id: 'G-CV', title: 'Application screen', target_date: later(5), stage: null, criteria: [{ kind: 'external', result: 'ga4_exam', count: 1 },
+      { kind: 'external', result: 'portfolio_piece', count: 2, real_data_min: 1 }] },
+    { id: 'G-GA4-LATER', title: 'GA4 readiness', target_date: later(15), stage: null, criteria: [{ kind: 'mock_pass', mock: 'ga4_readiness' }] },
+  ];
+  const d = await deps({ content: memoryContent(goals) });
+  const app = createApp(d);
+  const goalOn = async (s: string) => { const g = (await json(get(app, `/api/today?section=${s}`))).goal; return g && [g.goal.id, g.effective_date, g.all_sections]; };
+  assert.deepEqual(await goalOn('ga4'), ['G-CV', later(5), false], 'before any result, the exam keeps G-CV on the GA4 tab');
+  // The exam passed: G-CV is still unmet (the portfolio), but none of what it still needs is GA4, so the GA4 tab moves on.
+  await d.logger.event({ event: 'external_result', schema_version: SCHEMA_VERSION, ts: iso(DAY), kind: 'ga4_exam', data: { date: '2026-10-01', score: 88, passed: true } });
+  assert.deepEqual(await goalOn('ga4'), ['G-GA4-LATER', later(15), false]);
+  assert.deepEqual(await goalOn('sql'), ['G-SQL', later(2), false]);
+  // No goal with an unmet GA4 criterion left: the next goal overall, marked as such.
+  d.settings.goal_dates = { 'G-GA4-LATER': '2026-01-01' };
+  assert.deepEqual(await goalOn('ga4'), ['G-SQL', later(2), true]);
+  // Minor 1: an earlier GA4-only goal is the SQL tab's next goal too, unlabelled (S2-38 unchanged).
+  d.settings.goal_dates = { 'G-GA4-LATER': later(1) };
+  assert.deepEqual(await goalOn('sql'), ['G-GA4-LATER', later(1), false]);
 });
 
 test('GET /api/goals/progress: every goal evaluated, with its effective date', async () => {

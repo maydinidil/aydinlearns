@@ -100,18 +100,47 @@ export function evaluateGoal(goal: Goal, view: GoalView, today: string = amsterd
   return { goal_id: goal.id, met: criteria.every((c) => c.met), criteria };
 }
 
+/**
+ * S5A-18: the sections a criterion belongs to (design §2.1): a concept state's own section; the knowledge mock's held-out GA4 and
+ * Methodology items; the GA4 exam and the GA4 readiness check; and SQL for the screen, case-round and take-home mocks, portfolio
+ * pieces, live reps, cases and real-data analyses.
+ */
+export function criterionSections(c: GoalCriterion): readonly Section[] {
+  switch (c.kind) {
+    case 'concept_state': return [c.section];
+    case 'mock_pass': return c.mock === 'knowledge' ? ['ga4', 'methodology'] : c.mock === 'ga4_readiness' ? ['ga4'] : ['sql'];
+    case 'external': return c.result === 'ga4_exam' ? ['ga4'] : ['sql'];
+    case 'live_rep':
+    case 'case_solved':
+    case 'real_data_analysis': return ['sql'];
+  }
+}
+/** S5A-18: a goal is in a section when at least one of its criteria is. */
+export const goalInSection = (goal: Goal, section: Section): boolean => goal.criteria.some((c) => criterionSections(c).includes(section));
+/**
+ * S5A-18 (H-R6): a goal counts for a section while one of its unmet criteria is in that section. `results`: the goal's evaluated
+ * criteria (evaluateGoal), in the goal's order; a criterion with no result counts as unmet.
+ */
+export const goalOpenInSection = (goal: Goal, results: readonly Pick<CriterionResult, 'met'>[], section: Section): boolean =>
+  goal.criteria.some((c, i) => results[i]?.met !== true && criterionSections(c).includes(section));
+
 /** The goal's date: the learner's goal_dates override when one is set (an empty one is not), else its target date. */
 export function effectiveDate(goal: Goal, dateOverrides: Record<string, string>): string {
   const o = dateOverrides[goal.id];
   return typeof o === 'string' && o !== '' ? o : goal.target_date;
 }
 
-/** S2-38: the unmet goal with the earliest effective date on or after `today` (an Amsterdam date); ties keep the file's order. */
-export function nextGoal(goals: Goal[], dateOverrides: Record<string, string>, today: string, met: (id: string) => boolean): Goal | null {
+/**
+ * S2-38: the unmet goal with the earliest effective date on or after `today` (an Amsterdam date); ties keep the file's order.
+ * S5A-18: with `keep`, the same rule over only the goals it keeps (Today's GA4 and Methodology tabs keep the goals with an unmet
+ * criterion in their section).
+ */
+export function nextGoal(goals: Goal[], dateOverrides: Record<string, string>, today: string, met: (id: string) => boolean,
+  keep: (goal: Goal) => boolean = () => true): Goal | null {
   let best: { goal: Goal; date: string } | null = null;
   for (const goal of goals) {
     const date = effectiveDate(goal, dateOverrides);
-    if (date < today || met(goal.id)) continue;
+    if (date < today || met(goal.id) || !keep(goal)) continue;
     if (best === null || date < best.date) best = { goal, date };
   }
   return best?.goal ?? null;

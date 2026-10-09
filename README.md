@@ -13,7 +13,7 @@ saying "wrong".
 | Section | Content |
 |---|---|
 | SQL | Levels 1 to 3, 20 concepts from the first SELECT to aggregation, CASE, types, dates, joins, CTEs and set operations: lessons with worked examples, 568 exercises (write the query, fix the query, predict the result, choose the query), timed drills, 12 cases in an inbox (an opener for each level, seven daily cases and two pricing cases), mistake cards for the mistakes that keep coming back, "other ways to write this" after a pass, a dataset explorer and a portfolio export |
-| GA4 | 16 lessons on the foundations and 123 questions: 73 for practice and 20-question mini drills, 50 held out for 25-question half-mocks |
+| GA4 | Complete for the certification: 16 lessons and 123 questions (73 for practice and 20-question mini drills, 50 held out for 25-question half-mocks and 50-question full mocks), a readiness check, and 10 interview labs in Google's GA4 demo account, each re-checked a week later |
 | Methodology | 78 concepts, each with a reading: 51 metrics (marketing, retail, pricing and SaaS), 13 on experiments and A/B testing, 9 on statistics and 5 on pricing economics. 478 questions, 93 of them held out for mocks |
 
 ## How it teaches
@@ -28,8 +28,12 @@ saying "wrong".
   rating. Inside a timed drill or mock, help waits for the review at the end.
 - **Goals, not hours.** Progress is measured against milestones and target dates, never study
   time.
-- **Exam practice.** GA4 half-mocks draw unseen held-out questions and follow a 21-day retake
-  rule, with a score per exam topic.
+- **Exam practice.** GA4 half-mocks and full mocks draw unseen held-out questions and follow a
+  21-day retake rule, with a score per exam topic. A readiness check (advice only) shows when the
+  mocks and every exam topic are at the pass level.
+- **Interview labs.** Ten GA4 tasks done in Google's demo account. The app stores no reference
+  numbers, because the demo data changes daily: it checks the values against each other, and
+  asks for the same screen again a week later.
 
 | An SQL exercise | A GA4 mini drill |
 |---|---|
@@ -55,20 +59,20 @@ A lesson reading: [docs/screenshots/lesson.png](docs/screenshots/lesson.png).
 Aydin designed and directed the project and built it with AI coding agents (Claude Code), from a
 written design, sprint plans and test-first tasks, with a review per task and an outside review
 of every pull request. Lessons and exercises are generated from a research bank by agents and
-checked before they ship: 14,952 automated content checks, and a blind solver (a fresh agent
+checked before they ship: 14,994 automated content checks, and a blind solver (a fresh agent
 that solves every exercise without seeing its answer key). The design, the plans, every ruling
 and the review logs are in `docs/`.
 
-Today: 1,778 automated tests, 96 data pipeline tests, 14,952 content checks and a 58-row browser smoke test, all passing.
+Today: 1,944 automated tests, 96 data pipeline tests, 14,994 content checks and a 63-row browser smoke test, all passing.
 
 ## Status
 
-Version 1.0 (2026-10-08). Built: SQL levels 1 to 3 with the scheduler, Today, drills, level
+Version 1.1 (2026-10-09). Built: SQL levels 1 to 3 with the scheduler, Today, drills, level
 openers, cases and the inbox, mistake cards, the portfolio export, the Progress screen, the
-dataset explorer and screen mode; GA4 lessons, mini drills and half-mocks; Methodology complete.
-Next is 1.1: GA4 complete (the remaining lessons, full mocks, the readiness check and the
-interview labs). Later 1.x releases add SQL levels 4 to 7, more companies and real datasets, and
-the recruiter mocks. See `docs/planning/roadmap.md` and `CHANGELOG.md`.
+dataset explorer and screen mode; GA4 complete (lessons, mini drills, half-mocks, full mocks,
+the readiness check and the interview labs); Methodology complete. Later 1.x releases add SQL
+levels 4 to 7, more companies and real datasets, and the recruiter mocks. See
+`docs/planning/roadmap.md` and `CHANGELOG.md`.
 
 It runs on Windows 11; other systems are untested.
 
@@ -163,6 +167,8 @@ For generating content (see `docs/content/`):
 | `npm run extract:ga4` | Builds the GA4 bank in `content/ga4/` from knowledge files 06 and 10 and ERRATA. Run it only to rebuild the bank from scratch |
 | `npm run export:choice-view` | Writes the stem-and-options view of every GA4 and Methodology item for the choice blind solver. Run it before a blind solve |
 | `npm run record:choice-solver` | Grades the choice blind solver's answers and records the right ones in the answer keys. Run it after a blind solve |
+| `npm run export:lab-view` | Writes the view of every GA4 lab's structural parts (no keys) for the lab blind solver, in `tools/.solver-view/labs/` |
+| `npm run record:lab-solver` | Grades the lab blind solver's answers and records them in the lab keys. Run it after a lab blind solve |
 | `node tools/reserve-held-out.ts` | Reserves the held-out mock pool for GA4 and Methodology (`content/<section>/held-out.json`). Run it when the bank changes, then `npm run check:content`. `--extend --candidates <file> (--per-card <k> or --topic <T> --count <n> [--release-from <T1,T2>]) [--logs <dir>]` adds only the listed new items and releases only never-served held items, never moving a practised one. A candidate that is not in the bank or is already held refuses the run; an ineligible one is skipped and counted |
 | `npm run record:solver` | Grades the blind solver's answers and records them in the answer keys |
 | `npm run report:window` | Prints, per SQL concept, the first attempts in its mastery window by kind, how many qualify, and the concept's state. Counts only. Reads `logs/`, or the folder given after `--`; writes nothing |

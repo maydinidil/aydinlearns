@@ -3,6 +3,81 @@
 Append-only log of findings raised by the Codex PR reviewer, each with an independent verdict.
 Newest review first.
 
+## PR #43: sprint 5b, GA4 complete, release 1.1 (reviewed 2026-10-09, merged 2026-10-09)
+
+Codex left two line comments on commit `a5647b4`, both P2, both on the readiness check (D70). The
+owner asked to merge and log them; the fixes go into the hygiene PR before the next sprint. One is
+a real departure from D70; the other describes the code correctly but misreads D70, and its fix is
+an owner call.
+
+### F27: The readiness check drops a passing full mock when one newer half-mock stands alone
+
+**P2 · `server/readiness.ts:78` · Verdict: CONFIRMED · Status: FIXED 2026-10-09 (unverified against real mock runs)**
+
+The claim: `mockPart` takes the newest counted mock and, when it is a half-mock, pairs it only with
+the counted mock just before it, and only if that one is a half-mock too. So an unseen full mock at
+85% followed by one unseen half-mock gives `basis: null` ("one more half-mock needed"), and two
+unseen half-mocks with a counted full mock between them are never paired. D70 says the latest full
+mock or the latest two half-mocks, whichever is newer.
+
+What I found: correct. Lines 65 to 79 do exactly that; the comment on line 77 states the rule. The
+rule came from the plan's Task B5 text ("with no full mock between them"), which is narrower than
+D70, the owner decision it implements; the seams review saw the case and left it to the plan. The
+check never overclaims this way, but it underclaims: a learner who passed a full mock and starts the
+next half-mock cycle sees "not yet" until a second half-mock, and the passing full mock is no longer
+shown. Advice only, so nothing is blocked, but the line reads as a step back.
+
+**Fix direction:** derive the two candidates separately: the newest counted full mock, and the
+newest two counted half-mocks (whatever lies between them). When both exist, the newer decides, by
+the start of the full mock against the start of the newer half-mock. When only one exists, it
+decides; a lone half-mock with no full mock still reads "one more half-mock needed". Pin the two
+cases above in `tests/server/readiness.test.ts`, and update the design §8 amendment and S5B-19,
+which describe the narrower rule.
+
+> **Update 2026-10-09: fixed in the hygiene PR (commit `bcf9d3e`).** `mockPart` now derives two candidates: the
+> newest counted full mock, and the newest two counted half-mocks whatever lies between them. The candidate whose newest
+> run started later decides (a tie goes to the full mock); a lone half-mock and no full mock still has no basis.
+> `tests/server/readiness.test.ts` pins full then half (the full mock decides and passes), half, full, half (the pair
+> decides), a full mock newer than the pair, three half-mocks (the newest two, never an older one), a seen full mock
+> after the pair (not a candidate), and a lone half-mock. Three of them failed on the old code. The old test that
+> encoded the narrower rule was rewritten. The design §8 amendment and the sprint 5b record carry the rule as built.
+
+**Still unproven:** the fix ran only against built run lists in the unit tests (no e2e row takes two mocks); no real learner has
+taken a full mock followed by a half-mock. Confirm on the first real one: Progress should keep showing the passing full
+mock's score.
+
+### F28: A cold answer from a mini drill is its last answer, not its first click
+
+**P2 · `server/progress.ts:382` · Verdict: CONFIRMED, with a correction · Status: WON'T FIX 2026-10-09: the cold answer stays the run's scored answer (S5B-18), as the run's score and replay's S3-07 use**
+
+The claim: in a mini drill a learner can change an answer, and each change is logged as a graded
+attempt. `coldAnswers` takes `scoredAnswer(f.summary)`, the last answer, so a wrong first click
+changed to right counts as a right cold answer, against D70's "first answer ever".
+
+What I found: the mechanism is as described (line 382), and it is deliberate: sprint 5b ruling
+S5B-18 chose it after the B5 review found the first-click rule overclaims (right, then changed to
+wrong, counted as right). The correction: it is not contrary to D70. D70 defines a cold answer as
+"what §5 calls cold", and replay implements §5's cold answer for a choice item in a run as the
+scored answer of the item's first instance (S3-07, `core/replay.ts:803`), which is
+also the answer the run itself scores (S3-02). No feedback is shown inside a run, so a change before
+the run ends is the learner's own revision, not a second try after help. Taking the first click
+would make the check disagree with the drill's score and with replay's mastery rule.
+
+**Fix direction (owner call):** (a) keep S5B-18 and close this as WON'T FIX, with the reason above
+(recommended); or (b) use the first graded attempt in a run, as Codex proposes, and accept that the
+check then disagrees with the run's own score and replay's S3-07. Either way, one test in
+`tests/server/readiness.test.ts` already pins the current rule and would change with (b).
+
+> **Update 2026-10-09: the owner chose (a).** F28 is closed as WON'T FIX. The test that pins the
+> last-answer rule stays; the CHANGELOG Known issues bullet stays, with the reason.
+
+## PR #42: sprint 5a, Methodology complete, polish, release 1.0 (reviewed 2026-10-08, merged 2026-10-08)
+
+Codex completed its review of commit `274adc5` with no line comments and a +1 reaction on the PR
+(checked through the API: 0 review comments, 0 reviews). No findings; nothing to log. The
+branch's own seams review found 0 Critical, 0 Important and 7 Minor; five were fixed in `594b573`
+before the PR opened (`docs/planning/2026-10-08-sprint-5a-record.md`).
+
 ## PR #41: sprint 4c, the SQL learner-facing backlog (reviewed 2026-10-08, merged 2026-10-08)
 
 Codex left one line comment on commit `7e81096`, P2, before the merge. It is real. The owner chose
@@ -405,7 +480,7 @@ is harmless. Numbering by form position still needs the log change and is not do
 
 ### F14: Past runs are scored against the blueprint in force today
 
-**P2 · `server/run.ts:252` · Verdict: CONFIRMED, currently LATENT · Status: OPEN**
+**P2 · `server/run.ts:252` · Verdict: CONFIRMED, currently LATENT · Status: FIXED 2026-10-09**
 
 `choiceRuns()` scores every logged run with the blueprint loaded now (`questions`, `pass_pct` in
 `content/ga4/exam.json`). The log does not record the blueprint a run was taken under, so a later
@@ -420,6 +495,17 @@ then, a test that pins today's values stops a silent change.
 > **Update 2026-10-06:** `tests/server/ga4-blueprint.test.ts` pins today's blueprint, so a change
 > cannot happen silently. The defect stays open until each run is scored with the blueprint in
 > force when it was taken.
+
+> **Update 2026-10-09:** Fixed in sprint 5b (Task B4, owner decision D72), with no log change.
+> `content/ga4/exam.json` now holds dated entries (`blueprints`, each with a `from` date and the
+> mini drill, half-mock and full mock blueprints; today's values are the 2026-10-06 entry), and
+> `parseGa4Exam` refuses entries out of date order. `choiceRuns` scores each run with
+> `blueprintOn(cfg, kind, date)`, the entry in force on the Amsterdam date the run started, so a
+> later entry never rescores an earlier run. Pinned by the test "F14: a past half-mock is scored
+> with its own date's entry after a later entry changes the pass mark and the question count" in
+> `tests/server/ga4-blueprint.test.ts`, which adds an entry from 2026-11-01 and checks that an
+> October half-mock keeps 25 questions and its 80% pass. The same file still pins the 2026-10-06
+> entry, so a past entry cannot change silently.
 
 ## PR #33: sprint 3 fixes batch (reviewed 2026-10-05, merged 2026-10-06)
 

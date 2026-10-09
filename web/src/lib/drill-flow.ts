@@ -1,10 +1,10 @@
 // web/src/lib/drill-flow.ts: the drill screen's wording, countdown and states, kept pure so they are testable (design §14;
 // rulings D9, D10, S2-42 to S2-44, S2-98; Task B16). The countdown is display only: the server is the clock.
-import { ApiError, type DrillHistoryRow, type DrillScoreView, type DrillStarted } from '../api.ts';
+import { ApiError, type DrillHistoryRow, type DrillQuestionOutcome, type DrillScoreView, type DrillStarted } from '../api.ts';
 import { amsterdamDate } from '../../../core/time.ts';
 import { formatDate } from './labels.ts';
 import { drillKindText } from './polish-p2b.ts';
-export type { DrillScoreView };
+export type { DrillQuestionOutcome, DrillScoreView };
 
 export const HELP_LINE = 'Help opens in the end-of-run review.';
 export const TIME_UP = 'Time is up.';
@@ -122,6 +122,23 @@ export function runFromRefusal(e: unknown): DrillStarted | null {
   if ((run as { section?: string } | undefined)?.section === 'ga4') return null;
   return run && Array.isArray(run.servings) && typeof run.ends_at === 'string' ? run : null;
 }
+
+// ---- the review marks each question (H3) ----
+
+type Outcome = DrillQuestionOutcome['outcome'];
+export const NOT_ANSWERED_LINE = 'Not answered';
+const OUTCOME_WORDS: Record<Outcome, string> = { passed: 'Passed', failed: 'Not passed', not_answered: NOT_ANSWERED_LINE };
+const OUTCOME_CLASS: Record<Outcome, string> = { passed: 'q-passed', failed: 'q-failed', not_answered: 'q-not-answered' };
+/** The outcome of each served question, matched by instance; null where the reply does not say (no mark is better than a wrong one). */
+export function reviewOutcomes(servings: { item_instance_id: string }[], items: DrillQuestionOutcome[] | undefined): (Outcome | null)[] {
+  const by = new Map((items ?? []).map((q) => [q.item_instance_id, q.outcome]));
+  return servings.map((s) => by.get(s.item_instance_id) ?? null);
+}
+/** A question square's name: its number, then its outcome in words when the review knows it. */
+export const questionLabel = (index: number, outcome: Outcome | null): string => (outcome ? `Question ${index + 1}: ${OUTCOME_WORDS[outcome]}` : `Question ${index + 1}`);
+export const outcomeClass = (outcome: Outcome | null): string => (outcome ? OUTCOME_CLASS[outcome] : '');
+/** A question never answered has nothing to edit: the review says so instead of opening an empty editor. */
+export const showsEditor = (outcome: Outcome | null): boolean => outcome !== 'not_answered';
 
 /** Every question's panel stays mounted, so a half-written answer survives a move to another question; only the current one shows. */
 export const hiddenFlags = (count: number, index: number): boolean[] => Array.from({ length: count }, (_, i) => i !== index);

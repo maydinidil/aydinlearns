@@ -49,7 +49,7 @@ learner's effort is never the lever. Every slice goes live before the goal it se
 | 4a (done) | 3 (part 1) | 2026-10-19 | G-SQL-LEVEL-3 (2026-11-06): joins, CTEs, dates | Done: SQL level 3 can be studied end to end, with its drill; mistake cards are scheduled and reviewed; merged in PR #38. See [the sprint 4a record](2026-10-07-sprint-4a-record.md) |
 | 4b (done) | 3 (part 2) | 2026-10-26 | G-SQL-LEVEL-3 (2026-11-06): first case exported | Done: cases and the inbox, the portfolio export, the Progress screen, the dataset explorer, screen mode and live reps are built; a solved case can be exported; merged in PR #40. See [the sprint 4b record](2026-10-07-sprint-4b-record.md) |
 | 4c (done) | 3 (cleanup) | 2026-10-08 | G-SQL-LEVEL-3 (2026-11-06): level 3 and its cases studied on clean content | Done, merged in PR #41: the SQL learner-facing backlog (four mistake families with better feedback, clearer wording, case edge data, live reps, export hardening, the division control, focus). See [the sprint 4c record](2026-10-08-sprint-4c-record.md) |
-| 5a (built) | 4 (Methodology) | 2026-11-02 | G-GA4-CERT (2026-11-13); Methodology for the knowledge interview | Built on `feat/aydinlearns-sprint-5a`, pull request to be merged: all Methodology areas can be practised (78 concepts, 478 questions), an A/B test with a daily case, a polish pass, version 1.0.0; released as 1.0 after the merge. See [the sprint 5a record](2026-10-08-sprint-5a-record.md) |
+| 5a (done) | 4 (Methodology) | 2026-11-02 | G-GA4-CERT (2026-11-13); Methodology for the knowledge interview | Done, merged in PR #42 and released as 1.0 (tag `v1.0.0`, 2026-10-08): all Methodology areas can be practised (78 concepts, 478 questions), an A/B test with a daily case, a polish pass, version 1.0.0. See [the sprint 5a record](2026-10-08-sprint-5a-record.md) |
 | 5b | 4 (GA4) | 2026-11-02 | G-GA4-CERT (2026-11-13) | The GA4 readiness check can be taken; released as 1.1 |
 | 6 | 5 | 2026-11-09 | G-SQL-LEVEL-4 (2026-11-27): level 4 and a first real-data analysis | Level 4 is completable; a first real-data analysis can be done |
 | 7 | 6 | 2026-11-20 | G-STAGE-2 to 5 and G-RECRUITMENT-READY (2026-12-11): the recruiter mocks; applications go out | Every recruiter mock runs end to end, and the readiness board shows all six stages |
@@ -264,13 +264,27 @@ research file for 5a, `knowledge/11_methodology.md`, arrived and was reviewed on
 **5b needs first:** the Skillshop check and the exam date in Settings, and access to the GA4 demo
 account.
 
-**Status, 5a: built (2026-10-08).** Methodology complete, polish and version 1.0.0 are built on
-`feat/aydinlearns-sprint-5a`, with its pull request still to be merged: 48 new concepts (the 21
+**Status, 5a: done (2026-10-08).** Methodology complete, polish and version 1.0.0 merged in PR #42
+(Codex: no findings): 48 new concepts (the 21
 remaining metrics and file 11's 27), each with a reading, 288 new questions with 48 held out, a
 Voltmarkt A/B test with three SQL items and CASE-DAILY-L3-03, G-GA4-CERT's interview-concepts line,
 Codex F26, the leftover SQL content fixes and 46 small screen fixes. No log change. Its rulings and
-findings are in [the sprint 5a record](2026-10-08-sprint-5a-record.md). Release 1.0 follows the
-merge: the public copy, a fresh-install test, the `v1.0.0` tag. Jobs 1 to 4 are sprint 5b.
+findings are in [the sprint 5a record](2026-10-08-sprint-5a-record.md). Released as 1.0 the same
+day: the public copy, a fresh-install test that passed, and the `v1.0.0` tag. Jobs 1 to 4 are
+sprint 5b.
+
+**Status, 5b: done (2026-10-09), merged in PR #43.** GA4 complete and version 1.1.0 (plan
+[`2026-10-08-aydinlearns-sprint-5b.md`](../superpowers/plans/2026-10-08-aydinlearns-sprint-5b.md)).
+A hygiene PR after the merge (plan
+[`2026-10-09-aydinlearns-hygiene-1-1.md`](../superpowers/plans/2026-10-09-aydinlearns-hygiene-1-1.md))
+fixed Codex F27 and ten backlog rows before the release.
+The owner's answers (D65): the exam date is not needed, the Skillshop check comes later (full
+mocks use the design's defaults and say so), and the demo account opens. Job 1 was already done
+in sprint 3 (D66). Built: 10 interview labs with a demo account guide (job 4), full mocks on
+dated blueprints (job 2; Codex F14 fixed), the readiness check (job 3, D70), log format version 5
+(D68), the audiences item fixed (D73), and 28 small screen fixes. Its rulings and findings are in
+[the sprint 5b record](2026-10-08-sprint-5b-record.md). Still waiting on the owner: the Skillshop
+check (it may change the full mock's blueprint, a new dated entry) and the exam date.
 
 **Contents and jobs:**
 1. All remaining GA4 lessons.

@@ -38,6 +38,9 @@
 // Rows 5a-1 to 5a-5 (sprint 5a, Task F1) run last, on a server of their own over an empty logs folder: the Methodology map's new topics and EXP-AB-01's
 // reading, a typed item on a new concept, an A/B SQL item, G-GA4-CERT's new line on Progress, and the version in Settings.
 //
+// Rows 5b-1 to 5b-5 (sprint 5b, Task F1) run last: the GA4 labs list and a lab, a lab's first answers and its re-check date, a lab re-check
+// that is due (a seeded LAB-08 answer 8 days back), a full mock ended at once, and the readiness check on an empty log.
+//
 // Key text is never printed. The one reference answer it submits is read from content/keys/ here and
 // only typed into the editor, and every line it prints is withheld if it holds key text.
 import { execFile, spawn, type ChildProcess } from 'node:child_process';
@@ -54,6 +57,12 @@ import type { SqlItem } from '../../schemas/item.ts';
 import type { SqlKey } from '../../schemas/keys.ts';
 import type { Lesson } from '../../schemas/lesson.ts';
 import { SCHEMA_VERSION } from '../../core/envelope.ts';
+import type { Goal } from '../../core/goals.ts';
+import { openJsonlLog } from '../../core/jsonl.ts';
+import { amsterdamDate } from '../../core/time.ts';
+import type { LabAnswer } from '../../schemas/log-ext.ts';
+import { addDays, fixedMonth, RECHECK_AFTER_DAYS } from '../../server/labs.ts';
+import { AttemptLogger } from '../../server/log.ts';
 import { loadContent, type ContentStore } from '../../server/content.ts';
 import { portFromEnv } from '../../server/port.ts';
 import { buildCsv } from '../../server/routes/portfolio.ts';
@@ -972,6 +981,7 @@ async function main(): Promise<number> {
         'Daily case', `Re-test: ${title(HISTORY.struggled)}`];
       expect(JSON.stringify(shown) === JSON.stringify(expected), `Today lists: ${shown.join(' | ')}`);
       await stepRow(today, `Re-test: ${title(HISTORY.struggled)}`).getByText('Ready now').waitFor();
+      // S5A-18: the SQL tab keeps the unlabelled "Next goal: " line, never "Next goal (all sections): " (row 5b-3 reads the GA4 tab's).
       const goal = await today.getByText(/^Next goal: .+, by \d{1,2} [A-Z][a-z]+( \d{4})?$/).innerText();
       const tomorrow = await today.getByText(/^Due tomorrow: \d+ reviews?$/).innerText();
       return `seeded ${h.sessions} sessions (${h.attempts} attempt-file records, ${h.events} events); the start wrote nothing and warned nothing; Today: ${shown.join('; ')}; the re-test is ready; wrap-up: "${goal}", "${tomorrow}"`;
@@ -1125,7 +1135,7 @@ async function main(): Promise<number> {
       const opens = await stepRow(page, `Re-test: ${title(HISTORY.next)}`).locator('span.muted').innerText();
       expect(/^Opens at \d\d:\d\d$/.test(opens) && (await stepRow(page, `Re-test: ${title(HISTORY.next)}`).getByRole('button').count()) === 0,
         `the new concept's re-test says "${opens}" and has a button`);
-      const goal = await page.getByText(/^Next goal: /).innerText();
+      const goal = await page.getByText(/^Next goal: .+, by \d{1,2} [A-Z][a-z]+( \d{4})?$/).innerText();     // S5A-18: the SQL tab's line, unlabelled
       const tomorrow = await page.getByText(/^Due tomorrow: \d+ reviews?$/).innerText();
       await page.getByRole('button', { name: 'Another new concept' }).waitFor();
       await page.getByText(`Next in order: ${title('SQL-AGG-02')}`).waitFor();
@@ -2432,11 +2442,11 @@ async function main(): Promise<number> {
         return 'G-GA4-CERT shows its named-concepts line at "0 of 12" with nothing practised';
       });
 
-      await row('5a-5', 'Settings shows version 1.0.0', async () => {
+      await row('5a-5', 'Settings shows version 1.1.0', async () => {
         await p.goto(`${BASE}/#/setup`);
         await p.getByRole('heading', { name: 'Settings and setup', level: 1 }).waitFor();
-        await p.getByText('Version 1.0.0', { exact: true }).waitFor();
-        return 'Settings and setup shows "Version 1.0.0"';
+        await p.getByText('Version 1.1.0', { exact: true }).waitFor();
+        return 'Settings and setup shows "Version 1.1.0"';
       });
 
       await row('5a-3', 'an A/B SQL item passes with its reference query', async () => {
@@ -2480,6 +2490,189 @@ async function main(): Promise<number> {
         const att = await waitFor('the typed attempt', async () => (await attempts(dir)).find((r) => r.record === 'attempt' && r.item_id === typedItem));
         expect(att.outcome === 'pass' && att.item_kind === 'typed', `${typedItem}'s attempt is not logged as a passed typed attempt`);
         return `${typedItem} (${NEW_TYPED}, typed): the key's value typed to the decimals the question states was graded Right. with no alert, and logged as a passed typed attempt`;
+      });
+
+      await browser.close();
+      browser = null;
+      await stopServer(server);
+      server = null;
+    }
+
+    // ---- sprint 5b rows (Task F1): the GA4 labs, the full mock and the readiness check ----
+    // Rows 5b-1, 5b-5, 5b-2 and 5b-4 run on one server over an empty logs folder; row 5b-3 runs on a second one whose attempt file holds one
+    // seeded LAB-08 answer from 8 days ago. Lab files hold no key, so the values typed here are the learner's own readings. Messages name
+    // rows, lab and part IDs and results, never a held-out ID.
+    {
+      const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+      const dayMonth5b = (date: string): string => `${Number(date.slice(8, 10))} ${MONTH_NAMES[Number(date.slice(5, 7)) - 1]}`;
+      const monthText5b = (month: string): string => `${MONTH_NAMES[Number(month.slice(5, 7)) - 1]} ${month.slice(0, 4)}`;
+      const todayNl = amsterdamDate(new Date());
+      const dir = join(tmp, 'logs-5b');
+      await mkdir(dir);
+      server = await startServer(ROOT, dir);
+      browser = await chromium.launch();
+      const p = await newPage(browser, dialogs);
+      p.on('pageerror', () => { pageErrors++; });
+      const labCount = (await readdir(join(ROOT, 'content/ga4/labs'))).filter((n) => /^LAB-\d+\.json$/.test(n)).length;
+      const guideTitle = (await readJson<{ title: string }>(join(ROOT, 'content/ga4/lab-guide.json'))).title;
+      const lab12 = await readJson<{ title: string; path: string }>(join(ROOT, 'content/ga4/labs/LAB-12.json'));
+      const lab12Key = await readJson<{ structural: Record<string, string> }>(join(ROOT, 'content/keys/ga4/labs/LAB-12.json'));   // read now, never printed
+      const p4Options = (await readJson<{ parts: { id: string; options?: string[] }[] }>(join(ROOT, 'content/ga4/labs/LAB-12.json'))).parts.find((x) => x.id === 'P4')?.options ?? [];
+      const p4Option = p4Options.find((o) => o.trim().toLowerCase() === (lab12Key.structural['P4'] ?? '').trim().toLowerCase()) ?? '';
+      expect(p4Option !== '', 'LAB-12 P4 has no keyed option among its options');
+      const labAnswers = async () => (await attempts(dir)).filter((r) => r.record === 'lab_answer');
+      const tableRows5b = (pg: Page, heading: string) => pg.locator('h2', { hasText: heading }).locator('xpath=following-sibling::*[self::table or self::div[contains(@class,"table-scroll")]][1]//tbody/tr').allInnerTexts();
+      const rateField = 'What engagement rate does the totals row show?';
+
+      await row('5b-1', '#/ga4/labs lists the 10 labs and the guide; LAB-12 opens with its path, the month line and the answer panel', async () => {
+        await p.goto(`${BASE}/#/ga4/labs`);
+        await p.getByRole('heading', { name: 'GA4 labs', level: 1 }).waitFor();
+        await p.locator('ol.lab-list li').first().waitFor();
+        const n = await p.locator('ol.lab-list li').count();
+        expect(n === 10 && labCount === 10, `the labs page lists ${n} labs and the content folder holds ${labCount}`);
+        await p.locator('details.lab-guide summary').filter({ hasText: guideTitle }).waitFor();
+        await p.getByRole('link', { name: lab12.title, exact: true }).click();
+        await p.getByRole('heading', { name: lab12.title, level: 1, exact: true }).waitFor();
+        await p.getByText(lab12.path, { exact: true }).waitFor();
+        const month = monthText5b(fixedMonth(todayNl));
+        await p.locator('p', { has: p.getByText('Date:', { exact: true }) }).filter({ hasText: month }).waitFor();
+        await p.getByRole('heading', { name: 'Your answers', level: 2 }).waitFor();
+        await p.getByRole('button', { name: 'Check my answers', exact: true }).waitFor();
+        return `the labs page lists ${n} labs and the guide "${guideTitle}"; LAB-12 opened from its link with its path, "Date: ${month}" and the answer panel`;
+      });
+
+      await row('5b-5', 'on an empty log the runs card shows the readiness check as not yet, with its counts', async () => {
+        await p.goto(`${BASE}/#/`);
+        await p.getByRole('button', { name: 'GA4', exact: true }).click();
+        const card = p.locator('[data-readiness]').first();
+        await card.waitFor();
+        expect((await card.getAttribute('data-readiness')) === 'not-yet', 'the readiness check is not marked not-yet on an empty log');
+        await card.getByRole('heading', { name: 'Readiness check (advice only)', level: 3 }).waitFor();
+        const lines = (await card.locator('p').allInnerTexts()).map((t) => t.trim());
+        expect(lines.length === 2 && /^Mock: a full mock, or two half-mocks, on unseen questions needed ✗$/.test(lines[0]!), `the mock line reads "${lines[0] ?? ''}" (${lines.length} lines)`);
+        const topicsShown = /^Topics: 0 of (\d+) at 75% or more on first answers ✗$/.exec(lines[1] ?? '');
+        expect(topicsShown !== null, `the topics line reads "${lines[1] ?? ''}"`);
+        // F2 I2: every topic on its own row under the summary line, named, with no first answers yet.
+        const topicRows = (await card.locator('ul li').allInnerTexts()).map((t) => t.trim());
+        expect(topicRows.length === Number(topicsShown[1]) && topicRows.every((t) => /^\S.*: no first answers yet ✗$/.test(t)),
+          `the topic rows read ${JSON.stringify(topicRows)}`);
+        return `the runs card shows "Readiness check (advice only)" as not yet: "${lines[0]}" and "${lines[1]}", then ${topicRows.length} topic rows each with no first answers yet, no ready sentence`;
+      });
+
+      await row('5b-2', 'LAB-12 with sessions 1,000, engaged 600 and rate 60% shows a tick on the rate and "Re-check from <date>"; one lab_answer is logged; a second first answer at 70% shows the rate message', async () => {
+        const typeFirst = async (rate: string): Promise<void> => {
+          await p.getByLabel('How many sessions does the totals row show?', { exact: true }).fill('1,000');
+          await p.getByLabel('How many engaged sessions does the totals row show?', { exact: true }).fill('600');
+          await p.getByLabel(rateField, { exact: true }).fill(rate);
+          await p.getByRole('radio', { name: p4Option, exact: true }).check();
+          await p.getByRole('button', { name: 'Check my answers', exact: true }).click();
+        };
+        const rateRow = p.locator('.lab-part').filter({ has: p.getByLabel(rateField, { exact: true }) });
+        await p.goto(`${BASE}/#/ga4/lab/LAB-12`);
+        await p.getByRole('heading', { name: lab12.title, level: 1, exact: true }).waitFor();
+        await typeFirst('60%');
+        await rateRow.locator('.lab-result').filter({ hasText: '✓' }).waitFor();
+        const from = dayMonth5b(addDays(todayNl, RECHECK_AFTER_DAYS));
+        await p.locator('.lab-part .lab-result', { hasText: `Re-check from ${from}` }).first().waitFor();
+        await p.locator('p[role="status"]', { hasText: 'Lab status:' }).getByText(`Re-check from ${from}`).waitFor();
+        const logged = await waitFor('the first lab_answer', async () => { const l = await labAnswers(); return l.length === 1 ? l : null; });
+        expect(logged[0]!.lab_id === 'LAB-12' && logged[0]!.kind === 'first', `the logged lab_answer is ${String(logged[0]!.lab_id)} ${String(logged[0]!.kind)}`);
+        // A reload offers the re-check; a first answer is sent again from the start.
+        await p.reload();
+        await p.getByRole('button', { name: 'Answer it from the start instead', exact: true }).click();
+        await typeFirst('70%');
+        await rateRow.locator('.lab-result.fail').filter({ hasText: /Engagement rate should be about 60(\.0+)?%/ }).waitFor();
+        const after = await waitFor('the second lab_answer', async () => { const l = await labAnswers(); return l.length === 2 ? l : null; });
+        expect(after.every((r) => r.lab_id === 'LAB-12' && r.kind === 'first'), 'the two logged lab_answers are not both first answers to LAB-12');
+        return `LAB-12 (1,000 / 600 / 60%): the rate shows a tick and "Re-check from ${from}", one lab_answer logged; a second first answer at 70% shows the rate message (two lab_answer lines, both first)`;
+      });
+
+      await row('5b-4', 'a full mock starts with 50 questions and a 75-minute clock; ending it at once lists "Full mock" at 0 of 50, and its review names no item', async () => {
+        const started = p.waitForResponse((r) => r.url().endsWith('/api/run/start') && r.request().method() === 'POST');
+        await p.goto(`${BASE}/#/ga4/run`);
+        await p.getByRole('heading', { name: 'GA4 timed runs', level: 1 }).waitFor();
+        await p.getByRole('button', { name: 'Start a full mock', exact: true }).click();
+        const run = (await (await started).json()) as RunStarted;
+        expect(run.kind === 'full_mock' && run.servings.length === 50 && run.questions === 50 && run.minutes === 75, `the full mock has ${run.servings.length} questions and ${run.minutes} minutes (${run.kind})`);
+        await p.getByRole('heading', { name: 'GA4 full mock', level: 1 }).waitFor();
+        await p.getByRole('heading', { name: 'Question 1 of 50', level: 2 }).waitFor();
+        await p.getByText(/50 questions, 75 minutes/).first().waitFor();
+        await p.getByRole('button', { name: 'End now', exact: true }).click();
+        const group = p.getByRole('group', { name: 'End the run' });
+        await group.getByRole('button', { name: 'End now', exact: true }).click();
+        await p.getByRole('heading', { name: 'GA4 full mock: review', level: 1 }).waitFor();
+        await p.getByText(/^Score: 0 of 50 \(0%\)\./).waitFor();
+        const main = await p.locator('main').innerText();
+        expect(!/Q-GA4-|\bEX-/.test(main) && !run.servings.some((s) => main.includes(s.item_id)), 'the full mock review names an item ID');
+        expect((await p.locator('main input, main .prompt, main .option').count()) === 0, 'the full mock review shows a question or option');
+        const cells = await tableRows5b(p, 'Questions');
+        expect(cells.length === 50 && cells.every((r, i) => r.split('\t')[0]!.trim() === String(i + 1) && /\t(Right|Wrong|Wrong \(unanswered\))$/.test(r)), `the question table has ${cells.length} rows`);
+        await p.getByRole('button', { name: 'Back to GA4 runs', exact: true }).click();
+        await p.getByRole('heading', { name: 'GA4 timed runs', level: 1 }).waitFor();
+        const hist = p.locator('table.history-table tbody tr', { hasText: 'Full mock' });
+        await hist.first().waitFor();
+        const rowText = (await hist.first().innerText()).replace(/\s+/g, ' ');
+        expect(/Full mock 0 of 50 \(0%\)/.test(rowText), `the history row reads "${rowText.slice(0, 60)}"`);
+        return 'a full mock started with 50 questions and a 75-minute clock; ended at once, the review reads "Score: 0 of 50 (0%)", lists 50 numbered rows and names no item, and the history lists "Full mock" at 0 of 50';
+      });
+
+      await browser.close();
+      browser = null;
+      await stopServer(server);
+      server = null;
+
+      // Row 5b-3: a second server over a logs folder that holds one LAB-08 first answer dated 8 days ago, written the way the app writes one.
+      const dueDir = join(tmp, 'logs-5b-due');
+      await mkdir(dueDir);
+      const seededAt = new Date(Date.now() - 8 * 86_400_000);
+      const seededDay = amsterdamDate(seededAt);
+      const seed: LabAnswer = {
+        record: 'lab_answer', schema_version: SCHEMA_VERSION, ts: seededAt.toISOString(), session_id: 'seed-5b-3', lab_id: 'LAB-08', lab_version: 1,
+        kind: 'first', month: fixedMonth(seededDay), range: null,
+        parts: [{ part_id: 'P1', value: 'Direct', result: 'pass' }, { part_id: 'P2', value: 1000, result: 'pass' }, { part_id: 'P3', value: 500, result: 'pass' }],
+        note: null,
+      };
+      await new AttemptLogger(openJsonlLog(dueDir)).labAnswer(seed);
+      server = await startServer(ROOT, dueDir);
+      browser = await chromium.launch();
+      const q = await newPage(browser, dialogs);
+      q.on('pageerror', () => { pageErrors++; });
+      await row('5b-3', 'with a LAB-08 first answer seeded 8 days back, the labs page shows "Re-check due", Today\'s GA4 plan lists the re-check step (H-D3) and no wrap-up card, and the GA4 tab\'s goal line follows S5A-18 (H-R6)', async () => {
+        const lab08 = await readJson<{ title: string }>(join(ROOT, 'content/ga4/labs/LAB-08.json'));
+        await q.goto(`${BASE}/#/ga4/labs`);
+        await q.getByRole('heading', { name: 'GA4 labs', level: 1 }).waitFor();
+        const li = q.locator('ol.lab-list li').filter({ has: q.getByRole('link', { name: lab08.title, exact: true }) });
+        await li.locator('.chip', { hasText: 'Re-check due' }).waitFor();
+        expect((await q.locator('ol.lab-list li .chip', { hasText: 'Re-check due' }).count()) === 1, 'more than one lab reads Re-check due');
+        await q.goto(`${BASE}/#/`);
+        await q.getByRole('button', { name: 'GA4', exact: true }).click();
+        // H-D3: one plan step, linking to the lab, with the re-check line; one lab due, so no second link; the wrap-up card is gone.
+        const label = `Re-check a lab: ${lab08.title}`;
+        const step = q.locator('ol.today-steps > li[data-today-step="lab_recheck"]');
+        await step.locator('strong', { hasText: label }).waitFor();
+        await step.getByText('Read the same screen again, a week after your first answer.', { exact: true }).waitFor();
+        const href = await step.getByRole('link', { name: `Open it: ${label}`, exact: true }).getAttribute('href');
+        expect(href === '#/ga4/lab/LAB-08', `the step's link opens ${href}`);
+        expect((await step.count()) === 1 && (await step.getByRole('link').count()) === 1, 'the re-check step is listed twice, or has a second link with one lab due');
+        expect((await q.locator('.lab-due').count()) === 0 && (await q.getByRole('heading', { name: 'Lab re-check due' }).count()) === 0, 'the wrap-up still shows the re-check card');
+        // S5A-18 (H-R6): nothing is met in this folder, so every criterion is unmet, and a goal counts for the GA4 tab when any of its criteria
+        // is GA4 (design §2.1: a GA4 concept state, the GA4 exam, the knowledge mock, the GA4 readiness check). The line names the earliest
+        // such goal dated today or later (file order on a tie); with none left, the earliest goal overall, under "Next goal (all sections)".
+        const goals = (await readJson<{ goals: Goal[] }>(join(ROOT, 'content/goals.json'))).goals;
+        const day = amsterdamDate(new Date());
+        const isGa4 = (c: Goal['criteria'][number]): boolean => (c.kind === 'concept_state' && c.section === 'ga4') || (c.kind === 'external' && c.result === 'ga4_exam')
+          || (c.kind === 'mock_pass' && (c.mock === 'knowledge' || c.mock === 'ga4_readiness'));
+        const earliest = (gs: Goal[]): Goal | null => gs.filter((g) => g.target_date >= day).reduce<Goal | null>((b, g) => (b === null || g.target_date < b.target_date ? g : b), null);
+        const ga4Goal = earliest(goals.filter((g) => g.criteria.some(isGa4)));
+        const overall = earliest(goals);
+        const expected = ga4Goal ? `Next goal: ${ga4Goal.title}, by ` : overall ? `Next goal (all sections): ${overall.title}, by ` : null;
+        const goalLine = q.locator('.today-side').getByText(/^Next goal/);
+        let shown = 'none';
+        if (expected) {
+          shown = await goalLine.innerText();
+          expect(shown.startsWith(expected), `the GA4 tab's goal line reads "${shown}", not "${expected}<date>"`);
+        } else expect((await goalLine.count()) === 0, 'a next goal shows with every goal date past');
+        return `LAB-08 (first answer seeded on ${seededDay}) reads "Re-check due" on the labs page; Today's GA4 plan lists "${label}" once, linking to it, and no wrap-up card; the GA4 tab's goal line reads "${shown}"`;
       });
 
       await browser.close();

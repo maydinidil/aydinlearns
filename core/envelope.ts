@@ -4,9 +4,10 @@
  * 3 since sprint 4a (owner decisions D28, D29 and D33, 2026-10-06): an attempt, a hint_opened or a solution_opened may carry `card_id`, and other_way_opened is a
  * new record. 4 since sprint 4b (owner decisions D35 and D38, 2026-10-07): the events file gains a `portfolio_folder` setting and a
  * case_export event (D35), and self_check is a new record in the attempt files (D38, S4B-09); external_result is typed as a union on
- * `kind`, with no change to its data. Replay reads versions 1 to 4; no reader checks the version.
+ * `kind`, with no change to its data. 5 since sprint 5b (owner decision D68, 2026-10-08): `lab_answer` is a new record in the attempt files, and a GA4 run answer's mcq
+ * payload may carry `run_kind`. Replay reads versions 1 to 5; no reader checks the version.
  */
-export const SCHEMA_VERSION = 4;
+export const SCHEMA_VERSION = 5;
 
 export type Section = 'sql' | 'ga4' | 'methodology';
 export type Phase =

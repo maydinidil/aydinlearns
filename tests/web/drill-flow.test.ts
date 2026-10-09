@@ -4,7 +4,8 @@ import assert from 'node:assert/strict';
 import { api } from '../../web/src/api.ts';
 import {
   HELP_LINE, TIME_UP, clockLeft, countdownText, helpAllowed, levelLine, remainingSeconds, scoreLine, unseenLine, historyRows, HISTORY_COLUMNS,
-  SCREEN_BANNER, SCREEN_MODE_HINT, SCREEN_MODE_LABEL, startBody, type DrillScoreView,
+  SCREEN_BANNER, SCREEN_MODE_HINT, SCREEN_MODE_LABEL, startBody, type DrillScoreView, NOT_ANSWERED_LINE, outcomeClass, questionLabel, reviewOutcomes, showsEditor,
+  type DrillQuestionOutcome,
 } from '../../web/src/lib/drill-flow.ts';
 
 const score = (passed: number, unseen: number, over: Partial<DrillScoreView> = {}): DrillScoreView => ({
@@ -275,4 +276,38 @@ test('D50: the box is disabled while a run is on or starting, and before the scr
   assert.equal(historyTickDisabled({ ...free, saving: true }), false, 'a tick being saved keeps the box enabled, so it keeps keyboard focus');
   assert.equal(historyTickSaves({ saving: false }), true);
   assert.equal(historyTickSaves({ saving: true }), false, 'a second click while a tick saves is ignored');
+});
+
+// ---- H3: the review marks each question by outcome ----
+
+const servings = [1, 2, 3, 4].map((n) => ({ item_id: `I${n}`, item_instance_id: `inst-${n}` }));
+
+test('H3: the review lines the end reply\'s marks up with the run\'s questions by instance, whatever the reply\'s order', () => {
+  const items: DrillQuestionOutcome[] = [
+    { item_instance_id: 'inst-3', item_id: 'I3', outcome: 'failed' }, { item_instance_id: 'inst-1', item_id: 'I1', outcome: 'passed' },
+    { item_instance_id: 'inst-2', item_id: 'I2', outcome: 'not_answered' }, { item_instance_id: 'inst-4', item_id: 'I4', outcome: 'passed' },
+  ];
+  assert.deepEqual(reviewOutcomes(servings, items), ['passed', 'not_answered', 'failed', 'passed']);
+});
+
+test('H3: a reply with no marks, or none for a question, marks nothing wrong: the question reads as unknown', () => {
+  assert.deepEqual(reviewOutcomes(servings, undefined), [null, null, null, null]);
+  assert.deepEqual(reviewOutcomes(servings, [{ item_instance_id: 'inst-2', item_id: 'I2', outcome: 'passed' }]), [null, 'passed', null, null]);
+});
+
+test('H3: a square on the question strip says its outcome in words, not colour only', () => {
+  assert.equal(questionLabel(0, 'passed'), 'Question 1: Passed');
+  assert.equal(questionLabel(1, 'failed'), 'Question 2: Not passed');
+  assert.equal(questionLabel(2, 'not_answered'), 'Question 3: Not answered');
+  assert.equal(questionLabel(3, null), 'Question 4', 'while running, or when the outcome is not known');
+  assert.equal(outcomeClass('passed'), 'q-passed');
+  assert.equal(outcomeClass('failed'), 'q-failed');
+  assert.equal(outcomeClass('not_answered'), 'q-not-answered');
+  assert.equal(outcomeClass(null), '');
+});
+
+test('H3: an unanswered question reads "Not answered" and shows no editor; a passed, failed or unknown one shows what it shows today', () => {
+  assert.equal(NOT_ANSWERED_LINE, 'Not answered');
+  assert.equal(showsEditor('not_answered'), false);
+  for (const o of ['passed', 'failed', null] as const) assert.equal(showsEditor(o), true, String(o));
 });

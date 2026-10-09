@@ -465,7 +465,7 @@ test('a plan is logged as a self_check with its six fields; the model plan comes
   assert.deepEqual(JSON.parse(text), { note: PLAN_NOTE });
   assert.deepEqual(leaks(text), [], 'no model plan before CP1 has an answer');
   const [sc] = (await attempts(d)).filter((x) => x.record === 'self_check');
-  assert.deepEqual({ ...sc, ts: 'ts' }, { record: 'self_check', schema_version: 4, ts: 'ts', session_id: d.session.currentId, kind: 'plan', phase: 'case', case_id: INBOX_ID,
+  assert.deepEqual({ ...sc, ts: 'ts' }, { record: 'self_check', schema_version: 5, ts: 'ts', session_id: d.session.currentId, kind: 'plan', phase: 'case', case_id: INBOX_ID,
     item_instance_id: null, block_id: null, text: null, fields: { ...Object.fromEntries(Object.keys(PLAN).map((k) => [k, ''])), metric_formula: 'average price', filters: 'open stores' },
     ticked: [] });
   // M3: a plan check needs the model plan shown, not only a plan logged.

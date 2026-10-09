@@ -1,0 +1,85 @@
+{
+  "id": "LAB-26",
+  "version": 1,
+  "title": "Source / medium and UTM tags",
+  "concept_id": "GA4-ATTRIB-22",
+  "topic_id": "T-GA4-02",
+  "property": "MS",
+  "path": "Reports > Life cycle > Acquisition > Traffic acquisition",
+  "path_verified": true,
+  "date": "fixed_month",
+  "steps": [
+    "In the Google Merchandise Store property, open Reports > Life cycle > Acquisition > Traffic acquisition.",
+    "Set the date range to the month the app shows, from its first day to its last.",
+    "Change the table's first column to Session source / medium: choose it from the drop-down at the top of that column.",
+    "Sort the table by the Sessions column, highest first, by clicking its header.",
+    "Read the source / medium and the sessions in the first row below the totals row, then the sessions in the totals row at the top of the table."
+  ],
+  "parts": [
+    {
+      "id": "P1",
+      "question": "Which session source / medium has the most sessions in the month? Type it exactly as GA4 shows it, with a space on each side of the slash.",
+      "answer": "text",
+      "check": "recheck_fixed"
+    },
+    {
+      "id": "P2",
+      "label": "Top row's sessions",
+      "question": "How many sessions does that row show?",
+      "answer": "number",
+      "unit": "count",
+      "check": "recheck_fixed",
+      "tolerance": {
+        "relative_pct": 2
+      }
+    },
+    {
+      "id": "P3",
+      "label": "Total sessions",
+      "question": "How many sessions does the totals row show?",
+      "answer": "number",
+      "unit": "count",
+      "check": "consistency"
+    },
+    {
+      "id": "P4",
+      "question": "A Google Ads ad has auto-tagging switched on, and its link also carries utm_source and utm_medium. Which values does GA4 use for the session's source and medium?",
+      "answer": "choice",
+      "options": [
+        "The UTM values from the link",
+        "Neither: GA4 shows (not set) when the two disagree",
+        "The auto-tagged values from Google Ads",
+        "The UTM value for source and the auto-tagged value for medium"
+      ],
+      "check": "structural"
+    }
+  ],
+  "rules": [
+    {
+      "kind": "at_most",
+      "part": "P2",
+      "of": "P3"
+    }
+  ],
+  "interview_relevant": true,
+  "source_ids": [
+    "07:NAV-06",
+    "07:§1.5",
+    "07:[16]",
+    "07:[7]",
+    "07:[8]",
+    "10:§4",
+    "10:[4]",
+    "10:[7]",
+    "10:[8]",
+    "10:GA4-ATTRIB-22",
+    "10:Q-GA4-220",
+    "10:COR-09",
+    "06:GA4-REPORTS-01",
+    "06:GA4-INTEG-01",
+    "ERRATA:E-186",
+    "ERRATA:E-023",
+    "ERRATA:E-187"
+  ],
+  "as_of": "2026-10-09"
+}

@@ -50,7 +50,7 @@ test('15: the running drill uses the crumb, the run bar and the numbered questio
   assert.match(s, /<Crumb section="sql"/);
   assert.match(s, /className="card run-bar"/);
   assert.match(s, /className="qstrip"/);
-  assert.match(s, /aria-label=\{`Question \$\{i \+ 1\}`\}/, 'each square keeps the name "Question N"');
+  assert.match(s, /aria-label=\{questionLabel\(i, /, 'each square is named by questionLabel: "Question N" while running, with its outcome in the review (H3)');
 });
 
 test('14: the exercise screen has a crumb and a title', async () => {

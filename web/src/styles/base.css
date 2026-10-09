@@ -18,7 +18,7 @@ pre, code { font-family: var(--mono); }
 pre { background: var(--canvas); border: 1px solid var(--line); border-radius: var(--r1); padding: var(--s2); overflow: auto; }
 .ok::before { content: "✓ "; color: var(--ok); }
 .bad::before { content: "✗ "; color: var(--bad); }
-button { background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: var(--r1); font: 600 var(--t1)/var(--lh) var(--font); padding: var(--s1) var(--s3); cursor: pointer; }
+button { background: var(--surface); color: var(--ink); border: 1px solid var(--control); border-radius: var(--r1); font: 600 var(--t1)/var(--lh) var(--font); padding: var(--s1) var(--s3); cursor: pointer; }
 button:disabled { opacity: 0.55; cursor: default; }
 :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
 [tabindex="-1"]:focus-visible { outline: none; }

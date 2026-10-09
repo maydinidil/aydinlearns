@@ -10,6 +10,86 @@ come from git.
 1.0.0 is the first release. Slices 0 and 1a are the first application code; the entries before
 them are research and planning.
 
+## 1.1.0 (2026-10-09)
+
+GA4 complete. The GA4 section now has everything the certification and a GA4 interview need:
+
+| What 1.1 adds | In short |
+|---|---|
+| Interview labs | 10 tasks done in Google's GA4 demo account, with a guide to getting in. Each is re-checked a week later |
+| Full mocks | 50 held-out questions in 75 minutes, no going back, pass at 80% (Google's published rules, not yet checked on Skillshop) |
+| Readiness check | Advice only: a recent mock on unseen questions at 85% or more, and every exam topic at 75% or more on cold first answers, with every count shown |
+| Dated blueprints | Each GA4 run keeps the question count and pass mark in force on the day it started (F14) |
+
+### Known issues
+
+- F28 (Codex, PR #43), won't fix: in a mini drill, the readiness check takes an item's last
+  answer before the run ends as its cold answer, not its first click. This is deliberate: it is the
+  answer the drill scores and the one replay's mastery rule uses, and no feedback shows inside a run.
+- Sprint 5b: a mock's review shows the score, the topics and right or wrong only. Held-out
+  questions keep their explanations hidden until they are retired with a new, blind-solved
+  replacement (D71).
+- F13 (Codex, PR #34), won't fix: after a restart in the middle of a GA4 run, the review numbers
+  its questions in the order they were answered.
+- Sprint 4b: an exported CP3 query that was copied from an "other ways" answer cannot be told from
+  the learner's own work.
+- Sprint 4c: one SQL-SET-01 plant (EX-SQL-SET-01-E1-07) stays on the generic ERR-LOG-00 feedback.
+
+### Added
+
+- **Sprint 5b: GA4 complete, version 1.1** (2026-10-09; plan
+  `docs/superpowers/plans/2026-10-08-aydinlearns-sprint-5b.md`, record
+  `docs/planning/2026-10-08-sprint-5b-record.md`):
+  - **Interview labs** (`#/ga4/labs`, D67 and D69): LAB-03, -07, -08, -10, -12, -16, -20, -24,
+    -25 and a new LAB-26 on UTMs (ERRATA E-186 and E-187), 35 parts in all. The app stores no
+    reference numbers, because the demo data changes every day. A part is checked by a fact with
+    a blind-solved key (8 parts), by consistency between values read off one screen (6), by a
+    re-check of the same month or dates a week later (20), or by a self-check (1). Numbers are
+    read as a learner types them, and an ambiguous `1.234` is refused with a question. A re-check
+    counts from 7 days after the first answer, and a due one shows on the labs page and Today's
+    GA4 tab. Labs rate no card and move no concept. The labs page carries a guide to the demo
+    account, and each lab links to Google Analytics in a new tab; the app itself fetches nothing.
+  - **Full mocks:** 50 questions from the held-out pool in 75 minutes, one at a time, no going
+    back, unanswered questions counted as wrong, with the same 21-day rule and per-topic review as
+    half-mocks.
+  - **Readiness check** (D70), on the GA4 runs card and Progress. Mock part: the newest full mock
+    on unseen questions, or the newest two half-mocks on unseen questions judged together,
+    whichever is newer, at 85% or more. Topic part: every GA4 exam topic at 75% or more on cold first answers (an item's first
+    answer, outside a lesson window, with no hint or "show answer" on it before, and not a repeat
+    exposure). It says "advice only": the exam can be sat at any time.
+  - **Log format version 5** (D68): a `lab_answer` record, which replay ignores, and `run_kind` on
+    a GA4 run answer, so a full mock cut short by a restart is never read as a half-mock. Older
+    logs read as before.
+  - **Content checks C42 to C46** for the labs (schema, keys, blind-solve records, the guide) and
+    the full mock's held-out pool.
+  - **Version 1.1.0** in `package.json`, shown in Settings.
+
+### Fixed
+
+- **F27** (Codex, PR #43): the readiness check's mock part follows D70. A passing full mock
+  followed by one half-mock still reads as passed, and the newest two half-mocks pair up even with
+  a full mock between them; the newer of the two decides. Proven by unit tests; the first real
+  full mock followed by a half-mock confirms it.
+- **Today, per section:** on the GA4 and Methodology tabs the wrap-up shows the next goal in that
+  section, or the next goal overall labelled "all sections" when none is left. A due lab re-check is
+  a step in the GA4 plan, "Re-check a lab", instead of a card in the wrap-up column.
+- **The SQL drill review** marks each question passed, failed or not answered on the question
+  strip, and an unanswered question reads "Not answered" instead of opening an empty editor.
+- **Small screen items:** the GA4 runs card's links name the run kind ("Full mock"), so they no
+  longer share a label with the button that starts the run; after a mock's last answer, focus
+  moves to "End now"; outline buttons have a stronger border.
+- **Internals:** each lab blind-solve record names the lab version it was solved on, and C44 fails
+  a stale one; C46 checks every full mock blueprint in force from today on; the launcher no longer
+  prints Node's DEP0190 warning; unused code is gone.
+- **F14** (Codex, PR #34): `content/ga4/exam.json` holds dated blueprints, and every GA4 run is
+  scored with the entry in force on its start date, so a later blueprint change never rescores an
+  old run.
+- **Q-GA4-076** (the audiences item, D73): an unsourced clause and a word that gave the answer away
+  are gone. Version 2, blind-solved again.
+- **A screen pass** at 1366 and 390 px (30 findings, 120 screenshots): 28 small findings fixed,
+  among them plain lab refusals with no part IDs, keyboard focus kept after an answer, a run
+  history that fits a phone, and shorter readiness lines. The GA4 run bar fits at 390 px.
+
 ## 1.0.0 (2026-10-08)
 
 The first release. aydinlearns 1.0 can be studied end to end in three sections:
@@ -33,7 +113,7 @@ completes GA4: the remaining lessons, full mocks, the readiness check and the in
   review numbers its questions in the order they were answered, not their order in the run. This
   is known and deliberate: the review says so, and exact numbering would need the run's order in
   the log, a log format change.
-- F14 (Codex, PR #34): past GA4 runs are scored with today's blueprint (question count, pass
+- F14 (Codex, PR #34; fixed in 1.1.0): past GA4 runs are scored with today's blueprint (question count, pass
   mark). Nothing is wrong today, and a test stops a silent change, but changing the blueprint
   on purpose would rescore old runs until dated blueprints are kept.
 - Sprint 4b: an exported CP3 query that was copied from an "other ways" answer cannot be told from

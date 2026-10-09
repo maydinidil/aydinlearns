@@ -1,0 +1,63 @@
+{
+  "id": "LAB-16",
+  "version": 1,
+  "title": "Top country and data thresholds",
+  "concept_id": "GA4-REPORTS-20",
+  "topic_id": "T-GA4-05",
+  "property": "MS",
+  "path": "Reports > User > User attributes > Demographic details",
+  "path_verified": false,
+  "date": "fixed_month",
+  "steps": [
+    "In the Google Merchandise Store property, open Reports > User > User attributes > Demographic details.",
+    "Set the date range to the month the app shows, from its first day to its last.",
+    "Make sure the table's first column is Country. If it shows another dimension, choose Country from the drop-down at the top of that column.",
+    "Sort the table by the Active users column, highest first, and read the country in the first row.",
+    "Switch the table's dimension to Age, then to Gender. Each time, open the data quality icon at the top of the report and read its message. A thresholding message says that Google Analytics has applied thresholding to one or more cards in the report."
+  ],
+  "parts": [
+    {
+      "id": "P1",
+      "question": "Which country has the most active users in the month? Type its name as GA4 shows it.",
+      "answer": "text",
+      "check": "recheck_fixed"
+    },
+    {
+      "id": "P2",
+      "question": "With the dimension set to Age or to Gender (either one), does the data quality icon say that thresholding was applied?",
+      "answer": "choice",
+      "options": [
+        "Yes",
+        "No"
+      ],
+      "check": "recheck_fixed"
+    },
+    {
+      "id": "P3",
+      "question": "Which of these can make GA4 apply data thresholds to a report?",
+      "answer": "choice",
+      "options": [
+        "Demographic data in the report, such as age or gender",
+        "Event data retention set to 2 months",
+        "An exploration that covers more than 10 million events",
+        "Enhanced measurement switched on"
+      ],
+      "check": "structural"
+    }
+  ],
+  "rules": [],
+  "interview_relevant": true,
+  "source_ids": [
+    "07:LAB-16",
+    "07:NAV-10",
+    "07:[17]",
+    "07:[9]",
+    "10:§2",
+    "10:[2]",
+    "10:GA4-REPORTS-20",
+    "10:Q-GA4-207",
+    "ERRATA:E-023",
+    "ERRATA:E-187"
+  ],
+  "as_of": "2026-10-09"
+}

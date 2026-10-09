@@ -6,6 +6,7 @@ import { useEffect, useState, type MouseEvent, type ReactNode } from 'react';
 import { api, type ChoiceConceptView, type ChoiceSection } from '../api.ts';
 import { Ga4Runs } from '../components/Ga4Runs.tsx';
 import { PageHead } from '../components/PageHead.tsx';
+import { LABS_HREF } from '../lib/lab-flow.ts';
 import { crumbParts } from '../lib/crumb.ts';
 import { hasUnverified, shownChildren, topicAnchor, UNVERIFIED_EXPLAINED } from '../lib/polish-p2a.ts';
 import { mapGroups, mapRows, rowLinkName, SECTION_LABEL, type ChoiceBadge, type MapRow } from '../lib/choice-flow.ts';
@@ -74,5 +75,5 @@ export function ChoiceMapScreen({ section, intro, byTopic = false, extra }: { se
 }
 
 export function Ga4MapScreen() {
-  return <ChoiceMapScreen section="ga4" extra={<Ga4Runs history />} intro="Every concept is open, with a reading and practice. The topics listed under a concept are taught in its reading and practised with it." />;
+  return <ChoiceMapScreen section="ga4" extra={<><h2>Labs</h2><p><a href={LABS_HREF}>Open the GA4 labs</a> <span className="muted">Tasks in Google's GA4 demo account, each re-checked a week later.</span></p><Ga4Runs history /></>} intro="Every concept is open, with a reading and practice. The topics listed under a concept are taught in its reading and practised with it." />;
 }

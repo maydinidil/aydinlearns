@@ -8,7 +8,7 @@ import { completionSchema } from '../editor/completion-schema.ts';
 import { editorStart, type Stage } from '../lib/lesson-flow.ts';
 import { afterGrade, afterRun, beforeSubmit, canDispute, closeReason, closesOnUnmount, grainLine, isClosedError, keyFailed, newInstance, overrideOrReopen, retryIfClosed, rulesBadge, sessionEndsSeen, showsRunTable, type Instance, type ResultArea } from '../lib/exercise.ts';
 import { FIX_INTRO, fixStarter, itemLabels, labelsVisible, loadTitles, type Titles } from '../lib/labels.ts';
-import { SCREEN_BANNER, stopHandler } from '../lib/drill-flow.ts';
+import { NOT_ANSWERED_LINE, SCREEN_BANNER, stopHandler } from '../lib/drill-flow.ts';
 import { SchemaPanel } from './SchemaPanel.tsx';
 import { ResultTable } from './ResultTable.tsx';
 import { GradePanel } from './GradePanel.tsx';
@@ -35,6 +35,8 @@ type Props = {
   run?: { onStopped: () => void };
   /** The end-of-run review is for help: no Run and no Submit (a submit on a closed drill instance would reopen a stray free attempt). */
   reviewOnly?: boolean;
+  /** H3: a question the learner never answered: the review shows it with no editor and no buttons, and its help stays open below. */
+  unanswered?: boolean;
   /** Task D1: called when this instance passes, so the drill screen can offer "other ways" on it in the review (S4-12). */
   onPassed?: () => void;
   /** Task D1: this instance passed earlier in the run, which the review panel (a new mount) cannot see for itself. */
@@ -57,7 +59,7 @@ export function ExercisePanel(props: Props) {
   return <ExercisePanelInner key={`${props.itemId}:${props.stage ?? ''}:${props.phase}:${props.instanceId ?? ''}`} {...props} />;
 }
 
-function ExercisePanelInner({ itemId, phase, stage = 3, onClosed, instanceId, hideLabels = false, heading, labels = false, run, reviewOnly = false, onPassed, passedBefore = false, screenMode = false, onGraded }: Props) {
+function ExercisePanelInner({ itemId, phase, stage = 3, onClosed, instanceId, hideLabels = false, heading, labels = false, run, reviewOnly = false, unanswered = false, onPassed, passedBefore = false, screenMode = false, onGraded }: Props) {
   const [data, setData] = useState<{ item: ItemView; schemaNotes: TableNote[] } | null>(null);
   // A fix item's own query, run when the item opens (S2-48), so the learner sees the wrong result it gives.
   const [starter, setStarter] = useState<{ result: DisplayOk | null; error: string | null } | null>(null);
@@ -260,8 +262,9 @@ function ExercisePanelInner({ itemId, phase, stage = 3, onClosed, instanceId, hi
             {starter?.error && <p role="alert">The query could not be run here: {starter.error}</p>}
           </div>
         )}
-        <div ref={editorHost} />
-        <div className="toolbar">
+        {unanswered && <p role="status"><strong>{NOT_ANSWERED_LINE}</strong></p>}
+        <div ref={editorHost} hidden={unanswered} />
+        {!unanswered && <div className="toolbar">
           {!reviewOnly && <button type="button" onClick={() => void doRun()} disabled={busy}>Run (Ctrl+Enter)</button>}
           <label>How sure are you? <select value={confidence ?? ''} onChange={(e) => setConfidence(e.target.value ? Number(e.target.value) as 1 | 2 | 3 | 4 : null)}>
             <option value="">skip</option><option value="1">1 guessing</option><option value="2">2 unsure</option><option value="3">3 fairly sure</option><option value="4">4 certain</option></select></label>
@@ -269,7 +272,7 @@ function ExercisePanelInner({ itemId, phase, stage = 3, onClosed, instanceId, hi
               and while "I was right" is sent, so neither races the override (aydinlearns F4). */}
           {!reviewOnly && <button type="button" className="btn-main" onClick={() => void doSubmit()} disabled={busy || disputing}>Submit (Ctrl+Shift+Enter)</button>}
           <button type="button" onClick={() => alertOnError(close())} disabled={busy || disputing}>{instance.current.passed ? 'Next' : 'Leave this item'}</button>
-        </div>
+        </div>}
         </div>
         {message && <p role="alert">{message}</p>}
         {grade && <GradePanel grade={grade} onDispute={canDispute(grade, overridden) ? (r) => alertOnError(dispute(grade, r)) : null} disputing={disputing} otherWay={otherWay} />}

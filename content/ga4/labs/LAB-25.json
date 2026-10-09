@@ -1,0 +1,108 @@
+{
+  "id": "LAB-25",
+  "version": 1,
+  "title": "Attribution settings and models",
+  "concept_id": "GA4-ATTRIB-01",
+  "topic_id": "T-GA4-03",
+  "property": "MS",
+  "path": "Admin > Data display > Events > Attribution settings, then Advertising > Attribution > Attribution models",
+  "path_verified": true,
+  "date": "last_28_days",
+  "steps": [
+    "In the Google Merchandise Store property, open Admin > Data display > Events > Attribution settings. In some versions the label reads Key events attribution.",
+    "Read the reporting attribution model and the lookback window for all other key events. Viewer access shows these settings but cannot change them.",
+    "Open Advertising > Attribution > Attribution models.",
+    "Set the date range. On a first answer, choose Last 28 days and type the dates GA4 shows into From and To. On a re-check, use the dates the app shows.",
+    "Compare Data-driven with Paid and organic last click. If the report shows other models, pick these two in its model drop-downs.",
+    "For each channel row, take its key events under Data-driven minus its key events under Paid and organic last click. Find the channel with the biggest rise."
+  ],
+  "parts": [
+    {
+      "id": "P1",
+      "question": "Which reporting attribution model does the property use?",
+      "answer": "choice",
+      "options": [
+        "First click",
+        "Data-driven",
+        "Linear",
+        "Paid and organic last click",
+        "Time decay",
+        "Position-based",
+        "Google paid channels last click"
+      ],
+      "check": "recheck_fixed"
+    },
+    {
+      "id": "P2",
+      "question": "What is the lookback window for all other key events?",
+      "answer": "choice",
+      "options": [
+        "30 days",
+        "60 days",
+        "90 days"
+      ],
+      "check": "recheck_fixed"
+    },
+    {
+      "id": "P3",
+      "question": "Google removed some attribution models from GA4 in November 2023. Which models can a GA4 property still use? Tick every one.",
+      "answer": "multi",
+      "options": [
+        "First click",
+        "Data-driven",
+        "Linear",
+        "Paid and organic last click",
+        "Time decay",
+        "Position-based",
+        "Google paid channels last click"
+      ],
+      "check": "structural"
+    },
+    {
+      "id": "P4",
+      "question": "In Attribution models, which channel has the biggest rise in key events under Data-driven compared with Paid and organic last click?",
+      "answer": "choice",
+      "options": [
+        "Affiliates",
+        "AI Assistant",
+        "Audio",
+        "Cross-network",
+        "Direct",
+        "Display",
+        "Email",
+        "Mobile Push Notifications",
+        "Organic Search",
+        "Organic Shopping",
+        "Organic Social",
+        "Organic Video",
+        "Paid Other",
+        "Paid Search",
+        "Paid Shopping",
+        "Paid Social",
+        "Paid Video",
+        "Referral",
+        "SMS",
+        "Unassigned"
+      ],
+      "check": "recheck_range"
+    }
+  ],
+  "rules": [],
+  "interview_relevant": true,
+  "source_ids": [
+    "07:LAB-25",
+    "07:NAV-03",
+    "07:NAV-04",
+    "07:KF-10",
+    "07:§1.3",
+    "07:[18]",
+    "07:[19]",
+    "07:[20]",
+    "06:GA4-ATTRIB-01",
+    "06:Q-GA4-25",
+    "06:Q-GA4-27",
+    "ERRATA:E-023",
+    "ERRATA:E-187"
+  ],
+  "as_of": "2026-10-09"
+}

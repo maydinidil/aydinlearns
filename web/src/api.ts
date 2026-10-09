@@ -50,7 +50,12 @@ export interface CorrectedQuery {
   failed_query: string; passed_query: string; failed_at: string; passed_at: string;
 }
 export interface TodayView {
-  plan: TodayPlanView; goal: { goal: GoalSummary; effective_date: string; criteria: CriterionResult[] } | null;
+  plan: TodayPlanView;
+  /**
+   * `all_sections` (S5A-18): true on a GA4 or Methodology tab with no goal with an unmet criterion in its section left, so the goal is the
+   * next one overall. Absent from an older server, which reads as false.
+   */
+  goal: { goal: GoalSummary; effective_date: string; criteria: CriterionResult[]; all_sections?: boolean } | null;
   /** Absent from a server older than Task C2. */
   corrected_query?: CorrectedQuery | null;
 }
@@ -136,19 +141,21 @@ export type DrillStartBody = ({ level: number } | { concept_ids: string[] }) & {
 export interface DrillSpecView { level: number; questions: number; minutes: number; pass_pct: number; unseen_min_pct: number; available: boolean }
 /** `screen_mode` (S4B-23): the run's mode, which the history shows. `live_rep` (S4B-26, Task E4): a live rep, never a level or chosen run. */
 export interface DrillHistoryRow extends DrillScoreView { block_id: string; kind: 'level' | 'chosen' | 'live_rep'; level: number | null; date: string; screen_mode: boolean }
-export interface DrillEnded { block_id: string; kind: 'level' | 'chosen' | 'live_rep'; level: number | null; score: DrillScoreView }
+/** H3: how a question of the drill ended; a question that was never submitted is `not_answered`. */
+export interface DrillQuestionOutcome { item_instance_id: string; item_id: string | null; outcome: 'passed' | 'failed' | 'not_answered' }
+export interface DrillEnded { block_id: string; kind: 'level' | 'chosen' | 'live_rep'; level: number | null; score: DrillScoreView; /** Absent on a live rep. */ items?: DrillQuestionOutcome[] }
 
 /**
- * The GA4 timed runs (Task B3), declared here as server/routes/run.ts answers them. A run is a mini drill (practice mode) or a
- * half-mock (exam mode). A half-mock's review carries a number, a topic and right or wrong only (S3-12).
+ * The GA4 timed runs (Task B3), declared here as server/routes/run.ts answers them. A run is a mini drill (practice mode), a
+ * half-mock or a full mock (exam mode; sprint 5b Task B4). A mock's review carries a number, a topic and right or wrong only (S3-12).
  */
-export type RunKind = 'mini_drill' | 'half_mock';
+export type RunKind = 'mini_drill' | 'half_mock' | 'full_mock';
 export type RunMode = 'practice' | 'exam';
 export interface TopicScore { topic: string; correct: number; of: number; pct: number }
 export interface RunStarted {
   block_id: string; section: 'ga4'; kind: RunKind; mode: RunMode; phase: 'drill' | 'mock'; hide_labels: boolean; questions: number; minutes: number;
   pass_pct: number; ends_at: string; servings: { item_id: string; item_instance_id: string }[];
-  /** Half-mock only (D27): every item was unseen, and when not, the first date with enough unseen items. */
+  /** A half-mock or a full mock only (D27): every item was unseen, and when not, the first date with enough unseen items. */
   on_unseen?: boolean | null; next_unseen_date?: string | null;
   /** /api/run/current only (B3 I2): the 0-based positions that have an answer. Positions, never a question. */
   answered?: number[];
@@ -158,7 +165,10 @@ export interface RunPreview { next_unseen_date: Record<RunKind, string | null> }
 export interface RunBlueprint { questions: number; minutes: number; pass_pct: number; mode: RunMode }
 export interface RunHistoryRow {
   block_id: string; kind: RunKind; date: string; correct: number; of: number; pct: number; pass: boolean; pass_pct: number; by_topic: TopicScore[];
-  on_unseen?: boolean | null; unseen?: number | null; unseen_pct?: number | null;
+  /** A mock only: every question there and unseen (on_unseen); every logged question unseen, however many a crash left (logged_unseen). */
+  on_unseen?: boolean | null; logged_unseen?: boolean | null; unseen?: number | null; unseen_pct?: number | null;
+  /** F2 I1: the readiness check counts this run (server/readiness.ts countsForReadiness). Always false for a mini drill. */
+  counts_for_readiness: boolean;
 }
 export interface RunReviewItem {
   n: number; topic: string; answered: boolean; correct: boolean;

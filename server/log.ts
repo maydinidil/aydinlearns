@@ -2,7 +2,7 @@
 import type { JsonlLog, LogFile } from '../core/jsonl.ts';
 import type { BlockClose, Exposure, HintOpened, ItemClose, OtherWayOpened, SelfCheck, SolutionOpened } from '../core/envelope.ts';
 import type { AppEvent } from '../core/events.ts';
-import type { AydinAttempt } from '../schemas/log-ext.ts';
+import type { AydinAttempt, LabAnswer } from '../schemas/log-ext.ts';
 
 export class AttemptLogger {
   #log: JsonlLog;
@@ -28,6 +28,8 @@ export class AttemptLogger {
   otherWayOpened(o: OtherWayOpened): Promise<void> { return this.#write('attempts', o); }
   /** D38 (log version 4, S4B-09): a plan, plan check, sketch, insight, rubric or "explained aloud" self-check. Replay rates nothing from it. */
   selfCheck(s: SelfCheck): Promise<void> { return this.#write('attempts', s); }
+  /** D68 (log version 5): one answer to a GA4 lab, first or re-check. Replay reads it and rates nothing from it. */
+  labAnswer(r: LabAnswer): Promise<void> { return this.#write('attempts', r); }
   event(e: AppEvent): Promise<void> { return this.#write(e.event === 'content_report' ? 'reports' : 'events', e); }
   readAll(file: LogFile): Promise<object[]> { return this.#log.readAll(file); }
 }

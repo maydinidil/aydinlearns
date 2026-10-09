@@ -154,6 +154,9 @@ test('the wrap-up: the next goal and its criteria, then what is due tomorrow', (
     dueTomorrow: 'Due tomorrow: 5 reviews',
   });
   assert.deepEqual(wrapUp({ ...view, goal: null }, titles, now), { goal: null, criteria: [], dueTomorrow: 'Due tomorrow: 5 reviews' });
+  // S5A-18: the server marks the next goal overall (a GA4 or Methodology tab with no goal of its own left), and the line says so.
+  assert.equal(wrapUp({ ...view, goal: { ...view.goal!, all_sections: true } }, titles, now).goal, 'Next goal (all sections): Starting knowledge in SQL, GA4 and metrics, by 16 October');
+  assert.equal(wrapUp({ ...view, goal: { ...view.goal!, all_sections: false } }, titles, now).goal, 'Next goal: Starting knowledge in SQL, GA4 and metrics, by 16 October');
 });
 
 test('"Another new concept" after the wrap-up: offered with its title, or the reason it is not', () => {
@@ -372,8 +375,11 @@ async function sources(dir: string): Promise<string[]> {
 /** The code without its comments: a comment may cite a ruling's 15 minutes, which no learner reads. */
 const code = (s: string): string => s.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\{\/\*[\s\S]*?\*\/\}/g, '').replace(/(^|\s)\/\/.*$/gm, '$1');
 
-/** A drill's time limit is a test rule and may be shown (Global Constraints, "Goals, not hours"), so a line naming a limit is exempt. */
-const DRILL_LIMIT = /\blimit\b/i;
+/**
+ * A drill's time limit and the exam's 24-hour retake wait are test rules and may be shown (Global Constraints, "Goals, not hours"),
+ * so a line naming a limit, or the exam's retake rule, is exempt.
+ */
+const DRILL_LIMIT = /\blimit\b|\bretaken after 24 hours\b/i;
 
 test('no screen text in web/src holds an hour or minute count (a drill time limit excepted)', async () => {
   const offending: string[] = [];

@@ -1,0 +1,72 @@
+{
+  "id": "LAB-03",
+  "version": 1,
+  "title": "Data streams and enhanced measurement",
+  "concept_id": "GA4-SETUP-01",
+  "topic_id": "T-GA4-01",
+  "property": "MS",
+  "path": "Admin > Data collection and modification > Data streams > web stream > Enhanced measurement",
+  "path_verified": false,
+  "date": "none",
+  "steps": [
+    "In the Google Merchandise Store property, open Admin (the gear icon at the bottom left).",
+    "Open Data collection and modification > Data streams. Count every stream in the list, whatever its type (web, iOS or Android).",
+    "Open the web stream. If there is more than one, open the first web stream in the list, and use the same one when you re-check.",
+    "Find Enhanced measurement and open its settings. Note which options are switched on. Viewer access shows these settings but cannot change them."
+  ],
+  "parts": [
+    {
+      "id": "P1",
+      "question": "How many data streams does the property have?",
+      "answer": "number",
+      "unit": "count",
+      "check": "recheck_fixed",
+      "tolerance": {
+        "exact": true
+      }
+    },
+    {
+      "id": "P2",
+      "question": "Which enhanced measurement options are switched on for the web stream? Tick every one that is on.",
+      "answer": "multi",
+      "options": [
+        "Page views",
+        "Scrolls",
+        "Outbound clicks",
+        "Site search",
+        "Form interactions",
+        "Video engagement",
+        "File downloads",
+        "Purchases"
+      ],
+      "check": "recheck_fixed"
+    },
+    {
+      "id": "P3",
+      "question": "Which of these GA4 events is not an enhanced measurement event?",
+      "answer": "choice",
+      "options": [
+        "file_download",
+        "form_submit",
+        "scroll",
+        "purchase"
+      ],
+      "check": "structural"
+    }
+  ],
+  "rules": [],
+  "interview_relevant": true,
+  "source_ids": [
+    "07:LAB-03",
+    "07:NAV-15",
+    "07:§1.3",
+    "07:[1]",
+    "06:GA4-SETUP-01",
+    "06:GA4-EVENTS-01",
+    "06:Q-GA4-05",
+    "06:Q-GA4-06",
+    "ERRATA:E-023",
+    "ERRATA:E-187"
+  ],
+  "as_of": "2026-10-09"
+}

@@ -14,7 +14,7 @@ import { Crumb } from '../components/PageHead.tsx';
 import { crumbParts } from '../lib/crumb.ts';
 import { NO_DRILL_LINE } from '../lib/polish-p2b.ts';
 import {
-  EXPLAINED_ALOUD_LABEL, EndGuard, HELP_LINE, HISTORY_COLUMNS, LIVE_REP_HINT, LIVE_REP_LABEL, SCREEN_MODE_HINT, SCREEN_MODE_LABEL, TIME_UP, countdownText, endWithRetry, hiddenFlags, historyRows, levelRule, recallIndex,
+  EXPLAINED_ALOUD_LABEL, EndGuard, outcomeClass, questionLabel, reviewOutcomes, showsEditor, HELP_LINE, HISTORY_COLUMNS, LIVE_REP_HINT, LIVE_REP_LABEL, SCREEN_MODE_HINT, SCREEN_MODE_LABEL, TIME_UP, countdownText, endWithRetry, hiddenFlags, historyRows, levelRule, recallIndex,
   isLiveRun, historyTickDisabled, historyTickSaves, liveRepLine, remainingSeconds, rememberIndex, runFromRefusal, scoreLine, startBody, tickFromHistory, unseenLine,
   type DrillState, type HistoryRun,
 } from '../lib/drill-flow.ts';
@@ -170,9 +170,11 @@ export function DrillScreen() {
   const tickOff = historyTickDisabled({ state, runKnown, busy });
 
   const toggle = (id: string) => setChosen((c) => (c.includes(id) ? c.filter((x) => x !== id) : [...c, id]));
+  // H3: in the review each square carries its outcome in its name and a border; while running there is none to show.
+  const outcomes = run && state.kind === 'review' ? reviewOutcomes(run.servings, result?.items) : null;
   const questionNav = run && (
     <nav aria-label="Questions" className="qstrip">{run.servings.map((s, i) => (
-      <button key={s.item_instance_id} type="button" aria-pressed={i === index} aria-label={`Question ${i + 1}`} onClick={() => goTo(i)}>{i === index ? <strong>{i + 1}</strong> : i + 1}</button>
+      <button key={s.item_instance_id} type="button" className={outcomes ? outcomeClass(outcomes[i] ?? null) || undefined : undefined} aria-pressed={i === index} aria-label={questionLabel(i, outcomes?.[i] ?? null)} onClick={() => goTo(i)}>{i === index ? <strong>{i + 1}</strong> : i + 1}</button>
     ))}</nav>
   );
   const serving = run?.servings[index];
@@ -229,7 +231,7 @@ export function DrillScreen() {
         {run.servings.map((sv, i) => (
           <div key={sv.item_instance_id} data-question={i} hidden={hiddenFlags(run.servings.length, index)[i]}>
             <ExercisePanel itemId={sv.item_id} phase="drill" instanceId={sv.item_instance_id} heading={`Question ${i + 1} of ${run.servings.length}`}
-              labels reviewOnly onClosed={next} passedBefore={passedIds.has(sv.item_instance_id)} />
+              labels reviewOnly unanswered={!showsEditor(outcomes?.[i] ?? null)} onClosed={next} passedBefore={passedIds.has(sv.item_instance_id)} />
           </div>
         ))}
         <p><button type="button" onClick={backToChoices}>Back to drills</button></p>
