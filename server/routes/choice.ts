@@ -33,6 +33,7 @@ import type { OpenInstance, RouteDeps } from '../app.ts';
 import { CHOICE_GRADER_VERSION, gradeChoice, gradeTyped, parseTyped, TYPED_REFUSALS, type ChoiceGrade } from '../choice/grade.ts';
 import { HELP_WAITS, NO_DRILLS, type DrillGate } from '../drill.ts';
 import { CHOICE_RUN_OVER, CODE_ONE_ANSWER, CODE_RUN_OVER, isChoicePlan, oneAnswer } from '../run.ts';
+import { answered, choiceFunnel, levelName, sqlFunnel } from '../observe.ts';
 
 /**
  * The question as the browser sees it: never its options in source order, its key, or its misconceptions. `exam_relevance`
@@ -201,6 +202,16 @@ export function mountChoice(app: Hono, d: RouteDeps, runs: DrillGate = NO_DRILLS
     if (s.item_id !== q.shape.id) throw refuse(400, OTHER_ITEM);
     return s;
   };
+  /**
+   * D75: a logged answer's funnel steps. An SQL choice item (the predict pretest, for one) counts as SQL, by its difficulty grade.
+   * A GA4 or Methodology question takes its own concept's topic, not its scheduling target's: a child concept's question can
+   * belong to another exam topic than its parent (Codex F31).
+   */
+  const funnelAnswer = (q: Question, attempt: AydinAttempt, correct: boolean): void => {
+    const own = q.section === 'sql' ? undefined : d.content.choiceItem?.(q.shape.id)?.concept_id;
+    const f = q.section === 'sql' ? sqlFunnel(q.difficulty ?? levelName(q.level)) : choiceFunnel(d.content, q.section, own ?? q.target_concept_id);
+    answered(f, attempt, correct ? 'passed' : 'failed');            // D76: with its exercise, time, confidence and mode
+  };
   const open = (id: string, q: Question, s: Shown) => d.openInstance(id, { item_id: q.shape.id, target_concept_id: q.target_concept_id,
     phase: s.phase, section: q.section, started_at: new Date(s.at).toISOString() });
   /**
@@ -311,6 +322,7 @@ export function mountChoice(app: Hono, d: RouteDeps, runs: DrillGate = NO_DRILLS
         const attempt = attemptOf({ id, q, s, i, b, at, grade, chosen, typed, confidence: exam ? null : confidence, runKind: run.plan.kind });
         await d.logger.attempt(attempt);
         logged = at;
+        funnelAnswer(q, attempt, grade.correct);                  // telemetry only: the learner sees nothing until the run's end
         const body: ChoiceSavedView = { saved: true, attempt_id: attempt.attempt_id };   // help waits: no correctness, key or explanation
         return c.json(body);
       }
@@ -320,6 +332,7 @@ export function mountChoice(app: Hono, d: RouteDeps, runs: DrillGate = NO_DRILLS
       const attempt = attemptOf({ id, q, s, i, b, at, grade, chosen, typed, confidence });
       await d.logger.attempt(attempt);
       logged = at;
+      funnelAnswer(q, attempt, grade.correct);
       await d.writeClose(id, grade.correct ? 'pass' : 'left');     // S2-61: one answer, then the instance closes
       shown.delete(id);
       const body: ChoiceAnswerView = { correct: grade.correct, ...reveal(q), error_ids: grade.error_ids, attempt_id: attempt.attempt_id };

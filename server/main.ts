@@ -1,5 +1,6 @@
 // server/main.ts: starts the local app. A working copy of the course database, the locked runner,
 // the self-checks, then HTTP on 127.0.0.1 only (design §11).
+import { stopTelemetry } from './telemetry.ts';                 // D75; the launcher and npm start preload it with --import
 import { serve } from '@hono/node-server';
 import { execFile } from 'node:child_process';
 import { chmod, copyFile, mkdir, readFile, stat } from 'node:fs/promises';
@@ -241,6 +242,7 @@ async function start(): Promise<void> {
     stopping = true;
     clearInterval(idle);
     await shutdown({ server, session, runner });
+    await stopTelemetry();                                     // D75: sends what is buffered; at most 2 seconds
     process.exit(code);
   };
   server.on('error', (e: NodeJS.ErrnoException) => {

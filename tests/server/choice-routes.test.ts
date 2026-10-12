@@ -6,6 +6,8 @@ import { mkdir, mkdtemp, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { Hono } from 'hono';
+import { trace } from '@opentelemetry/api';
+import { node, tracing } from '@opentelemetry/sdk-node';
 import { createApp, recoveredCloses, type AppDeps } from '../../server/app.ts';
 import { loadContent, targetOf } from '../../server/content.ts';
 import { openJsonlLog } from '../../core/jsonl.ts';
@@ -414,4 +416,18 @@ test('the server\'s answers fit the browser\'s types, and the browser calls the 
     { path: '/api/choice/answer', method: 'POST', body: { item_id: 'Q-GA4-901', item_instance_id: 'I-1', chosen: 'oabc1234', confidence: null, shown_order: ['oabc1234'], phase: 'free', active_ms: 10 } },
     { path: '/api/choice/show-answer', method: 'POST', body: { item_id: 'Q-GA4-901', item_instance_id: 'I-1', phase: 'free' } },
   ]);
+});
+
+test("D75 (Codex F31): a GA4 child question's funnel steps take its own concept's topic, not its parent's", async () => {
+  const spans = new tracing.InMemorySpanExporter();
+  new node.NodeTracerProvider({ spanProcessors: [new tracing.SimpleSpanProcessor(spans)] }).register();
+  const app = createApp(await deps());
+  const served = await json(show(app, 'Q-GA4-901', 'ga4'));
+  await trace.getTracer('test').startActiveSpan('POST /api/choice/answer', async (span) => {
+    await answer(app, { item_id: 'Q-GA4-901', item_instance_id: served.item_instance_id, chosen: served.shown_order[0], confidence: null, shown_order: served.shown_order });
+    span.end();
+  });
+  const [s] = spans.getFinishedSpans();
+  assert.equal(s!.attributes.case_theme, 'T-GA4-02', "the child concept's topic; its parent, the scheduling target, is T-GA4-01");
+  assert.equal(s!.events[0]!.name, 'exercise_submitted');
 });

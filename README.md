@@ -16,6 +16,19 @@ saying "wrong".
 | GA4 | Complete for the certification: 16 lessons and 123 questions (73 for practice and 20-question mini drills, 50 held out for 25-question half-mocks and 50-question full mocks), a readiness check, and 10 interview labs in Google's GA4 demo account, each re-checked a week later |
 | Methodology | 78 concepts, each with a reading: 51 metrics (marketing, retail, pricing and SaaS), 13 on experiments and A/B testing, 9 on statistics and 5 on pricing economics. 478 questions, 93 of them held out for mocks |
 
+## Study tracking with OpenTelemetry
+
+Optional, and off unless you turn it on. The app can send its own OpenTelemetry traces, metrics and logs to
+[Dash0](https://www.dash0.com/) or any OTLP backend. Every lesson opened and every answer graded becomes a funnel
+step with its section, exam topic and difficulty, and each answer carries the exercise, the time it took, which try
+it was, the help used and how sure the learner was. A dashboard then shows the studying as it happens: answers and
+pass rate, the funnel over time, pass rate by section and by confidence, time per exercise, and the app's own
+response times and errors.
+
+![A Dash0 dashboard built on the app's telemetry: lessons, answers and pass rate, the learning funnel over time, answers and pass rate by section, and time per answer](docs/screenshots/dash0-study-dashboard.png)
+
+[Telemetry with OpenTelemetry](#telemetry-with-opentelemetry-optional) lists what is sent and how to turn it on.
+
 ## How it teaches
 
 - **Graded on results, not on text.** The learner's SQL runs in DuckDB on a fictional
@@ -172,3 +185,93 @@ For generating content (see `docs/content/`):
 | `node tools/reserve-held-out.ts` | Reserves the held-out mock pool for GA4 and Methodology (`content/<section>/held-out.json`). Run it when the bank changes, then `npm run check:content`. `--extend --candidates <file> (--per-card <k> or --topic <T> --count <n> [--release-from <T1,T2>]) [--logs <dir>]` adds only the listed new items and releases only never-served held items, never moving a practised one. A candidate that is not in the bank or is already held refuses the run; an ineligible one is skipped and counted |
 | `npm run record:solver` | Grades the blind solver's answers and records them in the answer keys |
 | `npm run report:window` | Prints, per SQL concept, the first attempts in its mastery window by kind, how many qualify, and the concept's state. Counts only. Reads `logs/`, or the folder given after `--`; writes nothing |
+
+## Telemetry with OpenTelemetry (optional)
+
+The app can send OpenTelemetry traces, metrics and logs to [Dash0](https://www.dash0.com/), or to any
+backend that takes OTLP over HTTP. It is off by default: without a `.env` file the app makes no
+network call at all (owner decision D75).
+
+### What is instrumented
+
+| Signal | What | Where |
+|---|---|---|
+| Traces | One span for every request to the local server, named by its route (`POST /api/submit`, not `POST`) | Auto-instrumentation (`@opentelemetry/instrumentation-http`). `server/observe.ts` adds the Hono route |
+| Traces | The learning funnel as events on the request's span: `lesson_started`, `exercise_submitted`, `exercise_passed`, `exercise_failed` | `server/observe.ts`, called from the lesson, reading, submit and answer routes |
+| Traces | Errors: a 500's exception type (never its message or stack trace, which can hold local paths), and a submission the app could not grade because the SQL engine crashed | `recordError` and `markFailed` in `server/observe.ts` |
+| Traces and logs | Each answer's details on its `exercise_submitted` step (D76): the exercise ID, time spent, time target, which try, hints used, answer shown, confidence and mode | `answered()` in `server/observe.ts` |
+| Metrics | `http.server.request.duration` by route and status code, `aydinlearns.funnel.steps` (a count of each funnel step) and `aydinlearns.answer.time` (seconds per answer, by exercise, section, outcome, mode and confidence) | The HTTP instrumentation, and `server/observe.ts` |
+| Logs | One record for each funnel step, carrying its trace ID | `server/observe.ts` |
+
+Each funnel step carries three attributes:
+
+| Attribute | Values |
+|---|---|
+| `topic` | `SQL`, `GA4` or `Methodology` |
+| `case_theme` | SQL: `pricing`, the Voltmarkt pricing case world. GA4 and Methodology: the exam topic, such as `T-GA4-01` |
+| `difficulty` | SQL exercises: `E1` to `E3`. Lessons and GA4 and Methodology questions have no difficulty grade, so their level stands in: `L1` to `L7`, or `unrated` |
+
+Each answer's `exercise_submitted` step also carries:
+
+| Attribute | Meaning |
+|---|---|
+| `item_id` | The exercise, such as `EX-SQL-BASICS-01-E1-01` or `Q-GA4-014` (also on the request span) |
+| `time_spent_s` | Seconds from opening the exercise to submitting, including any time away from the screen. A later try counts from the first opening |
+| `time_target_s` | The exercise's time target, when it has one (SQL) |
+| `try_number`, `hints_used`, `answer_shown` | Which try this was, the highest hint used (SQL), and whether the answer was shown first |
+| `confidence` | The 1 to 4 rating asked before the result, when given |
+| `mode` | A timed run's kind (`mini_drill`, `half_mock`, `full_mock`), otherwise the phase (`free`, `review`, `mixed` and so on) |
+| `outcome` | `passed`, `failed` or `not graded` |
+
+The step counter never carries the exercise ID. The time metric does: with one learner and a bank of about 900 exercises,
+its series stay few.
+
+**Never sent:** SQL text, answers, question text, or personal data. What is sent about your studying is listed above. The service is
+described by three attributes only: `service.name=aydinlearns`, `service.version` (from
+`package.json`) and `deployment.environment.name=local`. The SDK's default detectors are off,
+because they would add the PC's name and the Windows username. Request spans carry the standard
+HTTP attributes: method, route, URL path (which can name a lesson or question ID), status code
+and the browser's user agent. The SQL runner, the child process that runs DuckDB, never sends
+anything.
+
+### Send it to Dash0
+
+1. In Dash0, copy the **OTLP via HTTP** endpoint from the settings (Endpoints), and create an auth
+   token. The endpoint depends on your organisation's region, such as
+   `https://ingress.europe-west4.gcp.dash0.com`. A token sent to another region's endpoint gets
+   `Unauthorized`.
+2. Copy `.env.example` to `.env` in this folder, and fill in `DASH0_OTLP_ENDPOINT` (without
+   `/v1/traces`) and `DASH0_AUTH_TOKEN`. Git ignores `.env`; never commit it.
+3. Start the app as usual, with `Start aydinlearns.bat` or `npm start`. The console prints
+   `telemetry on`, then `traces reach the endpoint` once Dash0 accepts the first batch. A wrong
+   endpoint or token prints `were not accepted`, with the reason.
+
+To turn it off, delete `.env` or empty either value. Any other OTLP/HTTP backend works the same
+way: a local OpenTelemetry Collector, for example, is `http://localhost:4318`. The token is sent
+as `Authorization: Bearer <token>`.
+
+### How it works
+
+| Part | What it does |
+|---|---|
+| `server/telemetry.ts` | Loads before the server (`node --import`), reads the two values, then removes them from the environment. The SQL runner is started without the flags that load `.env` and this file (`runnerExecArgv` in `server/runner/client.ts`), so it never gets the token. It registers OpenTelemetry's ES module loader hook, because the app is ES modules and the HTTP instrumentation could not patch `node:http` without it. It starts the Node SDK with OTLP/HTTP (protobuf) exporters, and sends what is buffered when the app stops (in 2 seconds at most). With either value missing it loads no SDK code |
+| `server/observe.ts` | The app's own calls: the funnel, the route names and the errors. Each is a no-op while telemetry is off, because the OpenTelemetry API does nothing until an SDK is registered |
+| `tools/launch.ts`, `npm start` | Start the server with `--env-file-if-exists=.env --import ./server/telemetry.ts` |
+
+### Dashboard
+
+The screenshot under [Study tracking with OpenTelemetry](#study-tracking-with-opentelemetry) is a Dash0 dashboard
+built on these signals and created through Dash0's API as a Perses dashboard. Its panels are PromQL. Dash0 writes
+attribute names with underscores (`http.route` becomes `http_route`) and keeps the metric's own name in
+`otel_metric_name`. The pass rate, for example:
+
+```promql
+100 * sum(increase({otel_metric_name="aydinlearns.funnel.steps", funnel_step="exercise_passed"}[$__range]))
+    / sum(increase({otel_metric_name="aydinlearns.funnel.steps", funnel_step=~"exercise_passed|exercise_failed"}[$__range]))
+```
+
+and the time spent on each exercise:
+
+```promql
+histogram_sum(sum by (item_id) (increase({otel_metric_name="aydinlearns.answer.time"}[$__range])))
+```

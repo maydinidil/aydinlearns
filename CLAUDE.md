@@ -44,7 +44,7 @@ the SQL learner-facing backlog, merged in PR #41 (2026-10-08). Open deferred wor
 complete, polish, release 1.0) merged in PR #42 and was released as 1.0 (tag `v1.0.0` on the
 public repo, 2026-10-08), and 5b (GA4 complete, release 1.1) merged in PR #43, followed by a hygiene PR (plan
 [`docs/superpowers/plans/2026-10-09-aydinlearns-hygiene-1-1.md`](docs/superpowers/plans/2026-10-09-aydinlearns-hygiene-1-1.md):
-Codex F27 and ten backlog rows) before the 1.1 release; read the roadmap first. The app's version is in `package.json` (1.1.0); later sprints ship as 1.x releases (D63).
+Codex F27 and ten backlog rows) before the 1.1 release; read the roadmap first. Release 1.2 (2026-10-12) added the optional OpenTelemetry (D75, D76; PRs #45 and #46). The app's version is in `package.json` (1.2.0); later sprints ship as 1.x releases (D63).
 - Slice 0: the domain-free types in `core/`, the app schemas in `schemas/`, the curriculum and
   error catalogue extracted into `content/sql/`, and the adjudicated fixes in
   `knowledge/ERRATA.md`. `knowledge/` itself still holds the research bank: 12 files (00 to 11), plus an index and a
@@ -240,12 +240,14 @@ Derived from design §3. The "why" is the part worth keeping.
 | Shared engine | `core/` holds domain-free code with no SQL imports. aydindutch copies it later | A root package would break when either project moves to `archive/` |
 | Attempt log | Append-only JSONL under `logs/`, gitignored, with an automatic backup | Safe whatever the repo's visibility |
 | IDs | `SQL-*` (01) and the GA4 IDs (06) are the masters; Methodology IDs are minted in slice 0 | Review #4 |
+| Telemetry (D75, 2026-10-12) | Optional OpenTelemetry over OTLP/HTTP (`server/telemetry.ts`, `server/observe.ts`), on only when `.env` sets `DASH0_OTLP_ENDPOINT` and `DASH0_AUTH_TOKEN`. Funnel attributes `topic`, `case_theme`, `difficulty`; never a query, an answer or personal data; no host or process resource detectors. The runner never starts it. D76 (2026-10-12): each answer also sends its exercise ID, time spent and target, try, hints, answer shown, confidence and mode; the exercise ID goes on spans, logs and the `aydinlearns.answer.time` histogram, never on the step counter | A portfolio piece for observability roles. A clone without `.env` stays fully offline |
 
 ## Ask before
 
 - Changing a locked decision, the grading semantics or the log schema. The log schema carries a
   `schema_version`. Grading changes run the grader test suite.
-- Adding runtime AI, or any network call from the app.
+- Adding runtime AI, or any network call from the app. The opt-in telemetry of D75 is the one exception;
+  widening what it sends (a new attribute, signal or detector) is a change to ask about too.
 - Installing packages, downloading datasets or contacting any external service. Every download
   is triggered by Aydin.
 - Upgrading DuckDB (including to 2.0), ts-fsrs or the FSRS model, or switching on fitted weights.

@@ -12,6 +12,7 @@ import type { ConceptStateName } from '../../core/states.ts';
 import type { ChoiceSection } from '../../schemas/choice.ts';
 import type { RouteDeps } from '../app.ts';
 import { choiceParents, choicePool } from '../session-composer.ts';
+import { choiceFunnel, funnel } from '../observe.ts';
 
 /** A 10 concept on the map, under its 06 parent: taught in the parent's reading and practised on its card (E-110, E-117). */
 export interface ChoiceChildView { id: string; title: string; topic_id: string; verified: boolean }
@@ -45,6 +46,7 @@ export function mountSections(app: Hono, d: RouteDeps): void {
     if (!SECTIONS.includes(section as ChoiceSection)) throw refuse(400, 'Readings are for ga4 or methodology.');
     const x = d.content.reading?.(section as ChoiceSection, c.req.param('id'));
     if (!x) throw refuse(404, 'This concept has no reading yet. Its practice is open on the map.');
+    funnel('lesson_started', choiceFunnel(d.content, x.section, x.concept_id));     // D75: a GA4 or Methodology reading is its lesson
     const body: ReadingView = { concept_id: x.concept_id, section: x.section, version: x.version, title: x.title, reading_md: x.reading_md, verified: x.verified, as_of: x.as_of };
     return c.json(body);
   });

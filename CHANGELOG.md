@@ -10,6 +10,33 @@ come from git.
 1.0.0 is the first release. Slices 0 and 1a are the first application code; the entries before
 them are research and planning.
 
+## 1.2.0 (2026-10-12)
+
+Study tracking with OpenTelemetry, optional and off by default. With a `.env` that names an OTLP endpoint and a
+token, the app sends traces, metrics and logs: the learning funnel, each answer's exercise, time and help, and its
+own request times and errors. The README's "Study tracking with OpenTelemetry" section shows a Dash0 dashboard
+built on them. Without a `.env` the app makes no network call, as before.
+
+### Added
+
+- Optional OpenTelemetry (owner decision D75): traces, metrics and logs over OTLP/HTTP to Dash0 or
+  any OTLP backend, switched on by `DASH0_OTLP_ENDPOINT` and `DASH0_AUTH_TOKEN` in a `.env` file
+  (see `.env.example`). Without them the app stays fully offline, as before. Request spans are
+  named by route, the learning funnel (`lesson_started`, `exercise_submitted`, `exercise_passed`,
+  `exercise_failed`) carries `topic`, `case_theme` and `difficulty`, and a grading crash or a
+  500 shows as an error. No query, answer or personal data is sent. The README's "Telemetry with
+  OpenTelemetry" section has the details.
+- Codex's PR #45 findings, fixed before the merge: the SQL runner no longer inherits the flags that
+  load `.env` and start telemetry (F29); a 500 sends only its exception type, never a message or stack
+  trace that could hold a local path (F30); a GA4 sub-question's answers take its own exam topic (F31).
+- Each answer's details in the telemetry (owner decision D76): the exercise ID, time spent and target, which
+  try, hints used, answer shown, confidence and mode, on the `exercise_submitted` step's span event and log
+  record, and a new `aydinlearns.answer.time` histogram (seconds, by exercise, section, outcome, mode and
+  confidence) for per-exercise dashboards.
+- Nine OpenTelemetry packages, pinned exactly: `@opentelemetry/api` 1.9.1, `core` 2.11.0, and
+  `api-logs`, `sdk-node`, `instrumentation`, `instrumentation-http` and the three
+  `exporter-*-otlp-proto` packages at 0.222.0.
+
 ## 1.1.0 (2026-10-09)
 
 GA4 complete. The GA4 section now has everything the certification and a GA4 interview need:

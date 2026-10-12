@@ -3,6 +3,66 @@
 Append-only log of findings raised by the Codex PR reviewer, each with an independent verdict.
 Newest review first.
 
+## PR #45: optional OpenTelemetry to Dash0, D75 (reviewed 2026-10-12)
+
+Codex left three line comments on commit `a4714ef`: two P1, one P2. All three are confirmed and fixed
+on the same branch before the merge, at the owner's word ("fix, merge, set up, no review after the
+fixes"). Nothing harmful was sent before the fixes: the runner's own telemetry ran only in a short
+local test, and no 500 reached Dash0.
+
+### F29: The SQL runner rereads .env and starts its own telemetry
+
+**P1 · `server/telemetry.ts:75` · Verdict: CONFIRMED · Status: FIXED 2026-10-12**
+
+The claim: `fork()` in `server/runner/client.ts` passes the server's `execArgv` on, including
+`--env-file-if-exists=.env` and `--import ./server/telemetry.ts`, so the runner reloads `.env` after
+the server deleted the two values and starts telemetry with the token. That breaks the promise that
+the runner stays offline.
+
+What I found: correct. Started with the real flags (as the launcher and `npm start` do), the server
+printed "telemetry on" twice: once for the server, once for the runner. The earlier local test passed
+the values through the environment instead of `--env-file-if-exists`, so it never saw this.
+
+**Fix:** the runner is forked with `runnerExecArgv(process.execArgv)` (`server/runner/client.ts`),
+which drops `--env-file`, `--env-file-if-exists` and the telemetry `--import` in both their forms and
+keeps every other flag (the browser smoke test's preloads still reach the runner).
+`tests/server/observe.test.ts` pins the filter; removing the `=` form of the check turns it red. Run
+with the real flags on this machine, the server now prints "telemetry on" once.
+
+### F30: A 500's exception could send local paths, and with them a username
+
+**P1 · `server/observe.ts:61` · Verdict: CONFIRMED · Status: FIXED 2026-10-12 (unverified against a real 500 sent to Dash0)**
+
+The claim: `recordException(e)` exports the stack trace and the message; on a usual Windows install
+the checkout path holds the username, and messages can hold file paths. That contradicts "no
+personal data".
+
+What I found: correct. The owner's checkout (`C:\zehirlab`) holds no username, but a clone under
+`C:\Users\<name>\` would send it with any 500.
+
+**Fix:** `recordError` adds an `exception` event with `exception.type` only and sets the status
+message to "unexpected server error (<type>)". No message, no stack trace. The test now throws an
+error whose message holds a made-up user path and checks that nothing of it reaches the span;
+putting `recordException` back turns it red. README updated.
+
+**Still unproven:** the app has no request that reliably returns a 500, so no real 500 has been sent
+to Dash0. The unit test runs the same function on the same span API.
+
+### F31: A GA4 sub-question's answers take its parent concept's exam topic
+
+**P2 · `server/routes/choice.ts:207` · Verdict: CONFIRMED · Status: FIXED 2026-10-12**
+
+The claim: `funnelAnswer` passes the scheduling target (a 10 concept's 06 parent) to `choiceFunnel`,
+so `case_theme` can be the wrong exam topic.
+
+What I found: correct for 6 of the 123 GA4 items, Q-GA4-240 to Q-GA4-245, whose topic differs from
+their parent concept's. No item's topic differs from its own concept's.
+
+**Fix:** the theme and level come from the question's own concept
+(`d.content.choiceItem(...).concept_id`); the target stays for scheduling only. A new test in
+`tests/server/choice-routes.test.ts` answers the fixture's child-concept question and expects the
+child's topic; passing the target again turns it red.
+
 ## PR #43: sprint 5b, GA4 complete, release 1.1 (reviewed 2026-10-09, merged 2026-10-09)
 
 Codex left two line comments on commit `a5647b4`, both P2, both on the readiness check (D70). The

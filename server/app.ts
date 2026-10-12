@@ -40,6 +40,7 @@ import { mountProgress } from './routes/progress.ts';
 import { mountLabs } from './routes/labs.ts';
 import { mountExplore, EXPLORE_RUN_PATH } from './routes/explore.ts';
 import { HELP_WAITS, NO_DRILLS, RUN_OVER, type DrillGate, type DrillRuns } from './drill.ts';
+import { answered, funnel, httpRoute, levelName, markFailed, recordError, sqlFunnel } from './observe.ts';
 
 /**
  * The settings replayed from the events file (server/main.ts). `portfolio_folder` (D35, log version 4) is set by main.ts; it is
@@ -548,10 +549,14 @@ export function createApp(d: AppDeps): Hono {
 
   // A refusal may carry a `code` a screen can match on, where the message text is only for the learner (Task B3 M1).
   app.onError((e, c) => {
-    if (!(e instanceof HTTPException)) return c.json({ error: e.message }, 500);
+    if (!(e instanceof HTTPException)) {
+      recordError(e);                                            // D75: the exception goes on the request's span
+      return c.json({ error: e.message }, 500);
+    }
     const code = (e as { code?: unknown }).code;
     return c.json({ error: e.message, ...(typeof code === 'string' ? { code } : {}) }, e.status);
   });
+  app.use('*', httpRoute);                                     // D75: spans named by route; a no-op while telemetry is off
   app.use('*', securityMiddleware(d.port, d.devOrigin));
 
   app.get('/api/status', (c) => {
@@ -595,8 +600,11 @@ export function createApp(d: AppDeps): Hono {
   });
   app.get('/api/lessons/:id', (c) => {
     const l = d.content.lesson(c.req.param('id'));
+    if (!l) return c.json({ error: 'Unknown lesson.' }, 404);
+    // D75: the lesson screen loads its lesson here; a lesson has no difficulty grade, so its concept's level stands in.
+    funnel('lesson_started', sqlFunnel(levelName(d.content.curriculum.concepts.find((x) => x.id === l.concept_id)?.level)));
     // S3-17: the pretest the lesson screen walks is the composer's: with a predict item, the first write item, then that item.
-    return l ? c.json({ ...l, pretest_item_ids: pretestItemIds(d.content, l.concept_id) }) : c.json({ error: 'Unknown lesson.' }, 404);
+    return c.json({ ...l, pretest_item_ids: pretestItemIds(d.content, l.concept_id) });
   });
   app.get('/api/items/:id', (c) => {
     const item = d.content.item(c.req.param('id'));
@@ -668,6 +676,9 @@ export function createApp(d: AppDeps): Hono {
       };
       await d.logger.attempt(attempt);
       logged = at;
+      // D75, D76: a logged attempt with its exercise, time and help; a graded one passed or failed.
+      answered(sqlFunnel(item.difficulty), attempt, r.outcome === 'pass' ? 'passed' : r.graded ? 'failed' : 'not graded');
+      if (r.outcome === 'crash') markFailed(r.notes[0] ?? 'grading crashed');   // a fixed note, never the runner's own message
       if (r.graded) i.lastGraded = attempt;
       return c.json({ ...r, attempt_id: attempt.attempt_id });
     } finally {

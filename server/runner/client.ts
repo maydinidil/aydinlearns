@@ -63,7 +63,7 @@ export async function startRunner(dbPath: string, opts: { graceMs?: number; useP
 
   /** Forks a child, makes it the live one, and resolves once it reports ready. */
   const spawn = (): Promise<void> => new Promise((resolve, reject) => {
-    const c = fork(childPath, args, { stdio: ['ignore', 'inherit', 'inherit', 'ipc'] });
+    const c = fork(childPath, args, { stdio: ['ignore', 'inherit', 'inherit', 'ipc'], execArgv: runnerExecArgv(process.execArgv) });
     live = c;
     let started = false;
     let wasReady = false;
@@ -170,4 +170,22 @@ export async function startRunner(dbPath: string, opts: { graceMs?: number; useP
     },
     get restarts() { return restarts; },
   };
+}
+
+/**
+ * The server's Node flags for the runner, without the ones that load .env or preload telemetry (D75, Codex F29). fork() passes
+ * the parent's flags on, so the runner would otherwise reread .env, get the token back and start its own telemetry. The runner
+ * stays offline (R17); every other flag (a test's preloads, for one) still reaches it.
+ */
+export function runnerExecArgv(argv: readonly string[]): string[] {
+  const out: string[] = [];
+  for (let i = 0; i < argv.length; i++) {
+    const a = argv[i]!;
+    if (a === '--env-file' || a === '--env-file-if-exists') { i++; continue; }          // the path follows as its own argument
+    if (a.startsWith('--env-file=') || a.startsWith('--env-file-if-exists=')) continue;
+    if (a === '--import' && /telemetry.ts$/.test(argv[i + 1] ?? '')) { i++; continue; }
+    if (/^--import=.*telemetry.ts$/.test(a)) continue;
+    out.push(a);
+  }
+  return out;
 }

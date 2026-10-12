@@ -2442,11 +2442,11 @@ async function main(): Promise<number> {
         return 'G-GA4-CERT shows its named-concepts line at "0 of 12" with nothing practised';
       });
 
-      await row('5a-5', 'Settings shows version 1.1.0', async () => {
+      await row('5a-5', 'Settings shows version 1.2.0', async () => {
         await p.goto(`${BASE}/#/setup`);
         await p.getByRole('heading', { name: 'Settings and setup', level: 1 }).waitFor();
-        await p.getByText('Version 1.1.0', { exact: true }).waitFor();
-        return 'Settings and setup shows "Version 1.1.0"';
+        await p.getByText('Version 1.2.0', { exact: true }).waitFor();
+        return 'Settings and setup shows "Version 1.2.0"';
       });
 
       await row('5a-3', 'an A/B SQL item passes with its reference query', async () => {

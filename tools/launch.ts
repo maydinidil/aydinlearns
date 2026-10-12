@@ -179,7 +179,8 @@ async function main(): Promise<number> {
   }
   console.log(`\nStarting aydinlearns. It opens at ${url}`);
   console.log('Keep this window open while you study. Close it, or press Ctrl+C, to stop: the session ends and the backup runs first.\n');
-  const server = spawn(process.execPath, ['server/main.ts'], { cwd: ROOT, stdio: 'inherit' });
+  // D75: .env, when there is one, may turn on telemetry; telemetry.ts loads first so it can instrument the server.
+  const server = spawn(process.execPath, ['--env-file-if-exists=.env', '--import', './server/telemetry.ts', 'server/main.ts'], { cwd: ROOT, stdio: 'inherit' });
   // Ctrl+C reaches the server too. The launcher waits for it to finish its shutdown instead of dying first.
   process.on('SIGINT', () => {});
   let exited = false;
