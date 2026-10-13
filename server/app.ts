@@ -41,6 +41,8 @@ import { mountLabs } from './routes/labs.ts';
 import { mountExplore, EXPLORE_RUN_PATH } from './routes/explore.ts';
 import { HELP_WAITS, NO_DRILLS, RUN_OVER, type DrillGate, type DrillRuns } from './drill.ts';
 import { answered, funnel, httpRoute, levelName, markFailed, recordError, sqlFunnel } from './observe.ts';
+import { journey, journeyScreen } from './journey.ts';
+import { JOURNEY_PATH, SCREENS, SUBJECT_ID, type Screen } from '../schemas/journey.ts';
 
 /**
  * The settings replayed from the events file (server/main.ts). `portfolio_folder` (D35, log version 4) is set by main.ts; it is
@@ -579,6 +581,8 @@ export function createApp(d: AppDeps): Hono {
   };
   app.use('/api/*', async (c, next) => {
     if (degraded) return c.json({ error: 'The app is in setup mode. See the setup screen.', setup_required: true, checks: d.checks }, 503);
+    // A screen view (D77) never touches the log, so it is recorded whether or not the log can be written, and starts no session.
+    if (c.req.path === JOURNEY_PATH) return next();
     if (!d.logger.writable) {
       // Design §18: grading stops until the log can be written again, so no attempt is lost silently.
       if (c.req.method !== 'GET') return c.json({ error: 'The log cannot be written, so grading is paused. See the setup screen.' }, 503);
@@ -608,7 +612,10 @@ export function createApp(d: AppDeps): Hono {
   });
   app.get('/api/items/:id', (c) => {
     const item = d.content.item(c.req.param('id'));
-    if (item) return c.json({ item: publicItem(item, c.req.query('stage'), d.content.key(item.id)?.other_way != null), schemaNotes: d.schemaNotes.filter((n) => n.schema === item.schema) });
+    if (item) {
+      journey('item_viewed', { item_id: item.id, ...sqlFunnel(item.difficulty) });     // D77: the exercise was sent
+      return c.json({ item: publicItem(item, c.req.query('stage'), d.content.key(item.id)?.other_way != null), schemaNotes: d.schemaNotes.filter((n) => n.schema === item.schema) });
+    }
     // A GA4 or Methodology question typed into the SQL item URL (a held-out one, S2-64): named, never served here (Task C8).
     return c.json({ error: d.content.choiceItem?.(c.req.param('id')) ? 'This question is not available for practice.' : 'Unknown item.' }, 404);
   });
@@ -822,6 +829,16 @@ export function createApp(d: AppDeps): Hono {
     endBackup = null;
     await d.session.end('explicit');                         // runs the end hooks when a session was open
     return c.json({ ok: true, backup: endBackup ?? await backup() });
+  });
+  // D77: the screen the browser shows, for the study journey. It writes nothing to the logs and opens no study session (the
+  // middleware above lets it pass without touch()). A screen the app does not know is refused, and so is a subject that is not a
+  // plain ID (SUBJECT_ID): the subject is not looked up in the content.
+  app.post(JOURNEY_PATH, async (c) => {
+    const b = await readBody(c);
+    if (b.event !== 'screen_viewed' || !SCREENS.includes(b.screen as Screen)) throw refuse(400, 'Unknown screen.');
+    if (b.subject_id !== undefined && (typeof b.subject_id !== 'string' || !SUBJECT_ID.test(b.subject_id))) throw refuse(400, 'Unknown subject.');
+    journeyScreen(b.screen as Screen, b.subject_id as string | undefined);
+    return c.json({ ok: true });
   });
   app.post('/api/settings', async (c) => {
     const b = await readBody(c);

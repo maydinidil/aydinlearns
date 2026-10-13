@@ -19,7 +19,7 @@ saying "wrong".
 ## Study tracking with OpenTelemetry
 
 Optional, and off unless you turn it on. The app can send its own OpenTelemetry traces, metrics and logs to
-[Dash0](https://www.dash0.com/) or any OTLP backend. Every lesson opened and every answer graded becomes a funnel
+[Dash0](https://www.dash0.com/) or any OTLP backend. Every lesson opened and every exercise answer graded becomes a funnel
 step with its section, exam topic and difficulty, and each answer carries the exercise, the time it took, which try
 it was, the help used and how sure the learner was. A dashboard then shows the studying as it happens: answers and
 pass rate, the funnel over time, pass rate by section and by confidence, time per exercise, and the app's own
@@ -28,6 +28,94 @@ response times and errors.
 ![A Dash0 dashboard built on the app's telemetry: lessons, answers and pass rate, the learning funnel over time, answers and pass rate by section, and time per answer](docs/screenshots/dash0-study-dashboard.png)
 
 [Telemetry with OpenTelemetry](#telemetry-with-opentelemetry-optional) lists what is sent and how to turn it on.
+
+## Your study journey
+
+The app keeps every visit as one ordered journey (owner decision D77): the screens shown, the exercises sent and
+answered, the help used, timed runs, cases, labs, review cards and each concept's state as it changes. It stays on
+this computer, and `npm run journey` loads it into DuckDB for analysis in SQL. With telemetry on, the same events also
+go to Dash0.
+
+A **visit** starts with its first event and ends after 30 minutes with nothing happening, or when the app stops. No
+timer watches the gap: the first event after it writes the end of the visit before it, stamped with that visit's last
+activity, and then starts a new visit. A visit is not the app's study session: opening screens never starts a study
+session, and the study session's own start and end show in the journey as two events of their own.
+
+One exception: when you come back after 30 minutes away and the first thing the journey records is a screen view or a
+page read (a GET), before the app's once-a-minute check has ended the old study session, the new visit opens first, so
+that study session's `study_session_ended` and everything its end writes (its `item_closed`, a leech reset's
+`review_card_changed`, and the `concept_state_changed` they cause) land in the new visit, at the new visit's time. The logs, the replay and your study history are not
+affected.
+
+Each event is one line with its time (`ts`), its visit (`session_id`), its place in the visit (`seq`), its name
+(`event`), the app's version (`app_version`) and the line's format (`v`, now 1), plus what the table below lists. The
+time is when the app recorded what happened; an event taken from the app's own log carries that record's time. An
+event is never stamped before the visit's latest event, nor later than the moment it is written, so a visit ordered by
+`ts` and then `seq` reads in the order its events were sent.
+
+| Event | When | What it carries |
+|---|---|---|
+| `session_started` | A visit starts | `reason`: `app_start` for the first visit since the app started, or `idle` after a gap, with the visit before it (`previous_session_id`) |
+| `session_ended` | A visit ends: written by the first event after 30 idle minutes, or when the app stops | `reason`: `idle` (also when the app stops more than 30 minutes after the visit's last event) or `app_stop`; `duration_s` (first event to last) and `event_count` (the events between its start and end). Stamped with the visit's last activity |
+| `screen_viewed` | The browser shows a screen, outside setup mode. It is recorded even while the log cannot be written | `screen`, the screen before it in the visit (`from_screen`), and the exercise, concept, case or lab in the address (`subject_id`) |
+| `lesson_started` | A SQL lesson, or a GA4 or Methodology reading, opens | `topic`, `case_theme`, `difficulty`, `funnel_step` |
+| `item_viewed` | An exercise is sent to the browser. A screen may fetch one twice as it opens, and a drill or a practice run sends all its questions at its start, so this counts sends, not looks | `item_id`, `topic`, `case_theme`, `difficulty`, and for a multiple-choice question (GA4, Methodology, or an SQL predict or choose item) or a case checkpoint (CP1, CP2, CP4, CP5) the `phase` |
+| `exercise_submitted` | An answer is checked | `item_id`, `time_spent_s`, `time_target_s`, `try_number`, `hints_used`, `answer_shown`, `confidence`, `mode` and `outcome` (`passed`, `failed` or `not graded`), with `topic`, `case_theme`, `difficulty` and `funnel_step` |
+| `exercise_passed`, `exercise_failed` | A graded answer passes or fails | `item_id`, `topic`, `case_theme`, `difficulty`, `funnel_step` |
+| `hint_opened`, `answer_shown`, `other_way_opened` | A hint, "Show answer" or "Other ways to write this" opens | `item_id`, `concept_id`, `topic`, `phase`, whether it reviews a mistake card (`review`; a scheduled review shows as `phase` `review`), and a hint's `hint_level` |
+| `item_closed` | An exercise is closed: left, finished, or at a session's end | `item_id`, `concept_id`, `topic`, `phase`, `reason`, `graded_attempts`, `passed`, `first_attempt_pass`, `max_hint_level`, `active_s`, `rating` |
+| `material_studied` | A reading, worked example or lesson is studied | `concept_id`, `topic`, `kind` |
+| `run_started`, `run_finished` | The run screen starts a timed run, or ends it (its end button, or its clock at zero): a GA4 mini drill, half-mock or full mock, a SQL drill or a live rep. A run the app ends by itself, with its screen closed or at the app's stop, has no `run_finished` | `section`, `run_kind`, `block_id`; at the start `questions`, and for SQL `screen_mode` and a level drill's `level`; at the end `score_pct`, a level drill's `level`, and `run_passed` for every run but a live rep, whose pass waits for its "explained aloud" tick after the end (a `case_self_check`) |
+| `case_opened`, `case_self_check`, `case_exported` | The case screen loads a case, a self-check is logged, or the case goes to the portfolio. The case screen loads its case again after each step is saved or answered, so `case_opened` counts loads, not opens; `screen_viewed` with `screen` `case` or `opener` counts opens | `case_id`; a self-check's `kind` and `phase`; an export's `data_source` |
+| `lab_opened`, `lab_answered` | A GA4 lab opens, or its answers are checked | `lab_id`; an answer's `kind` (`first` or `recheck`) |
+| `review_card_changed` | A review card is paused, resumed, reset or retired | `card_id`, `kind` |
+| `concept_state_changed` | A concept's state changes after an answer, a close, a reading or a card change | `concept_id`, `topic`, `state_from`, `state_to` |
+| `study_session_started`, `study_session_ended` | The app's study session starts or ends. A session the last run left open, which the app ends as it starts, is not in the journey | The end: `reason` (`explicit` or `idle`) and `active_minutes`. The start carries only the fixed fields |
+
+`concept_id` and its `topic` are there only for a concept the content knows; any other value is left out. The four
+learning funnel steps (`lesson_started`, `exercise_submitted`, `exercise_passed`, `exercise_failed`) carry
+`funnel_step`, which repeats the event's name.
+
+**Where it is kept.** In `journey/events-YYYY-MM.jsonl`, one file a month, in this folder. Git ignores `journey/`, so it
+is never committed. It is on by default, and two lines in `.env` change that:
+
+| Setting | What it does |
+|---|---|
+| `AYDINLEARNS_JOURNEY=off` | Writes no journey file; `false`, `0` and `no` do the same. With telemetry on, the events still go to Dash0. Any other word leaves the file on, and the app says so when it starts |
+| `AYDINLEARNS_JOURNEY_DIR=<folder>` | Keeps the journey in another folder. `npm run journey` reads the same setting. A server started on a temporary logs folder (`AYDINLEARNS_LOGS_DIR`, as the tests do) writes no journey file unless this names a folder too |
+
+A journey folder that cannot be written never stops the app: the event is not kept, the console says so once, and the
+next event tries the file again.
+
+**How to analyse it.**
+
+| Command | What it does |
+|---|---|
+| `npm run journey` | Rebuilds `journey/journey.duckdb` from the files and prints every starter view, 10 rows each. With no journey folder yet, it says so and changes nothing. It reads the files with `AYDINLEARNS_JOURNEY=off` too |
+| `npm run journey -- --sql "SELECT * FROM paths"` | Runs one query of your own on the `events` table and the views, instead of printing the views, and prints up to 50 rows. The query runs in a copy held in memory, and cannot read or write any file or change a setting |
+| `npm run journey -- --csv` | Also writes each starter view to `journey/out/<view>.csv`, and says how many of the 12 it wrote. A file it cannot write (one open in Excel, say) is named, the others are still written, and the command ends with exit code 1 |
+
+Times show in Amsterdam time. A line the command cannot read (not JSON, without the fixed fields, or with a time
+DuckDB cannot read) is skipped, and the count is printed. The database is rebuilt from the files on every run, so never
+edit it; for anything more, open it in any DuckDB 1.5 client. The twelve starter views, in `tools/journey-views.sql`:
+
+| View | What it shows |
+|---|---|
+| `sessions` | Each visit: when it started, its minutes, screens, answers, passes, help used and last screen |
+| `funnel` | How many visits opened a screen, started studying, answered an exercise and passed one, with the share of the first step |
+| `paths` | Each move from one screen to the next inside a visit, and how often it happened |
+| `exits` | The last screen of each visit, and how many visits ended there |
+| `screen_time` | Each screen's views, and the median seconds and total minutes on it until the next screen or the visit's last event |
+| `items` | Each exercise: the visits it was sent to the browser in (`visits_opened`; a drill's unreached questions count too), answers, passes, times left without an answer, hints, answers shown and minutes spent on answers. An answer's time runs from opening the exercise, so a later try adds only its time since the try before, and each exercise's time counts once |
+| `help_and_results` | The pass rate of graded answers by hints used and whether the answer was shown first |
+| `confidence` | The pass rate of graded answers by the confidence given before the result (1 to 4) |
+| `time_of_day` | Answers and their pass rate by hour of the day |
+| `days` | Each day's visits, answers, passes and minutes spent on answers, counted as in `items` |
+| `mastery` | Each concept state change, in time order |
+| `runs` | Each timed run: its section, kind, start, first finish, minutes, score and result (none for a live rep) |
+
+**Never kept:** an exercise's text, a query, an answer, a note, a self-check's or lab's own words, a portfolio export's
+file paths, or personal data. The events carry IDs, counts, times, outcomes and screen names only.
 
 ## How it teaches
 
@@ -76,14 +164,15 @@ checked before they ship: 14,994 automated content checks, and a blind solver (a
 that solves every exercise without seeing its answer key). The design, the plans, every ruling
 and the review logs are in `docs/`.
 
-Today: 1,944 automated tests, 96 data pipeline tests, 14,994 content checks and a 63-row browser smoke test, all passing.
+Today: 2,005 automated tests, 96 data pipeline tests, 14,994 content checks and a 64-row browser smoke test, all passing.
 
 ## Status
 
-Version 1.1 (2026-10-09). Built: SQL levels 1 to 3 with the scheduler, Today, drills, level
+Version 1.3 (2026-10-13). Built: SQL levels 1 to 3 with the scheduler, Today, drills, level
 openers, cases and the inbox, mistake cards, the portfolio export, the Progress screen, the
 dataset explorer and screen mode; GA4 complete (lessons, mini drills, half-mocks, full mocks,
-the readiness check and the interview labs); Methodology complete. Later 1.x releases add SQL
+the readiness check and the interview labs); Methodology complete; optional telemetry (1.2) and
+the study journey (1.3). Later 1.x releases add SQL
 levels 4 to 7, more companies and real datasets, and the recruiter mocks. See
 `docs/planning/roadmap.md` and `CHANGELOG.md`.
 
@@ -131,9 +220,10 @@ The app itself:
 | `web/` | The screens: Today, the maps, lessons, exercises, timed runs, and settings and setup |
 | `content/` | The SQL, GA4 and Methodology curricula, lessons and exercises, and their answer keys (`content/keys/`) |
 | `pipeline/` | The Python build for the Voltmarkt course database |
-| `tools/` | The content checks, the ERRATA check, the import check, the curriculum extractor, the blind-solver tools and the launcher (`tools/launch.ts`) |
+| `tools/` | The content checks, the ERRATA check, the import check, the curriculum extractor, the blind-solver tools, the launcher (`tools/launch.ts`) and `npm run journey` (`tools/journey.ts`, with its views in `tools/journey-views.sql`) |
 | `tests/` | The test suite, plus the browser smoke test in `tests/e2e/` |
 | `data/`, `logs/` | The built course database and the attempt log. Git ignores both; the log is backed up to the folder chosen in Settings after each session |
+| `journey/` | The [study journey](#your-study-journey) (D77) and the database `npm run journey` builds from it. Git ignores it |
 
 Design §11 has the full layout.
 
@@ -169,7 +259,7 @@ To check and build from clean, run these in order:
 | `npm run check:errata` | Checks `knowledge/ERRATA.md` |
 | `npm run check:content` | Runs the content checks on every lesson and exercise, including the blind solver records |
 | `npm run build:web` | Builds the screens into `web/dist`, which `npm start` serves |
-| `npm run test:e2e` | The browser smoke test. It starts its own server on port 5174, or on `AYDINLEARNS_PORT` when that is set, so stop `npm start` first or use another port. It starts from an empty temporary log and never writes to the real `logs/` |
+| `npm run test:e2e` | The browser smoke test. It starts its own server on port 5174, or on `AYDINLEARNS_PORT` when that is set, so stop `npm start` first or use another port. It starts from an empty temporary log and a temporary journey folder, and never writes to the real `logs/` or `journey/` |
 
 For generating content (see `docs/content/`):
 
@@ -201,7 +291,9 @@ network call at all (owner decision D75).
 | Traces | Errors: a 500's exception type (never its message or stack trace, which can hold local paths), and a submission the app could not grade because the SQL engine crashed | `recordError` and `markFailed` in `server/observe.ts` |
 | Traces and logs | Each answer's details on its `exercise_submitted` step (D76): the exercise ID, time spent, time target, which try, hints used, answer shown, confidence and mode | `answered()` in `server/observe.ts` |
 | Metrics | `http.server.request.duration` by route and status code, `aydinlearns.funnel.steps` (a count of each funnel step) and `aydinlearns.answer.time` (seconds per answer, by exercise, section, outcome, mode and confidence) | The HTTP instrumentation, and `server/observe.ts` |
-| Logs | One record for each funnel step, carrying its trace ID | `server/observe.ts` |
+| Logs | One record for each funnel step, carrying its trace ID. Since D77 it is the step's journey event (the next row) | `funnel()` in `server/observe.ts`, through `server/journey.ts` |
+| Logs and traces | Every [study journey](#your-study-journey) event (D77) as a log record named by `event.name`, with `session.id` (the visit) and `session.seq`, so one visit can be followed in the log explorer. The request's span carries `session.id` too. A visit's end (`session_ended`) belongs to no request, so its record carries no trace ID | `server/journey.ts` |
+| Metrics | `aydinlearns.journey.events` (a count of each journey event, labelled `event`, and `screen` or `topic` when the event has one) and the histogram `aydinlearns.session.duration` (seconds per visit) | `server/journey.ts` |
 
 Each funnel step carries three attributes:
 
@@ -209,7 +301,7 @@ Each funnel step carries three attributes:
 |---|---|
 | `topic` | `SQL`, `GA4` or `Methodology` |
 | `case_theme` | SQL: `pricing`, the Voltmarkt pricing case world. GA4 and Methodology: the exam topic, such as `T-GA4-01` |
-| `difficulty` | SQL exercises: `E1` to `E3`. Lessons and GA4 and Methodology questions have no difficulty grade, so their level stands in: `L1` to `L7`, or `unrated` |
+| `difficulty` | SQL exercises: `E1` to `E3`. Lessons, case checkpoints (their case's level) and GA4 and Methodology questions have no difficulty grade, so their level stands in: `L1` to `L7`, or `unrated` |
 
 Each answer's `exercise_submitted` step also carries:
 
@@ -224,7 +316,7 @@ Each answer's `exercise_submitted` step also carries:
 | `outcome` | `passed`, `failed` or `not graded` |
 
 The step counter never carries the exercise ID. The time metric does: with one learner and a bank of about 900 exercises,
-its series stay few.
+its series stay few. No metric carries `session.id`, and neither journey metric carries an exercise ID.
 
 **Never sent:** SQL text, answers, question text, or personal data. What is sent about your studying is listed above. The service is
 described by three attributes only: `service.name=aydinlearns`, `service.version` (from
@@ -256,6 +348,7 @@ as `Authorization: Bearer <token>`.
 |---|---|
 | `server/telemetry.ts` | Loads before the server (`node --import`), reads the two values, then removes them from the environment. The SQL runner is started without the flags that load `.env` and this file (`runnerExecArgv` in `server/runner/client.ts`), so it never gets the token. It registers OpenTelemetry's ES module loader hook, because the app is ES modules and the HTTP instrumentation could not patch `node:http` without it. It starts the Node SDK with OTLP/HTTP (protobuf) exporters, and sends what is buffered when the app stops (in 2 seconds at most). With either value missing it loads no SDK code |
 | `server/observe.ts` | The app's own calls: the funnel, the route names and the errors. Each is a no-op while telemetry is off, because the OpenTelemetry API does nothing until an SDK is registered |
+| `server/journey.ts`, `server/journey-tap.ts` | The study journey (D77): for each event, its log record and its count, and each visit's length, beside the line in the journey file. These calls are no-ops while telemetry is off too; the journey file does not need telemetry |
 | `tools/launch.ts`, `npm start` | Start the server with `--env-file-if-exists=.env --import ./server/telemetry.ts` |
 
 ### Dashboard

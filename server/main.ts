@@ -19,6 +19,8 @@ import { SessionTracker } from './session.ts';
 import { blockClosesDue, createApp, recoveredCloses, resetEvent, type AppDeps, type Settings } from './app.ts';
 import { portFromEnv } from './port.ts';
 import { LearnerState } from './state.ts';
+import { journeyDirFrom, journeySettingNote, startJourney, stopJourney } from './journey.ts';
+import { conceptStates, journeyTap, topicFinder } from './journey-tap.ts';
 
 const dev = process.argv.includes('--dev');
 const at = (p: string) => fileURLToPath(new URL(`../${p}`, import.meta.url));
@@ -204,6 +206,13 @@ async function start(): Promise<void> {
   // Before the first touch: the learner state, then recovery, which ends any session the last run left open and
   // closes and rates what it left behind (design §13; S2-15, S2-16, S2-28).
   const state = await bootState(logger, session, content, logs, () => settings.exam_date, contentCheck === null);
+  // D77: the study journey. Its folder comes from .env (AYDINLEARNS_JOURNEY, AYDINLEARNS_JOURNEY_DIR); a test server on a temporary
+  // logs folder writes none unless it names one. The tap turns what the app logs from here on into journey events; the recovery
+  // bootState just ran is not part of a visit. Without content, no tap.
+  const journeyNote = journeySettingNote(process.env);
+  if (journeyNote) console.log(`aydinlearns: ${journeyNote}`);
+  startJourney({ dir: journeyDirFrom(process.env, at('')) });
+  if (contentCheck === null) logger.onWrite(journeyTap({ topicOf: topicFinder(content), states: () => conceptStates(state.current()) }));
   // The replay's warnings, or setup mode on a replay fault. Without the content there is nothing to check: the
   // "content loaded" check already starts setup mode (S2-89).
   const stateProblem = contentCheck ? null : stateCheck(state);
@@ -242,6 +251,7 @@ async function start(): Promise<void> {
     stopping = true;
     clearInterval(idle);
     await shutdown({ server, session, runner });
+    await stopJourney();                                       // D77: ends the visit and writes what is pending, before telemetry flushes
     await stopTelemetry();                                     // D75: sends what is buffered; at most 2 seconds
     process.exit(code);
   };

@@ -10,6 +10,31 @@ come from git.
 1.0.0 is the first release. Slices 0 and 1a are the first application code; the entries before
 them are research and planning.
 
+## 1.3.0 (2026-10-13)
+
+The study journey (D77): every visit's screens, exercises, help, runs, cases, labs and concept states, kept locally
+and sent with telemetry when it is on; `npm run journey` loads it into DuckDB with twelve starter views.
+
+### Added
+
+- The study journey (owner decision D77; plan `docs/superpowers/plans/2026-10-13-aydinlearns-journey-1-3.md`):
+  `server/journey.ts` keeps each visit (it ends after 30 idle minutes or when the app stops, apart from the study
+  session) as one line per event in `journey/events-YYYY-MM.jsonl`. It is on by default and gitignored;
+  `AYDINLEARNS_JOURNEY=off` (or `false`, `0`, `no`) stops the file and `AYDINLEARNS_JOURNEY_DIR` moves it (see
+  `.env.example`). A test server on a temporary logs folder writes no journey unless it names a folder. The events
+  come from the app's own log writes (`server/journey-tap.ts`, concept state changes included), the learning
+  funnel's steps (every exercise answer's, case checkpoint answers included; a lab answer is `lab_answered`), a few route hooks (an exercise or case
+  checkpoint sent to the browser, a case or lab opened; timed runs started, and finished from the run screen) and
+  `POST /api/journey`, which takes screen views only, never starts a study session, and works while the log cannot
+  be written. Events carry IDs, counts, times and outcomes, never text, queries, answers, notes or paths. A journey
+  folder that cannot be written never stops the app. The README's "Your study journey" section lists every event.
+- `npm run journey` (`tools/journey.ts`, `tools/journey-views.sql`): rebuilds `journey/journey.duckdb` from the files
+  and prints twelve starter views; `--sql` runs a query of your own in a copy held in memory with no file access, and
+  `--csv` writes each view to a CSV file, naming any file it cannot write.
+- With telemetry on, each journey event is a log record with `event.name`, `session.id` and `session.seq`, the
+  request's span carries `session.id`, events are counted on `aydinlearns.journey.events`, and each visit's length
+  goes on the histogram `aydinlearns.session.duration`. Neither metric carries `session.id` or an exercise ID.
+
 ## 1.2.0 (2026-10-12)
 
 Study tracking with OpenTelemetry, optional and off by default. With a `.env` that names an OTLP endpoint and a

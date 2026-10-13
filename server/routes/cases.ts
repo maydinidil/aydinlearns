@@ -11,10 +11,11 @@
 // GET  /api/cases/:id: the case screen's view: the brief, each checkpoint's prompt, options (shuffled, S2-60) and typed spec, its
 //   last result, the day-1 sketch, the latest plan and insight. The grain, and an opener's data needed, wait while they answer an
 //   open question (grainShown).
-// POST /api/cases/:id/checkpoints/:cp/serve (CP1, CP2, CP4, CP5): the question in phase case, a fresh instance. Nothing is logged.
+// POST /api/cases/:id/checkpoints/:cp/serve (CP1, CP2, CP4, CP5): the question in phase case, a fresh instance. Nothing is logged;
+//   the journey records item_viewed (D77).
 // POST /api/cases/:id/checkpoints/:cp/answer: one answer per instance (S4B-07), graded with CHOICE_GRADER_VERSION (CP1 and CP5 by
-//   option against the case key, CP2 and CP4 as typed numbers against the truth file), logged, then the instance closes. The
-//   reply carries the correct option and its explanation, or the value.
+//   option against the case key, CP2 and CP4 as typed numbers against the truth file), logged with its funnel steps (D75, D76),
+//   then the instance closes. The reply carries the correct option and its explanation, or the value.
 // POST /api/cases/:id/plan: logs a `plan` self-check (CRAFT-03's six fields); the reply is the model plan (S4B-10) once the case's
 //   CP1 has an answer or when it lists no CP1, and for an opener once its grain is out too (its sketch or CP3, Seams M1); otherwise
 //   a plain note (fix round 1).
@@ -38,6 +39,8 @@ import type { SortKey } from '../../schemas/item.ts';
 import type { AydinAttempt } from '../../schemas/log-ext.ts';
 import type { RouteDeps } from '../app.ts';
 import { CHOICE_GRADER_VERSION, gradeChoice, gradeTyped, parseTyped, TYPED_REFUSALS, type ChoiceGrade } from '../choice/grade.ts';
+import { journey } from '../journey.ts';
+import { answered, levelName, sqlFunnel, type FunnelAttributes } from '../observe.ts';
 import { openerLevel } from '../session-composer.ts';
 import { shuffle } from './choice.ts';
 
@@ -196,6 +199,11 @@ export function mountCases(app: Hono, d: RouteDeps): CaseCheckpoints {
   const isOpener = (r: CaseRecord): boolean => r.kind === 'opener' || d.content.opener?.(r.case_id) !== undefined;
   const levelOf = (r: CaseRecord): number | null => (Number.isInteger(r.level) ? r.level : openerLevel(r, d.content.curriculum));
   const statusOf = (r: CaseRecord): CaseStatus | undefined => d.state.current().cases.get(r.case_id);
+  /**
+   * D75 and D77 (owner go N5, 2026-10-13): a checkpoint's funnel attributes. A checkpoint has no difficulty grade of its own, so the
+   * case's level stands in, as on its attempts (not the case's own 1 to 5 difficulty).
+   */
+  const funnelOf = (r: CaseRecord): FunnelAttributes => sqlFunnel(levelName(levelOf(r)));
 
   const resolve = (record: CaseRecord, kind: AnswerableKind): CaseCheckpoint => {
     const cp = record.checkpoints.find((c) => c.kind === kind);
@@ -220,6 +228,8 @@ export function mountCases(app: Hono, d: RouteDeps): CaseCheckpoints {
     shown.set(id, { case_id: q.record.case_id, kind: q.kind, item_id: q.item_id, at: Date.now(), order });
     if (shown.size > SHOWN_LIMIT) shown.delete(shown.keys().next().value!);
     const textOf = new Map(q.grading.kind === 'choice' ? q.grading.options.map((o) => [o.oid, o.text]) : []);
+    // D77 (owner go N5): the checkpoint was sent, once its case and checkpoint resolved. Its ID and phase only: no prompt or option.
+    journey('item_viewed', { item_id: q.item_id, phase: PHASE, ...funnelOf(q.record) });
     return { case_id: q.record.case_id, checkpoint: q.kind, item_id: q.item_id, item_instance_id: id, phase: PHASE, prompt: q.cp.prompt,
       typed: q.grading.kind === 'typed' ? q.grading.typed : null, options: q.grading.kind === 'choice' ? order.map((oid) => ({ oid, text: textOf.get(oid)! })) : null,
       shown_order: order };
@@ -297,6 +307,9 @@ export function mountCases(app: Hono, d: RouteDeps): CaseCheckpoints {
       dataset_version: d.manifest.dataset_version, duckdb_version: d.manifest.library_version, payload,
     };
     await d.logger.attempt(attempt);
+    // D75, D76 (owner go N5): the funnel steps, as every other answer route sends them. The mode is the attempt's phase (case);
+    // answered() reads no payload field but a run's kind, so the option chosen and the number typed stay in the log.
+    answered(funnelOf(record), attempt, grade.correct ? 'passed' : 'failed');
     await d.writeClose(id, grade.correct ? 'pass' : 'left');     // one answer, then the instance closes
     shown.delete(id);
     return { correct: grade.correct, ...reveal, error_ids: grade.error_ids, attempt_id: attempt.attempt_id };
@@ -317,10 +330,10 @@ export function mountCases(app: Hono, d: RouteDeps): CaseCheckpoints {
    * answered (whose reply showed the right option anyway). A case with neither shows it at once.
    */
   const grainShown = (r: CaseRecord, s: CaseStatus | undefined): boolean => {
-    const answered = (kind: string) => s?.checkpoints.some((p) => p.kind === kind && p.latest !== null) ?? false;
-    if (answered('CP3')) return true;
+    const hasAnswer = (kind: string) => s?.checkpoints.some((p) => p.kind === kind && p.latest !== null) ?? false;
+    if (hasAnswer('CP3')) return true;
     const sketchDone = !isOpener(r) || (s?.sketch ?? null) !== null;
-    const cp1Done = !r.checkpoints.some((c) => c.kind === 'CP1') || answered('CP1');
+    const cp1Done = !r.checkpoints.some((c) => c.kind === 'CP1') || hasAnswer('CP1');
     return sketchDone && cp1Done;
   };
 
@@ -353,8 +366,8 @@ export function mountCases(app: Hono, d: RouteDeps): CaseCheckpoints {
     const s = statusOf(r);
     return String(r.model_answer_template ?? '').replace(PLACEHOLDER, (_m, kind: string) => {
       const cp = r.checkpoints.find((c) => c.kind === kind);
-      const answered = s?.checkpoints.some((p) => p.kind === kind && p.latest !== null) ?? false;
-      const value = answered && cp?.truth_key ? d.content.checkpointTruth?.(cp.truth_key) : undefined;
+      const hasAnswer = s?.checkpoints.some((p) => p.kind === kind && p.latest !== null) ?? false;
+      const value = hasAnswer && cp?.truth_key ? d.content.checkpointTruth?.(cp.truth_key) : undefined;
       return value === undefined ? `(answer ${kind} to see this number)` : value.toFixed(Math.max(0, Math.min(20, cp?.typed?.decimals ?? 0)));
     });
   };
@@ -401,7 +414,11 @@ export function mountCases(app: Hono, d: RouteDeps): CaseCheckpoints {
 
   // S4B-12: reading the inbox or a case serves and logs nothing (GET requests start no session).
   app.get('/api/cases', (c) => c.json(all().map(entry)));
-  app.get('/api/cases/:id', (c) => c.json(view(caseOf(c.req.param('id')))));
+  app.get('/api/cases/:id', (c) => {
+    const body = view(caseOf(c.req.param('id')));
+    journey('case_opened', { case_id: c.req.param('id') });                         // D77: after caseOf, so only a known case
+    return c.json(body);
+  });
 
   app.post('/api/cases/:id/checkpoints/:cp/serve', (c) => c.json(serve(resolve(caseOf(c.req.param('id')), answerableOf(c.req.param('cp'))))));
   app.post('/api/cases/:id/checkpoints/:cp/answer', async (c) => {

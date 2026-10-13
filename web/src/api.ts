@@ -3,6 +3,7 @@ import type { Lesson } from '../../schemas/lesson.ts';
 import type { SqlChoiceKind, SqlItem, UniqueCheck } from '../../schemas/item.ts';
 import type { OptionTable } from '../../schemas/choice-types.ts';
 import type { TableNote } from '../../schemas/schema-notes.ts';
+import { JOURNEY_PATH, type Screen } from '../../schemas/journey.ts';
 import type { CloseReason, Exposure, Phase, Section } from '../../core/envelope.ts';
 import type { Goal } from '../../core/goals.ts';
 import type { CriterionResult } from '../../core/goal-eval.ts';
@@ -276,4 +277,7 @@ export const api = {
   choiceConcepts: (section: ChoiceSection) => call<{ section: ChoiceSection; concepts: ChoiceConceptView[] }>('GET', `/api/${section}/concepts`),
   /** One concept's reading. Viewing it is logged separately (exposure kind `reading`), once it is on the screen. */
   reading: (section: ChoiceSection, conceptId: string) => call<ReadingView>('GET', `/api/readings/${section}/${encodeURIComponent(conceptId)}`),
+  /** D77: the screen now shown, for the study journey. Fire and forget: a failure never shows. */
+  journey: (screen: Screen, subject_id?: string) =>
+    call<{ ok: true }>('POST', JOURNEY_PATH, subject_id ? { event: 'screen_viewed', screen, subject_id } : { event: 'screen_viewed', screen }),
 };

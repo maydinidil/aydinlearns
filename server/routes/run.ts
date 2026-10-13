@@ -22,6 +22,7 @@ import { amsterdamDate } from '../../core/time.ts';
 import { blueprintOn, type Ga4ExamConfig } from '../../schemas/ga4-exam.ts';
 import type { RouteDeps } from '../app.ts';
 import type { DrillRuns } from '../drill.ts';
+import { journey } from '../journey.ts';
 import { coldAnswers, instanceFacts, type InstanceFact } from '../progress.ts';
 import { ga4Readiness } from '../readiness.ts';
 import {
@@ -87,6 +88,7 @@ export function mountRun(app: Hono, d: RouteDeps, runs: DrillRuns): void {
       on_unseen: h === null ? null : form.allFresh,
       next_unseen_date: h === null || form.allFresh ? null : nextUnseenDate(pool.map((i) => i.id), h, bp.questions, today, retake, amsterdamDate) };
     const run = runs.start({ block_id, plan, started_at: now.getTime(), ends_at: now.getTime() + Math.round(bp.minutes * 60_000), servings });
+    journey('run_started', { section: 'ga4', run_kind: kind, block_id, questions: bp.questions });                // D77
     return c.json(runView(run));
   });
 
@@ -122,6 +124,7 @@ export function mountRun(app: Hono, d: RouteDeps, runs: DrillRuns): void {
     if (run && isChoicePlan(run.plan)) await runs.finish(run);
     const r = (await history()).find((x) => x.block_id === block && x.ended_at !== null);
     if (!r) throw refuse(404, 'Unknown GA4 run.');
+    journey('run_finished', { section: 'ga4', run_kind: r.kind, block_id: block, score_pct: r.score.pct, run_passed: r.score.pass });   // D77
     return c.json(historyRow(r));
   });
 

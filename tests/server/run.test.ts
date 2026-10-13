@@ -4,7 +4,7 @@
 // temporary log, at the real clock unless a test stubs the run clock.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdir, mkdtemp, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { Hono } from 'hono';
@@ -15,6 +15,7 @@ import { parseGa4Exam } from '../../schemas/ga4-exam.ts';
 import { createApp, type AppDeps } from '../../server/app.ts';
 import { loadContent } from '../../server/content.ts';
 import { HELP_WAITS } from '../../server/drill.ts';
+import { startJourney, stopJourney } from '../../server/journey.ts';
 import { AttemptLogger } from '../../server/log.ts';
 import { bootState, loadContentOrSetup, loggedInstanceIds, readLogs } from '../../server/main.ts';
 import { CHOICE_RUN_OVER, CODE_ONE_ANSWER, CODE_RUN_OVER, ONE_ANSWER, REVIEW_WAITS } from '../../server/run.ts';
@@ -223,6 +224,23 @@ test('a mini drill: 20 practice items by topic weight (5/5/5/2/3), never a held-
   assert.ok(ids.filter((id) => byId.get(id)!.group === 'EG-PRACTICE-1').length <= 1);
   ids.forEach((id, n) => { if (n) assert.notEqual(byId.get(id)!.parent, byId.get(ids[n - 1]!)!.parent); });
   assert.ok((run.servings as Serving[]).every((s) => d.servings.get(s.item_instance_id)!.phase === 'drill'));
+});
+
+test('D77: a GA4 run records run_started and run_finished in the study journey, under one block_id, with its score', async () => {
+  const dir = await mkdtemp(join(tmpdir(), 'al-journey-run-'));
+  try {
+    startJourney({ dir });
+    const app = createApp(await deps());
+    const run = await json(start(app, 'mini_drill'));
+    assert.equal((await post(app, '/api/run/end', { block_id: run.block_id })).status, 200);
+    await stopJourney();
+    const lines = (await readFile(join(dir, (await readdir(dir))[0]!), 'utf8')).trim().split('\n').map((l) => JSON.parse(l) as Record<string, unknown>);
+    const runs = lines.filter((r) => r.event === 'run_started' || r.event === 'run_finished');
+    assert.deepEqual(runs.map((r) => [r.event, r.section, r.run_kind, r.block_id]),
+      [['run_started', 'ga4', 'mini_drill', run.block_id], ['run_finished', 'ga4', 'mini_drill', run.block_id]]);
+    assert.equal(runs[0]!.questions, 20);
+    assert.deepEqual([runs[1]!.score_pct, runs[1]!.run_passed], [0, false], 'ended with nothing answered');
+  } finally { await rm(dir, { recursive: true, force: true }); }
 });
 
 test('S3-08: one timed run at a time across sections: a second start, GA4 or SQL, gets a 409 with the run that is on; two starts at once start one', async () => {

@@ -28,6 +28,7 @@ import { caseIdFrom } from './lib/case-flow.ts';
 import { tabOf } from './lib/nav.ts';
 import { focusHeading, shouldFocusRoute } from './lib/focus-flow.ts';
 import { choiceSectionOf } from './lib/choice-flow.ts';
+import { screenOf } from './lib/journey.ts';
 
 function useHash(): string {
   const [hash, setHash] = useState(location.hash || '#/');
@@ -59,6 +60,13 @@ export function App() {
     attempt();
     return () => cancelAnimationFrame(frame);
   }, [hash, status]);
+  // D77: each screen shown, for the study journey; once the status says the app is up and not in setup mode. Never shown on failure.
+  const journeyOn = status !== null && !status.degraded;
+  useEffect(() => {
+    if (!journeyOn) return;
+    const { screen, subject_id } = screenOf(hash);
+    api.journey(screen, subject_id).catch(() => {});
+  }, [hash, journeyOn]);
 
   async function endSession() {
     if (ending) return;

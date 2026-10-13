@@ -44,7 +44,7 @@ the SQL learner-facing backlog, merged in PR #41 (2026-10-08). Open deferred wor
 complete, polish, release 1.0) merged in PR #42 and was released as 1.0 (tag `v1.0.0` on the
 public repo, 2026-10-08), and 5b (GA4 complete, release 1.1) merged in PR #43, followed by a hygiene PR (plan
 [`docs/superpowers/plans/2026-10-09-aydinlearns-hygiene-1-1.md`](docs/superpowers/plans/2026-10-09-aydinlearns-hygiene-1-1.md):
-Codex F27 and ten backlog rows) before the 1.1 release; read the roadmap first. Release 1.2 (2026-10-12) added the optional OpenTelemetry (D75, D76; PRs #45 and #46). The app's version is in `package.json` (1.2.0); later sprints ship as 1.x releases (D63).
+Codex F27 and ten backlog rows) before the 1.1 release; read the roadmap first. Release 1.2 (2026-10-12) added the optional OpenTelemetry (D75, D76; PRs #45 and #46). Release 1.3 (2026-10-13) added the study journey (D77). The app's version is in `package.json` (1.3.0); later sprints ship as 1.x releases (D63).
 - Slice 0: the domain-free types in `core/`, the app schemas in `schemas/`, the curriculum and
   error catalogue extracted into `content/sql/`, and the adjudicated fixes in
   `knowledge/ERRATA.md`. `knowledge/` itself still holds the research bank: 12 files (00 to 11), plus an index and a
@@ -114,8 +114,10 @@ Codex F27 and ten backlog rows) before the 1.1 release; read the roadmap first. 
   [`docs/planning/2026-10-08-sprint-5b-record.md`](docs/planning/2026-10-08-sprint-5b-record.md).
 - Every check in the README's "Run and ship" passes, and so does the browser smoke test,
   `npm run test:e2e`. It runs its own server on `AYDINLEARNS_PORT` (default 5174) against an
-  empty temporary logs folder, set through `AYDINLEARNS_LOGS_DIR`; never point a test at the real
-  `logs/`. A worktree uses another port (5184 in sprint 2), so the app stays open for study.
+  empty temporary logs folder, set through `AYDINLEARNS_LOGS_DIR`, and a temporary journey folder,
+  set through `AYDINLEARNS_JOURNEY_DIR`; never point a test at the real `logs/` or `journey/`. A
+  server on a temporary logs folder writes no journey unless `AYDINLEARNS_JOURNEY_DIR` names one. A
+  worktree uses another port (5184 in sprint 2), so the app stays open for study.
 - The plan that built them is
   [`docs/superpowers/plans/2026-10-02-aydinlearns-slice-0-1a.md`](docs/superpowers/plans/2026-10-02-aydinlearns-slice-0-1a.md).
   It ends with a roadmap for 1b, 2a and 2b, which get their own plans.
@@ -241,6 +243,7 @@ Derived from design §3. The "why" is the part worth keeping.
 | Attempt log | Append-only JSONL under `logs/`, gitignored, with an automatic backup | Safe whatever the repo's visibility |
 | IDs | `SQL-*` (01) and the GA4 IDs (06) are the masters; Methodology IDs are minted in slice 0 | Review #4 |
 | Telemetry (D75, 2026-10-12) | Optional OpenTelemetry over OTLP/HTTP (`server/telemetry.ts`, `server/observe.ts`), on only when `.env` sets `DASH0_OTLP_ENDPOINT` and `DASH0_AUTH_TOKEN`. Funnel attributes `topic`, `case_theme`, `difficulty`; never a query, an answer or personal data; no host or process resource detectors. The runner never starts it. D76 (2026-10-12): each answer also sends its exercise ID, time spent and target, try, hints, answer shown, confidence and mode; the exercise ID goes on spans, logs and the `aydinlearns.answer.time` histogram, never on the step counter | A portfolio piece for observability roles. A clone without `.env` stays fully offline |
+| Study journey (D77, 2026-10-13) | `server/journey.ts` writes each event, `server/journey-tap.ts` turns the app's own log writes (and concept state changes) into events, `POST /api/journey` takes screen views only and never starts a study session, and `tools/journey.ts` (`npm run journey`) loads the files into DuckDB with twelve starter views. A visit starts at its first event and ends after 30 idle minutes or at app stop, apart from the study session (`server/session.ts`), which the journey never touches. `journey/` is on by default and gitignored; `AYDINLEARNS_JOURNEY=off` (or `false`, `0`, `no`) stops the file, `AYDINLEARNS_JOURNEY_DIR` moves it. Events carry IDs, counts, times and outcomes only, never text, a query, an answer, a note or a path. With telemetry on, each event is also a log record with `session.id`, and the request's span carries it; `session.id` goes on no metric, and neither journey metric (`aydinlearns.journey.events`, `aydinlearns.session.duration`) carries an item ID | Aydin analyses the study path in SQL without Dash0, and after the trial. Browsing leaves the replayed study history as it was. Outside `logs/`, an agent may read `journey/` (IDs only); `logs/` stays closed |
 
 ## Ask before
 

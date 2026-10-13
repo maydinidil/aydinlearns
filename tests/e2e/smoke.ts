@@ -41,6 +41,11 @@
 // Rows 5b-1 to 5b-5 (sprint 5b, Task F1) run last: the GA4 labs list and a lab, a lab's first answers and its re-check date, a lab re-check
 // that is due (a seeded LAB-08 answer 8 days back), a full mock ended at once, and the readiness check on an empty log.
 //
+// Row JN (release 1.3, D77) runs after them all, beside row G: every server writes its study journey to one temporary folder
+// (AYDINLEARNS_JOURNEY_DIR), never the real journey/, and the row checks that the rows' screens, exercises, help, runs, case, lab and
+// concept state changes are in it, and that a server's stop ended its visit (session_ended, reason app_stop). Row G also checks that
+// the real journey/ is unchanged. The folder is removed at the end, unless --keep keeps it.
+//
 // Key text is never printed. The one reference answer it submits is read from content/keys/ here and
 // only typed into the editor, and every line it prints is withheld if it holds key text.
 import { execFile, spawn, type ChildProcess } from 'node:child_process';
@@ -78,6 +83,7 @@ const BASE = `http://127.0.0.1:${PORT}`;
 const KEEP = process.argv.includes('--keep');            // keep the temporary folder to inspect it
 const run = promisify(execFile);
 const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
+const JOURNEY_DIR = join(tmpdir(), `al-e2e-journey-${process.pid}`);   // D77: every server's journey, never the real journey/ (row JN)
 
 // The queries the test types. Each is a learner's query written for this test, never text from a key.
 const WRONG = 'SELECT count(*) AS n FROM stores';         // the wrong shape for every level 1 item
@@ -269,7 +275,8 @@ async function startServer(appDir: string, logsDir: string, o: { clock?: boolean
     throw new Error(`port ${PORT} on 127.0.0.1 is busy. Stop whatever uses it (another aydinlearns, npm start or npm run dev:server) and run the test again.`);
   }
   const child = spawn(process.execPath, ['--import', PRELOAD, ...(o.clock ? ['--import', CLOCK] : []), 'server/main.ts'], {
-    cwd: appDir, env: { ...process.env, AYDINLEARNS_LOGS_DIR: logsDir, AYDINLEARNS_PORT: String(PORT) }, stdio: ['pipe', 'pipe', 'pipe'],
+    cwd: appDir, env: { ...process.env, AYDINLEARNS_LOGS_DIR: logsDir, AYDINLEARNS_PORT: String(PORT), AYDINLEARNS_JOURNEY_DIR: JOURNEY_DIR,
+      AYDINLEARNS_JOURNEY: '' }, stdio: ['pipe', 'pipe', 'pipe'],
   });
   child.stdin!.on('error', () => {});                    // a write after the server has gone
   const output: string[] = [];
@@ -397,8 +404,10 @@ async function main(): Promise<number> {
   if (!(await portFree())) { say(`Port ${PORT} on 127.0.0.1 is busy. Stop whatever uses it (another aydinlearns, npm start or npm run dev:server) and run the test again.`); return 1; }
 
   const realLogs = join(ROOT, 'logs');
+  const realJourney = join(ROOT, 'journey');
   const realManifest = join(ROOT, 'data/manifest.json');
   const logsBefore = await fingerprint(realLogs);
+  const journeyBefore = await fingerprint(realJourney);
   const manifestBefore = await sha(realManifest);
   const tmp = await mkdtemp(join(tmpdir(), 'aydinlearns-e2e-'));
   const logs = join(tmp, 'logs');
@@ -2442,11 +2451,11 @@ async function main(): Promise<number> {
         return 'G-GA4-CERT shows its named-concepts line at "0 of 12" with nothing practised';
       });
 
-      await row('5a-5', 'Settings shows version 1.2.0', async () => {
+      await row('5a-5', 'Settings shows version 1.3.0', async () => {
         await p.goto(`${BASE}/#/setup`);
         await p.getByRole('heading', { name: 'Settings and setup', level: 1 }).waitFor();
-        await p.getByText('Version 1.2.0', { exact: true }).waitFor();
-        return 'Settings and setup shows "Version 1.2.0"';
+        await p.getByText('Version 1.3.0', { exact: true }).waitFor();
+        return 'Settings and setup shows "Version 1.3.0"';
       });
 
       await row('5a-3', 'an A/B SQL item passes with its reference query', async () => {
@@ -2688,10 +2697,29 @@ async function main(): Promise<number> {
     if (results.some((r) => !r.ok)) say(`Server output:\n${servers.flatMap((x) => x.output).join('').trim()}`);
   }
 
-  await row('G', 'the real logs/ and data/manifest.json are unchanged', async () => {
+  await row('JN', 'the study journey recorded the test\'s visits in its own folder (D77)', async () => {
+    const names = new Set<string>();
+    const ends: string[] = [];
+    for (const f of await readdir(JOURNEY_DIR).catch(() => [] as string[])) {
+      for (const l of (await readFile(join(JOURNEY_DIR, f), 'utf8')).split('\n').filter(Boolean)) {
+        const r = JSON.parse(l) as { event: string; reason?: string };
+        names.add(r.event);
+        if (r.event === 'session_ended') ends.push(String(r.reason));
+      }
+    }
+    const want = ['session_started', 'screen_viewed', 'item_viewed', 'exercise_submitted', 'hint_opened', 'run_started', 'run_finished', 'case_opened', 'lab_opened',
+      'concept_state_changed', 'session_ended'];
+    const missing = want.filter((n) => !names.has(n));
+    expect(missing.length === 0, `the journey has no ${missing.join(', ')}`);
+    expect(ends.includes('app_stop'), `no visit ended at a server's stop (session_ended reasons: ${[...new Set(ends)].join(', ') || 'none'})`);
+    return `${names.size} kinds of event, including ${want.join(', ')}; ${ends.filter((x) => x === 'app_stop').length} visits ended at a stop`;
+  });
+
+  await row('G', 'the real logs/, journey/ and data/manifest.json are unchanged', async () => {
     expect((await fingerprint(realLogs)) === logsBefore, 'the real logs/ folder changed');
+    expect((await fingerprint(realJourney)) === journeyBefore, 'the real journey/ folder changed');
     expect((await sha(realManifest)) === manifestBefore, 'the real data/manifest.json changed');
-    return 'logs/ and data/manifest.json hash the same as before the test';
+    return 'logs/, journey/ and data/manifest.json hash the same as before the test';
   });
 
   if (appCopy) {
@@ -2699,7 +2727,8 @@ async function main(): Promise<number> {
     await unlink(join(appCopy, 'node_modules')).catch(() => {});
     await chmod(join(appCopy, 'data/runtime/course.duckdb'), 0o666).catch(() => {});
   }
-  if (KEEP) say(`Kept: ${tmp}`); else await rm(tmp, { recursive: true, force: true });
+  if (KEEP) say(`Kept: ${tmp} and ${JOURNEY_DIR}`);
+  else { await rm(tmp, { recursive: true, force: true }); await rm(JOURNEY_DIR, { recursive: true, force: true }); }
 
   const failed = results.filter((r) => !r.ok);
   say(`\n${results.length - failed.length} of ${results.length} rows passed${failed.length ? `; failed: ${failed.map((r) => r.row).join(', ')}` : ''}. Uncaught page errors: ${pageErrors}.`);

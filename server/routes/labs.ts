@@ -16,6 +16,7 @@ import { amsterdamDate } from '../../core/time.ts';
 import { isRecheck, sameText, type Lab, type LabPart } from '../../schemas/lab.ts';
 import type { LabAnswer } from '../../schemas/log-ext.ts';
 import type { RouteDeps } from '../app.ts';
+import { journey } from '../journey.ts';
 import {
   addDays, fixedMonth, gradeFirst, gradeRecheck, labBaseline, labStatus, parseLabNumber, RANGE_PART, RECHECK_AFTER_DAYS, suggestedMode,
   type LabAnswerReply, type LabsView, type LabView,
@@ -127,6 +128,7 @@ export function mountLabs(app: Hono, d: RouteDeps): void {
   app.get('/api/labs/:id', async (c) => {
     try {
       const lab = labOf(c.req.param('id'));
+      journey('lab_opened', { lab_id: lab.id });                                     // D77
       const [answers, day] = [await labAnswers(), today()];
       const status = labStatus(lab, answers, day);
       const mode = suggestedMode(lab, answers, day);

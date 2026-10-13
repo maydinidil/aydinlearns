@@ -17,6 +17,7 @@ import {
   chosenPlan, drillRuns, DrillRuns, EXPLAINED_ALOUD, isDrillPlan, levelPlan, liveRepTiers, liveRuns, LIVE_PREFIX, livePlan, loadDrills, pickLiveRepTiered,
   sampleDrill, type DrillPlan, type DrillRun, type DrillSpec, type LiveRun,
 } from '../drill.ts';
+import { journey } from '../journey.ts';
 import { runView } from '../run.ts';
 import { poolOf, seenIn } from '../session-composer.ts';
 
@@ -91,7 +92,9 @@ export function mountDrill(app: Hono, d: RouteDeps): DrillRuns {
     const block_id = `${LIVE_PREFIX}${randomUUID()}`;
     const servings = [{ item_id: item.id, item_instance_id: d.servings.serve({ phase: 'drill', block_id, repeat_exposure: false, section: 'sql', item_id: item.id, screen_mode: true }) }];
     const plan = livePlan(item);
-    return c.json(view(runs.start({ block_id, plan, started_at: now.getTime(), ends_at: now.getTime() + plan.minutes * 60_000, servings })));
+    const run = runs.start({ block_id, plan, started_at: now.getTime(), ends_at: now.getTime() + plan.minutes * 60_000, servings });
+    journey('run_started', { section: 'sql', run_kind: 'live_rep', block_id, questions: 1, screen_mode: true });   // D77
+    return c.json(view(run));
   });
 
   /**
@@ -148,6 +151,7 @@ export function mountDrill(app: Hono, d: RouteDeps): DrillRuns {
       item_instance_id: d.servings.serve({ phase: 'drill', block_id, repeat_exposure: p.repeat_exposure, section: 'sql', item_id: p.item.id,
         ...(screen_mode ? { screen_mode: true as const } : {}) }) }));
     const run = runs.start({ block_id, plan, started_at: now.getTime(), ends_at: now.getTime() + Math.round(plan.minutes * 60_000), servings });
+    journey('run_started', { section: 'sql', run_kind: plan.kind, block_id, questions: plan.questions, screen_mode, ...(plan.level === null ? {} : { level: plan.level }) });   // D77
     return c.json(view(run));
   });
 
@@ -161,11 +165,16 @@ export function mountDrill(app: Hono, d: RouteDeps): DrillRuns {
     const r = (await history()).find((x) => x.block_id === block);
     if (!r) {
       const live = liveRuns(await d.logger.readAll('attempts'), await d.logger.readAll('events')).find((x) => x.block_id === block);
+      // D77: the rep's score as this reply gives it. Its pass waits for the "explained aloud" tick, which can only come after the end,
+      // so it is left out here; the tick is its own journey event (case_self_check).
+      if (live) journey('run_finished', { section: 'sql', run_kind: 'live_rep', block_id: live.block_id, score_pct: liveScore(live).pct });
       if (live) return c.json({ block_id: live.block_id, kind: 'live_rep', level: null, score: liveScore(live) });
       throw refuse(404, 'Unknown drill run.');
     }
     // H3: one mark per question, in drill order when the run was in memory, else in log order (a screen matches them by instance).
     const items = served ? served.flatMap((id) => r.questions.filter((q) => q.item_instance_id === id)) : r.questions;
+    journey('run_finished', { section: 'sql', run_kind: r.kind, block_id: r.block_id, score_pct: r.score.pct, run_passed: r.score.run_passed,   // D77
+      ...(r.level === null ? {} : { level: r.level }) });
     return c.json({ block_id: r.block_id, kind: r.kind, level: r.level, score: r.score, items });
   });
 

@@ -11,6 +11,9 @@ data/
 # Attempt log, reports and other learner data. Backed up to a folder outside the repo instead.
 logs/
 
+# The study journey (D77): local events, and the database `npm run journey` builds from them
+journey/
+
 # DuckDB databases and their write-ahead logs, wherever they end up
 *.duckdb
 *.duckdb.wal

@@ -3,12 +3,16 @@
 // span; and telemetry staying off unless both .env values are set. Concept and topic IDs here are made up.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { mkdtemp, readdir, readFile, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { context, metrics, trace, SpanStatusCode, INVALID_SPAN_CONTEXT } from '@opentelemetry/api';
 import { logs as logsApi } from '@opentelemetry/api-logs';
 import { RPCType, setRPCMetadata, type RPCMetadata } from '@opentelemetry/core';
 import { logs, metrics as sdkMetrics, node, tracing } from '@opentelemetry/sdk-node';
 import { Hono } from 'hono';
 import type { ChoiceConcept } from '../../schemas/choice.ts';
+import { startJourney, stopJourney } from '../../server/journey.ts';
 import { answered, choiceFunnel, funnel, httpRoute, levelName, recordError, sqlFunnel } from '../../server/observe.ts';
 import { telemetryConfig } from '../../server/telemetry.ts';
 import { runnerExecArgv } from '../../server/runner/client.ts';
@@ -25,13 +29,18 @@ test('a funnel step puts its attributes and an event on the request span, counts
   trace.getTracer('test').startActiveSpan('POST /api/submit', (span) => { funnel('exercise_passed', sqlFunnel('E2')); span.end(); });
   const [s] = spans.getFinishedSpans();
   const a = { topic: 'SQL', case_theme: 'pricing', difficulty: 'E2' };
-  assert.deepEqual(s!.attributes, a);
+  const { 'session.id': sessionId, ...spanAttributes } = s!.attributes;
+  assert.deepEqual(spanAttributes, a);
   assert.deepEqual(s!.events.map((e) => [e.name, e.attributes]), [['exercise_passed', { funnel_step: 'exercise_passed', ...a }]]);
   await reader.forceFlush();
   const counter = points.getMetrics().flatMap((r) => r.scopeMetrics).flatMap((m) => m.metrics).find((m) => m.descriptor.name === 'aydinlearns.funnel.steps');
   assert.deepEqual(counter!.dataPoints.map((p) => [p.value, p.attributes]), [[1, { funnel_step: 'exercise_passed', ...a }]]);
-  const [r] = records.getFinishedLogRecords();
+  const logged = records.getFinishedLogRecords().filter((x) => x.eventName === 'exercise_passed');
+  assert.equal(logged.length, 1, 'one log record per step');
+  const r = logged[0];
   assert.equal(r!.body, 'exercise_passed');
+  assert.equal(typeof r!.attributes['session.id'], 'string');            // D77: every step belongs to a visit
+  assert.equal(sessionId, r!.attributes['session.id']);                  // and the request's span names the same visit
   assert.equal(r!.spanContext?.traceId, s!.spanContext().traceId);
 });
 
@@ -101,7 +110,9 @@ test('an answer (D76) sends its exercise, time and help on the event and the log
   assert.deepEqual(s!.events.map((e) => e.name), ['exercise_submitted', 'exercise_passed']);
   assert.deepEqual(s!.events[0]!.attributes, { funnel_step: 'exercise_submitted', topic: 'SQL', case_theme: 'pricing', difficulty: 'E2', item_id: 'EX-INV-01',
     time_spent_s: 95, try_number: 2, hints_used: 1, answer_shown: false, mode: 'half_mock', outcome: 'passed', time_target_s: 120, confidence: 3 });
-  assert.equal(records.getFinishedLogRecords().find((r) => r.body === 'exercise_submitted')?.attributes.time_spent_s, 95);
+  const { 'session.id': id, 'session.seq': seq, ...logged } = records.getFinishedLogRecords().find((r) => r.body === 'exercise_submitted')!.attributes;
+  assert.deepEqual(logged, s!.events[0]!.attributes, 'the log record carries every detail the span event does');
+  assert.deepEqual([typeof id, typeof seq], ['string', 'number']);
   await reader.forceFlush();
   const all = points.getMetrics().at(-1)!.scopeMetrics.flatMap((m) => m.metrics);
   const steps = all.find((m) => m.descriptor.name === 'aydinlearns.funnel.steps')!;
@@ -121,4 +132,19 @@ test('an answer that was not graded sends no pass or fail, and leaves out a miss
   assert.deepEqual(s!.events.map((e) => e.name), ['exercise_submitted']);
   const a = s!.events[0]!.attributes!;
   assert.deepEqual([a.mode, a.outcome, 'time_target_s' in a, 'confidence' in a], ['mixed', 'not graded', false, false]);
+});
+
+test('an answer\'s details reach the journey file as they reach the log: the exercise, its time and target, try, help, confidence, mode and outcome', async () => {
+  const dir = await mkdtemp(join(tmpdir(), 'al-journey-observe-'));
+  try {
+    startJourney({ dir });
+    answered(sqlFunnel('E2'), answer, 'passed');
+    await stopJourney();
+    const lines = (await readFile(join(dir, (await readdir(dir))[0]!), 'utf8')).trim().split('\n').map((l) => JSON.parse(l) as Record<string, unknown>);
+    const submitted = lines.find((l) => l.event === 'exercise_submitted')!;
+    assert.deepEqual([submitted.item_id, submitted.time_spent_s, submitted.time_target_s, submitted.try_number, submitted.hints_used, submitted.answer_shown,
+      submitted.confidence, submitted.mode, submitted.outcome, submitted.topic, submitted.case_theme, submitted.difficulty, submitted.funnel_step],
+      ['EX-INV-01', 95, 120, 2, 1, false, 3, 'half_mock', 'passed', 'SQL', 'pricing', 'E2', 'exercise_submitted']);
+    assert.deepEqual(lines.filter((l) => l.event === 'exercise_passed').map((l) => l.item_id), ['EX-INV-01']);
+  } finally { await rm(dir, { recursive: true, force: true }); }
 });

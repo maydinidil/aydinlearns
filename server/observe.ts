@@ -3,13 +3,14 @@
 // The learning funnel is lesson_started, exercise_submitted, exercise_passed and exercise_failed, each with topic, case_theme and
 // difficulty. A logged answer adds which exercise it was, its time, try, help used, confidence and mode (D76). It never sends an
 // item's text, a query, an answer or personal data.
+// Since D77 each step is also a study journey event.
 import { context, metrics, SpanStatusCode, trace, type Attributes } from '@opentelemetry/api';
-import { logs, SeverityNumber } from '@opentelemetry/api-logs';
 import { getRPCMetadata, RPCType } from '@opentelemetry/core';
 import type { MiddlewareHandler } from 'hono';
 import { routePath } from 'hono/route';
 import type { ChoiceSection } from '../schemas/choice.ts';
 import type { ContentStore } from './content.ts';
+import { journey, type JourneyAttributes } from './journey.ts';
 
 export type FunnelStep = 'lesson_started' | 'exercise_submitted' | 'exercise_passed' | 'exercise_failed';
 export interface FunnelAttributes { topic: 'SQL' | 'GA4' | 'Methodology'; case_theme: string; difficulty: string }
@@ -26,11 +27,16 @@ export function choiceFunnel(content: Pick<ContentStore, 'choiceConcepts'>, sect
   return { topic: section === 'ga4' ? 'GA4' : 'Methodology', case_theme: concept?.topic_id ?? 'unknown', difficulty: levelName(concept?.level) };
 }
 
+/** The scalar attributes, as the journey takes them (OpenTelemetry's type also allows arrays, which no funnel step uses). */
+const journeyAttributes = (a: Attributes): JourneyAttributes =>
+  Object.fromEntries(Object.entries(a).filter((e): e is [string, string | number | boolean] =>
+    typeof e[1] === 'string' || typeof e[1] === 'number' || typeof e[1] === 'boolean'));
+
 /**
  * One funnel step, three ways: an event on the request's span (with the attributes on the span too, so traces filter by topic),
- * one count on the aydinlearns.funnel.steps counter, and a log record, which carries the trace's ID. `details` (an answer's, D76)
- * go on the event and the log only: the counter keeps its few series. Instruments are looked up on each call: cheap, and right
- * whenever the SDK started.
+ * one count on the aydinlearns.funnel.steps counter, and a journey event (server/journey.ts, D77): the log record, which carries
+ * the trace's ID and session.id, and a line in the journey file. `details` (an answer's, D76) go on the event and the log only:
+ * the counter keeps its few series. Instruments are looked up on each call: cheap, and right whenever the SDK started.
  */
 export function funnel(step: FunnelStep, a: FunnelAttributes, details: Attributes = {}): void {
   const attributes: Attributes = { funnel_step: step, ...a, ...details };
@@ -38,7 +44,7 @@ export function funnel(step: FunnelStep, a: FunnelAttributes, details: Attribute
   span?.setAttributes({ ...a, ...(details.item_id === undefined ? {} : { item_id: details.item_id }) });
   span?.addEvent(step, attributes);
   metrics.getMeter('aydinlearns').createCounter('aydinlearns.funnel.steps', { description: 'Learning funnel steps', unit: '{step}' }).add(1, { funnel_step: step, ...a });
-  logs.getLogger('aydinlearns').emit({ severityNumber: SeverityNumber.INFO, severityText: 'INFO', body: step, attributes });
+  journey(step, journeyAttributes(attributes));                    // D77: the log record (with session.id) and the journey file
 }
 
 /** The answer log's fields that answered() reads (an AydinAttempt has them all). */

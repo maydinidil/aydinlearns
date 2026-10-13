@@ -33,7 +33,8 @@ import type { OpenInstance, RouteDeps } from '../app.ts';
 import { CHOICE_GRADER_VERSION, gradeChoice, gradeTyped, parseTyped, TYPED_REFUSALS, type ChoiceGrade } from '../choice/grade.ts';
 import { HELP_WAITS, NO_DRILLS, type DrillGate } from '../drill.ts';
 import { CHOICE_RUN_OVER, CODE_ONE_ANSWER, CODE_RUN_OVER, isChoicePlan, oneAnswer } from '../run.ts';
-import { answered, choiceFunnel, levelName, sqlFunnel } from '../observe.ts';
+import { answered, choiceFunnel, levelName, sqlFunnel, type FunnelAttributes } from '../observe.ts';
+import { journey } from '../journey.ts';
 
 /**
  * The question as the browser sees it: never its options in source order, its key, or its misconceptions. `exam_relevance`
@@ -207,10 +208,12 @@ export function mountChoice(app: Hono, d: RouteDeps, runs: DrillGate = NO_DRILLS
    * A GA4 or Methodology question takes its own concept's topic, not its scheduling target's: a child concept's question can
    * belong to another exam topic than its parent (Codex F31).
    */
-  const funnelAnswer = (q: Question, attempt: AydinAttempt, correct: boolean): void => {
+  const funnelOf = (q: Question): FunnelAttributes => {
     const own = q.section === 'sql' ? undefined : d.content.choiceItem?.(q.shape.id)?.concept_id;
-    const f = q.section === 'sql' ? sqlFunnel(q.difficulty ?? levelName(q.level)) : choiceFunnel(d.content, q.section, own ?? q.target_concept_id);
-    answered(f, attempt, correct ? 'passed' : 'failed');            // D76: with its exercise, time, confidence and mode
+    return q.section === 'sql' ? sqlFunnel(q.difficulty ?? levelName(q.level)) : choiceFunnel(d.content, q.section, own ?? q.target_concept_id);
+  };
+  const funnelAnswer = (q: Question, attempt: AydinAttempt, correct: boolean): void => {
+    answered(funnelOf(q), attempt, correct ? 'passed' : 'failed');            // D76: with its exercise, time, confidence and mode
   };
   const open = (id: string, q: Question, s: Shown) => d.openInstance(id, { item_id: q.shape.id, target_concept_id: q.target_concept_id,
     phase: s.phase, section: q.section, started_at: new Date(s.at).toISOString() });
@@ -261,6 +264,7 @@ export function mountChoice(app: Hono, d: RouteDeps, runs: DrillGate = NO_DRILLS
     }
     // As openInstance: a served-only phase holds only while its serving stands (S2-98); a pretest the browser named (S3-17) stays.
     const phase: Phase = served?.phase ?? (section === 'sql' && s.phase === 'pretest' ? 'pretest' : 'free');
+    journey('item_viewed', { item_id: item.id, phase, ...funnelOf(q) });             // D77
     if (section === 'sql') {
       const sql = d.content.item(item.id)!;
       const byOid = new Map(item.options.map((o) => [o.oid, o]));
