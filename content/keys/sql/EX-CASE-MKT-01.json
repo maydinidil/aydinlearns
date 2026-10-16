@@ -1,0 +1,44 @@
+{
+  "item_id": "EX-CASE-MKT-01",
+  "item_version": 1,
+  "reference_sql": "WITH september_spend AS (\n  -- one row per channel that spent in September 2025\n  SELECT c.channel_id,\n         SUM(a.spend) AS total_spend,\n         SUM(a.clicks) AS total_clicks\n  FROM ad_spend_daily AS a\n  JOIN campaigns AS c ON c.campaign_id = a.campaign_id\n  WHERE a.spend_date BETWEEN DATE '2025-09-01' AND DATE '2025-09-30'\n  GROUP BY c.channel_id\n)\nSELECT ch.channel_id, ch.channel_name,\n       COALESCE(s.total_spend, 0) AS spend_eur,\n       COALESCE(s.total_clicks, 0) AS clicks,\n       ROUND(s.total_spend / NULLIF(s.total_clicks, 0), 2) AS cpc_eur\nFROM channels AS ch\nLEFT JOIN september_spend AS s ON s.channel_id = ch.channel_id\nWHERE ch.channel_group <> 'unpaid'\nORDER BY spend_eur DESC, ch.channel_id",
+  "alternatives": [
+    "SELECT ch.channel_id, ch.channel_name,\n       COALESCE(SUM(a.spend), 0) AS spend_eur,\n       COALESCE(SUM(a.clicks), 0) AS clicks,\n       ROUND(SUM(a.spend) / NULLIF(SUM(a.clicks), 0), 2) AS cpc_eur\nFROM channels AS ch\nLEFT JOIN campaigns AS c ON c.channel_id = ch.channel_id\nLEFT JOIN ad_spend_daily AS a ON a.campaign_id = c.campaign_id\n  AND a.spend_date BETWEEN DATE '2025-09-01' AND DATE '2025-09-30'\nWHERE ch.channel_group <> 'unpaid'\nGROUP BY ch.channel_id, ch.channel_name\nORDER BY spend_eur DESC, ch.channel_id",
+    "SELECT ch.channel_id, ch.channel_name,\n       COALESCE(t.total_spend, 0) AS spend_eur,\n       COALESCE(t.total_clicks, 0) AS clicks,\n       CASE WHEN t.total_clicks > 0 THEN ROUND(t.total_spend / t.total_clicks, 2) END AS cpc_eur\nFROM channels AS ch\nLEFT JOIN (\n  -- one row per channel that spent in September 2025\n  SELECT c.channel_id, SUM(a.spend) AS total_spend, SUM(a.clicks) AS total_clicks\n  FROM ad_spend_daily AS a\n  JOIN campaigns AS c ON c.campaign_id = a.campaign_id\n  WHERE a.spend_date >= DATE '2025-09-01' AND a.spend_date < DATE '2025-10-01'\n  GROUP BY c.channel_id\n) AS t ON t.channel_id = ch.channel_id\nWHERE ch.cost_model <> 'none'\nORDER BY spend_eur DESC, ch.channel_id"
+  ],
+  "other_way": {
+    "sql": "SELECT ch.channel_id, ch.channel_name,\n       COALESCE(SUM(a.spend), 0) AS spend_eur,\n       COALESCE(SUM(a.clicks), 0) AS clicks,\n       ROUND(SUM(a.spend) / NULLIF(SUM(a.clicks), 0), 2) AS cpc_eur\nFROM channels AS ch\nLEFT JOIN campaigns AS c ON c.channel_id = ch.channel_id\nLEFT JOIN ad_spend_daily AS a ON a.campaign_id = c.campaign_id\n  AND a.spend_date BETWEEN DATE '2025-09-01' AND DATE '2025-09-30'\nWHERE ch.channel_group <> 'unpaid'\nGROUP BY ch.channel_id, ch.channel_name\nORDER BY spend_eur DESC, ch.channel_id",
+    "tradeoff": "One grouped LEFT JOIN chain is shorter, but the September filter must sit in the last ON, not in WHERE, or idle channels vanish."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-35",
+      "sql": "WITH september_spend AS (\n  -- one row per channel that spent in September 2025\n  SELECT c.channel_id,\n         SUM(a.spend) AS total_spend,\n         SUM(a.clicks) AS total_clicks\n  FROM ad_spend_daily AS a\n  JOIN campaigns AS c ON c.campaign_id = a.campaign_id\n  WHERE a.spend_date BETWEEN DATE '2025-09-01' AND DATE '2025-09-30'\n  GROUP BY c.channel_id\n)\nSELECT ch.channel_id, ch.channel_name,\n       COALESCE(s.total_spend, 0) AS spend_eur,\n       COALESCE(s.total_clicks, 0) AS clicks,\n       COALESCE(ROUND(s.total_spend / NULLIF(s.total_clicks, 0), 2), 0) AS cpc_eur\nFROM channels AS ch\nLEFT JOIN september_spend AS s ON s.channel_id = ch.channel_id\nWHERE ch.channel_group <> 'unpaid'\nORDER BY spend_eur DESC, ch.channel_id"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-10",
+      "sql": "SELECT ch.channel_id, ch.channel_name,\n       COALESCE(SUM(a.spend), 0) AS spend_eur,\n       COALESCE(SUM(a.clicks), 0) AS clicks,\n       ROUND(SUM(a.spend) / NULLIF(SUM(a.clicks), 0), 2) AS cpc_eur\nFROM channels AS ch\nLEFT JOIN campaigns AS c ON c.channel_id = ch.channel_id\nLEFT JOIN ad_spend_daily AS a ON a.campaign_id = c.campaign_id\nWHERE ch.channel_group <> 'unpaid'\n  AND a.spend_date BETWEEN DATE '2025-09-01' AND DATE '2025-09-30'\nGROUP BY ch.channel_id, ch.channel_name\nORDER BY spend_eur DESC, ch.channel_id"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-25",
+      "sql": "WITH september_spend AS (\n  -- one row per channel that spent in September 2025\n  SELECT c.channel_id,\n         SUM(a.spend) AS total_spend,\n         SUM(a.clicks) AS total_clicks\n  FROM ad_spend_daily AS a\n  JOIN campaigns AS c ON c.campaign_id = a.campaign_id\n  WHERE month(a.spend_date) = 9\n  GROUP BY c.channel_id\n)\nSELECT ch.channel_id, ch.channel_name,\n       COALESCE(s.total_spend, 0) AS spend_eur,\n       COALESCE(s.total_clicks, 0) AS clicks,\n       ROUND(s.total_spend / NULLIF(s.total_clicks, 0), 2) AS cpc_eur\nFROM channels AS ch\nLEFT JOIN september_spend AS s ON s.channel_id = ch.channel_id\nWHERE ch.channel_group <> 'unpaid'\nORDER BY spend_eur DESC, ch.channel_id"
+    },
+    {
+      "id": "PW4",
+      "error_id": "ERR-LOG-20",
+      "sql": "WITH september_spend AS (\n  -- one row per channel that spent in September 2025\n  SELECT c.channel_id,\n         SUM(a.spend) AS total_spend,\n         SUM(a.clicks) AS total_clicks,\n         AVG(a.spend / NULLIF(a.clicks, 0)) AS avg_daily_cpc\n  FROM ad_spend_daily AS a\n  JOIN campaigns AS c ON c.campaign_id = a.campaign_id\n  WHERE a.spend_date BETWEEN DATE '2025-09-01' AND DATE '2025-09-30'\n  GROUP BY c.channel_id\n)\nSELECT ch.channel_id, ch.channel_name,\n       COALESCE(s.total_spend, 0) AS spend_eur,\n       COALESCE(s.total_clicks, 0) AS clicks,\n       ROUND(s.avg_daily_cpc, 2) AS cpc_eur\nFROM channels AS ch\nLEFT JOIN september_spend AS s ON s.channel_id = ch.channel_id\nWHERE ch.channel_group <> 'unpaid'\nORDER BY spend_eur DESC, ch.channel_id"
+    }
+  ],
+  "hint3_partial": "WITH september_spend AS (\n  -- one row per channel that spent in September 2025\n  SELECT c.channel_id,\n         SUM(a.spend) AS total_spend,\n         SUM(a.clicks) AS total_clicks\n  FROM ad_spend_daily AS a\n  JOIN campaigns AS c ON ___\n  WHERE ___\n  GROUP BY c.channel_id\n)\nSELECT ch.channel_id, ch.channel_name,\n       COALESCE(___) AS spend_eur,\n       COALESCE(___) AS clicks,\n       ROUND(___ / NULLIF(___), 2) AS cpc_eur\nFROM channels AS ch\nLEFT JOIN september_spend AS s ON ___\nWHERE ___\nORDER BY ___",
+  "solver": {
+    "prompt_hash": "9c8eefc3589e9a59",
+    "schema_version": "d1135c7f8f15",
+    "dataset_version": "37bb1b02dc81495d",
+    "grader_version": "6a.1",
+    "query": "WITH s AS (\n  SELECT c.channel_id, SUM(CAST(a.spend AS DECIMAL(18,2))) AS spend, SUM(a.clicks) AS clicks\n  FROM ad_spend_daily a JOIN campaigns c ON c.campaign_id = a.campaign_id\n  WHERE CAST(a.spend_date AS DATE) BETWEEN DATE '2025-09-01' AND DATE '2025-09-30'\n  GROUP BY c.channel_id\n)\nSELECT ch.channel_id, ch.channel_name,\n  COALESCE(s.spend, 0) AS spend_eur,\n  COALESCE(s.clicks, 0) AS clicks,\n  CASE WHEN COALESCE(s.clicks, 0) = 0 THEN NULL ELSE ROUND(s.spend / s.clicks, 2) END AS cpc_eur\nFROM channels ch LEFT JOIN s ON s.channel_id = ch.channel_id\nWHERE ch.channel_group <> 'unpaid'\nORDER BY spend_eur DESC, ch.channel_id ASC\n",
+    "at": "2026-10-16T15:28:32.705Z"
+  }
+}

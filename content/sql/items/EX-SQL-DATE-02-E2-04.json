@@ -1,0 +1,114 @@
+{
+  "id": "EX-SQL-DATE-02-E2-04",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-04",
+    "date",
+    "date_arithmetic",
+    "stores",
+    "whole-years",
+    "age",
+    "as-of"
+  ],
+  "level": 4,
+  "source_ids": [
+    "01:SQL-DATE-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-15",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-DATE-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-NULL-01",
+    "SQL-DATE-01",
+    "SQL-DATE-02"
+  ],
+  "template_id": "T-DATE-02-whole-years",
+  "template_params": {
+    "table": "stores",
+    "as_of": "2026-01-05"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_interval",
+  "prompt": "For each store that is still open, with no close_date, how many whole years had it been open on Voltmarkt's as-of date, 5 January 2026? A year counts only once its anniversary has been reached: a store that opened on 5 January 2025 had 1 whole year, and one that opened on 6 January 2025 had 0. Return two columns, in this order: store_code, and whole_years. Return one row for each of those stores. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "store_code",
+        "type_class": "text"
+      },
+      {
+        "name": "whole_years",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "store_code",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "whole_years",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "store_code"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the calculated column whole_years: the full years from opened_on to the as-of date.",
+    "date_diff('year', ...) counts how many New Years fall between the dates, not full years. Look for a function that gives the exact gap, then take its years."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 86,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 87,
+      "to": 98,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 99,
+      "to": 123,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "age() gives the exact gap between the two dates, and its year part counts only the anniversaries that have been reached."
+}

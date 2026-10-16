@@ -1,0 +1,103 @@
+{
+  "id": "EX-SQL-DATE-02-E1-07",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-04",
+    "date",
+    "date_arithmetic",
+    "orders",
+    "last-n-days",
+    "as-of",
+    "customers"
+  ],
+  "level": 4,
+  "source_ids": [
+    "01:SQL-DATE-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-15",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-DATE-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-AGG-01",
+    "SQL-DATE-02"
+  ],
+  "template_id": "T-DATE-02-last-n-days-distinct",
+  "template_params": {
+    "table": "orders",
+    "days": 30,
+    "as_of": "2026-01-05",
+    "as_of_day": "included"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_interval",
+  "prompt": "How many different customers placed at least one order in the last 30 days up to Voltmarkt's as-of date, 5 January 2026, with the as-of day included: from 7 December 2025 to 5 January 2026? Order times are stored in UTC, so place each order on its UTC day. Guest orders have no customer_id and do not count. Return one column, customers. Return one row. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "customers",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "customers",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the row filter: every order from the first moment of 7 December 2025 to the last moment of 5 January 2026.",
+    "Thirty days with the as-of day included start 29 days before it. Count each customer once, however many orders they placed; a missing customer_id is not a customer."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 47,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 48,
+      "to": 59,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 60,
+      "to": 165,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "The range keeps exactly the 30 days up to and including 5 January, and COUNT(DISTINCT customer_id) counts each customer once and skips guest orders."
+}

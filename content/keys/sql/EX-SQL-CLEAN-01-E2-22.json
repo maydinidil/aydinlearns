@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-CLEAN-01-E2-22",
+  "item_version": 1,
+  "reference_sql": "SELECT a.product_id, a.list_price_eur AS earlier_price, b.list_price_eur AS later_price\nFROM price_history a\nJOIN price_history b\n  ON b.product_id = a.product_id\n AND b.valid_from > a.valid_from\n AND (a.valid_to IS NULL OR b.valid_from <= a.valid_to)",
+  "alternatives": [
+    "WITH pairs AS (  -- one row per pair of overlapping windows\n  SELECT a.product_id, a.list_price_eur AS earlier_price, b.list_price_eur AS later_price\n  FROM price_history a\n  JOIN price_history b\n    ON b.product_id = a.product_id\n   AND a.valid_from < b.valid_from\n   AND b.valid_from <= COALESCE(a.valid_to, DATE '9999-12-31')\n)\nSELECT product_id, earlier_price, later_price\nFROM pairs",
+    "SELECT b.product_id, a.list_price_eur AS earlier_price, b.list_price_eur AS later_price FROM price_history b JOIN price_history a ON a.product_id = b.product_id AND a.valid_from < b.valid_from AND (a.valid_to IS NULL OR a.valid_to >= b.valid_from)"
+  ],
+  "other_way": {
+    "sql": "WITH pairs AS (  -- one row per pair of overlapping windows\n  SELECT a.product_id, a.list_price_eur AS earlier_price, b.list_price_eur AS later_price\n  FROM price_history a\n  JOIN price_history b\n    ON b.product_id = a.product_id\n   AND a.valid_from < b.valid_from\n   AND b.valid_from <= COALESCE(a.valid_to, DATE '9999-12-31')\n)\nSELECT product_id, earlier_price, later_price\nFROM pairs",
+    "tradeoff": "COALESCE with a far future date turns an open window into a dated one, while the OR with IS NULL says plainly that it is open."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-23",
+      "sql": "SELECT a.product_id, a.list_price_eur AS earlier_price, b.list_price_eur AS later_price FROM price_history a JOIN price_history b ON b.product_id = a.product_id AND b.valid_from > a.valid_from AND (a.valid_to IS NULL OR b.valid_from < a.valid_to)"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-15",
+      "sql": "SELECT a.product_id, a.list_price_eur AS earlier_price, b.list_price_eur AS later_price FROM price_history a JOIN price_history b ON b.product_id = a.product_id AND b.valid_from >= a.valid_from AND (a.valid_to IS NULL OR b.valid_from <= a.valid_to)"
+    }
+  ],
+  "hint3_partial": "SELECT a.product_id, a.list_price_eur AS earlier_price, b.list_price_eur AS later_price\nFROM price_history a\nJOIN price_history b\n  ON b.product_id = a.product_id\n AND ___\n AND (a.valid_to IS NULL OR ___)",
+  "solver": {
+    "prompt_hash": "c6664cc65f3f0437",
+    "schema_version": "e8cea7c4eacc",
+    "dataset_version": "b2d2b40fb117bb07",
+    "grader_version": "6a.1",
+    "query": "WITH ov AS (\n  SELECT a.product_id, a.valid_from AS a_from, a.valid_to AS a_to, a.list_price_eur AS a_price,\n         b.valid_from AS b_from, b.valid_to AS b_to, b.list_price_eur AS b_price\n  FROM price_history a\n  JOIN price_history b ON a.product_id = b.product_id AND a.valid_from < b.valid_from\n  WHERE b.valid_from <= COALESCE(a.valid_to, DATE '9999-12-31')\n)\nSELECT product_id, a_price AS earlier_price, b_price AS later_price FROM ov\n",
+    "at": "2026-10-15T11:06:10.381Z"
+  }
+}

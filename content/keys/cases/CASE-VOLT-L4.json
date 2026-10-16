@@ -1,0 +1,43 @@
+{
+  "case_id": "CASE-VOLT-L4",
+  "truths": {
+    "CP2": "SELECT COUNT(DISTINCT ol.order_id)\nFROM order_lines AS ol\nJOIN orders AS o ON o.order_id = ol.order_id\nJOIN products AS p ON p.product_id = ol.product_id\nJOIN categories AS c ON c.category_id = p.category_id\nWHERE c.category_name IN ('TVs up to 43 inch', 'TVs 50-55 inch', 'TVs 65 inch and up')\n  AND o.order_ts >= TIMESTAMP '2025-01-01 00:00:00'\n  AND o.order_ts < TIMESTAMP '2026-01-01 00:00:00'",
+    "CP4": "WITH tv_orders AS (\n  -- one row per 2025 order with a TV line\n  SELECT DISTINCT ol.order_id\n  FROM order_lines AS ol\n  JOIN orders AS o ON o.order_id = ol.order_id\n  JOIN products AS p ON p.product_id = ol.product_id\n  JOIN categories AS c ON c.category_id = p.category_id\n  WHERE c.category_name IN ('TVs up to 43 inch', 'TVs 50-55 inch', 'TVs 65 inch and up')\n    AND o.order_ts >= TIMESTAMP '2025-01-01 00:00:00'\n    AND o.order_ts < TIMESTAMP '2026-01-01 00:00:00'\n)\nSELECT ROUND(100.0 * SUM(CASE WHEN EXISTS (\n         SELECT 1\n         FROM order_lines AS sl\n         JOIN products AS sp ON sp.product_id = sl.product_id\n         JOIN categories AS sc ON sc.category_id = sp.category_id\n         WHERE sl.order_id = t.order_id\n           AND sc.category_name = 'Soundbars'\n       ) THEN 1 ELSE 0 END) / COUNT(*), 2)\nFROM tv_orders AS t"
+  },
+  "choices": {
+    "CP1": {
+      "correct_oid": "o4483f32",
+      "explanation": "One row per TV order with its promotion flag counts every order once, and EXISTS only asks whether that order holds a soundbar; flagging each TV line counts an order with two TVs twice."
+    },
+    "CP5": {
+      "correct_oid": "o5a05655",
+      "explanation": "The result shows promoted TV orders and soundbars go together, but promotion shoppers and weeks differ from normal ones, so it cannot show cause; saying the promotion pays for itself also ignores the margin given away."
+    }
+  },
+  "solver": {
+    "CP1": {
+      "pass": true,
+      "prompt_hash": "e1adb45137f5908d",
+      "key_hash": "290d2a67462d309d",
+      "at": "2026-10-15T23:01:46.505Z"
+    },
+    "CP2": {
+      "pass": true,
+      "prompt_hash": "328f1fea6aa2793e",
+      "key_hash": "9b28a14279bb2aea",
+      "at": "2026-10-15T23:01:46.505Z"
+    },
+    "CP4": {
+      "pass": true,
+      "prompt_hash": "9da94a53bc3d1c11",
+      "key_hash": "174625d9090fffba",
+      "at": "2026-10-15T23:01:46.505Z"
+    },
+    "CP5": {
+      "pass": true,
+      "prompt_hash": "24b8d7b398e4b688",
+      "key_hash": "e7ee51ec9a3a1ca0",
+      "at": "2026-10-15T23:01:46.505Z"
+    }
+  }
+}

@@ -1,0 +1,131 @@
+{
+  "id": "EX-SQL-STR-01-E2-06",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-04",
+    "string_fn",
+    "length",
+    "anti_join",
+    "category_raw",
+    "products",
+    "categories"
+  ],
+  "level": 4,
+  "source_ids": [
+    "01:SQL-STR-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-15",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-STR-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-STR-01"
+  ],
+  "template_id": "T-STR-01-unmatched-spellings",
+  "template_params": {
+    "column": "category_raw"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt_raw",
+  "edge_schema": "voltmarkt_edge_clean",
+  "uses_raw": true,
+  "prompt": "Which category_raw values do not name any category? These tables may hold errors. A value names a category when it equals that category's category_name exactly as stored. Return three columns, in this order: category_raw exactly as stored, n_chars, its length in characters with any spaces, and n_products. Return one row for each such value. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "category_raw",
+        "type_class": "text"
+      },
+      {
+        "name": "n_chars",
+        "type_class": "numeric"
+      },
+      {
+        "name": "n_products",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "category_raw",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "n_chars",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "n_products",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "category_raw"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, keep the values that find no category with the same name.",
+    "Match category_raw against category_name, not against the id, and keep the rows where no category was found."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 80,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 81,
+      "to": 155,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 156,
+      "to": 183,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 184,
+      "to": 207,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "The LEFT JOIN on the name leaves the category missing for a value no category_name matches, and length shows a trailing space as an extra character."
+}

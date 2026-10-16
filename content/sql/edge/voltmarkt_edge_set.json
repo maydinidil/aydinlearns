@@ -10,6 +10,52 @@
     "customers who ordered in one channel only, and a product that sold in a store only",
     "a product in two promotions, and a product on promotion that never sold",
     "a promotion in April 2025 that no order line carried",
-    "the same competitor price for one product twice from one rival, and the same price for one product from both rivals"
-  ]
+    "the same competitor price for one product twice from one rival, and the same price for one product from both rivals",
+    "a calendar that holds every day of each promotion",
+    "no A/B test: ab_assignments and ab_conversions have no rows"
+  ],
+  "tables": {
+    "promotions": [
+      "a product in two promotions, and a product on promotion that never sold",
+      "a promotion in April 2025 that no order line carried"
+    ],
+    "promotion_products": [
+      "a product in two promotions, and a product on promotion that never sold",
+      "a promotion in April 2025 that no order line carried"
+    ],
+    "orders": [
+      "products sold both on the web and in a store, and a customer who ordered in both channels",
+      "the same product on several web lines, and a customer with two web orders",
+      "a guest order with a missing customer ID in each channel",
+      "customers who ordered in one channel only, and a product that sold in a store only"
+    ],
+    "order_lines": [
+      "products sold both on the web and in a store, and a customer who ordered in both channels",
+      "the same product on several web lines, and a customer with two web orders",
+      "lines with no promotion (promo_id missing) next to lines on promotion",
+      "customers who ordered in one channel only, and a product that sold in a store only",
+      "a product in two promotions, and a product on promotion that never sold",
+      "a promotion in April 2025 that no order line carried"
+    ],
+    "competitor_prices": [
+      "the same competitor price for one product twice from one rival, and the same price for one product from both rivals"
+    ],
+    "sales": [
+      "products sold both on the web and in a store, and a customer who ordered in both channels",
+      "the same product on several web lines, and a customer with two web orders",
+      "customers who ordered in one channel only, and a product that sold in a store only"
+    ],
+    "competitor_price_weekly": [
+      "the same competitor price for one product twice from one rival, and the same price for one product from both rivals"
+    ],
+    "calendar": [
+      "a calendar that holds every day of each promotion"
+    ],
+    "ab_assignments": [
+      "no A/B test: ab_assignments and ab_conversions have no rows"
+    ],
+    "ab_conversions": [
+      "no A/B test: ab_assignments and ab_conversions have no rows"
+    ]
+  }
 }

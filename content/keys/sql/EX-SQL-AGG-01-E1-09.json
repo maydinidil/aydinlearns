@@ -18,7 +18,7 @@
     },
     {
       "id": "EX-SQL-AGG-01-E1-09-PW2",
-      "error_id": "ERR-LOG-06",
+      "error_id": "ERR-LOG-23",
       "sql": "SELECT SUM(units) AS total_units FROM sales WHERE order_date >= DATE '2024-01-01' AND order_date < DATE '2024-12-31'"
     },
     {

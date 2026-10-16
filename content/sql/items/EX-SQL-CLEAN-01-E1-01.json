@@ -1,0 +1,110 @@
+{
+  "id": "EX-SQL-CLEAN-01-E1-01",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-04",
+    "duplicates",
+    "group_by",
+    "order_lines"
+  ],
+  "level": 4,
+  "source_ids": [
+    "01:SQL-CLEAN-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-15",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pretest",
+  "target_concept_id": "SQL-CLEAN-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CTE-01",
+    "SQL-CLEAN-01"
+  ],
+  "template_id": "T-CLEAN-01-count-copies",
+  "template_params": {
+    "table": "order_lines"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt_raw",
+  "edge_schema": "voltmarkt_edge_clean",
+  "uses_raw": true,
+  "prompt": "How many order lines are resent copies? This table may hold errors. Some order lines were sent twice under a new order_line_id. Two lines are copies of one order line when order_id, product_id, quantity, unit_price_eur, promo_id and line_discount_eur all match, with a missing promo_id matching a missing one; every line beyond the first of such a set is a resent copy. Return one column, n_copies. The result is a single row. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "n_copies",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row in total"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "n_copies",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, group the lines that match on every column except order_line_id.",
+    "Each group of matching lines holds one real line and its copies, so add up each group's size minus 1."
+  ],
+  "subgoals": [
+    {
+      "from": 60,
+      "to": 86,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 89,
+      "to": 105,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 108,
+      "to": 192,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 195,
+      "to": 230,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 231,
+      "to": 245,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "Grouping by every column but order_line_id puts each copy with its original, so a set's size minus 1 is its number of copies."
+}

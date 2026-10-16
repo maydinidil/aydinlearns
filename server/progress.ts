@@ -199,7 +199,11 @@ const byFirstAttempt = (facts: readonly InstanceFact[]): InstanceFact[] => facts
 /** A concept that is not at its criterion's state yet: what closes the gap (design §2). */
 export interface GapConcept { concept_id: string; title: string; state: ConceptStateName }
 /** An evaluated criterion (core/goal-eval.ts) and, for an unmet concept-state criterion, the concepts not there yet ([] otherwise). */
-export interface ProgressCriterion extends CriterionResult { gap: GapConcept[] }
+export interface ProgressCriterion extends CriterionResult {
+  gap: GapConcept[];
+  /** S6-26: what to do next on an unmet real-data criterion; left out on every other criterion. */
+  hint?: string;
+}
 /** Met; open (it can be met now); or not yet available (an unmet criterion this build cannot evaluate yet, such as a mock). */
 export type GoalStatus = 'met' | 'open' | 'not_yet_available';
 /** One goal as GET /api/goals/progress evaluates it, with its status, whether its date has passed unmet, and each criterion's gap. */
@@ -217,6 +221,12 @@ function gapOf(def: GoalCriterion, result: CriterionResult, view: GoalView, titl
   return ids.filter((id) => RANK[view.stateOf(id)] < RANK[def.state]).map((id) => ({ concept_id: id, title: titleOf(id), state: view.stateOf(id) }));
 }
 
+/** S6-26: an unmet real-data criterion says what is next: prepare a dataset when no real-data case can be opened, else solve one. */
+function hintOf(def: GoalCriterion, result: CriterionResult, view: GoalView): { hint?: string } {
+  if (def.kind !== 'real_data_analysis' || result.met) return {};
+  return { hint: view.realCasesAvailable > 0 ? 'Solve a real-data case in the inbox' : 'Prepare a dataset, then solve a real-data case in the inbox' };
+}
+
 /**
  * S4B-27: every goal in the file's order, exactly as goalProgress (server/goal-view.ts) evaluates it for GET /api/goals/progress, on
  * the same view and date. `behind`: unmet with its date before today; then the gap and the concepts that close it show (design §2).
@@ -225,7 +235,7 @@ export function progressGoals(goals: readonly Goal[], view: GoalView, dateOverri
   titleOf: (conceptId: string) => string): ProgressGoal[] {
   return goalProgress(goals, view, dateOverrides, today).map((p, i) => {
     const defs = goals[i]!.criteria;
-    const criteria = p.criteria.map((c, j) => ({ ...c, gap: gapOf(defs[j]!, c, view, titleOf) }));
+    const criteria = p.criteria.map((c, j): ProgressCriterion => ({ ...c, gap: gapOf(defs[j]!, c, view, titleOf), ...hintOf(defs[j]!, c, view) }));
     const status: GoalStatus = p.met ? 'met' : criteria.some((c) => !c.met && !c.available) ? 'not_yet_available' : 'open';
     return { goal: p.goal, effective_date: p.effective_date, met: p.met, status, behind: !p.met && p.effective_date < today, criteria };
   });
@@ -434,6 +444,15 @@ function firstAttempts(xs: readonly InstanceFact[], need: number, pct: number): 
 }
 /** S4B-21 JR-02: an error ID content/sql/error-concepts.json gives to one of these concepts is NULL-tagged (a missing-value mistake). */
 const NULL_CONCEPTS: ReadonlySet<string> = new Set(['SQL-NULL-01', 'SQL-JOIN-02']);
+/**
+ * S4B-21 JR-02, sprint 6 Task K3: missing-value mistakes whose concept is not one of NULL_CONCEPTS, so the concept rule cannot see
+ * them. ERR-LOG-30 (NOT IN over a list that holds a missing value) is SQL-SUBQ-01's; ERR-LOG-35 (a missing ratio turned into 0) is
+ * SQL-CLEAN-01's, and those concepts' other errors are not about missing values.
+ */
+const NULL_ERRORS: ReadonlySet<string> = new Set(['ERR-LOG-30', 'ERR-LOG-35']);
+/** JR-02: whether an error ID is a missing-value mistake, by its concept or by name. */
+const missingValueMistake = (errorId: string, errorConcepts: Readonly<Record<string, string>>): boolean =>
+  NULL_ERRORS.has(errorId) || NULL_CONCEPTS.has(errorConcepts[errorId] ?? '');
 /** S4B-21 JR-04: the concepts whose ratio items (a column of precision `ratio`) are checked against integer division. */
 const RATIO_CONCEPTS: ReadonlySet<string> = new Set(['SQL-TYPE-01', 'SQL-AGG-04']);
 /** S4B-21 JR-05: a fan-out fix item's starter makes this error ("Join fan-out"). */
@@ -452,7 +471,7 @@ const JUDGES: Readonly<Record<string, (j: JobReadyInput, item: ItemOf) => Judgem
     const last = j.facts.filter((f) => f.section === 'sql' && f.answer === 'sql').flatMap((f) => f.summary.graded)
       .sort((a, b) => byTime(a.submitted_at, b.submitted_at)).slice(-20);
     if (last.length < 20) return notEnough(last.length, 20, `${last.length} of 20 graded attempts so far`);
-    const clean = last.filter((a) => !a.error_ids.some((e) => NULL_CONCEPTS.has(j.errorConcepts[e] ?? ''))).length;
+    const clean = last.filter((a) => !a.error_ids.some((e) => missingValueMistake(e, j.errorConcepts))).length;
     return judgedAs(clean === 20, { have: 20, need: 20 }, clean, 20, `${clean} of your last 20 graded attempts free of missing-value mistakes`);
   },
   'JR-03': (j) => {

@@ -1,0 +1,76 @@
+{
+  "id": "EX-SQL-DATE-02-E1-42",
+  "version": 1,
+  "kind": "predict_rows",
+  "tags": [
+    "sql",
+    "LVL-04",
+    "date",
+    "date_arithmetic",
+    "predict_rows",
+    "interval",
+    "as-of"
+  ],
+  "level": 4,
+  "source_ids": [
+    "01:SQL-DATE-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-15",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-DATE-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-TYPE-01",
+    "SQL-SORT-01",
+    "SQL-DATE-02"
+  ],
+  "template_id": "T-DATE-02-predict-rows-window",
+  "template_params": {
+    "table": "orders",
+    "days": 30,
+    "as_of": "2026-01-05"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_interval",
+  "prompt": "Voltmarkt took orders on every day of 2024 and 2025, and its data stops at the end of 31 December 2025. How many rows does this query return? Type the number.",
+  "output_contract": null,
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [],
+  "subgoals": [],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 60000,
+  "why_this_works": "",
+  "shown_sql": "SELECT DISTINCT CAST(order_ts AS DATE) AS order_day\nFROM orders\nWHERE order_ts >= DATE '2026-01-05' - INTERVAL 30 DAY",
+  "typed": {
+    "precision": "count",
+    "scale": "plain",
+    "decimals": 0,
+    "unit_label": "rows"
+  }
+}

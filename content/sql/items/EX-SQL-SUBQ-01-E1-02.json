@@ -1,0 +1,110 @@
+{
+  "id": "EX-SQL-SUBQ-01-E1-02",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-04",
+    "in_subquery",
+    "promotions",
+    "promotion_products",
+    "products"
+  ],
+  "level": 4,
+  "source_ids": [
+    "01:SQL-SUBQ-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-15",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pretest",
+  "target_concept_id": "SQL-SUBQ-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-JOIN-01",
+    "SQL-SUBQ-01"
+  ],
+  "template_id": "T-SUBQ-01-in-list-via-bridge",
+  "template_params": {
+    "outer": "promotions",
+    "brand": "Sonora"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_subq",
+  "prompt": "Which promotions cover at least one product of the brand Sonora? A promotion covers the products listed for it. Return two columns, in this order: promo_id and promo_code. Return one row for each such promotion. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "promo_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "promo_code",
+        "type_class": "text"
+      }
+    ],
+    "grain": "one row per promotion that covers a Sonora product"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "promo_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "promo_code",
+        "type_class": "text",
+        "precision": "exact"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "promo_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, build the list of promotions that cover a Sonora product, then keep the promotions whose ID is in that list.",
+    "Inside the brackets, the promotion and product pairs need the products table to reach the brand; outside, the row filter tests whether each promotion is in the list."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 27,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 28,
+      "to": 43,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 44,
+      "to": 192,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "IN keeps each promotion whose ID is in the subquery's list, once, however many Sonora products it covers."
+}

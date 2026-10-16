@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-CLEAN-01-E1-03",
+  "item_version": 1,
+  "reference_sql": "SELECT order_id, product_id, COUNT(*) AS n_lines\nFROM order_lines\nGROUP BY order_id, product_id, quantity, unit_price_eur, promo_id, line_discount_eur\nHAVING COUNT(*) > 1",
+  "alternatives": [
+    "WITH line_sets AS (  -- one row per set of matching lines\n  SELECT order_id, product_id, COUNT(*) AS n_lines\n  FROM order_lines\n  GROUP BY order_id, product_id, quantity, unit_price_eur, promo_id, line_discount_eur\n)\nSELECT order_id, product_id, n_lines\nFROM line_sets\nWHERE n_lines > 1",
+    "SELECT order_id, product_id, COUNT(order_line_id) AS n_lines FROM order_lines GROUP BY order_id, product_id, quantity, unit_price_eur, promo_id, line_discount_eur HAVING COUNT(order_line_id) >= 2"
+  ],
+  "other_way": {
+    "sql": "WITH line_sets AS (  -- one row per set of matching lines\n  SELECT order_id, product_id, COUNT(*) AS n_lines\n  FROM order_lines\n  GROUP BY order_id, product_id, quantity, unit_price_eur, promo_id, line_discount_eur\n)\nSELECT order_id, product_id, n_lines\nFROM line_sets\nWHERE n_lines > 1",
+    "tradeoff": "A named step with WHERE on its count shows every set before the test, but HAVING tests the groups in one query."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-07",
+      "sql": "SELECT order_id, product_id, COUNT(*) AS n_lines FROM order_lines GROUP BY order_id, product_id HAVING COUNT(*) > 1"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-15",
+      "sql": "SELECT order_id, product_id, COUNT(*) AS n_lines FROM order_lines GROUP BY order_id, product_id, quantity, unit_price_eur, promo_id, line_discount_eur HAVING COUNT(*) > 2"
+    }
+  ],
+  "hint3_partial": "SELECT order_id, product_id, COUNT(*) AS n_lines\nFROM order_lines\nGROUP BY order_id, product_id, quantity, unit_price_eur, promo_id, line_discount_eur\nHAVING ___",
+  "solver": {
+    "prompt_hash": "c9d538d088d790c4",
+    "schema_version": "6c8fc3c0d3d4",
+    "dataset_version": "b2d2b40fb117bb07",
+    "grader_version": "6a.1",
+    "query": "SELECT order_id, product_id, COUNT(*) AS n_lines FROM order_lines GROUP BY order_id, product_id, quantity, unit_price_eur, promo_id, line_discount_eur HAVING COUNT(*) > 1\n",
+    "at": "2026-10-15T11:06:09.123Z"
+  }
+}

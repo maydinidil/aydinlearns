@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-STR-01-E2-21",
+  "item_version": 1,
+  "reference_sql": "SELECT brand, COUNT(*) AS n_products\nFROM products\nWHERE LOWER(TRIM(category_raw)) IN ('tv & video', 'tv en video', 'tv/video', 'téléviseurs')\nGROUP BY brand",
+  "alternatives": [
+    "SELECT brand, COUNT(*) FILTER (WHERE LOWER(TRIM(category_raw)) IN ('tv & video', 'tv en video', 'tv/video', 'téléviseurs')) AS n_products\nFROM products\nGROUP BY brand\nHAVING COUNT(*) FILTER (WHERE LOWER(TRIM(category_raw)) IN ('tv & video', 'tv en video', 'tv/video', 'téléviseurs')) > 0",
+    "SELECT brand, COUNT(*) AS n_products FROM products WHERE TRIM(LOWER(category_raw)) IN ('tv & video', 'tv en video', 'tv/video', 'téléviseurs') GROUP BY brand"
+  ],
+  "other_way": {
+    "sql": "SELECT brand, COUNT(*) FILTER (WHERE LOWER(TRIM(category_raw)) IN ('tv & video', 'tv en video', 'tv/video', 'téléviseurs')) AS n_products\nFROM products\nGROUP BY brand\nHAVING COUNT(*) FILTER (WHERE LOWER(TRIM(category_raw)) IN ('tv & video', 'tv en video', 'tv/video', 'téléviseurs')) > 0",
+    "tradeoff": "FILTER with HAVING counts within every brand before dropping the brands with none, but filtering rows first is shorter."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-32",
+      "sql": "SELECT brand, COUNT(*) AS n_products FROM products WHERE category_raw IN ('tv & video', 'tv en video', 'tv/video', 'téléviseurs') GROUP BY brand"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-32",
+      "sql": "SELECT brand, COUNT(*) AS n_products FROM products WHERE LOWER(category_raw) IN ('tv & video', 'tv en video', 'tv/video', 'téléviseurs') GROUP BY brand"
+    }
+  ],
+  "hint3_partial": "SELECT brand, COUNT(*) AS n_products\nFROM products\nWHERE ___ IN ('tv & video', 'tv en video', 'tv/video', 'téléviseurs')\nGROUP BY brand",
+  "solver": {
+    "prompt_hash": "0ebd959448ae3f2f",
+    "schema_version": "d77fe1c31a0e",
+    "dataset_version": "b2d2b40fb117bb07",
+    "grader_version": "6a.1",
+    "query": "SELECT brand, count(*) AS n_products FROM products WHERE lower(trim(category_raw)) IN ('tv & video','tv en video','tv/video','téléviseurs','tã©lã©viseurs') GROUP BY brand\n",
+    "at": "2026-10-15T11:06:12.461Z"
+  }
+}

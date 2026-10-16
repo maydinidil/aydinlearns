@@ -1,5 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { DuckDBInstance } from '@duckdb/node-api';
 import { startRunner } from '../../server/runner/client.ts';
 import { classifyEngineError } from '../../server/grader/engine-errors.ts';
 import { makeFixtureDb, SHOP } from '../helpers/fixture-db.ts';
@@ -44,6 +45,11 @@ const cases: [string, string][] = [
   ['SELECT x.city FROM stores s', 'ERR-SYN-02'],
   ['SELECT (SELECT city FROM stores) AS c', 'ERR-SEM-05'],
   ['SELECT CAST(city AS INTEGER) FROM stores', 'ERR-OUT-02'],
+  // S6-11 (sprint 6, Task A1; ERRATA E-189): a window function in WHERE is ERR-SYN-08, no longer the generic binder rule's
+  // ERR-SYN-02; an unknown column stays ERR-SYN-02.
+  ['SELECT city FROM stores WHERE row_number() OVER (ORDER BY city) = 1', 'ERR-SYN-08'],
+  ['SELECT city FROM stores WHERE store_id > avg(store_id) OVER ()', 'ERR-SYN-08'],
+  ['SELECT city FROM stores WHERE nme > 1', 'ERR-SYN-02'],
 ];
 for (const [sql, id] of cases) {
   test(`${id}: ${sql.replace(/\n/g, '\\n')}`, async () => {
@@ -74,6 +80,21 @@ test('an unterminated quote at the end of input is ERR-SYN-04 (R22)', () => {
   assert.equal(classifyEngineError('Parser Error: syntax error at end of input', "SELECT 'abc").errorId, 'ERR-SYN-04');
   assert.equal(classifyEngineError('Parser Error: syntax error at end of input', 'SELECT "abc').errorId, 'ERR-SYN-04');
   assert.equal(classifyEngineError('Parser Error: syntax error at end of input', "SELECT 'it''s' FROM").errorId, 'ERR-SYN-01');
+});
+test("S6-11: DuckDB 1.5.6's own message for a window function in WHERE, on an in-memory instance, is ERR-SYN-08", async () => {
+  const inst = await DuckDBInstance.create(':memory:', { autoinstall_known_extensions: 'false', autoload_known_extensions: 'false' });
+  const conn = await inst.connect();
+  try {
+    await conn.run(`SET TimeZone = 'UTC'`);
+    await conn.run('CREATE TABLE t AS SELECT range AS id FROM range(3)');
+    const sql = 'SELECT id FROM t WHERE rank() OVER (ORDER BY id) = 1';
+    const message = await conn.prepare(sql).then(() => '', (e: Error) => e.message);
+    assert.match(message, /^Binder Error: WHERE clause cannot contain window functions!/);
+    assert.deepEqual(classifyEngineError(message, sql), { errorId: 'ERR-SYN-08' });
+  } finally {
+    conn.disconnectSync();
+    inst.closeSync();
+  }
 });
 test('an unknown message falls back by its error class', () => {
   assert.equal(classifyEngineError('Parser Error: something new', 'SELECT 1').errorId, 'ERR-SYN-01');

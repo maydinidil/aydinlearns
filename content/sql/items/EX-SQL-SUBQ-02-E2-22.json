@@ -1,0 +1,134 @@
+{
+  "id": "EX-SQL-SUBQ-02-E2-22",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-04",
+    "derived_table",
+    "scalar_subquery",
+    "above_average",
+    "price_history",
+    "drill"
+  ],
+  "level": 4,
+  "source_ids": [
+    "01:SQL-SUBQ-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-15",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-SUBQ-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-SUBQ-01",
+    "SQL-SUBQ-02"
+  ],
+  "template_id": "T-SUBQ-02-groups-above-average",
+  "template_params": {
+    "table": "price_history",
+    "step": "product"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_subq",
+  "prompt": "Which products have had more price versions than the average product? A product has one price_history row per price version, and the average covers every product with at least one version. Return two columns, in this order: product_id and n_versions. Return one row for each such product. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "n_versions",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "n_versions",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "product_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the step that gives each product's number of price versions; the question uses it twice.",
+    "Keep a product when its count is above one number: the average of those same counts."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 33,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 34,
+      "to": 65,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 66,
+      "to": 109,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 110,
+      "to": 130,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 131,
+      "to": 152,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 153,
+      "to": 159,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 160,
+      "to": 351,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "Both derived tables have one row per product, so each product's count is compared with the average product's count."
+}

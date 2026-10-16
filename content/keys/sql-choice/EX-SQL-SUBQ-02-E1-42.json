@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-SUBQ-02-E1-42",
+  "item_version": 1,
+  "correct_oid": "o86e3f51",
+  "explanation": "The derived table has one row per country with its number of physical stores, 14, 9 and 2, because the WHERE leaves the webshop out. The outer query has no GROUP BY, so MAX and MIN fold those three rows into one row: 14 and 2. The outer query, not the inner one, sets the grain of the result.",
+  "solver": {
+    "prompt_hash": "f843cf71df88fd77",
+    "grader_version": "choice.3",
+    "chosen": "o86e3f51",
+    "typed": null,
+    "at": "2026-10-15T10:40:24.720Z"
+  }
+}

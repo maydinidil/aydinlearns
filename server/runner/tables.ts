@@ -62,6 +62,61 @@ export function maskSql(sql: string): string {
   return out.join('');
 }
 
+/**
+ * S6-08 (sprint 6, Task A1): the deepest nesting the runner takes. Deeper text is refused before any parse. S6-33 (Task K3): one
+ * limit for every kind maxNestingDepth counts.
+ */
+export const MAX_NESTING_DEPTH = 40;
+/** S6-08: the refusal's message. It is not graded, like "one statement only". */
+export const TOO_DEEP_MESSAGE = 'Too many nested brackets. Name the steps with WITH instead.';
+
+/** S6-33: the opening bracket each closing bracket closes. */
+const OPENER_OF: Readonly<Record<string, string>> = { ')': '(', ']': '[', '}': '{' };
+
+/** S6-33: whether the word at `at` follows a dot (`t.end`, `s . case`): a name part, never the keyword. */
+function afterDot(s: string, at: number): boolean {
+  let k = at - 1;
+  while (k >= 0 && /\s/.test(s[k]!)) k--;
+  return s[k] === '.';
+}
+
+/**
+ * S6-08: how deep the SQL itself nests. S6-33 (sprint 6, Task K3): `(`, `[`, `{` and `CASE ... END` all count, as one depth, since
+ * any of them nests the parser as a bracket does. Strings and comments are masked (maskSql) and double-quoted names skipped, so none
+ * of them can add or hide a level; CASE and END count only as whole words, and not after a dot, where they are names. A closer closes
+ * only the innermost open level, and only when that level is of its own kind (`)` a `(`, END a CASE). Any other closer, a stray one
+ * included, counts as nothing, so it cannot hide the depth after it. The client refuses text deeper than MAX_NESTING_DEPTH before the
+ * runner child receives it (build record, Task 11 minor: deep nesting could crash the child).
+ */
+export function maxNestingDepth(sql: string): number {
+  const s = maskSql(sql);
+  const open: string[] = [];          // what is open, innermost last: '(', '[', '{' or 'case'
+  let max = 0;
+  const push = (what: string): void => { if (open.push(what) > max) max = open.length; };
+  const innermost = (): string | undefined => open[open.length - 1];
+  for (let i = 0; i < s.length; i++) {
+    const ch = s[i]!;
+    if (ch === '"') {
+      // A quoted name, read as maskSql reads it: "" inside it is a quote, not its end.
+      i++;
+      while (i < s.length && !(s[i] === '"' && s[i + 1] !== '"')) i += s[i] === '"' ? 2 : 1;
+    } else if (ch === '(' || ch === '[' || ch === '{') {
+      push(ch);
+    } else if (ch === ')' || ch === ']' || ch === '}') {
+      if (innermost() === OPENER_OF[ch]) open.pop();
+    } else if (IDENT_CHAR.test(ch)) {
+      // A whole word (case_id, $case$ and showcase are other words), read in one step.
+      let j = i + 1;
+      while (j < s.length && IDENT_CHAR.test(s[j]!)) j++;
+      const word = j - i <= 4 ? s.slice(i, j).toLowerCase() : '';     // only CASE and END matter here
+      if (word === 'case' && !afterDot(s, i)) push('case');
+      else if (word === 'end' && innermost() === 'case' && !afterDot(s, i)) open.pop();
+      i = j - 1;
+    }
+  }
+  return max;
+}
+
 /** True when the text holds no statement: only whitespace, comments and semicolons. */
 export function isBlankSql(sql: string): boolean {
   return maskSql(sql).replace(/;/g, ' ').trim() === '';

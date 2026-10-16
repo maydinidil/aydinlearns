@@ -1,0 +1,134 @@
+{
+  "id": "EX-SQL-DATE-02-E3-22",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-04",
+    "date",
+    "date_arithmetic",
+    "promotions",
+    "order_lines",
+    "revenue-per-day",
+    "days-inclusive",
+    "cte"
+  ],
+  "level": 4,
+  "source_ids": [
+    "01:SQL-DATE-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-15",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-DATE-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-DATE-02"
+  ],
+  "template_id": "T-DATE-02-revenue-per-day",
+  "template_params": {
+    "tables": "promotions, order_lines"
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_interval",
+  "prompt": "For each promotion, what was the average net revenue per day of its run? Take the net revenue of the order lines that carry the promotion's promo_id (quantity times unit_price_eur, minus line_discount_eur), and divide it by the number of days the promotion ran, with both its start_date and its end_date counted. Round to 2 decimals. Return two columns, in this order: promo_code, and revenue_per_day. Return one row for each promotion with at least one such line. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "promo_code",
+        "type_class": "text"
+      },
+      {
+        "name": "revenue_per_day",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "promo_code",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "revenue_per_day",
+        "type_class": "numeric",
+        "precision": "money",
+        "require_rounding": 2
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "promo_code"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, add up the net revenue of each promotion's own lines in a first step, with one row per promotion.",
+    "Divide by the days the promotion ran with both ends counted: a one-day promotion has the same start_date and end_date and ran for 1 day."
+  ],
+  "subgoals": [
+    {
+      "from": 52,
+      "to": 138,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 141,
+      "to": 157,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 160,
+      "to": 186,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 189,
+      "to": 206,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 209,
+      "to": 310,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 311,
+      "to": 376,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "The step totals each promotion's lines once, and dividing by end_date - start_date + 1 uses the real number of days, so a one-day promotion divides by 1, not 0."
+}

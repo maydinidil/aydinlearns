@@ -1,0 +1,120 @@
+{
+  "id": "EX-SQL-DATE-02-E1-22",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-04",
+    "date",
+    "date_arithmetic",
+    "sales",
+    "last-n-days",
+    "as-of",
+    "categories"
+  ],
+  "level": 4,
+  "source_ids": [
+    "01:SQL-DATE-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-15",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-DATE-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-DATE-02"
+  ],
+  "template_id": "T-DATE-02-last-n-days",
+  "template_params": {
+    "table": "sales",
+    "days": 14,
+    "as_of": "2026-01-05",
+    "as_of_day": "included"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_interval",
+  "prompt": "How many units did each parent category sell in the 14 days up to Voltmarkt's as-of date, 5 January 2026, with the as-of day included: from 23 December 2025 to 5 January 2026? Place each sale on its UTC order day. Return two columns, in this order: parent_category, and units. Return one row for each parent category with sales in those days. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "parent_category",
+        "type_class": "text"
+      },
+      {
+        "name": "units",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "parent_category",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "units",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "parent_category"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the row filter: the order days from 23 December 2025 to 5 January 2026.",
+    "Fourteen days with the as-of day included start 13 days before it. Check the first day of your range by hand."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 43,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 44,
+      "to": 54,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 55,
+      "to": 147,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 148,
+      "to": 172,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "The range starts on 23 December and ends on the as-of day, so it holds exactly 14 days with both ends in."
+}

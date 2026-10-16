@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-SUBQ-02-E3-21",
+  "item_version": 1,
+  "reference_sql": "SELECT t.store_code, t.n_orders\nFROM (\n  -- one row per store with orders\n  SELECT s.store_code, s.country_code, COUNT(*) AS n_orders\n  FROM orders o\n  JOIN stores s ON s.store_id = o.store_id\n  GROUP BY s.store_code, s.country_code\n) AS t\nWHERE t.n_orders > (\n  SELECT AVG(t2.n_orders)\n  FROM (\n    -- one row per store with orders\n    SELECT s2.store_code, s2.country_code, COUNT(*) AS n_orders\n    FROM orders o2\n    JOIN stores s2 ON s2.store_id = o2.store_id\n    GROUP BY s2.store_code, s2.country_code\n  ) AS t2\n  WHERE t2.country_code = t.country_code\n)",
+  "alternatives": [
+    "WITH store_orders AS (\n  -- one row per store with orders\n  SELECT s.store_code, s.country_code, COUNT(*) AS n_orders\n  FROM orders o\n  JOIN stores s ON s.store_id = o.store_id\n  GROUP BY s.store_code, s.country_code\n)\nSELECT so.store_code, so.n_orders\nFROM store_orders so\nWHERE so.n_orders > (\n  SELECT AVG(so2.n_orders)\n  FROM store_orders so2\n  WHERE so2.country_code = so.country_code\n)",
+    "WITH store_orders AS (\n  -- one row per store with orders\n  SELECT s.store_code, s.country_code, COUNT(*) AS n_orders\n  FROM orders o\n  JOIN stores s ON s.store_id = o.store_id\n  GROUP BY s.store_code, s.country_code\n),\ncountry_avg AS (\n  -- one row per country\n  SELECT country_code, AVG(n_orders) AS avg_orders\n  FROM store_orders\n  GROUP BY country_code\n)\nSELECT so.store_code, so.n_orders\nFROM store_orders so\nJOIN country_avg ca ON ca.country_code = so.country_code\nWHERE so.n_orders > ca.avg_orders"
+  ],
+  "other_way": {
+    "sql": "WITH store_orders AS (\n  -- one row per store with orders\n  SELECT s.store_code, s.country_code, COUNT(*) AS n_orders\n  FROM orders o\n  JOIN stores s ON s.store_id = o.store_id\n  GROUP BY s.store_code, s.country_code\n)\nSELECT so.store_code, so.n_orders\nFROM store_orders so\nWHERE so.n_orders > (\n  SELECT AVG(so2.n_orders)\n  FROM store_orders so2\n  WHERE so2.country_code = so.country_code\n)",
+    "tradeoff": "A WITH step read twice, by the outer query and the correlated average, replaces two copies of the same derived table."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-31",
+      "sql": "SELECT t.store_code, t.n_orders FROM (SELECT s.store_code, s.country_code, COUNT(*) AS n_orders FROM orders o JOIN stores s ON s.store_id = o.store_id GROUP BY s.store_code, s.country_code) AS t WHERE t.n_orders > (SELECT AVG(t2.n_orders) FROM (SELECT s2.store_code, s2.country_code, COUNT(*) AS n_orders FROM orders o2 JOIN stores s2 ON s2.store_id = o2.store_id GROUP BY s2.store_code, s2.country_code) AS t2 WHERE t2.country_code = country_code)"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-14",
+      "sql": "SELECT t.store_code, t.n_orders FROM (SELECT s.store_code, s.country_code, COUNT(*) AS n_orders FROM orders o JOIN stores s ON s.store_id = o.store_id GROUP BY s.store_code, s.country_code) AS t WHERE t.n_orders > (SELECT MAX(t2.n_orders) FROM (SELECT s2.store_code, s2.country_code, COUNT(*) AS n_orders FROM orders o2 JOIN stores s2 ON s2.store_id = o2.store_id GROUP BY s2.store_code, s2.country_code) AS t2 WHERE t2.country_code = t.country_code)"
+    }
+  ],
+  "hint3_partial": "SELECT t.store_code, t.n_orders\nFROM (\n  -- one row per store with orders\n  SELECT s.store_code, s.country_code, COUNT(*) AS n_orders\n  FROM orders o\n  JOIN stores s ON s.store_id = o.store_id\n  GROUP BY s.store_code, s.country_code\n) AS t\nWHERE t.n_orders > (\n  SELECT AVG(t2.n_orders)\n  FROM (\n    -- one row per store with orders\n    SELECT s2.store_code, s2.country_code, COUNT(*) AS n_orders\n    FROM orders o2\n    JOIN stores s2 ON s2.store_id = o2.store_id\n    GROUP BY s2.store_code, s2.country_code\n  ) AS t2\n  WHERE ___\n)",
+  "solver": {
+    "prompt_hash": "9e625fe6b9ee77ab",
+    "schema_version": "b1c1a5d57d7d",
+    "dataset_version": "b2d2b40fb117bb07",
+    "grader_version": "6a.1",
+    "query": "WITH so AS (SELECT s.store_code, s.country_code, COUNT(*) AS n_orders FROM orders o JOIN stores s ON s.store_id = o.store_id GROUP BY s.store_id, s.store_code, s.country_code)\r\nSELECT store_code, n_orders FROM so WHERE n_orders > (SELECT AVG(x.n_orders) FROM so x WHERE x.country_code = so.country_code)\r\n",
+    "at": "2026-10-15T11:06:15.512Z"
+  }
+}

@@ -1,0 +1,88 @@
+{
+  "id": "EX-SQL-STR-01-E2-41",
+  "version": 1,
+  "kind": "choose_query",
+  "tags": [
+    "sql",
+    "LVL-04",
+    "choose_query",
+    "text_helper",
+    "replace",
+    "sku",
+    "products"
+  ],
+  "level": 4,
+  "source_ids": [
+    "01:SQL-STR-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-15",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-STR-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-STR-01"
+  ],
+  "template_id": "T-STR-01-choose-standard-form",
+  "template_params": {
+    "form": "upper_no_spaces"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt_raw",
+  "edge_schema": "voltmarkt_edge_clean",
+  "uses_raw": true,
+  "prompt": "This table may hold errors. The standard form of a sku is upper case with no spaces anywhere in it. Which query lists the products whose sku is not in standard form?",
+  "output_contract": null,
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [],
+  "subgoals": [],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 90000,
+  "why_this_works": "",
+  "options": [
+    {
+      "oid": "o1caaaa1",
+      "text": "SELECT product_id, sku\nFROM products\nWHERE sku <> UPPER(TRIM(sku))",
+      "misconception_id": "ERR-LOG-32"
+    },
+    {
+      "oid": "ofebf5c8",
+      "text": "SELECT product_id, sku\nFROM products\nWHERE sku <> UPPER(REPLACE(sku, ' ', ''))",
+      "misconception_id": null
+    },
+    {
+      "oid": "oaf1f170",
+      "text": "SELECT product_id, sku\nFROM products\nWHERE sku <> REPLACE(sku, ' ', '')",
+      "misconception_id": "ERR-LOG-32"
+    },
+    {
+      "oid": "oe64a9f5",
+      "text": "SELECT product_id, sku\nFROM products\nWHERE sku <> TRIM(sku)",
+      "misconception_id": "ERR-LOG-32"
+    }
+  ]
+}

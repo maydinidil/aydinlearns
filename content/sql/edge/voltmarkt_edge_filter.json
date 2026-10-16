@@ -9,6 +9,35 @@
     "products that cost exactly 100.00 euro, and one cent above and below it",
     "discounts of exactly 10.00 and 20.00 percent, and of 9.50 and 20.50 just outside them",
     "store, product and promotion dates on the first or last day of a month or a year",
-    "five calendar days around the end of February 2025"
-  ]
+    "calendar days around the end of February 2025",
+    "a calendar that holds every day of each promotion",
+    "no orders, so the sales view has no rows"
+  ],
+  "tables": {
+    "calendar": [
+      "calendar days around the end of February 2025",
+      "a calendar that holds every day of each promotion"
+    ],
+    "stores": [
+      "a store in a country other than NL, BE and LU",
+      "flagship, standard and outlet stores spread over several countries",
+      "store, product and promotion dates on the first or last day of a month or a year"
+    ],
+    "categories": [
+      "product, category and promotion names in upper, lower and mixed case"
+    ],
+    "products": [
+      "product, category and promotion names in upper, lower and mixed case",
+      "products that cost exactly 100.00 euro, and one cent above and below it",
+      "store, product and promotion dates on the first or last day of a month or a year"
+    ],
+    "promotions": [
+      "product, category and promotion names in upper, lower and mixed case",
+      "discounts of exactly 10.00 and 20.00 percent, and of 9.50 and 20.50 just outside them",
+      "store, product and promotion dates on the first or last day of a month or a year"
+    ],
+    "sales": [
+      "no orders, so the sales view has no rows"
+    ]
+  }
 }

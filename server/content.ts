@@ -7,12 +7,13 @@ import type { Lesson } from '../schemas/lesson.ts';
 import type { SqlItem } from '../schemas/item.ts';
 import type { SqlKey } from '../schemas/keys.ts';
 import type { EdgeDescription } from '../schemas/edge.ts';
-import type { CaseKey, CaseRecord } from '../schemas/case.ts';
+import { caseSchema, type CaseKey, type CaseRecord } from '../schemas/case.ts';
 import type { Goal } from '../core/goals.ts';
 import { choiceTarget, type ChoiceConcept, type ChoiceConceptFile, type ChoiceItem, type ChoiceKey, type ChoiceSection, type HeldOutFile } from '../schemas/choice.ts';
 import { validateReading, type Reading } from '../schemas/reading.ts';
 import { GA4_EXAM_FILE, parseGa4Exam, type Ga4ExamConfig } from '../schemas/ga4-exam.ts';
 import { validateLab, validateLabGuide, validateLabKey, type Lab, type LabGuide, type LabKey } from '../schemas/lab.ts';
+import { REGISTRY_FILE, registryRecords, validateDataset, type DatasetRecord } from '../schemas/dataset.ts';
 
 /** Sprint 5b (Task B1): where the GA4 labs, their keys and their guide sit under the content root. */
 export const LAB_DIR = 'ga4/labs';
@@ -57,19 +58,32 @@ export interface ContentStore {
   /** Sprint 4b: any case by its ID, an opener included; the first one when a case ID repeats (C41 names that). */
   case?(caseId: string): CaseRecord | undefined;
   /**
-   * Sprint 4b (S4B-02): content/keys/cases/<case_id>.json by its case_id: the CP2 and CP4 truth queries (the build runs them) and the
-   * CP1 and CP5 correct options with their explanations. Server-side only, like key(): a correct option goes out only in the reply
-   * to the learner's logged answer (S4B-10).
+   * Sprint 4b (S4B-02): content/keys/cases/<case_id>.json, the file named after the case (sprint 6: by its file name, so a key file
+   * that holds another case's ID is still found, and C41 fails it): the CP2 and CP4 truth queries (the build runs them), the CP1 and
+   * CP5 correct options with their explanations, and the blind-solve records. Server-side only, like key(): a correct option goes
+   * out only in the reply to the learner's logged answer (S4B-10).
    */
   caseKey?(caseId: string): CaseKey | undefined;
+  /** Sprint 6: the name of every key file in content/keys/cases/, without .json, in name order (C41 finds a key with no case). */
+  caseKeyIds?(): string[];
   /** The concepts a case checkpoint item credits (S2-49): every case's CP1 to CP5. Undefined for an item no checkpoint names. */
   checkpointCredits?(itemId: string): string[] | undefined;
   /**
-   * Task C7 and S4B-02: a CP2's or CP4's true value, from "checkpoints" in the truth file the build wrote (data/truth/voltmarkt.json),
-   * by the checkpoint's truth_key (`<case_id>:CP2` or `<case_id>:CP4`). Undefined when the file or the value is missing. Server-side
-   * only: it goes out after an answer.
+   * Task C7 and S4B-02: a CP2's or CP4's true value, by the checkpoint's truth_key (`<case_id>:CP2` or `<case_id>:CP4`), from
+   * data/truth/checkpoints.json (S6-13), or from an older build's data/truth/voltmarkt.json "checkpoints". Undefined when the file or
+   * the value is missing. Server-side only: it goes out after an answer.
    */
   checkpointTruth?(truthKey: string): number | undefined;
+  /**
+   * Sprint 6 (Task B3): the source hash the build wrote beside a value (truthSourceHash of the case's schema and its truth query), so
+   * C41 can tell a truth whose key changed since the build. Undefined for an older build's file.
+   */
+  checkpointTruthHash?(truthKey: string): string | undefined;
+  /**
+   * S6-13: the schemas the database held when the build wrote the truth file, or null when it does not say (an older build, or no
+   * file). A case whose schema is not among them is unavailable (caseUnavailable).
+   */
+  builtSchemas?(): ReadonlySet<string> | null;
   /** Task C1 adds it: a GA4 or Methodology concept's section, and the concept whose card it rates (E-110). */
   choiceConcept?(conceptId: string): { section: 'ga4' | 'methodology'; card_concept_id: string } | undefined;
   /**
@@ -116,6 +130,18 @@ export interface ContentStore {
   labKey?(id: string): LabKey | undefined;
   /** Sprint 5b: content/ga4/lab-guide.json, validated at load like a lab. Undefined when the file does not exist. */
   labGuide?(): LabGuide | undefined;
+  /**
+   * Sprint 6 Part 2 (Task G2, S6-21): the dataset registry's records that pass validateDataset, in file order. A record that fails
+   * is left out here, never shown half-checked, and content check C51 names it. None when content/datasets/registry.json does not
+   * exist.
+   */
+  datasets?(): DatasetRecord[];
+  /** Sprint 6 Part 2: every registry record as loaded, valid or not: what C51 checks. */
+  datasetRecords?(): unknown[];
+  /** Sprint 6 Part 2 (E-062): a valid record by its ID or one of its aliases (DS-SAAS-04 finds CH-01). */
+  dataset?(idOrAlias: string): DatasetRecord | undefined;
+  /** Sprint 6 Part 2: the valid record whose schemas include `schema` (foodie_fi finds CH-01); undefined for any other schema. */
+  datasetOfSchema?(schema: string): DatasetRecord | undefined;
 }
 
 /**
@@ -130,22 +156,70 @@ export function targetOf(content: ContentStore, itemId: string): string | undefi
 }
 
 export interface LoadOptions {
-  /** The truth file the build wrote (Task C7). Left out, or not there yet, the CP4 questions have no values and are not served. */
+  /**
+   * S6-13: data/truth/checkpoints.json, the case truths the build wrote: `checkpoints` (each CP2 and CP4 value), `sources` (each
+   * value's source hash) and `schemas` (the schemas the database held). When it is left out or not there, `truthFile` is read.
+   */
+  checkpointsFile?: string;
+  /**
+   * The older build's truth file, data/truth/voltmarkt.json (Task C7), read for its "checkpoints" only when `checkpointsFile` is left
+   * out or not there yet. With neither file, the CP2 and CP4 questions have no values and are not served.
+   */
   truthFile?: string;
 }
 
-/** "checkpoints" of the truth file: numbers only. A missing file is no values; a file that cannot be read or parsed is a fault. */
-async function readTruth(file: string | undefined): Promise<Map<string, number>> {
-  const values = new Map<string, number>();
-  if (file === undefined) return values;
-  let text: string;
-  try { text = await readFile(file, 'utf8'); }
-  catch (e) { if ((e as NodeJS.ErrnoException).code === 'ENOENT') return values; throw e; }
-  let parsed: { checkpoints?: Record<string, unknown> };
-  try { parsed = JSON.parse(text); }
-  catch { throw new Error('data/truth/voltmarkt.json is not valid JSON.'); }   // never the parser's quote: the file holds true values
-  for (const [key, value] of Object.entries(parsed.checkpoints ?? {})) if (typeof value === 'number' && Number.isFinite(value)) values.set(key, value);
-  return values;
+/** What a truth file gives: values, their source hashes and the schemas built (null when the file does not say). */
+interface Truths { values: Map<string, number>; hashes: Map<string, string>; schemas: ReadonlySet<string> | null }
+
+/**
+ * The case truths: from checkpoints.json when it is there, else an older build's voltmarkt.json "checkpoints" (S6-13). Numbers only;
+ * a missing file is no values. A file that cannot be read or parsed is a fault whose message names the file and never quotes it.
+ */
+async function readTruth(checkpointsFile: string | undefined, truthFile: string | undefined): Promise<Truths> {
+  const none: Truths = { values: new Map(), hashes: new Map(), schemas: null };
+  const read = async (file: string, name: string): Promise<Truths | null> => {
+    let text: string;
+    try { text = await readFile(file, 'utf8'); }
+    catch (e) { if ((e as NodeJS.ErrnoException).code === 'ENOENT') return null; throw e; }
+    let parsed: { checkpoints?: Record<string, unknown>; sources?: Record<string, unknown>; schemas?: unknown };
+    try { parsed = JSON.parse(text); }
+    catch { throw new Error(`${name} is not valid JSON.`); }   // never the parser's quote: the file holds true values
+    const values = new Map<string, number>();
+    const hashes = new Map<string, string>();
+    for (const [key, value] of Object.entries(parsed.checkpoints ?? {})) if (typeof value === 'number' && Number.isFinite(value)) values.set(key, value);
+    for (const [key, value] of Object.entries(parsed.sources ?? {})) if (typeof value === 'string') hashes.set(key, value);
+    const schemas = Array.isArray(parsed.schemas) ? new Set(parsed.schemas.filter((s): s is string => typeof s === 'string')) : null;
+    return { values, hashes, schemas };
+  };
+  if (checkpointsFile !== undefined) { const t = await read(checkpointsFile, 'data/truth/checkpoints.json'); if (t) return t; }
+  if (truthFile !== undefined) { const t = await read(truthFile, 'data/truth/voltmarkt.json'); if (t) return t; }
+  return none;
+}
+
+/**
+ * Sprint 6 (Task B3): what a case truth was computed from, its case's schema and its query, as 16 hex of sha256. The build writes it
+ * beside each value (pipeline/build_course_db.py truth_source computes the same); C41 compares it with the key it reads now.
+ */
+export const truthSourceHash = (schema: string, query: string): string => createHash('sha256').update(`${schema}\n${query}`, 'utf8').digest('hex').slice(0, 16);
+
+/** S6-13: the line an unavailable case shows in the inbox, and its routes' 409 message. */
+// F4 seams M2: the app reads which schemas are built when it starts, so the line says to start it again, as the explorer's card does.
+export const unavailableLine = (dataset: string): string =>
+  `This case needs ${dataset}. Run \`npm run prep:datasets -- --from <your downloads folder>\`, then start the app again.`;
+
+/**
+ * S6-13: the line when the case's schema is not in the database the build wrote, else null. A build that names no schemas (an
+ * older one) leaves every case available. The dataset is the registry's name for the schema ("Online Retail II"; a real dataset's
+ * label is a whole sentence with its source and licence), else the case's data source label ("Fictional, generated data: Mailvora"
+ * reads as Mailvora), or its schema when it has none.
+ */
+export function caseUnavailable(store: Pick<ContentStore, 'builtSchemas' | 'datasetOfSchema'>, r: CaseRecord): string | null {
+  const built = store.builtSchemas?.() ?? null;
+  if (built === null || built.has(caseSchema(r))) return null;
+  const registered = store.datasetOfSchema?.(caseSchema(r))?.name;
+  if (typeof registered === 'string' && registered.trim() !== '') return unavailableLine(registered.trim());
+  const label = typeof r.data_source?.label === 'string' && r.data_source.label.trim() !== '' ? r.data_source.label.trim() : caseSchema(r);
+  return unavailableLine(/^Fictional, generated data: (.+)$/.exec(label)?.[1] ?? label);
 }
 
 export async function loadContent(root: string, options: LoadOptions = {}): Promise<ContentStore> {
@@ -194,10 +268,11 @@ export async function loadContent(root: string, options: LoadOptions = {}): Prom
   for (const o of cases) for (const c of Array.isArray(o?.checkpoints) ? o.checkpoints : []) {
     if (typeof c?.item_id === 'string' && Array.isArray(c.credits_concepts)) credits.set(c.item_id, c.credits_concepts);
   }
-  // Task C7 and S4B-02: the case key files (truth queries and correct options). Hashed with the rest, kept server-side, never served.
+  // Task C7 and S4B-02: the case key files (truth queries, correct options, solver records), each by its file name (sprint 6), so
+  // a key file named for one case and holding another's ID is found where C41 can fail it. Hashed with the rest, kept server-side.
   const caseKeys = new Map<string, CaseKey>();
-  for (const k of await readDir<CaseKey>('keys/cases')) if (typeof k?.case_id === 'string' && !caseKeys.has(k.case_id)) caseKeys.set(k.case_id, k);
-  const truth = await readTruth(options.truthFile);
+  for (const { name, data } of await readDirNamed<CaseKey>('keys/cases')) caseKeys.set(name.replace(/\.json$/, ''), data);
+  const truth = await readTruth(options.checkpointsFile, options.truthFile);
   const edges = new Map((await readDir<EdgeDescription>('sql/edge')).map((e) => [e.schema, e]));
   // GA4 and Methodology (Task C1). A section with no files yet is empty content, and its files are hashed like the rest.
   const optional = <T>(rel: string, empty: T): Promise<T> => read<T>(rel).catch((e: NodeJS.ErrnoException) => { if (e.code === 'ENOENT') return empty; throw e; });
@@ -263,6 +338,13 @@ export async function loadContent(root: string, options: LoadOptions = {}): Prom
   const guideProblems = guideFile === undefined ? [] : validateLabGuide(guideFile);
   if (guideProblems.length) throw new ContentFileError(LAB_GUIDE_FILE, guideProblems);
   const labGuide = guideFile as LabGuide | undefined;
+  // Sprint 6 Part 2 (Task G2, S6-21): the dataset registry, hashed with the rest. A missing file means no datasets; one that is not
+  // `{ "datasets": [...] }` stops the load naming the file. Each record is validated: a record that fails is left out of
+  // datasets() and named by C51, which checks every record as loaded.
+  const registryFile = await optional<unknown>(REGISTRY_FILE, undefined);
+  const registry = registryFile === undefined ? [] : registryRecords(registryFile);
+  if (registry === null) throw new ContentFileError(REGISTRY_FILE, ['"datasets" must be a list']);
+  const datasets = registry.filter((r) => validateDataset(r).length === 0) as DatasetRecord[];
   return {
     curriculum, feedback, goals, errorConcepts,
     lesson: (c) => lessons.get(c),
@@ -274,8 +356,11 @@ export async function loadContent(root: string, options: LoadOptions = {}): Prom
     cases: () => [...cases],
     case: (caseId) => cases.find((c) => c.case_id === caseId),
     caseKey: (caseId) => caseKeys.get(caseId),
+    caseKeyIds: () => [...caseKeys.keys()],
     checkpointCredits: (itemId) => credits.get(itemId),
-    checkpointTruth: (key) => truth.get(key),
+    checkpointTruth: (key) => truth.values.get(key),
+    checkpointTruthHash: (key) => truth.hashes.get(key),
+    builtSchemas: () => truth.schemas,
     conceptsWithContent: () => new Set(lessons.keys()),
     choiceConcept: (id) => choiceConcepts.get(id),
     choiceItem: (id) => choiceItems.get(id),
@@ -293,6 +378,10 @@ export async function loadContent(root: string, options: LoadOptions = {}): Prom
     lab: (id) => labs.find((l) => l.id === id),
     labKey: (id) => labKeys.get(id),
     labGuide: () => labGuide,
+    datasets: () => [...datasets],
+    datasetRecords: () => [...registry],
+    dataset: (idOrAlias) => datasets.find((d) => d.id === idOrAlias) ?? datasets.find((d) => d.aliases.includes(idOrAlias)),
+    datasetOfSchema: (schema) => datasets.find((d) => d.schemas.some((s) => s.name === schema)),
     contentVersion: hash.digest('hex').slice(0, 12),
   };
 }

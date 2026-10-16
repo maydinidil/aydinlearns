@@ -1,0 +1,139 @@
+{
+  "id": "EX-SQL-DATE-02-E1-41",
+  "version": 1,
+  "kind": "predict_result",
+  "tags": [
+    "sql",
+    "LVL-04",
+    "date",
+    "date_arithmetic",
+    "predict_result",
+    "date_diff",
+    "month"
+  ],
+  "level": 4,
+  "source_ids": [
+    "01:SQL-DATE-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-15",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pretest",
+  "target_concept_id": "SQL-DATE-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-DATE-02"
+  ],
+  "template_id": "T-DATE-02-predict-result-boundaries",
+  "template_params": {
+    "table": "stores",
+    "from": "2025-01-31",
+    "to": "2025-02-01"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_interval",
+  "prompt": "Which result does this query return in DuckDB, the engine this app runs?",
+  "output_contract": null,
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [],
+  "subgoals": [],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 60000,
+  "why_this_works": "",
+  "shown_sql": "SELECT DATE '2025-02-01' - DATE '2025-01-31' AS days_apart,\n       date_diff('month', DATE '2025-01-31', DATE '2025-02-01') AS months_apart\nFROM stores\nWHERE store_id = 1",
+  "options": [
+    {
+      "oid": "o9fea1ed",
+      "text": "1 and 0",
+      "misconception_id": "ERR-LOG-34",
+      "table": {
+        "columns": [
+          "days_apart",
+          "months_apart"
+        ],
+        "rows": [
+          [
+            1,
+            0
+          ]
+        ]
+      }
+    },
+    {
+      "oid": "of219895",
+      "text": "1 and 1",
+      "misconception_id": null,
+      "table": {
+        "columns": [
+          "days_apart",
+          "months_apart"
+        ],
+        "rows": [
+          [
+            1,
+            1
+          ]
+        ]
+      }
+    },
+    {
+      "oid": "ob6e1080",
+      "text": "2 and 1",
+      "misconception_id": "ERR-LOG-34",
+      "table": {
+        "columns": [
+          "days_apart",
+          "months_apart"
+        ],
+        "rows": [
+          [
+            2,
+            1
+          ]
+        ]
+      }
+    },
+    {
+      "oid": "ob5b4155",
+      "text": "2 and 0",
+      "misconception_id": "ERR-LOG-34",
+      "table": {
+        "columns": [
+          "days_apart",
+          "months_apart"
+        ],
+        "rows": [
+          [
+            2,
+            0
+          ]
+        ]
+      }
+    }
+  ]
+}

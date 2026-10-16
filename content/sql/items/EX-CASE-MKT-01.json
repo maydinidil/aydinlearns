@@ -1,0 +1,184 @@
+{
+  "id": "EX-CASE-MKT-01",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-04",
+    "case",
+    "inbox",
+    "marketing",
+    "cost_per_click",
+    "ad_spend_daily",
+    "campaigns",
+    "channels"
+  ],
+  "level": 4,
+  "source_ids": [
+    "04:CASE-MKT-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-16",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "case",
+  "target_concept_id": "SQL-CLEAN-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-CLEAN-01"
+  ],
+  "template_id": "T-CASE-MKT-01-spend-cpc-by-channel",
+  "template_params": {
+    "month": "2025-09",
+    "grain": "paid_channel"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "mailvora",
+  "schema": "mailvora",
+  "edge_schema": "mailvora_edge_case",
+  "prompt": "Aoife, the performance marketing manager, needs September 2025 spend, clicks and cost per click for each paid channel for tomorrow's monthly report. The paid channels are the channels outside the unpaid group; organic, direct and referral cost nothing and stay out. A channel's spend and clicks are those of its campaigns on the UTC days of spend from 2025-09-01 to 2025-09-30, both days included. Return one row for each paid channel, including a paid channel that spent nothing in September, with five columns in this order: channel_id; channel_name; spend_eur, the channel's September spend in euros, not rounded, and 0 when it spent nothing; clicks, its September clicks, and 0 when it had none; and cpc_eur, spend_eur divided by clicks, rounded to 2 decimals, and missing when clicks is 0. Sort by spend_eur from high to low, then by channel_id from low to high.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "channel_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "channel_name",
+        "type_class": "text"
+      },
+      {
+        "name": "spend_eur",
+        "type_class": "numeric"
+      },
+      {
+        "name": "clicks",
+        "type_class": "numeric"
+      },
+      {
+        "name": "cpc_eur",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": true,
+    "sort_keys": [
+      {
+        "column": "spend_eur",
+        "desc": true
+      },
+      {
+        "column": "channel_id",
+        "desc": false
+      }
+    ],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "channel_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "channel_name",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "spend_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "clicks",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "cpc_eur",
+        "type_class": "numeric",
+        "precision": "money",
+        "require_rounding": 2
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "channel_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, add up each paid channel's September spend and clicks from its campaigns.",
+    "Start from the paid channels so one with no September spend keeps its row, and keep cpc_eur missing when clicks is 0 instead of dividing by 0."
+  ],
+  "subgoals": [
+    {
+      "from": 82,
+      "to": 179,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 182,
+      "to": 261,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 264,
+      "to": 330,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 333,
+      "to": 354,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 357,
+      "to": 559,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 560,
+      "to": 642,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 643,
+      "to": 677,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 678,
+      "to": 716,
+      "subgoal": "sort_limit"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "Starting from the paid channels keeps one that spent nothing, and NULLIF on the clicks leaves the cost per click missing instead of dividing by 0."
+}

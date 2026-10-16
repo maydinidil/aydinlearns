@@ -1,0 +1,62 @@
+{
+  "schema": "voltmarkt_edge_interval",
+  "mirrors": "voltmarkt",
+  "family": "interval",
+  "contains": [
+    "a one-day promotion on 29 February 2024: its start and end date are the same day",
+    "orders on 31 January 2024 and 31 January 2025, and on the last day of the next February (29 February 2024 and 28 February 2025)",
+    "orders and a product launch on 29 February 2024, a leap day",
+    "a promotion from 23 December 2024 to 5 January 2025, across a year end",
+    "orders by one customer on 31 December 2024 and 1 January 2025, and a product launched on 31 December 2024 that first sold on 1 January 2025",
+    "a list price that changes on 1 January 2025",
+    "orders on 5, 6 and 7 December 2025, around 30 days before the data's as-of date (5 January 2026), and on 31 December 2025",
+    "an A/B test conversion 45 minutes after its customer's assignment, on the next day"
+  ],
+  "tables": {
+    "calendar": [
+      "a one-day promotion on 29 February 2024: its start and end date are the same day",
+      "orders on 31 January 2024 and 31 January 2025, and on the last day of the next February (29 February 2024 and 28 February 2025)",
+      "orders and a product launch on 29 February 2024, a leap day",
+      "a promotion from 23 December 2024 to 5 January 2025, across a year end"
+    ],
+    "products": [
+      "orders and a product launch on 29 February 2024, a leap day",
+      "orders by one customer on 31 December 2024 and 1 January 2025, and a product launched on 31 December 2024 that first sold on 1 January 2025"
+    ],
+    "promotions": [
+      "a one-day promotion on 29 February 2024: its start and end date are the same day",
+      "a promotion from 23 December 2024 to 5 January 2025, across a year end"
+    ],
+    "price_history": [
+      "a list price that changes on 1 January 2025"
+    ],
+    "promotion_products": [
+      "a one-day promotion on 29 February 2024: its start and end date are the same day",
+      "a promotion from 23 December 2024 to 5 January 2025, across a year end"
+    ],
+    "orders": [
+      "orders on 31 January 2024 and 31 January 2025, and on the last day of the next February (29 February 2024 and 28 February 2025)",
+      "orders and a product launch on 29 February 2024, a leap day",
+      "orders by one customer on 31 December 2024 and 1 January 2025, and a product launched on 31 December 2024 that first sold on 1 January 2025",
+      "orders on 5, 6 and 7 December 2025, around 30 days before the data's as-of date (5 January 2026), and on 31 December 2025"
+    ],
+    "order_lines": [
+      "a one-day promotion on 29 February 2024: its start and end date are the same day",
+      "orders and a product launch on 29 February 2024, a leap day",
+      "orders by one customer on 31 December 2024 and 1 January 2025, and a product launched on 31 December 2024 that first sold on 1 January 2025",
+      "orders on 5, 6 and 7 December 2025, around 30 days before the data's as-of date (5 January 2026), and on 31 December 2025"
+    ],
+    "ab_assignments": [
+      "an A/B test conversion 45 minutes after its customer's assignment, on the next day"
+    ],
+    "ab_conversions": [
+      "an A/B test conversion 45 minutes after its customer's assignment, on the next day"
+    ],
+    "sales": [
+      "orders on 31 January 2024 and 31 January 2025, and on the last day of the next February (29 February 2024 and 28 February 2025)",
+      "orders and a product launch on 29 February 2024, a leap day",
+      "orders by one customer on 31 December 2024 and 1 January 2025, and a product launched on 31 December 2024 that first sold on 1 January 2025",
+      "orders on 5, 6 and 7 December 2025, around 30 days before the data's as-of date (5 January 2026), and on 31 December 2025"
+    ]
+  }
+}

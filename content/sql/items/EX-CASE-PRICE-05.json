@@ -1,0 +1,204 @@
+{
+  "id": "EX-CASE-PRICE-05",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-04",
+    "case",
+    "inbox",
+    "pricing",
+    "margin_bridge",
+    "cost_history",
+    "sales"
+  ],
+  "level": 4,
+  "source_ids": [
+    "04:CASE-PRICE-05"
+  ],
+  "verified": true,
+  "as_of": "2026-10-15",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "case",
+  "target_concept_id": "SQL-SUBQ-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CASE-01",
+    "SQL-TYPE-01",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-JOIN-04",
+    "SQL-SET-01",
+    "SQL-SUBQ-01"
+  ],
+  "template_id": "T-CASE-PRICE-05-margin-bridge",
+  "template_params": {
+    "from": "2025-Q2",
+    "to": "2025-Q3",
+    "grain": "bridge_line"
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_promo",
+  "prompt": "Marieke, the CFO, needs a gross margin bridge from Q2 2025 to Q3 2025 for Wednesday's board pack. Q2 runs from 2025-04-01 to 2025-06-30 and Q3 from 2025-07-01 to 2025-09-30, both ends included, and an order line counts in the quarter of its UTC order date. A line's net revenue is its quantity times its unit price, less its line discount; its cost is its units times the product's unit cost on its order date, from the cost version valid that day (both its first and last day included, and no last day for the current cost). Margin is net revenue minus cost. For each product and quarter, V is its units, P its net revenue per unit and C its cost per unit, with 2 for Q2 and 3 for Q3. Over the products sold in both quarters: price is the sum of (P3 minus P2) times V3; cost is minus the sum of (C3 minus C2) times V3; with A their Q2 margin divided by their Q2 units, volume is (their total V3 minus their total V2) times A; and mix is the sum of V3 times (P2 minus C2), minus their total V3 times A. new_discontinued is the Q3 margin of the products sold only in Q3 minus the Q2 margin of the products sold only in Q2, or 0 when there are none. Return seven rows with three columns in this order: step, from 1 to 7; component, which is q2_margin, price, cost, volume, mix, new_discontinued and q3_margin in that order, where q2_margin and q3_margin are each quarter's margin over all products; and amount_eur, the amount in euros rounded to 2 decimals. Sort by step from low to high.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "step",
+        "type_class": "numeric"
+      },
+      {
+        "name": "component",
+        "type_class": "text"
+      },
+      {
+        "name": "amount_eur",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": true,
+    "sort_keys": [
+      {
+        "column": "step",
+        "desc": false
+      }
+    ],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "step",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "component",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "amount_eur",
+        "type_class": "numeric",
+        "precision": "money",
+        "require_rounding": 2
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "step"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, give each order line in the two quarters its unit cost on its order date, then add up units, net revenue and cost per product and quarter.",
+    "Pair each product's two quarters to find the products sold in both, work out each bridge line as its own one-row result, and stack the seven rows with their step."
+  ],
+  "subgoals": [
+    {
+      "from": 101,
+      "to": 290,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 293,
+      "to": 467,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 470,
+      "to": 536,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 600,
+      "to": 695,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 698,
+      "to": 713,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 716,
+      "to": 740,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 815,
+      "to": 971,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 974,
+      "to": 1062,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 1065,
+      "to": 1102,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 1180,
+      "to": 1228,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 1231,
+      "to": 1251,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 1254,
+      "to": 1319,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 1437,
+      "to": 1520,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 1523,
+      "to": 1544,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 1547,
+      "to": 2325,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 2326,
+      "to": 2339,
+      "subgoal": "sort_limit"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "Taking each line's cost on its own date catches a cost change inside a quarter, and keeping one-quarter products apart lets the lines add up."
+}

@@ -1,0 +1,129 @@
+{
+  "id": "EX-SQL-CLEAN-01-E1-03",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-04",
+    "duplicates",
+    "having",
+    "order_lines"
+  ],
+  "level": 4,
+  "source_ids": [
+    "01:SQL-CLEAN-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-15",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "lesson",
+  "target_concept_id": "SQL-CLEAN-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-AGG-03",
+    "SQL-CLEAN-01"
+  ],
+  "template_id": "T-CLEAN-01-list-copied-sets",
+  "template_params": {
+    "table": "order_lines"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt_raw",
+  "edge_schema": "voltmarkt_edge_clean",
+  "uses_raw": true,
+  "prompt": "Which order lines were sent more than once? This table may hold errors. Two lines are copies of one order line when order_id, product_id, quantity, unit_price_eur, promo_id and line_discount_eur all match, with a missing promo_id matching a missing one. Return three columns, in this order: order_id, product_id and n_lines, the number of matching lines. Return one row for each set of two or more matching lines. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "order_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "product_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "n_lines",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per order line sent more than once"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "order_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "product_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "n_lines",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "order_id",
+      "product_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the group filter that keeps the sets with more than one line.",
+    "Each group is one set of matching lines; HAVING tests its size after the lines are counted."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 48,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 49,
+      "to": 65,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 66,
+      "to": 150,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 151,
+      "to": 170,
+      "subgoal": "group_filter"
+    }
+  ],
+  "fading": {
+    "stage1": 151,
+    "stage2": 66
+  },
+  "faded_shape": "SELECT order_id, product_id, COUNT(*) AS n_lines\nFROM order_lines\nGROUP BY order_id, product_id, quantity, unit_price_eur, promo_id, line_discount_eur\n",
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "Grouping by every column but order_line_id puts a copy and its original in one group, and HAVING keeps the groups with more than one line."
+}

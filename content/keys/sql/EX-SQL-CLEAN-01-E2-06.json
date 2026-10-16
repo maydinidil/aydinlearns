@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-CLEAN-01-E2-06",
+  "item_version": 1,
+  "reference_sql": "WITH line_sets AS (  -- one row per set of matching lines\n  SELECT order_id, quantity, COUNT(*) AS n_lines\n  FROM order_lines\n  GROUP BY order_id, product_id, quantity, unit_price_eur, promo_id, line_discount_eur\n)\nSELECT EXTRACT(YEAR FROM o.order_ts) AS order_year,\n       SUM(ls.quantity * ls.n_lines) AS units_stored,\n       SUM(ls.quantity) AS units_unique,\n       SUM(ls.quantity * (ls.n_lines - 1)) AS units_extra\nFROM line_sets ls\nJOIN orders o ON o.order_id = ls.order_id\nGROUP BY EXTRACT(YEAR FROM o.order_ts)",
+  "alternatives": [
+    "WITH stored AS (  -- one row per year\n  SELECT EXTRACT(YEAR FROM o.order_ts) AS order_year, SUM(ol.quantity) AS units_stored\n  FROM order_lines ol\n  JOIN orders o ON o.order_id = ol.order_id\n  GROUP BY EXTRACT(YEAR FROM o.order_ts)\n),\nunique_lines AS (  -- one row per different line\n  SELECT DISTINCT order_id, product_id, quantity, unit_price_eur, promo_id, line_discount_eur\n  FROM order_lines\n),\nuniq AS (  -- one row per year\n  SELECT EXTRACT(YEAR FROM o.order_ts) AS order_year, SUM(u.quantity) AS units_unique\n  FROM unique_lines u\n  JOIN orders o ON o.order_id = u.order_id\n  GROUP BY EXTRACT(YEAR FROM o.order_ts)\n)\nSELECT s.order_year, s.units_stored, u.units_unique, s.units_stored - u.units_unique AS units_extra\nFROM stored s\nJOIN uniq u ON u.order_year = s.order_year",
+    "WITH line_sets AS (  -- one row per set of matching lines\n  SELECT order_id, quantity, COUNT(*) AS n_lines\n  FROM order_lines\n  GROUP BY order_id, product_id, quantity, unit_price_eur, promo_id, line_discount_eur\n)\nSELECT year(o.order_ts) AS order_year, SUM(ls.quantity * ls.n_lines) AS units_stored, SUM(ls.quantity) AS units_unique, SUM(ls.quantity * ls.n_lines) - SUM(ls.quantity) AS units_extra\nFROM line_sets ls\nJOIN orders o ON o.order_id = ls.order_id\nGROUP BY 1"
+  ],
+  "other_way": {
+    "sql": "WITH stored AS (  -- one row per year\n  SELECT EXTRACT(YEAR FROM o.order_ts) AS order_year, SUM(ol.quantity) AS units_stored\n  FROM order_lines ol\n  JOIN orders o ON o.order_id = ol.order_id\n  GROUP BY EXTRACT(YEAR FROM o.order_ts)\n),\nunique_lines AS (  -- one row per different line\n  SELECT DISTINCT order_id, product_id, quantity, unit_price_eur, promo_id, line_discount_eur\n  FROM order_lines\n),\nuniq AS (  -- one row per year\n  SELECT EXTRACT(YEAR FROM o.order_ts) AS order_year, SUM(u.quantity) AS units_unique\n  FROM unique_lines u\n  JOIN orders o ON o.order_id = u.order_id\n  GROUP BY EXTRACT(YEAR FROM o.order_ts)\n)\nSELECT s.order_year, s.units_stored, u.units_unique, s.units_stored - u.units_unique AS units_extra\nFROM stored s\nJOIN uniq u ON u.order_year = s.order_year",
+    "tradeoff": "Two totals joined by year show each number on its own, but the grouped sets give all three from one pass over the lines."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-36",
+      "sql": "SELECT EXTRACT(YEAR FROM o.order_ts) AS order_year, SUM(ol.quantity) AS units_stored, SUM(ol.quantity) AS units_unique, 0 AS units_extra\nFROM order_lines ol JOIN orders o ON o.order_id = ol.order_id GROUP BY 1"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-14",
+      "sql": "WITH line_sets AS (  -- one row per set of matching lines\n  SELECT order_id, quantity, COUNT(*) AS n_lines\n  FROM order_lines\n  GROUP BY order_id, product_id, quantity, unit_price_eur, promo_id, line_discount_eur\n)\nSELECT EXTRACT(YEAR FROM o.order_ts) AS order_year, SUM(ls.n_lines) AS units_stored, COUNT(*) AS units_unique, SUM(ls.n_lines - 1) AS units_extra FROM line_sets ls JOIN orders o ON o.order_id = ls.order_id GROUP BY 1"
+    }
+  ],
+  "hint3_partial": "WITH line_sets AS (  -- one row per set of matching lines\n  SELECT order_id, quantity, COUNT(*) AS n_lines\n  FROM order_lines\n  GROUP BY order_id, product_id, quantity, unit_price_eur, promo_id, line_discount_eur\n)\nSELECT EXTRACT(YEAR FROM o.order_ts) AS order_year,\n       SUM(___) AS units_stored,\n       SUM(ls.quantity) AS units_unique,\n       SUM(___) AS units_extra\nFROM line_sets ls\nJOIN orders o ON o.order_id = ls.order_id\nGROUP BY EXTRACT(YEAR FROM o.order_ts)",
+  "solver": {
+    "prompt_hash": "22568f89a041c612",
+    "schema_version": "2b3ae373ff81",
+    "dataset_version": "b2d2b40fb117bb07",
+    "grader_version": "6a.1",
+    "query": "WITH sets AS (SELECT order_id, product_id, quantity, unit_price_eur, promo_id, line_discount_eur, COUNT(*) AS n FROM order_lines GROUP BY order_id, product_id, quantity, unit_price_eur, promo_id, line_discount_eur)\nSELECT year(o.order_ts) AS order_year,\n       SUM(s.quantity * s.n) AS units_stored,\n       SUM(s.quantity) AS units_unique,\n       SUM(s.quantity * (s.n - 1)) AS units_extra\nFROM sets s\nJOIN orders o ON o.order_id = s.order_id\nGROUP BY year(o.order_ts)\n",
+    "at": "2026-10-15T11:06:10.165Z"
+  }
+}

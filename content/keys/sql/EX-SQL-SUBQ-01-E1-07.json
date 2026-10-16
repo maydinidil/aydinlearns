@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-SUBQ-01-E1-07",
+  "item_version": 1,
+  "reference_sql": "SELECT product_id, product_name, launch_date\nFROM products\nWHERE launch_date = (SELECT MAX(launch_date) FROM products)",
+  "alternatives": [
+    "SELECT p.product_id, p.product_name, p.launch_date\nFROM products p\nJOIN (\n  -- one row in total\n  SELECT MAX(launch_date) AS last_launch\n  FROM products\n) AS m ON m.last_launch = p.launch_date",
+    "WITH last_launch AS (\n  -- one row in total\n  SELECT MAX(launch_date) AS launch_date\n  FROM products\n)\nSELECT p.product_id, p.product_name, p.launch_date\nFROM products p\nJOIN last_launch l ON l.launch_date = p.launch_date"
+  ],
+  "other_way": {
+    "sql": "WITH last_launch AS (\n  -- one row in total\n  SELECT MAX(launch_date) AS launch_date\n  FROM products\n)\nSELECT p.product_id, p.product_name, p.launch_date\nFROM products p\nJOIN last_launch l ON l.launch_date = p.launch_date",
+    "tradeoff": "A WITH step that holds the latest date, joined on launch_date, gives the same rows in more lines."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-16",
+      "sql": "SELECT product_id, product_name, launch_date FROM products ORDER BY launch_date DESC, product_id LIMIT 1"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-14",
+      "sql": "SELECT product_id, product_name, launch_date FROM products WHERE launch_date = (SELECT MIN(launch_date) FROM products)"
+    }
+  ],
+  "hint3_partial": "SELECT product_id, product_name, launch_date\nFROM products\nWHERE launch_date = (SELECT ___ FROM products)",
+  "solver": {
+    "prompt_hash": "a72373060a4054cb",
+    "schema_version": "d77fe1c31a0e",
+    "dataset_version": "b2d2b40fb117bb07",
+    "grader_version": "6a.1",
+    "query": "SELECT product_id, product_name, launch_date FROM products WHERE launch_date = (SELECT MAX(launch_date) FROM products)\r\n",
+    "at": "2026-10-15T11:06:12.758Z"
+  }
+}

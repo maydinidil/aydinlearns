@@ -1,11 +1,14 @@
 // tests/helpers/case-fixture.ts: a content root with one case of each kind (Task B2 of sprint 4b), built on the SQL content
 // fixture. A level 1 opener in sql/openers/, and an inbox case (CP1 to CP6) and a daily case (CP3 and CP4) in sql/cases/, each
 // with its CP3 item and SQL key, its case key in keys/cases/, and a truth file holding every CP2 and CP4 value. It passes C41.
-// Every case, key and value here is invented.
+// Sprint 6 (Task B3): the truth file also holds each value's source hash (the case's schema and its truth query, as the build writes
+// them to data/truth/checkpoints.json), and the schemas the build saw when a patch names them (S6-13). Every case, key and value here
+// is invented.
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import type { CaseKey, CaseRecord } from '../../schemas/case.ts';
+import { caseSchema, type CaseKey, type CaseRecord } from '../../schemas/case.ts';
 import { optionId } from '../../schemas/choice.ts';
+import { truthSourceHash } from '../../server/content.ts';
 import { makeContentFixture, FIXTURE_CONCEPT } from './content-fixture.ts';
 
 export const OPENER_ID = 'CASE-VOLT-L1';
@@ -74,6 +77,8 @@ export interface CasePatch {
   keys?: (k: Record<string, any>[]) => void;
   items?: (i: Record<string, Record<string, any>>) => void;
   truths?: (t: Record<string, number>) => void;
+  /** Sprint 6: the truth file as written (checkpoints, sources, and `schemas` when set here), edited last. */
+  file?: (f: { checkpoints: Record<string, number>; sources: Record<string, string>; schemas?: string[] }) => void;
 }
 
 /** Writes the three cases into a copy of the SQL content fixture; each patch edits its part first. */
@@ -102,7 +107,15 @@ export async function makeCaseFixture(patch: CasePatch = {}): Promise<CaseFixtur
   await writeFile(join(root, 'sql/cases', `${INBOX_ID}.json`), JSON.stringify(records.inbox));
   await writeFile(join(root, 'sql/cases', `${DAILY_ID}.json`), JSON.stringify(records.daily));
   for (const k of keys) await writeFile(join(root, 'keys/cases', `${String(k.case_id)}.json`), JSON.stringify(k));
+  // Each truth's source hash, as the build writes it: the case's schema (S6-13) and the key's query, so C41 finds no stale truth.
+  const schemaOf = new Map(Object.values(records).map((r) => [String(r.case_id), caseSchema(r)]));
+  const sources: Record<string, string> = {};
+  for (const k of keys) for (const [cp, q] of Object.entries((k.truths ?? {}) as Record<string, unknown>)) {
+    if (typeof q === 'string') sources[`${String(k.case_id)}:${cp}`] = truthSourceHash(schemaOf.get(String(k.case_id)) ?? 'voltmarkt', q);
+  }
+  const file: { checkpoints: Record<string, number>; sources: Record<string, string>; schemas?: string[] } = { checkpoints: truths, sources };
+  patch.file?.(file);
   const truthFile = join(root, 'truth.json');
-  await writeFile(truthFile, JSON.stringify({ company: 'voltmarkt', checkpoints: truths }));
+  await writeFile(truthFile, JSON.stringify({ company: 'voltmarkt', ...file }));
   return { root, truthFile };
 }

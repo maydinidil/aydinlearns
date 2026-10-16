@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-SUBQ-02-E2-31",
+  "item_version": 1,
+  "reference_sql": "SELECT ROUND(AVG(t.n_products), 2) AS avg_products\nFROM (\n  -- one row per order\n  SELECT order_id, COUNT(DISTINCT product_id) AS n_products\n  FROM order_lines\n  GROUP BY order_id\n) AS t",
+  "alternatives": [
+    "WITH order_products AS (\n  -- one row per order\n  SELECT order_id, COUNT(DISTINCT product_id) AS n_products\n  FROM order_lines\n  GROUP BY order_id\n)\nSELECT ROUND(AVG(n_products), 2) AS avg_products\nFROM order_products",
+    "SELECT ROUND(COUNT(*) * 1.0 / COUNT(DISTINCT pairs.order_id), 2) AS avg_products\nFROM (\n  -- one row per order and product\n  SELECT DISTINCT order_id, product_id\n  FROM order_lines\n) AS pairs"
+  ],
+  "other_way": {
+    "sql": "SELECT ROUND(COUNT(*) * 1.0 / COUNT(DISTINCT pairs.order_id), 2) AS avg_products\nFROM (\n  -- one row per order and product\n  SELECT DISTINCT order_id, product_id\n  FROM order_lines\n) AS pairs",
+    "tradeoff": "Counting distinct order and product pairs per order gives the same average, but the per-order grain is less visible."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-07",
+      "sql": "SELECT ROUND(AVG(t.n_products), 2) AS avg_products\nFROM (\n  -- one row per order\n  SELECT order_id, product_id, COUNT(*) AS n_products\n  FROM order_lines\n  GROUP BY order_id, product_id\n) AS t"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-14",
+      "sql": "SELECT ROUND(MAX(t.n_products), 2) AS avg_products FROM (SELECT order_id, COUNT(DISTINCT product_id) AS n_products FROM order_lines GROUP BY order_id) AS t"
+    }
+  ],
+  "hint3_partial": "SELECT ROUND(AVG(t.n_products), 2) AS avg_products\nFROM (\n  -- one row per order\n  SELECT order_id, COUNT(DISTINCT ___) AS n_products\n  FROM order_lines\n  GROUP BY ___\n) AS t",
+  "solver": {
+    "prompt_hash": "222a3e6af0d0d63a",
+    "schema_version": "6c8fc3c0d3d4",
+    "dataset_version": "b2d2b40fb117bb07",
+    "grader_version": "6a.1",
+    "query": "SELECT ROUND(AVG(t.n_products), 2) AS avg_products\r\nFROM (\r\n  -- one row per order\r\n  SELECT order_id, COUNT(DISTINCT product_id) AS n_products\r\n  FROM order_lines\r\n  GROUP BY order_id\r\n) AS t\r\n",
+    "at": "2026-10-15T11:06:14.564Z"
+  }
+}

@@ -1,0 +1,171 @@
+{
+  "case_id": "CASE-VOLT-L4",
+  "kind": "opener",
+  "level": 4,
+  "world": "PRICE",
+  "company_id": "voltmarkt",
+  "title": "Soundbars with promoted TVs",
+  "persona": {
+    "name": "Joost",
+    "role": "Pricing lead"
+  },
+  "brief": {
+    "decision": "Whether to offer a TV and soundbar bundle price in next year's TV promotions",
+    "deadline": "The pricing round for next year's promotion calendar"
+  },
+  "data_needed": [
+    "order_lines",
+    "orders",
+    "products",
+    "categories"
+  ],
+  "expected_output": {
+    "columns": [
+      "tv_offer",
+      "n_tv_orders",
+      "n_with_soundbar",
+      "attach_rate_pct",
+      "attach_index"
+    ],
+    "grain": "one row per kind of 2025 TV order: promoted or regular",
+    "sort": [
+      {
+        "column": "tv_offer",
+        "desc": false
+      }
+    ]
+  },
+  "checkpoints": [
+    {
+      "id": "CP1",
+      "kind": "CP1",
+      "prompt": "Joost, the pricing lead, asks: in 2025, did orders with a TV on promotion hold a soundbar more often than the other orders with a TV? Before you write any SQL, which plan counts each TV order once and tells whether that same order also held a soundbar?",
+      "credits_concepts": [],
+      "item_id": "CASE-VOLT-L4:CP1",
+      "options": [
+        {
+          "oid": "oc7508e8",
+          "text": "Join the TV lines to the soundbar lines on order_id, then count the joined rows for each promotion status as the orders with a soundbar."
+        },
+        {
+          "oid": "o4483f32",
+          "text": "Make one row per 2025 TV order, promoted when any TV line carried a promotion, then test it with EXISTS for a soundbar line in that order."
+        },
+        {
+          "oid": "oaad4aa9",
+          "text": "Mark each TV line as promoted or not, test with EXISTS whether its order holds a soundbar line, then count the TV lines for each status."
+        },
+        {
+          "oid": "ocb85d45",
+          "text": "Mark each TV order as promoted or not, test with EXISTS whether the same customer bought a soundbar in any order, then count the orders."
+        }
+      ]
+    },
+    {
+      "id": "CP2",
+      "kind": "CP2",
+      "prompt": "Joost first wants the size of the group behind the headline. How many orders with an order_ts from 2025-01-01 00:00:00 up to but not including 2026-01-01 00:00:00 (order_ts holds UTC time) held at least one order line for a product in one of the three TV categories: TVs up to 43 inch, TVs 50-55 inch and TVs 65 inch and up? Count each order once, however many TV lines it holds. Type a whole number.",
+      "credits_concepts": [
+        "SQL-AGG-01"
+      ],
+      "item_id": "CASE-VOLT-L4:CP2",
+      "typed": {
+        "precision": "count",
+        "scale": "plain",
+        "decimals": 0,
+        "unit_label": "orders"
+      },
+      "truth_key": "CASE-VOLT-L4:CP2"
+    },
+    {
+      "id": "CP3",
+      "kind": "CP3",
+      "prompt": "Write the query that answers Joost's question.",
+      "credits_concepts": [
+        "SQL-SUBQ-01",
+        "SQL-CTE-01",
+        "SQL-JOIN-01",
+        "SQL-JOIN-03",
+        "SQL-AGG-02",
+        "SQL-CASE-01"
+      ],
+      "item_id": "EX-OPENER-L4-01"
+    },
+    {
+      "id": "CP4",
+      "kind": "CP4",
+      "prompt": "Joost's headline: of all orders with an order_ts from 2025-01-01 00:00:00 up to but not including 2026-01-01 00:00:00 (order_ts holds UTC time) that held at least one order line for a product in one of the three TV categories: TVs up to 43 inch, TVs 50-55 inch and TVs 65 inch and up, what percentage also held an order line for a product in the Soundbars category? Count each order once, however many TV or soundbar lines it holds. Type the percentage rounded to 2 decimals, for example 12.34.",
+      "credits_concepts": [],
+      "item_id": "CASE-VOLT-L4:CP4",
+      "typed": {
+        "precision": "ratio",
+        "scale": "percent",
+        "decimals": 2,
+        "unit_label": "%"
+      },
+      "truth_key": "CASE-VOLT-L4:CP4"
+    },
+    {
+      "id": "CP5",
+      "kind": "CP5",
+      "prompt": "Joost's result for 2025 shows that orders with a TV on promotion held a soundbar several times as often as orders whose TVs were all at the regular price: the promoted orders' attach index is far above 100, and the regular orders' is a little below 100. What can Joost conclude from this result alone?",
+      "credits_concepts": [],
+      "item_id": "CASE-VOLT-L4:CP5",
+      "options": [
+        {
+          "oid": "ob2463b1",
+          "text": "The TV promotions caused the extra soundbar sales, so each TV promotion already earns back part of its discount through soundbars."
+        },
+        {
+          "oid": "o5a05655",
+          "text": "Promoted TVs and soundbars go together, but this result alone cannot show the promotion caused it: the shoppers and weeks differ."
+        },
+        {
+          "oid": "of749a33",
+          "text": "Soundbar sales drive the TV promotions, so a discount on soundbars is the best way to sell more of the promoted TVs."
+        },
+        {
+          "oid": "oa1f7114",
+          "text": "Promoted TV orders are a small share of all TV orders, so their higher attach rate is chance and can safely be ignored."
+        }
+      ]
+    },
+    {
+      "id": "CP6",
+      "kind": "CP6",
+      "prompt": "Write 2 to 4 sentences for Joost: the headline number, what it means for a TV and soundbar bundle price in next year's TV promotions, one caveat and one next step.",
+      "credits_concepts": []
+    }
+  ],
+  "model_plan": "Metric formula: per kind of TV order, n_tv_orders, the orders; n_with_soundbar, those whose order holds a soundbar line; attach_rate_pct, 100 times n_with_soundbar divided by n_tv_orders; attach_index, 100 times that rate divided by the rate of all 2025 TV orders.\nOutput grain: one row per kind of 2025 TV order, promoted or regular.\nTables and keys: order_lines joined to orders on order_id, to products on product_id and to categories on category_id, in a step at one row per TV order; EXISTS then looks for a soundbar line with the same order_id.\nFilters: order_ts from 2025-01-01 up to but not including 2026-01-01, in UTC; TV lines are products in TVs up to 43 inch, TVs 50-55 inch and TVs 65 inch and up.\nEdge cases: an order with two TV lines, or with one promoted and one regular TV line, counts once, as promoted; two soundbar lines still make one order with a soundbar; a promotion on a line that is not a TV does not make the order promoted.\nExpected row count: 2",
+  "model_answer_template": "Of the {CP2} orders with a TV in 2025, {CP4} percent also held a soundbar, and orders whose TV was on promotion held one several times as often as orders with only regular-price TVs. A TV on promotion and a soundbar in the same order go together: shoppers who buy a TV on deal more often buy the full set-up. This shows that the two go together, not that the promotion caused the extra soundbars, since promotion weeks and promotion shoppers differ from normal ones, and it says nothing about margin. Next, test a TV and soundbar bundle price in one TV promotion against a similar promotion without it, and check that the bundle keeps a positive margin on both products.",
+  "follow_up_question": "Which TV size category gains the most soundbar orders when its TVs are on promotion?",
+  "data_source": {
+    "label": "Fictional, generated data: Voltmarkt",
+    "real": false,
+    "licence": null
+  },
+  "difficulty": 3,
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CASE-01",
+    "SQL-TYPE-01",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-JOIN-03",
+    "SQL-SUBQ-01"
+  ],
+  "metric_ids": [
+    "MET-PRICE-06"
+  ],
+  "find_ids": [
+    "FIND-01-07"
+  ],
+  "uses_raw": false
+}

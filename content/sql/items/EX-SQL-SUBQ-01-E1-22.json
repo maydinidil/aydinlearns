@@ -1,0 +1,112 @@
+{
+  "id": "EX-SQL-SUBQ-01-E1-22",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-04",
+    "scalar_subquery",
+    "avg",
+    "products",
+    "categories",
+    "drill"
+  ],
+  "level": 4,
+  "source_ids": [
+    "01:SQL-SUBQ-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-15",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-SUBQ-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-AGG-01",
+    "SQL-JOIN-01",
+    "SQL-SUBQ-01"
+  ],
+  "template_id": "T-SUBQ-01-scalar-subset-avg",
+  "template_params": {
+    "table": "products",
+    "parent_category": "Audio"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_subq",
+  "prompt": "Which Audio products, those whose category has the parent_category 'Audio', have a unit cost below the average unit cost of all Audio products? Return two columns, in this order: product_id and unit_cost_eur. Return one row for each such product. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "unit_cost_eur",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "unit_cost_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "product_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, work out the one number to compare with: the average unit cost over the Audio products only.",
+    "Both the outer query and the query in brackets need the parent category, which sits with the categories, not the products."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 36,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 37,
+      "to": 103,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 104,
+      "to": 318,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "The subquery averages only the Audio products, so every Audio product is compared with that one number."
+}

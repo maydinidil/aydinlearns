@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-DATE-02-E2-41",
+  "item_version": 1,
+  "correct_oid": "o9b13823",
+  "explanation": "Counting back 119 days from 5 January 2026 lands on 8 September 2025, and with the as-of day that makes 120 days. Going back 120 days starts on 7 September, one day too early. date_diff('month', ...) counts month starts crossed, not days, so it keeps all of September, and INTERVAL 4 MONTH starts on 5 September.",
+  "solver": {
+    "prompt_hash": "7e21dc11162ca788",
+    "grader_version": "choice.3",
+    "chosen": "o9b13823",
+    "typed": null,
+    "at": "2026-10-15T10:40:24.696Z"
+  }
+}

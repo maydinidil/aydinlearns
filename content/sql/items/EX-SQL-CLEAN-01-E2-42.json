@@ -1,0 +1,91 @@
+{
+  "id": "EX-SQL-CLEAN-01-E2-42",
+  "version": 1,
+  "kind": "choose_query",
+  "tags": [
+    "sql",
+    "LVL-04",
+    "choose_query",
+    "duplicates",
+    "order_lines"
+  ],
+  "level": 4,
+  "source_ids": [
+    "01:SQL-CLEAN-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-15",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-CLEAN-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-AGG-03",
+    "SQL-SORT-01",
+    "SQL-CTE-01",
+    "SQL-CLEAN-01"
+  ],
+  "template_id": "T-CLEAN-01-choose-copy-count",
+  "template_params": {
+    "table": "order_lines"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt_raw",
+  "edge_schema": "voltmarkt_edge_clean",
+  "uses_raw": true,
+  "prompt": "This table may hold errors. Two lines are copies of one order line when order_id, product_id, quantity, unit_price_eur, promo_id and line_discount_eur all match, with a missing promo_id matching a missing one; every line beyond the first of such a set is a resent copy. Which query returns the number of resent copies, as n_copies?",
+  "output_contract": null,
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [],
+  "subgoals": [],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "",
+  "options": [
+    {
+      "oid": "o0629e80",
+      "text": "SELECT COUNT(*) - COUNT(DISTINCT order_line_id) AS n_copies\nFROM order_lines",
+      "misconception_id": "ERR-LOG-36"
+    },
+    {
+      "oid": "o0b911c7",
+      "text": "SELECT COUNT(*) AS n_copies\nFROM (\n  SELECT order_id, product_id\n  FROM order_lines\n  GROUP BY order_id, product_id\n  HAVING COUNT(*) > 1\n) AS copied",
+      "misconception_id": "ERR-LOG-07"
+    },
+    {
+      "oid": "o359193b",
+      "text": "WITH line_sets AS (\n  SELECT COUNT(*) AS n_lines\n  FROM order_lines\n  GROUP BY order_id, product_id, quantity, unit_price_eur, promo_id, line_discount_eur\n)\nSELECT SUM(n_lines - 1) AS n_copies\nFROM line_sets",
+      "misconception_id": null
+    },
+    {
+      "oid": "o04f19ba",
+      "text": "WITH line_sets AS (\n  SELECT COUNT(*) AS n_lines\n  FROM order_lines\n  GROUP BY order_id, product_id, quantity, unit_price_eur, promo_id, line_discount_eur\n  HAVING COUNT(*) > 1\n)\nSELECT SUM(n_lines) AS n_copies\nFROM line_sets",
+      "misconception_id": "ERR-LOG-36"
+    }
+  ]
+}

@@ -3,7 +3,7 @@
 import type { ChoiceItem, ChoiceKey, TypedSpec } from '../../schemas/choice.ts';
 
 /** Logged on every choice attempt. Bump it whenever pass or fail or the diagnosis changes (Global Constraints). */
-export const CHOICE_GRADER_VERSION = 'choice.2';
+export const CHOICE_GRADER_VERSION = 'choice.3';
 /** E-143: a share typed where a percentage was asked, or the reverse. */
 export const PERCENT_SCALE_ERROR = 'ERR-LOG-21';
 
@@ -39,7 +39,9 @@ export function gradeChoice(item: Pick<ChoiceItem, 'id' | 'options'>, key: Choic
  * D15: a number as a person types it. Accepted: spaces around it, a decimal point or a decimal comma, a space between
  * groups of three digits (1 234,5), a leading + or minus sign, and a trailing % (with or without a space) when the
  * answer is a percentage. A count (S4-14) also takes one thousands separator, comma or point, per group of three digits
- * (1,000 or 12.345.678). Refused with a plain message: an empty answer, two decimal marks or a thousands separator
+ * (1,000 or 12.345.678). Since choice.3 (S6-28) money and ratios take them too, where the marks cannot be read two ways: groups of
+ * three after a comma with a decimal point (12,345.50), two or more comma groups, or two or
+ * more point groups (1.234.567); one comma or one point group alone stays a decimal mark (1,234 is 1.234). Refused with a plain message: an empty answer, two decimal marks or a thousands separator
  * on any other kind (1.234,5 is ambiguous), e notation, other spaces, a currency sign, a % on an answer that is not a percentage, decimals on
  * a count, and anything else that is not a number.
  */
@@ -58,6 +60,8 @@ export function parseTyped(text: string, spec: TypedSpec): ParsedTyped {
   const whole = spec.precision === 'count';
   // S4-14: a whole-number answer may use one thousands separator, a comma or a point, before every group of three digits.
   if (whole && /^[1-9]\d{0,2}(,\d{3})+$|^[1-9]\d{0,2}(\.\d{3})+$/.test(body)) body = body.replace(/[.,]/g, '');
+  else if (!whole && /^[1-9]\d{0,2}(,\d{3})+(\.\d+)?$/.test(body) && (/\./.test(body) || (body.match(/,/g) ?? []).length > 1)) body = body.replace(/,/g, '');   // S6-28 (choice.3): money and ratios take thousands commas with a decimal point, 12,345.50
+  else if (!whole && /^[1-9]\d{0,2}(\.\d{3}){2,}$/.test(body)) body = body.replace(/\./g, '');   // and two or more thousands points: 1.234.567 (1.234,5 stays refused as ambiguous)
   else if (whole && /^\d+,\d{2,}$/.test(body)) return refuse(TYPED_REFUSALS.whole);   // P-7a: 1,00 or 1,0000, a comma that is not a thousands group, is refused; a dot there stays a decimal point (12.00 is 12)
   if (/[.,].*[.,]/.test(body)) return refuse(TYPED_REFUSALS.oneMark);
   if (/\s/.test(body)) {

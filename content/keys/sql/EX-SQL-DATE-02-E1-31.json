@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-DATE-02-E1-31",
+  "item_version": 1,
+  "reference_sql": "SELECT product_id, valid_from, valid_to - valid_from + 1 AS days_applied\nFROM cost_history\nWHERE valid_to IS NOT NULL",
+  "alternatives": [
+    "SELECT product_id, valid_from, date_diff('day', valid_from, valid_to) + 1 AS days_applied FROM cost_history WHERE valid_to IS NOT NULL",
+    "SELECT product_id, valid_from, CAST(valid_to + INTERVAL 1 DAY AS DATE) - valid_from AS days_applied FROM cost_history WHERE valid_to IS NOT NULL"
+  ],
+  "other_way": {
+    "sql": "SELECT product_id, valid_from, date_diff('day', valid_from, valid_to) + 1 AS days_applied FROM cost_history WHERE valid_to IS NOT NULL",
+    "tradeoff": "date_diff('day', valid_from, valid_to) + 1 gives the same count, and its unit argument says plainly that days are counted."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-34",
+      "sql": "SELECT product_id, valid_from, valid_to - valid_from AS days_applied\nFROM cost_history\nWHERE valid_to IS NOT NULL"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-SEM-04",
+      "sql": "SELECT product_id, valid_from, valid_to - valid_from + 1 AS days_applied FROM cost_history WHERE valid_to <> NULL"
+    }
+  ],
+  "hint3_partial": "SELECT product_id, valid_from, valid_to - valid_from ___ AS days_applied\nFROM cost_history\nWHERE valid_to IS NOT NULL",
+  "solver": {
+    "prompt_hash": "6b54245141317c36",
+    "schema_version": "0c472a53d95d",
+    "dataset_version": "b2d2b40fb117bb07",
+    "grader_version": "6a.1",
+    "query": "SELECT product_id, valid_from, valid_to - valid_from + 1 AS days_applied\nFROM cost_history\nWHERE valid_to IS NOT NULL\n",
+    "at": "2026-10-15T11:06:11.323Z"
+  }
+}

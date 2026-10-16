@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-SUBQ-01-E2-02",
+  "item_version": 1,
+  "reference_sql": "SELECT p.product_id, p.category_id, p.unit_cost_eur\nFROM products p\nWHERE p.unit_cost_eur > (\n  SELECT AVG(p2.unit_cost_eur)\n  FROM products p2\n  WHERE p2.category_id = p.category_id\n)",
+  "alternatives": [
+    "WITH category_avg AS (\n  -- one row per category\n  SELECT category_id, AVG(unit_cost_eur) AS avg_cost_eur\n  FROM products\n  GROUP BY category_id\n)\nSELECT p.product_id, p.category_id, p.unit_cost_eur\nFROM products p\nJOIN category_avg c ON c.category_id = p.category_id\nWHERE p.unit_cost_eur > c.avg_cost_eur",
+    "SELECT p.product_id, p.category_id, p.unit_cost_eur\nFROM products p\nJOIN (\n  -- one row per category\n  SELECT category_id, AVG(unit_cost_eur) AS avg_cost_eur\n  FROM products\n  GROUP BY category_id\n) AS c ON c.category_id = p.category_id\nWHERE p.unit_cost_eur > c.avg_cost_eur"
+  ],
+  "other_way": {
+    "sql": "WITH category_avg AS (\n  -- one row per category\n  SELECT category_id, AVG(unit_cost_eur) AS avg_cost_eur\n  FROM products\n  GROUP BY category_id\n)\nSELECT p.product_id, p.category_id, p.unit_cost_eur\nFROM products p\nJOIN category_avg c ON c.category_id = p.category_id\nWHERE p.unit_cost_eur > c.avg_cost_eur",
+    "tradeoff": "A step with one average per category, joined back to the products, shows every average but takes more lines."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-31",
+      "sql": "SELECT p.product_id, p.category_id, p.unit_cost_eur FROM products p WHERE p.unit_cost_eur > (SELECT AVG(p2.unit_cost_eur) FROM products p2 WHERE p2.brand = p.brand)"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-07",
+      "sql": "SELECT p.product_id, p.category_id, p.unit_cost_eur FROM products p WHERE p.unit_cost_eur > (SELECT AVG(p2.unit_cost_eur) FROM products p2)"
+    }
+  ],
+  "hint3_partial": "SELECT p.product_id, p.category_id, p.unit_cost_eur\nFROM products p\nWHERE p.unit_cost_eur > (\n  SELECT AVG(p2.unit_cost_eur)\n  FROM products p2\n  WHERE p2.category_id = ___\n)",
+  "solver": {
+    "prompt_hash": "80c591f3db5523c3",
+    "schema_version": "d77fe1c31a0e",
+    "dataset_version": "b2d2b40fb117bb07",
+    "grader_version": "6a.1",
+    "query": "SELECT p.product_id, p.category_id, p.unit_cost_eur FROM products p WHERE p.unit_cost_eur > (SELECT AVG(p2.unit_cost_eur) FROM products p2 WHERE p2.category_id = p.category_id)\r\n",
+    "at": "2026-10-15T11:06:12.871Z"
+  }
+}

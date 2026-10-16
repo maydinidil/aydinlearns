@@ -10,6 +10,36 @@
     "a product with a missing brand",
     "two products with the same name and cost but different IDs",
     "three promotions that tie for the third-highest discount, and two with the same name",
-    "six calendar days from late 2025, some with no event"
-  ]
+    "calendar days from late 2025, some with no event",
+    "a calendar that holds every day of each promotion",
+    "no orders, so the sales view has no rows"
+  ],
+  "tables": {
+    "calendar": [
+      "rows stored out of order in every table",
+      "calendar days from late 2025, some with no event",
+      "a calendar that holds every day of each promotion"
+    ],
+    "stores": [
+      "rows stored out of order in every table",
+      "two stores in the same city, and stores with no close date"
+    ],
+    "categories": [
+      "rows stored out of order in every table",
+      "two categories with the same name under different parent categories"
+    ],
+    "products": [
+      "rows stored out of order in every table",
+      "three products that tie for the third-highest unit cost, and a product with no unit cost",
+      "a product with a missing brand",
+      "two products with the same name and cost but different IDs"
+    ],
+    "promotions": [
+      "rows stored out of order in every table",
+      "three promotions that tie for the third-highest discount, and two with the same name"
+    ],
+    "sales": [
+      "no orders, so the sales view has no rows"
+    ]
+  }
 }

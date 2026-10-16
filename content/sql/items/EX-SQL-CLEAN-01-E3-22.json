@@ -1,0 +1,143 @@
+{
+  "id": "EX-SQL-CLEAN-01-E3-22",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-04",
+    "reconcile",
+    "duplicates",
+    "money",
+    "order_lines",
+    "orders",
+    "stores"
+  ],
+  "level": 4,
+  "source_ids": [
+    "01:SQL-CLEAN-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-15",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-CLEAN-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-CLEAN-01"
+  ],
+  "template_id": "T-CLEAN-01-reconcile-revenue-gap",
+  "template_params": {
+    "store": "BE-14",
+    "stated": "2397222.41"
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "voltmarkt",
+  "schema": "voltmarkt_raw",
+  "edge_schema": "voltmarkt_edge_clean",
+  "uses_raw": true,
+  "prompt": "Finance reports 2,397,222.41 EUR of 2024 revenue for store BE-14. These tables may hold errors. Two lines are copies of one order line when order_id, product_id, quantity, unit_price_eur, promo_id and line_discount_eur all match, with a missing promo_id matching a missing one; keep one line of each such set. A line's revenue is quantity times unit_price_eur minus line_discount_eur. 2024 means order_ts, as stored, from 1 January 2024 up to but not including 1 January 2025. Return three columns, in this order: revenue_stored, the revenue as stored, revenue_unique, the revenue with copies removed, and gap, revenue_unique minus 2,397,222.41, all in euros rounded to 2 decimals. The result is a single row. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "revenue_stored",
+        "type_class": "numeric"
+      },
+      {
+        "name": "revenue_unique",
+        "type_class": "numeric"
+      },
+      {
+        "name": "gap",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "revenue_stored",
+        "type_class": "numeric",
+        "precision": "money",
+        "require_rounding": 2
+      },
+      {
+        "name": "revenue_unique",
+        "type_class": "numeric",
+        "precision": "money",
+        "require_rounding": 2
+      },
+      {
+        "name": "gap",
+        "type_class": "numeric",
+        "precision": "money",
+        "require_rounding": 2
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, turn the matching lines into sets, each with its revenue once and its number of lines.",
+    "The stored revenue counts a set's revenue once per line, the copy-free revenue once per set; the gap compares the copy-free one with finance."
+  ],
+  "subgoals": [
+    {
+      "from": 74,
+      "to": 167,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 170,
+      "to": 276,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 279,
+      "to": 392,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 395,
+      "to": 497,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 500,
+      "to": 657,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 658,
+      "to": 672,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "Counting each set's revenue once removes the copies, and a gap of 0 shows the fixed figure agrees with finance."
+}

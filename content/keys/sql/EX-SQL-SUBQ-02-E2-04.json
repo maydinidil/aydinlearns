@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-SUBQ-02-E2-04",
+  "item_version": 1,
+  "reference_sql": "SELECT COUNT(*) AS n_customers\nFROM (\n  -- one row per registered customer\n  SELECT customer_id, COUNT(*) AS n_orders\n  FROM orders\n  WHERE customer_id IS NOT NULL\n  GROUP BY customer_id\n) AS t\nWHERE t.n_orders > (\n  SELECT AVG(t2.n_orders)\n  FROM (\n    -- one row per registered customer\n    SELECT customer_id, COUNT(*) AS n_orders\n    FROM orders\n    WHERE customer_id IS NOT NULL\n    GROUP BY customer_id\n  ) AS t2\n)",
+  "alternatives": [
+    "WITH customer_orders AS (\n  -- one row per registered customer\n  SELECT customer_id, COUNT(*) AS n_orders\n  FROM orders\n  WHERE customer_id IS NOT NULL\n  GROUP BY customer_id\n)\nSELECT COUNT(*) AS n_customers\nFROM customer_orders\nWHERE n_orders > (SELECT AVG(n_orders) FROM customer_orders)",
+    "SELECT COUNT(*) AS n_customers\nFROM (\n  -- one row per registered customer\n  SELECT customer_id, COUNT(*) AS n_orders\n  FROM orders\n  WHERE customer_id IS NOT NULL\n  GROUP BY customer_id\n) AS t\nWHERE t.n_orders > (\n  SELECT COUNT(*) * 1.0 / COUNT(DISTINCT customer_id)\n  FROM orders\n  WHERE customer_id IS NOT NULL\n)"
+  ],
+  "other_way": {
+    "sql": "WITH customer_orders AS (\n  -- one row per registered customer\n  SELECT customer_id, COUNT(*) AS n_orders\n  FROM orders\n  WHERE customer_id IS NOT NULL\n  GROUP BY customer_id\n)\nSELECT COUNT(*) AS n_customers\nFROM customer_orders\nWHERE n_orders > (SELECT AVG(n_orders) FROM customer_orders)",
+    "tradeoff": "A WITH step is written once and read twice here, where the derived table has to be written out in full both times."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-03",
+      "sql": "SELECT COUNT(*) AS n_customers FROM (SELECT customer_id, COUNT(*) AS n_orders FROM orders GROUP BY customer_id) AS t WHERE t.n_orders > (SELECT AVG(t2.n_orders) FROM (SELECT customer_id, COUNT(*) AS n_orders FROM orders GROUP BY customer_id) AS t2)"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-07",
+      "sql": "SELECT COUNT(*) AS n_customers FROM (SELECT customer_id, COUNT(*) AS n_orders FROM orders WHERE customer_id IS NOT NULL GROUP BY customer_id) AS t WHERE t.n_orders > (SELECT AVG(t2.n_orders) FROM (SELECT customer_id, store_id, COUNT(*) AS n_orders FROM orders WHERE customer_id IS NOT NULL GROUP BY customer_id, store_id) AS t2)"
+    }
+  ],
+  "hint3_partial": "SELECT COUNT(*) AS n_customers\nFROM (\n  -- one row per registered customer\n  SELECT customer_id, COUNT(*) AS n_orders\n  FROM orders\n  WHERE customer_id IS NOT NULL\n  GROUP BY customer_id\n) AS t\nWHERE t.n_orders > (\n  SELECT AVG(t2.n_orders)\n  FROM (\n    -- one row per registered customer\n    SELECT customer_id, COUNT(*) AS n_orders\n    FROM orders\n    WHERE ___\n    GROUP BY customer_id\n  ) AS t2\n)",
+  "solver": {
+    "prompt_hash": "dc2dc067b6aa1e1c",
+    "schema_version": "7ed366279088",
+    "dataset_version": "b2d2b40fb117bb07",
+    "grader_version": "6a.1",
+    "query": "WITH t AS (SELECT customer_id, COUNT(*) AS n_orders FROM orders WHERE customer_id IS NOT NULL GROUP BY customer_id)\r\nSELECT COUNT(*) AS n_customers FROM t WHERE n_orders > (SELECT AVG(n_orders) FROM t)\r\n",
+    "at": "2026-10-15T11:06:14.341Z"
+  }
+}

@@ -1,0 +1,174 @@
+{
+  "id": "EX-CASE-DQ-05",
+  "version": 2,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-04",
+    "case",
+    "inbox",
+    "data_quality",
+    "overlap",
+    "price_windows",
+    "self_join",
+    "price_history",
+    "order_lines",
+    "orders"
+  ],
+  "level": 4,
+  "source_ids": [
+    "05:Q-01-06"
+  ],
+  "verified": true,
+  "as_of": "2026-10-15",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "case",
+  "target_concept_id": "SQL-CLEAN-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-NULL-01",
+    "SQL-TYPE-01",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-JOIN-04",
+    "SQL-CLEAN-01"
+  ],
+  "template_id": "T-CASE-DQ-05-lines-on-shared-days",
+  "template_params": {
+    "quirk": "Q-01-06"
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "voltmarkt",
+  "schema": "voltmarkt_raw",
+  "edge_schema": "voltmarkt_edge_clean",
+  "uses_raw": true,
+  "prompt": "Joost, the pricing lead, needs the order lines that the price check matches to two list prices. These tables may hold errors. A price window runs from valid_from to valid_to, both days included, and a missing valid_to means the window is still open. Two windows of one product overlap when they share at least one day. Work in two steps. First find each pair of overlapping windows and the days they share: there are only a few pairs. Then match the order lines of each pair's product to it, keeping a line sold on one of the shared days. An order's day is the date of its order_ts, as stored. Return one row for each such order line, with five columns in this order: order_line_id; product_id; order_date; old_price_eur, the list_price_eur of the window that starts first; and new_price_eur, that of the window that starts later. Sort by order_line_id from low to high.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "order_line_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "product_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "order_date",
+        "type_class": "temporal"
+      },
+      {
+        "name": "old_price_eur",
+        "type_class": "numeric"
+      },
+      {
+        "name": "new_price_eur",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": true,
+    "sort_keys": [
+      {
+        "column": "order_line_id",
+        "desc": false
+      }
+    ],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "order_line_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "product_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "order_date",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "old_price_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "new_price_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "order_line_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the step for the pairs: one row per pair of overlapping windows, with its first and last shared day and both list prices.",
+    "Join the order lines to those pairs on the product, and keep a line when its order day falls from the first to the last shared day, both days included."
+  ],
+  "subgoals": [
+    {
+      "from": 100,
+      "to": 356,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 359,
+      "to": 478,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 481,
+      "to": 542,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 545,
+      "to": 685,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 686,
+      "to": 808,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 809,
+      "to": 877,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 878,
+      "to": 903,
+      "subgoal": "sort_limit"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "Finding the few overlapping pairs first keeps the join small, and a line whose day falls inside both windows is exactly a line the price check sees twice."
+}

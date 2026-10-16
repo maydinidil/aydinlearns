@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-CLEAN-01-E2-02",
+  "item_version": 1,
+  "reference_sql": "WITH be14_lines AS (  -- one row per BE-14 order line of 2024, as stored\n  SELECT ol.order_id, ol.product_id, ol.quantity, ol.unit_price_eur, ol.promo_id, ol.line_discount_eur\n  FROM order_lines ol\n  JOIN orders o ON o.order_id = ol.order_id\n  JOIN stores s ON s.store_id = o.store_id\n  WHERE s.store_code = 'BE-14'\n    AND o.order_ts >= TIMESTAMP '2024-01-01' AND o.order_ts < TIMESTAMP '2025-01-01'\n),\nline_sets AS (  -- one row per set of matching lines\n  SELECT COUNT(*) AS n_lines\n  FROM be14_lines\n  GROUP BY order_id, product_id, quantity, unit_price_eur, promo_id, line_discount_eur\n)\nSELECT SUM(n_lines) AS n_stored, COUNT(*) AS n_unique, CASE WHEN COUNT(*) = 11239 THEN 'pass' ELSE 'fail' END AS result\nFROM line_sets",
+  "alternatives": [
+    "WITH be14_lines AS (  -- one row per BE-14 order line of 2024, as stored\n  SELECT ol.order_id, ol.product_id, ol.quantity, ol.unit_price_eur, ol.promo_id, ol.line_discount_eur\n  FROM order_lines ol\n  JOIN orders o ON o.order_id = ol.order_id\n  JOIN stores s ON s.store_id = o.store_id\n  WHERE s.store_code = 'BE-14'\n    AND o.order_ts >= TIMESTAMP '2024-01-01' AND o.order_ts < TIMESTAMP '2025-01-01'\n),\nunique_lines AS (  -- one row per different line\n  SELECT DISTINCT *\n  FROM be14_lines\n)\nSELECT (SELECT COUNT(*) FROM be14_lines) AS n_stored, (SELECT COUNT(*) FROM unique_lines) AS n_unique,\n       CASE WHEN (SELECT COUNT(*) FROM unique_lines) = 11239 THEN 'pass' ELSE 'fail' END AS result",
+    "WITH be14_lines AS (  -- one row per BE-14 order line of 2024, as stored\n  SELECT ol.order_id, ol.product_id, ol.quantity, ol.unit_price_eur, ol.promo_id, ol.line_discount_eur\n  FROM order_lines ol\n  JOIN orders o ON o.order_id = ol.order_id\n  JOIN stores s ON s.store_id = o.store_id\n  WHERE s.store_code = 'BE-14'\n    AND o.order_ts >= TIMESTAMP '2024-01-01' AND o.order_ts < TIMESTAMP '2025-01-01'\n),\nline_sets AS (  -- one row per set of matching lines\n  SELECT COUNT(*) AS n_lines\n  FROM be14_lines\n  GROUP BY order_id, product_id, quantity, unit_price_eur, promo_id, line_discount_eur\n)\nSELECT SUM(n_lines) AS n_stored, COUNT(*) AS n_unique, CASE WHEN COUNT(*) <> 11239 THEN 'fail' ELSE 'pass' END AS result\nFROM line_sets"
+  ],
+  "other_way": {
+    "sql": "WITH be14_lines AS (  -- one row per BE-14 order line of 2024, as stored\n  SELECT ol.order_id, ol.product_id, ol.quantity, ol.unit_price_eur, ol.promo_id, ol.line_discount_eur\n  FROM order_lines ol\n  JOIN orders o ON o.order_id = ol.order_id\n  JOIN stores s ON s.store_id = o.store_id\n  WHERE s.store_code = 'BE-14'\n    AND o.order_ts >= TIMESTAMP '2024-01-01' AND o.order_ts < TIMESTAMP '2025-01-01'\n),\nunique_lines AS (  -- one row per different line\n  SELECT DISTINCT *\n  FROM be14_lines\n)\nSELECT (SELECT COUNT(*) FROM be14_lines) AS n_stored, (SELECT COUNT(*) FROM unique_lines) AS n_unique,\n       CASE WHEN (SELECT COUNT(*) FROM unique_lines) = 11239 THEN 'pass' ELSE 'fail' END AS result",
+    "tradeoff": "SELECT DISTINCT * gives the copy-free lines in one step, but the grouped sets also show how many copies each line had."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-36",
+      "sql": "WITH be14_lines AS (\n  SELECT ol.order_line_id FROM order_lines ol JOIN orders o ON o.order_id = ol.order_id JOIN stores s ON s.store_id = o.store_id\n  WHERE s.store_code = 'BE-14' AND o.order_ts >= TIMESTAMP '2024-01-01' AND o.order_ts < TIMESTAMP '2025-01-01'\n)\nSELECT COUNT(*) AS n_stored, COUNT(DISTINCT order_line_id) AS n_unique, CASE WHEN COUNT(DISTINCT order_line_id) = 11239 THEN 'pass' ELSE 'fail' END AS result FROM be14_lines"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-07",
+      "sql": "WITH be14_lines AS (  -- one row per BE-14 order line of 2024, as stored\n  SELECT ol.order_id, ol.product_id, ol.quantity, ol.unit_price_eur, ol.promo_id, ol.line_discount_eur\n  FROM order_lines ol\n  JOIN orders o ON o.order_id = ol.order_id\n  JOIN stores s ON s.store_id = o.store_id\n  WHERE s.store_code = 'BE-14'\n    AND o.order_ts >= TIMESTAMP '2024-01-01' AND o.order_ts < TIMESTAMP '2025-01-01'\n),\nline_sets AS (  -- one row per set of matching lines\n  SELECT COUNT(*) AS n_lines\n  FROM be14_lines\n  GROUP BY order_id, product_id\n)\nSELECT SUM(n_lines) AS n_stored, COUNT(*) AS n_unique, CASE WHEN COUNT(*) = 11239 THEN 'pass' ELSE 'fail' END AS result FROM line_sets"
+    }
+  ],
+  "hint3_partial": "WITH be14_lines AS (  -- one row per BE-14 order line of 2024, as stored\n  SELECT ol.order_id, ol.product_id, ol.quantity, ol.unit_price_eur, ol.promo_id, ol.line_discount_eur\n  FROM order_lines ol\n  JOIN orders o ON o.order_id = ol.order_id\n  JOIN stores s ON s.store_id = o.store_id\n  WHERE s.store_code = 'BE-14'\n    AND o.order_ts >= TIMESTAMP '2024-01-01' AND o.order_ts < TIMESTAMP '2025-01-01'\n),\nline_sets AS (  -- one row per set of matching lines\n  SELECT COUNT(*) AS n_lines\n  FROM be14_lines\n  GROUP BY order_id, product_id, quantity, unit_price_eur, promo_id, line_discount_eur\n)\nSELECT SUM(n_lines) AS n_stored, COUNT(*) AS n_unique, CASE WHEN ___ = 11239 THEN 'pass' ELSE 'fail' END AS result\nFROM line_sets",
+  "solver": {
+    "prompt_hash": "f94c821396a5aa43",
+    "schema_version": "6ef9ff4e4ad1",
+    "dataset_version": "b2d2b40fb117bb07",
+    "grader_version": "6a.1",
+    "query": "WITH l AS (\n  SELECT ol.order_id, ol.product_id, ol.quantity, ol.unit_price_eur, ol.promo_id, ol.line_discount_eur\n  FROM order_lines ol\n  JOIN orders o ON o.order_id = ol.order_id\n  JOIN stores s ON s.store_id = o.store_id\n  WHERE s.store_code = 'BE-14' AND o.order_ts >= TIMESTAMP '2024-01-01' AND o.order_ts < TIMESTAMP '2025-01-01'\n),\nu AS (SELECT DISTINCT * FROM l),\nc AS (SELECT (SELECT count(*) FROM l) AS n_stored, (SELECT count(*) FROM u) AS n_unique)\nSELECT n_stored, n_unique, CASE WHEN n_unique = 11239 THEN 'pass' ELSE 'fail' END AS result FROM c\n",
+    "at": "2026-10-15T11:06:09.817Z"
+  }
+}

@@ -1,0 +1,117 @@
+{
+  "id": "EX-SQL-SUBQ-02-E1-05",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-04",
+    "derived_table",
+    "avg",
+    "promotion_products"
+  ],
+  "level": 4,
+  "source_ids": [
+    "01:SQL-SUBQ-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-15",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "retest",
+  "target_concept_id": "SQL-SUBQ-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-SUBQ-01",
+    "SQL-SUBQ-02"
+  ],
+  "template_id": "T-SUBQ-02-avg-of-counts",
+  "template_params": {
+    "table": "promotion_products",
+    "step": "product"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_subq",
+  "prompt": "On average, how many promotions is a product listed for, over the products listed for at least one promotion? Round to 2 decimals. Return one column, avg_promotions. The result is a single row. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "avg_promotions",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "avg_promotions",
+        "type_class": "numeric",
+        "precision": "ratio",
+        "require_rounding": 2
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, count the promotions of each product in an inner query, then average those counts.",
+    "The bridge between promotions and products has one row per pair; the inner query needs one row per product."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 54,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 55,
+      "to": 101,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 102,
+      "to": 147,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 148,
+      "to": 173,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 174,
+      "to": 195,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 196,
+      "to": 202,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "The inner query has one row per product with its number of promotions, so the outer AVG weighs every product once."
+}

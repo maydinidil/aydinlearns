@@ -14,12 +14,26 @@ import type { SqlItem } from '../../schemas/item.ts';
 import type { RouteDeps } from '../app.ts';
 import type { ContentStore } from '../content.ts';
 import {
-  chosenPlan, drillRuns, DrillRuns, EXPLAINED_ALOUD, isDrillPlan, levelPlan, liveRepTiers, liveRuns, LIVE_PREFIX, livePlan, loadDrills, pickLiveRepTiered,
-  sampleDrill, type DrillPlan, type DrillRun, type DrillSpec, type LiveRun,
+  chosenPlan, CUMULATIVE_PREFIX, cumulativeOverall, cumulativePlan, drillRuns, DrillRuns, EXPLAINED_ALOUD, isDrillPlan, levelPlan, liveRepTiers, liveRuns, LIVE_PREFIX, livePlan,
+  drillSpecLoader, pickLiveRepTiered, sampleCumulative, sampleDrill, type CumulativeSpec, type DrillFile, type DrillPlan, type DrillRun, type DrillSpec, type LiveRun,
+  type RunEntry,
 } from '../drill.ts';
-import { journey } from '../journey.ts';
-import { runView } from '../run.ts';
+import { journey, type JourneyAttributes } from '../journey.ts';
+import { choiceRuns, runView } from '../run.ts';
 import { poolOf, seenIn } from '../session-composer.ts';
+
+/**
+ * K10 (S6-18, D81) and M1 (S6-31): a run's `run_finished` is sent once, by the call whose own finish ended the run: the app's end
+ * (its timer, a request after the limit, a session end) or the end route that finished it in memory. The sets are the app's own
+ * (DrillRuns.endedHere and finishSent), shared by the SQL and GA4 end routes. An end route that finds the block already in history
+ * after a restart did not end it, so it sends nothing. A block is claimed only by the call that sends, after its history read has
+ * succeeded, so a read that fails claims nothing and the other end, in the same app, still sends.
+ */
+export function runFinishedOnce(runs: Pick<DrillRuns, 'endedHere' | 'finishSent'>, blockId: string, attrs: JourneyAttributes): void {
+  if (!runs.endedHere.has(blockId) || runs.finishSent.has(blockId)) return;
+  runs.finishSent.add(blockId);
+  journey('run_finished', attrs);
+}
 
 const refuse = (status: 400 | 404 | 409, message: string): HTTPException => new HTTPException(status, { message });
 async function readBody(c: Context): Promise<Record<string, unknown>> {
@@ -29,8 +43,6 @@ async function readBody(c: Context): Promise<Record<string, unknown>> {
 }
 /** The kinds a run serves: blank-editor and fix-this-query items (as the review pools, S2-35). */
 const servable = (i: SqlItem | undefined): i is SqlItem => i !== undefined && (i.kind === 'write' || i.kind === 'fix');
-/** A store may carry the drill specs (a test's fixture; Task B12 may add it); otherwise they come from content/sql/drills.json. */
-const ownSpecs = (content: ContentStore): DrillSpec[] | undefined => (content as ContentStore & { drills?: () => DrillSpec[] }).drills?.();
 
 /**
  * What a start answers, and a second start while a run is on: the run, its limit (a test rule, which may be shown) and its items
@@ -52,11 +64,7 @@ const liveRow = (r: LiveRun) => ({ block_id: r.block_id, kind: 'live_rep' as con
  * run routes and the choice routes share (Task B2, S3-08).
  */
 export function mountDrill(app: Hono, d: RouteDeps): DrillRuns {
-  let file: Promise<DrillSpec[]> | null = null;
-  const specs = (): Promise<DrillSpec[]> => {
-    const own = ownSpecs(d.content);
-    return own ? Promise.resolve(own) : (file ??= loadDrills().catch((e: unknown) => { file = null; throw e; }));
-  };
+  const { specs, cumulative: cumulativeSpecs } = drillSpecLoader(d.content);
   const runs = new DrillRuns({
     // Every item the run served closes with run_end, rated like any close (S2-15); then the block_close, one review per card
     // at the worst rating (S2-45). Writes through the logger only: a session end runs this inside the tracker's queue.
@@ -64,13 +72,63 @@ export function mountDrill(app: Hono, d: RouteDeps): DrillRuns {
       for (const s of run.servings) await d.writeClose(s.item_instance_id, 'run_end', at);
       await d.logger.blockClose(d.state.rateBlockClose({ record: 'block_close', schema_version: SCHEMA_VERSION, ts: at.toISOString(), block_id: run.block_id, card_reviews: [] }, at));
       for (const s of run.servings) d.servings.forget(s.item_instance_id);
+      await sendRunFinished(run);                                      // K10: after the block_close, unless the browser's end sends it
     },
   });
+  /** K10: the `run_finished` of a run the app ends (its timer, a request after the limit, a session end), with the browser end's fields. */
+  async function sendRunFinished(run: RunEntry): Promise<void> {
+    try {
+      if (isDrillPlan(run.plan)) {
+        const r = (await history()).find((x) => x.block_id === run.block_id);
+        if (r) {
+          runFinishedOnce(runs, r.block_id, { section: 'sql', run_kind: r.kind, block_id: r.block_id, score_pct: r.score.pct, run_passed: r.score.run_passed,
+            ...(r.level === null ? {} : { level: r.level }) });
+          return;
+        }
+        const live = liveRuns(await d.logger.readAll('attempts'), await d.logger.readAll('events')).find((x) => x.block_id === run.block_id);
+        if (live) runFinishedOnce(runs, live.block_id, { section: 'sql', run_kind: 'live_rep', block_id: live.block_id, score_pct: liveScore(live).pct });
+        return;
+      }
+      const cfg = d.content.ga4Exam?.();
+      if (!cfg) return;
+      const r = choiceRuns(await d.logger.readAll('attempts'), { cfg, itemOf: (id) => d.content.choiceItem?.(id), events: await d.logger.readAll('events') })
+        .find((x) => x.block_id === run.block_id && x.ended_at !== null);
+      if (r) runFinishedOnce(runs, r.block_id, { section: 'ga4', run_kind: r.kind, block_id: r.block_id, score_pct: r.score.pct, run_passed: r.score.pass });
+    } catch (e) {
+      console.error(`aydinlearns: the run_finished of ${run.block_id} could not be sent (${e instanceof Error ? e.message : String(e)}).`);
+    }
+  }
   /** A level's drill pool: the `use: 'drill'` items its spec lists that exist (history tells a level run by them, S2-46). */
   const levelPool = (spec: DrillSpec): SqlItem[] => spec.pool_item_ids.map((id) => d.content.item(id)).filter((i): i is SqlItem => servable(i) && i.use === 'drill');
   const history = async (): Promise<DrillRun[]> =>
     drillRuns(await d.logger.readAll('attempts'), await d.logger.readAll('events'), (id) => d.content.item(id), await specs(),
-      (id) => d.content.choiceItem?.(id) !== undefined);                // a GA4 mini drill is listed by /api/run/history
+      (id) => d.content.choiceItem?.(id) !== undefined, await cumulativeSpecs());   // a GA4 mini drill is listed by /api/run/history
+
+  /**
+   * S6-19 (Task B4): the cumulative levels 1-4 drill. 3 items from each level's drill pool, unseen first, in screen mode (the entry's mode),
+   * 30 minutes, as one block whose block_id starts `cum-`. Nothing is logged at the start. A level short of unseen items gives seen ones,
+   * and one with too small a pool gives what it has; the reply's `fill` says so, level by level. Refused only when no level has an item.
+   */
+  app.post('/api/drill/cumulative/start', async (c) => {
+    await runs.sweep();
+    const all = await specs();
+    const spec = (await cumulativeSpecs())[0];
+    // From here to runs.start nothing awaits, so two starts at once (a double click) cannot both pass this check.
+    const on = runs.current();
+    if (on) return c.json({ error: 'A drill is already running. End it before starting another.', run: view(on) }, 409);
+    if (!spec) throw refuse(404, 'There is no cumulative drill yet.');
+    const now = new Date();
+    const { picks, fill } = sampleCumulative({ spec, specs: all, itemOf: (id) => d.content.item(id), seen: seenIn(d.state.current()), now });
+    if (!picks.length) throw refuse(404, 'No drill exercises are written yet, so there is no cumulative drill.');
+    const plan = cumulativePlan(spec, picks.length, fill);
+    const block_id = `${CUMULATIVE_PREFIX}${randomUUID()}`;
+    const servings = picks.map((p) => ({ item_id: p.item.id,
+      item_instance_id: d.servings.serve({ phase: 'drill', block_id, repeat_exposure: p.repeat_exposure, section: 'sql', item_id: p.item.id,
+        ...(plan.screen_mode ? { screen_mode: true as const } : {}) }) }));
+    const run = runs.start({ block_id, plan, started_at: now.getTime(), ends_at: now.getTime() + Math.round(plan.minutes * 60_000), servings });
+    journey('run_started', { section: 'sql', run_kind: 'cumulative', block_id, questions: plan.questions, screen_mode: plan.screen_mode === true });   // D77
+    return c.json(view(run));
+  });
 
   /**
    * S4B-26 (D42): a live rep. One item not seen in 30 days, in screen mode, 10 minutes, as one block whose block_id starts `live-`.
@@ -161,19 +219,19 @@ export function mountDrill(app: Hono, d: RouteDeps): DrillRuns {
     if (!block) throw refuse(400, 'block_id is missing.');
     const run = runs.get(block);
     const served = run && isDrillPlan(run.plan) ? run.servings.map((s) => s.item_instance_id) : null;   // the drill order, held while the run is in memory
-    if (run && isDrillPlan(run.plan)) await runs.finish(run);          // a GA4 run ends through /api/run/end
+    if (run && isDrillPlan(run.plan)) await runs.finish(run);          // a GA4 run ends through /api/run/end; its end may send run_finished
     const r = (await history()).find((x) => x.block_id === block);
     if (!r) {
       const live = liveRuns(await d.logger.readAll('attempts'), await d.logger.readAll('events')).find((x) => x.block_id === block);
       // D77: the rep's score as this reply gives it. Its pass waits for the "explained aloud" tick, which can only come after the end,
       // so it is left out here; the tick is its own journey event (case_self_check).
-      if (live) journey('run_finished', { section: 'sql', run_kind: 'live_rep', block_id: live.block_id, score_pct: liveScore(live).pct });
+      if (live) runFinishedOnce(runs, live.block_id, { section: 'sql', run_kind: 'live_rep', block_id: live.block_id, score_pct: liveScore(live).pct });
       if (live) return c.json({ block_id: live.block_id, kind: 'live_rep', level: null, score: liveScore(live) });
       throw refuse(404, 'Unknown drill run.');
     }
     // H3: one mark per question, in drill order when the run was in memory, else in log order (a screen matches them by instance).
     const items = served ? served.flatMap((id) => r.questions.filter((q) => q.item_instance_id === id)) : r.questions;
-    journey('run_finished', { section: 'sql', run_kind: r.kind, block_id: r.block_id, score_pct: r.score.pct, run_passed: r.score.run_passed,   // D77
+    runFinishedOnce(runs, r.block_id, { section: 'sql', run_kind: r.kind, block_id: r.block_id, score_pct: r.score.pct, run_passed: r.score.run_passed,   // D77
       ...(r.level === null ? {} : { level: r.level }) });
     return c.json({ block_id: r.block_id, kind: r.kind, level: r.level, score: r.score, items });
   });
@@ -201,7 +259,13 @@ export function mountDrill(app: Hono, d: RouteDeps): DrillRuns {
     // S4B-26: the live reps, listed as kind live_rep, newest first among the runs; never under a level.
     const reps = level === null ? liveRuns(await d.logger.readAll('attempts'), await d.logger.readAll('events')).map(liveRow) : [];
     const rows = [...listed.map(row), ...reps].sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
-    return c.json({ drill, runs: rows });
+    // S6-19: what the cumulative drill would draw now, for the start screen: its rule and, level by level, what came from seen items or was short.
+    const cumulative = level === null ? (await cumulativeSpecs()).map((spec) => {
+      const { picks, fill } = sampleCumulative({ spec, specs: all, itemOf: (id) => d.content.item(id), seen: seenIn(d.state.current()), now: new Date() });
+      return { id: spec.id, levels: spec.levels, questions: picks.length, minutes: spec.minutes, pass_pct: spec.pass_pct, unseen_min_pct: spec.unseen_min_pct,
+        available: picks.length > 0, fill, overall: cumulativeOverall(fill) };
+    }) : [];
+    return c.json({ drill, runs: rows, cumulative });
   });
 
   // S2-16: a session end ends every run, before the app's own hook closes what is left.

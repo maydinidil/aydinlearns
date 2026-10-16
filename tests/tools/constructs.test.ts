@@ -31,7 +31,7 @@ test('later constructs do not fire on earlier look-alikes', () => {
     ['SELECT LEFT(sku, 2) AS prefix FROM products', 'left_join'],
     ['SELECT city FROM stores ORDER BY city', 'window'],
     ["SELECT date_trunc('month', start_date) AS m FROM promotions", 'date_part'],
-    ['SELECT start_date FROM promotions WHERE end_date > start_date', 'date_arith'],
+    ['SELECT start_date FROM promotions WHERE end_date > start_date', 'date_arithmetic'],
     ['SELECT DENSE_RANK() OVER (ORDER BY unit_cost_eur) AS r FROM products', 'ntile_first_value'],
     ['SELECT promo_code FROM promotions WHERE discount_pct IN (10, 20)', 'subquery'],
     ["SELECT COUNT(*) FILTER (WHERE store_type = 'outlet') AS n FROM stores", 'subquery'],
@@ -69,6 +69,73 @@ test('computed_alias needs a calculation or a column alias, never a star or a ta
   for (const sql of none) assert.ok(!detectConstructs(sql).includes('computed_alias'), sql);
   for (const sql of ['SELECT city AS town FROM stores', 'SELECT unit_cost_eur * 2 FROM products']) assert.ok(detectConstructs(sql).includes('computed_alias'), sql);
 });
+// S6-09 (sprint 6, Task A1; the build record's Task 21 minor): DATE minus DATE is date arithmetic, so the prerequisite check
+// (C09) sees a level 3 key that uses level 4's SQL-DATE-02.
+test('S6-09: date_arithmetic (SQL-DATE-02) covers the date functions, INTERVAL and a minus between two DATE values', () => {
+  const entry = map.constructs.find((c: { construct: string }) => c.construct === 'date_arithmetic');
+  assert.equal(entry?.concept_id, 'SQL-DATE-02');
+  assert.ok(!map.constructs.some((c: { construct: string }) => c.construct === 'date_arith'), 'one construct for date arithmetic, not two');
+  const dateColumns = new Set(['order_date', 'promo_start', 'start_date', 'end_date']);
+  const uses = (sql: string): boolean => detectConstructs(sql, { dateColumns }).includes('date_arithmetic');
+  for (const sql of [
+    "SELECT order_date - DATE '2025-01-01' AS days FROM orders",
+    "SELECT date_diff('day', a, b) AS days FROM t",
+    'SELECT d + INTERVAL 7 DAY AS e FROM t',
+    'SELECT CAST(x AS DATE) - promo_start AS days FROM t',
+    "SELECT date_add(d, INTERVAL 1 MONTH) AS e, age(d) AS f FROM t",
+    'SELECT p.end_date - p.start_date AS days FROM promotions p',
+    'SELECT "End_Date" - "start_date" AS days FROM promotions',
+    "SELECT DATE '2025-03-01' - DATE '2025-01-01' AS days",
+    'SELECT TRY_CAST(a AS DATE) - CAST(b AS date) AS days FROM t',
+    'SELECT a::DATE - b::DATE AS days FROM t',
+    'SELECT CAST(substr(x, 1, 10) AS DATE) - order_date AS days FROM t',
+  ]) assert.ok(uses(sql), sql);
+  for (const sql of [
+    'SELECT price - cost AS margin FROM t',
+    'SELECT order_date - 7 AS week_before FROM orders',
+    'SELECT order_ts - order_date AS gap FROM orders',
+    'SELECT CAST(x AS DECIMAL(10, 2)) - promo_start AS d FROM t',
+    "SELECT order_date, 'end_date - start_date' AS s FROM t -- end_date - start_date",
+    'SELECT list_transform(l, x -> x - 1) AS m FROM t',
+    'SELECT -order_date AS d, start_date FROM t',
+    "SELECT date_trunc('month', order_date) AS m FROM orders WHERE order_date >= DATE '2025-01-01'",
+  ]) assert.ok(!uses(sql), sql);
+  // Without the schema's DATE columns, only the operands that say DATE themselves count.
+  assert.ok(detectConstructs("SELECT CAST(a AS DATE) - DATE '2025-01-01' AS d FROM t").includes('date_arithmetic'));
+  assert.ok(!detectConstructs('SELECT end_date - start_date AS days FROM promotions').includes('date_arithmetic'));
+});
+// S6-34 (sprint 6, Task K3; the sprint 6 record's A1 minor): a DATE column read through min, max, any_value, least, greatest,
+// date_trunc or a cast to DATE is a DATE operand, on either side of the minus.
+test('S6-34: a DATE operand inside min, max, any_value, least, greatest, date_trunc or a cast to DATE makes a minus date_arithmetic', () => {
+  const dateColumns = new Set(['start_d', 'end_d', 'd', 'd2']);
+  const uses = (sql: string): boolean => detectConstructs(sql, { dateColumns }).includes('date_arithmetic');
+  for (const sql of [
+    'SELECT max(end_d) - min(start_d) AS days FROM promotions',
+    "SELECT date_trunc('month', d) - d2 AS days FROM t",
+    'SELECT CAST(ts AS DATE) - d AS days FROM t',
+    'SELECT d2 - max(d) AS days FROM t',
+    'SELECT MAX(p.end_d)-MIN(p.start_d) AS days FROM promotions p',
+    'SELECT any_value(d) - least(d, d2) AS days FROM t',
+    "SELECT greatest(p.end_d, DATE '2025-01-01') - min(DISTINCT p.start_d) AS days FROM t p",
+    'SELECT max(CAST(ts AS DATE)) - min(ts::DATE) AS days FROM t',
+    "SELECT date_trunc('month', max(d)) - date_trunc ( 'month', min(d) ) AS months FROM t",
+    'SELECT max(ts)::DATE - d AS days FROM t',
+    'SELECT d - date_trunc(\'week\', ts)::DATE AS days FROM t',
+  ]) assert.ok(uses(sql), sql);
+  for (const sql of [
+    'SELECT max(ts) - min(d) AS gap FROM t',
+    "SELECT date_trunc('month', ts) - d AS gap FROM t",
+    'SELECT max(end_d) - 1 AS day_before FROM t',
+    'SELECT count(d) - count(d2) AS n FROM t',
+    'SELECT sum(units) - min(units) AS n FROM t',
+    'SELECT max(end_d)::TIMESTAMP - d AS gap FROM t',
+    'SELECT CAST(max(d) AS VARCHAR) - d AS x FROM t',
+    'SELECT max(d) + 0 - 1 AS x FROM t',
+    'SELECT (max(d)) AS m, -min(d2) AS n FROM t',
+    "SELECT max(end_d) AS last_day, 'max(end_d) - min(start_d)' AS s FROM t -- max(end_d) - min(start_d)",
+  ]) assert.ok(!uses(sql), sql);
+});
+
 test('helperCalls lists every helper call by its SQL name, with :: as CAST (fix 3)', () => {
   assert.deepEqual(helperCalls('SELECT ROUND(x::DOUBLE, 2), try_cast(y AS INT) FROM t', 'cast_round'), ['ROUND', 'CAST', 'TRY_CAST']);
   assert.deepEqual(helperCalls("SELECT lower(city), 'upper(' FROM stores -- trim(", 'text_helper'), ['LOWER']);

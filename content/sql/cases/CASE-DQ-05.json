@@ -1,0 +1,114 @@
+{
+  "case_id": "CASE-DQ-05",
+  "kind": "inbox",
+  "level": 4,
+  "world": "DQ",
+  "company_id": "voltmarkt",
+  "title": "Two list prices on one day",
+  "schema": "voltmarkt_raw",
+  "persona": {
+    "name": "Joost",
+    "role": "Pricing lead"
+  },
+  "brief": {
+    "decision": "Which products' price windows to repair, and how much of the price check to restate",
+    "deadline": "Wednesday's pricing committee"
+  },
+  "data_needed": [
+    "price_history",
+    "order_lines",
+    "orders"
+  ],
+  "expected_output": {
+    "columns": [
+      "order_line_id",
+      "product_id",
+      "order_date",
+      "old_price_eur",
+      "new_price_eur"
+    ],
+    "grain": "one row per order line sold on a day that two price windows of its product share",
+    "sort": [
+      {
+        "column": "order_line_id",
+        "desc": false
+      }
+    ]
+  },
+  "checkpoints": [
+    {
+      "id": "CP2",
+      "kind": "CP2",
+      "item_id": "CASE-DQ-05:CP2",
+      "credits_concepts": [
+        "SQL-CLEAN-01"
+      ],
+      "prompt": "Joost's price check finds two list prices for some products on some days. How many products have two price windows that overlap? The price_history table may hold errors. A price window runs from valid_from to valid_to, both days included, and a missing valid_to means the window is still open. Two windows of one product overlap when they share at least one day. Count each product once. Type a whole number.",
+      "typed": {
+        "precision": "count",
+        "scale": "plain",
+        "decimals": 0,
+        "unit_label": "products"
+      },
+      "truth_key": "CASE-DQ-05:CP2"
+    },
+    {
+      "id": "CP3",
+      "kind": "CP3",
+      "item_id": "EX-CASE-DQ-05",
+      "credits_concepts": [
+        "SQL-CLEAN-01",
+        "SQL-JOIN-04",
+        "SQL-NULL-01"
+      ],
+      "prompt": "Write the query that answers Joost's question."
+    },
+    {
+      "id": "CP4",
+      "kind": "CP4",
+      "item_id": "CASE-DQ-05:CP4",
+      "credits_concepts": [
+        "SQL-CLEAN-01"
+      ],
+      "prompt": "Joost's price check joins every order line to each price window that covers its order day, so a line sold on a day two windows share shows up twice, once with each list price. The later window's price is the right one. How much list-price value do the extra rows with the old price add, as quantity times that old list_price_eur? These tables may hold errors. A price window runs from valid_from to valid_to, both days included, and a missing valid_to means the window is still open. Two windows of one product overlap when they share at least one day, and the window that starts first holds the old price. Work in two steps: first find each pair of overlapping windows and the days they share (there are only a few pairs), then add up quantity times the old list_price_eur over the order lines of each pair's product sold on one of its shared days. An order's day is the date of its order_ts, as stored. Count every order line as stored. Type the amount in euros, rounded to 2 decimals.",
+      "typed": {
+        "precision": "money",
+        "scale": "eur",
+        "decimals": 2,
+        "unit_label": "euros"
+      },
+      "truth_key": "CASE-DQ-05:CP4"
+    },
+    {
+      "id": "CP6",
+      "kind": "CP6",
+      "credits_concepts": [],
+      "prompt": "Write an incident note of 2 to 4 sentences for Joost: what is wrong in the price windows, how many products it touches, what it does to the price check, and how you propose to repair the windows."
+    }
+  ],
+  "model_plan": "Metric formula: no metric; for each order line sold on a day two windows of its product share, the two list prices that apply.\nOutput grain: one row per order line sold on a shared day.\nTables and keys: price_history joined to itself on product_id to find the pairs of windows that share a day, then order_lines joined on product_id and orders on order_id for the order day.\nFilters: keep a pair when the later window starts on or before the day the earlier one ends; keep a line when its order day falls from the later window's start to the earlier of the two ends, both days included.\nEdge cases: a missing valid_to is an open window; two windows that share exactly one day still overlap, while a window that starts the day after the other ends does not; join the few pairs first, or the join to every order line gets slow.\nExpected row count: 102",
+  "model_answer_template": "{CP2} products have two price windows that overlap, so the price check matches every line sold on a shared day to two list prices and adds {CP4} euros of list-price value at the old price. The later window holds the newer price, so the repair is to end each earlier window on the day before the later one starts. Until then, lines sold on those days look like discounts or premiums against the wrong list price, so the compliance figures for those products need a re-run. Next, add a load check that rejects any window that overlaps another window of the same product.",
+  "follow_up_question": "For the lines sold on shared days, how far did the price paid sit from the right list price?",
+  "data_source": {
+    "label": "Fictional, generated data: Voltmarkt",
+    "real": false,
+    "licence": null
+  },
+  "difficulty": 3,
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-NULL-01",
+    "SQL-TYPE-01",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-JOIN-04",
+    "SQL-CLEAN-01"
+  ],
+  "metric_ids": [],
+  "find_ids": [],
+  "uses_raw": true
+}

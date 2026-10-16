@@ -1,0 +1,144 @@
+{
+  "id": "EX-SQL-SUBQ-02-E3-01",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-04",
+    "derived_table",
+    "top_per_group",
+    "ties",
+    "sales",
+    "categories"
+  ],
+  "level": 4,
+  "source_ids": [
+    "01:SQL-SUBQ-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-15",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-SUBQ-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-SUBQ-01",
+    "SQL-SUBQ-02"
+  ],
+  "template_id": "T-SUBQ-02-top-group-per-parent",
+  "template_params": {
+    "fact": "sales",
+    "step": "category",
+    "group": "parent_category"
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_subq",
+  "prompt": "For each parent category, which category sold the most units? A category's units are the quantity summed over all order lines of its products. When two categories of a parent category tie for the most, return both. Return three columns, in this order: parent_category, category_name and units. Return one row for each such category. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "parent_category",
+        "type_class": "text"
+      },
+      {
+        "name": "category_name",
+        "type_class": "text"
+      },
+      {
+        "name": "units",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "parent_category",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "category_name",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "units",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "category_name"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the step that gives each category's units with its parent category; the question needs it twice.",
+    "Keep a category when its units equal the largest units of the categories in its own parent category."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 50,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 51,
+      "to": 83,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 84,
+      "to": 144,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 145,
+      "to": 157,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 158,
+      "to": 199,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 200,
+      "to": 206,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 207,
+      "to": 465,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "The derived table gives one row per category, and the subquery finds the top units of the same parent category, so every category that reaches it is kept."
+}

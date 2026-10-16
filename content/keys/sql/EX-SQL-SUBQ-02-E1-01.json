@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-SUBQ-02-E1-01",
+  "item_version": 1,
+  "reference_sql": "SELECT ROUND(AVG(t.n_orders), 2) AS avg_orders\nFROM (\n  -- one row per registered customer\n  SELECT customer_id, COUNT(*) AS n_orders\n  FROM orders\n  WHERE customer_id IS NOT NULL\n  GROUP BY customer_id\n) AS t",
+  "alternatives": [
+    "WITH customer_orders AS (\n  -- one row per registered customer\n  SELECT customer_id, COUNT(*) AS n_orders\n  FROM orders\n  WHERE customer_id IS NOT NULL\n  GROUP BY customer_id\n)\nSELECT ROUND(AVG(n_orders), 2) AS avg_orders\nFROM customer_orders",
+    "SELECT ROUND(COUNT(*) * 1.0 / COUNT(DISTINCT customer_id), 2) AS avg_orders\nFROM orders\nWHERE customer_id IS NOT NULL"
+  ],
+  "other_way": {
+    "sql": "WITH customer_orders AS (\n  -- one row per registered customer\n  SELECT customer_id, COUNT(*) AS n_orders\n  FROM orders\n  WHERE customer_id IS NOT NULL\n  GROUP BY customer_id\n)\nSELECT ROUND(AVG(n_orders), 2) AS avg_orders\nFROM customer_orders",
+    "tradeoff": "A WITH step names the per-customer counts first and reads top to bottom; the derived table keeps the step where it is used."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-07",
+      "sql": "SELECT ROUND(AVG(t.n_orders), 2) AS avg_orders FROM (SELECT customer_id, store_id, COUNT(*) AS n_orders FROM orders WHERE customer_id IS NOT NULL GROUP BY customer_id, store_id) AS t"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-03",
+      "sql": "SELECT ROUND(AVG(t.n_orders), 2) AS avg_orders FROM (SELECT customer_id, COUNT(*) AS n_orders FROM orders GROUP BY customer_id) AS t"
+    }
+  ],
+  "hint3_partial": "SELECT ROUND(AVG(t.n_orders), 2) AS avg_orders\nFROM (\n  -- one row per registered customer\n  SELECT customer_id, COUNT(*) AS n_orders\n  FROM orders\n  WHERE customer_id IS NOT NULL\n  GROUP BY ___\n) AS t",
+  "solver": {
+    "prompt_hash": "1bf15d1aa7a0d2e2",
+    "schema_version": "7ed366279088",
+    "dataset_version": "b2d2b40fb117bb07",
+    "grader_version": "6a.1",
+    "query": "SELECT ROUND(AVG(n_orders), 2) AS avg_orders FROM (SELECT customer_id, COUNT(*) AS n_orders FROM orders WHERE customer_id IS NOT NULL GROUP BY customer_id) AS t\r\n",
+    "at": "2026-10-15T11:06:13.292Z"
+  }
+}

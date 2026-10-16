@@ -18,7 +18,7 @@
     },
     {
       "id": "EX-SQL-FILTER-02-E2-02-PW2",
-      "error_id": "ERR-LOG-06",
+      "error_id": "ERR-LOG-23",
       "sql": "SELECT product_id, product_name, unit_cost_eur, launch_date\nFROM products\nWHERE launch_date >= DATE '2024-03-01'\n  AND launch_date < DATE '2024-03-31'\n  AND unit_cost_eur >= 100"
     },
     {

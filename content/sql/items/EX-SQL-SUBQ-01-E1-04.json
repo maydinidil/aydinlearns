@@ -1,0 +1,121 @@
+{
+  "id": "EX-SQL-SUBQ-01-E1-04",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-04",
+    "scalar_subquery",
+    "avg",
+    "promotions"
+  ],
+  "level": 4,
+  "source_ids": [
+    "01:SQL-SUBQ-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-15",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "lesson",
+  "target_concept_id": "SQL-SUBQ-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-AGG-01",
+    "SQL-SUBQ-01"
+  ],
+  "template_id": "T-SUBQ-01-scalar-overall-avg",
+  "template_params": {
+    "table": "promotions",
+    "column": "discount_pct"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_subq",
+  "prompt": "Which promotions give a bigger discount than the average discount_pct of all promotions? Return three columns, in this order: promo_id, promo_code and discount_pct. Return one row for each such promotion. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "promo_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "promo_code",
+        "type_class": "text"
+      },
+      {
+        "name": "discount_pct",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per promotion above the average discount"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "promo_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "promo_code",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "discount_pct",
+        "type_class": "numeric",
+        "precision": "ratio"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "promo_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the row filter that compares each promotion's discount with one number: the average over all promotions.",
+    "That one number comes from a query in brackets, on the right of the comparison."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 41,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 42,
+      "to": 57,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 58,
+      "to": 121,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": {
+    "stage1": 58,
+    "stage2": 42
+  },
+  "faded_shape": "SELECT promo_id, promo_code, discount_pct\nFROM promotions\n",
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "The subquery returns one value, the average discount of every promotion, and each promotion is kept when its own discount is bigger."
+}

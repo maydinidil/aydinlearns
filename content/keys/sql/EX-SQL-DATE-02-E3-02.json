@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-DATE-02-E3-02",
+  "item_version": 1,
+  "reference_sql": "WITH last_orders AS (  -- one row per customer\n  SELECT customer_id, DATE '2026-01-05' - MAX(CAST(order_ts AS DATE)) AS days_since\n  FROM orders\n  WHERE customer_id IS NOT NULL\n  GROUP BY customer_id\n)\nSELECT CASE WHEN days_since <= 30 THEN 'active'\n            WHEN days_since <= 90 THEN 'cooling'\n            ELSE 'lapsed' END AS recency_band,\n       COUNT(*) AS customers\nFROM last_orders\nGROUP BY 1",
+  "alternatives": [
+    "SELECT CASE WHEN t.days_since <= 30 THEN 'active' WHEN t.days_since <= 90 THEN 'cooling' ELSE 'lapsed' END AS recency_band, COUNT(*) AS customers\nFROM (  -- one row per customer\n  SELECT customer_id, DATE '2026-01-05' - MAX(CAST(order_ts AS DATE)) AS days_since\n  FROM orders\n  WHERE customer_id IS NOT NULL\n  GROUP BY customer_id\n) AS t\nGROUP BY 1",
+    "WITH last_orders AS (  -- one row per customer\n  SELECT customer_id, date_diff('day', MAX(order_ts), DATE '2026-01-05') AS days_since\n  FROM orders\n  WHERE customer_id IS NOT NULL\n  GROUP BY customer_id\n)\nSELECT CASE WHEN days_since > 90 THEN 'lapsed' WHEN days_since > 30 THEN 'cooling' ELSE 'active' END AS recency_band, COUNT(*) AS customers\nFROM last_orders\nGROUP BY 1"
+  ],
+  "other_way": {
+    "sql": "SELECT CASE WHEN t.days_since <= 30 THEN 'active' WHEN t.days_since <= 90 THEN 'cooling' ELSE 'lapsed' END AS recency_band, COUNT(*) AS customers\nFROM (  -- one row per customer\n  SELECT customer_id, DATE '2026-01-05' - MAX(CAST(order_ts AS DATE)) AS days_since\n  FROM orders\n  WHERE customer_id IS NOT NULL\n  GROUP BY customer_id\n) AS t\nGROUP BY 1",
+    "tradeoff": "A derived table runs the same two steps, but the named CTE reads from top to bottom and shows the per-customer grain first."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-34",
+      "sql": "WITH last_orders AS (SELECT customer_id, DATE '2026-01-05' - MAX(CAST(order_ts AS DATE)) + 1 AS days_since FROM orders WHERE customer_id IS NOT NULL GROUP BY customer_id) SELECT CASE WHEN days_since <= 30 THEN 'active' WHEN days_since <= 90 THEN 'cooling' ELSE 'lapsed' END AS recency_band, COUNT(*) AS customers FROM last_orders GROUP BY 1"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-14",
+      "sql": "WITH last_orders AS (SELECT customer_id, DATE '2026-01-05' - MIN(CAST(order_ts AS DATE)) AS days_since FROM orders WHERE customer_id IS NOT NULL GROUP BY customer_id) SELECT CASE WHEN days_since <= 30 THEN 'active' WHEN days_since <= 90 THEN 'cooling' ELSE 'lapsed' END AS recency_band, COUNT(*) AS customers FROM last_orders GROUP BY 1"
+    }
+  ],
+  "hint3_partial": "WITH last_orders AS (  -- one row per customer\n  SELECT customer_id, DATE '2026-01-05' - ___ AS days_since\n  FROM orders\n  WHERE customer_id IS NOT NULL\n  GROUP BY customer_id\n)\nSELECT CASE WHEN days_since <= 30 THEN 'active'\n            WHEN ___ THEN 'cooling'\n            ELSE 'lapsed' END AS recency_band,\n       COUNT(*) AS customers\nFROM last_orders\nGROUP BY 1",
+  "solver": {
+    "prompt_hash": "19e28fbb815a3cc4",
+    "schema_version": "7ed366279088",
+    "dataset_version": "b2d2b40fb117bb07",
+    "grader_version": "6a.1",
+    "query": "WITH last_order AS (\n  SELECT customer_id, MAX(CAST(order_ts AS DATE)) AS last_day\n  FROM orders\n  WHERE customer_id IS NOT NULL\n  GROUP BY customer_id\n)\nSELECT CASE WHEN DATE '2026-01-05' - last_day <= 30 THEN 'active'\n            WHEN DATE '2026-01-05' - last_day <= 90 THEN 'cooling'\n            ELSE 'lapsed' END AS recency_band,\n       COUNT(*) AS customers\nFROM last_order\nGROUP BY 1\n",
+    "at": "2026-10-15T11:06:11.975Z"
+  }
+}

@@ -4,7 +4,7 @@
 // the clock, so at 0 this screen asks the server to end the run and shows the server's score. Either drill may start in screen mode
 // (S4B-23): the same items, time limit and pass mark, graded and edited as an online test is (S4B-22); the history shows the mode.
 import { useEffect, useRef, useState } from 'react';
-import { api, type ConceptView, type DrillEnded, type DrillSpecView, type DrillStarted } from '../api.ts';
+import { api, type ConceptView, type CumulativeOffer, type DrillEnded, type DrillSpecView, type DrillStarted } from '../api.ts';
 import { ga4RunFromRefusal } from '../lib/run-flow.ts';
 import { drillFocusKey, focusHeading, shouldFocusDrill } from '../lib/focus-flow.ts';
 import { liveRepStart, tickExplainedAloud } from '../lib/live-rep-api.ts';
@@ -14,6 +14,7 @@ import { Crumb } from '../components/PageHead.tsx';
 import { crumbParts } from '../lib/crumb.ts';
 import { NO_DRILL_LINE } from '../lib/polish-p2b.ts';
 import {
+  CUMULATIVE_LABEL, cumulativeHeading, cumulativeRule, fillLines, overallLine, runTitle,
   EXPLAINED_ALOUD_LABEL, EndGuard, outcomeClass, questionLabel, reviewOutcomes, showsEditor, HELP_LINE, HISTORY_COLUMNS, LIVE_REP_HINT, LIVE_REP_LABEL, SCREEN_MODE_HINT, SCREEN_MODE_LABEL, TIME_UP, countdownText, endWithRetry, hiddenFlags, historyRows, levelRule, recallIndex,
   isLiveRun, historyTickDisabled, historyTickSaves, liveRepLine, remainingSeconds, rememberIndex, runFromRefusal, scoreLine, startBody, tickFromHistory, unseenLine,
   type DrillState, type HistoryRun,
@@ -29,6 +30,7 @@ export function DrillScreen() {
   const [chosen, setChosen] = useState<string[]>([]);
   const [screenMode, setScreenMode] = useState(false);       // S4B-23: the next start is in screen mode
   const [history, setHistory] = useState<HistoryRun[]>([]);
+  const [offers, setOffers] = useState<CumulativeOffer[]>([]);   // S6-19: the cumulative drills the server offers, with what each would draw
   const [run, setRun] = useState<DrillStarted | null>(null);
   const [result, setResult] = useState<DrillEnded | null>(null);
   const [index, setIndex] = useState(0);
@@ -51,6 +53,7 @@ export function DrillScreen() {
       const [cur, all] = await Promise.all([api.curriculum(), api.drillHistory()]);
       setConcepts(cur.concepts.filter((c) => c.hasContent));
       setHistory(all.runs);
+      setOffers(all.cumulative ?? []);
       const specs = await Promise.all(cur.levels.map((l) => api.drillHistory(l.number).then((h) => h.drill, (): null => null)));
       setLevels(cur.levels.map((level, i) => ({ level, spec: specs[i] ?? null })));
     } catch (e) { setMessage((e as Error).message); }
@@ -119,6 +122,8 @@ export function DrillScreen() {
   }
   /** S4B-26: a live rep starts like a drill: one unseen exercise, in screen mode whatever the box above says. */
   const startLive = (): Promise<void> => launch(liveRepStart);
+  /** S6-19: the cumulative drill starts in screen mode whatever the box above says (the entry's mode). */
+  const startCumulative = (): Promise<void> => launch(() => api.drillCumulativeStart());
 
   async function launch(begin: () => Promise<DrillStarted>): Promise<void> {
     if (busy) return;
@@ -184,11 +189,13 @@ export function DrillScreen() {
     return (
       <section>
         <Crumb section="sql" crumb={DRILL_CRUMB} />
-        <h1 ref={heading} tabIndex={-1}>{live ? LIVE_REP_LABEL : run.kind === 'level' ? `Level ${run.level} drill` : 'Drill on chosen concepts'}{run.screen_mode ? ` (${SCREEN_MODE_LABEL.toLowerCase()})` : ''}</h1>
+        <h1 ref={heading} tabIndex={-1}>{live ? LIVE_REP_LABEL : runTitle(run)}{run.screen_mode ? ` (${SCREEN_MODE_LABEL.toLowerCase()})` : ''}</h1>
         <div className="card run-bar">
           <div className="run-bar-text">
             <p className="muted">{live ? 'One question.' : `${run.questions} questions, pass at ${run.pass_pct}%.`}</p>
             <p className="muted">{HELP_LINE}</p>
+            {overallLine(run.overall, run.unseen_min_pct) && <p className="muted">{overallLine(run.overall, run.unseen_min_pct)}</p>}
+            {fillLines(run.fill).map((line) => <p key={line} className="muted">{line}</p>)}
           </div>
           <p className="run-timer"><strong role="timer">{countdownText(left)}</strong></p>
         </div>
@@ -212,7 +219,7 @@ export function DrillScreen() {
     return (
       <section>
         <Crumb section="sql" crumb={DRILL_CRUMB} />
-        <h1 ref={heading} tabIndex={-1}>{live ? `${LIVE_REP_LABEL}: review` : run.kind === 'level' ? `Level ${run.level} drill: review` : 'Drill review'}</h1>
+        <h1 ref={heading} tabIndex={-1}>{live ? `${LIVE_REP_LABEL}: review` : runTitle(run, true)}</h1>
         {timeUp && <p role="status"><strong>{TIME_UP}</strong></p>}
         {live ? (
           <>
@@ -262,6 +269,22 @@ export function DrillScreen() {
           ) : null}
         </li>
       ))}</ul>
+      {cumulativeHeading(offers) !== null && <h2>{cumulativeHeading(offers)}</h2>}
+      {offers.length > 0 && <ul className="inbox-list card">{offers.map((o) => (
+        <li key={o.id} className="row" data-testid={`cumulative-${o.id}`}>
+          <div className="grow">
+            <strong>{CUMULATIVE_LABEL}</strong>
+            <p className="muted">{o.available ? cumulativeRule(o) : 'No drill exercises are written yet, so this drill is not open.'}</p>
+            {o.available && overallLine(o.overall, o.unseen_min_pct) && <p className="muted">{overallLine(o.overall, o.unseen_min_pct)}</p>}
+            {o.available && fillLines(o.fill).map((line) => <p key={line} className="muted">{line}</p>)}
+          </div>
+          {o.available ? (
+            <span className="chip-col">
+              <button type="button" data-testid="cumulative-start" disabled={busy} aria-label="Start the cumulative drill, levels 1 to 4" onClick={() => void startCumulative()}>Start drill</button>
+            </span>
+          ) : null}
+        </li>
+      ))}</ul>}
       <h2>{LIVE_REP_LABEL}</h2>
       <p className="muted">{LIVE_REP_HINT}</p>
       <p><button type="button" data-testid="live-rep-start" disabled={busy} aria-label="Start a live rep" onClick={() => void startLive()}>Start live rep</button></p>

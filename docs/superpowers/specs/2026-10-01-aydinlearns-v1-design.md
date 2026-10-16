@@ -540,7 +540,11 @@ into grader test cases.
 
 0. **Gate**, in this order:
    1. **Split.** The text is split into statements. A parse error here is graded as an
-      `ERR-SYN-*` error.
+      `ERR-SYN-*` error. **(amended 2026-10-15, sprint 6, S6-08)** Before the split, a query whose
+      brackets nest deeper than 40, outside strings and comments, is refused as "Too many nested
+      brackets. Name the steps with WITH instead." and not graded, like "one statement only"
+      (from block K, S6-33: round, square and curly brackets and `CASE ... END` all count). The
+      app refuses it before the runner's child sees it.
    2. **Count.** More than one statement is rejected as "one statement only" and not graded.
    3. **Prepare.** A bind error is graded as an engine error.
    4. **Type.** A prepared statement that is not a SELECT (WITH included) is rejected as "not a
@@ -548,7 +552,12 @@ into grader test cases.
    5. **Tables.** The tables the query references are listed from the parse tree. A reference to
       any schema other than the active one is rejected as "use unqualified table names" and not
       graded. From slice 5, the active company's `_raw` schema is also allowed. Autocomplete
-      inserts unqualified names.
+      inserts unqualified names. **(amended 2026-10-15, sprint 6, S6-01)** As built, a graded item
+      or case on raw data is itself on the raw schema (`schema: 'voltmarkt_raw'`, edge schema
+      `voltmarkt_edge_clean`) and reads its tables by unqualified name, so the hidden run swaps
+      them like any other item. The qualified `_raw` name is for the explorer, from Part 2
+      (S6-24). **(amended 2026-10-16, sprint 6 Part 2)** From 1.5 the explorer's dataset picker offers
+      `voltmarkt`, `mailvora`, their raw schemas and every prepared real and 8 Week SQL Challenge schema.
 1. **Run.** The query runs on the visible dataset and on the hidden edge-case dataset (NULLs,
    ties, empty groups, boundary dates), with a default timeout of 5 seconds each. §11 says how a
    dataset is selected.
@@ -604,6 +613,8 @@ into grader test cases.
 screens reject, so the learner's queries get notes. They are notes only, never a fail.
 - Slice 1 lints alias references in WHERE, GROUP BY and HAVING, and `==`, using DuckDB's parse
   tree plus schema metadata.
+- **(amended 2026-10-15, sprint 6, S6-10)** A subquery in FROM with no alias gets "PostgreSQL
+  before version 16 and SQL Server need an alias here: add `AS t`".
 - **Integer division.** In PostgreSQL and SQL Server, integer divided by integer truncates
   (7/2 = 3). It is taught through trap items and dialect notes in `SQL-TYPE-01` and
   `SQL-AGG-04`.
@@ -681,6 +692,19 @@ reads from the truth file (§10), using the typed-answer rule (§5).
 | Fleur | Trade marketing | |
 | Marieke | CFO | |
 | Yara | Retail operations | CASE-RETAIL-03, originally country retail director Hans's |
+
+Mailvora has four, 04's personas renamed to Dublin names (sprint 6, P39):
+
+| Manager | Role | Asks |
+|---|---|---|
+| Aoife | Performance marketing manager | CASE-MKT-01, originally Lotte's |
+| Ciarán | Marketing director | CASE-MKT-02, originally Anouk's |
+| Siobhán | Lifecycle marketing manager | CASE-MKT-03, originally e-commerce manager Bram's (the case became a signup funnel) |
+| Declan | Head of growth | CASE-MKT-04, originally Eva's |
+
+The real-data cases are take-home briefs from the hiring team of a fictional employer, never the
+data's owner (P42): Noor, Analytics lead (CASE-REAL-01), and Ruben, Pricing analytics manager
+(CASE-REAL-02).
 
 The cast IDs (`PER-*`) are reserved now, so aydindutch can reuse them (§15).
 
@@ -886,7 +910,7 @@ added this section on 2026-10-02.
 | Company | World | Arrives | Changes before or at its first build |
 |---|---|---|---|
 | Voltmarkt (CO-01, Utrecht) | Pricing and promotions, plus stores | Slice 1 | In the **first** build, because they alter the tables levels 1-2 use: `stores.close_date` with planted openings and closures, elasticity within SKU (FIND-01-11), a ship-to country, the check on whether FIND-01-04's Black Week and Sinterklaas multipliers stack, and **the canonical beginner sales view** (below). Appended tables arrive with the slice that needs them: `cost_history` (PRICE-05) and chain-wide inventory (FIND-01-09) |
-| Mailvora (CO-03, Dublin) | Marketing performance | Slice 5 | A budget table (MKT-02). FIND-03-11 stores spend per day, so there is no hour to shift |
+| Mailvora (CO-03, Dublin) | Marketing performance | Slice 5 | A budget table (MKT-02). FIND-03-11 stores spend per day, so there is no hour to shift. **As built (1.5, S6-20):** `mailvora` and `mailvora_raw` from seed 3303, every older object's hash unchanged, and the edge schema `mailvora_edge_case` |
 | LedgerLoop (CO-02, Ghent) | B2B SaaS | Slice 7 | Opening-balance MRR events: about €11M ARR (about €0.9M MRR) already exists on day 1, so the opening events must sum to about €0.9M MRR (FIND-02-03). Leads, opportunities, COGS and full S&M expense. Check FIND-02-01 and FIND-02-15 |
 | Noordkant (CO-04, Amsterdam) | Retail e-commerce operations | After the first applications | Stock receipts. A returned-units rule: `returns` already carries `order_line_id` but has no units, so the view treats a return as the whole line (units = `order_lines.quantity`). The 04 case SQL joins returns through `order_line_id`. Check FIND-04-12 |
 
@@ -917,7 +941,7 @@ per dataset:
 | Schema | Holds |
 |---|---|
 | `<company>` (for example `voltmarkt`) | The clean tables, the reference tables (05's calendar and exchange rates) and the beginner views, including `sales` |
-| `<company>_raw` | From slice 5's build: the quirk tables under the same names, reached by qualified name |
+| `<company>_raw` | From slice 5's build: the quirk tables under the same names. **(amended 2026-10-15, sprint 6, S6-02)** As built, `voltmarkt_raw` holds `products` (Q-01-04, Q-01-07), `order_lines` (Q-01-01: 0.8% of store BE-14's lines resent with a new ID; Q-01-02: BE-07's unit prices in cents in June 2024), `orders` (Q-01-05: store orders' times in the store's local time, web orders in UTC), `price_history` (Q-01-06: 1% of products with two overlapping windows), and unchanged copies of `stores`, `categories`, `promotions`, `promotion_products` and `calendar`. Graded items read it by unqualified name (§6); from Part 2 (S6-24) the explorer may name it |
 | Edge-case schemas (for example `voltmarkt_edge_agg`) | Small copies with the same table names as the schema they mirror, one per concept family. Each carries a short description of what it contains |
 | One per real dataset | The dataset's tables |
 
@@ -969,7 +993,7 @@ the owner.**
 
 | When | Datasets |
 |---|---|
-| Slice 5 (mid November) | 8 Week SQL Challenge case studies, Online Retail II, Breakfast at the Frat |
+| Slice 5 (mid November) | 8 Week SQL Challenge case studies, Online Retail II, Breakfast at the Frat. **As built (1.5, S6-21 to S6-23):** one record each in `content/datasets/registry.json`; `npm run prep:datasets` reads the owner's downloads into `data/real/` and rebuilds; the edge schemas `online_retail_ii_edge` and `breakfast_at_the_frat_edge` are always built |
 | Slice 7 (mid December) | Olist, Maven Toy Store |
 | After the first applications | KKBox as the SaaS capstone, if the Kaggle check passes (review #18a): `transactions`, `transactions_v2`, `members_v3` (review #13), plus `train_v2` for churn labels; the `user_logs` files are skipped. The 09 MRR-bridge fixes (review #16) apply first |
 | Post-v1 | Dominick's, Carbo-Loading, Criteo, Robyn and Meridian (labelled simulated or transformed), plus TheLook and the GA4 sample, which need the same Google Cloud pull as the deferred bridge |
@@ -985,7 +1009,9 @@ ground.
 | RATIO | KKBox, or Olist if the Kaggle check fails | Community ratios |
 | METHOD | Olist and Online Retail II | Divergence cards: alternative reference SQL for different definitions |
 
-Link-outs to public solutions are available on each real-data question from slice 5.
+Link-outs to public solutions are available on each real-data question from slice 5. **(amended 2026-10-16,
+sprint 6 Part 2)** As built in 1.5, the links are on each real dataset's card in the explorer (the registry's
+`links`); the registry's own manager questions are not shown in the app yet.
 
 ## 11. Architecture
 
@@ -1401,6 +1427,25 @@ starter query. The slice 0 row above is `ERR-LOG-20` (averaging ratios, E-142) a
 | `ERR-LOG-24` | UNION where UNION ALL was needed: legitimate duplicate rows removed | `SQL-SET-01` | E-162 |
 | `ERR-LOG-25` | Date truncation slip: the wrong period, or a month or week number without its year | `SQL-DATE-01` | E-163 |
 | `ERR-LOG-26` | UTC day where the Amsterdam day was asked: every `*_ts` column holds UTC | `SQL-DATE-01` | E-164 |
+
+**(amended 2026-10-15, sprint 6, S6-11)** Level 4 added seven IDs and four ahead of levels 5 and 6, detected the same way:
+
+| ID | Name | Concept | ERRATA |
+|---|---|---|---|
+| `ERR-LOG-30` | NOT IN over a list with a missing value returns no rows | `SQL-SUBQ-01` | E-188 |
+| `ERR-LOG-31` | Correlated subquery on the wrong column | `SQL-SUBQ-01` | E-188 |
+| `ERR-LOG-32` | Text key compared or grouped without trimming or matching case | `SQL-STR-01` | E-188 |
+| `ERR-LOG-33` | Substring position or length off by one | `SQL-STR-01` | E-188 |
+| `ERR-LOG-34` | Date difference counted as boundaries, or inclusive and exclusive days mixed up | `SQL-DATE-02` | E-188 |
+| `ERR-LOG-35` | A missing ratio replaced by 0 | `SQL-CLEAN-01` | E-188 |
+| `ERR-LOG-36` | Duplicate rows counted twice | `SQL-CLEAN-01` | E-188 |
+| `ERR-LOG-37` | Missing PARTITION BY | `SQL-WIN-01` | E-189 |
+| `ERR-LOG-38` | ROWS versus RANGE | `SQL-WIN-04` | E-189 |
+| `ERR-LOG-39` | No date spine: periods with no rows vanish | `SQL-PAT-04` | E-189 |
+| `ERR-SYN-08` | A window function in WHERE, from DuckDB's "WHERE clause cannot contain window functions" | `SQL-WIN-01` | E-189 |
+
+A scalar subquery at the wrong grain stays `ERR-LOG-07`, and a scalar subquery that returns many rows stays
+`ERR-SEM-05`. (`ERR-LOG-28` and `ERR-LOG-29` came in sprint 4c; see its record.)
 
 `ERR-LOG-00` (values differ, unclassified) is the grader's fallback for any wrong result that
 matches no planted query, a timeout and an engine error it cannot name. It never makes a mistake

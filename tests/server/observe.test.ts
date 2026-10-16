@@ -13,7 +13,7 @@ import { logs, metrics as sdkMetrics, node, tracing } from '@opentelemetry/sdk-n
 import { Hono } from 'hono';
 import type { ChoiceConcept } from '../../schemas/choice.ts';
 import { startJourney, stopJourney } from '../../server/journey.ts';
-import { answered, choiceFunnel, funnel, httpRoute, levelName, recordError, sqlFunnel } from '../../server/observe.ts';
+import { answered, caseFunnel, choiceFunnel, companyOf, funnel, httpRoute, itemFunnel, levelName, recordError, sqlFunnel } from '../../server/observe.ts';
 import { telemetryConfig } from '../../server/telemetry.ts';
 import { runnerExecArgv } from '../../server/runner/client.ts';
 
@@ -147,4 +147,34 @@ test('an answer\'s details reach the journey file as they reach the log: the exe
       ['EX-INV-01', 95, 120, 2, 1, false, 3, 'half_mock', 'passed', 'SQL', 'pricing', 'E2', 'exercise_submitted']);
     assert.deepEqual(lines.filter((l) => l.event === 'exercise_passed').map((l) => l.item_id), ['EX-INV-01']);
   } finally { await rm(dir, { recursive: true, force: true }); }
+});
+
+test('S6-17: a case funnel takes its theme from the world, and a Mailvora exercise follows its company', () => {
+  assert.equal(caseFunnel('MKT', 'level 3').case_theme, 'marketing');
+  assert.equal(caseFunnel('DQ', 'level 3').case_theme, 'data_quality');
+  assert.equal(caseFunnel('PRICE', 'L1').case_theme, 'pricing');
+  assert.equal(caseFunnel('RETAIL', 'L1').case_theme, 'retail');
+  assert.equal(caseFunnel('ELSEWHERE', 'L1').case_theme, 'pricing', 'an unknown world keeps the old value');
+  assert.deepEqual(caseFunnel('MKT', 'level 3'), { topic: 'SQL', case_theme: 'marketing', difficulty: 'level 3' });
+  assert.equal(sqlFunnel('E1').case_theme, 'pricing', 'no company keeps pricing');
+  assert.equal(sqlFunnel('E1', companyOf('voltmarkt_raw')).case_theme, 'pricing');
+  assert.equal(sqlFunnel('E1', companyOf('mailvora_edge_case')).case_theme, 'marketing');
+  assert.equal(sqlFunnel('E1', 'somedataset').case_theme, 'pricing');
+});
+
+test('K2 (S6-32, D80): an SQL item follows its case when it is a case or opener item, else its company; a lesson stays pricing', () => {
+  const rec = (case_id: string, world: string, ...item_ids: string[]) => ({ case_id, world, checkpoints: item_ids.map((item_id) => ({ item_id })) });
+  const content = { cases: () => [rec('CASE-DQ-01', 'DQ', 'EX-CASE-DQ-01'), rec('CASE-RETAIL-03', 'RETAIL', 'EX-CASE-RETAIL-03'), rec('CASE-VOLT-L4', 'MKT', 'EX-OPENER-L4-01')] };
+  const item = (id: string, use: string, extra: Record<string, unknown> = {}) => ({ id, use, difficulty: 'E2', schema: 'voltmarkt', company: 'voltmarkt', ...extra });
+  const theme = (i: ReturnType<typeof item>) => itemFunnel(content as never, i as never).case_theme;
+  assert.equal(theme(item('EX-CASE-DQ-01', 'case')), 'data_quality');
+  assert.equal(theme(item('EX-CASE-RETAIL-03', 'case')), 'retail');
+  assert.equal(theme(item('EX-OPENER-L4-01', 'opener')), 'marketing', 'the opener\'s world, whatever its company');
+  assert.equal(theme(item('EX-SQL-AGG-01', 'pool')), 'pricing', 'a plain Voltmarkt item');
+  assert.equal(theme(item('EX-MKT-01', 'pool', { company: 'mailvora', schema: 'mailvora' })), 'marketing');
+  assert.equal(theme(item('EX-MKT-02', 'drill', { company: 'mailvora' })), 'marketing', 'the company alone is enough');
+  assert.equal(theme(item('EX-MKT-03', 'pool', { schema: 'mailvora_edge_case' })), 'marketing', 'so is the schema\'s prefix');
+  assert.equal(theme(item('EX-CASE-NOWHERE', 'case')), 'pricing', 'a case item no case names keeps pricing');
+  assert.deepEqual(itemFunnel(content as never, item('EX-CASE-DQ-01', 'case') as never), { topic: 'SQL', case_theme: 'data_quality', difficulty: 'E2' }, 'the item\'s own difficulty');
+  assert.equal(sqlFunnel('L2').case_theme, 'pricing', 'a lesson passes no company');
 });

@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-DATE-02-E2-03",
+  "item_version": 1,
+  "reference_sql": "WITH last_orders AS (  -- one row per customer\n  SELECT customer_id, MAX(CAST(order_ts AS DATE)) AS last_day\n  FROM orders\n  WHERE customer_id IS NOT NULL\n  GROUP BY customer_id\n)\nSELECT COUNT(*) AS lapsed_customers\nFROM last_orders\nWHERE DATE '2026-01-05' - last_day > 180",
+  "alternatives": [
+    "SELECT COUNT(*) AS lapsed_customers\nFROM (  -- one row per lapsed customer\n  SELECT customer_id\n  FROM orders\n  WHERE customer_id IS NOT NULL\n  GROUP BY customer_id\n  HAVING DATE '2026-01-05' - MAX(CAST(order_ts AS DATE)) > 180\n) AS t",
+    "WITH last_orders AS (  -- one row per customer\n  SELECT customer_id, MAX(order_ts) AS last_ts\n  FROM orders\n  WHERE customer_id IS NOT NULL\n  GROUP BY customer_id\n)\nSELECT COUNT(*) AS lapsed_customers\nFROM last_orders\nWHERE date_diff('day', last_ts, DATE '2026-01-05') > 180"
+  ],
+  "other_way": {
+    "sql": "SELECT COUNT(*) AS lapsed_customers\nFROM (  -- one row per lapsed customer\n  SELECT customer_id\n  FROM orders\n  WHERE customer_id IS NOT NULL\n  GROUP BY customer_id\n  HAVING DATE '2026-01-05' - MAX(CAST(order_ts AS DATE)) > 180\n) AS t",
+    "tradeoff": "Filtering the groups with HAVING in a derived table needs no named step, but the CTE shows each customer's last day first."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-14",
+      "sql": "WITH last_orders AS (SELECT customer_id, MIN(CAST(order_ts AS DATE)) AS last_day FROM orders WHERE customer_id IS NOT NULL GROUP BY customer_id) SELECT COUNT(*) AS lapsed_customers FROM last_orders WHERE DATE '2026-01-05' - last_day > 180"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-15",
+      "sql": "WITH last_orders AS (SELECT customer_id, MAX(CAST(order_ts AS DATE)) AS last_day FROM orders WHERE customer_id IS NOT NULL GROUP BY customer_id) SELECT COUNT(*) AS lapsed_customers FROM last_orders WHERE DATE '2026-01-05' - last_day >= 180"
+    }
+  ],
+  "hint3_partial": "WITH last_orders AS (  -- one row per customer\n  SELECT customer_id, ___(CAST(order_ts AS DATE)) AS last_day\n  FROM orders\n  WHERE customer_id IS NOT NULL\n  GROUP BY customer_id\n)\nSELECT COUNT(*) AS lapsed_customers\nFROM last_orders\nWHERE ___",
+  "solver": {
+    "prompt_hash": "a97a29aef886359a",
+    "schema_version": "7ed366279088",
+    "dataset_version": "b2d2b40fb117bb07",
+    "grader_version": "6a.1",
+    "query": "WITH last_order AS (\n  SELECT customer_id, MAX(CAST(order_ts AS DATE)) AS last_day\n  FROM orders\n  WHERE customer_id IS NOT NULL\n  GROUP BY customer_id\n)\nSELECT COUNT(*) AS lapsed_customers\nFROM last_order\nWHERE DATE '2026-01-05' - last_day > 180\n",
+    "at": "2026-10-15T11:06:11.519Z"
+  }
+}

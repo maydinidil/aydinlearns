@@ -22,8 +22,8 @@ const refusal = (text: string, spec: TypedSpec = percent): string => {
   return p.ok ? '' : p.message;
 };
 
-test('the grader version is choice.2 and the percent-scale error is ERR-LOG-21', () => {
-  assert.equal(CHOICE_GRADER_VERSION, 'choice.2');
+test('the grader version is choice.3 and the percent-scale error is ERR-LOG-21', () => {
+  assert.equal(CHOICE_GRADER_VERSION, 'choice.3');
   assert.equal(PERCENT_SCALE_ERROR, 'ERR-LOG-21');
 });
 
@@ -36,11 +36,11 @@ test('Review Focus 5: each input as a person types it is parsed or refused with 
   assert.deepEqual(answer('-3', 12.5, percent), { value: -3, correct: false, error_ids: [] }, 'a negative number parses and is graded');
   assert.equal(refusal(''), 'Type a number first.');
   assert.equal(refusal('   '), 'Type a number first.');
-  assert.equal(refusal('1.234,5'), 'Use one decimal mark and leave out thousands separators, for example 1234.5 or 1234,5.');
+  assert.equal(refusal('1.2,34,5'), 'Use one decimal mark and leave out thousands separators, for example 1234.5 or 1234,5.');
   assert.equal(refusal('1e3'), 'Write the number out in full, for example 1000 instead of 1e3.');
 });
 
-test('S4-14: a count accepts one thousands separator per group of three digits, and the version is choice.2', () => {
+test('S4-14: a count accepts one thousands separator per group of three digits, and the version is choice.3', () => {
   const WHOLE = 'This answer is a whole number. Type it without decimals.';
   const ONE_MARK = 'Use one decimal mark and leave out thousands separators, for example 1234.5 or 1234,5.';
   for (const [t, v] of [['1,000', 1000], ['1.000', 1000], ['12,345,678', 12345678], ['1.234.567', 1234567], ['-1.234', -1234], ['+1,234', 1234], ['999,999', 999999]] as const) {
@@ -56,14 +56,25 @@ test('S4-14: a count accepts one thousands separator per group of three digits, 
   assert.deepEqual(answer('1234', 1234, count), { value: 1234, correct: true, error_ids: [] });
   assert.deepEqual(answer('1 234', 1234, count), { value: 1234, correct: true, error_ids: [] });
   assert.deepEqual(answer('12.0', 12, count), { value: 12, correct: true, error_ids: [] });
-  assert.equal(CHOICE_GRADER_VERSION, 'choice.2');
+  assert.equal(CHOICE_GRADER_VERSION, 'choice.3');
 });
 
-test('S4-14: a kind other than count keeps its separator behaviour', () => {
+test('S6-28: money and ratios take thousands separators as counts do, with the same refusals', () => {
+  for (const [t, v, spec] of [['12,345.50', 12345.5, money], ['1,234.5', 1234.5, plainRatio], ['12,345,678', 12345678, money], ['1.234.567', 1234567, money],
+    ['-12,345.50', -12345.5, money], ['1,234.5 %', 1234.5, percent]] as const) {
+    assert.deepEqual(answer(t, v, spec), { value: v, correct: true, error_ids: [] }, t);
+  }
+  const ONE_MARK = 'Use one decimal mark and leave out thousands separators, for example 1234.5 or 1234,5.';
+  for (const t of ['1.5,000', '1.234,5', '1,234,5', '1,23,456.5', '12..5']) assert.equal(refusal(t, money), ONE_MARK, t);
+  assert.equal(refusal('1,00', count), 'This answer is a whole number. Type it without decimals.');
+  assert.equal(parseTyped('1,00', money).ok && (parseTyped('1,00', money) as { value: number }).value, 1, 'a money 1,00 is still a decimal comma');
+});
+
+test('S4-14: a kind other than count keeps its decimal-mark behaviour', () => {
   const ONE_MARK = 'Use one decimal mark and leave out thousands separators, for example 1234.5 or 1234,5.';
   for (const spec of [money, plainRatio, percent]) {
-    assert.equal(refusal('1.234.567', spec), ONE_MARK);
-    assert.equal(refusal('12,345,678', spec), ONE_MARK);
+    assert.equal(refusal('1.5.6.7', spec), ONE_MARK);
+    assert.equal(refusal('12,345,6', spec), ONE_MARK);
   }
   const p = parseTyped('1,234', money);
   assert.deepEqual(p, { ok: true, value: 1.234 }, 'one comma is still a decimal comma');
@@ -127,8 +138,8 @@ test('more numbers as people type them', () => {
   assert.equal(v('\t7\n'), 7);
   assert.equal(refusal('12 5'), 'Leave out the spaces inside the number.');
   assert.equal(refusal('- 3'), 'Leave out the spaces inside the number.');
-  assert.equal(refusal('1,234.5'), 'Use one decimal mark and leave out thousands separators, for example 1234.5 or 1234,5.');
-  assert.equal(refusal('1.234.567'), 'Use one decimal mark and leave out thousands separators, for example 1234.5 or 1234,5.');
+  assert.equal(refusal('1,23.4.5'), 'Use one decimal mark and leave out thousands separators, for example 1234.5 or 1234,5.');
+  assert.equal(refusal('1.234.56'), 'Use one decimal mark and leave out thousands separators, for example 1234.5 or 1234,5.');
   assert.equal(refusal('12..5'), 'Use one decimal mark and leave out thousands separators, for example 1234.5 or 1234,5.');
   assert.equal(refusal('1.5E3'), 'Write the number out in full, for example 1000 instead of 1e3.');
   assert.equal(refusal('12%', plainRatio), 'This answer is not a percentage. Type the number without %.');
@@ -141,7 +152,7 @@ test('more numbers as people type them', () => {
 });
 
 test('every refusal is plain English with no em dash, and none names the expected answer', () => {
-  const inputs = ['', '1.234,5', '1e3', '12 5', '12%', '12.4', '€1', 'abc'];
+  const inputs = ['', '1.2,34,5', '1e3', '12 5', '12%', '12.4', '€1', 'abc'];
   for (const spec of [percent, plainRatio, money, count]) {
     for (const t of inputs) {
       const p = parseTyped(t, spec);

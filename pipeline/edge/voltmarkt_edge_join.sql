@@ -139,3 +139,9 @@ INSERT INTO voltmarkt_edge_join.ab_conversions VALUES
   ('AB-2025-01', 3003, TIMESTAMP '2025-09-03 21:30:00', 12.99),
   ('AB-2025-01', 3001, TIMESTAMP '2025-09-07 15:02:00', 59.00),
   ('AB-2025-01', 3005, TIMESTAMP '2025-09-08 20:26:00', NULL);
+-- M5 (D90, S6-36): added after the sprint 6 build, so every row above stays as it was. The calendar gains voltmarkt's row for
+-- each day of each promotion above that it lacked, so promotion days counted through the calendar match date arithmetic.
+INSERT INTO voltmarkt_edge_join.calendar SELECT c.* FROM voltmarkt.calendar AS c
+WHERE EXISTS (SELECT 1 FROM voltmarkt_edge_join.promotions AS p WHERE c.cal_date BETWEEN p.start_date AND p.end_date)
+  AND NOT EXISTS (SELECT 1 FROM voltmarkt_edge_join.calendar AS e WHERE e.cal_date = c.cal_date)
+ORDER BY c.cal_date;

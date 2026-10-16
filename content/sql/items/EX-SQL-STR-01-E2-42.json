@@ -1,0 +1,167 @@
+{
+  "id": "EX-SQL-STR-01-E2-42",
+  "version": 1,
+  "kind": "predict_result",
+  "tags": [
+    "sql",
+    "LVL-04",
+    "predict_result",
+    "split_part",
+    "substring",
+    "store_code",
+    "stores"
+  ],
+  "level": 4,
+  "source_ids": [
+    "01:SQL-STR-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-15",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-STR-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-STR-01"
+  ],
+  "template_id": "T-STR-01-predict-split-vs-position",
+  "template_params": {
+    "stores": "18, 99"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt_raw",
+  "edge_schema": "voltmarkt_edge_clean",
+  "uses_raw": true,
+  "prompt": "Store 18 has the store_code 'BE-07', and store 99, the webshop, has 'WEB-01'. Which result does this query return? Rows may be in any order.",
+  "output_contract": null,
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [],
+  "subgoals": [],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 90000,
+  "why_this_works": "",
+  "shown_sql": "SELECT store_code, split_part(store_code, '-', 1) AS by_split, substring(store_code, 1, 2) AS by_position\nFROM stores\nWHERE store_id IN (18, 99)",
+  "options": [
+    {
+      "oid": "o4b0b7cf",
+      "text": "BE and BE; WEB and WE",
+      "misconception_id": null,
+      "table": {
+        "columns": [
+          "store_code",
+          "by_split",
+          "by_position"
+        ],
+        "rows": [
+          [
+            "BE-07",
+            "BE",
+            "BE"
+          ],
+          [
+            "WEB-01",
+            "WEB",
+            "WE"
+          ]
+        ]
+      }
+    },
+    {
+      "oid": "o0b7c503",
+      "text": "BE and BE; WEB and WEB",
+      "misconception_id": "ERR-LOG-33",
+      "table": {
+        "columns": [
+          "store_code",
+          "by_split",
+          "by_position"
+        ],
+        "rows": [
+          [
+            "BE-07",
+            "BE",
+            "BE"
+          ],
+          [
+            "WEB-01",
+            "WEB",
+            "WEB"
+          ]
+        ]
+      }
+    },
+    {
+      "oid": "ocac7c29",
+      "text": "07 and BE; 01 and WE",
+      "misconception_id": "ERR-LOG-33",
+      "table": {
+        "columns": [
+          "store_code",
+          "by_split",
+          "by_position"
+        ],
+        "rows": [
+          [
+            "BE-07",
+            "07",
+            "BE"
+          ],
+          [
+            "WEB-01",
+            "01",
+            "WE"
+          ]
+        ]
+      }
+    },
+    {
+      "oid": "o3902563",
+      "text": "BE and B; WEB and W",
+      "misconception_id": "ERR-LOG-33",
+      "table": {
+        "columns": [
+          "store_code",
+          "by_split",
+          "by_position"
+        ],
+        "rows": [
+          [
+            "BE-07",
+            "BE",
+            "B"
+          ],
+          [
+            "WEB-01",
+            "WEB",
+            "W"
+          ]
+        ]
+      }
+    }
+  ]
+}

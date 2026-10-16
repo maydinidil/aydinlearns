@@ -56,7 +56,7 @@ export interface SqlItem extends ContentEnvelope {
   template_params: Record<string, string | number>;
   sub_skill: string | null;
   difficulty: Difficulty;
-  company: 'voltmarkt';
+  company: 'voltmarkt' | 'mailvora' | 'online_retail_ii' | 'breakfast_at_the_frat';   // a real dataset's item names its schema (P43)
   schema: string;                     // visible schema, e.g. 'voltmarkt'
   edge_schema: string;                // e.g. 'voltmarkt_edge_filter'
   prompt: string;

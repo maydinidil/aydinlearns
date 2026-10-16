@@ -1,0 +1,113 @@
+{
+  "id": "EX-SQL-STR-01-E3-01",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-04",
+    "text_helper",
+    "ratio",
+    "sku",
+    "products"
+  ],
+  "level": 4,
+  "source_ids": [
+    "01:SQL-STR-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-15",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-STR-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-AGG-04",
+    "SQL-STR-01"
+  ],
+  "template_id": "T-STR-01-bad-share-per-brand",
+  "template_params": {
+    "form": "upper_trim"
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "voltmarkt",
+  "schema": "voltmarkt_raw",
+  "edge_schema": "voltmarkt_edge_clean",
+  "uses_raw": true,
+  "prompt": "For each brand, what share of its products have a sku off the standard form? This table may hold errors. The standard form of a sku is upper case with no spaces at its start or end. Return two columns, in this order: brand and bad_share, a fraction from 0 to 1, not rounded. Return one row for each brand, with 0 for a brand whose skus are all in standard form. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "brand",
+        "type_class": "text"
+      },
+      {
+        "name": "bad_share",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "brand",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "bad_share",
+        "type_class": "numeric",
+        "precision": "ratio"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "brand"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the calculated column: the brand's off-standard skus over all its products.",
+    "Count the off-standard skus with a filter on a cleaned comparison, then divide by the brand's product count."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 85,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 86,
+      "to": 99,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 100,
+      "to": 114,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "The filtered count takes only the skus that differ from their standard form, and dividing by all of the brand's products gives the share."
+}

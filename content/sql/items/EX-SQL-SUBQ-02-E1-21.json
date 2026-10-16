@@ -1,0 +1,119 @@
+{
+  "id": "EX-SQL-SUBQ-02-E1-21",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-04",
+    "derived_table",
+    "avg",
+    "products",
+    "categories",
+    "drill"
+  ],
+  "level": 4,
+  "source_ids": [
+    "01:SQL-SUBQ-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-15",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-SUBQ-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-SUBQ-01",
+    "SQL-SUBQ-02"
+  ],
+  "template_id": "T-SUBQ-02-avg-of-counts",
+  "template_params": {
+    "table": "products",
+    "step": "category"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_subq",
+  "prompt": "On average, how many products does a category hold, over the categories that hold at least one product? Round to 2 decimals. Return one column, avg_products. The result is a single row. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "avg_products",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "avg_products",
+        "type_class": "numeric",
+        "precision": "ratio",
+        "require_rounding": 2
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, count the products of each category in an inner query, then average those counts.",
+    "Only categories with products count, so build the counts from the products themselves."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 50,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 51,
+      "to": 97,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 98,
+      "to": 142,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 143,
+      "to": 158,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 159,
+      "to": 181,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 182,
+      "to": 188,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "The inner query has one row per category that holds products, so the outer AVG weighs every such category once."
+}

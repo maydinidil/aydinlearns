@@ -1,0 +1,142 @@
+{
+  "id": "EX-SQL-CLEAN-01-E3-01",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-04",
+    "check_report",
+    "union_all",
+    "duplicates",
+    "prices_in_cents",
+    "missing_values",
+    "overlap",
+    "order_lines",
+    "products",
+    "price_history"
+  ],
+  "level": 4,
+  "source_ids": [
+    "01:SQL-CLEAN-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-15",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-CLEAN-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CASE-01",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-SET-01",
+    "SQL-STR-01",
+    "SQL-CLEAN-01"
+  ],
+  "template_id": "T-CLEAN-01-five-check-report",
+  "template_params": {
+    "checks": 5
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "voltmarkt",
+  "schema": "voltmarkt_raw",
+  "edge_schema": "voltmarkt_edge_clean",
+  "uses_raw": true,
+  "prompt": "Build a five-check data-quality report on the raw tables. These tables may hold errors. Return one row for each check, with three columns, in this order: check_name, n_bad and result, 'pass' when n_bad is 0, otherwise 'fail'. The checks and what each counts: 'resent_copies', the order lines that are resent copies (two lines are copies of one order line when order_id, product_id, quantity, unit_price_eur, promo_id and line_discount_eur all match, with a missing promo_id matching a missing one; every line beyond the first of such a set is a resent copy); 'price_in_cents', the order lines whose unit_price_eur is more than 10 times the product's unit_cost_eur; 'sku_not_standard', the products whose sku is not upper case with no spaces at its start or end; 'missing_category', the products with a missing category_id; 'overlapping_prices', the products with two price windows that share at least one day (a window runs from valid_from to valid_to, both days included, and a missing valid_to means the window is still open). Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "check_name",
+        "type_class": "text"
+      },
+      {
+        "name": "n_bad",
+        "type_class": "numeric"
+      },
+      {
+        "name": "result",
+        "type_class": "text"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "check_name",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "n_bad",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "result",
+        "type_class": "text",
+        "precision": "exact"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "check_name"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write one count per check and stack them with UNION ALL in a named step.",
+    "Give each check its own SELECT with the rule from the question, the same two columns in each; a CASE on n_bad then gives pass or fail."
+  ],
+  "subgoals": [
+    {
+      "from": 66,
+      "to": 92,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 95,
+      "to": 111,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 114,
+      "to": 198,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 898,
+      "to": 981,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 982,
+      "to": 993,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "Each check counts its own rule in one row, so the report shows how big each problem is, and any count above 0 fails."
+}

@@ -74,6 +74,8 @@ export async function referencesOf(
 }
 
 export async function gate(conn: DuckDBConnection, sql: string, opts: GateOptions): Promise<GateOutcome> {
+  // S6-08: text nested deeper than MAX_NESTING_DEPTH (tables.ts) never gets here. The client refuses it before the child receives it
+  // (client.ts), so this function runs no depth check of its own: a composed statement's few extra brackets must not refuse it.
   // extractStatements throws "Error in native callback" on blank and comment-only text (spike A, item 5).
   if (isBlankSql(sql)) return empty();
   let extracted: DuckDBExtractedStatements;

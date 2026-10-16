@@ -156,10 +156,12 @@ test('S4B-12: an inbox row is the manager\'s message, its kind and level, the st
   const e: CaseListEntry = {
     case_id: 'CASE-PRICE-01', kind: 'inbox', level: 3, title: 'Which stores gained', persona: { name: 'Sanne', role: 'Category manager' },
     brief: { decision: 'Which stores to visit', deadline: 'Friday' }, status: 'started', score: 0.5, checkpoints_passed: 2, checkpoints_total: 4,
+    unavailable: null,
   };
   assert.deepEqual(inboxRow(e), {
     case_id: 'CASE-PRICE-01', href: '#/case/CASE-PRICE-01', title: 'Which stores gained', meta: 'From Sanne, Category manager · Case · Level 3',
     decision: 'Which stores to visit', deadline: 'Deadline: Friday', chip: { label: 'Started', tone: 'practising' }, score: 'Score: 2 of 4 checkpoints',
+    unavailable: null,
   });
   assert.equal(inboxRow({ ...e, kind: 'opener', level: null }).meta, 'From Sanne, Category manager · Level opener');
   assert.equal(inboxRow({ ...e, kind: 'daily' }).meta, 'From Sanne, Category manager · Daily case · Level 3');

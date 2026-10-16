@@ -33,7 +33,7 @@ import type { OpenInstance, RouteDeps } from '../app.ts';
 import { CHOICE_GRADER_VERSION, gradeChoice, gradeTyped, parseTyped, TYPED_REFUSALS, type ChoiceGrade } from '../choice/grade.ts';
 import { HELP_WAITS, NO_DRILLS, type DrillGate } from '../drill.ts';
 import { CHOICE_RUN_OVER, CODE_ONE_ANSWER, CODE_RUN_OVER, isChoicePlan, oneAnswer } from '../run.ts';
-import { answered, choiceFunnel, levelName, sqlFunnel, type FunnelAttributes } from '../observe.ts';
+import { answered, choiceFunnel, companyOf, levelName, sqlFunnel, type FunnelAttributes } from '../observe.ts';
 import { journey } from '../journey.ts';
 
 /**
@@ -104,6 +104,7 @@ interface Question {
   section: Section; item_kind: string; shape: ChoiceShape; key: ChoiceKey; target_concept_id: string; concept_ids: string[];
   level: number | null; template_id: string | null; difficulty: AydinAttempt['difficulty']; sub_skill: string | null; target_ms: number | null;
   world: AydinAttempt['world'];
+  company?: string;                    // an SQL choice item's company, for the funnel theme (D80)
 }
 
 /**
@@ -178,7 +179,8 @@ export function mountChoice(app: Hono, d: RouteDeps, runs: DrillGate = NO_DRILLS
     const key = d.content.sqlChoiceKey?.(sql.id);
     if (!key) return 'no key';
     return { section: 'sql', item_kind: sql.kind, shape: sqlChoiceShape(sql), key, target_concept_id: sql.target_concept_id, concept_ids: sql.concept_ids,
-      level: sql.level, template_id: sql.template_id, difficulty: sql.difficulty, sub_skill: sql.sub_skill, target_ms: sql.time_target_ms, world: 'pricing' };
+      level: sql.level, template_id: sql.template_id, difficulty: sql.difficulty, sub_skill: sql.sub_skill, target_ms: sql.time_target_ms, world: 'pricing',
+      company: companyOf(sql.schema) };
   };
   /** The question and its key; a 404 for an unknown or held-out ID, before anything else happens (S2-64, S3-12). */
   const servable = (id: unknown, inHalfMock = false): Question => {
@@ -210,7 +212,7 @@ export function mountChoice(app: Hono, d: RouteDeps, runs: DrillGate = NO_DRILLS
    */
   const funnelOf = (q: Question): FunnelAttributes => {
     const own = q.section === 'sql' ? undefined : d.content.choiceItem?.(q.shape.id)?.concept_id;
-    return q.section === 'sql' ? sqlFunnel(q.difficulty ?? levelName(q.level)) : choiceFunnel(d.content, q.section, own ?? q.target_concept_id);
+    return q.section === 'sql' ? sqlFunnel(q.difficulty ?? levelName(q.level), q.company) : choiceFunnel(d.content, q.section, own ?? q.target_concept_id);
   };
   const funnelAnswer = (q: Question, attempt: AydinAttempt, correct: boolean): void => {
     answered(funnelOf(q), attempt, correct ? 'passed' : 'failed');            // D76: with its exercise, time, confidence and mode

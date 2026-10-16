@@ -1,0 +1,115 @@
+{
+  "case_id": "CASE-DQ-01",
+  "kind": "inbox",
+  "level": 4,
+  "world": "DQ",
+  "company_id": "voltmarkt",
+  "title": "Resent order lines at store BE-14",
+  "schema": "voltmarkt_raw",
+  "persona": {
+    "name": "Marieke",
+    "role": "CFO"
+  },
+  "brief": {
+    "decision": "Whether store BE-14's 2024 revenue can be signed off, and which resent order lines the till supplier must delete",
+    "deadline": "Friday's meeting with the auditor"
+  },
+  "data_needed": [
+    "order_lines",
+    "orders",
+    "stores"
+  ],
+  "expected_output": {
+    "columns": [
+      "order_line_id",
+      "original_line_id",
+      "store_code",
+      "copy_revenue_eur"
+    ],
+    "grain": "one row per resent copy of an order line, in any store and any month",
+    "sort": [
+      {
+        "column": "order_line_id",
+        "desc": false
+      }
+    ]
+  },
+  "checkpoints": [
+    {
+      "id": "CP2",
+      "kind": "CP2",
+      "item_id": "CASE-DQ-01:CP2",
+      "credits_concepts": [
+        "SQL-CLEAN-01"
+      ],
+      "prompt": "Marieke is signing off store BE-14's 2024 accounts and has heard that its till resent some order lines under a new order_line_id. How many of BE-14's 2024 order lines are resent copies? The order lines may hold errors. Two lines are copies of one order line when order_id, product_id, quantity, unit_price_eur, promo_id and line_discount_eur all match, with a missing promo_id matching a missing one. In each such set, the line with the lowest order_line_id is the original and every other line is a resent copy. A line is from 2024 when its order's order_ts, as stored, is from 1 January 2024 up to but not including 1 January 2025. Type a whole number.",
+      "typed": {
+        "precision": "count",
+        "scale": "plain",
+        "decimals": 0,
+        "unit_label": "lines"
+      },
+      "truth_key": "CASE-DQ-01:CP2"
+    },
+    {
+      "id": "CP3",
+      "kind": "CP3",
+      "item_id": "EX-CASE-DQ-01",
+      "credits_concepts": [
+        "SQL-CLEAN-01",
+        "SQL-JOIN-01",
+        "SQL-NULL-01"
+      ],
+      "prompt": "Write the query that answers Marieke's question."
+    },
+    {
+      "id": "CP4",
+      "kind": "CP4",
+      "item_id": "CASE-DQ-01:CP4",
+      "credits_concepts": [
+        "SQL-CLEAN-01"
+      ],
+      "prompt": "Marieke needs the size of the problem for the auditor. By how much do the resent copies raise store BE-14's 2024 revenue as stored? The order lines may hold errors. Two lines are copies of one order line when order_id, product_id, quantity, unit_price_eur, promo_id and line_discount_eur all match, with a missing promo_id matching a missing one. In each such set, the line with the lowest order_line_id is the original and every other line is a resent copy. A line's revenue is quantity times unit_price_eur minus line_discount_eur. A line is from 2024 when its order's order_ts, as stored, is from 1 January 2024 up to but not including 1 January 2025. Add up the revenue of BE-14's 2024 resent copies. Type the amount in euros, rounded to 2 decimals.",
+      "typed": {
+        "precision": "money",
+        "scale": "eur",
+        "decimals": 2,
+        "unit_label": "euros"
+      },
+      "truth_key": "CASE-DQ-01:CP4"
+    },
+    {
+      "id": "CP6",
+      "kind": "CP6",
+      "credits_concepts": [],
+      "prompt": "Write an incident note of 2 to 4 sentences for Marieke: what went wrong at BE-14's till, how many 2024 lines it touched, what it did to the 2024 revenue, and what you propose to fix it."
+    }
+  ],
+  "model_plan": "Metric formula: no metric; each resent copy with the original it repeats and the revenue it adds, quantity times unit_price_eur minus line_discount_eur.\nOutput grain: one row per resent copy, in any store and any month.\nTables and keys: order_lines grouped by the six columns that make two lines one order line, joined back to order_lines on those columns; orders on order_id and stores on store_id for store_code.\nFilters: keep the lines whose order_line_id is above the lowest one of their set.\nEdge cases: a missing promo_id must match a missing one, or most copies are lost; two lines of one product in one order with another quantity are two real lines, not copies; the line with the lowest ID is the original and stays.\nExpected row count: 180",
+  "model_answer_template": "Store BE-14's till resent {CP2} of its 2024 order lines under new order_line_ids, which raised its 2024 revenue as stored by {CP4} euros. Each copy repeats its original's order, product, quantity, price, promotion and discount, so the copies can be deleted safely, keeping the line with the lowest ID. The copies inflate units as well as revenue, so every 2024 report on BE-14 needs a re-run once they are gone. Next, ask the till supplier to stop the resends and add a duplicate check to the nightly load.",
+  "follow_up_question": "How many units did the resent copies add to BE-14's sales in each month of 2024?",
+  "data_source": {
+    "label": "Fictional, generated data: Voltmarkt",
+    "real": false,
+    "licence": null
+  },
+  "difficulty": 3,
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-SORT-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-AGG-03",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-CLEAN-01"
+  ],
+  "metric_ids": [],
+  "find_ids": [
+    "FIND-01-13"
+  ],
+  "uses_raw": true
+}

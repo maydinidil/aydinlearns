@@ -1,0 +1,111 @@
+{
+  "id": "EX-SQL-STR-01-E1-02",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-04",
+    "split_part",
+    "sku",
+    "products"
+  ],
+  "level": 4,
+  "source_ids": [
+    "01:SQL-STR-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-15",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pretest",
+  "target_concept_id": "SQL-STR-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-STR-01"
+  ],
+  "template_id": "T-STR-01-prefix-as-stored",
+  "template_params": {
+    "column": "sku",
+    "separator": "-"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt_raw",
+  "edge_schema": "voltmarkt_edge_clean",
+  "uses_raw": true,
+  "prompt": "For each sku prefix, how many products are there? The prefix is the text before the first hyphen. This table may hold errors. Keep each prefix exactly as stored, without changing its letter case. Return two columns, in this order: sku_prefix and n_products. Return one row for each prefix. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "sku_prefix",
+        "type_class": "text"
+      },
+      {
+        "name": "n_products",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per sku prefix as stored"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "sku_prefix",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "n_products",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "sku_prefix"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, decide what one row stands for: one prefix as stored.",
+    "split_part cuts the text at a separator and returns the part you number, counting from 1; group by that same expression."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 68,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 69,
+      "to": 82,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 83,
+      "to": 115,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "split_part keeps the text before the first hyphen as it is stored, so 'VM' and 'vm' come out as two prefixes."
+}

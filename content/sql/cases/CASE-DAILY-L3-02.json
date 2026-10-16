@@ -47,7 +47,7 @@
     {
       "id": "CP4",
       "kind": "CP4",
-      "prompt": "Yara's headline: how many orders did Voltmarkt take in December 2025, all stores and the webshop together? order_ts holds UTC time, and the month is the Amsterdam month: keep the orders whose date in Amsterdam time is from 2025-12-01 to 2025-12-31, both days included. Type a whole number.",
+      "prompt": "Yara's headline: how many orders did Voltmarkt take in December 2025, all stores and the webshop together? order_ts is a TIMESTAMP with no time zone attached, and it holds the UTC time of the order. The month is the Amsterdam month: turn order_ts into Amsterdam time first, then keep the orders whose Amsterdam date is from 2025-12-01 to 2025-12-31, both days included. Type a whole number.",
       "credits_concepts": [],
       "item_id": "CASE-DAILY-L3-02:CP4",
       "typed": {

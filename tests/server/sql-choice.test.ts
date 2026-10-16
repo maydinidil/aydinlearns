@@ -47,7 +47,7 @@ async function deps(seed: object[] = [], store: ContentStore = content): Promise
   logger.onWrite((file, r) => state.record(file, r));
   return { port: 5174, checks: [], runner: null, content: store, logger, session: new SessionTracker(logger, async (at) => { for (const h of endHooks) await h(at); }),
     endHooks, closedInstances: [], schemaNotes: [], manifest: { dataset_version: 'x', library_version: 'v1.5.6' },
-    settings: { backup_folder: null, exam_date: null, goal_dates: {} }, tableCheck: 'parse_tree', state, servings: new Servings() };
+    settings: { backup_folder: null, exam_date: null, goal_dates: {}, portfolio_folder: null }, tableCheck: 'parse_tree', state, servings: new Servings() };
 }
 const attempts = async (d: AppDeps) => (await d.logger.readAll('attempts')) as any[];
 const show = (app: Hono, id: string, query = '') => get(app, `/api/choice/${id}?section=sql${query}`);

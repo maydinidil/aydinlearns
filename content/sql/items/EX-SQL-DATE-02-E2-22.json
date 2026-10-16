@@ -1,0 +1,140 @@
+{
+  "id": "EX-SQL-DATE-02-E2-22",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-04",
+    "date",
+    "date_arithmetic",
+    "products",
+    "sales",
+    "categories",
+    "first-sale",
+    "average",
+    "cte"
+  ],
+  "level": 4,
+  "source_ids": [
+    "01:SQL-DATE-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-15",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-DATE-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-DATE-02"
+  ],
+  "template_id": "T-DATE-02-avg-days-to-first-sale",
+  "template_params": {
+    "tables": "products, sales, categories",
+    "from": "2024-01-01",
+    "group": "parent_category"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_interval",
+  "prompt": "For each parent category, what was the average number of days from a product's launch_date to the UTC day of its first sale, over the products launched on or after 1 January 2024 that have sold? Count the days between the two dates, so a first sale on the launch day counts as 0, and average over products, not over sales. Round to 1 decimal. Return two columns, in this order: parent_category, and avg_days_to_first_sale. Return one row for each parent category with such products. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "parent_category",
+        "type_class": "text"
+      },
+      {
+        "name": "avg_days_to_first_sale",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "parent_category",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "avg_days_to_first_sale",
+        "type_class": "numeric",
+        "precision": "ratio",
+        "require_rounding": 1
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "parent_category"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, find each product's first sale day in a first step, with one row per product.",
+    "Average the days per product, not per sale: a DATE minus a DATE gives the days between the first sale and the launch."
+  ],
+  "subgoals": [
+    {
+      "from": 48,
+      "to": 95,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 98,
+      "to": 108,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 111,
+      "to": 130,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 133,
+      "to": 227,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 228,
+      "to": 344,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 345,
+      "to": 385,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 386,
+      "to": 412,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "The step gives each product its first sale day, so AVG runs over products, and the minus counts the days between launch and first sale."
+}

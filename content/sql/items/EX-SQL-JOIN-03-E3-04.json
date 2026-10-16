@@ -1,6 +1,6 @@
 {
   "id": "EX-SQL-JOIN-03-E3-04",
-  "version": 1,
+  "version": 3,
   "kind": "write",
   "tags": [
     "sql",
@@ -51,7 +51,7 @@
   "company": "voltmarkt",
   "schema": "voltmarkt",
   "edge_schema": "voltmarkt_edge_join",
-  "prompt": "In the checkout test AB-2025-01, each web shop customer should see only one variant, but a few customers were assigned to both. List those customers and how often they bought. Return one row for each customer assigned to more than one variant of the test, including a customer with no conversions. Return four columns, in this order: customer_id; first_assigned_at, the customer's earliest assigned_at in the test; last_assigned_at, the latest; and n_conversions, the number of the customer's conversions in the test, at any time, with 0 for a customer who has none. Sort by customer_id from low to high.",
+  "prompt": "In the checkout test AB-2025-01, each webshop customer should see only one variant, but a few customers were assigned to both. List those customers and how often they bought. Return one row for each customer assigned to more than one different variant of the test (a repeat assignment to the same variant does not count), including a customer with no conversions. Return four columns, in this order: customer_id; first_assigned_at, the customer's earliest assigned_at in the test; last_assigned_at, the latest; and n_conversions, the number of the customer's conversions in the test, counting every one whether it came before or after the customer's assignments, with 0 for a customer who has none. Sort by customer_id from low to high.",
   "output_contract": {
     "columns": [
       {

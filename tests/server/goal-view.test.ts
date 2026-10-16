@@ -83,7 +83,7 @@ async function deps(seed: { attempts: object[]; events: object[] }, store: Conte
   logger.onWrite((file, r) => state.record(file, r));
   return { port: 5174, checks: [], runner: null, content: store, logger, session: new SessionTracker(logger, async (at) => { for (const h of endHooks) await h(at); }),
     endHooks, closedInstances: [], schemaNotes: [], manifest: { dataset_version: 'x', library_version: 'v1.5.6' },
-    settings: { backup_folder: null, exam_date: null, goal_dates: {} }, tableCheck: 'parse_tree', state, servings: new Servings() };
+    settings: { backup_folder: null, exam_date: null, goal_dates: {}, portfolio_folder: null }, tableCheck: 'parse_tree', state, servings: new Servings() };
 }
 
 test('goalView: concept states, the solved cases with their exports (S4B-08, S4B-20), the live reps (S4B-26), the externals; no mock yet', async () => {
@@ -91,8 +91,8 @@ test('goalView: concept states, the solved cases with their exports (S4B-08, S4B
   const d = await deps(h, content);
   const view = goalView({ content, replay: d.state.current(), attempts: await d.logger.readAll('attempts'), events: await d.logger.readAll('events') });
   assert.deepEqual(view.casesSolved, [
-    { case_id: DAILY_ID, level: 1, exported: true },
-    { case_id: OPENER_ID, level: 1, exported: false },
+    { case_id: DAILY_ID, level: 1, exported: true, real: false },
+    { case_id: OPENER_ID, level: 1, exported: false, real: false },
   ], 'in case ID order; the started inbox case is not solved');
   assert.deepEqual(view.liveReps.map((r) => r.passed), [true, true, true, false]);
   assert.ok(view.liveReps.every((r) => /^\d{4}-\d{2}-\d{2}$/.test(r.local_date)), 'Amsterdam dates');
@@ -111,8 +111,24 @@ test('goalView: concept states, the solved cases with their exports (S4B-08, S4B
   // The same history with no case_export event: replay's case status names no export, so nothing counts as exported.
   const bare = await deps({ attempts: h.attempts, events: h.events.filter((e) => (e as { event: string }).event !== 'case_export') }, content);
   const unexported = await readGoalView(bare);
-  assert.deepEqual(unexported.casesSolved, [{ case_id: DAILY_ID, level: 1, exported: false }, { case_id: OPENER_ID, level: 1, exported: false }]);
+  assert.deepEqual(unexported.casesSolved, [{ case_id: DAILY_ID, level: 1, exported: false, real: false }, { case_id: OPENER_ID, level: 1, exported: false, real: false }]);
   assert.deepEqual(evaluateGoal(LEVEL_3, unexported, today).criteria[1], { label: '1 case solved and exported', met: false, available: true, done: 0, total: 1 });
+});
+
+test('S6-26: a solved case counts as real when its data_source.real is true; realCasesAvailable counts the real cases whose dataset is built', async () => {
+  const d = await deps(history(), content);
+  const base = { content, replay: d.state.current(), attempts: await d.logger.readAll('attempts'), events: await d.logger.readAll('events') };
+  const source = { label: 'Online Retail II', real: true, licence: 'CC BY 4.0' };
+  const realRecord = { ...content.case!(DAILY_ID)!, case_id: 'CASE-REAL-X', schema: 'online_retail', data_source: source };
+  const dailyReal = { ...content.case!(DAILY_ID)!, data_source: source };
+  const store = (built: string[] | null): ContentStore => ({ ...content, builtSchemas: () => (built === null ? null : new Set(built)),
+    case: (id) => (id === DAILY_ID ? dailyReal : id === 'CASE-REAL-X' ? realRecord : content.case!(id)), cases: () => [...content.cases!(), realRecord] });
+  const view = goalView({ ...base, content: store(['voltmarkt']) });
+  assert.deepEqual(view.casesSolved.map((c) => [c.case_id, c.real]), [[DAILY_ID, true], [OPENER_ID, false]], 'the case record says it, nothing else');
+  assert.equal(view.realCasesAvailable, 0, 'its dataset is not in the database');
+  assert.equal(goalView({ ...base, content: store(['voltmarkt', 'online_retail']) }).realCasesAvailable, 1);
+  assert.equal(goalView({ ...base, content: store(null) }).realCasesAvailable, 1, 'a build that names no schemas leaves every case available');
+  assert.equal(goalView(base).realCasesAvailable, 0, 'the fixture has no real case');
 });
 
 test('GET /api/today\'s next goal and GET /api/goals/progress share the goal view: G-SQL-LEVEL-3\'s case criterion and G-STAGE-6 met on a solved, exported case and 4 reps (3 passed)', async () => {

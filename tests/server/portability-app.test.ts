@@ -36,7 +36,7 @@ async function deps(): Promise<AppDeps> {
   const state = new LearnerState({ content, attempts: [], events: [], examDate: () => null });
   logger.onWrite((file, r) => state.record(file, r));
   return { port: 5174, checks: [], runner, content, logger, session: new SessionTracker(logger, async (at) => { for (const h of endHooks) await h(at); }), endHooks,
-    closedInstances: [], schemaNotes, manifest: { dataset_version: 'x', library_version: 'v1.5.6' }, settings: { backup_folder: null, exam_date: null, goal_dates: {} },
+    closedInstances: [], schemaNotes, manifest: { dataset_version: 'x', library_version: 'v1.5.6' }, settings: { backup_folder: null, exam_date: null, goal_dates: {}, portfolio_folder: null },
     tableCheck: 'parse_tree', distDir: 'tests/fixtures/web-shell', state };
 }
 

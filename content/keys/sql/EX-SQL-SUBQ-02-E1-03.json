@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-SUBQ-02-E1-03",
+  "item_version": 1,
+  "reference_sql": "-- Step 1: one row per registered customer. Step 2: one row in total.\nSELECT ROUND(AVG(t.n_stores), 2) AS avg_stores\nFROM (\n  -- one row per registered customer\n  SELECT customer_id, COUNT(DISTINCT store_id) AS n_stores\n  FROM orders\n  WHERE customer_id IS NOT NULL\n  GROUP BY customer_id\n) AS t",
+  "alternatives": [
+    "WITH customer_stores AS (\n  -- one row per registered customer\n  SELECT customer_id, COUNT(DISTINCT store_id) AS n_stores\n  FROM orders\n  WHERE customer_id IS NOT NULL\n  GROUP BY customer_id\n)\nSELECT ROUND(AVG(n_stores), 2) AS avg_stores\nFROM customer_stores",
+    "SELECT ROUND(AVG(t.n_stores), 2) AS avg_stores\nFROM (\n  -- one row per registered customer\n  SELECT pairs.customer_id, COUNT(*) AS n_stores\n  FROM (\n    -- one row per registered customer and store\n    SELECT DISTINCT customer_id, store_id\n    FROM orders\n    WHERE customer_id IS NOT NULL\n  ) AS pairs\n  GROUP BY pairs.customer_id\n) AS t"
+  ],
+  "other_way": {
+    "sql": "WITH customer_stores AS (\n  -- one row per registered customer\n  SELECT customer_id, COUNT(DISTINCT store_id) AS n_stores\n  FROM orders\n  WHERE customer_id IS NOT NULL\n  GROUP BY customer_id\n)\nSELECT ROUND(AVG(n_stores), 2) AS avg_stores\nFROM customer_stores",
+    "tradeoff": "A WITH step names the per-customer store counts before the average, which reads top to bottom but takes a few more lines."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-04",
+      "sql": "SELECT ROUND(AVG(t.n_stores), 2) AS avg_stores FROM (SELECT customer_id, COUNT(store_id) AS n_stores FROM orders WHERE customer_id IS NOT NULL GROUP BY customer_id) AS t"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-03",
+      "sql": "SELECT ROUND(AVG(t.n_stores), 2) AS avg_stores FROM (SELECT customer_id, COUNT(DISTINCT store_id) AS n_stores FROM orders GROUP BY customer_id) AS t"
+    }
+  ],
+  "hint3_partial": "-- Step 1: one row per registered customer. Step 2: one row in total.\nSELECT ROUND(AVG(t.n_stores), 2) AS avg_stores\nFROM (\n  -- one row per registered customer\n  SELECT customer_id, COUNT(DISTINCT ___) AS n_stores\n  FROM orders\n  WHERE customer_id IS NOT NULL\n  GROUP BY customer_id\n) AS t",
+  "solver": {
+    "prompt_hash": "296f643d25582e94",
+    "schema_version": "7ed366279088",
+    "dataset_version": "b2d2b40fb117bb07",
+    "grader_version": "6a.1",
+    "query": "SELECT ROUND(AVG(n_stores), 2) AS avg_stores FROM (SELECT customer_id, COUNT(DISTINCT store_id) AS n_stores FROM orders WHERE customer_id IS NOT NULL GROUP BY customer_id) AS t\r\n",
+    "at": "2026-10-15T11:06:13.441Z"
+  }
+}

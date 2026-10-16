@@ -35,15 +35,33 @@ export interface DrillSpec {
   /** The level's drill pool (design §12: about 30 `use: 'drill'` items), in the order it offers them. Task B12 fills it. */
   pool_item_ids: string[];
 }
+/**
+ * S6-19 (sprint 6 Task B2): a cumulative drill, keyed by `id`, draws `per_level` items from the drill pool of each of `levels`. It has
+ * no pool, questions or concepts of its own. Task B4 runs it (sampleCumulative, cumulativePlan).
+ */
+export interface CumulativeSpec {
+  id: string; levels: number[]; per_level: number; minutes: number; pass_pct: number; unseen_min_pct: number; mode: string;
+}
+/** The whole file: its level drills (`level`) and its cumulative drills (`id`, `levels`, `per_level`), each in file order. */
+export interface DrillFile { levels: DrillSpec[]; cumulative: CumulativeSpec[] }
 export const DRILLS_PATH = fileURLToPath(new URL('../content/sql/drills.json', import.meta.url));
 const DRILLS_FILE = 'content/sql/drills.json';
+/** The curriculum's levels (01 LVL-01 to LVL-07): a cumulative drill may name these. */
+const LEVELS = 7;
 
-/** The specs, or an error that names the file and the drill. */
+/** The level specs, or an error that names the file and the drill. Cumulative entries are checked too, and left out. */
 export function parseDrills(x: unknown): DrillSpec[] {
+  return parseDrillFile(x).levels;
+}
+
+/** Every spec in the file, or an error that names the file and the drill. */
+export function parseDrillFile(x: unknown): DrillFile {
   const list = (x as { drills?: unknown } | null)?.drills;
   if (!Array.isArray(list)) throw new Error(`${DRILLS_FILE}: "drills" must be a list.`);
+  const out: DrillFile = { levels: [], cumulative: [] };
   const levels = new Set<number>();
-  return list.map((d: unknown, i) => {
+  const cumulativeIds = new Set<string>();
+  list.forEach((d: unknown, i) => {
     const o = (d ?? {}) as Record<string, unknown>;
     const where = `${DRILLS_FILE}: drill ${i + 1}`;
     const whole = (k: string): number => {
@@ -62,26 +80,73 @@ export function parseDrills(x: unknown): DrillSpec[] {
       if (!Array.isArray(v) || !v.every((s) => typeof s === 'string' && s !== '')) throw new Error(`${where} needs ${k} as a list of IDs.`);
       return [...v] as string[];
     };
+    const minutes = (): number => {
+      const v = o.minutes;
+      if (typeof v !== 'number' || !(v > 0) || !Number.isFinite(v)) throw new Error(`${where} needs minutes above 0.`);
+      return v;
+    };
+    const mode = o.mode === undefined ? 'normal' : o.mode;
+    // S6-35: a mode is checked when the file loads, so a typo is a load error naming the entry (C19 reports it), never a 500 at start.
+    const checkMode = (name: string): string => {
+      if (mode !== 'normal' && mode !== 'screen') throw new Error(`${where} (${name}) has mode ${JSON.stringify(mode)}, and the mode must be normal or screen.`);
+      return mode;
+    };
+    if (o.id !== undefined || o.levels !== undefined || o.per_level !== undefined) {
+      if (o.level !== undefined) throw new Error(`${where} is either a level drill (level) or a cumulative drill (id, levels, per_level), not both.`);
+      if (typeof o.id !== 'string' || o.id === '') throw new Error(`${where} needs id as a name.`);
+      if (cumulativeIds.has(o.id)) throw new Error(`${where} repeats the cumulative drill ${o.id}.`);
+      cumulativeIds.add(o.id);
+      const lv = o.levels;
+      if (!Array.isArray(lv) || lv.length === 0 || new Set(lv).size !== lv.length
+        || !lv.every((n) => Number.isInteger(n) && (n as number) >= 1 && (n as number) <= LEVELS)) {
+        throw new Error(`${where} needs levels as a list of different whole numbers from 1 to ${LEVELS}.`);
+      }
+      out.cumulative.push({ id: o.id, levels: [...lv] as number[], per_level: whole('per_level'), minutes: minutes(), pass_pct: percent('pass_pct'),
+        unseen_min_pct: percent('unseen_min_pct'), mode: checkMode(o.id) });
+      return;
+    }
     const level = whole('level');
     if (levels.has(level)) throw new Error(`${where} repeats level ${level}.`);
     levels.add(level);
-    const minutes = o.minutes;
-    if (typeof minutes !== 'number' || !(minutes > 0) || !Number.isFinite(minutes)) throw new Error(`${where} needs minutes above 0.`);
-    return { level, questions: whole('questions'), minutes, pass_pct: percent('pass_pct'), concepts: ids('concepts', true),
-      unseen_min_pct: percent('unseen_min_pct'), mode: typeof o.mode === 'string' ? o.mode : 'normal', pool_item_ids: ids('pool_item_ids', false) };
+    const m = minutes();
+    out.levels.push({ level, questions: whole('questions'), minutes: m, pass_pct: percent('pass_pct'), concepts: ids('concepts', true),
+      unseen_min_pct: percent('unseen_min_pct'), mode: checkMode(`level ${level}`), pool_item_ids: ids('pool_item_ids', false) });
   });
+  return out;
 }
 
-/** The specs, read from the file. A missing file means no drills; a malformed one is a fault. */
-export async function loadDrills(path = DRILLS_PATH): Promise<DrillSpec[]> {
+/** Every spec, read from the file: the level drills and the cumulative ones. A missing file means no drills; a malformed one is a fault. */
+export async function loadDrillFile(path = DRILLS_PATH): Promise<DrillFile> {
   let text: string;
   try { text = await readFile(path, 'utf8'); } catch (e) {
-    if ((e as NodeJS.ErrnoException).code === 'ENOENT') return [];
+    if ((e as NodeJS.ErrnoException).code === 'ENOENT') return { levels: [], cumulative: [] };
     throw e;
   }
   let data: unknown;
   try { data = JSON.parse(text); } catch (e) { throw new Error(`${DRILLS_FILE}: ${message(e)}`); }
-  return parseDrills(data);
+  return parseDrillFile(data);
+}
+
+/** The level specs, read from the file. A missing file means no drills; a malformed one is a fault. */
+export async function loadDrills(path = DRILLS_PATH): Promise<DrillSpec[]> {
+  return (await loadDrillFile(path)).levels;
+}
+
+/**
+ * The drill specs for a route. A store may carry them (a test's fixture); otherwise they come from content/sql/drills.json, read once
+ * (a failed read is not kept, so the next call tries again). routes/drill.ts and routes/progress.ts share this.
+ */
+export interface DrillSpecLoader { file(): Promise<DrillFile>; specs(): Promise<DrillSpec[]>; cumulative(): Promise<CumulativeSpec[]> }
+export function drillSpecLoader(content: object, path = DRILLS_PATH): DrillSpecLoader {
+  const store = content as { drills?: () => DrillSpec[]; cumulativeDrills?: () => CumulativeSpec[] };
+  let cached: Promise<DrillFile> | null = null;
+  const file = (): Promise<DrillFile> => (cached ??= loadDrillFile(path).catch((e: unknown) => { cached = null; throw e; }));
+  return {
+    file,
+    specs: async () => store.drills?.() ?? (await file()).levels,
+    /** S6-19: the cumulative entries, from the store when it carries them; a store with level specs and none of these has none. */
+    cumulative: async () => store.cumulativeDrills?.() ?? (store.drills?.() ? [] : (await file()).cumulative),
+  };
 }
 
 // ---- what a run asks ----------------------------------------------------------------------------------------------
@@ -91,14 +156,20 @@ export async function loadDrills(path = DRILLS_PATH): Promise<DrillSpec[]> {
  * started in screen mode, with the same pool, limit and pass marks; absent means normal mode.
  */
 export interface DrillPlan {
-  kind: 'level' | 'chosen'; level: number | null; concepts: string[]; questions: number; minutes: number; pass_pct: number; unseen_min_pct: number;
+  kind: 'level' | 'chosen' | 'cumulative'; level: number | null; concepts: string[]; questions: number; minutes: number; pass_pct: number; unseen_min_pct: number;
   screen_mode?: boolean;
+  /** S6-19 (Task B4): a cumulative run's draw, level by level, so the screen can say which questions came from seen items or were short. */
+  fill?: CumulativeFill[];
+  /** P15 (Task B4 fix): the cumulative run as a whole, so the screen can say when it falls below `unseen_min_pct`. */
+  overall?: CumulativeOverall;
   /** S4B-26 (D42, Task E4): a live rep, one unseen item in screen mode, whose block_id starts `live-`. The history lists it apart. */
   live?: boolean;
 }
 export type Marks = Pick<DrillSpec, 'pass_pct' | 'unseen_min_pct'>;
 /** When no spec exists at all: level 1's shape (01 LVL-01). */
 const FALLBACK: Pick<DrillSpec, 'questions' | 'minutes' | 'pass_pct' | 'unseen_min_pct'> = { questions: 10, minutes: 20, pass_pct: 90, unseen_min_pct: 70 };
+/** S6-19: the marks of a cumulative run when the file holds no cumulative entry to read them from. */
+const CUMULATIVE_MARKS: Marks = { pass_pct: 80, unseen_min_pct: 70 };
 
 export function levelPlan(s: DrillSpec): DrillPlan {
   return { kind: 'level', level: s.level, concepts: [...s.concepts], questions: s.questions, minutes: s.minutes, pass_pct: s.pass_pct, unseen_min_pct: s.unseen_min_pct };
@@ -160,6 +231,51 @@ export function sampleDrill(a: { pool: readonly SqlItem[]; concepts: readonly st
   return interleave(picks.map((item) => ({ concept_id: item.target_concept_id, item, repeat_exposure: !fresh(item) })), []);
 }
 
+// ---- the cumulative drill (S6-19, sprint 6 Task B4) ---------------------------------------------------------------------------
+
+/** S6-19: a cumulative run is one block whose block_id starts with this. Drill history tells it from a level or chosen run by it. */
+export const CUMULATIVE_PREFIX = 'cum-';
+export const isCumulativeBlock = (blockId: string): boolean => blockId.startsWith(CUMULATIVE_PREFIX);
+/** What one level gave a cumulative draw: `wanted` per_level, `taken` what its pool could give, `from_seen` how many of those were seen in the last 30 days. */
+export interface CumulativeFill { level: number; wanted: number; taken: number; from_seen: number }
+/** P15: the whole cumulative draw: its questions, how many came from seen items, and the unseen share (rounded). */
+export interface CumulativeOverall { questions: number; from_seen: number; unseen_pct: number }
+export function cumulativeOverall(fill: readonly CumulativeFill[]): CumulativeOverall {
+  const questions = fill.reduce((n, f) => n + f.taken, 0);
+  const from_seen = fill.reduce((n, f) => n + f.from_seen, 0);
+  return { questions, from_seen, unseen_pct: questions > 0 ? Math.round((100 * (questions - from_seen)) / questions) : 100 };
+}
+/** The kinds a drill serves: blank-editor and fix-this-query drill items (as routes/drill.ts levelPool). */
+const drillServable = (i: SqlItem | undefined): i is SqlItem => i !== undefined && i.use === 'drill' && (i.kind === 'write' || i.kind === 'fix');
+
+/** The run a cumulative entry asks, over `questions` drawn items: its limit and pass marks from the entry. Only `normal` and `screen` are valid modes. */
+export function cumulativePlan(spec: CumulativeSpec, questions: number, fill?: CumulativeFill[]): DrillPlan {
+  if (spec.mode !== 'normal' && spec.mode !== 'screen') {
+    throw new Error(`${DRILLS_FILE}: the cumulative drill ${spec.id} has mode "${spec.mode}", and the mode must be normal or screen.`);
+  }
+  return { kind: 'cumulative', level: null, concepts: [], questions, minutes: spec.minutes, pass_pct: spec.pass_pct, unseen_min_pct: spec.unseen_min_pct,
+    screen_mode: spec.mode === 'screen', ...(fill ? { fill, overall: cumulativeOverall(fill) } : {}) };
+}
+
+/**
+ * S6-19: `per_level` items from the drill pool of each level of `spec`, in level order. Within a level the draw is sampleDrill's: items
+ * unseen in the last 30 days first, then the least recently seen (flagged repeat_exposure), so a level short of unseen items fills from
+ * its seen ones. A level with no drill entry or an empty pool gives nothing; `fill` says what each level gave.
+ */
+export function sampleCumulative(a: { spec: CumulativeSpec; specs: readonly DrillSpec[]; itemOf: (id: string) => SqlItem | undefined; seen: readonly Seen[]; now: Date }):
+  { picks: DrillPick[]; fill: CumulativeFill[] } {
+  const picks: DrillPick[] = [];
+  const fill: CumulativeFill[] = [];
+  for (const level of a.spec.levels) {
+    const ls = a.specs.find((s) => s.level === level);
+    const pool = (ls?.pool_item_ids ?? []).map(a.itemOf).filter(drillServable);
+    const taken = ls ? sampleDrill({ pool, concepts: ls.concepts, questions: Math.min(a.spec.per_level, pool.length), seen: a.seen, now: a.now }) : [];
+    picks.push(...taken);
+    fill.push({ level, wanted: a.spec.per_level, taken: taken.length, from_seen: taken.filter((p) => p.repeat_exposure).length });
+  }
+  return { picks, fill };
+}
+
 // ---- the score and the history (S2-43) ---------------------------------------------------------------------------
 
 export interface DrillScore {
@@ -182,7 +298,7 @@ export type QuestionOutcome = 'passed' | 'failed' | 'not_answered';
 export interface DrillQuestion { item_instance_id: string; item_id: string | null; outcome: QuestionOutcome }
 
 export interface DrillRun {
-  block_id: string; kind: 'level' | 'chosen'; level: number | null;
+  block_id: string; kind: 'level' | 'chosen' | 'cumulative'; level: number | null;
   /**
    * S4B-23: the run was in screen mode, read from its attempts' `screen_mode` (no log field is added). A run with no attempt at all
    * reads as normal mode: nothing in the log says otherwise.
@@ -221,11 +337,13 @@ interface Inst {
  *   override_confirm confirmed (design §5: an override counts toward level completion only once confirmed).
  * - Unseen: no instance of the item, outside the run, started in the 30 days before the run's first instance. An unreached
  *   drill item (S2-97) is no instance for this: it was never seen.
+ * - S6-19: a block whose block_id starts `cum-` is a cumulative run (kind `cumulative`, no level): it takes the pass marks of the first
+ *   cumulative entry (80% and 70% when there is none), asks as many questions as it served, and never counts for a level.
  * - Task B2: a GA4 mini drill is served in phase drill too. A block with an item `isChoiceItem` names, or with an attempt of
  *   another section, is a GA4 run (server/run.ts lists those) and is left out here.
  */
 export function drillRuns(attempts: object[], events: object[], itemOf: (id: string) => SqlItem | undefined, specs: readonly DrillSpec[],
-  isChoiceItem: (id: string) => boolean = () => false): DrillRun[] {
+  isChoiceItem: (id: string) => boolean = () => false, cumulative: readonly CumulativeSpec[] = []): DrillRun[] {
   const decided = new Map<string, 'confirmed' | 'reverted'>();
   for (const e of events as Rec[]) {
     const id = str(e.attempt_id);
@@ -283,14 +401,17 @@ export function drillRuns(attempts: object[], events: object[], itemOf: (id: str
     const start = Math.min(...members.map((m) => m.start));
     const known = members.map((m) => (m.item_id === null ? undefined : itemOf(m.item_id)));
     const levels = [...new Set(known.map((i) => i?.level).filter((l): l is number => typeof l === 'number'))];
-    const levelSpec = known.every((i) => i?.use === 'drill') && levels.length === 1 ? specs.find((s) => s.level === levels[0]) : undefined;
-    const marks: Marks = levelSpec ?? specForLevels(levels, specs) ?? FALLBACK;
+    const cum = isCumulativeBlock(block_id);
+    const cumSpec = cumulative[0];
+    const levelSpec = !cum && known.every((i) => i?.use === 'drill') && levels.length === 1 ? specs.find((s) => s.level === levels[0]) : undefined;
+    const marks: Marks = cum ? (cumSpec ?? CUMULATIVE_MARKS) : levelSpec ?? specForLevels(levels, specs) ?? FALLBACK;
     const questions = levelSpec ? Math.max(levelSpec.questions, members.length) : members.length;
     const didPass = (m: Inst): boolean => m.passes.some((p) => (m.closedAt === null || p.at <= m.closedAt) && (p.auto || decided.get(p.attempt_id) === 'confirmed'));
     const passed = members.filter(didPass).length;
     const unseen = members.filter((m) => m.item_id !== null && !(startsOf.get(m.item_id) ?? [])
       .some((o) => o.block !== block_id && o.start < start && o.start >= start - SEEN_WINDOW_MS)).length;
-    out.push({ block_id, kind: levelSpec ? 'level' : 'chosen', level: levelSpec?.level ?? null, screen_mode: members.some((m) => m.screen),
+    out.push({ block_id, kind: cum ? 'cumulative' : levelSpec ? 'level' : 'chosen', level: levelSpec?.level ?? null,
+      screen_mode: members.some((m) => m.screen) || (cum && cumSpec?.mode === 'screen'),
       date: amsterdamDate(new Date(start)), started_at: iso(start),
       ended_at: ends.get(block_id) ?? null, concept_ids: [...new Set(members.map((m) => m.concept).filter((c): c is string => c !== null))],
       score: scoreOf(passed, questions, unseen, marks, levelSpec !== undefined),
@@ -417,7 +538,7 @@ export function liveReps(attempts: object[], events: object[] = []): { local_dat
 export interface RunServing { item_id: string; item_instance_id: string }
 /** What a run asks: an SQL drill's plan, or a GA4 mini drill's or half-mock's (Task B2, server/run.ts). */
 export type RunPlan = DrillPlan | ChoiceRunPlan;
-export const isDrillPlan = (p: RunPlan): p is DrillPlan => p.kind === 'level' || p.kind === 'chosen';
+export const isDrillPlan = (p: RunPlan): p is DrillPlan => p.kind === 'level' || p.kind === 'chosen' || p.kind === 'cumulative';
 export interface RunEntry {
   block_id: string; plan: RunPlan; started_at: number; ends_at: number; servings: RunServing[];
   /** The latest attempt the run logged, ms: its end is never stamped before it. */
@@ -448,7 +569,8 @@ export const NO_DRILLS: DrillGate = { sweep: async () => {}, running: async () =
 export function drillRunView(run: RunEntry & { plan: DrillPlan }) {
   const p = run.plan;
   return { block_id: run.block_id, kind: p.kind, level: p.level, phase: 'drill' as const, hide_labels: true, questions: p.questions, minutes: p.minutes,
-    pass_pct: p.pass_pct, unseen_min_pct: p.unseen_min_pct, ends_at: new Date(run.ends_at).toISOString(), servings: run.servings, screen_mode: p.screen_mode === true, live: p.live === true };
+    pass_pct: p.pass_pct, unseen_min_pct: p.unseen_min_pct, ends_at: new Date(run.ends_at).toISOString(), servings: run.servings, screen_mode: p.screen_mode === true, live: p.live === true,
+    ...(p.fill ? { fill: p.fill } : {}), ...(p.overall ? { overall: p.overall } : {}) };
 }
 
 /** Runs `fn` after `ms`, and returns its cancel. The real timer never keeps the process alive. */
@@ -476,6 +598,12 @@ export class DrillRuns implements DrillGate {
   readonly #over = new Set<string>();                    // the items of the runs that ended in this process
   readonly #ending = new Map<string, Promise<void>>();
   readonly #cancel = new Map<string, () => void>();
+  /**
+   * S6-31 (M1): the blocks this registry (one per app, so one per process run) ended itself, and the blocks whose `run_finished` it sent.
+   * A `run_finished` goes out only for a block ended here that has not been sent, so a restart cannot send a second one.
+   */
+  readonly endedHere = new Set<string>();
+  readonly finishSent = new Set<string>();
 
   constructor(o: { end: (run: RunEntry, at: Date) => Promise<void>; now?: () => number; schedule?: Schedule }) {
     this.#end = o.end;
@@ -513,6 +641,7 @@ export class DrillRuns implements DrillGate {
     if (this.#active.get(run.block_id) !== run) return Promise.resolve();
     this.#cancel.get(run.block_id)?.();
     this.#cancel.delete(run.block_id);
+    this.endedHere.add(run.block_id);
     const p = (async () => {
       try {
         await Promise.allSettled([...run.inFlight]);

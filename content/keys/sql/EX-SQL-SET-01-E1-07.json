@@ -1,6 +1,6 @@
 {
   "item_id": "EX-SQL-SET-01-E1-07",
-  "item_version": 3,
+  "item_version": 4,
   "reference_sql": "SELECT store_id\nFROM stores\nWHERE store_type <> 'web'\nEXCEPT\nSELECT store_id\nFROM orders\nWHERE channel = 'store'\n  AND order_ts >= TIMESTAMP '2025-07-01 00:00:00'\n  AND order_ts < TIMESTAMP '2025-08-01 00:00:00'",
   "alternatives": [
     "SELECT s.store_id FROM stores s LEFT JOIN orders o ON o.store_id = s.store_id AND o.channel = 'store' AND o.order_ts >= TIMESTAMP '2025-07-01 00:00:00' AND o.order_ts < TIMESTAMP '2025-08-01 00:00:00' WHERE s.store_type <> 'web' AND o.order_id IS NULL",

@@ -27,7 +27,7 @@ const LEVEL3 = content.curriculum.concepts.filter((c) => c.level === 3).map((c) 
 
 test('drills.json: the level 3 entry is 10 questions in 20 minutes at 90%, normal mode, the 8 level 3 concepts in order, and its pool is the 5 drill items of each (Task B3)', async () => {
   const shipped = await loadDrills();
-  assert.deepEqual(shipped.map((s) => s.level), [1, 2, 3]);
+  assert.deepEqual(shipped.map((s) => s.level), [1, 2, 3, 4]);
   const { pool_item_ids: pool, ...spec } = shipped.find((s) => s.level === 3)!;
   assert.deepEqual(spec, { level: 3, questions: 10, minutes: 20, pass_pct: 90, concepts: LEVEL3, unseen_min_pct: 70, mode: 'normal' });
   assert.deepEqual([...pool].sort(), LEVEL3.flatMap((c) => ['E1-21', 'E1-22', 'E2-21', 'E2-22', 'E3-21'].map((s) => `EX-${c}-${s}`)).sort());
@@ -43,7 +43,7 @@ test('with its pool written (Task B3) the drill list shows level 3 as available,
   logger.onWrite((file, r) => state.record(file, r));
   const app = createApp({ port: 5174, checks: [], runner, content, logger, session: new SessionTracker(logger, async (at) => { for (const h of endHooks) await h(at); }),
     endHooks, closedInstances: loggedInstanceIds([]), schemaNotes: [], manifest: { dataset_version: 'x', library_version: 'v1.5.6' },
-    settings: { backup_folder: null, exam_date: null, goal_dates: {} }, tableCheck: 'parse_tree', state, servings: new Servings() });
+    settings: { backup_folder: null, exam_date: null, goal_dates: {}, portfolio_folder: null }, tableCheck: 'parse_tree', state, servings: new Servings() });
 
   const listed = await (await app.request('http://127.0.0.1:5174/api/drill/history?level=3', { headers: H })).json() as { drill: Record<string, unknown> | null; runs: unknown[] };
   assert.deepEqual(listed.drill, { level: 3, questions: 10, minutes: 20, pass_pct: 90, unseen_min_pct: 70, available: true });

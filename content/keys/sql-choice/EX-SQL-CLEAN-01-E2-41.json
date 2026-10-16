@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-CLEAN-01-E2-41",
+  "item_version": 1,
+  "correct_oid": "o44cedf6",
+  "explanation": "COUNT(j.promo_id) counts only the lines with a promotion, and NULLIF turns a store's zero line count into a missing value, so a store with no June lines keeps a missing share. Wrapping the share in COALESCE turns that into 0, which reads as a store with lines and no promotions. // drops the decimals, so every share below 1 becomes 0, and COUNT(*) counts every line, promotion or not.",
+  "solver": {
+    "prompt_hash": "684749efee1bacc6",
+    "grader_version": "choice.3",
+    "chosen": "o44cedf6",
+    "typed": null,
+    "at": "2026-10-15T10:40:24.689Z"
+  }
+}

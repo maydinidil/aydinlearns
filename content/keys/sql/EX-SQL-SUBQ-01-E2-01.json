@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-SUBQ-01-E2-01",
+  "item_version": 1,
+  "reference_sql": "SELECT pr.promo_id, pr.promo_code\nFROM promotions pr\nWHERE NOT EXISTS (\n  SELECT 1\n  FROM order_lines ol\n  WHERE ol.promo_id = pr.promo_id\n    AND ol.quantity >= 3\n)",
+  "alternatives": [
+    "SELECT promo_id, promo_code\nFROM promotions\nWHERE promo_id NOT IN (\n  SELECT promo_id\n  FROM order_lines\n  WHERE quantity >= 3\n    AND promo_id IS NOT NULL\n)",
+    "SELECT pr.promo_id, pr.promo_code\nFROM promotions pr\nLEFT JOIN order_lines ol ON ol.promo_id = pr.promo_id AND ol.quantity >= 3\nWHERE ol.order_line_id IS NULL"
+  ],
+  "other_way": {
+    "sql": "SELECT pr.promo_id, pr.promo_code\nFROM promotions pr\nLEFT JOIN order_lines ol ON ol.promo_id = pr.promo_id AND ol.quantity >= 3\nWHERE ol.order_line_id IS NULL",
+    "tradeoff": "A LEFT JOIN that keeps unmatched promotions works too, but its quantity test must sit in ON, which is easy to get wrong."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-30",
+      "sql": "SELECT promo_id, promo_code FROM promotions WHERE promo_id NOT IN (SELECT promo_id FROM order_lines WHERE quantity >= 3)"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-15",
+      "sql": "SELECT pr.promo_id, pr.promo_code FROM promotions pr WHERE NOT EXISTS (SELECT 1 FROM order_lines ol WHERE ol.promo_id = pr.promo_id AND ol.quantity > 3)"
+    }
+  ],
+  "hint3_partial": "SELECT pr.promo_id, pr.promo_code\nFROM promotions pr\nWHERE NOT EXISTS (\n  SELECT 1\n  FROM order_lines ol\n  WHERE ol.promo_id = ___\n    AND ol.quantity >= 3\n)",
+  "solver": {
+    "prompt_hash": "c61ac12d8c73d4c9",
+    "schema_version": "deaba44a0c00",
+    "dataset_version": "b2d2b40fb117bb07",
+    "grader_version": "6a.1",
+    "query": "SELECT promo_id, promo_code FROM promotions pr WHERE NOT EXISTS (SELECT 1 FROM order_lines ol WHERE ol.promo_id = pr.promo_id AND ol.quantity >= 3)\r\n",
+    "at": "2026-10-15T11:06:12.854Z"
+  }
+}

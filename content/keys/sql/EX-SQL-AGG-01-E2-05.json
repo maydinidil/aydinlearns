@@ -18,7 +18,7 @@
     },
     {
       "id": "EX-SQL-AGG-01-E2-05-PW2",
-      "error_id": "ERR-LOG-06",
+      "error_id": "ERR-LOG-23",
       "sql": "SELECT AVG(net_revenue_eur) AS avg_line_revenue_eur FROM sales WHERE order_date >= DATE '2025-03-01' AND order_date < DATE '2025-03-31'"
     },
     {

@@ -1,0 +1,115 @@
+{
+  "id": "EX-SQL-DATE-02-E2-06",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-04",
+    "date",
+    "date_arithmetic",
+    "price_history",
+    "days-between",
+    "as-of",
+    "current-price"
+  ],
+  "level": 4,
+  "source_ids": [
+    "01:SQL-DATE-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-15",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-DATE-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-NULL-01",
+    "SQL-JOIN-01",
+    "SQL-DATE-02"
+  ],
+  "template_id": "T-DATE-02-days-at-current-price",
+  "template_params": {
+    "tables": "price_history, products, categories",
+    "category": "Earbuds",
+    "as_of": "2026-01-05"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_interval",
+  "prompt": "For each product in the category 'Earbuds', how many days had its current list price been in place on Voltmarkt's as-of date, 5 January 2026? The current price version is the one with no valid_to. Count the days between its valid_from and the as-of date, so a price that started on 4 January 2026 would show 1. Return two columns, in this order: product_id, and days_at_price. Return one row for each Earbuds product. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "days_at_price",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "days_at_price",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "product_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the row filter: the Earbuds products, and only each product's current price version.",
+    "A price that is still current has a missing valid_to. Then the as-of date minus valid_from counts the days between them."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 72,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 73,
+      "to": 193,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 194,
+      "to": 253,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "Keeping the version with a missing valid_to gives each product's current price, and the as-of date minus its valid_from counts the days since it started."
+}

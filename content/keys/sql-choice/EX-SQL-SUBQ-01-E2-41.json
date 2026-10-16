@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-SUBQ-01-E2-41",
+  "item_version": 1,
+  "correct_oid": "odbed896",
+  "explanation": "NOT EXISTS looks, for each Earbuds product, for any product that names it as its sister. NOT IN compares with a list that holds missing values, so it keeps no product at all. Without the outer alias p, the inner test compares each product s with itself and finds no match, so every Earbuds product is kept. In the LEFT JOIN, the test on s.category_id in WHERE throws away exactly the unmatched rows the IS NULL test was looking for.",
+  "solver": {
+    "prompt_hash": "e63f2242ce45460a",
+    "grader_version": "choice.3",
+    "chosen": "odbed896",
+    "typed": null,
+    "at": "2026-10-15T10:40:24.714Z"
+  }
+}

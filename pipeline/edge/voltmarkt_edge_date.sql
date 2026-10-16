@@ -103,3 +103,12 @@ INSERT INTO voltmarkt_edge_date.competitor_prices VALUES
   (2, 'Stroomhuis', TIMESTAMP '2025-10-26 00:30:00', 81.99),
   (2, 'Bliksem', TIMESTAMP '2025-10-26 01:30:00', 76.99),
   (3, 'Stroomhuis', TIMESTAMP '2025-12-29 07:00:00', 12.99);
+-- M5 (D90, S6-36): added after the sprint 6 build, so every row above stays as it was. The schema panel shows the A/B test's
+-- tables from level 3, so they are here as empty copies: this schema holds no A/B test. The calendar gains voltmarkt's row for
+-- each day of each promotion above that it lacked, so promotion days counted through the calendar match date arithmetic.
+CREATE TABLE voltmarkt_edge_date.ab_assignments AS SELECT * FROM voltmarkt.ab_assignments LIMIT 0;
+CREATE TABLE voltmarkt_edge_date.ab_conversions AS SELECT * FROM voltmarkt.ab_conversions LIMIT 0;
+INSERT INTO voltmarkt_edge_date.calendar SELECT c.* FROM voltmarkt.calendar AS c
+WHERE EXISTS (SELECT 1 FROM voltmarkt_edge_date.promotions AS p WHERE c.cal_date BETWEEN p.start_date AND p.end_date)
+  AND NOT EXISTS (SELECT 1 FROM voltmarkt_edge_date.calendar AS e WHERE e.cal_date = c.cal_date)
+ORDER BY c.cal_date;

@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-DATE-02-E1-22",
+  "item_version": 1,
+  "reference_sql": "SELECT parent_category, SUM(units) AS units\nFROM sales\nWHERE order_date > DATE '2026-01-05' - INTERVAL 14 DAY\n  AND order_date <= DATE '2026-01-05'\nGROUP BY parent_category",
+  "alternatives": [
+    "SELECT parent_category, SUM(units) AS units FROM sales WHERE order_date BETWEEN DATE '2025-12-23' AND DATE '2026-01-05' GROUP BY parent_category",
+    "SELECT parent_category, SUM(units) AS units FROM sales WHERE order_date >= DATE '2026-01-05' - INTERVAL 13 DAY AND order_date < DATE '2026-01-06' GROUP BY parent_category"
+  ],
+  "other_way": {
+    "sql": "SELECT parent_category, SUM(units) AS units FROM sales WHERE order_date BETWEEN DATE '2025-12-23' AND DATE '2026-01-05' GROUP BY parent_category",
+    "tradeoff": "Typing both end dates with BETWEEN reads clearly, but counting back from the as-of date shows where the 14 days come from."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-06",
+      "sql": "SELECT parent_category, SUM(units) AS units FROM sales WHERE order_date >= DATE '2026-01-05' - INTERVAL 14 DAY AND order_date <= DATE '2026-01-05' GROUP BY parent_category"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-06",
+      "sql": "SELECT parent_category, SUM(units) AS units FROM sales WHERE order_date > DATE '2026-01-05' - INTERVAL 13 DAY AND order_date <= DATE '2026-01-05' GROUP BY parent_category"
+    }
+  ],
+  "hint3_partial": "SELECT parent_category, SUM(units) AS units\nFROM sales\nWHERE order_date > ___\n  AND order_date <= DATE '2026-01-05'\nGROUP BY parent_category",
+  "solver": {
+    "prompt_hash": "691cf82bf71b6903",
+    "schema_version": "cebf75df442f",
+    "dataset_version": "b2d2b40fb117bb07",
+    "grader_version": "6a.1",
+    "query": "SELECT parent_category, SUM(units) AS units\nFROM sales\nWHERE CAST(order_date AS DATE) BETWEEN DATE '2025-12-23' AND DATE '2026-01-05'\nGROUP BY parent_category\n",
+    "at": "2026-10-15T11:06:11.308Z"
+  }
+}

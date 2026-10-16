@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-CLEAN-01-E1-08",
+  "item_version": 1,
+  "reference_sql": "WITH line_sets AS (  -- one row per set of matching lines\n  SELECT promo_id, COUNT(*) AS n_lines\n  FROM order_lines\n  GROUP BY order_id, product_id, quantity, unit_price_eur, promo_id, line_discount_eur\n)\nSELECT SUM(CASE WHEN promo_id IS NOT NULL THEN n_lines - 1 ELSE 0 END) AS n_with_promo,\n       SUM(CASE WHEN promo_id IS NULL THEN n_lines - 1 ELSE 0 END) AS n_without_promo\nFROM line_sets",
+  "alternatives": [
+    "WITH line_sets AS (  -- one row per set of matching lines\n  SELECT promo_id, COUNT(*) AS n_lines\n  FROM order_lines\n  GROUP BY order_id, product_id, quantity, unit_price_eur, promo_id, line_discount_eur\n)\nSELECT COALESCE(SUM(n_lines - 1) FILTER (WHERE promo_id IS NOT NULL), 0) AS n_with_promo,\n       COALESCE(SUM(n_lines - 1) FILTER (WHERE promo_id IS NULL), 0) AS n_without_promo\nFROM line_sets",
+    "SELECT SUM(CASE WHEN promo_id IS NOT NULL THEN n_lines - 1 ELSE 0 END) AS n_with_promo,\n       SUM(CASE WHEN promo_id IS NULL THEN n_lines - 1 ELSE 0 END) AS n_without_promo\nFROM (  -- one row per set of matching lines\n  SELECT promo_id, COUNT(*) AS n_lines\n  FROM order_lines\n  GROUP BY order_id, product_id, quantity, unit_price_eur, promo_id, line_discount_eur\n) AS line_sets"
+  ],
+  "other_way": {
+    "sql": "WITH line_sets AS (  -- one row per set of matching lines\n  SELECT promo_id, COUNT(*) AS n_lines\n  FROM order_lines\n  GROUP BY order_id, product_id, quantity, unit_price_eur, promo_id, line_discount_eur\n)\nSELECT COALESCE(SUM(n_lines - 1) FILTER (WHERE promo_id IS NOT NULL), 0) AS n_with_promo,\n       COALESCE(SUM(n_lines - 1) FILTER (WHERE promo_id IS NULL), 0) AS n_without_promo\nFROM line_sets",
+    "tradeoff": "FILTER says which sets each sum takes, but it needs COALESCE for a sum over no rows, which CASE with ELSE 0 avoids."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-03",
+      "sql": "SELECT COUNT(*) FILTER (WHERE b.promo_id IS NOT NULL) AS n_with_promo, COUNT(*) FILTER (WHERE b.promo_id IS NULL) AS n_without_promo FROM order_lines a JOIN order_lines b ON b.order_id = a.order_id AND b.product_id = a.product_id AND b.quantity = a.quantity AND b.unit_price_eur = a.unit_price_eur AND b.promo_id = a.promo_id AND b.line_discount_eur = a.line_discount_eur AND b.order_line_id > a.order_line_id"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-36",
+      "sql": "WITH line_sets AS (  -- one row per set of matching lines\n  SELECT promo_id, COUNT(*) AS n_lines\n  FROM order_lines\n  GROUP BY order_id, product_id, quantity, unit_price_eur, promo_id, line_discount_eur\n)\nSELECT SUM(CASE WHEN promo_id IS NOT NULL AND n_lines > 1 THEN n_lines ELSE 0 END) AS n_with_promo, SUM(CASE WHEN promo_id IS NULL AND n_lines > 1 THEN n_lines ELSE 0 END) AS n_without_promo FROM line_sets"
+    }
+  ],
+  "hint3_partial": "WITH line_sets AS (  -- one row per set of matching lines\n  SELECT promo_id, COUNT(*) AS n_lines\n  FROM order_lines\n  GROUP BY order_id, product_id, quantity, unit_price_eur, promo_id, line_discount_eur\n)\nSELECT SUM(CASE WHEN ___ THEN n_lines - 1 ELSE 0 END) AS n_with_promo,\n       SUM(CASE WHEN ___ THEN n_lines - 1 ELSE 0 END) AS n_without_promo\nFROM line_sets",
+  "solver": {
+    "prompt_hash": "c155b43f4fa0c3ac",
+    "schema_version": "6c8fc3c0d3d4",
+    "dataset_version": "b2d2b40fb117bb07",
+    "grader_version": "6a.1",
+    "query": "WITH sets AS (SELECT order_id, product_id, quantity, unit_price_eur, promo_id, line_discount_eur, COUNT(*) AS n FROM order_lines GROUP BY order_id, product_id, quantity, unit_price_eur, promo_id, line_discount_eur)\nSELECT COALESCE(SUM(n - 1) FILTER (WHERE promo_id IS NOT NULL), 0) AS n_with_promo,\n       COALESCE(SUM(n - 1) FILTER (WHERE promo_id IS NULL), 0) AS n_without_promo\nFROM sets\n",
+    "at": "2026-10-15T11:06:09.607Z"
+  }
+}

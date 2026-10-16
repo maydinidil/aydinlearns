@@ -46,7 +46,8 @@ export const DETECTORS: Record<string, RegExp> = {
   subquery: /(?<!\bas\s*((not\s+)?materialized\s*)?|^\s*|\b(union|intersect|except)(\s+(all|distinct))?\s*)\(\s*select\b/i,
   text_helper: /\b(lower|upper|lcase|ucase|trim|ltrim|rtrim)\s*\(/i,
   string_fn: /\b(substring|substr|replace|concat|concat_ws|length|len|char_length|split_part|left|right|position|strpos|instr|lpad|rpad|reverse|starts_with|ends_with|contains|string_split|regexp_\w+)\s*\(|\|\|/i,
-  date_arith: /\binterval\b|\b(date_diff|datediff|date_sub|datesub|date_add|age)\s*\(/i,
+  // S6-09 (sprint 6, Task A1): renamed from date_arith. A minus between two DATE values counts too; dateMinusDate finds it.
+  date_arithmetic: /\binterval\b|\b(date_diff|datediff|date_sub|datesub|date_add|age)\s*\(/i,
   window: /\bover\b\s*(\(|[a-z_])/i,
   ranking: /\b(row_number|rank|dense_rank)\s*\(/i,
   lag_lead: /\b(lag|lead)\s*\(/i,
@@ -70,10 +71,172 @@ const HELPER_CALLS: Record<string, RegExp> = {
 const blankIdentifiers = (masked: string): string => masked.replace(/"[^"]*"?/g, (m) => ' '.repeat(m.length));
 const detectable = (sql: string): string => blankIdentifiers(maskSql(sql));
 
+/**
+ * `dateColumns`: the lower-case names of the DATE-typed columns of the query's schema (S6-09); since S6-34, only the names every table
+ * of the schema that has them types DATE (dateColumns in tools/check-content.ts). Without them, only operands that say DATE themselves count.
+ */
+export interface DetectOptions { dateColumns?: ReadonlySet<string> }
+
+const NAME = String.raw`"(?:[^"]|"")*"|[A-Za-z_][\w$]*`;
+/** A name at the end of the text, qualified or not: the group is its last part. */
+const NAME_BEFORE = new RegExp(String.raw`(?:(?:${NAME})\s*\.\s*)*(${NAME})\s*$`);
+/** A name at the start of the text, qualified or not. */
+const NAME_START = new RegExp(String.raw`^(?:(?:${NAME})\s*\.\s*)*(?:${NAME})`);
+/** A text that is one name, qualified or not: the group is its last part. */
+const NAME_ONLY = new RegExp(String.raw`^(?:(?:${NAME})\s*\.\s*)*(${NAME})$`);
+const unquoted = (name: string): string => (name.startsWith('"') ? name.slice(1, -1).replace(/""/g, '"') : name).toLowerCase();
+const AS_DATE_END = /\bas\s+date\s*$/i;
+/** A `::` cast that ends an operand, with any type arguments (`::DATE`, `::DECIMAL(10, 2)`): the group is the type. */
+const CAST_SUFFIX_END = /::\s*([A-Za-z_]\w*)\s*(?:\([^()]*\))?\s*$/;
+/** A `::` cast that starts the text, as CAST_SUFFIX_END reads one. */
+const CAST_SUFFIX_START = /^\s*::\s*[A-Za-z_]\w*(?:\s*\([^()]*\))?/;
+/**
+ * S6-34 (sprint 6, Task K3): the calls whose value is a DATE operand when one of their arguments is one: the aggregates and
+ * comparisons that keep their input's type, and date_trunc.
+ */
+const DATE_KEEPING_CALLS: ReadonlySet<string> = new Set(['min', 'max', 'any_value', 'least', 'greatest', 'date_trunc']);
+
+/** The index of the bracket that closes the one at `open`, or -1. */
+function closing(bare: string, open: number): number {
+  for (let i = open, depth = 0; i < bare.length; i++) {
+    if (bare[i] === '(') depth++;
+    else if (bare[i] === ')' && --depth === 0) return i;
+  }
+  return -1;
+}
+/** The index of the bracket that opens the one at `close`, or -1. */
+function opening(bare: string, close: number): number {
+  for (let i = close, depth = 0; i >= 0; i--) {
+    if (bare[i] === ')') depth++;
+    else if (bare[i] === '(' && --depth === 0) return i;
+  }
+  return -1;
+}
+
+/** The [from, to) spans of the arguments between the brackets at `open` and `close`, split at their own commas. */
+function argSpans(bare: string, open: number, close: number): [number, number][] {
+  const spans: [number, number][] = [];
+  let start = open + 1;
+  for (let i = open + 1, depth = 0; i < close; i++) {
+    const ch = bare[i];
+    if (ch === '(' || ch === '[' || ch === '{') depth++;
+    else if (ch === ')' || ch === ']' || ch === '}') depth--;
+    else if (ch === ',' && depth === 0) { spans.push([start, i]); start = i + 1; }
+  }
+  spans.push([start, close]);
+  return spans;
+}
+
+/**
+ * Whether the text between `from` and `to` is one DATE operand (S6-09, S6-34):
+ * - a `DATE '...'` literal, or anything cast to DATE (`CAST(... AS DATE)`, `TRY_CAST`, `::DATE`; the last cast decides);
+ * - a column name, qualified or not, that `dates` holds (dateColumns: typed DATE in every table that has it);
+ * - min, max, any_value, least, greatest or date_trunc over an argument that is one (DISTINCT before it is skipped).
+ * `masked` reads names (a quoted one included) and `bare` brackets, so a bracket inside a quoted name never counts.
+ */
+function isDateOperand(masked: string, bare: string, from: number, to: number, dates: ReadonlySet<string>): boolean {
+  while (from < to && /\s/.test(masked[from]!)) from++;
+  while (to > from && /\s/.test(masked[to - 1]!)) to--;
+  if (from >= to) return false;
+  const b = bare.slice(from, to);
+  const cast = CAST_SUFFIX_END.exec(b);
+  if (cast) return cast[1]!.toLowerCase() === 'date';
+  if (/^date\s*'[^']*'$/i.test(b)) return true;
+  if (masked[to - 1] === ')') {
+    const open = opening(bare, to - 1);
+    if (open < from) return false;
+    const call = masked.slice(from, open).trim().toLowerCase();        // empty for a bracketed operand
+    if (call === 'cast' || call === 'try_cast') return AS_DATE_END.test(bare.slice(open + 1, to - 1));
+    if (!DATE_KEEPING_CALLS.has(call)) return false;
+    return argSpans(bare, open, to - 1).some(([f, t]) => {
+      const distinct = /^\s*distinct\b/i.exec(bare.slice(f, t));
+      return isDateOperand(masked, bare, distinct ? f + distinct[0].length : f, t, dates);
+    });
+  }
+  const name = NAME_ONLY.exec(masked.slice(from, to))?.[1];
+  return name !== undefined && dates.has(unquoted(name));
+}
+
+/**
+ * Where the operand that ends just before `end` starts, or -1: a name, a call (its name and brackets), a literal, or a bracketed
+ * operand, with any `::` casts after it. Names are read within the 256 characters before; a qualified name is far shorter.
+ */
+function operandStart(masked: string, bare: string, end: number): number {
+  let p = end;
+  for (;;) {
+    while (p > 0 && /\s/.test(masked[p - 1]!)) p--;
+    const cast = CAST_SUFFIX_END.exec(bare.slice(Math.max(0, p - 128), p));
+    if (!cast) break;
+    p -= cast[0].length;
+  }
+  if (masked[p - 1] === "'") {
+    const open = masked.lastIndexOf("'", p - 2);           // maskSql blanks a string's text, quotes inside it included
+    if (open < 0) return -1;
+    const keyword = /\bdate\s*$/i.exec(masked.slice(Math.max(0, open - 16), open));
+    return keyword ? open - keyword[0].length : open;
+  }
+  if (masked[p - 1] === ')') {
+    const open = opening(bare, p - 1);
+    if (open < 0) return -1;
+    const lo = Math.max(0, open - 256);
+    const call = NAME_BEFORE.exec(masked.slice(lo, open));
+    return call ? lo + call.index : open;
+  }
+  const lo = Math.max(0, p - 256);
+  const name = NAME_BEFORE.exec(masked.slice(lo, p));
+  return name ? lo + name.index : -1;
+}
+
+/** Where the operand that starts just after `start` ends, or -1, read as operandStart reads one. */
+function operandEnd(masked: string, bare: string, start: number): number {
+  let p = start;
+  while (p < masked.length && /\s/.test(masked[p]!)) p++;
+  const literal = /^date\s*'/i.exec(bare.slice(p, p + 16));
+  if (literal) {
+    const close = bare.indexOf("'", p + literal[0].length);
+    if (close < 0) return -1;
+    p = close + 1;
+  } else {
+    const name = NAME_START.exec(masked.slice(p, p + 256));
+    if (name) p += name[0].length;
+    let q = p;
+    while (q < masked.length && /\s/.test(masked[q]!)) q++;
+    if (bare[q] === '(') {                                 // a call, or a bracketed operand
+      const close = closing(bare, q);
+      if (close < 0) return -1;
+      p = close + 1;
+    } else if (!name) return -1;
+  }
+  for (let c = CAST_SUFFIX_START.exec(bare.slice(p, p + 128)); c; c = CAST_SUFFIX_START.exec(bare.slice(p, p + 128))) p += c[0].length;
+  return p;
+}
+
+/**
+ * S6-09: a `-` whose two operands are both DATE operands (isDateOperand): a column the schema types as DATE, a `DATE '...'` literal,
+ * a cast to DATE, or (S6-34, sprint 6 Task K3) one of those inside min, max, any_value, least, greatest or date_trunc. Read on the
+ * masked text, so strings and comments never count; `->` is a lambda, not a minus. DATE minus a number, or a TIMESTAMP minus a DATE,
+ * is not this construct.
+ */
+function dateMinusDate(sql: string, dates: ReadonlySet<string>): boolean {
+  const masked = maskSql(sql);
+  const bare = blankIdentifiers(masked);
+  for (let i = bare.indexOf('-'); i >= 0; i = bare.indexOf('-', i + 1)) {
+    if (bare[i + 1] === '>') continue;
+    const from = operandStart(masked, bare, i);
+    if (from < 0 || !isDateOperand(masked, bare, from, i, dates)) continue;
+    const to = operandEnd(masked, bare, i + 1);
+    if (to >= 0 && isDateOperand(masked, bare, i + 1, to, dates)) return true;
+  }
+  return false;
+}
+
 /** The constructs a query uses, in DETECTORS order. */
-export function detectConstructs(sql: string): string[] {
+export function detectConstructs(sql: string, opts: DetectOptions = {}): string[] {
   const text = detectable(sql);
-  return Object.entries(DETECTORS).filter(([, re]) => re.test(text)).map(([name]) => name);
+  const dates = opts.dateColumns ?? new Set<string>();
+  return Object.entries(DETECTORS)
+    .filter(([name, re]) => re.test(text) || (name === 'date_arithmetic' && dateMinusDate(sql, dates)))
+    .map(([name]) => name);
 }
 
 /** Every call of a helper construct in a query, as upper-case SQL names in text order; null when the construct has no helpers. */

@@ -17,7 +17,7 @@ export interface Share { count: number; total: number; pct: number | null }
 export interface GoalSummary { id: string; title: string; target_date: string; stage: number | null }
 /** A concept not at its criterion's state yet: what closes the gap (design §2). */
 export interface GapConcept { concept_id: string; title: string; state: ConceptStateName }
-export interface ProgressCriterion extends CriterionResult { gap: GapConcept[] }
+export interface ProgressCriterion extends CriterionResult { gap: GapConcept[]; hint?: string }
 export type GoalStatus = 'met' | 'open' | 'not_yet_available';
 export interface ProgressGoal { goal: GoalSummary; effective_date: string; met: boolean; status: GoalStatus; behind: boolean; criteria: ProgressCriterion[] }
 export interface ReadinessBoard { ready: boolean; stages: ProgressGoal[] }

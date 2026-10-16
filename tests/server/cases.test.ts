@@ -69,7 +69,7 @@ async function deps(seed: { attempts?: object[]; events?: object[] } = {}, store
   logger.onWrite((file, r) => state.record(file, r));
   return { port: 5174, checks: [], runner: null, content: store, logger, session: new SessionTracker(logger, async (at) => { for (const h of endHooks) await h(at); }),
     endHooks, closedInstances: [], schemaNotes: [], manifest: { dataset_version: 'x', library_version: 'v1.5.6' },
-    settings: { backup_folder: null, exam_date: null, goal_dates: {} }, tableCheck: 'parse_tree', state };
+    settings: { backup_folder: null, exam_date: null, goal_dates: {}, portfolio_folder: null }, tableCheck: 'parse_tree', state };
 }
 const attempts = async (d: AppDeps) => (await d.logger.readAll('attempts')) as any[];
 const events = async (d: AppDeps) => (await d.logger.readAll('events')) as any[];
@@ -176,7 +176,7 @@ test('GET /api/cases lists every case as a manager message with its status and s
   assert.deepEqual(list.map((x: any) => x.case_id), [DAILY_ID, INBOX_ID, OPENER_ID], 'every case, in case ID order');
   assert.deepEqual(list.find((x: any) => x.case_id === INBOX_ID), {
     case_id: INBOX_ID, kind: 'inbox', level: 1, title: inbox.title, persona: inbox.persona, brief: inbox.brief,
-    status: 'new', score: 0, checkpoints_passed: 0, checkpoints_total: 5,
+    status: 'new', score: 0, checkpoints_passed: 0, checkpoints_total: 5, unavailable: null,
   });
   assert.deepEqual(list.map((x: any) => [x.kind, x.checkpoints_total]), [['daily', 2], ['inbox', 5], ['opener', 2]]);
   await get(app, `/api/cases/${INBOX_ID}`);
@@ -265,6 +265,96 @@ test('Review Focus 2: before each answer, no inbox, case view, serving or gated 
   for (const s of SECRETS) assert.ok(!logged.includes(s.text), `the log holds no ${s.label}`);
 });
 
+// ---- Sprint 6 (Task B3, D1-M1): error bodies and every case's checkpoint replies ---------------------------------------------
+
+/**
+ * Every refusal a case route can give before an answer, each case: a refused answer (no instance, one never served, an option or
+ * number that cannot be read), a checkpoint that is not answered here, a malformed plan, a plan check or rubric with nothing shown
+ * yet, a sketch on a case that is no opener, and an empty insight. Each must answer 4xx, and its error body is searched as a reply.
+ */
+async function everyErrorResponse(app: Hono): Promise<{ label: string; status: number; body: string }[]> {
+  const out: { label: string; status: number; body: string }[] = [];
+  const send = async (label: string, r: Response | Promise<Response>) => { const x = await r; out.push({ label, status: x.status, body: await x.text() }); };
+  for (const c of content.cases!()) {
+    const id = c.case_id;
+    for (const cp of c.checkpoints.filter((p) => ['CP1', 'CP2', 'CP4', 'CP5'].includes(p.kind)).map((p) => p.kind)) {
+      await send(`${id} ${cp} answer with no instance`, answer(app, id, cp, {}));
+      await send(`${id} ${cp} answer to an instance never served`, answer(app, id, cp, { item_instance_id: 'never-served', typed: '1', chosen: 'o0000000' }));
+      const s = await json(serve(app, id, cp));
+      const unreadable = cp === 'CP1' || cp === 'CP5' ? { chosen: 'o-not-an-option' } : { typed: 'not a number' };
+      await send(`${id} ${cp} unreadable answer`, answer(app, id, cp, { item_instance_id: s.item_instance_id, ...unreadable }));
+    }
+    for (const cp of ['CP3', 'CP6', 'CP9']) await send(`${id} ${cp} serve`, serve(app, id, cp));
+    await send(`${id} malformed plan`, post(app, `/api/cases/${id}/plan`, { fields: { nope: 'x' } }));
+    await send(`${id} plan check before a plan`, post(app, `/api/cases/${id}/plan-check`, { ticked: [] }));
+    await send(`${id} rubric before an insight`, post(app, `/api/cases/${id}/rubric`, { ticked: [] }));
+    await send(`${id} empty insight`, post(app, `/api/cases/${id}/insight`, { text: ' ' }));
+    if (c.kind !== 'opener') await send(`${id} sketch`, post(app, `/api/cases/${id}/sketch`, { fields: { one_row_per: 'store' } }));
+  }
+  return out;
+}
+
+test('D1-M1: the leak search reads error bodies too, and finds a key planted in one', async () => {
+  // A stand-in app whose refusals carry a truth query, an explanation and a value: the same collector must name each.
+  const { Hono: HonoApp } = await import('hono');
+  const fake = new HonoApp();
+  const planted = [SECRETS.find((s) => s.label.endsWith('truth query'))!.text, SECRETS.find((s) => s.label.endsWith('explanation'))!.text];
+  fake.post('/api/cases/:id/checkpoints/:cp/answer', (c) => c.json({ error: `Refused: ${planted[0]}` }, 400));
+  fake.post('/api/cases/:id/plan', (c) => c.json({ error: `Refused: ${planted[1]}` }, 400));
+  fake.post('/api/cases/:id/checkpoints/:cp/serve', (c) => c.json({ error: `Refused: ${VALUES[`${INBOX_ID}:CP2`]}` }, 404));
+  fake.all('*', (c) => c.json({ error: 'Refused.' }, 404));
+  const found = new Set((await everyErrorResponse(fake as unknown as Hono)).flatMap((r) => leaks(r.body)));
+  assert.ok([...found].some((l) => l.endsWith('truth query')), 'a truth query in an error body is found');
+  assert.ok([...found].some((l) => l.endsWith('explanation')), 'an explanation in an error body is found');
+  assert.ok(found.has(`${INBOX_ID}:CP2 value`), 'a value in an error body is found');
+});
+
+test('D1-M1: no error body of any case route holds a value, an explanation, a truth query, a model text or a key field', async () => {
+  const d = await deps();
+  const app = createApp(d);
+  const errors = await everyErrorResponse(app);
+  assert.ok(errors.length >= 30, 'every case\'s refusals were collected');
+  for (const r of errors) {
+    assert.ok(r.status >= 400 && r.status < 500, `${r.label} is refused (${r.status})`);
+    assert.deepEqual(leaks(r.body), [], r.label);
+  }
+  assert.deepEqual((await attempts(d)).filter((x) => x.record === 'attempt'), [], 'a refusal logs no attempt');
+});
+
+test('D1-M1: every case\'s checkpoint replies reveal their own checkpoint only, and the self-check replies reveal nothing', async () => {
+  const d = await deps();
+  const app = createApp(d);
+  const revealed: string[] = [];
+  for (const c of content.cases!()) {
+    for (const cp of c.checkpoints.filter((p) => ['CP1', 'CP2', 'CP4', 'CP5'].includes(p.kind))) {
+      // Wrong first where a wrong answer reveals the most: every reply then carries its checkpoint's value or right option.
+      const s = await json(serve(app, c.case_id, cp.kind));
+      const body = cp.kind === 'CP1' || cp.kind === 'CP5' ? { chosen: cp.options!.map((o) => o.oid).find((o) => o !== keyOf(c.case_id).choices[cp.kind as 'CP1' | 'CP5']!.correct_oid) }
+        : { typed: cp.kind === 'CP2' ? WRONG.CP2 : WRONG.CP4 };
+      const reply = await answer(app, c.case_id, cp.kind, { item_instance_id: s.item_instance_id, ...body });
+      assert.equal(reply.status, 200, `${c.case_id} ${cp.kind}`);
+      const own = `${c.case_id}:${cp.kind}`;
+      const fields = cp.kind === 'CP1' || cp.kind === 'CP5' ? ['correct', 'correct_oid', 'explanation'] : ['correct', 'value'];
+      assert.deepEqual(leaks(await reply.text(), { revealed: [own], fields }), [], `${own}'s reply reveals its own checkpoint only`);
+      revealed.push(own);
+    }
+  }
+  assert.equal(revealed.length, 6, 'the opener\'s CP4, the inbox case\'s four and the daily case\'s CP4');
+  const ok: [string, Response][] = [
+    ['sketch', await post(app, `/api/cases/${OPENER_ID}/sketch`, { fields: { one_row_per: 'store' } })],
+    ['plan', await post(app, `/api/cases/${DAILY_ID}/plan`, { fields: { metric_formula: 'a plan' } })],
+    ['plan check', await post(app, `/api/cases/${DAILY_ID}/plan-check`, { ticked: [] })],
+    ['insight', await post(app, `/api/cases/${DAILY_ID}/insight`, { text: 'An insight.' })],
+    ['rubric', await post(app, `/api/cases/${DAILY_ID}/rubric`, { ticked: [] })],
+  ];
+  for (const [label, r] of ok) {
+    assert.equal(r.status, 200, label);
+    const allow = label === 'plan' ? { fields: ['model_plan'], texts: [`${DAILY_ID} model plan`] }
+      : label === 'insight' ? { fields: ['model_answer'], texts: [`${DAILY_ID} model answer`], revealed: [`${DAILY_ID}:CP4`] } : {};
+    assert.deepEqual(leaks(await r.text(), allow), [], `the ${label} reply`);
+  }
+});
+
 // ---- Checkpoints CP1, CP2, CP4 and CP5 (S4B-07, Review Focus 3) -------------------------------------------------------------
 
 test('a CP1 is served in phase case, answered once, logged as a choice checkpoint attempt, closed, and its key comes back only then', async () => {
@@ -282,7 +372,7 @@ test('a CP1 is served in phase case, answered once, logged as a choice checkpoin
   const [a, close, ...rest] = (await attempts(d)).filter((x) => x.item_instance_id === s.item_instance_id);
   assert.deepEqual(rest, []);
   assert.deepEqual([a.record, a.section, a.item_kind, a.item_id, a.phase, a.level, a.outcome, a.is_correct, a.confidence, a.grader_version, a.grading_source, a.submission_no],
-    ['attempt', 'sql', 'mcq', `${INBOX_ID}:CP1`, 'case', 1, 'pass', true, 4, 'choice.2', 'auto', 1], 'the serving\'s phase, not the browser\'s');
+    ['attempt', 'sql', 'mcq', `${INBOX_ID}:CP1`, 'case', 1, 'pass', true, 4, 'choice.3', 'auto', 1], 'the serving\'s phase, not the browser\'s');
   assert.deepEqual(a.payload, { kind: 'mcq', shown_order: s.shown_order, chosen: correctOid('CP1') });
   assert.deepEqual([a.concept_ids, a.target_concept_id], [[], FIXTURE_CONCEPT], 'CP1 credits nothing: the target is the first concept its CP3 credits (S2-106)');
   assert.deepEqual([close.record, close.reason, close.item_id, close.phase], ['item_close', 'pass', `${INBOX_ID}:CP1`, 'case']);

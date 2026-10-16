@@ -1,0 +1,118 @@
+{
+  "id": "EX-SQL-STR-01-E2-05",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-04",
+    "text_helper",
+    "sku",
+    "order_lines",
+    "products"
+  ],
+  "level": 4,
+  "source_ids": [
+    "01:SQL-STR-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-15",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-STR-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-JOIN-01",
+    "SQL-STR-01"
+  ],
+  "template_id": "T-STR-01-units-per-bad-sku",
+  "template_params": {
+    "form": "upper_trim"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt_raw",
+  "edge_schema": "voltmarkt_edge_clean",
+  "uses_raw": true,
+  "prompt": "How many units of each product with a sku off the standard form have been sold? These tables may hold errors. The standard form of a sku is upper case with no spaces at its start or end. Return two columns, in this order: clean_sku, the product's sku in standard form, and units, the quantity summed over its order lines. Return one row for each such product that sold at least one unit. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "clean_sku",
+        "type_class": "text"
+      },
+      {
+        "name": "units",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "clean_sku",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "units",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "clean_sku"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, decide what one row stands for: one product, named by its cleaned sku.",
+    "Return and group by the same cleaned expression, and add up quantity, not the number of lines."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 65,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 66,
+      "to": 133,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 134,
+      "to": 167,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 168,
+      "to": 195,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "Each cleaned sku names one product, so grouping by it adds up that product's quantity once."
+}

@@ -1,0 +1,184 @@
+{
+  "case_id": "CASE-MKT-02",
+  "kind": "inbox",
+  "level": 4,
+  "world": "MKT",
+  "company_id": "mailvora",
+  "schema": "mailvora",
+  "title": "Q3 2025 budget against actual by channel",
+  "persona": {
+    "name": "Ciarán",
+    "role": "Marketing director"
+  },
+  "brief": {
+    "decision": "How to explain the Q3 2025 paid media overspend to finance, and which channel budgets to change for Q4",
+    "deadline": "Friday's meeting with finance"
+  },
+  "data_needed": [
+    "budget_monthly",
+    "channels",
+    "campaigns",
+    "ad_spend_daily"
+  ],
+  "expected_output": {
+    "columns": [
+      "month",
+      "channel_id",
+      "channel_name",
+      "budget_eur",
+      "actual_eur",
+      "variance_eur",
+      "variance_pct",
+      "flag"
+    ],
+    "grain": "one row per paid channel and month of Q3 2025 in the budget plan, including a channel and month with no spend",
+    "sort": [
+      {
+        "column": "month",
+        "desc": false
+      },
+      {
+        "column": "variance_eur",
+        "desc": true
+      },
+      {
+        "column": "channel_id",
+        "desc": false
+      }
+    ]
+  },
+  "checkpoints": [
+    {
+      "id": "CP1",
+      "kind": "CP1",
+      "item_id": "CASE-MKT-02:CP1",
+      "credits_concepts": [],
+      "prompt": "Ciarán wants each paid channel's budget against its actual spend for each month of Q3 2025. The budget plan has one row per paid channel and month; the spend data has one row per campaign and day. How should the two be put together?",
+      "options": [
+        {
+          "oid": "o3d8c11e",
+          "text": "Join each budget row to its channel's daily spend rows for that month, then add up the budget and the spend for each channel and month in one step"
+        },
+        {
+          "oid": "ofc51afc",
+          "text": "First add up the daily spend to one total per channel and month, then attach it to each budget row, keeping budget rows that have no spend"
+        },
+        {
+          "oid": "o925b1f2",
+          "text": "First add up the daily spend per channel and month, then attach a budget to each of those totals where the plan has one"
+        },
+        {
+          "oid": "o487b555",
+          "text": "Add up the quarter's budget and the quarter's spend for each channel, then split the difference evenly over July, August and September"
+        }
+      ]
+    },
+    {
+      "id": "CP2",
+      "kind": "CP2",
+      "item_id": "CASE-MKT-02:CP2",
+      "credits_concepts": [
+        "SQL-AGG-01"
+      ],
+      "prompt": "Ciarán's budget plan has one row per paid channel and month. Take the plan's rows for July, August and September 2025, a budget of 0 euros included. A channel's spend in a month is what its campaigns spent on the UTC days of that month. How many of those plan rows belong to a channel that spent nothing at all in that month? Type a whole number.",
+      "typed": {
+        "precision": "count",
+        "scale": "plain",
+        "decimals": 0,
+        "unit_label": "rows"
+      },
+      "truth_key": "CASE-MKT-02:CP2"
+    },
+    {
+      "id": "CP3",
+      "kind": "CP3",
+      "item_id": "EX-CASE-MKT-02",
+      "credits_concepts": [
+        "SQL-CLEAN-01",
+        "SQL-JOIN-03",
+        "SQL-JOIN-02",
+        "SQL-DATE-01",
+        "SQL-CASE-01"
+      ],
+      "prompt": "Write the query that answers Ciarán's question."
+    },
+    {
+      "id": "CP4",
+      "kind": "CP4",
+      "item_id": "CASE-MKT-02:CP4",
+      "credits_concepts": [],
+      "prompt": "Ciarán's headline for finance is the biggest overspend in Q3 2025. For each paid channel and each month from July to September 2025 in the budget plan, the actual spend is what the channel's campaigns spent on the UTC days of that month, and the overspend is the actual spend minus that month's planned budget. What is the largest overspend of any one channel in any one month? Type the amount in euros, rounded to 2 decimals.",
+      "typed": {
+        "precision": "money",
+        "scale": "eur",
+        "decimals": 2,
+        "unit_label": "euros"
+      },
+      "truth_key": "CASE-MKT-02:CP4"
+    },
+    {
+      "id": "CP5",
+      "kind": "CP5",
+      "item_id": "CASE-MKT-02:CP5",
+      "credits_concepts": [],
+      "prompt": "Ciarán's Q3 2025 table shows Meta over budget in every month and LinkedIn under budget in every month, with the other channels close to plan. Nothing else has been checked yet. Ciarán asks: how should the overspend be presented to finance on Friday?",
+      "options": [
+        {
+          "oid": "o6dafc19",
+          "text": "Show only the channel-months flagged over, because finance asked about the overspend and an underspend needs no explaining."
+        },
+        {
+          "oid": "o5040953",
+          "text": "Lead with the net Q3 variance, then Meta's months that drive it and LinkedIn's underspend that offsets part of it, and whether Meta's extra spend brought more signups."
+        },
+        {
+          "oid": "o93d2e27",
+          "text": "Give the average of all the monthly variance percentages as the headline, because it treats every channel and month the same and so is the fairest single figure."
+        },
+        {
+          "oid": "o7afbef6",
+          "text": "Say that the money Meta spent over its budget was wasted and ask finance to hold Meta to its plan from October, since spend above a budget is always a mistake to correct."
+        }
+      ]
+    },
+    {
+      "id": "CP6",
+      "kind": "CP6",
+      "credits_concepts": [],
+      "prompt": "Write 2 to 4 sentences for Ciarán to take to finance on Friday: which channel drove the Q3 2025 overspend and by how much in its biggest month, what offsets it, one caveat, and one next step."
+    }
+  ],
+  "model_plan": "Metric formula: actual_eur is the channel's spend in the month, added up over its campaigns and days; variance_eur = actual_eur minus budget_eur; variance_pct = 100 times variance_eur divided by budget_eur, rounded to 1 decimal, and missing when budget_eur is 0; flag is over above 10, under below -10, and on_track otherwise.\nOutput grain: one row per budget row, a paid channel in a month of Q3 2025.\nTables and keys: ad_spend_daily joins campaigns on campaign_id for the channel_id and is added up per channel and month first; budget_monthly then LEFT JOINs those totals on channel_id and month; channels gives channel_name.\nFilters: budget months 2025-07-01, 2025-08-01 and 2025-09-01; spend_date from 2025-07-01 to 2025-09-30, both days included.\nEdge cases: a budget row with no spend keeps its row with actual_eur 0; a budget of 0 leaves variance_pct missing and the flag on_track; joining budgets to daily rows before adding up repeats each budget; a month number without its year mixes in 2024.\nExpected row count: 21",
+  "model_answer_template": "Meta drove the Q3 2025 overspend: it went over budget in every month of the quarter, and its biggest month, September, ran {CP4} euros over plan. LinkedIn stayed well under budget in every month, which offsets part of Meta's overspend, while the other channels were close to plan. This view compares spend with plan, not results, and spend on a channel with no budget row would not appear in it. Before Friday, I would check whether Meta's extra spend brought proportionally more signups, then propose to finance either moving LinkedIn's unspent budget to Meta or bringing Meta back to plan.",
+  "follow_up_question": "How should we present the Q3 overspend to finance?",
+  "data_source": {
+    "label": "Fictional, generated data: Mailvora",
+    "real": false,
+    "licence": null
+  },
+  "difficulty": 2,
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CASE-01",
+    "SQL-TYPE-01",
+    "SQL-DATE-01",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-JOIN-03",
+    "SQL-CLEAN-01"
+  ],
+  "metric_ids": [
+    "MET-MKT-13",
+    "MET-MKT-01"
+  ],
+  "find_ids": [],
+  "uses_raw": false
+}

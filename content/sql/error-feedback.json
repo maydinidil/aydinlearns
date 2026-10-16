@@ -34,10 +34,20 @@
     "why": "In SQL, double quotes mark the name of a column or table, and only single quotes mark text, so the engine looked for a column called {column} and found none.",
     "model": "Put text in single quotes, as in `'{column}'`, and compare values with `=` and `<>`, the standard SQL operators."
   },
+  "ERR-SYN-08": {
+    "assumed": "You probably expected WHERE to filter on the result of a window function, such as a rank, a row number or a running total.",
+    "why": "SQL works out window functions after WHERE has already picked the rows, so WHERE cannot test `ROW_NUMBER() OVER (...)` or any other window function.",
+    "model": "Work the window function out in a CTE or subquery, give it a name, and filter that name with WHERE in the outer query: `WITH ranked AS (SELECT product_id, ROW_NUMBER() OVER (ORDER BY units DESC) AS rn FROM t) SELECT product_id FROM ranked WHERE rn <= 3`."
+  },
   "ERR-SEM-01": {
     "assumed": "You probably expected SQL to show a column next to your totals without being told how to combine its values in each group.",
     "why": "After GROUP BY, each group becomes one row. A column that is neither in GROUP BY nor inside an aggregate can hold many different values within one group, and SQL will not pick one for you.",
     "model": "Add the column to GROUP BY if the question wants one row per that column too (this changes the grain), or wrap it in an aggregate such as `MAX(...)` if one value per group is enough. If the column is only read by a CASE label, group by the label instead (its name, its position or the whole CASE). If it sits in a HAVING test on single rows, move that test to WHERE."
+  },
+  "ERR-SEM-02": {
+    "assumed": "You probably expected AND to keep the rows that have either value, as in `country_code = 'NL' AND country_code = 'BE'`.",
+    "why": "AND keeps a row only when both conditions are true for that same row, and a column holds one value in each row. A condition that asks one column to equal two different values at once can never be true, so the query returns no rows at all.",
+    "model": "To keep the rows with either value, use OR or IN: `WHERE country_code IN ('NL', 'BE')`. Keep AND for conditions on different columns, such as `country_code = 'NL' AND store_type = 'outlet'`."
   },
   "ERR-SEM-03": {
     "assumed": "You probably expected the tables to pair up on their shared ID by themselves.",
@@ -50,9 +60,9 @@
     "model": "Use `IS NULL` or `IS NOT NULL` to test for missing values."
   },
   "ERR-SEM-05": {
-    "assumed": "You probably expected a subquery in brackets to give back one value, however many rows it finds.",
-    "why": "A subquery used as a single value, for example in the SELECT list or after `=`, must return at most one row. Yours returned more than one, and SQL will not pick one of them for you.",
-    "model": "Make the subquery return one row: add a condition that keeps only one row, or use an aggregate such as `MAX(...)` or `COUNT(*)`. To compare with every value a subquery returns, write `IN (...)` instead of `=`."
+    "assumed": "You probably expected a subquery used as one value to give back one value, however many rows match it.",
+    "why": "A subquery used as a single value, in the SELECT list or after `=`, `<` or `>`, must return at most one row each time it is worked out. Yours returned more than one for at least one row, and SQL will not pick one of them for you. A filter or a link that looks unique can still match two rows on some data, such as two products tied at a category's top price or a product with two price versions, so the same query can work on one dataset and fail on another.",
+    "model": "Make the subquery return one value whatever the data holds: wrap the column in an aggregate, as in `(SELECT MAX(ph.list_price_eur) FROM price_history ph WHERE ph.product_id = p.product_id)`, or link it to the outer row on a column that is unique in the inner table. When any of several values will do, compare with `IN (...)` or `EXISTS (...)` instead of `=`."
   },
   "ERR-LOG-00": {
     "assumed": "You probably expected this query to answer the question as it is written.",
@@ -91,8 +101,8 @@
   },
   "ERR-LOG-07": {
     "assumed": "You probably expected your GROUP BY to give one row per thing the question asks about.",
-    "why": "GROUP BY makes one row for each different combination of the columns you list. An extra column splits each group into smaller ones, and a missing column or a missing GROUP BY merges them, so your rows no longer match the 'per' in the question.",
-    "model": "Find the 'for each' or 'per' phrase in the question and group by exactly those columns. Then select those same columns plus the numbers the question asks for, and nothing else."
+    "why": "GROUP BY makes one row for each different combination of the columns you list. An extra column splits each group into smaller ones, and a missing column or a missing GROUP BY merges them, so your rows no longer match the 'per' in the question. A scalar subquery has the same trap: one that is not tied to the row's group works on a different grain, so it repeats the same number on every row.",
+    "model": "Find the 'for each' or 'per' phrase in the question and group by exactly those columns. Then select those same columns plus the numbers the question asks for, and nothing else. For a subquery in the SELECT or the WHERE, tie it to the same group with `WHERE inner_table.col = outer_table.col`, so it answers for that row's group only."
   },
   "ERR-LOG-08": {
     "assumed": "You probably expected each value to appear only once in your list.",
@@ -140,8 +150,8 @@
     "model": "Sort first, then cut: `ORDER BY` the ranking column with `DESC` for highest first or `ASC` for lowest first, add the question's tie-break as a second sort column, then `LIMIT n`."
   },
   "ERR-LOG-17": {
-    "assumed": "You probably expected a missing value (NULL) to be handled the way the question says: counted as 0, left out of the calculation, or left out while the rest of its line still counts.",
-    "why": "Arithmetic with NULL gives NULL, so `price + NULL` is NULL, and SUM, AVG and COUNT(col) skip NULL values completely. If the question treats a missing value as 0, those rows drop out of your average; if it says to leave them out, turning them into 0 pulls the average down. A filter such as `col IS NOT NULL` goes further than the totals do: it removes the whole line, so the other columns of that line stop counting too.",
+    "assumed": "You probably expected a missing value (NULL) to be handled the way the question says.",
+    "why": "Arithmetic with a missing value gives a missing value, so `price * quantity` is missing when `quantity` is, and SUM, AVG and COUNT(col) skip it. If the question counts a missing value as 0 and you leave it as it is, those lines drop out and the average comes out too high; if it says to leave them out and you turn them into 0, the average is pulled down. `col IS NOT NULL` goes further: it removes the whole line, so its other columns stop counting too.",
     "model": "Read how the question treats missing values. If missing means 0, wrap the column in `COALESCE(col, 0)` before you calculate; if it says to ignore them, use the column as it is. Do not filter a line away for one missing value: each total already skips its own missing values, and the line still counts in the other totals."
   },
   "ERR-LOG-18": {
@@ -186,7 +196,7 @@
   },
   "ERR-LOG-26": {
     "assumed": "You probably expected `order_ts` to show Amsterdam time.",
-    "why": "Every `_ts` column holds the moment in UTC. Amsterdam is 1 hour ahead in winter and 2 hours ahead in summer, so an order at 23:30 UTC is already the next day in Amsterdam. Taking the date, week or month straight from the column puts those late-evening orders on the day before.",
+    "why": "On the clean tables, every `_ts` column holds the moment in UTC, and on raw data each time is read as the task says. Where a column holds UTC, Amsterdam is 1 hour ahead in winter and 2 hours ahead in summer, so an order at 23:30 UTC is already the next day in Amsterdam. Taking the date, week or month straight from the column puts those late-evening orders on the day before.",
     "model": "Turn the UTC moment into Amsterdam time first, then take the date: `CAST(timezone('Europe/Amsterdam', timezone('UTC', order_ts)) AS DATE)`. A single `order_ts AT TIME ZONE 'Europe/Amsterdam'` is not enough: it reads the stored value as Amsterdam time and moves it the wrong way."
   },
   "ERR-LOG-27": {
@@ -204,10 +214,70 @@
     "why": "CASE tests its WHEN branches from top to bottom and stops at the first one that is true. When an earlier test is wider, such as `units >= 2` before `units >= 5`, every row that passes the later test passes the earlier one too, so it takes the earlier label and the later branch never runs. Two rules that overlap work the same way: the one written first wins.",
     "model": "Order the branches so each row meets its own branch first: for bands, the highest cut-off first, as in `CASE WHEN units >= 5 THEN 'large' WHEN units >= 2 THEN 'medium' ELSE 'single' END`; for rules, the one that must win first, such as a test for a missing value. Then pick one row that passes two tests and check which label it gets."
   },
+  "ERR-LOG-30": {
+    "assumed": "You probably expected `NOT IN (SELECT ...)` to keep every row whose value is not in the subquery's list, even when that list holds a missing value.",
+    "why": "`x NOT IN (a, b, NULL)` means `x <> a AND x <> b AND x <> NULL`, and a comparison with a missing value is unknown, never true. So once the list holds one missing value, NOT IN returns no rows at all. `order_lines.promo_id` is missing on every line sold without a promotion, so `promo_id NOT IN (SELECT promo_id FROM order_lines)` finds no promotion, not even the ones never used.",
+    "model": "Use NOT EXISTS, which only looks for a matching row and is not thrown by missing values: `SELECT p.promo_id FROM promotions p WHERE NOT EXISTS (SELECT 1 FROM order_lines ol WHERE ol.promo_id = p.promo_id)`. Or keep NOT IN and leave the missing values out of the list: `NOT IN (SELECT promo_id FROM order_lines WHERE promo_id IS NOT NULL)`. Plain IN is safe: it keeps the rows that match."
+  },
+  "ERR-LOG-31": {
+    "assumed": "You probably expected the subquery to compare each row with its own group, such as a product with the other products in its category.",
+    "why": "A correlated subquery is worked out again for each outer row, and the link in its WHERE decides which rows it reads that time. Linked on the wrong column, such as the brand where the question compares by category, it reads another group, so each row is compared with the wrong group. Without the outer table's alias, `WHERE category_id = category_id` compares the inner table's column with itself, which is true on every row with a category, so each product is compared with every product.",
+    "model": "Give the inner and the outer table different aliases, and link the inner table to the outer row on the column the question compares by: `SELECT p.product_id FROM products p WHERE p.unit_cost_eur > (SELECT AVG(p2.unit_cost_eur) FROM products p2 WHERE p2.category_id = p.category_id)`. Then check one row by hand: what the subquery returns for it should be its own group's value."
+  },
+  "ERR-LOG-32": {
+    "assumed": "You probably expected 'Audio', 'audio' and ' Audio ' to count as one value.",
+    "why": "Text is compared character by character: a capital letter differs from a lower-case one, and a space at the start or end is a character too. So spellings of one key that differ only in letter case or spaces group into separate rows, and a join or a filter on them misses the rows written another way. `GROUP BY category_raw` gives one row per spelling, not one per category.",
+    "model": "Clean the key the same way on both sides before you compare or group it: `GROUP BY LOWER(TRIM(category_raw))`, or `ON LOWER(TRIM(a.sku)) = LOWER(TRIM(b.sku))`. Then count the different values before and after cleaning, and map any spelling that cleaning does not merge, such as a translated name, with CASE."
+  },
+  "ERR-LOG-33": {
+    "assumed": "You probably expected text positions to start at 0, or the length in a substring to say where the cut ends.",
+    "why": "SQL counts characters from 1, so `substr(sku, 1, 2)` gives the first 2 characters. The third number is how many characters to keep, not the position to stop at: `substr('VM-000123', 4, 6)` gives '000123'. A start or length one off cuts one character too many or too few, and DuckDB reads position 0 as the place before the first character, so `substr(sku, 0, 3)` gives only 2 characters.",
+    "model": "Count the positions by hand on one value, starting at 1: in 'VM-000123' the digits start at position 4, so `substr(sku, 4)` keeps everything from there and `substr(sku, 4, 6)` keeps 6 characters. When the cut follows a separator rather than a fixed place, use `split_part(sku, '-', 2)`. Then check the result on the shortest and the longest values."
+  },
+  "ERR-LOG-34": {
+    "assumed": "You probably expected `date_diff` to count whole days, months or years, and one date minus another to count every day from the first to the last.",
+    "why": "`date_diff` counts the boundaries crossed between two moments, not whole periods: `date_diff('month', ...)` from 31 January to 1 February is 1, and from 1 January to 31 January is 0. On timestamps, `date_diff('day', ...)` from 23:00 to 01:00 the next morning is 1. And `end_date - start_date` counts the days between two dates, which leaves one end out: a promotion from 1 March to 31 March gives 30, though it ran on 31 days.",
+    "model": "Read what the question counts. For the days between two dates, as in 'days from launch to first sale', subtract them: `first_sale_date - launch_date`. For the days a period lasts with both end days in, add 1: `end_date - start_date + 1`. Before you use `date_diff('month', ...)` or `date_diff('year', ...)` for whole periods, check it by hand on one pair of dates near a month end."
+  },
+  "ERR-LOG-35": {
+    "assumed": "You probably expected a ratio with nothing to divide by, such as the average selling price of a product with no units sold, to count as 0.",
+    "why": "When the denominator is 0 or missing, the ratio is unknown, not 0. `x / NULLIF(y, 0)` leaves it missing on purpose, and wrapping that in `COALESCE(..., 0)` turns it into a 0 that looks like a real result. An average of the ratio then counts those rows as zeros and comes out too low, and a list sorted by it puts them at the bottom as if they had done badly.",
+    "model": "Keep the ratio missing where it cannot be worked out: `SUM(net_revenue_eur) / NULLIF(SUM(units), 0)`, with no COALESCE around it. If the question wants those rows counted, count them in a column of their own. Use 0 only when the question says a missing ratio counts as 0."
+  },
+  "ERR-LOG-36": {
+    "assumed": "You probably expected each record to be in the table once.",
+    "why": "Raw data can hold the same record twice, for example an order line sent again under a new `order_line_id`. COUNT(*) and SUM then count it twice, so totals come out too high and nothing warns you. `COUNT(DISTINCT order_line_id)` does not help when the copy has an ID of its own.",
+    "model": "Check for copies before you report a total. Group by the columns that make two rows the same record, as the question defines it, not by the table's own ID: `SELECT order_id, product_id, quantity, unit_price_eur, COUNT(*) AS copies FROM order_lines GROUP BY order_id, product_id, quantity, unit_price_eur HAVING COUNT(*) > 1`. Then count each record once, for example from `SELECT DISTINCT` over those columns in a CTE, and say how many copies you left out."
+  },
+  "ERR-LOG-37": {
+    "assumed": "You probably expected a window function to work within each group, such as each store or each product, without naming the groups.",
+    "why": "`OVER ()` and `OVER (ORDER BY ...)` treat the whole result as one window. With no PARTITION BY, a running total keeps adding across every store, a rank ranks all rows together, and a share divides by the grand total instead of the group's total.",
+    "model": "Name the group in PARTITION BY, then the order inside it: on one row per store and day, `SUM(units) OVER (PARTITION BY store_code ORDER BY order_date)`. Then check two groups by hand: each starts again from its own first row, whose running total equals its own units."
+  },
+  "ERR-LOG-38": {
+    "assumed": "You probably expected a window frame to hold the same rows whether it is written with ROWS, with RANGE or left out.",
+    "why": "ROWS counts rows, while RANGE counts values of the ORDER BY column. With an ORDER BY and no frame, SQL uses RANGE from the first row to the current one, so rows that tie on the sort value share one running total instead of adding up one at a time. And `ROWS BETWEEN 6 PRECEDING AND CURRENT ROW` is the last 7 rows, which covers more than 7 days when some days have no row.",
+    "model": "Write the frame you mean. For a running total that adds one row at a time, give the ORDER BY a tie-break and use `ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW`. For the last 7 days, give every day a row first (a date spine) and use ROWS, or keep the gaps and use `RANGE BETWEEN INTERVAL 6 DAYS PRECEDING AND CURRENT ROW` on a date column."
+  },
+  "ERR-LOG-39": {
+    "assumed": "You probably expected a day, week or month with no rows to show up in your result with 0.",
+    "why": "GROUP BY makes groups only from the rows that exist. A day with no orders has no row to group, so it does not appear at all rather than showing 0. A trend chart then skips the gap without a sign, and an average per day divides by too few days.",
+    "model": "Start from a full list of periods, such as `calendar`, and LEFT JOIN the data to it, so every period keeps a row: `SELECT c.cal_date, COALESCE(SUM(s.units), 0) AS units FROM calendar c LEFT JOIN sales s ON s.order_date = c.cal_date WHERE c.cal_date >= '2025-03-01' AND c.cal_date < '2025-04-01' GROUP BY c.cal_date`. Filter the dates on the calendar side: a WHERE test on a column of `sales` would drop the days with no rows again."
+  },
+  "ERR-CMP-01": {
+    "assumed": "You probably expected to need DISTINCT to stop the rows from repeating.",
+    "why": "Your result is right, but DISTINCT changes nothing here: no two rows of the result can be the same, because each holds a value that is unique, such as `product_id`. DISTINCT still makes the engine compare every row, and where a join repeats rows, it hides that mistake instead of fixing it.",
+    "model": "Before you add DISTINCT, ask whether two rows of the result could be the same. When each row holds a unique key, as in `SELECT product_id, product_name FROM products`, leave DISTINCT out; when a join repeats rows, fix the join instead."
+  },
   "ERR-CMP-02": {
     "assumed": "You probably expected to need every table that sounds related to the question.",
     "why": "Your result is right, but one joined table adds no column and no filter the question needs. An extra join makes the query slower and harder to read, and on a 1:N link it can repeat rows when the query changes later.",
     "model": "Before you add a join, name the column or the filter it brings. When the table you start from already holds every column the question asks for, as `order_lines` holds `product_id`, leave the other table out."
+  },
+  "ERR-CMP-03": {
+    "assumed": "You probably expected every condition in a grouped query to go in HAVING.",
+    "why": "Your result is right, but this HAVING condition uses no aggregate, so it tests a value that is the same on every row of the group. WHERE can drop those rows before they are grouped, which is clearer and does less work.",
+    "model": "Move a condition with no aggregate, such as `country_code = 'BE'`, to WHERE before GROUP BY, and keep HAVING for conditions on a group's totals, such as `COUNT(*) > 10`."
   },
   "ERR-OUT-01": {
     "assumed": "You probably expected the answer to count as right with an extra column, a missing column or a differently named column.",

@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-DATE-02-E3-21",
+  "item_version": 1,
+  "reference_sql": "WITH first_days AS (  -- one row per customer\n  SELECT customer_id, MIN(CAST(order_ts AS DATE)) AS first_day\n  FROM orders\n  WHERE customer_id IS NOT NULL\n  GROUP BY customer_id\n)\nSELECT COUNT(*) AS returning_customers\nFROM first_days f\nWHERE EXISTS (\n  SELECT 1\n  FROM orders o\n  WHERE o.customer_id = f.customer_id\n    AND CAST(o.order_ts AS DATE) > f.first_day\n    AND CAST(o.order_ts AS DATE) <= f.first_day + INTERVAL 30 DAY\n)",
+  "alternatives": [
+    "WITH first_days AS (  -- one row per customer\n  SELECT customer_id, MIN(CAST(order_ts AS DATE)) AS first_day\n  FROM orders\n  WHERE customer_id IS NOT NULL\n  GROUP BY customer_id\n)\nSELECT COUNT(DISTINCT f.customer_id) AS returning_customers\nFROM first_days f\nJOIN orders o\n  ON o.customer_id = f.customer_id\n AND CAST(o.order_ts AS DATE) > f.first_day\n AND CAST(o.order_ts AS DATE) <= f.first_day + 30",
+    "WITH first_days AS (  -- one row per customer\n  SELECT customer_id, MIN(CAST(order_ts AS DATE)) AS first_day\n  FROM orders\n  WHERE customer_id IS NOT NULL\n  GROUP BY customer_id\n)\nSELECT COUNT(*) AS returning_customers\nFROM first_days f\nWHERE EXISTS (SELECT 1 FROM orders o WHERE o.customer_id = f.customer_id AND CAST(o.order_ts AS DATE) - f.first_day BETWEEN 1 AND 30)"
+  ],
+  "other_way": {
+    "sql": "WITH first_days AS (  -- one row per customer\n  SELECT customer_id, MIN(CAST(order_ts AS DATE)) AS first_day\n  FROM orders\n  WHERE customer_id IS NOT NULL\n  GROUP BY customer_id\n)\nSELECT COUNT(DISTINCT f.customer_id) AS returning_customers\nFROM first_days f\nJOIN orders o\n  ON o.customer_id = f.customer_id\n AND CAST(o.order_ts AS DATE) > f.first_day\n AND CAST(o.order_ts AS DATE) <= f.first_day + 30",
+    "tradeoff": "A join with COUNT(DISTINCT ...) gives the same count, but EXISTS stops at the first match and can never count a customer twice."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-06",
+      "sql": "WITH first_days AS (SELECT customer_id, MIN(CAST(order_ts AS DATE)) AS first_day FROM orders WHERE customer_id IS NOT NULL GROUP BY customer_id) SELECT COUNT(*) AS returning_customers FROM first_days f WHERE EXISTS (SELECT 1 FROM orders o WHERE o.customer_id = f.customer_id AND CAST(o.order_ts AS DATE) > f.first_day AND CAST(o.order_ts AS DATE) < f.first_day + INTERVAL 30 DAY)"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-34",
+      "sql": "WITH first_days AS (SELECT customer_id, MIN(CAST(order_ts AS DATE)) AS first_day FROM orders WHERE customer_id IS NOT NULL GROUP BY customer_id) SELECT COUNT(*) AS returning_customers FROM first_days f WHERE EXISTS (SELECT 1 FROM orders o WHERE o.customer_id = f.customer_id AND o.order_ts > f.first_day AND CAST(o.order_ts AS DATE) <= f.first_day + INTERVAL 30 DAY)"
+    }
+  ],
+  "hint3_partial": "WITH first_days AS (  -- one row per customer\n  SELECT customer_id, MIN(CAST(order_ts AS DATE)) AS first_day\n  FROM orders\n  WHERE customer_id IS NOT NULL\n  GROUP BY customer_id\n)\nSELECT COUNT(*) AS returning_customers\nFROM first_days f\nWHERE EXISTS (\n  SELECT 1\n  FROM orders o\n  WHERE o.customer_id = f.customer_id\n    AND ___\n    AND ___\n)",
+  "solver": {
+    "prompt_hash": "61a482ffe14b1af0",
+    "schema_version": "7ed366279088",
+    "dataset_version": "b2d2b40fb117bb07",
+    "grader_version": "6a.1",
+    "query": "WITH first_day AS (\n  SELECT customer_id, MIN(CAST(order_ts AS DATE)) AS d0\n  FROM orders\n  WHERE customer_id IS NOT NULL\n  GROUP BY customer_id\n)\nSELECT COUNT(DISTINCT f.customer_id) AS returning_customers\nFROM first_day f\nJOIN orders o ON o.customer_id = f.customer_id\nWHERE CAST(o.order_ts AS DATE) > f.d0\n  AND CAST(o.order_ts AS DATE) <= f.d0 + 30\n",
+    "at": "2026-10-15T11:06:12.080Z"
+  }
+}

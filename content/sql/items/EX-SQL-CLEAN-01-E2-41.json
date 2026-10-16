@@ -1,0 +1,97 @@
+{
+  "id": "EX-SQL-CLEAN-01-E2-41",
+  "version": 1,
+  "kind": "choose_query",
+  "tags": [
+    "sql",
+    "LVL-04",
+    "choose_query",
+    "nullif",
+    "ratio",
+    "left_join",
+    "order_lines",
+    "orders",
+    "stores"
+  ],
+  "level": 4,
+  "source_ids": [
+    "01:SQL-CLEAN-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-15",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-CLEAN-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-AGG-04",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-CLEAN-01"
+  ],
+  "template_id": "T-CLEAN-01-choose-safe-ratio",
+  "template_params": {
+    "month": "2024-06"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt_raw",
+  "edge_schema": "voltmarkt_edge_clean",
+  "uses_raw": true,
+  "prompt": "These tables may hold errors. For each store, what share of its June 2024 order lines had a promotion? A line had a promotion when its promo_id is not missing. June 2024 means order_ts, as stored, from 1 June 2024 up to but not including 1 July 2024. The share is missing for a store with no June 2024 lines. Which query returns one row for each store with that share?",
+  "output_contract": null,
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [],
+  "subgoals": [],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "",
+  "options": [
+    {
+      "oid": "oc965c94",
+      "text": "WITH june_lines AS (\n  SELECT o.store_id, ol.promo_id\n  FROM order_lines ol\n  JOIN orders o ON o.order_id = ol.order_id\n  WHERE o.order_ts >= TIMESTAMP '2024-06-01' AND o.order_ts < TIMESTAMP '2024-07-01'\n)\nSELECT s.store_code, COALESCE(COUNT(j.promo_id) / NULLIF(COUNT(j.store_id), 0), 0) AS promo_share\nFROM stores s\nLEFT JOIN june_lines j ON j.store_id = s.store_id\nGROUP BY s.store_code",
+      "misconception_id": "ERR-LOG-35"
+    },
+    {
+      "oid": "o44cedf6",
+      "text": "WITH june_lines AS (\n  SELECT o.store_id, ol.promo_id\n  FROM order_lines ol\n  JOIN orders o ON o.order_id = ol.order_id\n  WHERE o.order_ts >= TIMESTAMP '2024-06-01' AND o.order_ts < TIMESTAMP '2024-07-01'\n)\nSELECT s.store_code, COUNT(j.promo_id) / NULLIF(COUNT(j.store_id), 0) AS promo_share\nFROM stores s\nLEFT JOIN june_lines j ON j.store_id = s.store_id\nGROUP BY s.store_code",
+      "misconception_id": null
+    },
+    {
+      "oid": "o6802d37",
+      "text": "WITH june_lines AS (\n  SELECT o.store_id, ol.promo_id\n  FROM order_lines ol\n  JOIN orders o ON o.order_id = ol.order_id\n  WHERE o.order_ts >= TIMESTAMP '2024-06-01' AND o.order_ts < TIMESTAMP '2024-07-01'\n)\nSELECT s.store_code, COUNT(j.promo_id) // NULLIF(COUNT(j.store_id), 0) AS promo_share\nFROM stores s\nLEFT JOIN june_lines j ON j.store_id = s.store_id\nGROUP BY s.store_code",
+      "misconception_id": "ERR-LOG-05"
+    },
+    {
+      "oid": "o6906eec",
+      "text": "WITH june_lines AS (\n  SELECT o.store_id, ol.promo_id\n  FROM order_lines ol\n  JOIN orders o ON o.order_id = ol.order_id\n  WHERE o.order_ts >= TIMESTAMP '2024-06-01' AND o.order_ts < TIMESTAMP '2024-07-01'\n)\nSELECT s.store_code, COUNT(*) / NULLIF(COUNT(j.store_id), 0) AS promo_share\nFROM stores s\nLEFT JOIN june_lines j ON j.store_id = s.store_id\nGROUP BY s.store_code",
+      "misconception_id": "ERR-LOG-04"
+    }
+  ]
+}

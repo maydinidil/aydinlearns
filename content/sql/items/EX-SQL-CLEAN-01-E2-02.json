@@ -1,0 +1,154 @@
+{
+  "id": "EX-SQL-CLEAN-01-E2-02",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-04",
+    "reconcile",
+    "duplicates",
+    "case",
+    "order_lines",
+    "orders",
+    "stores"
+  ],
+  "level": 4,
+  "source_ids": [
+    "01:SQL-CLEAN-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-15",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "lesson",
+  "target_concept_id": "SQL-CLEAN-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CASE-01",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-CLEAN-01"
+  ],
+  "template_id": "T-CLEAN-01-reconcile-line-count",
+  "template_params": {
+    "store": "BE-14",
+    "stated": 11239
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt_raw",
+  "edge_schema": "voltmarkt_edge_clean",
+  "uses_raw": true,
+  "prompt": "Finance counted 11,239 order lines for store BE-14 in 2024. Does the data agree once resent copies are removed? These tables may hold errors. Two lines are copies of one order line when order_id, product_id, quantity, unit_price_eur, promo_id and line_discount_eur all match, with a missing promo_id matching a missing one; keep one line of each such set. 2024 means order_ts, as stored, from 1 January 2024 up to but not including 1 January 2025. Return three columns, in this order: n_stored, the lines as stored, n_unique, the lines with copies removed, and result: 'pass' when n_unique is 11,239, otherwise 'fail'. The result is a single row. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "n_stored",
+        "type_class": "numeric"
+      },
+      {
+        "name": "n_unique",
+        "type_class": "numeric"
+      },
+      {
+        "name": "result",
+        "type_class": "text"
+      }
+    ],
+    "grain": "one row in total"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "n_stored",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "n_unique",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "result",
+        "type_class": "text",
+        "precision": "exact"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the result column that compares the copy-free count with finance's figure.",
+    "Each group of matching lines is one real line, so the number of groups is the copy-free count; a CASE turns the comparison into pass or fail."
+  ],
+  "subgoals": [
+    {
+      "from": 75,
+      "to": 175,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 178,
+      "to": 284,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 287,
+      "to": 400,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 459,
+      "to": 485,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 488,
+      "to": 503,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 506,
+      "to": 590,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 593,
+      "to": 712,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 713,
+      "to": 727,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": {
+    "stage1": 648,
+    "stage2": 648
+  },
+  "faded_shape": "WITH be14_lines AS (  -- one row per BE-14 order line of 2024, as stored\n  SELECT ol.order_id, ol.product_id, ol.quantity, ol.unit_price_eur, ol.promo_id, ol.line_discount_eur\n  FROM order_lines ol\n  JOIN orders o ON o.order_id = ol.order_id\n  JOIN stores s ON s.store_id = o.store_id\n  WHERE s.store_code = 'BE-14'\n    AND o.order_ts >= TIMESTAMP '2024-01-01' AND o.order_ts < TIMESTAMP '2025-01-01'\n),\nline_sets AS (  -- one row per set of matching lines\n  SELECT COUNT(*) AS n_lines\n  FROM be14_lines\n  GROUP BY order_id, product_id, quantity, unit_price_eur, promo_id, line_discount_eur\n)\nSELECT SUM(n_lines) AS n_stored, COUNT(*) AS n_unique, ",
+  "faded_suffix": "\nFROM line_sets",
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "Each set of matching lines counts once, so the number of sets is the copy-free count that finance's figure should match."
+}

@@ -3,5 +3,13 @@
   "truths": {
     "CP4": "SELECT COUNT(*)\nFROM stores\nWHERE country_code = 'NL' AND store_type = 'standard' AND close_date IS NULL"
   },
-  "choices": {}
+  "choices": {},
+  "solver": {
+    "CP4": {
+      "pass": true,
+      "prompt_hash": "ea278c139aab5cff",
+      "key_hash": "41a1e1d4f680b1a8",
+      "at": "2026-10-15T23:01:46.505Z"
+    }
+  }
 }

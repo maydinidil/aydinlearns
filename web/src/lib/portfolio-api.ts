@@ -31,7 +31,7 @@ export const PORTFOLIO_HREF = '#/portfolio';
 export const SETTINGS_HREF = '#/setup';
 export const PORTFOLIO_TITLE = 'Portfolio';
 /** S4B-19. */
-export const FLAGSHIP_LINE = 'Flagship pieces on real data come in a later version.';
+export const FLAGSHIP_LINE = 'Flagship pieces use real data: open a real dataset in the explorer, run your query and choose "Save as a flagship draft".';
 
 export interface PortfolioRow { case_id: string; href: string; title: string; meta: string; solved: string; exported: string }
 /** A solved case as the screen lists it: the kind, level and data source, when it was solved and when it was last exported. */

@@ -1,0 +1,141 @@
+{
+  "id": "EX-SQL-DATE-02-E3-02",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-04",
+    "date",
+    "date_arithmetic",
+    "orders",
+    "customers",
+    "recency",
+    "as-of",
+    "case",
+    "cte"
+  ],
+  "level": 4,
+  "source_ids": [
+    "01:SQL-DATE-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-15",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-DATE-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CASE-01",
+    "SQL-TYPE-01",
+    "SQL-CTE-01",
+    "SQL-DATE-02"
+  ],
+  "template_id": "T-DATE-02-recency-bands",
+  "template_params": {
+    "table": "orders",
+    "as_of": "2026-01-05",
+    "bands": "0-30, 31-90, over 90"
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_interval",
+  "prompt": "Voltmarkt sorts its customers by the days from their most recent order to the as-of date, 5 January 2026: 'active' for 0 to 30 days, 'cooling' for 31 to 90 days, and 'lapsed' for more than 90 days. Take each customer's latest order day in UTC (order times are stored in UTC) and count the days between that day and the as-of date. Guest orders have no customer_id and do not count. Return two columns, in this order: recency_band, and customers. Return one row for each band that has customers. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "recency_band",
+        "type_class": "text"
+      },
+      {
+        "name": "customers",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "recency_band",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "customers",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "recency_band"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, work out each customer's days since their last order in a first step, with one row per customer.",
+    "The as-of date minus the latest order day counts the days between them. Then a CASE puts each customer in one band, checked from the smallest number of days up."
+  ],
+  "subgoals": [
+    {
+      "from": 49,
+      "to": 130,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 133,
+      "to": 144,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 147,
+      "to": 176,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 179,
+      "to": 199,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 202,
+      "to": 374,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 375,
+      "to": 391,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 392,
+      "to": 402,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "The step gives one row per customer with the days since the last order, and the CASE checks the bands from the lowest, so each customer lands in one band."
+}

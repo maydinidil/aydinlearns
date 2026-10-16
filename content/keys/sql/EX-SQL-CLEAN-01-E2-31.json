@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-CLEAN-01-E2-31",
+  "item_version": 1,
+  "reference_sql": "WITH period_sets AS (  -- one row per set of matching lines from July to December 2025\n  SELECT o.store_id, COUNT(*) AS n_lines\n  FROM order_lines ol\n  JOIN orders o ON o.order_id = ol.order_id\n  WHERE o.order_ts >= TIMESTAMP '2025-07-01' AND o.order_ts < TIMESTAMP '2026-01-01'\n  GROUP BY o.store_id, ol.order_id, ol.product_id, ol.quantity, ol.unit_price_eur, ol.promo_id, ol.line_discount_eur\n),\nper_store AS (  -- one row per store with lines in the period\n  SELECT store_id, SUM(n_lines) AS n_lines, SUM(n_lines - 1) AS n_copies\n  FROM period_sets\n  GROUP BY store_id\n)\nSELECT s.store_code, ps.n_copies / NULLIF(ps.n_lines, 0) AS copy_share\nFROM stores s\nLEFT JOIN per_store ps ON ps.store_id = s.store_id",
+  "alternatives": [
+    "SELECT s.store_code, ps.n_copies / NULLIF(ps.n_lines, 0) AS copy_share\nFROM stores s\nLEFT JOIN (  -- one row per store with lines in the period\n  SELECT store_id, SUM(n_lines) AS n_lines, SUM(n_lines - 1) AS n_copies\n  FROM (  -- one row per set of matching lines in the period\n    SELECT o.store_id, COUNT(*) AS n_lines\n    FROM order_lines ol\n    JOIN orders o ON o.order_id = ol.order_id\n    WHERE o.order_ts >= TIMESTAMP '2025-07-01' AND o.order_ts < TIMESTAMP '2026-01-01'\n    GROUP BY o.store_id, ol.order_id, ol.product_id, ol.quantity, ol.unit_price_eur, ol.promo_id, ol.line_discount_eur\n  ) AS period_sets\n  GROUP BY store_id\n) AS ps ON ps.store_id = s.store_id",
+    "WITH period_sets AS (  -- one row per set of matching lines from July to December 2025\n  SELECT o.store_id, COUNT(*) AS n_lines\n  FROM order_lines ol\n  JOIN orders o ON o.order_id = ol.order_id\n  WHERE o.order_ts >= TIMESTAMP '2025-07-01' AND o.order_ts < TIMESTAMP '2026-01-01'\n  GROUP BY o.store_id, ol.order_id, ol.product_id, ol.quantity, ol.unit_price_eur, ol.promo_id, ol.line_discount_eur\n),\nper_store AS (  -- one row per store with lines in the period\n  SELECT store_id, SUM(n_lines) AS n_lines, SUM(n_lines - 1) AS n_copies\n  FROM period_sets\n  GROUP BY store_id\n)\nSELECT s.store_code, CASE WHEN ps.n_lines > 0 THEN ps.n_copies * 1.0 / ps.n_lines END AS copy_share\nFROM stores s\nLEFT JOIN per_store ps ON ps.store_id = s.store_id"
+  ],
+  "other_way": {
+    "sql": "SELECT s.store_code, ps.n_copies / NULLIF(ps.n_lines, 0) AS copy_share\nFROM stores s\nLEFT JOIN (  -- one row per store with lines in the period\n  SELECT store_id, SUM(n_lines) AS n_lines, SUM(n_lines - 1) AS n_copies\n  FROM (  -- one row per set of matching lines in the period\n    SELECT o.store_id, COUNT(*) AS n_lines\n    FROM order_lines ol\n    JOIN orders o ON o.order_id = ol.order_id\n    WHERE o.order_ts >= TIMESTAMP '2025-07-01' AND o.order_ts < TIMESTAMP '2026-01-01'\n    GROUP BY o.store_id, ol.order_id, ol.product_id, ol.quantity, ol.unit_price_eur, ol.promo_id, ol.line_discount_eur\n  ) AS period_sets\n  GROUP BY store_id\n) AS ps ON ps.store_id = s.store_id",
+    "tradeoff": "Derived tables keep the steps inside one FROM clause, while named steps read top to bottom and name each grain."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-35",
+      "sql": "WITH period_sets AS (  -- one row per set of matching lines from July to December 2025\n  SELECT o.store_id, COUNT(*) AS n_lines\n  FROM order_lines ol\n  JOIN orders o ON o.order_id = ol.order_id\n  WHERE o.order_ts >= TIMESTAMP '2025-07-01' AND o.order_ts < TIMESTAMP '2026-01-01'\n  GROUP BY o.store_id, ol.order_id, ol.product_id, ol.quantity, ol.unit_price_eur, ol.promo_id, ol.line_discount_eur\n),\nper_store AS (  -- one row per store with lines in the period\n  SELECT store_id, SUM(n_lines) AS n_lines, SUM(n_lines - 1) AS n_copies\n  FROM period_sets\n  GROUP BY store_id\n)\nSELECT s.store_code, COALESCE(ps.n_copies / NULLIF(ps.n_lines, 0), 0) AS copy_share\nFROM stores s\nLEFT JOIN per_store ps ON ps.store_id = s.store_id"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-11",
+      "sql": "WITH period_sets AS (  -- one row per set of matching lines from July to December 2025\n  SELECT o.store_id, COUNT(*) AS n_lines\n  FROM order_lines ol\n  JOIN orders o ON o.order_id = ol.order_id\n  WHERE o.order_ts >= TIMESTAMP '2025-07-01' AND o.order_ts < TIMESTAMP '2026-01-01'\n  GROUP BY o.store_id, ol.order_id, ol.product_id, ol.quantity, ol.unit_price_eur, ol.promo_id, ol.line_discount_eur\n),\nper_store AS (  -- one row per store with lines in the period\n  SELECT store_id, SUM(n_lines) AS n_lines, SUM(n_lines - 1) AS n_copies\n  FROM period_sets\n  GROUP BY store_id\n)\nSELECT s.store_code, ps.n_copies / NULLIF(ps.n_lines, 0) AS copy_share FROM stores s JOIN per_store ps ON ps.store_id = s.store_id"
+    }
+  ],
+  "hint3_partial": "WITH period_sets AS (  -- one row per set of matching lines from July to December 2025\n  SELECT o.store_id, COUNT(*) AS n_lines\n  FROM order_lines ol\n  JOIN orders o ON o.order_id = ol.order_id\n  WHERE o.order_ts >= TIMESTAMP '2025-07-01' AND o.order_ts < TIMESTAMP '2026-01-01'\n  GROUP BY o.store_id, ol.order_id, ol.product_id, ol.quantity, ol.unit_price_eur, ol.promo_id, ol.line_discount_eur\n),\nper_store AS (  -- one row per store with lines in the period\n  SELECT store_id, SUM(n_lines) AS n_lines, SUM(n_lines - 1) AS n_copies\n  FROM period_sets\n  GROUP BY store_id\n)\nSELECT s.store_code, ___ AS copy_share\nFROM stores s\nLEFT JOIN per_store ps ON ps.store_id = s.store_id",
+  "solver": {
+    "prompt_hash": "ad8314b495cde499",
+    "schema_version": "6ef9ff4e4ad1",
+    "dataset_version": "b2d2b40fb117bb07",
+    "grader_version": "6a.1",
+    "query": "WITH period_sets AS (  -- one row per set of matching lines from July to December 2025\n  SELECT o.store_id, COUNT(*) AS n_lines\n  FROM order_lines ol\n  JOIN orders o ON o.order_id = ol.order_id\n  WHERE o.order_ts >= TIMESTAMP '2025-07-01' AND o.order_ts < TIMESTAMP '2026-01-01'\n  GROUP BY o.store_id, ol.order_id, ol.product_id, ol.quantity, ol.unit_price_eur, ol.promo_id, ol.line_discount_eur\n),\nper_store AS (  -- one row per store with lines in the period\n  SELECT store_id, SUM(n_lines) AS n_lines, SUM(n_lines - 1) AS n_copies\n  FROM period_sets\n  GROUP BY store_id\n)\nSELECT s.store_code, ps.n_copies / NULLIF(ps.n_lines, 0) AS copy_share\nFROM stores s\nLEFT JOIN per_store ps ON ps.store_id = s.store_id\n",
+    "at": "2026-10-15T11:06:10.485Z"
+  }
+}

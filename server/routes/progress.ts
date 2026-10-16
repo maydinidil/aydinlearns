@@ -9,7 +9,7 @@ import { amsterdamDate } from '../../core/time.ts';
 import type { ChoiceSection } from '../../schemas/choice.ts';
 import type { RouteDeps } from '../app.ts';
 import type { ContentStore } from '../content.ts';
-import { drillRuns, loadDrills, type DrillRun, type DrillSpec } from '../drill.ts';
+import { drillRuns, drillSpecLoader, type DrillRun } from '../drill.ts';
 import { goalView } from '../goal-view.ts';
 import {
   instanceFacts, jobReady, progressGoals, readinessBoard, revealRate, skillMap, topicReadiness, trends,
@@ -94,15 +94,8 @@ export function progressView(s: ProgressSource): ProgressView {
   };
 }
 
-/** A store may carry the drill specs (a test's fixture), as routes/drill.ts reads them; otherwise they come from content/sql/drills.json. */
-const ownSpecs = (content: ContentStore): DrillSpec[] | undefined => (content as ContentStore & { drills?: () => DrillSpec[] }).drills?.();
-
 export function mountProgress(app: Hono, d: RouteDeps): void {
-  let file: Promise<DrillSpec[]> | null = null;
-  const specs = (): Promise<DrillSpec[]> => {
-    const own = ownSpecs(d.content);
-    return own ? Promise.resolve(own) : (file ??= loadDrills().catch((e: unknown) => { file = null; throw e; }));
-  };
+  const { specs } = drillSpecLoader(d.content);
 
   app.get('/api/progress', async (c) => {
     const replay = d.state.current();

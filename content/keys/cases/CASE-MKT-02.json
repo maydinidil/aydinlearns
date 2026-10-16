@@ -1,0 +1,43 @@
+{
+  "case_id": "CASE-MKT-02",
+  "truths": {
+    "CP2": "SELECT COUNT(*)\nFROM budget_monthly AS b\nWHERE b.month BETWEEN DATE '2025-07-01' AND DATE '2025-09-01'\n  AND NOT EXISTS (\n    SELECT 1\n    FROM ad_spend_daily AS a\n    JOIN campaigns AS c ON c.campaign_id = a.campaign_id\n    WHERE c.channel_id = b.channel_id\n      AND a.spend_date >= b.month\n      AND a.spend_date < b.month + INTERVAL 1 MONTH\n  )",
+    "CP4": "WITH monthly_spend AS (\n  -- one row per channel and month with spend in Q3 2025\n  SELECT c.channel_id,\n         CAST(date_trunc('month', a.spend_date) AS DATE) AS spend_month,\n         SUM(a.spend) AS total_spend\n  FROM ad_spend_daily AS a\n  JOIN campaigns AS c ON c.campaign_id = a.campaign_id\n  WHERE a.spend_date BETWEEN DATE '2025-07-01' AND DATE '2025-09-30'\n  GROUP BY c.channel_id, CAST(date_trunc('month', a.spend_date) AS DATE)\n)\nSELECT ROUND(MAX(COALESCE(m.total_spend, 0) - b.budget_eur), 2)\nFROM budget_monthly AS b\nLEFT JOIN monthly_spend AS m ON m.channel_id = b.channel_id AND m.spend_month = b.month\nWHERE b.month BETWEEN DATE '2025-07-01' AND DATE '2025-09-01'"
+  },
+  "choices": {
+    "CP1": {
+      "correct_oid": "ofc51afc",
+      "explanation": "Adding the daily spend up to the budget's channel and month first counts each budget once, and starting from the budget keeps a month with no spend; joining budgets to daily rows repeats each budget, and starting from the spend drops unspent budget."
+    },
+    "CP5": {
+      "correct_oid": "o5040953",
+      "explanation": "Finance needs the net position and its drivers: Meta's months, LinkedIn's offsetting underspend, and whether the extra Meta spend paid off; an average of percentages ignores how big each budget is."
+    }
+  },
+  "solver": {
+    "CP1": {
+      "pass": true,
+      "prompt_hash": "cece4f35142941ce",
+      "key_hash": "4433634aea6f6d46",
+      "at": "2026-10-16T15:28:34.740Z"
+    },
+    "CP2": {
+      "pass": true,
+      "prompt_hash": "5406e905103d1801",
+      "key_hash": "318049842357e7ef",
+      "at": "2026-10-16T15:28:34.740Z"
+    },
+    "CP4": {
+      "pass": true,
+      "prompt_hash": "2f95135212472ad6",
+      "key_hash": "eb3942d7d317336b",
+      "at": "2026-10-16T15:28:34.740Z"
+    },
+    "CP5": {
+      "pass": true,
+      "prompt_hash": "b8df9f45ffccbc4c",
+      "key_hash": "840a2c52d67e3182",
+      "at": "2026-10-16T15:28:34.740Z"
+    }
+  }
+}

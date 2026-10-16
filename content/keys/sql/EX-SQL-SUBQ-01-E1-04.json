@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-SUBQ-01-E1-04",
+  "item_version": 1,
+  "reference_sql": "SELECT promo_id, promo_code, discount_pct\nFROM promotions\nWHERE discount_pct > (SELECT AVG(discount_pct) FROM promotions)",
+  "alternatives": [
+    "SELECT pr.promo_id, pr.promo_code, pr.discount_pct\nFROM promotions pr\nJOIN (\n  -- one row in total\n  SELECT AVG(discount_pct) AS avg_pct\n  FROM promotions\n) AS a ON pr.discount_pct > a.avg_pct",
+    "WITH avg_discount AS (\n  -- one row in total\n  SELECT AVG(discount_pct) AS avg_pct\n  FROM promotions\n)\nSELECT pr.promo_id, pr.promo_code, pr.discount_pct\nFROM promotions pr\nCROSS JOIN avg_discount a\nWHERE pr.discount_pct > a.avg_pct"
+  ],
+  "other_way": {
+    "sql": "WITH avg_discount AS (\n  -- one row in total\n  SELECT AVG(discount_pct) AS avg_pct\n  FROM promotions\n)\nSELECT pr.promo_id, pr.promo_code, pr.discount_pct\nFROM promotions pr\nCROSS JOIN avg_discount a\nWHERE pr.discount_pct > a.avg_pct",
+    "tradeoff": "Naming the average in a WITH step and joining it works, but a subquery in WHERE is shorter for a single number."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-15",
+      "sql": "SELECT promo_id, promo_code, discount_pct FROM promotions WHERE discount_pct >= (SELECT AVG(discount_pct) FROM promotions)"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-07",
+      "sql": "SELECT pr.promo_id, pr.promo_code, pr.discount_pct FROM promotions pr WHERE pr.discount_pct > (SELECT AVG(pr2.discount_pct) FROM promotions pr2 WHERE pr2.promo_type = pr.promo_type)"
+    }
+  ],
+  "hint3_partial": "SELECT promo_id, promo_code, discount_pct\nFROM promotions\nWHERE discount_pct > (SELECT ___ FROM promotions)",
+  "solver": {
+    "prompt_hash": "d35e0a33454397b7",
+    "schema_version": "f0340f71a1f5",
+    "dataset_version": "b2d2b40fb117bb07",
+    "grader_version": "6a.1",
+    "query": "SELECT promo_id, promo_code, discount_pct FROM promotions WHERE discount_pct > (SELECT AVG(discount_pct) FROM promotions)\r\n",
+    "at": "2026-10-15T11:06:12.704Z"
+  }
+}

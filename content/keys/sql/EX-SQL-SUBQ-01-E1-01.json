@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-SUBQ-01-E1-01",
+  "item_version": 1,
+  "reference_sql": "SELECT product_id, product_name, unit_cost_eur\nFROM products\nWHERE unit_cost_eur > (SELECT AVG(unit_cost_eur) FROM products)",
+  "alternatives": [
+    "SELECT p.product_id, p.product_name, p.unit_cost_eur\nFROM products p\nJOIN (\n  -- one row in total\n  SELECT AVG(unit_cost_eur) AS avg_cost_eur\n  FROM products\n) AS a ON p.unit_cost_eur > a.avg_cost_eur",
+    "WITH avg_cost AS (\n  -- one row in total\n  SELECT AVG(unit_cost_eur) AS avg_cost_eur\n  FROM products\n)\nSELECT p.product_id, p.product_name, p.unit_cost_eur\nFROM products p\nCROSS JOIN avg_cost a\nWHERE p.unit_cost_eur > a.avg_cost_eur"
+  ],
+  "other_way": {
+    "sql": "WITH avg_cost AS (\n  -- one row in total\n  SELECT AVG(unit_cost_eur) AS avg_cost_eur\n  FROM products\n)\nSELECT p.product_id, p.product_name, p.unit_cost_eur\nFROM products p\nCROSS JOIN avg_cost a\nWHERE p.unit_cost_eur > a.avg_cost_eur",
+    "tradeoff": "A WITH step that holds the average, joined to every product, works too, but one value fits more plainly in WHERE."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-07",
+      "sql": "SELECT p.product_id, p.product_name, p.unit_cost_eur FROM products p WHERE p.unit_cost_eur > (SELECT AVG(p2.unit_cost_eur) FROM products p2 WHERE p2.category_id = p.category_id)"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-15",
+      "sql": "SELECT product_id, product_name, unit_cost_eur FROM products WHERE unit_cost_eur < (SELECT AVG(unit_cost_eur) FROM products)"
+    }
+  ],
+  "hint3_partial": "SELECT product_id, product_name, unit_cost_eur\nFROM products\nWHERE unit_cost_eur > (SELECT ___ FROM products)",
+  "solver": {
+    "prompt_hash": "92b3f25e93897138",
+    "schema_version": "d77fe1c31a0e",
+    "dataset_version": "b2d2b40fb117bb07",
+    "grader_version": "6a.1",
+    "query": "SELECT product_id, product_name, unit_cost_eur FROM products WHERE unit_cost_eur > (SELECT AVG(unit_cost_eur) FROM products)\r\n",
+    "at": "2026-10-15T11:06:12.647Z"
+  }
+}

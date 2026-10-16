@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-SUBQ-02-E2-32",
+  "item_version": 1,
+  "reference_sql": "SELECT t.parent_category, ROUND(SUM(t.revenue_eur) / SUM(t.units), 2) AS revenue_per_unit_eur\nFROM (\n  -- one row per product\n  SELECT product_id, parent_category, SUM(net_revenue_eur) AS revenue_eur, SUM(units) AS units\n  FROM sales\n  GROUP BY product_id, parent_category\n) AS t\nGROUP BY t.parent_category",
+  "alternatives": [
+    "SELECT parent_category, ROUND(SUM(net_revenue_eur) / SUM(units), 2) AS revenue_per_unit_eur\nFROM sales\nGROUP BY parent_category",
+    "WITH product_totals AS (\n  -- one row per product\n  SELECT product_id, parent_category, SUM(net_revenue_eur) AS revenue_eur, SUM(units) AS units\n  FROM sales\n  GROUP BY product_id, parent_category\n)\nSELECT parent_category, ROUND(SUM(revenue_eur) / SUM(units), 2) AS revenue_per_unit_eur\nFROM product_totals\nGROUP BY parent_category"
+  ],
+  "other_way": {
+    "sql": "SELECT parent_category, ROUND(SUM(net_revenue_eur) / SUM(units), 2) AS revenue_per_unit_eur\nFROM sales\nGROUP BY parent_category",
+    "tradeoff": "One GROUP BY over the lines gives the same ratio with no inner step, since sums of sums are just sums."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-20",
+      "sql": "SELECT t.parent_category, ROUND(AVG(t.revenue_per_unit_eur), 2) AS revenue_per_unit_eur\nFROM (\n  -- one row per product\n  SELECT product_id, parent_category, SUM(net_revenue_eur) / SUM(units) AS revenue_per_unit_eur\n  FROM sales\n  GROUP BY product_id, parent_category\n) AS t\nGROUP BY t.parent_category"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-14",
+      "sql": "SELECT t.parent_category, ROUND(MAX(t.revenue_per_unit_eur), 2) AS revenue_per_unit_eur FROM (SELECT product_id, parent_category, SUM(net_revenue_eur) / SUM(units) AS revenue_per_unit_eur FROM sales GROUP BY product_id, parent_category) AS t GROUP BY t.parent_category"
+    }
+  ],
+  "hint3_partial": "SELECT t.parent_category, ROUND(SUM(___) / SUM(___), 2) AS revenue_per_unit_eur\nFROM (\n  -- one row per product\n  SELECT product_id, parent_category, SUM(net_revenue_eur) AS revenue_eur, SUM(units) AS units\n  FROM sales\n  GROUP BY product_id, parent_category\n) AS t\nGROUP BY t.parent_category",
+  "solver": {
+    "prompt_hash": "c2645599aa03f01b",
+    "schema_version": "cebf75df442f",
+    "dataset_version": "b2d2b40fb117bb07",
+    "grader_version": "6a.1",
+    "query": "SELECT parent_category, ROUND(SUM(net_revenue_eur) / SUM(units), 2) AS revenue_per_unit_eur\r\nFROM sales\r\nGROUP BY parent_category\r\n",
+    "at": "2026-10-15T11:06:14.836Z"
+  }
+}

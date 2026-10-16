@@ -1,0 +1,118 @@
+{
+  "id": "EX-SQL-CLEAN-01-E1-04",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-04",
+    "nullif",
+    "ratio",
+    "missing_values",
+    "products"
+  ],
+  "level": 4,
+  "source_ids": [
+    "01:SQL-CLEAN-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-15",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "lesson",
+  "target_concept_id": "SQL-CLEAN-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-AGG-04",
+    "SQL-CLEAN-01"
+  ],
+  "template_id": "T-CLEAN-01-missing-share-per-brand",
+  "template_params": {
+    "column": "category_id"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt_raw",
+  "edge_schema": "voltmarkt_edge_clean",
+  "uses_raw": true,
+  "prompt": "For each brand, what share of its products have a missing category_id? This table may hold errors. Divide safely: the share is missing for a brand with no products. Return two columns, in this order: brand and missing_share, a fraction from 0 to 1, not rounded. Return one row for each brand. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "brand",
+        "type_class": "text"
+      },
+      {
+        "name": "missing_share",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per brand"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "brand",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "missing_share",
+        "type_class": "numeric",
+        "precision": "ratio"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "brand"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the calculated column that divides the missing count by the brand's product count.",
+    "Count the missing category_id values with a filter, and wrap the denominator in NULLIF(..., 0) so a 0 can never divide."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 96,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 97,
+      "to": 110,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 111,
+      "to": 125,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": {
+    "stage1": 14,
+    "stage2": 14
+  },
+  "faded_shape": "SELECT brand, ",
+  "faded_suffix": "\nFROM products\nGROUP BY brand",
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "The filtered count over all of the brand's products is the share, and NULLIF keeps a zero denominator from giving Infinity."
+}

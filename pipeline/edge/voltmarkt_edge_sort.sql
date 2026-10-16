@@ -53,3 +53,12 @@ INSERT INTO voltmarkt_edge_sort.promotions VALUES
   (6, 'P-2025-31', 'December Loyalty', 'loyalty', DATE '2025-12-08', DATE '2025-12-21', 10.00),
   (2, 'P-2024-29', 'Black Week', 'percent_off', DATE '2024-11-25', DATE '2024-12-01', 25.00),
   (4, 'P-2025-18', 'June Clearance', 'clearance', DATE '2025-06-02', DATE '2025-06-15', 50.00);
+-- M5 (D90, S6-36): added after the sprint 6 build, so every row above stays as it was. The schema panel shows the sales view
+-- from level 1, so the build adds it here over empty copies of orders and order_lines: this schema holds no orders, and its
+-- sales view has no rows. The calendar gains voltmarkt's row for each day of each promotion above that it lacked, so promotion
+-- days counted through the calendar match date arithmetic. They are stored newest first, after the six days above, so the
+-- calendar's rows stay out of date order.
+INSERT INTO voltmarkt_edge_sort.calendar SELECT c.* FROM voltmarkt.calendar AS c
+WHERE EXISTS (SELECT 1 FROM voltmarkt_edge_sort.promotions AS p WHERE c.cal_date BETWEEN p.start_date AND p.end_date)
+  AND NOT EXISTS (SELECT 1 FROM voltmarkt_edge_sort.calendar AS e WHERE e.cal_date = c.cal_date)
+ORDER BY c.cal_date DESC;

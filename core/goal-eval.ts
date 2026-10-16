@@ -13,7 +13,9 @@ export interface GoalView {
   externals: { kind: 'ga4_exam' | 'portfolio_piece'; data: unknown }[];
   mocksPassed: Set<string>;
   /** S4B-20: every solved case (replay, S4B-08) with its level, and whether a case_export event names it. */
-  casesSolved: { case_id: string; level: number; exported: boolean }[];
+  casesSolved: { case_id: string; level: number; exported: boolean; real: boolean }[];
+  /** S6-26: how many cases on real data (data_source.real) can be opened now, their dataset being in the database. */
+  realCasesAvailable: number;
   /** S4B-26: one entry per live rep (a closed `live-` block): its Amsterdam date, and whether it passed. */
   liveReps: { local_date: string; passed: boolean }[];
 }
@@ -88,9 +90,11 @@ function evaluateCriterion(c: GoalCriterion, view: GoalView, today: string): Cri
       const label = `${plural(c.count, 'case', 'cases')}${c.level_min !== undefined ? ` of level ${c.level_min} or above` : ''} solved${c.exported ? ' and exported' : ''}`;
       return { label, met: solved.length >= c.count, available: true, done: solved.length, total: c.count };
     }
-    case 'real_data_analysis':
-      // The dataset registry arrives in sprint 6; until then nothing can record an analysis on a real dataset.
-      return notYet(`${plural(c.count, 'analysis', 'analyses')} on a real dataset`);
+    case 'real_data_analysis': {
+      // S6-26, D85: a solved case (the case_solved rule) whose data_source.real is true. The case record is the whole rule.
+      const done = view.casesSolved.filter((s) => s.real).length;
+      return { label: c.count === 1 ? 'First real-data analysis' : `${c.count} real-data analyses`, met: done >= c.count, available: true, done, total: c.count };
+    }
   }
 }
 

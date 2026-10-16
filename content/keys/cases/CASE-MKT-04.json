@@ -1,0 +1,43 @@
+{
+  "case_id": "CASE-MKT-04",
+  "truths": {
+    "CP2": "SELECT COUNT(DISTINCT s.user_id)\nFROM payments AS p\nJOIN subscriptions AS s ON s.subscription_id = p.subscription_id\nWHERE p.paid_at >= TIMESTAMPTZ '2025-07-01 00:00:00+00'\n  AND p.paid_at < TIMESTAMPTZ '2025-10-01 00:00:00+00'\n  AND p.refunded = false",
+    "CP4": "WITH paid AS (\n  -- one row per paying user: their Q3 2025 payments that were not refunded, added up\n  SELECT s.user_id, SUM(p.amount_eur) AS revenue\n  FROM payments AS p\n  JOIN subscriptions AS s ON s.subscription_id = p.subscription_id\n  WHERE p.paid_at >= TIMESTAMPTZ '2025-07-01 00:00:00+00'\n    AND p.paid_at < TIMESTAMPTZ '2025-10-01 00:00:00+00'\n    AND p.refunded = false\n  GROUP BY s.user_id\n),\ntouches AS (\n  -- one row per session of a paying user up to the moment of signing up, with its channel\n  SELECT pd.user_id, se.session_id, se.session_start,\n         CASE WHEN se.utm_campaign IS NOT NULL THEN ch.channel_name\n              WHEN se.utm_medium = 'organic' THEN 'organic'\n              WHEN se.utm_medium = 'referral' THEN 'referral'\n              ELSE 'direct' END AS channel\n  FROM paid AS pd\n  JOIN signups AS g ON g.user_id = pd.user_id\n  JOIN sessions AS se ON se.visitor_id = g.visitor_id AND se.session_start <= g.signup_ts\n  LEFT JOIN campaigns AS c ON c.utm_campaign = se.utm_campaign\n  LEFT JOIN channels AS ch ON ch.channel_id = c.channel_id\n),\ncredits AS (\n  -- one row per touch, with the revenue it earns under last click and under first click\n  SELECT t.channel,\n         CASE WHEN NOT EXISTS (\n           SELECT 1\n           FROM touches AS t2\n           WHERE t2.user_id = t.user_id\n             AND (t2.session_start > t.session_start\n                  OR (t2.session_start = t.session_start AND t2.session_id > t.session_id))\n         ) THEN pd.revenue ELSE 0 END AS last_click,\n         CASE WHEN NOT EXISTS (\n           SELECT 1\n           FROM touches AS t2\n           WHERE t2.user_id = t.user_id\n             AND (t2.session_start < t.session_start\n                  OR (t2.session_start = t.session_start AND t2.session_id < t.session_id))\n         ) THEN pd.revenue ELSE 0 END AS first_click\n  FROM touches AS t\n  JOIN paid AS pd ON pd.user_id = t.user_id\n)\nSELECT ROUND(COALESCE(SUM(first_click), 0) - COALESCE(SUM(last_click), 0), 2)\nFROM credits\nWHERE channel = 'youtube'"
+  },
+  "choices": {
+    "CP1": {
+      "correct_oid": "oa13409c",
+      "explanation": "The path is what led to the signup, so it ends at the signup moment; sessions after it, such as logins, come after the decision and would hand credit to direct or brand search."
+    },
+    "CP5": {
+      "correct_oid": "of3483b6",
+      "explanation": "Last click, first click and linear only share out the same revenue by rule, so the gap shows where YouTube sits in paths, not what it caused; that needs a test such as a geo holdout."
+    }
+  },
+  "solver": {
+    "CP1": {
+      "pass": true,
+      "prompt_hash": "10370a70febb8133",
+      "key_hash": "bcbca4c11a461def",
+      "at": "2026-10-16T15:28:34.740Z"
+    },
+    "CP2": {
+      "pass": true,
+      "prompt_hash": "0827a4fbbe1cfeea",
+      "key_hash": "30052e925ea99c51",
+      "at": "2026-10-16T15:28:34.740Z"
+    },
+    "CP4": {
+      "pass": true,
+      "prompt_hash": "04cf186b740ed2eb",
+      "key_hash": "735c163d47cb2a24",
+      "at": "2026-10-16T15:28:34.740Z"
+    },
+    "CP5": {
+      "pass": true,
+      "prompt_hash": "ed41ab5110458fad",
+      "key_hash": "abf8dc0418a7a079",
+      "at": "2026-10-16T15:28:34.740Z"
+    }
+  }
+}

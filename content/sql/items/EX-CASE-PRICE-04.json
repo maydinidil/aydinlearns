@@ -1,0 +1,220 @@
+{
+  "id": "EX-CASE-PRICE-04",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-04",
+    "case",
+    "inbox",
+    "pricing",
+    "cannibalisation",
+    "weekly_units",
+    "promotions",
+    "promotion_products",
+    "products",
+    "categories"
+  ],
+  "level": 4,
+  "source_ids": [
+    "04:CASE-PRICE-04"
+  ],
+  "verified": true,
+  "as_of": "2026-10-15",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "case",
+  "target_concept_id": "SQL-DATE-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CASE-01",
+    "SQL-AGG-04",
+    "SQL-TYPE-01",
+    "SQL-DATE-01",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-JOIN-05",
+    "SQL-SUBQ-01",
+    "SQL-DATE-02"
+  ],
+  "template_id": "T-CASE-PRICE-04-net-category-effect",
+  "template_params": {
+    "promo_code": "P-2025-03",
+    "baseline_weeks": 4,
+    "grain": "category"
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_promo",
+  "prompt": "Joost, the pricing lead, asks before Tuesday's promotion calendar meeting whether promotion P-2025-03 (Spring Audio Deals) grew its categories or only moved units from one product to another. Weeks run from Monday to Sunday, and an order counts in the week of its UTC order date. Take every product in a category that holds at least one product of P-2025-03. A product's baseline is its average weekly units over the 4 weeks just before the promotion's start date, and its promotion average is its average weekly units over the weeks from the start date to the end date; a week in which it sold nothing counts as 0 units. Its change is (promotion average minus baseline) times the number of promotion weeks, which counts the calendar weeks from the start date to the end date, both included. Return one row for each category that holds at least one product of P-2025-03, with six columns in this order: category_id; category_name; promoted_incremental_units, the sum of the changes of the category's products that are in P-2025-03; cannibalised_units, the sum of minus the changes of the category's other products, so a loss counts as a positive number; net_incremental_units, promoted_incremental_units minus cannibalised_units; and cannibalisation_rate_pct, 100 times cannibalised_units divided by promoted_incremental_units, rounded to 1 decimal, and missing when promoted_incremental_units is 0. Leave the three unit columns unrounded. Sort by category_id from low to high.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "category_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "category_name",
+        "type_class": "text"
+      },
+      {
+        "name": "promoted_incremental_units",
+        "type_class": "numeric"
+      },
+      {
+        "name": "cannibalised_units",
+        "type_class": "numeric"
+      },
+      {
+        "name": "net_incremental_units",
+        "type_class": "numeric"
+      },
+      {
+        "name": "cannibalisation_rate_pct",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": true,
+    "sort_keys": [
+      {
+        "column": "category_id",
+        "desc": false
+      }
+    ],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "category_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "category_name",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "promoted_incremental_units",
+        "type_class": "numeric",
+        "precision": "ratio"
+      },
+      {
+        "name": "cannibalised_units",
+        "type_class": "numeric",
+        "precision": "ratio"
+      },
+      {
+        "name": "net_incremental_units",
+        "type_class": "numeric",
+        "precision": "ratio"
+      },
+      {
+        "name": "cannibalisation_rate_pct",
+        "type_class": "numeric",
+        "precision": "ratio",
+        "require_rounding": 1
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "category_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, find the promotion with its dates and number of weeks, and the categories its products belong to.",
+    "Work out each product's change first, with a flag for whether it is in the promotion, then add the changes up per category with a condition on that flag."
+  ],
+  "subgoals": [
+    {
+      "from": 91,
+      "to": 233,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 236,
+      "to": 251,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 254,
+      "to": 284,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 390,
+      "to": 662,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 665,
+      "to": 684,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 687,
+      "to": 889,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 987,
+      "to": 1305,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 1308,
+      "to": 1417,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 1420,
+      "to": 1485,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 1488,
+      "to": 1994,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 1995,
+      "to": 2076,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 2077,
+      "to": 2117,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 2118,
+      "to": 2141,
+      "subgoal": "sort_limit"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "Every promoted product leaves the cannibalisation set, and a whole number of calendar weeks turns each weekly change into units."
+}

@@ -1,0 +1,175 @@
+{
+  "case_id": "CASE-PRICE-04",
+  "kind": "inbox",
+  "level": 4,
+  "world": "PRICE",
+  "company_id": "voltmarkt",
+  "title": "Net category effect of P-2025-03",
+  "persona": {
+    "name": "Joost",
+    "role": "Pricing lead"
+  },
+  "brief": {
+    "decision": "Whether to keep the Spring Audio Deals promotion, P-2025-03, in the promotion calendar, based on whether it grew its categories or only moved units between products",
+    "deadline": "Tuesday's promotion calendar meeting"
+  },
+  "data_needed": [
+    "promotions",
+    "promotion_products",
+    "products",
+    "categories",
+    "weekly_units"
+  ],
+  "expected_output": {
+    "columns": [
+      "category_id",
+      "category_name",
+      "promoted_incremental_units",
+      "cannibalised_units",
+      "net_incremental_units",
+      "cannibalisation_rate_pct"
+    ],
+    "grain": "one row per category that holds at least one product of promotion P-2025-03",
+    "sort": [
+      {
+        "column": "category_id",
+        "desc": false
+      }
+    ]
+  },
+  "checkpoints": [
+    {
+      "id": "CP1",
+      "kind": "CP1",
+      "item_id": "CASE-PRICE-04:CP1",
+      "credits_concepts": [],
+      "prompt": "Joost wants to know how many units promotion P-2025-03 took away from other products of the same category: the cannibalised units. Which products should that count cover?",
+      "options": [
+        {
+          "oid": "o53e4b68",
+          "text": "Every product in a category that holds a promoted product, the promoted products included"
+        },
+        {
+          "oid": "o1531650",
+          "text": "Every product in a category that holds a promoted product, apart from the products in P-2025-03 itself"
+        },
+        {
+          "oid": "o576ab82",
+          "text": "Only the sister product of each promoted product, such as Earbuds Lite for Earbuds Pro X"
+        },
+        {
+          "oid": "od88e502",
+          "text": "Every product Voltmarkt sells that is not in P-2025-03, whatever its category"
+        }
+      ]
+    },
+    {
+      "id": "CP2",
+      "kind": "CP2",
+      "item_id": "CASE-PRICE-04:CP2",
+      "credits_concepts": [
+        "SQL-AGG-01"
+      ],
+      "prompt": "Promotion P-2025-03 (Spring Audio Deals) covers several products. Count the products that are in the same category as at least one product of P-2025-03 but are not in P-2025-03 themselves. Each product counts once, whether or not it sold anything. Type a whole number.",
+      "typed": {
+        "precision": "count",
+        "scale": "plain",
+        "decimals": 0,
+        "unit_label": "products"
+      },
+      "truth_key": "CASE-PRICE-04:CP2"
+    },
+    {
+      "id": "CP3",
+      "kind": "CP3",
+      "item_id": "EX-CASE-PRICE-04",
+      "credits_concepts": [
+        "SQL-DATE-02",
+        "SQL-SUBQ-01",
+        "SQL-CTE-01",
+        "SQL-AGG-04"
+      ],
+      "prompt": "Write the query that answers Joost's question."
+    },
+    {
+      "id": "CP4",
+      "kind": "CP4",
+      "item_id": "CASE-PRICE-04:CP4",
+      "credits_concepts": [],
+      "prompt": "Joost's headline is about Earbuds in promotion P-2025-03 (Spring Audio Deals). For each Earbuds product, the baseline is its average weekly units over the 4 weeks, Monday to Sunday, just before the promotion's start date, and the promotion average is its average weekly units over the weeks from the start date to the end date; a week with no sales counts as 0 units, and an order counts in the week of its UTC order date. A product's change is (promotion average minus baseline) times the number of promotion weeks. The promoted gain is the sum of the changes of the Earbuds products in P-2025-03, and the cannibalised units are the sum of minus the changes of the other Earbuds products. What is the cannibalisation rate, 100 times the cannibalised units divided by the promoted gain? Type the percentage rounded to 1 decimal, for example 25.5.",
+      "typed": {
+        "precision": "ratio",
+        "scale": "percent",
+        "decimals": 1,
+        "unit_label": "%"
+      },
+      "truth_key": "CASE-PRICE-04:CP4"
+    },
+    {
+      "id": "CP5",
+      "kind": "CP5",
+      "item_id": "CASE-PRICE-04:CP5",
+      "credits_concepts": [],
+      "prompt": "During promotion P-2025-03 (25% off for two weeks), Earbuds Pro X sold far more units per week than in its 4 baseline weeks. Its sister Earbuds Lite, not in the promotion, sold fewer, yet the Earbuds category as a whole still sold more units than in those baseline weeks. Nothing else has been checked yet. Joost asks: can we conclude the promotion worked?",
+      "options": [
+        {
+          "oid": "ofa7952e",
+          "text": "Yes. Earbuds Pro X sold far more units per week than in its 4 baseline weeks, and that whole rise is the effect the promotion had on the business."
+        },
+        {
+          "oid": "o6faccbf",
+          "text": "Yes. The Earbuds category still gained units after Earbuds Lite's loss, so the promotion grew the category and has already paid for itself."
+        },
+        {
+          "oid": "oc7e8460",
+          "text": "Not yet. The category gained units, but a dip after the promotion, other events in the baseline weeks and the margin after the discount still need checking."
+        },
+        {
+          "oid": "o7ced9ec",
+          "text": "No. Earbuds Lite lost units, so the promotion only moved sales from one Earbuds product to the other and created no extra demand for the Earbuds category at all."
+        }
+      ]
+    },
+    {
+      "id": "CP6",
+      "kind": "CP6",
+      "credits_concepts": [],
+      "prompt": "Write 2 to 4 sentences for Joost: what P-2025-03 did to its categories, what happened in Earbuds and why, one caveat, and one next step before Tuesday's promotion calendar meeting."
+    }
+  ],
+  "model_plan": "Metric formula: per product, change = (promotion-week average minus baseline average) times the number of promotion weeks; per category, promoted_incremental_units adds the changes of the promoted products, cannibalised_units adds minus the changes of the other products, net_incremental_units is the difference, and cannibalisation_rate_pct = 100 times cannibalised divided by promoted incremental, rounded to 1 decimal.\nOutput grain: one row per category that holds at least one product of P-2025-03.\nTables and keys: promotions and promotion_products on promo_id give the promoted products; products gives each product its category_id; weekly_units joins on product_id; categories gives the name.\nFilters: P-2025-03 only; baseline weeks starting 28 to 7 days before its start date; promotion weeks from its start date to its end date.\nEdge cases: weeks with no sales count as 0; a product in more than one promotion must not repeat its weeks; every promoted product leaves the cannibalisation set; the number of weeks is a whole number of calendar weeks, not days divided by 7.\nExpected row count: 6",
+  "model_answer_template": "In Earbuds, {CP4} percent of the extra units Earbuds Pro X sold during P-2025-03 were offset by lower sales of the other earbuds, a loss that sat in its sister Earbuds Lite, so the category grew by less than the promoted product did. The baseline is a plain 4-week average and the result is in units, so it shows neither a dip after the promotion nor the margin given away with the 25% discount. Before Tuesday, I would value the net extra units at their margin after the discount and check the weeks after the promotion, then decide whether to keep it, cut the discount or promote a product with fewer close substitutes.",
+  "follow_up_question": "Should Joost keep P-2025-03 in next year's promotion calendar?",
+  "data_source": {
+    "label": "Fictional, generated data: Voltmarkt",
+    "real": false,
+    "licence": null
+  },
+  "difficulty": 4,
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CASE-01",
+    "SQL-AGG-04",
+    "SQL-TYPE-01",
+    "SQL-DATE-01",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-JOIN-05",
+    "SQL-SUBQ-01",
+    "SQL-DATE-02"
+  ],
+  "metric_ids": [
+    "MET-PRICE-04",
+    "MET-PRICE-05"
+  ],
+  "find_ids": [
+    "FIND-01-05"
+  ],
+  "uses_raw": false
+}

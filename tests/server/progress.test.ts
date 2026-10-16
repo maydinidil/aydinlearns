@@ -135,7 +135,7 @@ const TITLES: Record<string, string> = { [A]: 'Tables, rows and your first SELEC
 const titleOf = (id: string): string => TITLES[id] ?? id;
 const fakeView = (states: Record<string, ConceptStateName>, over: Partial<GoalView> = {}): GoalView => ({
   conceptsOf: (section, max) => (section === 'sql' ? SQL_CONCEPTS.filter((c) => c.level <= max).map((c) => c.id) : []),
-  stateOf: (id) => states[id] ?? 'new', externals: [], mocksPassed: new Set(), casesSolved: [], liveReps: [], ...over,
+  stateOf: (id) => states[id] ?? 'new', externals: [], mocksPassed: new Set(), casesSolved: [], realCasesAvailable: 0, liveReps: [], ...over,
 });
 const goalOf = (id: string, target_date: string, criteria: Goal['criteria'], stage: number | null = null): Goal => ({ id, title: `Goal ${id}`, target_date, stage, criteria });
 
@@ -164,6 +164,19 @@ test('progressGoals: each goal with its date, met or not, each criterion done an
   // The learner's own date moves the goal, so it is no longer behind.
   const moved = progressGoals(goals, view, { 'G-LEVEL': '2026-10-30' }, TODAY, titleOf)[0]!;
   assert.deepEqual([moved.effective_date, moved.behind], ['2026-10-30', false]);
+});
+
+test('S6-26 real_data_analysis: the label and a hint that follows what is prepared; no hint once it is met, none on other criteria', () => {
+  const goals = [goalOf('G-REAL', '2026-11-27', [{ kind: 'real_data_analysis', count: 1 }]), goalOf('G-CASE', '2026-11-02', [{ kind: 'case_solved', count: 1 }])];
+  const crit = (v: GoalView) => progressGoals(goals, v, {}, TODAY, titleOf).map((g) => g.criteria[0]!);
+  const [none, plain] = crit(fakeView({}));
+  assert.deepEqual(none, { label: 'First real-data analysis', met: false, available: true, done: 0, total: 1, gap: [],
+    hint: 'Prepare a dataset, then solve a real-data case in the inbox' });
+  assert.equal('hint' in plain!, false, 'only the real-data criterion has a hint');
+  assert.equal(crit(fakeView({}, { realCasesAvailable: 2 }))[0]!.hint, 'Solve a real-data case in the inbox');
+  const solved = { case_id: 'CASE-REAL-01', level: 4, exported: false, real: true };
+  const met = crit(fakeView({}, { realCasesAvailable: 2, casesSolved: [solved] }))[0]!;
+  assert.deepEqual([met.met, 'hint' in met], [true, false]);
 });
 
 const REAL_GOALS = (JSON.parse(await readFile('content/goals.json', 'utf8')) as { goals: Goal[] }).goals;
@@ -341,7 +354,22 @@ test('JR-02: no missing-value (NULL-tagged) error in the last 20 graded SQL atte
   assert.deepEqual(judged(short), ['not_enough', { have: 19, need: 20 }, null]);
 });
 
-const drillRun = (level: number | null, kind: 'level' | 'chosen', passed: boolean, ended = true): DrillRun => ({
+test('JR-02 (S4B-21, sprint 6 Task K3): ERR-LOG-30 and ERR-LOG-35 count as missing-value mistakes, though their concepts are not NULL-tagged', async () => {
+  // The real catalogue: ERR-LOG-30 (NOT IN over a list with a missing value) is SQL-SUBQ-01's, ERR-LOG-35 (a missing ratio turned
+  // into 0) SQL-CLEAN-01's, so the concept rule alone cannot see them.
+  const errorConcepts = JSON.parse(await readFile('content/sql/error-concepts.json', 'utf8')) as Record<string, string>;
+  assert.deepEqual([errorConcepts['ERR-LOG-30'], errorConcepts['ERR-LOG-35']], ['SQL-SUBQ-01', 'SQL-CLEAN-01']);
+  const tries = (error: string): object[] => [...Array(10).keys()].flatMap((i) => {
+    const at = ago(25 - i);
+    return one(`EX-SQL-SUBQ-01-E1-${i}`, at, [fail(at, 10, [i === 4 ? error : 'ERR-LOG-13']), pass(at, 20)]);
+  });
+  const of = (error: string) => jrOf(jr({ errorConcepts, facts: factsOf(tries(error)) }), 'JR-02');
+  for (const id of ['ERR-LOG-30', 'ERR-LOG-35']) assert.deepEqual(judged(of(id)), ['not_met', { have: 20, need: 20 }, { count: 19, total: 20 }], id);
+  // Their concepts' other errors stay as they were: a subquery linked on the wrong column, a record loaded twice.
+  for (const id of ['ERR-LOG-31', 'ERR-LOG-36']) assert.equal(of(id).status, 'met', id);
+});
+
+const drillRun =(level: number | null, kind: 'level' | 'chosen', passed: boolean, ended = true): DrillRun => ({
   block_id: `b-${++serial}`, kind, level, screen_mode: false, date: TODAY, started_at: on(TODAY), ended_at: ended ? on(TODAY, '10:20') : null, concept_ids: [],
   score: scoreOf(passed ? 9 : 5, 10, 10, { pass_pct: 90, unseen_min_pct: 70 }, kind === 'level'), questions: [],
 });
@@ -481,7 +509,7 @@ async function progressApp(store: ContentStore): Promise<{ app: Hono; dir: strin
   logger.onWrite((file, r) => state.record(file, r));
   const d: AppDeps = { port: 5174, checks: [], runner: null, content: store, logger, session: new SessionTracker(logger, async (at) => { for (const h of endHooks) await h(at); }),
     endHooks, closedInstances: [], schemaNotes: [], manifest: { dataset_version: 'x', library_version: 'v1.5.6' },
-    settings: { backup_folder: null, exam_date: null, goal_dates: { 'G-STAGE-6': '2026-12-01' } }, tableCheck: 'parse_tree', state, servings: new Servings() };
+    settings: { backup_folder: null, exam_date: null, goal_dates: { 'G-STAGE-6': '2026-12-01' }, portfolio_folder: null }, tableCheck: 'parse_tree', state, servings: new Servings() };
   return { app: createApp(d), dir };
 }
 const filesOf = async (dir: string): Promise<Record<string, string>> =>
@@ -508,7 +536,7 @@ test('GET /api/progress reads only, agrees with GET /api/goals/progress on every
   assert.deepEqual(all.map((g) => g.goal.id).sort(), REAL_GOALS.map((g) => g.id).sort(), 'every goal once');
   for (const g of goals) {
     const p = all.find((x) => x.goal.id === g.goal.id)!;
-    assert.deepEqual({ goal: p.goal, effective_date: p.effective_date, met: p.met, criteria: p.criteria.map(({ gap, ...c }) => c) }, g, g.goal.id);
+    assert.deepEqual({ goal: p.goal, effective_date: p.effective_date, met: p.met, criteria: p.criteria.map(({ gap, hint, ...c }) => c) }, g, g.goal.id);
   }
   assert.ok(progress.goals.every((g) => g.goal.stage === null), 'the goals list holds the goals that are no stage test');
   assert.deepEqual(progress.board.stages.map((s) => [s.goal.stage, s.status]), [[1, 'open'], [2, 'not_yet_available'], [3, 'not_yet_available'],

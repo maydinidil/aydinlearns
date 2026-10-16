@@ -1,0 +1,44 @@
+{
+  "item_id": "EX-CASE-DQ-03",
+  "item_version": 1,
+  "reference_sql": "SELECT p.category_id,\n       SUM(CASE WHEN p.sku <> UPPER(REPLACE(p.sku, ' ', '')) THEN 1 ELSE 0 END) AS n_sku_off,\n       SUM(CASE WHEN p.category_raw NOT IN (SELECT c.category_name FROM categories AS c) THEN 1 ELSE 0 END) AS n_category_raw_off\nFROM products AS p\nWHERE p.sku <> UPPER(REPLACE(p.sku, ' ', ''))\n   OR p.category_raw NOT IN (SELECT c.category_name FROM categories AS c)\nGROUP BY p.category_id\nORDER BY p.category_id",
+  "alternatives": [
+    "SELECT p.category_id,\n       SUM(CASE WHEN p.sku <> UPPER(REPLACE(p.sku, ' ', '')) THEN 1 ELSE 0 END) AS n_sku_off,\n       SUM(CASE WHEN c.category_id IS NULL THEN 1 ELSE 0 END) AS n_category_raw_off\nFROM products AS p\nLEFT JOIN categories AS c ON c.category_name = p.category_raw\nWHERE p.sku <> UPPER(REPLACE(p.sku, ' ', ''))\n   OR c.category_id IS NULL\nGROUP BY p.category_id\nORDER BY p.category_id",
+    "WITH checks AS (  -- one row per product, with a flag for each text key\n  SELECT p.product_id,\n         p.category_id,\n         CASE WHEN p.sku <> UPPER(REPLACE(p.sku, ' ', '')) THEN 1 ELSE 0 END AS sku_off,\n         CASE WHEN NOT EXISTS (SELECT 1 FROM categories AS c WHERE c.category_name = p.category_raw) THEN 1 ELSE 0 END AS raw_off\n  FROM products AS p\n)\nSELECT category_id,\n       SUM(sku_off) AS n_sku_off,\n       SUM(raw_off) AS n_category_raw_off\nFROM checks\nGROUP BY category_id\nHAVING SUM(sku_off) + SUM(raw_off) > 0\nORDER BY category_id"
+  ],
+  "other_way": {
+    "sql": "SELECT p.category_id,\n       SUM(CASE WHEN p.sku <> UPPER(REPLACE(p.sku, ' ', '')) THEN 1 ELSE 0 END) AS n_sku_off,\n       SUM(CASE WHEN c.category_id IS NULL THEN 1 ELSE 0 END) AS n_category_raw_off\nFROM products AS p\nLEFT JOIN categories AS c ON c.category_name = p.category_raw\nWHERE p.sku <> UPPER(REPLACE(p.sku, ' ', ''))\n   OR c.category_id IS NULL\nGROUP BY p.category_id\nORDER BY p.category_id",
+    "tradeoff": "A LEFT JOIN with IS NULL finds the names no category has, but NOT IN with a subquery reads closer to the rule."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-32",
+      "sql": "SELECT p.category_id, SUM(CASE WHEN p.sku <> UPPER(TRIM(p.sku)) THEN 1 ELSE 0 END) AS n_sku_off, SUM(CASE WHEN p.category_raw NOT IN (SELECT c.category_name FROM categories AS c) THEN 1 ELSE 0 END) AS n_category_raw_off FROM products AS p WHERE p.sku <> UPPER(TRIM(p.sku)) OR p.category_raw NOT IN (SELECT c.category_name FROM categories AS c) GROUP BY p.category_id ORDER BY p.category_id"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-32",
+      "sql": "SELECT p.category_id, SUM(CASE WHEN p.sku <> REPLACE(p.sku, ' ', '') THEN 1 ELSE 0 END) AS n_sku_off, SUM(CASE WHEN p.category_raw NOT IN (SELECT c.category_name FROM categories AS c) THEN 1 ELSE 0 END) AS n_category_raw_off FROM products AS p WHERE p.sku <> REPLACE(p.sku, ' ', '') OR p.category_raw NOT IN (SELECT c.category_name FROM categories AS c) GROUP BY p.category_id ORDER BY p.category_id"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-11",
+      "sql": "SELECT p.category_id, SUM(CASE WHEN p.sku <> UPPER(REPLACE(p.sku, ' ', '')) THEN 1 ELSE 0 END) AS n_sku_off, SUM(CASE WHEN p.category_raw <> c.category_name THEN 1 ELSE 0 END) AS n_category_raw_off FROM products AS p JOIN categories AS c ON c.category_id = p.category_id WHERE p.sku <> UPPER(REPLACE(p.sku, ' ', '')) OR p.category_raw <> c.category_name GROUP BY p.category_id ORDER BY p.category_id"
+    },
+    {
+      "id": "PW4",
+      "error_id": "ERR-LOG-12",
+      "sql": "SELECT p.category_id, SUM(CASE WHEN p.sku <> UPPER(REPLACE(p.sku, ' ', '')) THEN 1 ELSE 0 END) AS n_sku_off, SUM(CASE WHEN p.category_raw NOT IN (SELECT c.parent_category FROM categories AS c) THEN 1 ELSE 0 END) AS n_category_raw_off FROM products AS p WHERE p.sku <> UPPER(REPLACE(p.sku, ' ', '')) OR p.category_raw NOT IN (SELECT c.parent_category FROM categories AS c) GROUP BY p.category_id ORDER BY p.category_id"
+    }
+  ],
+  "hint3_partial": "SELECT p.category_id,\n       SUM(CASE WHEN p.sku <> ___ THEN 1 ELSE 0 END) AS n_sku_off,\n       SUM(CASE WHEN p.category_raw NOT IN (___) THEN 1 ELSE 0 END) AS n_category_raw_off\nFROM products AS p\nWHERE ___\nGROUP BY p.category_id\nORDER BY p.category_id",
+  "solver": {
+    "prompt_hash": "b1cb7b919255ecf2",
+    "schema_version": "81419b0500f4",
+    "dataset_version": "b2d2b40fb117bb07",
+    "grader_version": "6a.1",
+    "query": "WITH f AS (\n  SELECT category_id,\n         (sku <> upper(sku) OR sku LIKE '% %') AS sku_off,\n         (category_raw NOT IN (SELECT category_name FROM categories WHERE category_name IS NOT NULL)) AS cat_off\n  FROM products\n)\nSELECT category_id,\n       COUNT(*) FILTER (WHERE sku_off) AS n_sku_off,\n       COUNT(*) FILTER (WHERE cat_off) AS n_category_raw_off\nFROM f\nWHERE sku_off OR cat_off\nGROUP BY category_id\nORDER BY category_id NULLS LAST\n",
+    "at": "2026-10-15T19:10:05.200Z"
+  }
+}

@@ -1,0 +1,100 @@
+{
+  "id": "EX-SQL-STR-01-E1-07",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-04",
+    "text_helper",
+    "category_raw",
+    "products"
+  ],
+  "level": 4,
+  "source_ids": [
+    "01:SQL-STR-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-15",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-STR-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-AGG-01",
+    "SQL-STR-01"
+  ],
+  "template_id": "T-STR-01-parent-spellings-count",
+  "template_params": {
+    "parent": "TV & Video"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt_raw",
+  "edge_schema": "voltmarkt_edge_clean",
+  "uses_raw": true,
+  "prompt": "How many products have a category_raw that names the parent category TV & Video itself rather than one of its child categories? This table may hold errors. The parent is spelled 'tv & video', 'tv en video', 'tv/video' or 'téléviseurs', once letter case and spaces at the start or end are ignored. Return one column, n_products. The result is a single row. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "n_products",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "n_products",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the row filter that compares a cleaned category_raw with the four spellings.",
+    "The spellings are written in lower case with no outer spaces, so clean each value the same way before the IN list."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 29,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 30,
+      "to": 43,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 44,
+      "to": 135,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "Cleaning each value with LOWER(TRIM(...)) before the IN list lets 'TV/Video ' and 'TV & Video' match the lower-case spellings."
+}

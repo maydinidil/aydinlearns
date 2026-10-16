@@ -1,0 +1,267 @@
+{
+  "id": "EX-CASE-MKT-04",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-04",
+    "case",
+    "inbox",
+    "marketing",
+    "attribution",
+    "payments",
+    "subscriptions",
+    "signups",
+    "sessions",
+    "campaigns",
+    "channels"
+  ],
+  "level": 4,
+  "source_ids": [
+    "04:CASE-MKT-04"
+  ],
+  "verified": true,
+  "as_of": "2026-10-16",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "case",
+  "target_concept_id": "SQL-SUBQ-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-SORT-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CASE-01",
+    "SQL-TYPE-01",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-SET-01",
+    "SQL-SUBQ-01"
+  ],
+  "template_id": "T-CASE-MKT-04-attribution-models",
+  "template_params": {
+    "quarter": "2025-Q3",
+    "models": "last_click, first_click, linear",
+    "grain": "channel"
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "mailvora",
+  "schema": "mailvora",
+  "edge_schema": "mailvora_edge_case",
+  "prompt": "Declan, the head of growth, thinks last click undervalues YouTube and asks before Monday's budget meeting how much Q3 2025 paid revenue each channel earns under three attribution models. Revenue is the amount_eur of every payment with paid_at from 1 July 2025 00:00 up to but not including 1 October 2025 00:00, UTC, that was not refunded, and it belongs to the user of the subscription it paid. A paying user's touches are the sessions of the user's visitor_id that started at or before signup_ts. A touch's channel follows the channel rule: a session with a utm_campaign takes the channel_name of the campaign with that utm_campaign, and a session without one is organic when utm_medium is 'organic', referral when utm_medium is 'referral', and direct when utm_source, utm_medium and utm_campaign are all missing. Order a user's touches by session_start, and by session_id when two start at the same moment. Last click gives all of a user's revenue to the channel of the last touch, first click gives it all to the channel of the first touch, and linear shares it equally between the touches, so a channel with two of a user's four touches gets half. A paying user with no touch gives all of that revenue to unattributed in each model. Return one row for each of Mailvora's channels, plus one row named unattributed, with five columns in this order: channel; last_click_revenue; first_click_revenue; linear_revenue; and first_minus_last_revenue, first_click_revenue minus last_click_revenue. A channel that earns nothing shows 0. Give every amount in euros, rounded to 2 decimals. Sort by last_click_revenue from high to low, then by channel from A to Z.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "channel",
+        "type_class": "text"
+      },
+      {
+        "name": "last_click_revenue",
+        "type_class": "numeric"
+      },
+      {
+        "name": "first_click_revenue",
+        "type_class": "numeric"
+      },
+      {
+        "name": "linear_revenue",
+        "type_class": "numeric"
+      },
+      {
+        "name": "first_minus_last_revenue",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": true,
+    "sort_keys": [
+      {
+        "column": "last_click_revenue",
+        "desc": true
+      },
+      {
+        "column": "channel",
+        "desc": false
+      }
+    ],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "channel",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "last_click_revenue",
+        "type_class": "numeric",
+        "precision": "money",
+        "require_rounding": 2
+      },
+      {
+        "name": "first_click_revenue",
+        "type_class": "numeric",
+        "precision": "money",
+        "require_rounding": 2
+      },
+      {
+        "name": "linear_revenue",
+        "type_class": "numeric",
+        "precision": "money",
+        "require_rounding": 2
+      },
+      {
+        "name": "first_minus_last_revenue",
+        "type_class": "numeric",
+        "precision": "money",
+        "require_rounding": 2
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "channel"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, add up each paying user's Q3 2025 revenue, then list that user's sessions up to signing up, each with its channel.",
+    "Mark a touch as last or first by checking that no other touch of the same user comes after or before it, divide linear credit by the number of touches, and start the result from every channel so none drops out."
+  ],
+  "subgoals": [
+    {
+      "from": 103,
+      "to": 149,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 152,
+      "to": 237,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 240,
+      "to": 379,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 382,
+      "to": 400,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 510,
+      "to": 794,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 797,
+      "to": 1070,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 1166,
+      "to": 1203,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 1206,
+      "to": 1218,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 1221,
+      "to": 1237,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 1367,
+      "to": 2070,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 2073,
+      "to": 2185,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 2200,
+      "to": 2257,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 2260,
+      "to": 2275,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 2278,
+      "to": 2352,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 2428,
+      "to": 2458,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 2459,
+      "to": 2472,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 2487,
+      "to": 2508,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 2599,
+      "to": 2700,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 2703,
+      "to": 2715,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 2718,
+      "to": 2734,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 2737,
+      "to": 3046,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 3047,
+      "to": 3120,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 3121,
+      "to": 3164,
+      "subgoal": "sort_limit"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "Each paying user's revenue is shared out once in each model, so every model credits the same quarter's revenue, only to different channels."
+}

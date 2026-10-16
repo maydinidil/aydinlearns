@@ -132,19 +132,28 @@ export interface MistakeTryView { item_id: string; item_instance_id: string; pha
 /** The drill routes (Task B14), declared here as server/routes/drill.ts answers them (the browser build has no node types). */
 export interface DrillScoreView { passed: number; questions: number; pct: number; run_passed: boolean; unseen: number; unseen_pct: number; counts_for_level: boolean }
 export interface DrillStarted {
-  block_id: string; kind: 'level' | 'chosen'; level: number | null; phase: 'drill'; hide_labels: boolean; questions: number; minutes: number;
+  block_id: string; kind: 'level' | 'chosen' | 'cumulative'; level: number | null; phase: 'drill'; hide_labels: boolean; questions: number; minutes: number;
   pass_pct: number; unseen_min_pct: number; ends_at: string; servings: { item_id: string; item_instance_id: string }[];
   /** S4B-23 (Task E3): the run was started in screen mode, so its items are served and graded in screen mode. */
   screen_mode?: boolean;
+  /** S6-19 (Task B4): a cumulative run's draw, level by level (what came from seen items, and what was short). */
+  fill?: CumulativeFillView[];
+  /** P15: the whole cumulative draw, so the screen can say when it falls below the unseen floor. */
+  overall?: CumulativeOverallView;
 }
+export interface CumulativeOverallView { questions: number; from_seen: number; unseen_pct: number }
+/** S6-19: what one level gave a cumulative draw. */
+export interface CumulativeFillView { level: number; wanted: number; taken: number; from_seen: number }
+/** S6-19: the cumulative drill the start screen offers (GET /api/drill/history): its rule, and what it would draw now. */
+export interface CumulativeOffer { id: string; levels: number[]; questions: number; minutes: number; pass_pct: number; unseen_min_pct: number; available: boolean; fill: CumulativeFillView[]; overall: CumulativeOverallView }
 /** S4B-23: a drill start names a level or the chosen concepts, and screen mode when the learner chose it. */
 export type DrillStartBody = ({ level: number } | { concept_ids: string[] }) & { screen_mode?: boolean };
 export interface DrillSpecView { level: number; questions: number; minutes: number; pass_pct: number; unseen_min_pct: number; available: boolean }
 /** `screen_mode` (S4B-23): the run's mode, which the history shows. `live_rep` (S4B-26, Task E4): a live rep, never a level or chosen run. */
-export interface DrillHistoryRow extends DrillScoreView { block_id: string; kind: 'level' | 'chosen' | 'live_rep'; level: number | null; date: string; screen_mode: boolean }
+export interface DrillHistoryRow extends DrillScoreView { block_id: string; kind: 'level' | 'chosen' | 'cumulative' | 'live_rep'; level: number | null; date: string; screen_mode: boolean }
 /** H3: how a question of the drill ended; a question that was never submitted is `not_answered`. */
 export interface DrillQuestionOutcome { item_instance_id: string; item_id: string | null; outcome: 'passed' | 'failed' | 'not_answered' }
-export interface DrillEnded { block_id: string; kind: 'level' | 'chosen' | 'live_rep'; level: number | null; score: DrillScoreView; /** Absent on a live rep. */ items?: DrillQuestionOutcome[] }
+export interface DrillEnded { block_id: string; kind: 'level' | 'chosen' | 'cumulative' | 'live_rep'; level: number | null; score: DrillScoreView; /** Absent on a live rep. */ items?: DrillQuestionOutcome[] }
 
 /**
  * The GA4 timed runs (Task B3), declared here as server/routes/run.ts answers them. A run is a mini drill (practice mode), a
@@ -248,9 +257,10 @@ export const api = {
   outsidePractice: (b: { source: string; description: string; score?: string }) => call<{ ok: true }>('POST', '/api/outside-practice', b),
   externalResult: (b: { kind: 'ga4_exam' | 'portfolio_piece'; data: unknown }) => call<{ ok: true }>('POST', '/api/external-result', b),
   drillStart: (b: DrillStartBody) => call<DrillStarted>('POST', '/api/drill/start', b),
+  drillCumulativeStart: () => call<DrillStarted>('POST', '/api/drill/cumulative/start', {}),
   drillCurrent: () => call<{ run: DrillStarted | null }>('GET', '/api/drill/current'),
   drillEnd: (block_id: string) => call<DrillEnded>('POST', '/api/drill/end', { block_id }),
-  drillHistory: (level?: number) => call<{ drill: DrillSpecView | null; runs: DrillHistoryRow[] }>('GET', `/api/drill/history${level === undefined ? '' : `?level=${level}`}`),
+  drillHistory: (level?: number) => call<{ drill: DrillSpecView | null; runs: DrillHistoryRow[]; /** Absent from an older server. */ cumulative?: CumulativeOffer[] }>('GET', `/api/drill/history${level === undefined ? '' : `?level=${level}`}`),
   /** Read only: starts no session and logs nothing. */
   mistakes: () => call<MistakesView>('GET', '/api/mistakes'),
   /** "Try again": serves a trap item for the card's pair. Then the usual exercise routes run it with this instance. */

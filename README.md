@@ -12,9 +12,38 @@ saying "wrong".
 
 | Section | Content |
 |---|---|
-| SQL | Levels 1 to 3, 20 concepts from the first SELECT to aggregation, CASE, types, dates, joins, CTEs and set operations: lessons with worked examples, 568 exercises (write the query, fix the query, predict the result, choose the query), timed drills, 12 cases in an inbox (an opener for each level, seven daily cases and two pricing cases), mistake cards for the mistakes that keep coming back, "other ways to write this" after a pass, a dataset explorer and a portfolio export |
+| SQL | Levels 1 to 4, 25 concepts from the first SELECT to aggregation, CASE, types, dates, joins, CTEs, set operations, subqueries, text, date arithmetic and data cleaning: lessons with worked examples, 715 exercises (write the query, fix the query, predict the result, choose the query), timed drills and a cumulative drill over levels 1 to 4, raw tables with planted errors to clean, 30 cases in an inbox (an opener for each level, nine daily cases, five pricing cases, a retail case, five data-quality tickets, four marketing cases on a second company, Mailvora, and two take-home cases on real data), mistake cards for the mistakes that keep coming back, "other ways to write this" after a pass, a dataset explorer over both companies and the real datasets you prepare, and a portfolio export with flagship drafts on real data |
 | GA4 | Complete for the certification: 16 lessons and 123 questions (73 for practice and 20-question mini drills, 50 held out for 25-question half-mocks and 50-question full mocks), a readiness check, and 10 interview labs in Google's GA4 demo account, each re-checked a week later |
 | Methodology | 78 concepts, each with a reading: 51 metrics (marketing, retail, pricing and SaaS), 13 on experiments and A/B testing, 9 on statistics and 5 on pricing economics. 478 questions, 93 of them held out for mocks |
+
+## Real datasets
+
+Two real datasets and one practice set can be added to the explorer and the inbox. None of them is
+in this repository: you download them yourself, and the app prepares them on your laptop. Until a
+dataset is prepared, its cases show in the inbox with the command that prepares it, and nothing else
+changes.
+
+| Dataset | Where to get it | What to keep | Licence |
+|---|---|---|---|
+| Online Retail II (real data: the invoice lines of a UK online gift shop, December 2009 to December 2011) | The [UCI page](https://archive.ics.uci.edu/dataset/502/online+retail+ii), Download button | `online+retail+ii.zip`, zipped or unzipped | [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/): free to share and adapt, with credit |
+| Breakfast at the Frat (nearly real data: dunnhumby's 156 weeks of store sales and promotions in four categories) | dunnhumby's [Source Files page](https://www.dunnhumby.com/source-files/), Breakfast at the Frat button (it may ask for a name and an email) | `dunnhumby_Breakfast-at-the-Frat.zip` | [dunnhumby terms](https://www.dunnhumby.com/terms-and-conditions/): research, personal or non-commercial use only |
+| The 8 Week SQL Challenge (fictional data, handmade by its author, Danny Ma) | Each case study page at [8weeksqlchallenge.com](https://8weeksqlchallenge.com) links its schema script on DB Fiddle | The eight scripts as text files named `case-study-1-dannys-diner.sql` to `case-study-8-fresh-segments.sql`, in a folder `8-week-sql-challenge` | No licence stated. The app copies none of the challenge's questions, data or scripts |
+
+Put the files in one folder (your downloads folder is fine), then run:
+
+```
+npm run prep:datasets -- --from <that folder>
+```
+
+Add `--only <dataset ID>` (`DS-RETAIL-02`, `DS-PRICE-101` or `CH-01`) to prepare one. The prep checks
+each file's fingerprint against the registry's (a different file warns and is recorded, and the prep
+goes on), reads it into `data/real/`, prints its checks (row counts, what it removed and
+why), and then rebuilds the course database. Run it again after updating the app. Each dataset's notes
+in the explorer say what the prep changed and what it left as the source has it.
+
+What is never committed: the downloaded files, `data/real/`, the course database, and any question,
+row or script of the 8 Week SQL Challenge. The registry (`content/datasets/registry.json`) holds only
+names, file names, fingerprints, licences, links and our own manager questions.
 
 ## Study tracking with OpenTelemetry
 
@@ -160,20 +189,20 @@ A lesson reading: [docs/screenshots/lesson.png](docs/screenshots/lesson.png).
 Aydin designed and directed the project and built it with AI coding agents (Claude Code), from a
 written design, sprint plans and test-first tasks, with a review per task and an outside review
 of every pull request. Lessons and exercises are generated from a research bank by agents and
-checked before they ship: 14,994 automated content checks, and a blind solver (a fresh agent
+checked before they ship: 18,674 automated content checks (18,716 with the real datasets prepared), and a blind solver (a fresh agent
 that solves every exercise without seeing its answer key). The design, the plans, every ruling
 and the review logs are in `docs/`.
 
-Today: 2,005 automated tests, 96 data pipeline tests, 14,994 content checks and a 64-row browser smoke test, all passing.
+Today: 2,271 automated tests, 248 data pipeline tests, 18,674 content checks (18,716 with the real datasets) and a 75-row browser smoke test, all passing.
 
 ## Status
 
-Version 1.3 (2026-10-13). Built: SQL levels 1 to 3 with the scheduler, Today, drills, level
+Version 1.5 (2026-10-16). Built: SQL levels 1 to 4 with the scheduler, Today, drills, level
 openers, cases and the inbox, mistake cards, the portfolio export, the Progress screen, the
 dataset explorer and screen mode; GA4 complete (lessons, mini drills, half-mocks, full mocks,
 the readiness check and the interview labs); Methodology complete; optional telemetry (1.2) and
-the study journey (1.3). Later 1.x releases add SQL
-levels 4 to 7, more companies and real datasets, and the recruiter mocks. See
+the study journey (1.3); SQL level 4, raw data and the incident tickets (1.4); Mailvora, the marketing cases and the first
+real datasets (1.5). Later 1.x releases add SQL levels 5 to 7, more companies and real datasets, and the recruiter mocks. See
 `docs/planning/roadmap.md` and `CHANGELOG.md`.
 
 It runs on Windows 11; other systems are untested.
@@ -218,11 +247,11 @@ The app itself:
 | `schemas/` | The app's types (exercises, keys, lessons, curriculum, the log extension) and the grading test cases |
 | `server/` | The local server: the SQL runner (`server/runner/`), the grader (`server/grader/`), the logs and the routes |
 | `web/` | The screens: Today, the maps, lessons, exercises, timed runs, and settings and setup |
-| `content/` | The SQL, GA4 and Methodology curricula, lessons and exercises, and their answer keys (`content/keys/`) |
-| `pipeline/` | The Python build for the Voltmarkt course database |
+| `content/` | The SQL, GA4 and Methodology curricula, lessons and exercises, their answer keys (`content/keys/`), and the dataset registry (`content/datasets/registry.json`) |
+| `pipeline/` | The Python build for the course database (Voltmarkt and Mailvora), and the real-data prep in `pipeline/datasets/` |
 | `tools/` | The content checks, the ERRATA check, the import check, the curriculum extractor, the blind-solver tools, the launcher (`tools/launch.ts`) and `npm run journey` (`tools/journey.ts`, with its views in `tools/journey-views.sql`) |
 | `tests/` | The test suite, plus the browser smoke test in `tests/e2e/` |
-| `data/`, `logs/` | The built course database and the attempt log. Git ignores both; the log is backed up to the folder chosen in Settings after each session |
+| `data/`, `logs/` | The built course database (with any real data you prepared, in `data/real/`) and the attempt log. Git ignores both; the log is backed up to the folder chosen in Settings after each session |
 | `journey/` | The [study journey](#your-study-journey) (D77) and the database `npm run journey` builds from it. Git ignores it |
 
 Design §11 has the full layout.
@@ -252,7 +281,8 @@ To check and build from clean, run these in order:
 |---|---|
 | `npm ci` | Installs the exact package versions from the lockfile |
 | `pipeline/.venv/Scripts/python.exe -m unittest discover -s pipeline/tests -v` | Tests the data pipeline |
-| `npm run build:data` | Builds `data/course.duckdb` and its manifest. It also writes the case truth checkpoints (`data/truth/voltmarkt.json`, key `checkpoints`). Run it after any change to the pipeline or the case data |
+| `npm run prep:datasets -- --from <folder>` | Optional. Prepares the real datasets you downloaded into `data/real/` and rebuilds (see [Real datasets](#real-datasets)) |
+| `npm run build:data` | Builds `data/course.duckdb` and its manifest. It also writes the case truth checkpoints to `data/truth/checkpoints.json`, each case's on its own schema (an older build kept them in `data/truth/voltmarkt.json`, key `checkpoints`, which the server still reads). Run it after any change to the pipeline or the case data |
 | `npm run typecheck` | Type-checks the server, tools, tests and screens |
 | `npm test` | Runs the test suite |
 | `npm run check:imports` | Checks that `core/` stays free of app code |
@@ -274,6 +304,8 @@ For generating content (see `docs/content/`):
 | `npm run record:lab-solver` | Grades the lab blind solver's answers and records them in the lab keys. Run it after a lab blind solve |
 | `node tools/reserve-held-out.ts` | Reserves the held-out mock pool for GA4 and Methodology (`content/<section>/held-out.json`). Run it when the bank changes, then `npm run check:content`. `--extend --candidates <file> (--per-card <k> or --topic <T> --count <n> [--release-from <T1,T2>]) [--logs <dir>]` adds only the listed new items and releases only never-served held items, never moving a practised one. A candidate that is not in the bank or is already held refuses the run; an ineligible one is skipped and counted |
 | `npm run record:solver` | Grades the blind solver's answers and records them in the answer keys |
+| `npm run export:case-view` | Writes the view of every case's CP1, CP2, CP4 and CP5 (no keys) for the case blind solver, in `tools/.solver-view/cases/` |
+| `npm run record:case-solver` | Grades the case blind solver's answers and records them in the case keys. Run it after a case blind solve |
 | `npm run report:window` | Prints, per SQL concept, the first attempts in its mastery window by kind, how many qualify, and the concept's state. Counts only. Reads `logs/`, or the folder given after `--`; writes nothing |
 
 ## Telemetry with OpenTelemetry (optional)

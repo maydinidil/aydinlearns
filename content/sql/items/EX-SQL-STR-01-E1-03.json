@@ -1,0 +1,112 @@
+{
+  "id": "EX-SQL-STR-01-E1-03",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-04",
+    "text_helper",
+    "trim",
+    "sku",
+    "products"
+  ],
+  "level": 4,
+  "source_ids": [
+    "01:SQL-STR-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-15",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "lesson",
+  "target_concept_id": "SQL-STR-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-STR-01"
+  ],
+  "template_id": "T-STR-01-outer-spaces",
+  "template_params": {
+    "column": "sku"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt_raw",
+  "edge_schema": "voltmarkt_edge_clean",
+  "uses_raw": true,
+  "prompt": "Which products have a sku with a space at its start or end? This table may hold errors. A space at either end of a sku is one of them. Return two columns, in this order: product_id and sku, the sku exactly as stored. Return one row for each such product. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "sku",
+        "type_class": "text"
+      }
+    ],
+    "grain": "one row per product with a space at an end of its sku"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "sku",
+        "type_class": "text",
+        "precision": "exact"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "product_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the row filter that keeps the skus with a space at an end.",
+    "TRIM gives the sku without its outer spaces; keep the rows where the stored sku and the trimmed one differ."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 22,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 23,
+      "to": 36,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 37,
+      "to": 59,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": {
+    "stage1": 37,
+    "stage2": 23
+  },
+  "faded_shape": "SELECT product_id, sku\nFROM products\n",
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "TRIM removes only the spaces at the start and end, so a sku that differs from TRIM(sku) has a space at an end."
+}

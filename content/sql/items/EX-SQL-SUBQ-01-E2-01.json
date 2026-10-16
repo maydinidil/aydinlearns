@@ -1,0 +1,113 @@
+{
+  "id": "EX-SQL-SUBQ-01-E2-01",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-04",
+    "not_exists",
+    "not_in_missing",
+    "promotions",
+    "order_lines"
+  ],
+  "level": 4,
+  "source_ids": [
+    "01:SQL-SUBQ-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-15",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "lesson",
+  "target_concept_id": "SQL-SUBQ-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-SUBQ-01"
+  ],
+  "template_id": "T-SUBQ-01-not-exists-nullable-key",
+  "template_params": {
+    "outer": "promotions",
+    "inner": "order_lines",
+    "min_quantity": 3
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_subq",
+  "prompt": "Which promotions were never carried by an order line with a quantity of 3 or more? An order line carries a promotion when its promo_id is that promotion's promo_id; most lines carry no promotion, and their promo_id is missing. Return two columns, in this order: promo_id and promo_code. Return one row for each such promotion. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "promo_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "promo_code",
+        "type_class": "text"
+      }
+    ],
+    "grain": "one row per promotion that no such line carried"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "promo_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "promo_code",
+        "type_class": "text",
+        "precision": "exact"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "promo_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the row filter: keep a promotion when no order line of 3 or more units carries it.",
+    "Look for a matching line inside the brackets, linked to the outer promotion, and keep the promotion when none exists; a list of promotion IDs compared with NOT IN would hold missing values."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 33,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 34,
+      "to": 52,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 53,
+      "to": 165,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": {
+    "stage1": 53,
+    "stage2": 34
+  },
+  "faded_shape": "SELECT pr.promo_id, pr.promo_code\nFROM promotions pr\n",
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "NOT EXISTS keeps a promotion when no line of 3 or more units matches it, and the lines with a missing promo_id never match, so they cannot hide the answer."
+}

@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-SUBQ-01-E3-04",
+  "item_version": 1,
+  "reference_sql": "SELECT p.product_id,\n  (SELECT ph.list_price_eur FROM price_history ph WHERE ph.product_id = p.product_id AND ph.valid_to IS NULL) AS list_price_eur,\n  (SELECT COUNT(*) FROM competitor_prices cp WHERE cp.product_id = p.product_id) AS n_checks\nFROM products p\nWHERE p.category_id = 17",
+  "alternatives": [
+    "SELECT p.product_id, ph.list_price_eur, COUNT(cp.product_id) AS n_checks\nFROM products p\nJOIN price_history ph ON ph.product_id = p.product_id AND ph.valid_to IS NULL\nLEFT JOIN competitor_prices cp ON cp.product_id = p.product_id\nWHERE p.category_id = 17\nGROUP BY p.product_id, ph.list_price_eur",
+    "WITH checks AS (\n  -- one row per checked product\n  SELECT product_id, COUNT(*) AS n_checks\n  FROM competitor_prices\n  GROUP BY product_id\n)\nSELECT p.product_id, ph.list_price_eur, COALESCE(c.n_checks, 0) AS n_checks\nFROM products p\nJOIN price_history ph ON ph.product_id = p.product_id AND ph.valid_to IS NULL\nLEFT JOIN checks c ON c.product_id = p.product_id\nWHERE p.category_id = 17"
+  ],
+  "other_way": {
+    "sql": "SELECT p.product_id, ph.list_price_eur, COUNT(cp.product_id) AS n_checks\nFROM products p\nJOIN price_history ph ON ph.product_id = p.product_id AND ph.valid_to IS NULL\nLEFT JOIN competitor_prices cp ON cp.product_id = p.product_id\nWHERE p.category_id = 17\nGROUP BY p.product_id, ph.list_price_eur",
+    "tradeoff": "Joins and GROUP BY give the same table, but COUNT must name a column of the checks, or a product with none counts 1."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-04",
+      "sql": "SELECT p.product_id, ph.list_price_eur, COUNT(*) AS n_checks FROM products p JOIN price_history ph ON ph.product_id = p.product_id AND ph.valid_to IS NULL LEFT JOIN competitor_prices cp ON cp.product_id = p.product_id WHERE p.category_id = 17 GROUP BY p.product_id, ph.list_price_eur"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-SEM-05",
+      "sql": "SELECT p.product_id, (SELECT ph.list_price_eur FROM price_history ph WHERE ph.product_id = p.product_id) AS list_price_eur, (SELECT COUNT(*) FROM competitor_prices cp WHERE cp.product_id = p.product_id) AS n_checks FROM products p WHERE p.category_id = 17"
+    }
+  ],
+  "hint3_partial": "SELECT p.product_id,\n  (SELECT ph.list_price_eur FROM price_history ph WHERE ph.product_id = p.product_id AND ___) AS list_price_eur,\n  (SELECT COUNT(*) FROM competitor_prices cp WHERE cp.product_id = ___) AS n_checks\nFROM products p\nWHERE p.category_id = 17",
+  "solver": {
+    "prompt_hash": "bc2ce073b9ac1828",
+    "schema_version": "f9ece455102d",
+    "dataset_version": "b2d2b40fb117bb07",
+    "grader_version": "6a.1",
+    "query": "SELECT p.product_id, h.list_price_eur, (SELECT COUNT(*) FROM competitor_prices c WHERE c.product_id = p.product_id) AS n_checks FROM products p LEFT JOIN price_history h ON h.product_id = p.product_id AND h.valid_to IS NULL WHERE p.category_id = 17\r\n",
+    "at": "2026-10-15T11:06:13.177Z"
+  }
+}

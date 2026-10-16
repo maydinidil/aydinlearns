@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-SUBQ-02-E2-02",
+  "item_version": 1,
+  "reference_sql": "SELECT p.brand, COUNT(*) AS n_products\nFROM products p\nJOIN (\n  -- one row per product\n  SELECT product_id, SUM(quantity) AS units\n  FROM order_lines\n  GROUP BY product_id\n) AS u ON u.product_id = p.product_id\nWHERE u.units > 2000\nGROUP BY p.brand",
+  "alternatives": [
+    "WITH product_units AS (\n  -- one row per product\n  SELECT product_id, SUM(quantity) AS units\n  FROM order_lines\n  GROUP BY product_id\n)\nSELECT p.brand, COUNT(*) AS n_products\nFROM products p\nJOIN product_units u ON u.product_id = p.product_id\nWHERE u.units > 2000\nGROUP BY p.brand",
+    "SELECT p.brand, COUNT(*) AS n_products\nFROM products p\nJOIN (\n  -- one row per product above 2,000 units\n  SELECT product_id\n  FROM order_lines\n  GROUP BY product_id\n  HAVING SUM(quantity) > 2000\n) AS u ON u.product_id = p.product_id\nGROUP BY p.brand"
+  ],
+  "other_way": {
+    "sql": "WITH product_units AS (\n  -- one row per product\n  SELECT product_id, SUM(quantity) AS units\n  FROM order_lines\n  GROUP BY product_id\n)\nSELECT p.brand, COUNT(*) AS n_products\nFROM products p\nJOIN product_units u ON u.product_id = p.product_id\nWHERE u.units > 2000\nGROUP BY p.brand",
+    "tradeoff": "A WITH step holds the product totals under a name, which helps when a later step reads them again; here it only adds lines."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-07",
+      "sql": "SELECT u.brand, COUNT(*) AS n_products FROM (SELECT p.brand, SUM(ol.quantity) AS units FROM order_lines ol JOIN products p ON p.product_id = ol.product_id GROUP BY p.brand) AS u WHERE u.units > 2000 GROUP BY u.brand"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-01",
+      "sql": "SELECT p.brand, COUNT(*) AS n_products FROM products p JOIN order_lines ol ON ol.product_id = p.product_id JOIN (SELECT product_id, SUM(quantity) AS units FROM order_lines GROUP BY product_id) AS u ON u.product_id = p.product_id WHERE u.units > 2000 GROUP BY p.brand"
+    }
+  ],
+  "hint3_partial": "SELECT p.brand, COUNT(*) AS n_products\nFROM products p\nJOIN (\n  -- one row per product\n  SELECT product_id, SUM(quantity) AS units\n  FROM order_lines\n  GROUP BY ___\n) AS u ON u.product_id = p.product_id\nWHERE u.units > 2000\nGROUP BY p.brand",
+  "solver": {
+    "prompt_hash": "e06690eefb3cf7ac",
+    "schema_version": "aa46c7717652",
+    "dataset_version": "b2d2b40fb117bb07",
+    "grader_version": "6a.1",
+    "query": "SELECT p.brand, COUNT(*) AS n_products FROM (SELECT product_id, SUM(quantity) AS units FROM order_lines GROUP BY product_id) AS t JOIN products p ON p.product_id = t.product_id WHERE t.units > 2000 GROUP BY p.brand\r\n",
+    "at": "2026-10-15T11:06:13.759Z"
+  }
+}

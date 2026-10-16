@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-SUBQ-01-E3-21",
+  "item_version": 1,
+  "reference_sql": "SELECT c.category_id, c.category_name\nFROM categories c\nWHERE EXISTS (SELECT 1 FROM products p WHERE p.category_id = c.category_id)\n  AND NOT EXISTS (\n    SELECT 1\n    FROM products p\n    JOIN price_history ph ON ph.product_id = p.product_id\n    WHERE p.category_id = c.category_id\n      AND ph.valid_to IS NULL\n      AND ph.list_price_eur <= 100\n  )",
+  "alternatives": [
+    "SELECT c.category_id, c.category_name\nFROM categories c\nWHERE 100 < (\n  SELECT MIN(ph.list_price_eur)\n  FROM products p\n  JOIN price_history ph ON ph.product_id = p.product_id\n  WHERE p.category_id = c.category_id\n    AND ph.valid_to IS NULL\n)",
+    "WITH category_min AS (\n  -- one row per category with products\n  SELECT p.category_id, MIN(ph.list_price_eur) AS min_price_eur\n  FROM products p\n  JOIN price_history ph ON ph.product_id = p.product_id\n  WHERE ph.valid_to IS NULL\n  GROUP BY p.category_id\n)\nSELECT c.category_id, c.category_name\nFROM categories c\nJOIN category_min m ON m.category_id = c.category_id\nWHERE m.min_price_eur > 100"
+  ],
+  "other_way": {
+    "sql": "SELECT c.category_id, c.category_name\nFROM categories c\nWHERE 100 < (\n  SELECT MIN(ph.list_price_eur)\n  FROM products p\n  JOIN price_history ph ON ph.product_id = p.product_id\n  WHERE p.category_id = c.category_id\n    AND ph.valid_to IS NULL\n)",
+    "tradeoff": "Comparing 100 with the lowest current price is shorter; a category with no products gets a missing minimum and drops out."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-11",
+      "sql": "SELECT c.category_id, c.category_name\nFROM categories c\nLEFT JOIN products p ON p.category_id = c.category_id\nLEFT JOIN price_history ph ON ph.product_id = p.product_id AND ph.valid_to IS NULL\nGROUP BY c.category_id, c.category_name\nHAVING COUNT(CASE WHEN ph.list_price_eur <= 100 THEN 1 END) = 0"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-31",
+      "sql": "SELECT c.category_id, c.category_name FROM categories c WHERE EXISTS (SELECT 1 FROM products p WHERE p.category_id = c.category_id) AND NOT EXISTS (SELECT 1 FROM products p JOIN price_history ph ON ph.product_id = p.product_id WHERE p.category_id = category_id AND ph.valid_to IS NULL AND ph.list_price_eur <= 100)"
+    }
+  ],
+  "hint3_partial": "SELECT c.category_id, c.category_name\nFROM categories c\nWHERE EXISTS (SELECT 1 FROM products p WHERE p.category_id = c.category_id)\n  AND NOT EXISTS (\n    SELECT 1\n    FROM products p\n    JOIN price_history ph ON ph.product_id = p.product_id\n    WHERE p.category_id = c.category_id\n      AND ___\n  )",
+  "solver": {
+    "prompt_hash": "d6d6824b4698054c",
+    "schema_version": "0072f9d3b7cc",
+    "dataset_version": "b2d2b40fb117bb07",
+    "grader_version": "6a.1",
+    "query": "SELECT c.category_id, c.category_name FROM categories c WHERE EXISTS (SELECT 1 FROM products p WHERE p.category_id = c.category_id) AND NOT EXISTS (SELECT 1 FROM products p JOIN price_history h ON h.product_id = p.product_id WHERE p.category_id = c.category_id AND h.valid_to IS NULL AND h.list_price_eur <= 100)\r\n",
+    "at": "2026-10-15T11:06:13.197Z"
+  }
+}

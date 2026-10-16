@@ -10,6 +10,123 @@ come from git.
 1.0.0 is the first release. Slices 0 and 1a are the first application code; the entries before
 them are research and planning.
 
+## 1.5.0 (2026-10-16)
+
+A second company and the first real data (sprint 6, Part 2): Mailvora, a marketing world with four
+cases, and two real datasets you prepare from your own downloads, each with a take-home case.
+
+| What 1.5 adds | In short |
+|---|---|
+| Mailvora | A Dublin email-marketing software company for small businesses: clean and raw schemas (channels and campaigns, ad spend, sessions, signups, activation, subscriptions, payments, budgets), 15 planted findings, and its own hidden edge data |
+| Four marketing cases | CASE-MKT-01 to -04: spend and CPC, budget against actual, the signup funnel, and attribution under last, first and linear click |
+| Real datasets | Online Retail II and Breakfast at the Frat, prepared on your laptop with `npm run prep:datasets`; the 8 Week SQL Challenge's eight schemas for practice in the explorer |
+| Two real-data cases | CASE-REAL-01 (monthly revenue on Online Retail II) and CASE-REAL-02 (promotion tactics on Breakfast at the Frat), framed as take-home briefs |
+| Explorer and portfolio | A dataset picker, a card per dataset (label, licence, source, links), and "Save as a flagship draft" on real data |
+| A goal you can meet | "First real-data analysis" (G-SQL-LEVEL-4) counts a solved real-data case |
+
+### Added
+
+- Mailvora (S6-20; plan `docs/superpowers/plans/2026-10-14-aydinlearns-sprint-6.md`, Part 2): `mailvora` and
+  `mailvora_raw` from their own seed, every older object's hash unchanged; 15 findings validated at build time
+  (FIND-03-01 to -15) and seven raw-data quirks; the edge schema `mailvora_edge_case`; notes with the channel rule
+  a learner applies to every session (E-196). The cast: Aoife, Ciarán, Siobhán and Declan.
+- CASE-MKT-01 to -04 (S6-27) with CP3 items EX-CASE-MKT-01 to -04: every checkpoint passed a blind solve.
+- The dataset registry (S6-21, `content/datasets/registry.json`): Online Retail II (CC BY 4.0), Breakfast at the
+  Frat (dunnhumby terms) and the 8 Week SQL Challenge (no licence stated; fictional), each with its licence,
+  label, files and fingerprints, links and our own manager questions (six per real dataset, every date fixed).
+- `npm run prep:datasets -- --from <folder>` (S6-22, S6-23): reads the downloads into `data/real/`, checks each
+  fingerprint, prints its checks, and rebuilds; the 8 Week SQL Challenge's scripts load only as table
+  definitions, rows and their own clean-up updates, with any other statement refused. The README's "Real datasets" section says what to
+  download and from where.
+- CASE-REAL-01 and -02 (S6-26) with CP3 items on the real edge schemas `online_retail_ii_edge` and
+  `breakfast_at_the_frat_edge`, which are always built. A case whose dataset is not prepared shows in the inbox
+  with the command that prepares it, and Today never offers it.
+- The explorer's dataset picker and registry cards (S6-24), and flagship drafts on real data (S6-25): a page and
+  a CSV of at most 10,000 rows in the portfolio folder, never overwriting.
+- The goal criterion `real_data_analysis` (D85): a solved real-data case. The 8 Week SQL Challenge never counts.
+- Content check C51 (the registry, its prep scripts and the cases on its data), and smoke rows 6b-1 to 6b-4.
+
+### Changed
+
+- A case's CP3 item may name `mailvora` or a real dataset as its company.
+- The content checks skip a case or item whose dataset is not prepared, by name with a warning, so a clone
+  without the real data passes them.
+- The inbox line of a case whose dataset is not prepared names the dataset as the registry does ("This case needs
+  Online Retail II.") and ends "then start the app again", as the explorer's card does.
+- Breakfast at the Frat's notes say two stores are listed twice in its store list, so a join on the store repeats
+  their rows; the schema panel shows no one-to-many link to it.
+
+### Fixed
+
+- F32 (Codex, PR #49): a case's blind-solve record (check C50) now carries a fingerprint of the
+  answer it was solved against, and C50 fails when the answer changes under it. Every case
+  checkpoint was solved again blind to prove it (block K).
+- A correct answer that reads `sales` (level 1) or the A/B tables (two level 3 sets) no longer fails
+  the hidden check because the hidden data lacked the table; every hidden data set now holds the tables
+  its schema panel shows, and every day of each promotion.
+- After an app restart, ending a timed run no longer records its finish twice.
+- Wording: seven case and SQL prompts a blind solver found ambiguous, the level 4 case options and
+  units, three trap labels, two SQL-CLEAN-01 prompts, the Methodology lift questions ("in percent")
+  and one price for Business Care Year across the SaaS items.
+- Three error types (`ERR-SEM-02`, `ERR-CMP-01`, `ERR-CMP-03`) now have feedback.
+- The inbox command line shows as code.
+
+## 1.4.0 (2026-10-15)
+
+SQL level 4 and the data-quality arc (sprint 6, Part 1): subqueries, text, date arithmetic and data cleaning, on
+Voltmarkt's raw tables as well as the clean ones, with twelve new cases and a cumulative drill over levels 1 to 4.
+
+| What 1.4 adds | In short |
+|---|---|
+| SQL level 4 | 5 concepts (`SQL-SUBQ-01`, `SQL-SUBQ-02`, `SQL-STR-01`, `SQL-DATE-02`, `SQL-CLEAN-01`), each with a lesson, a pool, fix and choice items and drill items: 147 items, every one blind-solved |
+| Raw data | `voltmarkt_raw`: the quirk tables a cleaning task needs (resent order lines, prices in cents, messy text keys, mixed time zones, overlapping price windows). An item on it says the table may hold errors and what "correct" means |
+| Twelve cases | The level 4 opener, two daily cases, CASE-PRICE-03 to -05, CASE-RETAIL-03 and five incident tickets (CASE-DQ-01 to -05) |
+| Cumulative drill | 12 questions over levels 1 to 4 in screen mode, 30 minutes, pass at 80% |
+
+### Added
+
+- SQL level 4 (plan `docs/superpowers/plans/2026-10-14-aydinlearns-sprint-6.md`, Part 1): five concepts with
+  lessons, write pools, one fix item per trap, three choice items each and six drill items each; the level 4 drill
+  (10 questions in 25 minutes, pass at 90%, 70% unseen). Every item passed the blind solver.
+- `voltmarkt_raw` (S6-01, S6-02): raw copies of the tables the data-quality tasks read, with Voltmarkt's planted
+  quirks; items and tickets on it read the tables by unqualified name, and the hidden run swaps in
+  `voltmarkt_edge_clean`. Raw TV category spellings name the parent category (S6-03).
+- New data in `voltmarkt`: `cost_history` (an 8% Audio supplier cost rise from 2025-07-01, S6-07) and
+  `weekly_units` (one row per product and ISO week, zero-filled, shown from level 4, S6-06).
+- Four edge schemas for level 4 (S6-04): `voltmarkt_edge_subq`, `voltmarkt_edge_interval`, `voltmarkt_edge_clean`
+  and `voltmarkt_edge_promo`. A failed hidden run now describes each table it used (S6-05).
+- Twelve cases: the level 4 opener `CASE-VOLT-L4` (its CP1 is the mid-level question), `CASE-DAILY-L4-01` and
+  `-02`, `CASE-PRICE-03` and `-04` (each with a "can we conclude the promotion worked?" CP5), `CASE-PRICE-05` (a
+  price, volume, mix and cost bridge on `cost_history`), `CASE-RETAIL-03`, and the incident tickets `CASE-DQ-01` to
+  `-05`, one Voltmarkt quirk each (D86). Every CP2 and CP4 number also comes out on the case's edge data.
+- A case can read any schema (S6-13): `CaseRecord.schema`, truths built on that schema into
+  `data/truth/checkpoints.json`, and a case whose schema is not in the database listed in the inbox as unavailable, with the reason;
+  its routes and its portfolio export answer 409. From level 4 a case's CP6 rubric has two more ticks, "a grain
+  comment on every CTE" and "one reconciliation check" (S6-15).
+- The cumulative drill (S6-19): 3 questions from each of levels 1 to 4, in screen mode, listed as "Cumulative" in
+  the drill history, never as a level run.
+- Error IDs `ERR-LOG-30` to `ERR-LOG-39` and `ERR-SYN-08` (a window function in WHERE), with feedback (S6-11).
+- The grader (GRADER_VERSION `6a.1`): a query whose brackets nest deeper than 40 is refused before it runs (S6-08);
+  date arithmetic is a construct of `SQL-DATE-02` (S6-09); a subquery in FROM with no alias gets a portability note
+  (S6-10).
+- Typed answers may carry thousands separators, as counts already could (D82, `choice.3`).
+- Content checks C47 to C50 and C52: a raw item's key finds its quirk (C47); each level 4 concept's must-have traps
+  (C48); the level 4 drill entry and the cumulative entry (C49); every case checkpoint has a solver record (C50); every
+  table the schema panel shows exists in the item's edge schema (C52). `npm run export:case-view` and
+  `npm run record:case-solver` run the case blind solve.
+- Browser smoke rows 6a-1 to 6a-5.
+
+### Changed
+
+- A case's funnel theme follows its world (D80): `pricing`, `retail`, `marketing` or `data_quality`, and an SQL
+  exercise's follows its company. Before, every SQL answer said `pricing`.
+- A timed run the app ends itself (its timer, or the app stopping) now sends `run_finished`, the same as one the
+  browser ends (D81, backlog K10), once per run.
+- Wording: "webshop" throughout; two SQL prompts and a daily case's checkpoints re-worded after the sprint 5a
+  re-solve, and three error IDs' feedback fitted to their mistakes (backlog rows 37 to 39). Plants on an exclusive
+  DATE end moved to `ERR-LOG-23`.
+- ERRATA E-188 to E-196.
+
 ## 1.3.0 (2026-10-13)
 
 The study journey (D77): every visit's screens, exercises, help, runs, cases, labs and concept states, kept locally

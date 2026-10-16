@@ -1,0 +1,124 @@
+{
+  "id": "EX-SQL-STR-01-E1-06",
+  "version": 2,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-04",
+    "string_fn",
+    "length",
+    "text_helper",
+    "trim",
+    "sku",
+    "products"
+  ],
+  "level": 4,
+  "source_ids": [
+    "01:SQL-STR-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-15",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-STR-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-AGG-04",
+    "SQL-STR-01"
+  ],
+  "template_id": "T-STR-01-length-profile",
+  "template_params": {
+    "column": "sku"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt_raw",
+  "edge_schema": "voltmarkt_edge_clean",
+  "uses_raw": true,
+  "prompt": "How long is each sku once the spaces at its start and end are removed, and how many skus of each length were stored with such spaces? This table may hold errors. A space at the start or end of a sku is one of them, while a space inside a sku stays and counts as a character. Return three columns, in this order: sku_length, the length in characters of the sku without its outer spaces; n_products, the number of products whose sku has that length; and n_padded, how many of those skus are stored with a space at the start or end. Return one row for each length. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "sku_length",
+        "type_class": "numeric"
+      },
+      {
+        "name": "n_products",
+        "type_class": "numeric"
+      },
+      {
+        "name": "n_padded",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "sku_length",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "n_products",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "n_padded",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "sku_length"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, decide what one row stands for: one length, measured on the sku without its outer spaces.",
+    "Group by the length of the trimmed sku, so a padded sku joins the group of its real length, and count the padded ones with a filter."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 116,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 117,
+      "to": 130,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 131,
+      "to": 157,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "Measuring the trimmed sku puts a padded sku in the group of its real length, and the filter counts how many were stored with spaces."
+}

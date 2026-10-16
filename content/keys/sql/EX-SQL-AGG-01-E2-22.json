@@ -18,7 +18,7 @@
     },
     {
       "id": "PW2",
-      "error_id": "ERR-LOG-06",
+      "error_id": "ERR-LOG-23",
       "sql": "SELECT COUNT(*) AS n_products, COUNT(unit_cost_eur) AS n_with_cost, COUNT(sister_product_id) AS n_with_sister FROM products WHERE launch_date > DATE '2024-01-01' AND launch_date <= DATE '2024-12-31'"
     },
     {

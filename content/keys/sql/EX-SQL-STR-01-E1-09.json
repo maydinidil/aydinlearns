@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-STR-01-E1-09",
+  "item_version": 1,
+  "reference_sql": "SELECT product_id, substring(sku, 4, 6) AS sku_number\nFROM products\nWHERE sku LIKE 'vm%'",
+  "alternatives": [
+    "SELECT product_id, split_part(TRIM(sku), '-', 2) AS sku_number FROM products WHERE sku LIKE 'vm%'",
+    "SELECT product_id, substr(TRIM(sku), 4, 6) AS sku_number FROM products WHERE sku LIKE 'vm%'"
+  ],
+  "other_way": {
+    "sql": "SELECT product_id, split_part(TRIM(sku), '-', 2) AS sku_number FROM products WHERE sku LIKE 'vm%'",
+    "tradeoff": "split_part finds the hyphen for you but needs the outer spaces trimmed first, while substring counts fixed positions."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-33",
+      "sql": "SELECT product_id, substring(sku, 3, 6) AS sku_number FROM products WHERE sku LIKE 'vm%'"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-33",
+      "sql": "SELECT product_id, substring(sku, 4, 7) AS sku_number FROM products WHERE sku LIKE 'vm%'"
+    }
+  ],
+  "hint3_partial": "SELECT product_id, substring(sku, ___, ___) AS sku_number\nFROM products\nWHERE sku LIKE 'vm%'",
+  "solver": {
+    "prompt_hash": "3e905c591dad28dc",
+    "schema_version": "d77fe1c31a0e",
+    "dataset_version": "b2d2b40fb117bb07",
+    "grader_version": "6a.1",
+    "query": "SELECT product_id, substr(split_part(trim(sku), '-', 2), 1, 6) AS sku_number FROM products WHERE sku LIKE 'vm%'\n",
+    "at": "2026-10-15T11:06:12.265Z"
+  }
+}

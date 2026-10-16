@@ -1,0 +1,231 @@
+{
+  "id": "EX-CASE-MKT-02",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-04",
+    "case",
+    "inbox",
+    "marketing",
+    "budget_vs_actual",
+    "budget_monthly",
+    "ad_spend_daily",
+    "campaigns",
+    "channels"
+  ],
+  "level": 4,
+  "source_ids": [
+    "04:CASE-MKT-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-16",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "case",
+  "target_concept_id": "SQL-CLEAN-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CASE-01",
+    "SQL-TYPE-01",
+    "SQL-DATE-01",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-JOIN-03",
+    "SQL-CLEAN-01"
+  ],
+  "template_id": "T-CASE-MKT-02-budget-vs-actual",
+  "template_params": {
+    "quarter": "2025-Q3",
+    "grain": "paid_channel_month",
+    "flag_band_pct": 10
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "mailvora",
+  "schema": "mailvora",
+  "edge_schema": "mailvora_edge_case",
+  "prompt": "Ciarán, the marketing director, must explain the paid media overspend to finance on Friday and needs Q3 2025 budget against actual for each paid channel and month. The budget plan sets a budget for each paid channel and month. A channel's actual spend in a month is what its campaigns spent on the UTC days of that month, and Q3 2025 runs from 2025-07-01 to 2025-09-30. Return one row for each paid channel and month of Q3 2025 in the budget plan, a budget of 0 euros included, keeping a channel and month with no spend, with eight columns in this order: month, the first day of the month; channel_id; channel_name; budget_eur, the planned budget in euros; actual_eur, the actual spend in euros, not rounded, and 0 when the channel spent nothing that month; variance_eur, actual_eur minus budget_eur, so an overspend is positive; variance_pct, 100 times variance_eur divided by budget_eur, rounded to 1 decimal, and missing when budget_eur is 0; and flag, 'over' when variance_pct is above 10, 'under' when it is below -10, and 'on_track' otherwise, a missing variance_pct included. Sort by month from early to late, then by variance_eur from high to low, then by channel_id from low to high.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "month",
+        "type_class": "temporal"
+      },
+      {
+        "name": "channel_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "channel_name",
+        "type_class": "text"
+      },
+      {
+        "name": "budget_eur",
+        "type_class": "numeric"
+      },
+      {
+        "name": "actual_eur",
+        "type_class": "numeric"
+      },
+      {
+        "name": "variance_eur",
+        "type_class": "numeric"
+      },
+      {
+        "name": "variance_pct",
+        "type_class": "numeric"
+      },
+      {
+        "name": "flag",
+        "type_class": "text"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": true,
+    "sort_keys": [
+      {
+        "column": "month",
+        "desc": false
+      },
+      {
+        "column": "variance_eur",
+        "desc": true
+      },
+      {
+        "column": "channel_id",
+        "desc": false
+      }
+    ],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "month",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "channel_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "channel_name",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "budget_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "actual_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "variance_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "variance_pct",
+        "type_class": "numeric",
+        "precision": "ratio",
+        "require_rounding": 1
+      },
+      {
+        "name": "flag",
+        "type_class": "text",
+        "precision": "exact"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "month",
+      "channel_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, add up the daily spend to one total per channel and month before you bring in the budget.",
+    "Keep every budget row when you attach the totals, show 0 where a channel spent nothing, and keep the percentage missing when the budget is 0."
+  ],
+  "subgoals": [
+    {
+      "from": 83,
+      "to": 213,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 216,
+      "to": 295,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 298,
+      "to": 364,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 367,
+      "to": 437,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 531,
+      "to": 823,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 826,
+      "to": 994,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 997,
+      "to": 1058,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 1061,
+      "to": 1288,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 1289,
+      "to": 1310,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 1311,
+      "to": 1356,
+      "subgoal": "sort_limit"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "Adding the daily spend up to the budget's channel and month first counts each budget once, and starting from the budget keeps a month with no spend."
+}

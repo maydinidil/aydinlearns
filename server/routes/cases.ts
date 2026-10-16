@@ -17,7 +17,7 @@
 //   option against the case key, CP2 and CP4 as typed numbers against the truth file), logged with its funnel steps (D75, D76),
 //   then the instance closes. The reply carries the correct option and its explanation, or the value.
 // POST /api/cases/:id/plan: logs a `plan` self-check (CRAFT-03's six fields); the reply is the model plan (S4B-10) once the case's
-//   CP1 has an answer or when it lists no CP1, and for an opener once its grain is out too (its sketch or CP3, Seams M1); otherwise
+//   CP1 has an answer (a case with no CP1 waits for its CP2, S6-35) or when it lists neither, and for an opener once its grain is out too (its sketch or CP3, Seams M1); otherwise
 //   a plain note (fix round 1).
 // POST /api/cases/:id/plan-check: logs a `plan_check`: the plan points the learner ticks as matching the model plan, once a plan
 //   reply has shown it (M3).
@@ -27,6 +27,10 @@
 // POST /api/cases/:id/rubric: logs a `rubric`: the rubric points ticked, once an insight reply has shown the model answer (M3).
 // CP3 is an SQL item: POST /api/serve purpose `case` serves it in phase case (routes/today.ts), and /api/submit grades it.
 // A self-check names no instance (item_instance_id null), so it never closes, reopens or moves one (B1 review Q4).
+// Sprint 6 (Task B3): a case on a schema the database does not hold is unavailable (S6-13): the inbox lists it with the line naming
+// its dataset, and every route of it here, the opener CP4 alias included, answers 409 with that line. A case of level 4 or more
+// adds CRAFT-01's two ticks to the CP6 rubric (S6-15). The inbox and the view send only the persona, brief and data-source fields
+// the screens read (D1-M6).
 import { randomUUID } from 'node:crypto';
 import type { Context, Hono } from 'hono';
 import { HTTPException } from 'hono/http-exception';
@@ -34,13 +38,14 @@ import { SCHEMA_VERSION, type Phase, type SelfCheck, type SelfCheckKind } from '
 import type { CaseStatus } from '../../core/replay.ts';
 import { amsterdamDate } from '../../core/time.ts';
 import type { CaseChoiceKey, CaseKind, CaseRecord, Checkpoint, CheckpointKind, CheckpointOption, DataSource } from '../../schemas/case.ts';
+import { caseUnavailable } from '../content.ts';
 import type { TypedSpec } from '../../schemas/choice.ts';
 import type { SortKey } from '../../schemas/item.ts';
 import type { AydinAttempt } from '../../schemas/log-ext.ts';
 import type { RouteDeps } from '../app.ts';
 import { CHOICE_GRADER_VERSION, gradeChoice, gradeTyped, parseTyped, TYPED_REFUSALS, type ChoiceGrade } from '../choice/grade.ts';
 import { journey } from '../journey.ts';
-import { answered, levelName, sqlFunnel, type FunnelAttributes } from '../observe.ts';
+import { answered, caseFunnel, levelName, type FunnelAttributes } from '../observe.ts';
 import { openerLevel } from '../session-composer.ts';
 import { shuffle } from './choice.ts';
 
@@ -63,12 +68,20 @@ export const RUBRIC: readonly Point[] = [
   { id: 'number', label: 'States the number' }, { id: 'direction', label: 'Says which way it moved' }, { id: 'caveat', label: 'Names a caveat' },
   { id: 'next_step', label: 'Names a next step' }, { id: 'driver', label: 'Names what drives the result' },
 ];
+/** S6-15 (design §7): from level 4, CRAFT-01's habits join the rubric. Self-scored, logged in the rubric self-check's `ticked`. */
+export const CRAFT_RUBRIC: readonly Point[] = [
+  { id: 'grain_comment', label: 'A grain comment on every CTE' }, { id: 'reconciliation', label: 'One reconciliation check' },
+];
+/** S6-15: the level from which a case's rubric holds CRAFT_RUBRIC too. */
+export const CRAFT_LEVEL = 4;
 
 /** One row of the inbox (S4B-12): the manager's message, the case's level, its status and its score (the share of CP1 to CP5 passed). */
 export interface CaseListEntry {
   case_id: string; kind: CaseKind; level: number | null; title: string;
   persona: { name: string; role: string }; brief: { decision: string; deadline: string };
   status: CaseStatusName; score: number; checkpoints_passed: number; checkpoints_total: number;
+  /** S6-13: the line of a case whose schema the database does not hold ("This case needs ..."), or null when it can be opened. */
+  unavailable: string | null;
 }
 /** A checkpoint's latest answer, any instance: whether it passed (S4B-08) and when. Never the option, the number or the query. */
 export interface CheckpointLastResult { passed: boolean; submitted_at: string }
@@ -133,11 +146,16 @@ const NOT_OPEN = 'This question is closed or was not opened here. Open it again.
 const OTHER = 'This question belongs to another case or checkpoint.';
 const BUILD_FIRST = 'The number for this question has not been built yet. Close and start aydinlearns again.';
 const PLAN_NOTE = 'Answer CP1, then compare your plan with the model plan.';
+/** S6-35: a case with no CP1 holds its model plan until CP2 is answered. */
+const PLAN_NOTE_CP2 = 'Answer CP2, then compare your plan with the model plan.';
 /** Seams M1: an opener's model plan names its grain and tables, so it also waits until its sketch or its CP3 (grainShown). */
 const GRAIN_NOTE = 'Save your sketch or submit CP3, then compare your plan with the model plan.';
 const INSIGHT_NOTE = 'Answer CP5, then compare with the model answer.';
 /** S4B-10: a model answer's placeholders, filled once that checkpoint has an answer in the log. */
 const PLACEHOLDER = /\{(CP2|CP4)\}/g;
+/** S6-35: the checkpoint whose answer opens a case's model plan: its CP1, else its CP2, else none (shown as before). */
+const planGate = (r: CaseRecord): 'CP1' | 'CP2' | null =>
+  r.checkpoints.some((c) => c.kind === 'CP1') ? 'CP1' : r.checkpoints.some((c) => c.kind === 'CP2') ? 'CP2' : null;
 const refuse = (status: 400 | 404 | 409 | 503, message: string): HTTPException => new HTTPException(status, { message });
 const isRecord = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object' && !Array.isArray(v);
 type Body = Record<string, unknown>;
@@ -179,11 +197,16 @@ function statusName(s: CaseStatus | undefined): CaseStatusName {
 }
 const selfCheckView = (e: { ts: string; fields: Record<string, string> | null; text: string | null } | null): SelfCheckView | null =>
   (e ? { ts: e.ts, fields: e.fields, text: e.text } : null);
+/** D1-M6: only the persona's, the brief's and the data source's fields the screens read, never anything else a record holds. */
+const personaOf = (r: CaseRecord): CaseListEntry['persona'] => ({ name: r.persona?.name, role: r.persona?.role });
+const briefOf = (r: CaseRecord): CaseListEntry['brief'] => ({ decision: r.brief?.decision, deadline: r.brief?.deadline });
+const dataSourceOf = (r: CaseRecord): DataSource | null =>
+  (r.data_source ? { label: r.data_source.label, real: r.data_source.real, licence: r.data_source.licence } : null);
 /**
  * Fix round 1: a model text waits for its gate to have an answer in the log: the model plan for CP1 (its grain line may answer a
  * grain CP1), the model answer and the rubric for CP5 (its caveat may answer CP5). A case that lists no such checkpoint has no wait.
  */
-const gateOpen = (r: CaseRecord, s: CaseStatus | undefined, gate: 'CP1' | 'CP5'): boolean =>
+const gateOpen = (r: CaseRecord, s: CaseStatus | undefined, gate: 'CP1' | 'CP2' | 'CP5'): boolean =>
   !r.checkpoints.some((c) => c.kind === gate) || (s?.checkpoints.some((p) => p.kind === gate && p.latest !== null) ?? false);
 
 export function mountCases(app: Hono, d: RouteDeps): CaseCheckpoints {
@@ -191,10 +214,16 @@ export function mountCases(app: Hono, d: RouteDeps): CaseCheckpoints {
   const shown = new Map<string, { case_id: string; kind: AnswerableKind; item_id: string; at: number; order: string[] }>();
 
   const all = (): CaseRecord[] => d.content.cases?.() ?? d.content.openers?.() ?? [];
+  /** S6-13: a case whose schema the database does not hold answers 409 with its line on every route. */
+  const available = (record: CaseRecord): CaseRecord => {
+    const line = caseUnavailable(d.content, record);
+    if (line !== null) throw refuse(409, line);
+    return record;
+  };
   const caseOf = (id: string): CaseRecord => {
     const record = d.content.case?.(id) ?? d.content.opener?.(id);
     if (!record) throw refuse(404, 'Unknown case.');
-    return record;
+    return available(record);
   };
   const isOpener = (r: CaseRecord): boolean => r.kind === 'opener' || d.content.opener?.(r.case_id) !== undefined;
   const levelOf = (r: CaseRecord): number | null => (Number.isInteger(r.level) ? r.level : openerLevel(r, d.content.curriculum));
@@ -203,9 +232,10 @@ export function mountCases(app: Hono, d: RouteDeps): CaseCheckpoints {
    * D75 and D77 (owner go N5, 2026-10-13): a checkpoint's funnel attributes. A checkpoint has no difficulty grade of its own, so the
    * case's level stands in, as on its attempts (not the case's own 1 to 5 difficulty).
    */
-  const funnelOf = (r: CaseRecord): FunnelAttributes => sqlFunnel(levelName(levelOf(r)));
+  const funnelOf = (r: CaseRecord): FunnelAttributes => caseFunnel(r.world, levelName(levelOf(r)));
 
   const resolve = (record: CaseRecord, kind: AnswerableKind): CaseCheckpoint => {
+    available(record);                                   // the opener CP4 alias resolves here too
     const cp = record.checkpoints.find((c) => c.kind === kind);
     if (!cp || typeof cp.item_id !== 'string') throw refuse(404, `This case has no ${kind}.`);
     if (kind === 'CP1' || kind === 'CP5') {
@@ -320,8 +350,8 @@ export function mountCases(app: Hono, d: RouteDeps): CaseCheckpoints {
     const s = statusOf(r);
     const total = s?.checkpoints.length ?? r.checkpoints.filter((c) => ANSWERABLE.includes(c.kind) || c.kind === 'CP3').length;
     const passed = s?.checkpoints.filter((c) => c.passed).length ?? 0;
-    return { case_id: r.case_id, kind: r.kind, level: levelOf(r), title: r.title, persona: r.persona, brief: r.brief,
-      status: statusName(s), score: s?.score ?? 0, checkpoints_passed: passed, checkpoints_total: total };
+    return { case_id: r.case_id, kind: r.kind, level: levelOf(r), title: r.title, persona: personaOf(r), brief: briefOf(r),
+      status: statusName(s), score: s?.score ?? 0, checkpoints_passed: passed, checkpoints_total: total, unavailable: caseUnavailable(d.content, r) };
   };
 
   /**
@@ -343,11 +373,11 @@ export function mountCases(app: Hono, d: RouteDeps): CaseCheckpoints {
     const out = r.expected_output;
     const grain = grainShown(r, s);
     return {
-      case_id: r.case_id, kind: r.kind, level: levelOf(r), title: r.title, persona: r.persona, brief: r.brief,
+      case_id: r.case_id, kind: r.kind, level: levelOf(r), title: r.title, persona: personaOf(r), brief: briefOf(r),
       // Fix round 1: an opener's data needed answers its sketch's "which tables", so it waits by the grain's rule.
       data_needed: isOpener(r) && !grain ? null : Array.isArray(r.data_needed) ? r.data_needed : [],
       expected_output: { columns: out?.columns ?? [], sort: out?.sort ?? [], grain: out && grain ? out.grain : null },
-      follow_up_question: r.follow_up_question ?? '', data_source: r.data_source ?? null,
+      follow_up_question: r.follow_up_question ?? '', data_source: dataSourceOf(r),
       status: statusName(s), score: s?.score ?? 0, solved_at: s?.solved_at ?? null,
       checkpoints: r.checkpoints.map((cp) => {
         const p = byKind.get(cp.kind);
@@ -361,6 +391,8 @@ export function mountCases(app: Hono, d: RouteDeps): CaseCheckpoints {
       plan_fields: PLAN_FIELDS, sketch_fields: SKETCH_FIELDS,
     };
   };
+  /** S6-15: the CP6 rubric of a case: the five points, and CRAFT-01's two habits from level 4. */
+  const rubricOf = (r: CaseRecord): readonly Point[] => ((levelOf(r) ?? 0) >= CRAFT_LEVEL ? [...RUBRIC, ...CRAFT_RUBRIC] : RUBRIC);
   /** S4B-10: each placeholder filled with its value once that checkpoint has an answer in the log, otherwise a plain note. */
   const filledModelAnswer = (r: CaseRecord): string => {
     const s = statusOf(r);
@@ -376,19 +408,22 @@ export function mountCases(app: Hono, d: RouteDeps): CaseCheckpoints {
    * What a plan reply says in place of the model plan while it waits, or null when it may show it: the case's CP1 needs an answer
    * (fix round 1), and an opener's grain must be out (Seams M1: its sketch logged or its CP3 answered, grainShown).
    */
-  const planWait = (r: CaseRecord, s: CaseStatus | undefined): string | null =>
-    !gateOpen(r, s, 'CP1') ? PLAN_NOTE : isOpener(r) && !grainShown(r, s) ? GRAIN_NOTE : null;
+  const planWait = (r: CaseRecord, s: CaseStatus | undefined): string | null => {
+    const gate = planGate(r);
+    if (gate !== null && !gateOpen(r, s, gate)) return gate === 'CP1' ? PLAN_NOTE : PLAN_NOTE_CP2;
+    return isOpener(r) && !grainShown(r, s) ? GRAIN_NOTE : null;
+  };
 
   /**
    * M3: a reply has shown this case's model text: a `kind` self-check was logged while its gate was open (gateOpen at that point of
    * the log, and for an opener's plan grainShown too: Seams M1). Read in log order, the order the replies were made in. Ticks
    * against a text never shown are refused.
    */
-  const modelShown = async (r: CaseRecord, kind: 'plan' | 'insight', gate: 'CP1' | 'CP5'): Promise<boolean> => {
-    const gateId = r.checkpoints.find((c) => c.kind === gate)?.item_id;
+  const modelShown = async (r: CaseRecord, kind: 'plan' | 'insight', gate: 'CP1' | 'CP2' | 'CP5' | null): Promise<boolean> => {
+    const gateId = gate === null ? undefined : r.checkpoints.find((c) => c.kind === gate)?.item_id;
     const grainGated = kind === 'plan' && isOpener(r);
     const cp3Id = grainGated ? r.checkpoints.find((c) => c.kind === 'CP3')?.item_id : undefined;
-    let open = !r.checkpoints.some((c) => c.kind === gate);
+    let open = gate === null || !r.checkpoints.some((c) => c.kind === gate);
     let grain = !grainGated;
     for (const x of (await d.logger.readAll('attempts')) as { record?: string; item_id?: string; grading_source?: string; outcome?: string; case_id?: string; kind?: string }[]) {
       // An answer as replay counts one: never an override's copy, a crash or a refused statement.
@@ -441,10 +476,10 @@ export function mountCases(app: Hono, d: RouteDeps): CaseCheckpoints {
   app.post('/api/cases/:id/plan-check', async (c) => {
     const r = caseOf(c.req.param('id'));
     const ticked = tickedOf(await readBody(c), PLAN_FIELDS);
-    if (!(await modelShown(r, 'plan', 'CP1'))) {
+    if (!(await modelShown(r, 'plan', planGate(r)))) {
       const s = statusOf(r);
       const wait = planWait(r, s);
-      const when = wait === PLAN_NOTE ? ' once CP1 has an answer' : wait === GRAIN_NOTE ? ' once your sketch is saved or CP3 has an answer' : '';
+      const when = wait === PLAN_NOTE ? ' once CP1 has an answer' : wait === PLAN_NOTE_CP2 ? ' once CP2 has an answer' : wait === GRAIN_NOTE ? ' once your sketch is saved or CP3 has an answer' : '';
       throw refuse(409, s?.plan ? `Send your plan again${when}. Its points are ticked against the model plan.`
         : 'Write a plan first. Its points are ticked against the model plan.');
     }
@@ -467,12 +502,12 @@ export function mountCases(app: Hono, d: RouteDeps): CaseCheckpoints {
     if (text.length > MAX_TEXT) throw refuse(400, `Keep the insight under ${MAX_TEXT} characters.`);
     await logSelfCheck(r, 'insight', PHASE, { text });
     // As the plan: before CP5 has an answer the reply is a note; sent again once it has one, the filled model answer and the rubric.
-    const body: InsightReply = gateOpen(r, statusOf(r), 'CP5') ? { model_answer: filledModelAnswer(r), rubric: RUBRIC } : { note: INSIGHT_NOTE };
+    const body: InsightReply = gateOpen(r, statusOf(r), 'CP5') ? { model_answer: filledModelAnswer(r), rubric: rubricOf(r) } : { note: INSIGHT_NOTE };
     return c.json(body);
   });
   app.post('/api/cases/:id/rubric', async (c) => {
     const r = caseOf(c.req.param('id'));
-    const ticked = tickedOf(await readBody(c), RUBRIC);
+    const ticked = tickedOf(await readBody(c), rubricOf(r));
     if (!(await modelShown(r, 'insight', 'CP5'))) {
       throw refuse(409, statusOf(r)?.insight ? 'Send your insight again once CP5 has an answer. The rubric scores it against the model answer.'
         : 'Write the insight first. The rubric scores it.');

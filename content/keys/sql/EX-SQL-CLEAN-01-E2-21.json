@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-CLEAN-01-E2-21",
+  "item_version": 1,
+  "reference_sql": "WITH copied_sets AS (  -- one row per set of two or more matching 2024 lines\n  SELECT o.store_id, ol.order_id, COUNT(*) AS n_lines\n  FROM order_lines ol\n  JOIN orders o ON o.order_id = ol.order_id\n  WHERE o.order_ts >= TIMESTAMP '2024-01-01' AND o.order_ts < TIMESTAMP '2025-01-01'\n  GROUP BY o.store_id, ol.order_id, ol.product_id, ol.quantity, ol.unit_price_eur, ol.promo_id, ol.line_discount_eur\n  HAVING COUNT(*) > 1\n)\nSELECT s.store_code, SUM(cs.n_lines - 1) AS n_copies, COUNT(DISTINCT cs.order_id) AS n_orders\nFROM copied_sets cs\nJOIN stores s ON s.store_id = cs.store_id\nGROUP BY s.store_code",
+  "alternatives": [
+    "SELECT s.store_code, SUM(cs.n_lines - 1) AS n_copies, COUNT(DISTINCT cs.order_id) AS n_orders\nFROM (  -- one row per set of two or more matching 2024 lines\n  SELECT o.store_id, ol.order_id, COUNT(*) AS n_lines\n  FROM order_lines ol\n  JOIN orders o ON o.order_id = ol.order_id\n  WHERE o.order_ts >= TIMESTAMP '2024-01-01' AND o.order_ts < TIMESTAMP '2025-01-01'\n  GROUP BY o.store_id, ol.order_id, ol.product_id, ol.quantity, ol.unit_price_eur, ol.promo_id, ol.line_discount_eur\n  HAVING COUNT(*) > 1\n) AS cs\nJOIN stores s ON s.store_id = cs.store_id\nGROUP BY s.store_code",
+    "WITH copied_sets AS (  -- one row per set of two or more matching 2024 lines\n  SELECT o.store_id, ol.order_id, COUNT(*) AS n_lines\n  FROM order_lines ol\n  JOIN orders o ON o.order_id = ol.order_id\n  WHERE o.order_ts >= TIMESTAMP '2024-01-01' AND o.order_ts < TIMESTAMP '2025-01-01'\n  GROUP BY o.store_id, ol.order_id, ol.product_id, ol.quantity, ol.unit_price_eur, ol.promo_id, ol.line_discount_eur\n  HAVING COUNT(*) > 1\n)\nSELECT s.store_code, SUM(cs.n_lines) - COUNT(*) AS n_copies, COUNT(DISTINCT cs.order_id) AS n_orders\nFROM copied_sets cs\nJOIN stores s ON s.store_id = cs.store_id\nGROUP BY s.store_code"
+  ],
+  "other_way": {
+    "sql": "SELECT s.store_code, SUM(cs.n_lines - 1) AS n_copies, COUNT(DISTINCT cs.order_id) AS n_orders\nFROM (  -- one row per set of two or more matching 2024 lines\n  SELECT o.store_id, ol.order_id, COUNT(*) AS n_lines\n  FROM order_lines ol\n  JOIN orders o ON o.order_id = ol.order_id\n  WHERE o.order_ts >= TIMESTAMP '2024-01-01' AND o.order_ts < TIMESTAMP '2025-01-01'\n  GROUP BY o.store_id, ol.order_id, ol.product_id, ol.quantity, ol.unit_price_eur, ol.promo_id, ol.line_discount_eur\n  HAVING COUNT(*) > 1\n) AS cs\nJOIN stores s ON s.store_id = cs.store_id\nGROUP BY s.store_code",
+    "tradeoff": "A derived table keeps the copied sets inside the query that counts them, while a named step lets you look at the sets first."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-07",
+      "sql": "WITH copied_sets AS (  -- one row per set of two or more matching 2024 lines\n  SELECT o.store_id, ol.order_id, COUNT(*) AS n_lines\n  FROM order_lines ol\n  JOIN orders o ON o.order_id = ol.order_id\n  WHERE o.order_ts >= TIMESTAMP '2024-01-01' AND o.order_ts < TIMESTAMP '2025-01-01'\n  GROUP BY o.store_id, ol.order_id, ol.product_id\n  HAVING COUNT(*) > 1\n)\nSELECT s.store_code, SUM(cs.n_lines - 1) AS n_copies, COUNT(DISTINCT cs.order_id) AS n_orders\nFROM copied_sets cs\nJOIN stores s ON s.store_id = cs.store_id\nGROUP BY s.store_code"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-36",
+      "sql": "WITH copied_sets AS (  -- one row per set of two or more matching 2024 lines\n  SELECT o.store_id, ol.order_id, COUNT(*) AS n_lines\n  FROM order_lines ol\n  JOIN orders o ON o.order_id = ol.order_id\n  WHERE o.order_ts >= TIMESTAMP '2024-01-01' AND o.order_ts < TIMESTAMP '2025-01-01'\n  GROUP BY o.store_id, ol.order_id, ol.product_id, ol.quantity, ol.unit_price_eur, ol.promo_id, ol.line_discount_eur\n  HAVING COUNT(*) > 1\n)\nSELECT s.store_code, SUM(cs.n_lines) AS n_copies, COUNT(DISTINCT cs.order_id) AS n_orders FROM copied_sets cs JOIN stores s ON s.store_id = cs.store_id GROUP BY s.store_code"
+    }
+  ],
+  "hint3_partial": "WITH copied_sets AS (  -- one row per set of two or more matching 2024 lines\n  SELECT o.store_id, ol.order_id, COUNT(*) AS n_lines\n  FROM order_lines ol\n  JOIN orders o ON o.order_id = ol.order_id\n  WHERE o.order_ts >= TIMESTAMP '2024-01-01' AND o.order_ts < TIMESTAMP '2025-01-01'\n  GROUP BY o.store_id, ol.order_id, ol.product_id, ol.quantity, ol.unit_price_eur, ol.promo_id, ol.line_discount_eur\n  HAVING COUNT(*) > 1\n)\nSELECT s.store_code, SUM(___) AS n_copies, COUNT(___) AS n_orders\nFROM copied_sets cs\nJOIN stores s ON s.store_id = cs.store_id\nGROUP BY s.store_code",
+  "solver": {
+    "prompt_hash": "91a3da91398bca26",
+    "schema_version": "6ef9ff4e4ad1",
+    "dataset_version": "b2d2b40fb117bb07",
+    "grader_version": "6a.1",
+    "query": "WITH sets AS (SELECT order_id, product_id, quantity, unit_price_eur, promo_id, line_discount_eur, COUNT(*) AS n FROM order_lines GROUP BY order_id, product_id, quantity, unit_price_eur, promo_id, line_discount_eur)\nSELECT st.store_code, SUM(s.n - 1) AS n_copies, count(DISTINCT s.order_id) AS n_orders\nFROM sets s\nJOIN orders o ON o.order_id = s.order_id\nJOIN stores st ON st.store_id = o.store_id\nWHERE s.n > 1 AND o.order_ts >= TIMESTAMP '2024-01-01' AND o.order_ts < TIMESTAMP '2025-01-01'\nGROUP BY st.store_code\n",
+    "at": "2026-10-15T11:06:10.361Z"
+  }
+}

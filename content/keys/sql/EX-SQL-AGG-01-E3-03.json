@@ -18,7 +18,7 @@
     },
     {
       "id": "EX-SQL-AGG-01-E3-03-PW2",
-      "error_id": "ERR-LOG-06",
+      "error_id": "ERR-LOG-23",
       "sql": "SELECT COUNT(*) AS n_lines, COUNT(*) - COUNT(units) AS n_missing_units, COUNT(*) - COUNT(net_revenue_eur) AS n_missing_revenue, COUNT(*) - COUNT(unit_cost_eur) AS n_missing_cost FROM sales WHERE order_date > DATE '2025-01-01' AND order_date <= DATE '2025-12-31'"
     },
     {

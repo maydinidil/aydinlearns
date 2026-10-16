@@ -13,6 +13,13 @@
 // re-run now through the runner's gate (`display`, design §11) on the CP3 item's visible schema; the case record's brief and
 // labels; and CP4's value, which the learner has answered (a solved case passed it).
 // Never a key's SQL, never the model plan or the model answer. The page and the CSV are built by the pure functions below.
+//
+// POST /api/explore/flagship (sprint 6 Part 2, Task G3; S6-25, design §7 job 6): "Save as a flagship draft" in the explorer. { schema,
+//   sql }: a schema the explorer lists (else 400, as its run), on a real dataset only (a fictional company or the 8 Week SQL Challenge
+//   is refused with NOT_REAL, 400). The folder is checked as an export's, with the same messages. The learner's query runs through
+//   the gate (`display`) on that schema, up to CSV_ROWS rows; a query that does not run writes nothing (400). Then it writes
+//   <schema>-flagship-<YYYY-MM-DD>.md and .csv by writeExport's rules (-2, -3, never overwriting). Nothing is logged, and app.ts
+//   starts no session for it.
 import { lstat, open, realpath, rm, stat } from 'node:fs/promises';
 import { isAbsolute, join, relative, resolve, sep } from 'node:path';
 import type { Hono } from 'hono';
@@ -22,9 +29,12 @@ import type { CaseExport } from '../../core/events.ts';
 import type { CaseStatus } from '../../core/replay.ts';
 import { amsterdamDate } from '../../core/time.ts';
 import type { CaseKind, CaseRecord, DataSource } from '../../schemas/case.ts';
+import type { DatasetLicence } from '../../schemas/dataset.ts';
 import type { RouteDeps } from '../app.ts';
+import { caseUnavailable } from '../content.ts';
 import type { DisplayOk, RunnerError } from '../runner/protocol.ts';
 import { PLAN_FIELDS, SKETCH_FIELDS } from './cases.ts';
+import { EXPLORE_TIMEOUT_MS, exploreChoice } from './explore.ts';
 
 /** S4B-17: the rows the page shows. */
 export const PAGE_ROWS = 50;
@@ -184,6 +194,63 @@ export function buildPage(p: PageInput): string {
   if (p.headline === null) out.push('This case has no headline number.');
   else out.push(lines(p.headline.question), '', `**${p.headline.answer}**`);
   out.push('', '## Insight', '', p.insight && p.insight.trim() !== '' ? lines(p.insight) : NO_INSIGHT, '');
+  return out.join('\n');
+}
+
+// ---- The flagship draft (S6-25) --------------------------------------------------------------------------------------------------
+
+export const FLAGSHIP_PATH = '/api/explore/flagship';
+/** S6-25: the headings the learner fills, in order (design §7: a question, a summary up front, one chart, the SQL, caveats, next). */
+export const FLAGSHIP_HEADINGS = ['The question I chose', 'Summary', 'Chart', 'The SQL', 'Caveats', 'What I would do next'] as const;
+/** S6-25: the line asking not to publish the raw data. */
+export const RAW_DATA_LINE = 'Please do not publish the raw data. Share your findings, your chart and your SQL, and link to the source instead.';
+/** S6-25 and E-075: a flagship piece is on real data; a fictional company and the 8 Week SQL Challenge (handmade data) are not. */
+export const NOT_REAL = 'Flagship pieces use real data. Choose a real dataset in the explorer.';
+
+/** Everything a flagship page shows: the dataset's registry lines, the learner's query and what its result holds. */
+export interface FlagshipInput {
+  schema: string;
+  dataset: { name: string; label: string; licence: DatasetLicence; source_url: string };
+  query: string;
+  result: { columns: string[]; rowCount: number; truncated: boolean };
+  /** The Amsterdam date. */
+  made_on: string;
+}
+/** POST /api/explore/flagship: the file names written in `folder`, and the rows the CSV holds. */
+export interface FlagshipReply { schema: string; folder: string; files: string[]; rows: number; truncated: boolean }
+
+/** A name as inline code: a run of backticks longer than any inside it, padded when it starts or ends with one; line breaks as spaces. */
+function codeSpan(s: string): string {
+  const longest = Math.max(0, ...[...s.matchAll(/`+/g)].map((m) => m[0].length));
+  const tick = '`'.repeat(longest + 1);
+  const pad = s.startsWith('`') || s.endsWith('`') ? ' ' : '';
+  return `${tick}${pad}${s.replace(/\r\n|\r|\n/g, ' ')}${pad}${tick}`;
+}
+
+/** S6-25: the flagship draft in Markdown: the label and licence, the raw-data line, then each heading to fill. */
+export function buildFlagshipPage(p: FlagshipInput): string {
+  const { licence } = p.dataset;
+  const rows = p.result.truncated
+    ? `the first ${count.format(CSV_ROWS)} rows of a result with more than ${count.format(CSV_ROWS)} rows`
+    : `${count.format(p.result.rowCount)} row${p.result.rowCount === 1 ? '' : 's'}`;
+  const columns = p.result.columns.length === 0 ? 'no columns' : `the columns ${p.result.columns.map(codeSpan).join(', ')}`;
+  const f = fence(p.query);
+  /** What goes under each heading: a prompt to replace, and under "The SQL" the learner's query, whose lines stay as written. */
+  const body: Record<(typeof FLAGSHIP_HEADINGS)[number], string[]> = {
+    'The question I chose': ['Write the question in a sentence or two: who would ask it, and what they would decide with the answer.'],
+    Summary: ['Give the answer first, in two or three sentences, with the number that matters most.'],
+    Chart: [`The CSV beside this page holds the query's result: ${rows}, with ${columns}. Write which columns to plot and how, then make the one chart from the CSV.`],
+    'The SQL': [`${f}sql`, p.query.replace(/\r\n?/g, '\n').replace(/\n+$/, ''), f],
+    Caveats: ['What the data cannot tell you, what the query leaves out or keeps, and why.'],
+    'What I would do next': ['The next question, or the next data, that would make the answer stronger.'],
+  };
+  const out: string[] = [`# ${p.dataset.name}: flagship draft`, '',
+    `**Data:** ${lines(p.dataset.label)}`, '',
+    `**Licence:** ${lines(licence.name)}. ${lines(licence.terms)}${licence.url ? ` ${licence.url}` : ''}`, '',
+    `**Source:** ${p.dataset.source_url}`, '',
+    RAW_DATA_LINE, '',
+    `Drafted ${p.made_on} in the dataset explorer, on the ${codeSpan(p.schema)} tables. Fill in each section, then remove these prompts.`, ''];
+  for (const h of FLAGSHIP_HEADINGS) out.push(`## ${h}`, '', ...body[h], '');
   return out.join('\n');
 }
 
@@ -363,6 +430,9 @@ export function mountPortfolio(app: Hono, d: RouteDeps): void {
 
   app.post('/api/cases/:id/export', async (c) => {
     const r = caseOf(c.req.param('id'));
+    // S6-13: a case whose schema the database does not hold answers 409 with its line, as every case route does.
+    const unavailable = caseUnavailable(d.content, r);
+    if (unavailable !== null) throw refuse(409, unavailable);
     const s = statusOf(r);
     if (!s?.solved) throw refuse(409, NOT_SOLVED);
     const folder = d.settings.portfolio_folder ?? null;
@@ -405,5 +475,40 @@ export function mountPortfolio(app: Hono, d: RouteDeps): void {
       throw refuse(503, EXPORT_NOT_LOGGED);
     }
     return c.json<ExportReply>({ case_id: r.case_id, folder, files, query_runs: result.ok });
+  });
+
+  // S6-25: the flagship draft. Every check runs before anything is written, and nothing is logged.
+  app.post(FLAGSHIP_PATH, async (c) => {
+    const body: unknown = await c.req.json().catch(() => null);
+    const b = typeof body === 'object' && body !== null ? body as { sql?: unknown; schema?: unknown } : {};
+    if (typeof b.sql !== 'string' || b.sql.trim() === '') throw refuse(400, 'Write a query first.');
+    const choice = exploreChoice(d.content, b.schema);
+    if (!choice.ok) throw refuse(400, choice.message);
+    const record = d.content.datasetOfSchema?.(choice.schema.name);
+    if (choice.dataset.group !== 'real' || record === undefined || !record.real) throw refuse(400, NOT_REAL);
+    const folder = d.settings.portfolio_folder ?? null;
+    const problem = await folderProblem(folder, d.logger.dir);
+    if (problem !== null || folder === null) throw refuse(400, problem ?? NOT_SET);
+    if (!d.runner) throw refuse(503, NO_RUNNER);
+
+    const res = await d.runner.request<DisplayOk>({ op: 'display', schema: choice.schema.name, allowedSchemas: [], sql: b.sql, cap: CSV_ROWS, deadlineMs: EXPLORE_TIMEOUT_MS });
+    if (!res.ok && res.error.kind === 'crash') throw refuse(503, RUNNER_STOPPED);
+    if (!res.ok) throw refuse(400, `The query did not run, so nothing was saved. ${noRunReason(res.error)}`);
+    const columns = res.data.columns.map((x) => x.name);
+    const madeOn = amsterdamDate(new Date());
+    const page = buildFlagshipPage({
+      schema: choice.schema.name, dataset: { name: record.name, label: record.label, licence: record.licence, source_url: record.source_url },
+      query: b.sql, result: { columns, rowCount: res.data.rowCount, truncated: res.data.truncated }, made_on: madeOn,
+    });
+    const csv = buildCsv(columns, res.data.rows, res.data.columns.map((x) => x.type));
+    let files: string[];
+    try {
+      // The schema name is a plain schema name (the registry's rule), so the file names come from it and the date only (S4B-16).
+      files = await writeExport(folder, `${choice.schema.name}-flagship-${madeOn}`, page, csv);
+    } catch (e) {
+      const f = writeFailure(errCode(e), folder);
+      throw refuse(f.status, f.message);
+    }
+    return c.json<FlagshipReply>({ schema: choice.schema.name, folder, files, rows: res.data.rowCount, truncated: res.data.truncated });
   });
 }

@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-STR-01-E2-31",
+  "item_version": 1,
+  "reference_sql": "SELECT product_id, substring(product_name, length(product_name) - 2, 3) AS model_number\nFROM products\nWHERE sku LIKE 'vm%'",
+  "alternatives": [
+    "SELECT product_id, right(product_name, 3) AS model_number FROM products WHERE sku LIKE 'vm%'",
+    "SELECT product_id, substr(product_name, length(product_name) - 2) AS model_number FROM products WHERE sku LIKE 'vm%'"
+  ],
+  "other_way": {
+    "sql": "SELECT product_id, right(product_name, 3) AS model_number FROM products WHERE sku LIKE 'vm%'",
+    "tradeoff": "right(product_name, 3) says what you want in one call, while substring with a computed start shows how the positions work."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-33",
+      "sql": "SELECT product_id, substring(product_name, length(product_name) - 3, 3) AS model_number FROM products WHERE sku LIKE 'vm%'"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-33",
+      "sql": "SELECT product_id, substring(product_name, length(product_name) - 2, 2) AS model_number FROM products WHERE sku LIKE 'vm%'"
+    }
+  ],
+  "hint3_partial": "SELECT product_id, substring(product_name, length(product_name) - ___, 3) AS model_number\nFROM products\nWHERE sku LIKE 'vm%'",
+  "solver": {
+    "prompt_hash": "6ab4516545b74159",
+    "schema_version": "d77fe1c31a0e",
+    "dataset_version": "b2d2b40fb117bb07",
+    "grader_version": "6a.1",
+    "query": "SELECT product_id, right(product_name, 3) AS model_number\nFROM products\nWHERE sku LIKE 'vm%'\n",
+    "at": "2026-10-15T11:06:12.515Z"
+  }
+}

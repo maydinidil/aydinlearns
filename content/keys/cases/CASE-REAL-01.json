@@ -1,0 +1,43 @@
+{
+  "case_id": "CASE-REAL-01",
+  "truths": {
+    "CP2": "SELECT COUNT(*) - (\n  SELECT COUNT(*)\n  FROM (\n    -- one row per different line of 2010\n    SELECT DISTINCT invoice, stock_code, description, quantity, invoice_date, price, customer_id, country\n    FROM invoice_lines\n    WHERE invoice_date >= TIMESTAMP '2010-01-01'\n      AND invoice_date < TIMESTAMP '2011-01-01'\n  ) AS d\n)\nFROM invoice_lines\nWHERE invoice_date >= TIMESTAMP '2010-01-01'\n  AND invoice_date < TIMESTAMP '2011-01-01'",
+    "CP4": "SELECT ROUND(SUM(d.quantity * d.price), 2)\nFROM (\n  -- one row per different product line of 2010\n  SELECT DISTINCT invoice, stock_code, description, quantity, invoice_date, price, customer_id, country\n  FROM invoice_lines\n  WHERE invoice_date >= TIMESTAMP '2010-01-01'\n    AND invoice_date < TIMESTAMP '2011-01-01'\n    AND substring(stock_code, 1, 1) BETWEEN '0' AND '9'\n) AS d"
+  },
+  "choices": {
+    "CP1": {
+      "correct_oid": "obefd671",
+      "explanation": "A line with no customer ID is still a sale, so dropping it cuts revenue; the customer ID matters only when the question is about customers, and the cancellations are the invoices that start with C."
+    },
+    "CP5": {
+      "correct_oid": "o1382158",
+      "explanation": "One year of months cannot tell a seasonal dip from a loss of customers, and revenue is not a count of customers; the same month a year earlier and the customers per month can."
+    }
+  },
+  "solver": {
+    "CP1": {
+      "pass": true,
+      "prompt_hash": "1a285b1e44e5c913",
+      "key_hash": "731771f1c7fef8b3",
+      "at": "2026-10-16T16:20:19.767Z"
+    },
+    "CP2": {
+      "pass": true,
+      "prompt_hash": "1573d7efa16a9b93",
+      "key_hash": "b30c99ab43a8f479",
+      "at": "2026-10-16T16:20:19.767Z"
+    },
+    "CP4": {
+      "pass": true,
+      "prompt_hash": "8de6fcbdd8a593d0",
+      "key_hash": "883fcd743a24fcc1",
+      "at": "2026-10-16T16:20:19.767Z"
+    },
+    "CP5": {
+      "pass": true,
+      "prompt_hash": "c0a8a40c182f30c6",
+      "key_hash": "f1e82cbd26a6913b",
+      "at": "2026-10-16T16:20:19.767Z"
+    }
+  }
+}

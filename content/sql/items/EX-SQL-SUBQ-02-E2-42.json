@@ -1,0 +1,92 @@
+{
+  "id": "EX-SQL-SUBQ-02-E2-42",
+  "version": 1,
+  "kind": "choose_query",
+  "tags": [
+    "sql",
+    "LVL-04",
+    "choose_query",
+    "rewrite_as_cte",
+    "orders",
+    "customers"
+  ],
+  "level": 4,
+  "source_ids": [
+    "01:SQL-SUBQ-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-15",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-SUBQ-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CTE-01",
+    "SQL-SUBQ-02"
+  ],
+  "template_id": "T-SUBQ-02-choose-rewrite-as-cte",
+  "template_params": {
+    "table": "orders",
+    "step": "customer and store"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_subq",
+  "prompt": "Step 1 counts the orders of each registered customer at each store; step 2 takes the highest of those counts. Guest orders have a missing customer_id and do not count. Which query writes these two steps with a CTE (WITH) and returns that highest count, in one column, max_orders?",
+  "output_contract": null,
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [],
+  "subgoals": [],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "",
+  "options": [
+    {
+      "oid": "o8e70ba2",
+      "text": "WITH customer_store AS (\n  -- one row per customer and store\n  SELECT customer_id, store_id, COUNT(*) AS n_orders\n  FROM orders\n  GROUP BY customer_id, store_id\n)\nSELECT MAX(n_orders) AS max_orders\nFROM customer_store",
+      "misconception_id": "ERR-LOG-03"
+    },
+    {
+      "oid": "of72c403",
+      "text": "WITH customer_store AS (\n  -- one row per registered customer\n  SELECT customer_id, COUNT(*) AS n_orders\n  FROM orders\n  WHERE customer_id IS NOT NULL\n  GROUP BY customer_id\n)\nSELECT MAX(n_orders) AS max_orders\nFROM customer_store",
+      "misconception_id": "ERR-LOG-07"
+    },
+    {
+      "oid": "ofb4f881",
+      "text": "WITH customer_store AS (\n  -- one row per registered customer and store\n  SELECT customer_id, store_id, COUNT(*) AS n_orders\n  FROM orders\n  WHERE customer_id IS NOT NULL\n  GROUP BY customer_id, store_id\n)\nSELECT COUNT(*) AS max_orders\nFROM customer_store",
+      "misconception_id": "ERR-LOG-14"
+    },
+    {
+      "oid": "o0bfb753",
+      "text": "WITH customer_store AS (\n  -- one row per registered customer and store\n  SELECT customer_id, store_id, COUNT(*) AS n_orders\n  FROM orders\n  WHERE customer_id IS NOT NULL\n  GROUP BY customer_id, store_id\n)\nSELECT MAX(n_orders) AS max_orders\nFROM customer_store",
+      "misconception_id": null
+    }
+  ]
+}

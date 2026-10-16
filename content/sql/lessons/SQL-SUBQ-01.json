@@ -1,0 +1,128 @@
+{
+  "concept_id": "SQL-SUBQ-01",
+  "version": 1,
+  "reading_md": "## Subqueries in WHERE\n\nA subquery is a query in brackets inside another query. It runs to hand the outer query a list, a yes or no, or one value. Three forms cover most questions.\n\n### IN: a list\n\n`WHERE product_id IN (SELECT product_id FROM order_lines WHERE promo_id IS NOT NULL)` keeps each product whose ID is in the list. A product that appears in the list 500 times is still kept once: IN tests membership, it does not join. A join to `order_lines` would repeat the product once per line.\n\n### EXISTS and NOT EXISTS: is there a matching row?\n\n`WHERE EXISTS (SELECT 1 FROM competitor_prices cp WHERE cp.product_id = p.product_id)` is true when at least one check of that product exists. This subquery is correlated: its WHERE links it to the outer row through the outer alias `p`, so it is worked out again for each product. What it selects does not matter; `SELECT 1` is the habit. NOT EXISTS keeps the rows with no match: products never checked, promotions no line carried.\n\n### NOT IN and missing values\n\n`x NOT IN (a, b, NULL)` means `x <> a AND x <> b AND x <> NULL`. The last test is unknown, never true, so the filter keeps no rows at all. `order_lines.promo_id` is missing on every line sold without a promotion, so `promo_id NOT IN (SELECT promo_id FROM order_lines)` finds nothing, even when unused promotions exist. Use NOT EXISTS, or add `WHERE promo_id IS NOT NULL` inside the brackets. Plain IN is safe.\n\n### A scalar subquery: one value\n\n`WHERE unit_cost_eur > (SELECT AVG(unit_cost_eur) FROM products)` compares each row with one number. A subquery used as one value must return at most one row; when it returns two, DuckDB stops with \"More than one row returned by a subquery used as an expression\". So before you write one, ask: is the column I look up by unique in that table? `product_id` is not unique in `price_history`, which keeps a row per price version, so a price lookup needs `valid_to IS NULL` or an aggregate such as MAX. Data with one match today can have two tomorrow: two products tied at a top price break `= (SELECT product_id ...)`.\n\n### Correlated: the right group\n\nTo compare a product with its own category, link an inner copy of the table to the outer row: `(SELECT AVG(p2.unit_cost_eur) FROM products p2 WHERE p2.category_id = p.category_id)`. Give the inner table its own alias, and link on the column the question compares by: `p2.brand = p.brand` would compare with the brand instead. Without the outer alias, `category_id = category_id` compares the inner column with itself, and every product meets every other. Check one row by hand: the subquery's value for it should be its own group's.\n\n### Which form?\n\n- A list to keep or drop: IN, or EXISTS.\n- Rows with no match: NOT EXISTS, or a LEFT JOIN and IS NULL.\n- One number to compare with: a scalar subquery, with an aggregate or a unique match.",
+  "syntax_md": "```sql\nSELECT p.product_id, p.unit_cost_eur              -- metrics\nFROM products p                                    -- source: one row per product\nWHERE p.unit_cost_eur > (                          -- row filter: one value per outer row\n  SELECT AVG(p2.unit_cost_eur)                     --   one number\n  FROM products p2                                 --   an inner copy with its own alias\n  WHERE p2.category_id = p.category_id             --   the link to the outer row\n);\n```\n\n- `col IN (SELECT key FROM ...)`: keep the rows whose value is in the list.\n- `EXISTS (SELECT 1 FROM ... WHERE inner.key = outer.key)`: keep the rows with a match; NOT EXISTS keeps the rows with none.\n- A subquery used as one value returns at most one row: aggregate it, or look up by a unique column.\n- Never use NOT IN over a column that can be missing.",
+  "dialect_note": "IN, EXISTS and subqueries in WHERE are standard SQL and read the same in PostgreSQL, SQL Server and BigQuery. DuckDB (checked on 1.5.6) stops with \"More than one row returned by a subquery used as an expression\" when a subquery used as one value returns two rows, and PostgreSQL stops with an error too. NOT IN finding nothing when its list holds a missing value is not a DuckDB quirk: it follows from how SQL compares with a missing value.",
+  "worked_examples": [
+    {
+      "title": "Promotions above the average of their type",
+      "prompt": "Which promotions give a bigger discount than the average discount of the promotions of the same promo_type? Return promo_id, promo_type and discount_pct.",
+      "clauses": [
+        {
+          "text": "SELECT pr.promo_id, pr.promo_type, pr.discount_pct",
+          "subgoal": "metrics",
+          "why": "The promotion, its type and its own discount."
+        },
+        {
+          "text": "FROM promotions pr",
+          "subgoal": "source_grain",
+          "why": "One row per promotion; pr is the outer alias the subquery links to."
+        },
+        {
+          "text": "WHERE pr.discount_pct > (SELECT AVG(pr2.discount_pct)",
+          "subgoal": "row_filter",
+          "why": "Each promotion is compared with one number, an average, so the subquery returns one row."
+        },
+        {
+          "text": "FROM promotions pr2",
+          "subgoal": "source_grain",
+          "why": "The inner copy of the table gets its own alias, pr2, so the two copies can be told apart."
+        },
+        {
+          "text": "WHERE pr2.promo_type = pr.promo_type)",
+          "subgoal": "row_filter",
+          "why": "The link: for each outer promotion, the average covers the promotions of its own type only."
+        }
+      ]
+    },
+    {
+      "title": "Categories with no 2025 launch",
+      "prompt": "Which categories had no product launched in 2025? Return category_id and category_name.",
+      "clauses": [
+        {
+          "text": "SELECT c.category_id, c.category_name",
+          "subgoal": "metrics",
+          "why": "The category and its name, once per category."
+        },
+        {
+          "text": "FROM categories c",
+          "subgoal": "source_grain",
+          "why": "One row per category, including a category whose products all launched earlier."
+        },
+        {
+          "text": "WHERE NOT EXISTS (SELECT 1 FROM products p",
+          "subgoal": "row_filter",
+          "why": "Keep a category when the inner query finds no row at all."
+        },
+        {
+          "text": "WHERE p.category_id = c.category_id",
+          "subgoal": "row_filter",
+          "why": "Link each product to the outer category, so only that category's products are searched."
+        },
+        {
+          "text": "AND p.launch_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31')",
+          "subgoal": "row_filter",
+          "why": "Only a 2025 launch counts as a match; NOT EXISTS never trips over a missing value."
+        }
+      ]
+    }
+  ],
+  "pretest_item_ids": [
+    "EX-SQL-SUBQ-01-E1-01",
+    "EX-SQL-SUBQ-01-E1-02"
+  ],
+  "lesson_item_ids": [
+    "EX-SQL-SUBQ-01-E1-03",
+    "EX-SQL-SUBQ-01-E1-04",
+    "EX-SQL-SUBQ-01-E2-01",
+    "EX-SQL-SUBQ-01-E2-02"
+  ],
+  "retest_item_id": "EX-SQL-SUBQ-01-E1-05",
+  "pool_item_ids": [
+    "EX-SQL-SUBQ-01-E1-42",
+    "EX-SQL-SUBQ-01-E1-06",
+    "EX-SQL-SUBQ-01-E1-07",
+    "EX-SQL-SUBQ-01-E1-08",
+    "EX-SQL-SUBQ-01-E2-03",
+    "EX-SQL-SUBQ-01-E2-04",
+    "EX-SQL-SUBQ-01-E2-05",
+    "EX-SQL-SUBQ-01-E2-06",
+    "EX-SQL-SUBQ-01-E3-01",
+    "EX-SQL-SUBQ-01-E3-02",
+    "EX-SQL-SUBQ-01-E3-03",
+    "EX-SQL-SUBQ-01-E3-04",
+    "EX-SQL-SUBQ-01-E1-31",
+    "EX-SQL-SUBQ-01-E2-31",
+    "EX-SQL-SUBQ-01-E2-32",
+    "EX-SQL-SUBQ-01-E2-41",
+    "EX-SQL-SUBQ-01-E2-42"
+  ],
+  "source_ids": [
+    "01:SQL-SUBQ-01"
+  ],
+  "why_clause": {
+    "clause": "WHERE pr2.promo_type = pr.promo_type)",
+    "stem": "Why does the subquery need the line WHERE pr2.promo_type = pr.promo_type?",
+    "options": [
+      {
+        "id": "a",
+        "text": "It ties the average to the outer promotion's type, so each promotion is compared with its own type."
+      },
+      {
+        "id": "b",
+        "text": "Without it the subquery returns one row per promotion, and the query stops with an error."
+      },
+      {
+        "id": "c",
+        "text": "It removes the promotions whose promo_type is missing before the average is taken."
+      },
+      {
+        "id": "d",
+        "text": "It makes the subquery run once for the whole query instead of once per promotion."
+      }
+    ],
+    "correct_id": "a",
+    "explanation": "The link reads the outer row's promo_type, so for each promotion the average covers only the promotions of that type. Without it the subquery still returns one row, the average of every promotion, and answers a different question. It filters nothing out of the outer query, and a correlated subquery is worked out again for each outer row, not once."
+  }
+}

@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-DATE-02-E1-08",
+  "item_version": 1,
+  "reference_sql": "SELECT store_code, DATE '2026-01-05' - opened_on + 1 AS days_open\nFROM stores\nWHERE close_date IS NULL",
+  "alternatives": [
+    "SELECT store_code, date_diff('day', opened_on, DATE '2026-01-05') + 1 AS days_open FROM stores WHERE close_date IS NULL",
+    "SELECT store_code, DATE '2026-01-06' - opened_on AS days_open FROM stores WHERE close_date IS NULL"
+  ],
+  "other_way": {
+    "sql": "SELECT store_code, date_diff('day', opened_on, DATE '2026-01-05') + 1 AS days_open FROM stores WHERE close_date IS NULL",
+    "tradeoff": "date_diff('day', opened_on, as-of) + 1 gives the same days, and its unit argument says plainly what is counted."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-34",
+      "sql": "SELECT store_code, DATE '2026-01-05' - opened_on AS days_open FROM stores WHERE close_date IS NULL"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-03",
+      "sql": "SELECT store_code, DATE '2026-01-05' - opened_on + 1 AS days_open FROM stores WHERE close_date > DATE '2026-01-05'"
+    }
+  ],
+  "hint3_partial": "SELECT store_code, DATE '2026-01-05' - opened_on ___ AS days_open\nFROM stores\nWHERE close_date ___",
+  "solver": {
+    "prompt_hash": "89b0487b4b98b0e4",
+    "schema_version": "9a8d01143702",
+    "dataset_version": "b2d2b40fb117bb07",
+    "grader_version": "6a.1",
+    "query": "SELECT store_code, DATE '2026-01-05' - CAST(opened_on AS DATE) + 1 AS days_open\nFROM stores\nWHERE close_date IS NULL\n",
+    "at": "2026-10-15T11:06:11.260Z"
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-SUBQ-01-E1-42",
+  "item_version": 1,
+  "correct_oid": "o24ae268",
+  "explanation": "No: price_history keeps one row per product per price version, so a product whose price changed has several rows. A lookup by product_id alone can return two rows and stop with an error. Add the test for the current version, a missing valid_to, or use an aggregate such as MAX, before using it as one value.",
+  "solver": {
+    "prompt_hash": "036c092fc304837b",
+    "grader_version": "choice.3",
+    "chosen": "o24ae268",
+    "typed": null,
+    "at": "2026-10-15T10:40:24.711Z"
+  }
+}

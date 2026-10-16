@@ -1,0 +1,103 @@
+{
+  "id": "EX-SQL-CLEAN-01-E1-21",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-04",
+    "prices_in_cents",
+    "order_lines",
+    "orders",
+    "stores",
+    "products"
+  ],
+  "level": 4,
+  "source_ids": [
+    "01:SQL-CLEAN-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-15",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-CLEAN-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-AGG-01",
+    "SQL-JOIN-01",
+    "SQL-CLEAN-01"
+  ],
+  "template_id": "T-CLEAN-01-count-cents-lines",
+  "template_params": {
+    "store": "BE-07",
+    "month": "2024-06"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt_raw",
+  "edge_schema": "voltmarkt_edge_clean",
+  "uses_raw": true,
+  "prompt": "How many of store BE-07's June 2024 order lines are priced in cents? These tables may hold errors. A line is priced in cents when its unit_price_eur is more than 10 times the product's unit_cost_eur. June 2024 means order_ts, as stored, from 1 June 2024 up to but not including 1 July 2024. Return one column, n_lines. The result is a single row. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "n_lines",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "n_lines",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the row filter: the store, the month and the cents rule.",
+    "order_ts holds a time too, so June needs a start at 1 June and an end before 1 July; the cents rule compares the price with 10 times the cost."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 26,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 27,
+      "to": 177,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 178,
+      "to": 336,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "A price more than 10 times the cost cannot be a real euro price here, so those lines are the ones loaded in cents."
+}

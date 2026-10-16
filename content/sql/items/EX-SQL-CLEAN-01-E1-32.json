@@ -1,0 +1,124 @@
+{
+  "id": "EX-SQL-CLEAN-01-E1-32",
+  "version": 2,
+  "kind": "fix",
+  "tags": [
+    "sql",
+    "LVL-04",
+    "integer_division",
+    "percentage",
+    "duplicates",
+    "order_lines",
+    "orders",
+    "stores",
+    "fix"
+  ],
+  "level": 4,
+  "source_ids": [
+    "01:SQL-CLEAN-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-15",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-CLEAN-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-CLEAN-01"
+  ],
+  "template_id": "T-CLEAN-01-fix-integer-division",
+  "template_params": {
+    "store": "BE-14"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt_raw",
+  "edge_schema": "voltmarkt_edge_clean",
+  "uses_raw": true,
+  "prompt": "The query in the editor has one mistake. Fix it so that it answers this question: what percentage of store BE-14's order lines are resent copies? These tables may hold errors. Two lines are copies of one order line when order_id, product_id, quantity, unit_price_eur, promo_id and line_discount_eur all match, with a missing promo_id matching a missing one; every line beyond the first of such a set is a resent copy. Divide the copies by all of BE-14's order lines as stored. Return one column, pct_copies, a percentage from 0 to 100 rounded to 3 decimals. The result is a single row. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "pct_copies",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "pct_copies",
+        "type_class": "numeric",
+        "precision": "ratio",
+        "require_rounding": 3
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, check what the division does with two whole numbers.",
+    "// drops everything after the decimal point, so a share below 1 becomes 0; use / with 100.0 so the decimals stay."
+  ],
+  "subgoals": [
+    {
+      "from": 66,
+      "to": 92,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 95,
+      "to": 201,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 204,
+      "to": 232,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 235,
+      "to": 337,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 340,
+      "to": 410,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 411,
+      "to": 425,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": "WITH be14_sets AS (  -- one row per set of matching BE-14 lines\n  SELECT COUNT(*) AS n_lines\n  FROM order_lines ol\n  JOIN orders o ON o.order_id = ol.order_id\n  JOIN stores s ON s.store_id = o.store_id\n  WHERE s.store_code = 'BE-14'\n  GROUP BY ol.order_id, ol.product_id, ol.quantity, ol.unit_price_eur, ol.promo_id, ol.line_discount_eur\n)\nSELECT ROUND(100 * (SUM(n_lines - 1) // SUM(n_lines)), 3) AS pct_copies\nFROM be14_sets",
+  "starter_error_id": "ERR-LOG-05",
+  "time_target_ms": 120000,
+  "why_this_works": "/ keeps the decimals, and 100.0 makes the result a percentage of BE-14's stored lines before it is rounded to 3 decimals."
+}

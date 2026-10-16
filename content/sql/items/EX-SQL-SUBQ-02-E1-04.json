@@ -1,0 +1,134 @@
+{
+  "id": "EX-SQL-SUBQ-02-E1-04",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-04",
+    "derived_table",
+    "count",
+    "outer_filter",
+    "orders",
+    "customers"
+  ],
+  "level": 4,
+  "source_ids": [
+    "01:SQL-SUBQ-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-15",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "lesson",
+  "target_concept_id": "SQL-SUBQ-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-SUBQ-01",
+    "SQL-SUBQ-02"
+  ],
+  "template_id": "T-SUBQ-02-count-filtered-groups",
+  "template_params": {
+    "table": "orders",
+    "step": "customer",
+    "min_orders": 2
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_subq",
+  "prompt": "How many registered customers have placed two or more orders? Guest orders have a missing customer_id and do not count. Return one column, n_customers. The result is a single row. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "n_customers",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row in total"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "n_customers",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the derived table: each registered customer with that customer's number of orders.",
+    "Give the inner query a name after its closing bracket, so the outer filter can test its order count."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 30,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 31,
+      "to": 74,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 75,
+      "to": 117,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 118,
+      "to": 131,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 132,
+      "to": 163,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 164,
+      "to": 186,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 187,
+      "to": 193,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 194,
+      "to": 215,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": {
+    "stage1": 36,
+    "stage2": 36
+  },
+  "faded_shape": "SELECT COUNT(*) AS n_customers\nFROM ",
+  "faded_suffix": "\nWHERE t.n_orders >= 2",
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "The derived table gives one row per registered customer with an order count, and the outer query counts the rows whose count is at least 2."
+}

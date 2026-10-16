@@ -1,0 +1,125 @@
+{
+  "id": "EX-SQL-DATE-02-E1-04",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-04",
+    "date",
+    "date_arithmetic",
+    "promotions",
+    "interval",
+    "add-days"
+  ],
+  "level": 4,
+  "source_ids": [
+    "01:SQL-DATE-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-15",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "lesson",
+  "target_concept_id": "SQL-DATE-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-DATE-02"
+  ],
+  "template_id": "T-DATE-02-add-interval",
+  "template_params": {
+    "table": "promotions",
+    "promo_type": "clearance",
+    "days": 14
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_interval",
+  "prompt": "After each promotion ends, Voltmarkt watches its sales for 14 more days: the watch starts on the day after end_date, and its 14th day is the last. For each promotion of type 'clearance', return three columns, in this order: promo_code, end_date, and watch_end, the last day of the watch. Return one row for each clearance promotion. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "promo_code",
+        "type_class": "text"
+      },
+      {
+        "name": "end_date",
+        "type_class": "temporal"
+      },
+      {
+        "name": "watch_end",
+        "type_class": "temporal"
+      }
+    ],
+    "grain": "one row per clearance promotion"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "promo_code",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "end_date",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "watch_end",
+        "type_class": "temporal",
+        "precision": "exact"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "promo_code"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the calculated column watch_end: end_date moved on by the length of the watch.",
+    "Day 1 of the watch is the day after end_date; count on from there to day 14. An INTERVAL moves a date on and names its unit, as in INTERVAL 7 DAY."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 68,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 69,
+      "to": 84,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 85,
+      "to": 115,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": {
+    "stage1": 29,
+    "stage2": 29
+  },
+  "faded_shape": "SELECT promo_code, end_date, ",
+  "faded_suffix": "\nFROM promotions\nWHERE promo_type = 'clearance'",
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "The watch's first day is end_date + 1, so its 14th and last day is end_date + 14, and adding an INTERVAL moves the date on by whole days."
+}

@@ -1,0 +1,126 @@
+{
+  "id": "EX-SQL-STR-01-E3-22",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-04",
+    "text_helper",
+    "check_report",
+    "union_all",
+    "sku",
+    "category_raw",
+    "products"
+  ],
+  "level": 4,
+  "source_ids": [
+    "01:SQL-STR-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-15",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-STR-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-AGG-01",
+    "SQL-CASE-01",
+    "SQL-CTE-01",
+    "SQL-SET-01",
+    "SQL-STR-01"
+  ],
+  "template_id": "T-STR-01-text-check-report",
+  "template_params": {
+    "checks": 3
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "voltmarkt",
+  "schema": "voltmarkt_raw",
+  "edge_schema": "voltmarkt_edge_clean",
+  "uses_raw": true,
+  "prompt": "Build a check report on the text keys of products. This table may hold errors. Return one row for each of three checks, with three columns, in this order: check_name, n_bad and result. The checks are 'sku_case', the products whose sku holds a lower-case letter; 'sku_spaces', the products whose sku holds a space anywhere in it; and 'tv_spelling', the products whose category_raw names the parent category TV & Video itself, spelled 'tv & video', 'tv en video', 'tv/video' or 'téléviseurs' once letter case and spaces at the start or end are ignored. result is 'pass' when n_bad is 0, otherwise 'fail'. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "check_name",
+        "type_class": "text"
+      },
+      {
+        "name": "n_bad",
+        "type_class": "numeric"
+      },
+      {
+        "name": "result",
+        "type_class": "text"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "check_name",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "n_bad",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "result",
+        "type_class": "text",
+        "precision": "exact"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "check_name"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write one count per check and stack the three counts in a named step.",
+    "UNION ALL stacks one row per check; each row's own WHERE is the rule from the question, and a CASE on n_bad gives the result."
+  ],
+  "subgoals": [
+    {
+      "from": 41,
+      "to": 129,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 362,
+      "to": 445,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 446,
+      "to": 457,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "Each check counts its own rule in one row, and the CASE turns any count above 0 into a fail."
+}

@@ -112,7 +112,7 @@ async function deps(log?: JsonlLog, store = content): Promise<AppDeps & { servin
   logger.onWrite((file, r) => state.record(file, r));
   return { port: 5174, checks: [], runner: null, content: store, logger, session: new SessionTracker(logger, async (at) => { for (const h of endHooks) await h(at); }),
     endHooks, closedInstances: loggedInstanceIds(await logger.readAll('attempts')), schemaNotes: [], manifest: { dataset_version: 'x', library_version: 'v1.5.6' },
-    settings: { backup_folder: null, exam_date: null, goal_dates: {} }, tableCheck: 'parse_tree', state, servings: new Servings() };
+    settings: { backup_folder: null, exam_date: null, goal_dates: {}, portfolio_folder: null }, tableCheck: 'parse_tree', state, servings: new Servings() };
 }
 /** The app with its run clock stubbed: `advance` moves only the clock the runs read (a laptop asleep past the limit). */
 function stubbedApp(d: AppDeps): { app: Hono; advance: (ms: number) => void } {
@@ -720,4 +720,22 @@ test('a half-mock never draws an item whose exam_relevance is not core, and a mi
   const drill = await json(start(appMini, 'mini_drill'));
   assert.equal(drill.servings.length, 20, 'with every practice item not core, a mini drill still starts');
   assert.ok(drill.servings.every((x: Serving) => practice.includes(x.item_id)));
+});
+
+test('K10: a GA4 run the app ends (a session end) writes one run_finished with the browser end\'s fields, and a later browser end adds none', async () => {
+  const dir = await mkdtemp(join(tmpdir(), 'al-journey-run-'));
+  try {
+    startJourney({ dir });
+    const d = await deps();
+    const app = createApp(d);
+    const run = await json(start(app, 'mini_drill'));
+    for (const h of d.endHooks) await h(new Date());
+    assert.equal((await post(app, '/api/run/end', { block_id: run.block_id })).status, 200);
+    assert.equal((await post(app, '/api/run/end', { block_id: run.block_id })).status, 200);
+    await stopJourney();
+    const lines = (await readFile(join(dir, (await readdir(dir))[0]!), 'utf8')).trim().split('\n').map((l) => JSON.parse(l) as Record<string, unknown>);
+    const done = lines.filter((r) => r.event === 'run_finished');
+    assert.equal(done.length, 1, 'one, not two');
+    assert.deepEqual([done[0]!.section, done[0]!.run_kind, done[0]!.block_id, done[0]!.score_pct, done[0]!.run_passed], ['ga4', 'mini_drill', run.block_id, 0, false]);
+  } finally { await rm(dir, { recursive: true, force: true }); }
 });

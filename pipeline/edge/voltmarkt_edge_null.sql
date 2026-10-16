@@ -37,3 +37,11 @@ INSERT INTO voltmarkt_edge_null.promotions VALUES
 INSERT INTO voltmarkt_edge_null.promotions VALUES
   (3, 'P-2025-03', 'Spring Audio Deals', 'percent_off', DATE '2025-03-10', DATE '2025-03-23', 25.00),
   (4, 'P-2025-04', 'April Loyalty', NULL, DATE '2025-04-07', DATE '2025-04-20', 10.00);
+-- M5 (D90, S6-36): added after the sprint 6 build, so every row above stays as it was. The schema panel shows the sales view
+-- from level 1, so the build adds it here over empty copies of orders and order_lines: this schema holds no orders, and its
+-- sales view has no rows. The calendar gains voltmarkt's row for each day of each promotion above that it lacked, so promotion
+-- days counted through the calendar match date arithmetic; P-2025-02 has no end date, so it has no last day and adds none.
+INSERT INTO voltmarkt_edge_null.calendar SELECT c.* FROM voltmarkt.calendar AS c
+WHERE EXISTS (SELECT 1 FROM voltmarkt_edge_null.promotions AS p WHERE c.cal_date BETWEEN p.start_date AND p.end_date)
+  AND NOT EXISTS (SELECT 1 FROM voltmarkt_edge_null.calendar AS e WHERE e.cal_date = c.cal_date)
+ORDER BY c.cal_date;

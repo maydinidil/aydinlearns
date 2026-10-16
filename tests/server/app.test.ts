@@ -47,7 +47,7 @@ async function deps(over: Partial<AppDeps> = {}, log?: JsonlLog): Promise<AppDep
   logger.onWrite((file, r) => state.record(file, r));
   return { port: 5174, checks: [], runner: null, content, logger, session: new SessionTracker(logger, async (at) => { for (const h of endHooks) await h(at); }), endHooks,
     closedInstances: [],
-    schemaNotes: [], manifest: { dataset_version: 'x', library_version: 'v1.5.6' }, settings: { backup_folder: null, exam_date: null, goal_dates: {} },
+    schemaNotes: [], manifest: { dataset_version: 'x', library_version: 'v1.5.6' }, settings: { backup_folder: null, exam_date: null, goal_dates: {}, portfolio_folder: null },
     tableCheck: 'parse_tree', distDir: 'tests/fixtures/web-shell', state, ...over };
 }
 const attempts = async (d: AppDeps) => (await d.logger.readAll('attempts')) as any[];
@@ -72,7 +72,7 @@ test('status reports the versions and settings', async () => {
   assert.deepEqual(Object.keys(body.versions), ['dataset', 'duckdb', 'content', 'grader']);
   assert.equal(body.versions.content, content.contentVersion);
   assert.equal(body.version, JSON.parse(await readFile(new URL('../../package.json', import.meta.url), 'utf8')).version);
-  assert.deepEqual(body.settings, { backup_folder: null, exam_date: null, goal_dates: {} });
+  assert.deepEqual(body.settings, { backup_folder: null, exam_date: null, goal_dates: {}, portfolio_folder: null });
 });
 test('item responses never contain key text', async () => {
   const app = createApp(await deps());
@@ -180,7 +180,7 @@ test('every attempt logged on a text-check runner carries CHK-TABLE-CHECK-TEXT, 
 });
 test('a stop ends the session first: open instances close, the log is backed up, then the runner closes', async () => {
   const folder = await mkdtemp(join(tmpdir(), 'al-backup-'));
-  const d = await deps({ runner, settings: { backup_folder: folder, exam_date: null, goal_dates: {} } });
+  const d = await deps({ runner, settings: { backup_folder: folder, exam_date: null, goal_dates: {}, portfolio_folder: null } });
   const app = createApp(d);
   await post(app, '/api/hint', { item_id: lesson.retest_item_id, item_instance_id: 'I-1', level: 1 });
   const order: string[] = [];
@@ -479,7 +479,7 @@ test('settings are validated, logged, and back up the log at the session end', a
   assert.equal((await post(app, '/api/settings', { key: 'goal_dates', value: { G1: '2026-02-30' } })).status, 400);
   assert.equal((await post(app, '/api/settings', { key: 'exam_date', value: '2026-11-20' })).status, 200);
   assert.equal((await post(app, '/api/settings', { key: 'backup_folder', value: folder })).status, 200);
-  assert.deepEqual((await json(get(app, '/api/status'))).settings, { backup_folder: folder, exam_date: '2026-11-20', goal_dates: {} });
+  assert.deepEqual((await json(get(app, '/api/status'))).settings, { backup_folder: folder, exam_date: '2026-11-20', goal_dates: {}, portfolio_folder: null });
   const changes = ((await d.logger.readAll('events')) as any[]).filter((e) => e.event === 'setting_change').map((e) => e.key);
   assert.deepEqual(changes, ['exam_date', 'backup_folder']);
   const ended = await json(post(app, '/api/session-end', {}));

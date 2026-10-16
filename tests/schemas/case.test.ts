@@ -222,7 +222,7 @@ test('validateCaseKey: malformed input gives messages and never throws', () => {
 });
 const keyCases: [string, CaseKey, (k: Rec) => void, string][] = [
   ['case_id looks like a case ID', fullKey, (k) => { k.case_id = 'price'; }, 'case_id must look like CASE-VOLT-L1'],
-  ['the old shape is refused', openerKey, (k) => { k.checkpoint_id = 'CP4'; k.truth_query = QUERY; }, 'a case key holds only case_id, truths and choices'],
+  ['the old shape is refused', openerKey, (k) => { k.checkpoint_id = 'CP4'; k.truth_query = QUERY; }, 'a case key holds only case_id, truths, choices and solver'],
   ['truths is an object', fullKey, (k) => { k.truths = [QUERY]; }, 'truths must be an object of CP2 and CP4 truth queries'],
   ['truths holds only CP2 and CP4', fullKey, (k) => { k.truths.CP3 = QUERY; }, 'truths may hold only CP2 and CP4'],
   ['a truth is one SELECT query', fullKey, (k) => { k.truths.CP2 = 'DELETE FROM promotions'; }, 'truths.CP2 must be one SELECT query (it may start with WITH)'],

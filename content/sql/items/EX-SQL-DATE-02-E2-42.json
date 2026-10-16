@@ -1,0 +1,138 @@
+{
+  "id": "EX-SQL-DATE-02-E2-42",
+  "version": 1,
+  "kind": "predict_result",
+  "tags": [
+    "sql",
+    "LVL-04",
+    "date",
+    "date_arithmetic",
+    "predict_result",
+    "interval",
+    "month"
+  ],
+  "level": 4,
+  "source_ids": [
+    "01:SQL-DATE-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-15",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-DATE-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-DATE-02"
+  ],
+  "template_id": "T-DATE-02-predict-result-month-end",
+  "template_params": {
+    "table": "stores",
+    "date": "2025-01-31"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_interval",
+  "prompt": "Which result does this query return in DuckDB, the engine this app runs?",
+  "output_contract": null,
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [],
+  "subgoals": [],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 90000,
+  "why_this_works": "",
+  "shown_sql": "SELECT DATE '2025-01-31' + INTERVAL 1 MONTH AS plus_month,\n       DATE '2025-01-31' + 30 AS plus_30_days\nFROM stores\nWHERE store_id = 1",
+  "options": [
+    {
+      "oid": "off5f06b",
+      "text": "3 March 2025 at midnight, and 2 March 2025",
+      "misconception_id": "ERR-LOG-34",
+      "table": {
+        "columns": [
+          "plus_month",
+          "plus_30_days"
+        ],
+        "rows": [
+          [
+            "2025-03-03 00:00:00",
+            "2025-03-02"
+          ]
+        ]
+      }
+    },
+    {
+      "oid": "oa02aa5f",
+      "text": "2 March 2025 at midnight, and 2 March 2025",
+      "misconception_id": "ERR-LOG-34",
+      "table": {
+        "columns": [
+          "plus_month",
+          "plus_30_days"
+        ],
+        "rows": [
+          [
+            "2025-03-02 00:00:00",
+            "2025-03-02"
+          ]
+        ]
+      }
+    },
+    {
+      "oid": "oa71e087",
+      "text": "28 February 2025 at midnight, and 1 March 2025",
+      "misconception_id": "ERR-LOG-34",
+      "table": {
+        "columns": [
+          "plus_month",
+          "plus_30_days"
+        ],
+        "rows": [
+          [
+            "2025-02-28 00:00:00",
+            "2025-03-01"
+          ]
+        ]
+      }
+    },
+    {
+      "oid": "oca5f714",
+      "text": "28 February 2025 at midnight, and 2 March 2025",
+      "misconception_id": null,
+      "table": {
+        "columns": [
+          "plus_month",
+          "plus_30_days"
+        ],
+        "rows": [
+          [
+            "2025-02-28 00:00:00",
+            "2025-03-02"
+          ]
+        ]
+      }
+    }
+  ]
+}

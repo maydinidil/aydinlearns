@@ -1,0 +1,123 @@
+{
+  "id": "EX-SQL-STR-01-E2-01",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-04",
+    "text_helper",
+    "lower",
+    "trim",
+    "category_raw",
+    "products"
+  ],
+  "level": 4,
+  "source_ids": [
+    "01:SQL-STR-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-15",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "lesson",
+  "target_concept_id": "SQL-STR-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-STR-01"
+  ],
+  "template_id": "T-STR-01-spelling-profile",
+  "template_params": {
+    "column": "category_raw",
+    "category_id": 2
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt_raw",
+  "edge_schema": "voltmarkt_edge_clean",
+  "uses_raw": true,
+  "prompt": "The category_raw of category 2's products spells its parent category, TV & Video, in several ways. This table may hold errors. Letter case and spaces at the start or end do not make a different spelling. How many of category 2's products use each spelling? Write each spelling in lower case without outer spaces. Return two columns, in this order: spelling and n_products. Return one row for each spelling. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "spelling",
+        "type_class": "text"
+      },
+      {
+        "name": "n_products",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per spelling"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "spelling",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "n_products",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "spelling"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the column that turns each category_raw into one spelling.",
+    "Clean the text the same way on every row: remove the outer spaces, then put it in lower case; COUNT(*) gives the products."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 68,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 69,
+      "to": 82,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 83,
+      "to": 104,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 105,
+      "to": 115,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": {
+    "stage1": 7,
+    "stage2": 7
+  },
+  "faded_shape": "SELECT ",
+  "faded_suffix": "\nFROM products\nWHERE category_id = 2\nGROUP BY 1",
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "LOWER(TRIM(...)) writes 'TV/Video ' and 'tv/video' the same way, so each spelling is counted once."
+}

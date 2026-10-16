@@ -1,0 +1,22 @@
+{
+  "case_id": "CASE-DQ-05",
+  "truths": {
+    "CP2": "SELECT COUNT(DISTINCT a.product_id)\nFROM price_history AS a\nJOIN price_history AS b\n  ON b.product_id = a.product_id\n AND b.valid_from > a.valid_from\nWHERE b.valid_from <= COALESCE(a.valid_to, DATE '9999-12-31')",
+    "CP4": "WITH window_pairs AS (  -- one row per pair of windows of one product that share at least one day\n  SELECT a.product_id,\n         a.list_price_eur AS old_price_eur,\n         b.valid_from AS shared_from,\n         LEAST(COALESCE(a.valid_to, DATE '9999-12-31'), COALESCE(b.valid_to, DATE '9999-12-31')) AS shared_to\n  FROM price_history AS a\n  JOIN price_history AS b\n    ON b.product_id = a.product_id\n   AND b.valid_from > a.valid_from\n  WHERE b.valid_from <= COALESCE(a.valid_to, DATE '9999-12-31')\n)\nSELECT ROUND(COALESCE(SUM(ol.quantity * w.old_price_eur), 0), 2)\nFROM order_lines AS ol\nJOIN orders AS o ON o.order_id = ol.order_id\nJOIN window_pairs AS w ON w.product_id = ol.product_id\nWHERE CAST(o.order_ts AS DATE) BETWEEN w.shared_from AND w.shared_to"
+  },
+  "choices": {},
+  "solver": {
+    "CP2": {
+      "pass": true,
+      "prompt_hash": "8151773f2eed95cd",
+      "key_hash": "42a4a05b6e6435ac",
+      "at": "2026-10-15T23:01:46.505Z"
+    },
+    "CP4": {
+      "pass": true,
+      "prompt_hash": "63b3d10cd6c11386",
+      "key_hash": "53201087b5718f0c",
+      "at": "2026-10-15T23:06:41.804Z"
+    }
+  }
+}

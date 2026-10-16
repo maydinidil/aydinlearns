@@ -1,0 +1,127 @@
+{
+  "id": "EX-SQL-DATE-02-E2-03",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-04",
+    "date",
+    "date_arithmetic",
+    "orders",
+    "customers",
+    "recency",
+    "as-of",
+    "cte"
+  ],
+  "level": 4,
+  "source_ids": [
+    "01:SQL-DATE-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-15",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-DATE-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-CTE-01",
+    "SQL-DATE-02"
+  ],
+  "template_id": "T-DATE-02-recency-threshold",
+  "template_params": {
+    "table": "orders",
+    "as_of": "2026-01-05",
+    "days": 180
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_interval",
+  "prompt": "How many customers had placed their most recent order more than 180 days before Voltmarkt's as-of date, 5 January 2026? Take each customer's latest order day in UTC (order times are stored in UTC) and count the days between that day and the as-of date; a customer counts when that number is above 180. Guest orders have no customer_id and do not count. Return one column, lapsed_customers. Return one row. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "lapsed_customers",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "lapsed_customers",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, find each customer's latest order day in a first step, with one row per customer.",
+    "Then count the customers whose last day is more than 180 days before the as-of date: a DATE minus a DATE gives the days between them."
+  ],
+  "subgoals": [
+    {
+      "from": 49,
+      "to": 108,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 111,
+      "to": 122,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 125,
+      "to": 154,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 157,
+      "to": 177,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 180,
+      "to": 215,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 216,
+      "to": 232,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 233,
+      "to": 273,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "The step keeps each customer's last order day, and the as-of date minus that day counts the days since it, so only gaps above 180 count."
+}

@@ -1,0 +1,35 @@
+{
+  "item_id": "EX-SQL-STR-01-E1-01",
+  "item_version": 1,
+  "reference_sql": "SELECT COUNT(*) AS n_products\nFROM products\nWHERE sku <> UPPER(TRIM(sku))",
+  "alternatives": [
+    "SELECT COUNT(*) FILTER (WHERE sku <> UPPER(TRIM(sku))) AS n_products FROM products",
+    "SELECT COUNT(*) AS n_products FROM products WHERE NOT (sku = TRIM(UPPER(sku)))",
+    "SELECT SUM(CASE WHEN sku = UPPER(TRIM(sku)) THEN 0 ELSE 1 END) AS n_products FROM products"
+  ],
+  "other_way": {
+    "sql": "SELECT COUNT(*) FILTER (WHERE sku <> UPPER(TRIM(sku))) AS n_products FROM products",
+    "tradeoff": "A FILTER count keeps every product in the query, which helps when a second count joins it, but WHERE is shorter for one."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-32",
+      "sql": "SELECT COUNT(*) AS n_products FROM products WHERE sku <> TRIM(sku)"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-15",
+      "sql": "SELECT COUNT(*) AS n_products FROM products WHERE sku = UPPER(TRIM(sku))"
+    }
+  ],
+  "hint3_partial": "SELECT COUNT(*) AS n_products\nFROM products\nWHERE sku <> ___(___(sku))",
+  "solver": {
+    "prompt_hash": "8dddc8ac775adc7f",
+    "schema_version": "d77fe1c31a0e",
+    "dataset_version": "b2d2b40fb117bb07",
+    "grader_version": "6a.1",
+    "query": "SELECT count(*) AS n_products FROM products WHERE sku <> upper(trim(sku))\n",
+    "at": "2026-10-15T11:06:12.143Z"
+  }
+}

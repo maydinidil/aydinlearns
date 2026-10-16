@@ -1,0 +1,52 @@
+{
+  "schema": "voltmarkt_edge_clean",
+  "mirrors": "voltmarkt_raw",
+  "family": "clean",
+  "contains": [
+    "an order line resent under a new order_line_id, which repeats every other column of an earlier line",
+    "two lines of one product in one order that differ only in quantity",
+    "lines of store BE-07 with unit prices in cents in June 2024, one more in May 2024, and one in euros in July 2024",
+    "every spelling of the TV parent category in category_raw (TV & Video, tv en video, TV/Video with a trailing space, Téléviseurs), beside child category names",
+    "a product with a missing category_id",
+    "skus in lower case, with trailing spaces, and one with a space inside (VM-000 005)",
+    "price windows that touch but do not overlap, windows that overlap for 5 days, and windows that overlap on one day, with a sale on that day",
+    "a store order at 23:30 local time on 30 June 2024, and a web order at 23:30 UTC that day, which is 1 July in Amsterdam",
+    "guest orders with a missing customer ID",
+    "a calendar that holds every day of each promotion"
+  ],
+  "tables": {
+    "stores": [
+      "lines of store BE-07 with unit prices in cents in June 2024, one more in May 2024, and one in euros in July 2024",
+      "a store order at 23:30 local time on 30 June 2024, and a web order at 23:30 UTC that day, which is 1 July in Amsterdam"
+    ],
+    "categories": [
+      "every spelling of the TV parent category in category_raw (TV & Video, tv en video, TV/Video with a trailing space, Téléviseurs), beside child category names",
+      "a product with a missing category_id"
+    ],
+    "products": [
+      "every spelling of the TV parent category in category_raw (TV & Video, tv en video, TV/Video with a trailing space, Téléviseurs), beside child category names",
+      "a product with a missing category_id",
+      "skus in lower case, with trailing spaces, and one with a space inside (VM-000 005)"
+    ],
+    "price_history": [
+      "lines of store BE-07 with unit prices in cents in June 2024, one more in May 2024, and one in euros in July 2024",
+      "price windows that touch but do not overlap, windows that overlap for 5 days, and windows that overlap on one day, with a sale on that day"
+    ],
+    "orders": [
+      "an order line resent under a new order_line_id, which repeats every other column of an earlier line",
+      "two lines of one product in one order that differ only in quantity",
+      "lines of store BE-07 with unit prices in cents in June 2024, one more in May 2024, and one in euros in July 2024",
+      "a store order at 23:30 local time on 30 June 2024, and a web order at 23:30 UTC that day, which is 1 July in Amsterdam",
+      "guest orders with a missing customer ID"
+    ],
+    "order_lines": [
+      "an order line resent under a new order_line_id, which repeats every other column of an earlier line",
+      "two lines of one product in one order that differ only in quantity",
+      "lines of store BE-07 with unit prices in cents in June 2024, one more in May 2024, and one in euros in July 2024",
+      "price windows that touch but do not overlap, windows that overlap for 5 days, and windows that overlap on one day, with a sale on that day"
+    ],
+    "calendar": [
+      "a calendar that holds every day of each promotion"
+    ]
+  }
+}

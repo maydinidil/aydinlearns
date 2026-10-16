@@ -23,6 +23,7 @@ import { blueprintOn, type Ga4ExamConfig } from '../../schemas/ga4-exam.ts';
 import type { RouteDeps } from '../app.ts';
 import type { DrillRuns } from '../drill.ts';
 import { journey } from '../journey.ts';
+import { runFinishedOnce } from './drill.ts';
 import { coldAnswers, instanceFacts, type InstanceFact } from '../progress.ts';
 import { ga4Readiness } from '../readiness.ts';
 import {
@@ -121,10 +122,10 @@ export function mountRun(app: Hono, d: RouteDeps, runs: DrillRuns): void {
     const block = typeof b.block_id === 'string' ? b.block_id : '';
     if (!block) throw refuse(400, 'block_id is missing.');
     const run = runs.get(block);
-    if (run && isChoicePlan(run.plan)) await runs.finish(run);
+    if (run && isChoicePlan(run.plan)) await runs.finish(run);          // its end may send run_finished (K10)
     const r = (await history()).find((x) => x.block_id === block && x.ended_at !== null);
     if (!r) throw refuse(404, 'Unknown GA4 run.');
-    journey('run_finished', { section: 'ga4', run_kind: r.kind, block_id: block, score_pct: r.score.pct, run_passed: r.score.pass });   // D77
+    runFinishedOnce(runs, block, { section: 'ga4', run_kind: r.kind, block_id: block, score_pct: r.score.pct, run_passed: r.score.pass });   // D77
     return c.json(historyRow(r));
   });
 

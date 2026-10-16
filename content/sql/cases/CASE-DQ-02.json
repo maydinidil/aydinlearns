@@ -1,0 +1,114 @@
+{
+  "case_id": "CASE-DQ-02",
+  "kind": "inbox",
+  "level": 4,
+  "world": "DQ",
+  "company_id": "voltmarkt",
+  "title": "Prices in cents at store BE-07",
+  "schema": "voltmarkt_raw",
+  "persona": {
+    "name": "Marieke",
+    "role": "CFO"
+  },
+  "brief": {
+    "decision": "How much revenue to correct for order lines rung up with prices in cents, and which receipts finance must restate",
+    "deadline": "Thursday's month-end close"
+  },
+  "data_needed": [
+    "order_lines",
+    "products",
+    "orders",
+    "stores"
+  ],
+  "expected_output": {
+    "columns": [
+      "order_id",
+      "store_code",
+      "n_lines",
+      "revenue_stored_eur",
+      "revenue_fixed_eur"
+    ],
+    "grain": "one row per order with at least one line priced in cents, in any store and any month",
+    "sort": [
+      {
+        "column": "order_id",
+        "desc": false
+      }
+    ]
+  },
+  "checkpoints": [
+    {
+      "id": "CP2",
+      "kind": "CP2",
+      "item_id": "CASE-DQ-02:CP2",
+      "credits_concepts": [
+        "SQL-CLEAN-01"
+      ],
+      "prompt": "Marieke has heard that store BE-07's till logged some unit prices in cents instead of euros. How many order lines are priced in cents? The order lines may hold errors. A line is priced in cents when its unit_price_eur is more than 10 times its product's unit_cost_eur. Count every such line, in any store and any month, as stored. Type a whole number.",
+      "typed": {
+        "precision": "count",
+        "scale": "plain",
+        "decimals": 0,
+        "unit_label": "lines"
+      },
+      "truth_key": "CASE-DQ-02:CP2"
+    },
+    {
+      "id": "CP3",
+      "kind": "CP3",
+      "item_id": "EX-CASE-DQ-02",
+      "credits_concepts": [
+        "SQL-CLEAN-01",
+        "SQL-JOIN-01",
+        "SQL-AGG-02"
+      ],
+      "prompt": "Write the query that answers Marieke's question."
+    },
+    {
+      "id": "CP4",
+      "kind": "CP4",
+      "item_id": "CASE-DQ-02:CP4",
+      "credits_concepts": [
+        "SQL-CLEAN-01"
+      ],
+      "prompt": "Marieke needs the size of the correction. By how much does the revenue of the lines priced in cents, as stored, exceed their revenue with the unit price in euros? The order lines may hold errors. A line is priced in cents when its unit_price_eur is more than 10 times its product's unit_cost_eur; its unit price in euros is then unit_price_eur divided by 100, while line_discount_eur is in euros already. A line's revenue is quantity times its unit price minus line_discount_eur. Take every such line, in any store and any month. Type the amount in euros, rounded to 2 decimals.",
+      "typed": {
+        "precision": "money",
+        "scale": "eur",
+        "decimals": 2,
+        "unit_label": "euros"
+      },
+      "truth_key": "CASE-DQ-02:CP4"
+    },
+    {
+      "id": "CP6",
+      "kind": "CP6",
+      "credits_concepts": [],
+      "prompt": "Write an incident note of 2 to 4 sentences for Marieke: which store and period the prices in cents come from, how many lines they touch, how far they overstate revenue, and how you propose to fix them."
+    }
+  ],
+  "model_plan": "Metric formula: for each order, the revenue of its lines in cents as stored, quantity times unit_price_eur minus line_discount_eur, and again with unit_price_eur divided by 100.\nOutput grain: one row per order with at least one line priced in cents.\nTables and keys: order_lines joined to products on product_id for unit_cost_eur, to orders on order_id and to stores on store_id for store_code.\nFilters: keep the lines whose unit_price_eur is more than 10 times the product's unit_cost_eur.\nEdge cases: on other data the same rule would also find lines in cents outside the month the incident names; the discount is in euros already, so only the unit price is divided; one order can hold several lines in cents.\nExpected row count: 555",
+  "model_answer_template": "Store BE-07's till logged {CP2} order lines with unit prices in cents, all of them in June 2024, which overstate revenue as stored by {CP4} euros. They are real sales with only the unit price in the wrong unit, and their discounts are in euros, so dividing the price fixes them without dropping a line. Every report that used the stored prices for BE-07 or June 2024, margins included, needs a re-run. Next, correct the prices at the source and add a load check that flags a unit price far above the product's cost.",
+  "follow_up_question": "Did the prices in cents also distort BE-07's gross margin for June 2024, and by how much?",
+  "data_source": {
+    "label": "Fictional, generated data: Voltmarkt",
+    "real": false,
+    "licence": null
+  },
+  "difficulty": 2,
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-JOIN-01",
+    "SQL-CLEAN-01"
+  ],
+  "metric_ids": [],
+  "find_ids": [
+    "FIND-01-14"
+  ],
+  "uses_raw": true
+}

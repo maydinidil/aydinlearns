@@ -6,8 +6,10 @@ import type { Phase } from '../../../core/envelope.ts';
 export const NO_DRILL_LINE = 'No drill for this level yet. It comes in a later version.';
 
 /** Finding 18: which drill a history row is for. */
-export function drillKindText(r: { kind: 'level' | 'chosen' | 'live_rep'; level: number | null }): string {
+export const CUMULATIVE_NAME = 'Cumulative drill';
+export function drillKindText(r: { kind: 'level' | 'chosen' | 'cumulative' | 'live_rep'; level: number | null }): string {
   if (r.kind === 'live_rep') return 'Live rep';
+  if (r.kind === 'cumulative') return CUMULATIVE_NAME;
   return r.kind === 'level' && r.level !== null ? `Level ${r.level}` : 'Chosen concepts';
 }
 

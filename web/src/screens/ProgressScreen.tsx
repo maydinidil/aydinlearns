@@ -29,6 +29,7 @@ function GoalRow(p: { g: ProgressGoal; today: string; titles: Titles; stage?: bo
               {gap && (fold
                 ? <details className="gap"><summary>{fold}</summary><p className="muted">{gap}</p></details>
                 : <p className="muted">{gap}</p>)}
+              {c.hint && <p className="muted">{c.hint}</p>}
             </li>
           );
         })}</ul>

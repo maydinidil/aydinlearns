@@ -1,0 +1,84 @@
+{
+  "case_id": "CASE-DAILY-L4-02",
+  "kind": "daily",
+  "level": 4,
+  "world": "RETAIL",
+  "company_id": "voltmarkt",
+  "title": "How fast new products start selling",
+  "persona": {
+    "name": "Sanne",
+    "role": "Category manager"
+  },
+  "brief": {
+    "decision": "Which parent categories need launch support for next year's new products",
+    "deadline": "The range planning session on Wednesday"
+  },
+  "data_needed": [
+    "products",
+    "sales",
+    "categories"
+  ],
+  "expected_output": {
+    "columns": [
+      "parent_category",
+      "n_new_products",
+      "avg_days_to_first_sale"
+    ],
+    "grain": "one row per parent category with a product launched in 2024 or 2025",
+    "sort": [
+      {
+        "column": "parent_category",
+        "desc": false
+      }
+    ]
+  },
+  "checkpoints": [
+    {
+      "id": "CP3",
+      "kind": "CP3",
+      "prompt": "Write the query that answers Sanne's question.",
+      "credits_concepts": [
+        "SQL-DATE-02",
+        "SQL-SUBQ-02"
+      ],
+      "item_id": "EX-CASE-DAILY-L4-02"
+    },
+    {
+      "id": "CP4",
+      "kind": "CP4",
+      "prompt": "Sanne's headline: take every product with a launch_date from 2024-01-01 to 2025-12-31, both days included, that sold at least once. Its first sale date is the UTC date of the earliest order with a line for it; order_ts holds UTC time. Its days to first sale are the days from launch_date to that first sale: a product that first sold on its launch day has 0, and one that first sold the next day has 1. What is the average days to first sale over all those products together, not per category? Type the number of days rounded to 1 decimal.",
+      "credits_concepts": [],
+      "item_id": "CASE-DAILY-L4-02:CP4",
+      "typed": {
+        "precision": "ratio",
+        "scale": "plain",
+        "decimals": 1,
+        "unit_label": "days"
+      },
+      "truth_key": "CASE-DAILY-L4-02:CP4"
+    }
+  ],
+  "model_plan": "Metric formula: days to first sale, a product's earliest UTC order date minus its launch_date, in days; avg_days_to_first_sale, the average of those days over a parent category's new products; n_new_products, how many there are.\nOutput grain: one row per parent category with a new product.\nTables and keys: products joined to sales on product_id for the earliest order date, in a step at one row per product, then joined to categories on category_id.\nFilters: launch_date from 2024-01-01 to 2025-12-31, both days included; only products that sold at least once.\nEdge cases: a product that first sold on its launch day counts 0 days, not 1; the first sale is one date per product, not one per order line; a product that never sold has no first sale and is left out.\nExpected row count: 7",
+  "model_answer_template": "New products launched in 2024 and 2025 made their first sale {CP4} days after launch on average, and Computing products were the slowest to start. Most new products sold on their launch day or soon after, so a few slow starters pull the average up. The first sale only shows when a product started selling, not how well it sold after that. Next, list the slowest new products in the slowest parent categories and check their stock and shelf placement in their first weeks.",
+  "follow_up_question": "Which new Computing products took the longest to make their first sale?",
+  "data_source": {
+    "label": "Fictional, generated data: Voltmarkt",
+    "real": false,
+    "licence": null
+  },
+  "difficulty": 1,
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-JOIN-01",
+    "SQL-SUBQ-02",
+    "SQL-DATE-02"
+  ],
+  "metric_ids": [],
+  "find_ids": [],
+  "uses_raw": false
+}

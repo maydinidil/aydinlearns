@@ -43,14 +43,23 @@ export function pinnedVersions(requirements: string): Record<string, string> {
 }
 
 /**
- * The build:data outputs the app reads. data/truth/voltmarkt.json is included: since slice 2a the server reads its
- * "checkpoints" for every CP4, and without it each CP4 answers 503 (aydinlearns F9, correcting the F6 reasoning).
+ * The build:data outputs the app reads. The truth files are included: since slice 2a the server reads the case values for every
+ * CP2 and CP4, and without them each answers 503 (aydinlearns F9, correcting the F6 reasoning). Since sprint 6 (S6-13) they are in
+ * data/truth/checkpoints.json, which also names the schemas built, so a build from before it is run again. Since sprint 6 Part 2
+ * (S6-20) Mailvora's truth is data/truth/mailvora.json, so a build from before Mailvora is run again too.
  */
-export const DATA_OUTPUTS = ['data/course.duckdb', 'data/manifest.json', 'data/schema-notes.json', 'data/truth/voltmarkt.json'] as const;
+export const DATA_OUTPUTS = ['data/course.duckdb', 'data/manifest.json', 'data/schema-notes.json', 'data/truth/voltmarkt.json', 'data/truth/mailvora.json', 'data/truth/checkpoints.json'] as const;
 
-/** True when a build:data output the app reads is missing under `root`, or the manifest is older than anything in pipeline/ or content/keys/cases/ (the CP4 truth queries). */
+/**
+ * The inputs of build:data's case truths besides pipeline/: the CP2 and CP4 truth queries (content/keys/cases/), and the case records
+ * in content/sql/cases/ and content/sql/openers/, whose `schema` says where each truth query runs (S6-13).
+ */
+export const CASE_TRUTH_INPUTS = ['content/keys/cases', 'content/sql/cases', 'content/sql/openers'] as const;
+
+/** True when a build:data output the app reads is missing under `root`, or the manifest is older than anything in pipeline/ or the case truth inputs. */
 export function dataBuildNeeded(root: string): boolean {
-  return DATA_OUTPUTS.some((p) => !existsSync(join(root, p))) || isStale(join(root, 'data/manifest.json'), [join(root, 'pipeline'), join(root, 'content/keys/cases')]);
+  return DATA_OUTPUTS.some((p) => !existsSync(join(root, p)))
+    || isStale(join(root, 'data/manifest.json'), [join(root, 'pipeline'), ...CASE_TRUTH_INPUTS.map((p) => join(root, p))]);
 }
 
 /**
@@ -74,12 +83,13 @@ export async function probe(url: string): Promise<Answer> {
   return isAppStatus(res.status, body) ? 'ours' : 'other';
 }
 
-function run(cmd: string, args: string[]): void {
+/** The spawner is a parameter so a test can pass a stand-in that installs and builds nothing (K7a); the launcher passes none. */
+export function run(cmd: string, args: string[], spawner: typeof spawnSync = spawnSync): void {
   // npm is a .cmd file on Windows, which needs a shell; the arguments here are fixed, never user input.
   // With a shell, Node 24 warns (DEP0190) about an argument array, so npm gets one command string instead.
   const r = cmd === 'npm'
-    ? spawnSync([cmd, ...args].join(' '), { cwd: ROOT, stdio: 'inherit', shell: true })
-    : spawnSync(cmd, args, { cwd: ROOT, stdio: 'inherit' });
+    ? spawner([cmd, ...args].join(' '), { cwd: ROOT, stdio: 'inherit', shell: true })
+    : spawner(cmd, args, { cwd: ROOT, stdio: 'inherit' });
   if (r.status !== 0) throw new Error(`"${[cmd, ...args].join(' ')}" failed. The message above says why.`);
 }
 

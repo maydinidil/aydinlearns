@@ -1,0 +1,122 @@
+{
+  "id": "EX-SQL-DATE-02-E3-01",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-04",
+    "date",
+    "date_arithmetic",
+    "products",
+    "sales",
+    "launch-window",
+    "left-join"
+  ],
+  "level": 4,
+  "source_ids": [
+    "01:SQL-DATE-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-15",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-DATE-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-DATE-02"
+  ],
+  "template_id": "T-DATE-02-first-n-days-units",
+  "template_params": {
+    "tables": "products, sales",
+    "from": "2024-01-01",
+    "days": 7
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_interval",
+  "prompt": "For each product launched on or after 1 January 2024, how many units did it sell in its first 7 days on sale? The launch day is day 1 and the 7th day is the last; place each sale on its UTC order day. A product that sold nothing in those days shows 0. Return two columns, in this order: product_id, and first_week_units. Return one row for each product launched on or after 1 January 2024. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "first_week_units",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "first_week_units",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "product_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, join each product to its sales from its launch day up to its 7th day, and keep the products with no such sales.",
+    "Day 7 is launch_date plus 6 days, so the window ends before launch_date plus 7 days. A condition on the sales side placed in WHERE would drop the products that sold nothing."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 66,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 67,
+      "to": 219,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 220,
+      "to": 260,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 261,
+      "to": 282,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "The 7-day window sits in the LEFT JOIN's ON, so products with no early sales stay, and COALESCE turns their missing total into 0."
+}

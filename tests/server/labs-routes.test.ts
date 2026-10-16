@@ -39,7 +39,7 @@ async function setup(t: TestContext, now: string, store: ContentStore = content,
   logger.onWrite((file, r) => state.record(file, r));
   const d: AppDeps = { port: 5174, checks: [], runner: null, content: store, logger, session: new SessionTracker(logger, async (at) => { for (const h of endHooks) await h(at); }),
     endHooks, closedInstances: [], schemaNotes: [], manifest: { dataset_version: 'x', library_version: 'v1.5.6' },
-    settings: { backup_folder: null, exam_date: null, goal_dates: {} }, tableCheck: 'parse_tree', state };
+    settings: { backup_folder: null, exam_date: null, goal_dates: {}, portfolio_folder: null }, tableCheck: 'parse_tree', state };
   const app = createApp(d);
   const get = async (path: string): Promise<{ status: number; body: any }> => {
     const r = await app.request(`http://127.0.0.1:5174${path}`, { headers: H });

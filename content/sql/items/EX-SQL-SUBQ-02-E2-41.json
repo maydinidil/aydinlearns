@@ -1,0 +1,93 @@
+{
+  "id": "EX-SQL-SUBQ-02-E2-41",
+  "version": 1,
+  "kind": "choose_query",
+  "tags": [
+    "sql",
+    "LVL-04",
+    "choose_query",
+    "rewrite_as_cte",
+    "orders",
+    "stores"
+  ],
+  "level": 4,
+  "source_ids": [
+    "01:SQL-SUBQ-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-15",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-SUBQ-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-SUBQ-02"
+  ],
+  "template_id": "T-SUBQ-02-choose-rewrite-as-cte",
+  "template_params": {
+    "table": "orders",
+    "step": "store",
+    "group": "store_type"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_subq",
+  "prompt": "A colleague wrote this in two steps with a subquery in FROM: step 1 counts the orders of each store, and step 2 averages those counts for each store type. Only stores with at least one order count. Which query writes the same two steps with a CTE (WITH) and returns the right answer, with the columns store_type and avg_orders?",
+  "output_contract": null,
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [],
+  "subgoals": [],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "",
+  "options": [
+    {
+      "oid": "o5dcea4c",
+      "text": "WITH store_orders AS (\n  -- one row per store type\n  SELECT s.store_type, COUNT(*) AS n_orders\n  FROM orders o\n  JOIN stores s ON s.store_id = o.store_id\n  GROUP BY s.store_type\n)\nSELECT store_type, AVG(n_orders) AS avg_orders\nFROM store_orders\nGROUP BY store_type",
+      "misconception_id": "ERR-LOG-07"
+    },
+    {
+      "oid": "o60e6a92",
+      "text": "WITH store_orders AS (\n  -- one row per store\n  SELECT o.store_id, s.store_type, COUNT(*) AS n_orders\n  FROM orders o\n  JOIN stores s ON s.store_id = o.store_id\n  GROUP BY o.store_id, s.store_type\n)\nSELECT store_type, AVG(n_orders) AS avg_orders\nFROM store_orders\nGROUP BY store_type",
+      "misconception_id": null
+    },
+    {
+      "oid": "o5388060",
+      "text": "WITH store_orders AS (\n  -- one row per store\n  SELECT o.store_id, s.store_type, COUNT(*) AS n_orders\n  FROM orders o\n  JOIN order_lines ol ON ol.order_id = o.order_id\n  JOIN stores s ON s.store_id = o.store_id\n  GROUP BY o.store_id, s.store_type\n)\nSELECT store_type, AVG(n_orders) AS avg_orders\nFROM store_orders\nGROUP BY store_type",
+      "misconception_id": "ERR-LOG-01"
+    },
+    {
+      "oid": "o772f9eb",
+      "text": "WITH store_orders AS (\n  -- one row per store\n  SELECT s.store_id, s.store_type, COUNT(*) AS n_orders\n  FROM stores s\n  LEFT JOIN orders o ON o.store_id = s.store_id\n  GROUP BY s.store_id, s.store_type\n)\nSELECT store_type, AVG(n_orders) AS avg_orders\nFROM store_orders\nGROUP BY store_type",
+      "misconception_id": "ERR-LOG-11"
+    }
+  ]
+}

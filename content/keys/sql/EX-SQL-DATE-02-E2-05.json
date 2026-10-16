@@ -1,0 +1,39 @@
+{
+  "item_id": "EX-SQL-DATE-02-E2-05",
+  "item_version": 1,
+  "reference_sql": "SELECT promo_code, date_diff('month', start_date, end_date) + 1 AS months_run\nFROM promotions",
+  "alternatives": [
+    "SELECT promo_code, (EXTRACT(year FROM end_date) - EXTRACT(year FROM start_date)) * 12 + EXTRACT(month FROM end_date) - EXTRACT(month FROM start_date) + 1 AS months_run FROM promotions",
+    "SELECT promo_code, date_diff('month', date_trunc('month', start_date), date_trunc('month', end_date)) + 1 AS months_run FROM promotions"
+  ],
+  "other_way": {
+    "sql": "SELECT promo_code, (EXTRACT(year FROM end_date) - EXTRACT(year FROM start_date)) * 12 + EXTRACT(month FROM end_date) - EXTRACT(month FROM start_date) + 1 AS months_run FROM promotions",
+    "tradeoff": "Counting from the year and month numbers spells out the rule, but date_diff('month', ...) counts the new months in one call."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-34",
+      "sql": "SELECT promo_code, date_diff('month', start_date, end_date) AS months_run FROM promotions"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-34",
+      "sql": "SELECT promo_code, date_sub('month', start_date, end_date) + 1 AS months_run FROM promotions"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-25",
+      "sql": "SELECT promo_code, month(end_date) - month(start_date) + 1 AS months_run FROM promotions"
+    }
+  ],
+  "hint3_partial": "SELECT promo_code, date_diff(___, start_date, end_date) ___ AS months_run\nFROM promotions",
+  "solver": {
+    "prompt_hash": "dca638fdcbf1509a",
+    "schema_version": "f0340f71a1f5",
+    "dataset_version": "b2d2b40fb117bb07",
+    "grader_version": "6a.1",
+    "query": "SELECT promo_code,\n       date_diff('month', date_trunc('month', CAST(start_date AS DATE)), date_trunc('month', CAST(end_date AS DATE))) + 1 AS months_run\nFROM promotions\n",
+    "at": "2026-10-15T11:06:11.553Z"
+  }
+}

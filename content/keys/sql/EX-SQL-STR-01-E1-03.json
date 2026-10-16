@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-STR-01-E1-03",
+  "item_version": 1,
+  "reference_sql": "SELECT product_id, sku\nFROM products\nWHERE sku <> TRIM(sku)",
+  "alternatives": [
+    "SELECT product_id, sku FROM products WHERE sku LIKE ' %' OR sku LIKE '% '",
+    "SELECT product_id, sku FROM products WHERE length(sku) <> length(TRIM(sku))"
+  ],
+  "other_way": {
+    "sql": "SELECT product_id, sku FROM products WHERE sku LIKE ' %' OR sku LIKE '% '",
+    "tradeoff": "Two LIKE patterns read plainly, but comparing the sku with TRIM(sku) covers both ends in one test."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-22",
+      "sql": "SELECT product_id, sku FROM products WHERE sku LIKE '% %'"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-15",
+      "sql": "SELECT product_id, sku FROM products WHERE sku = TRIM(sku)"
+    }
+  ],
+  "hint3_partial": "SELECT product_id, sku\nFROM products\nWHERE sku <> ___",
+  "solver": {
+    "prompt_hash": "978b469a9e842d14",
+    "schema_version": "d77fe1c31a0e",
+    "dataset_version": "b2d2b40fb117bb07",
+    "grader_version": "6a.1",
+    "query": "SELECT product_id, sku FROM products WHERE sku LIKE ' %' OR sku LIKE '% '\n",
+    "at": "2026-10-15T11:06:12.173Z"
+  }
+}

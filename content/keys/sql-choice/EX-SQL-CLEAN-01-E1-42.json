@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-CLEAN-01-E1-42",
+  "item_version": 1,
+  "value": 180,
+  "explanation": "Each resent line forms a set of two matching lines, an original and its copy, and HAVING COUNT(*) > 1 keeps only those sets: 180 rows, one per copied line, not 360. Grouping by order_line_id as well would keep every line apart, because each copy has an ID of its own, and the query would return no rows.",
+  "solver": {
+    "prompt_hash": "9a36e8b1140fef45",
+    "grader_version": "choice.3",
+    "chosen": null,
+    "typed": "180",
+    "at": "2026-10-15T10:40:24.687Z"
+  }
+}

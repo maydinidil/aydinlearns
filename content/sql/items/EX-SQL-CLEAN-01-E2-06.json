@@ -1,0 +1,148 @@
+{
+  "id": "EX-SQL-CLEAN-01-E2-06",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-04",
+    "duplicates",
+    "reconcile",
+    "units",
+    "order_lines",
+    "orders"
+  ],
+  "level": 4,
+  "source_ids": [
+    "01:SQL-CLEAN-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-15",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-CLEAN-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-DATE-01",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-CLEAN-01"
+  ],
+  "template_id": "T-CLEAN-01-units-per-year",
+  "template_params": {
+    "period": "year"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt_raw",
+  "edge_schema": "voltmarkt_edge_clean",
+  "uses_raw": true,
+  "prompt": "For each year, how many units do the order lines hold as stored, and how many once resent copies are removed? This table may hold errors. Two lines are copies of one order line when order_id, product_id, quantity, unit_price_eur, promo_id and line_discount_eur all match, with a missing promo_id matching a missing one; keep one line of each such set. The year is the year of the order's order_ts as stored. Return four columns, in this order: order_year, units_stored, units_unique and units_extra, the units the copies add. Return one row for each year with order lines. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "order_year",
+        "type_class": "numeric"
+      },
+      {
+        "name": "units_stored",
+        "type_class": "numeric"
+      },
+      {
+        "name": "units_unique",
+        "type_class": "numeric"
+      },
+      {
+        "name": "units_extra",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "order_year",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "units_stored",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "units_unique",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "units_extra",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "order_year"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, turn each set of matching lines into its units as stored and once.",
+    "A set of n matching lines holds its quantity n times as stored and once without copies; the difference is what the copies add."
+  ],
+  "subgoals": [
+    {
+      "from": 60,
+      "to": 106,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 109,
+      "to": 125,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 128,
+      "to": 212,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 215,
+      "to": 419,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 420,
+      "to": 479,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 480,
+      "to": 518,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "Each set of matching lines holds one real line, so its quantity counts once without copies and n times as stored."
+}

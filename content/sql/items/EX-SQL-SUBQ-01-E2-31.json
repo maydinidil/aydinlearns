@@ -1,0 +1,113 @@
+{
+  "id": "EX-SQL-SUBQ-01-E2-31",
+  "version": 1,
+  "kind": "fix",
+  "tags": [
+    "sql",
+    "LVL-04",
+    "not_exists",
+    "not_in_missing",
+    "promotions",
+    "order_lines",
+    "fix"
+  ],
+  "level": 4,
+  "source_ids": [
+    "01:SQL-SUBQ-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-15",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-SUBQ-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-JOIN-01",
+    "SQL-SUBQ-01"
+  ],
+  "template_id": "T-SUBQ-01-fix-not-in-missing",
+  "template_params": {
+    "outer": "promotions",
+    "inner": "order_lines",
+    "category_id": 35
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_subq",
+  "prompt": "The query in the editor has one mistake. Fix it so that it answers this question: which promotions were never carried by an order line of a product in category 35, Cables? An order line carries a promotion when its promo_id is that promotion's promo_id; most lines carry no promotion, and their promo_id is missing. Return two columns, in this order: promo_id and promo_code. Return one row for each such promotion. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "promo_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "promo_code",
+        "type_class": "text"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "promo_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "promo_code",
+        "type_class": "text",
+        "precision": "exact"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "promo_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, check what the list after NOT IN holds: most Cables lines have a missing promo_id.",
+    "One missing value in that list makes NOT IN keep no promotion at all; test for a matching line instead, or keep the missing values out of the list."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 33,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 34,
+      "to": 52,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 53,
+      "to": 217,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": "SELECT promo_id, promo_code\nFROM promotions\nWHERE promo_id NOT IN (\n  SELECT ol.promo_id\n  FROM order_lines ol\n  JOIN products p ON p.product_id = ol.product_id\n  WHERE p.category_id = 35\n)",
+  "starter_error_id": "ERR-LOG-30",
+  "time_target_ms": 180000,
+  "why_this_works": "NOT EXISTS looks for a Cables line that carries each promotion, so the lines with a missing promo_id never match and cannot wipe out every row."
+}

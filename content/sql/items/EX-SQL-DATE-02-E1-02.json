@@ -1,0 +1,119 @@
+{
+  "id": "EX-SQL-DATE-02-E1-02",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-04",
+    "date",
+    "date_arithmetic",
+    "orders",
+    "last-n-days",
+    "as-of"
+  ],
+  "level": 4,
+  "source_ids": [
+    "01:SQL-DATE-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-15",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pretest",
+  "target_concept_id": "SQL-DATE-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-DATE-02"
+  ],
+  "template_id": "T-DATE-02-last-n-days",
+  "template_params": {
+    "table": "orders",
+    "days": 30,
+    "as_of": "2026-01-05",
+    "as_of_day": "included"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_interval",
+  "prompt": "Voltmarkt's data runs up to its as-of date, 5 January 2026. How many orders did each channel take in the last 30 days, counting back from the as-of date with the as-of day included: from 7 December 2025 to 5 January 2026, both days included? Order times are stored in UTC, so place each order on its UTC day. Return two columns, in this order: channel, and orders, the number of orders. Return one row for each channel with orders in those days. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "channel",
+        "type_class": "text"
+      },
+      {
+        "name": "orders",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per channel"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "channel",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "orders",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "channel"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the row filter: every order from the first moment of 7 December 2025 to the last moment of 5 January 2026.",
+    "Thirty days with the as-of day included start 29 days before it. On a timestamp, end the range before midnight after the last day."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 34,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 35,
+      "to": 46,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 47,
+      "to": 152,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 153,
+      "to": 169,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "Counting back 29 days from the as-of date and stopping before midnight after it keeps exactly 30 whole days, both end days included."
+}

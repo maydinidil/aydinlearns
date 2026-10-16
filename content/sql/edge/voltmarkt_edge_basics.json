@@ -9,6 +9,37 @@
     "a product that costs exactly 0.01 euro",
     "a discount that is not a whole number",
     "a promotion that starts and ends on the same day",
-    "five calendar days around New Year 2025, where the ISO year and the calendar year differ"
-  ]
+    "calendar days around New Year 2025, where the ISO year and the calendar year differ",
+    "a calendar that holds every day of each promotion",
+    "no orders, so the sales view has no rows"
+  ],
+  "tables": {
+    "calendar": [
+      "calendar days around New Year 2025, where the ISO year and the calendar year differ",
+      "a calendar that holds every day of each promotion"
+    ],
+    "stores": [
+      "a store code in lower case",
+      "city, category, product and promotion names with accents or an apostrophe",
+      "long names, some with commas in them"
+    ],
+    "categories": [
+      "city, category, product and promotion names with accents or an apostrophe",
+      "long names, some with commas in them"
+    ],
+    "products": [
+      "city, category, product and promotion names with accents or an apostrophe",
+      "long names, some with commas in them",
+      "a product that costs exactly 0.01 euro"
+    ],
+    "promotions": [
+      "city, category, product and promotion names with accents or an apostrophe",
+      "long names, some with commas in them",
+      "a discount that is not a whole number",
+      "a promotion that starts and ends on the same day"
+    ],
+    "sales": [
+      "no orders, so the sales view has no rows"
+    ]
+  }
 }

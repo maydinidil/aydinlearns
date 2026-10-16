@@ -18,7 +18,7 @@
     },
     {
       "id": "PW2",
-      "error_id": "ERR-LOG-06",
+      "error_id": "ERR-LOG-23",
       "sql": "SELECT cal_date, CASE WHEN weekday_name IN ('Saturday', 'Sunday') THEN 'weekend' ELSE 'weekday' END AS day_type FROM calendar WHERE cal_date >= DATE '2025-04-01' AND cal_date < DATE '2025-04-30'"
     },
     {

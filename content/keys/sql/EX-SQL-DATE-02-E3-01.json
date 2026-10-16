@@ -1,0 +1,39 @@
+{
+  "item_id": "EX-SQL-DATE-02-E3-01",
+  "item_version": 1,
+  "reference_sql": "SELECT p.product_id, COALESCE(SUM(s.units), 0) AS first_week_units\nFROM products p\nLEFT JOIN sales s\n  ON s.product_id = p.product_id\n AND s.order_date >= p.launch_date\n AND s.order_date < p.launch_date + INTERVAL 7 DAY\nWHERE p.launch_date >= DATE '2024-01-01'\nGROUP BY p.product_id",
+  "alternatives": [
+    "WITH first_week AS (  -- one row per product that sold in its first 7 days\n  SELECT s.product_id, SUM(s.units) AS units\n  FROM sales s\n  JOIN products p ON p.product_id = s.product_id\n  WHERE s.order_date BETWEEN p.launch_date AND p.launch_date + 6\n  GROUP BY s.product_id\n)\nSELECT p.product_id, COALESCE(f.units, 0) AS first_week_units\nFROM products p\nLEFT JOIN first_week f ON f.product_id = p.product_id\nWHERE p.launch_date >= DATE '2024-01-01'",
+    "SELECT p.product_id, COALESCE(SUM(s.units) FILTER (WHERE s.order_date >= p.launch_date AND s.order_date < p.launch_date + INTERVAL 7 DAY), 0) AS first_week_units FROM products p LEFT JOIN sales s ON s.product_id = p.product_id WHERE p.launch_date >= DATE '2024-01-01' GROUP BY p.product_id"
+  ],
+  "other_way": {
+    "sql": "WITH first_week AS (  -- one row per product that sold in its first 7 days\n  SELECT s.product_id, SUM(s.units) AS units\n  FROM sales s\n  JOIN products p ON p.product_id = s.product_id\n  WHERE s.order_date BETWEEN p.launch_date AND p.launch_date + 6\n  GROUP BY s.product_id\n)\nSELECT p.product_id, COALESCE(f.units, 0) AS first_week_units\nFROM products p\nLEFT JOIN first_week f ON f.product_id = p.product_id\nWHERE p.launch_date >= DATE '2024-01-01'",
+    "tradeoff": "Adding up the first week in its own step keeps the join simple, but the window in the LEFT JOIN's ON does it in one pass."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-34",
+      "sql": "SELECT p.product_id, COALESCE(SUM(s.units), 0) AS first_week_units FROM products p LEFT JOIN sales s ON s.product_id = p.product_id AND s.order_date >= p.launch_date AND s.order_date <= p.launch_date + INTERVAL 7 DAY WHERE p.launch_date >= DATE '2024-01-01' GROUP BY p.product_id"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-10",
+      "sql": "SELECT p.product_id, COALESCE(SUM(s.units), 0) AS first_week_units FROM products p LEFT JOIN sales s ON s.product_id = p.product_id WHERE p.launch_date >= DATE '2024-01-01' AND s.order_date >= p.launch_date AND s.order_date < p.launch_date + INTERVAL 7 DAY GROUP BY p.product_id"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-17",
+      "sql": "SELECT p.product_id, SUM(s.units) AS first_week_units FROM products p LEFT JOIN sales s ON s.product_id = p.product_id AND s.order_date >= p.launch_date AND s.order_date < p.launch_date + INTERVAL 7 DAY WHERE p.launch_date >= DATE '2024-01-01' GROUP BY p.product_id"
+    }
+  ],
+  "hint3_partial": "SELECT p.product_id, COALESCE(SUM(s.units), 0) AS first_week_units\nFROM products p\nLEFT JOIN sales s\n  ON s.product_id = p.product_id\n AND ___\nWHERE p.launch_date >= DATE '2024-01-01'\nGROUP BY p.product_id",
+  "solver": {
+    "prompt_hash": "306b8ad1625b491f",
+    "schema_version": "acdebeeb01ea",
+    "dataset_version": "b2d2b40fb117bb07",
+    "grader_version": "6a.1",
+    "query": "SELECT p.product_id, COALESCE(SUM(s.units), 0) AS first_week_units\nFROM products p\nLEFT JOIN sales s ON s.product_id = p.product_id\n  AND CAST(s.order_date AS DATE) BETWEEN CAST(p.launch_date AS DATE) AND CAST(p.launch_date AS DATE) + 6\nWHERE CAST(p.launch_date AS DATE) >= DATE '2024-01-01'\nGROUP BY p.product_id\n",
+    "at": "2026-10-15T11:06:11.912Z"
+  }
+}

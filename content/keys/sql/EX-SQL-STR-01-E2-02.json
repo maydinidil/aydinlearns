@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-STR-01-E2-02",
+  "item_version": 1,
+  "reference_sql": "SELECT product_id, concat(brand, ' ', UPPER(TRIM(sku))) AS label\nFROM products\nWHERE category_id IS NULL",
+  "alternatives": [
+    "WITH cleaned AS (  -- one row per product\n  SELECT product_id, brand, UPPER(TRIM(sku)) AS clean_sku, category_id\n  FROM products\n)\nSELECT product_id, concat(brand, ' ', clean_sku) AS label\nFROM cleaned\nWHERE category_id IS NULL",
+    "SELECT product_id, brand || ' ' || UPPER(TRIM(sku)) AS label FROM products WHERE category_id IS NULL"
+  ],
+  "other_way": {
+    "sql": "WITH cleaned AS (  -- one row per product\n  SELECT product_id, brand, UPPER(TRIM(sku)) AS clean_sku, category_id\n  FROM products\n)\nSELECT product_id, concat(brand, ' ', clean_sku) AS label\nFROM cleaned\nWHERE category_id IS NULL",
+    "tradeoff": "A step that cleans the sku first keeps the label simple, but one expression is shorter when the label is all you need."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-32",
+      "sql": "SELECT product_id, concat(brand, ' ', sku) AS label FROM products WHERE category_id IS NULL"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-32",
+      "sql": "SELECT product_id, concat(brand, ' ', UPPER(sku)) AS label FROM products WHERE category_id IS NULL"
+    }
+  ],
+  "hint3_partial": "SELECT product_id, concat(brand, ___, UPPER(TRIM(sku))) AS label\nFROM products\nWHERE category_id IS NULL",
+  "solver": {
+    "prompt_hash": "a4e30f7b06d5188e",
+    "schema_version": "d77fe1c31a0e",
+    "dataset_version": "b2d2b40fb117bb07",
+    "grader_version": "6a.1",
+    "query": "SELECT product_id, brand || ' ' || upper(trim(sku)) AS label FROM products WHERE category_id IS NULL\n",
+    "at": "2026-10-15T11:06:12.351Z"
+  }
+}

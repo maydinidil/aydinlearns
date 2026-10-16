@@ -1,0 +1,150 @@
+{
+  "id": "EX-SQL-CLEAN-01-E2-31",
+  "version": 1,
+  "kind": "fix",
+  "tags": [
+    "sql",
+    "LVL-04",
+    "nullif",
+    "coalesce",
+    "ratio",
+    "duplicates",
+    "order_lines",
+    "orders",
+    "stores",
+    "fix"
+  ],
+  "level": 4,
+  "source_ids": [
+    "01:SQL-CLEAN-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-15",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-CLEAN-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-CLEAN-01"
+  ],
+  "template_id": "T-CLEAN-01-fix-coalesce-ratio",
+  "template_params": {
+    "period": "2025-07 to 2025-12"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt_raw",
+  "edge_schema": "voltmarkt_edge_clean",
+  "uses_raw": true,
+  "prompt": "The query in the editor has one mistake. Fix it so that it answers this question: for each store, what share of its order lines from July to December 2025 are resent copies? These tables may hold errors. Two lines are copies of one order line when order_id, product_id, quantity, unit_price_eur, promo_id and line_discount_eur all match, with a missing promo_id matching a missing one; every line beyond the first of such a set is a resent copy. The period means order_ts, as stored, from 1 July 2025 up to but not including 1 January 2026. Return two columns, in this order: store_code and copy_share, copies divided by all the store's lines in the period, as a fraction from 0 to 1, not rounded, missing for a store with no lines in the period. Return one row for each store. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "store_code",
+        "type_class": "text"
+      },
+      {
+        "name": "copy_share",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "store_code",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "copy_share",
+        "type_class": "numeric",
+        "precision": "ratio"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "store_code"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, check what the query returns for a store with no lines in the period.",
+    "COALESCE turns the missing share into 0, which reads as a store with lines and no copies; the question keeps it missing."
+  ],
+  "subgoals": [
+    {
+      "from": 89,
+      "to": 127,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 130,
+      "to": 193,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 196,
+      "to": 278,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 281,
+      "to": 395,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 463,
+      "to": 533,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 536,
+      "to": 552,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 555,
+      "to": 572,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 575,
+      "to": 645,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 646,
+      "to": 710,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": "WITH period_sets AS (  -- one row per set of matching lines from July to December 2025\n  SELECT o.store_id, COUNT(*) AS n_lines\n  FROM order_lines ol\n  JOIN orders o ON o.order_id = ol.order_id\n  WHERE o.order_ts >= TIMESTAMP '2025-07-01' AND o.order_ts < TIMESTAMP '2026-01-01'\n  GROUP BY o.store_id, ol.order_id, ol.product_id, ol.quantity, ol.unit_price_eur, ol.promo_id, ol.line_discount_eur\n),\nper_store AS (  -- one row per store with lines in the period\n  SELECT store_id, SUM(n_lines) AS n_lines, SUM(n_lines - 1) AS n_copies\n  FROM period_sets\n  GROUP BY store_id\n)\nSELECT s.store_code, COALESCE(ps.n_copies / NULLIF(ps.n_lines, 0), 0) AS copy_share\nFROM stores s\nLEFT JOIN per_store ps ON ps.store_id = s.store_id",
+  "starter_error_id": "ERR-LOG-35",
+  "time_target_ms": 180000,
+  "why_this_works": "Without COALESCE the share of a store with no lines stays missing, which says there was nothing to check instead of a clean 0."
+}

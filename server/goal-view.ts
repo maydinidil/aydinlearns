@@ -2,6 +2,7 @@
 // screen (Task E1) evaluate goals on (design §2; S2-38, D12, S4B-08, S4B-20, S4B-26; sprint 4b, Task D3). Built from replay and the
 // logs: each concept's state, the solved cases with whether a case_export event names them, the live reps (server/drill.ts), and the
 // external results. No mock is built yet, so none has passed. It only reads.
+import { caseUnavailable } from './content.ts';
 import { effectiveDate, evaluateGoal, EVERY_LEVEL, type CriterionResult, type GoalView } from '../core/goal-eval.ts';
 import type { Goal } from '../core/goals.ts';
 import type { ReplayResult } from '../core/replay.ts';
@@ -25,8 +26,10 @@ export function goalView(s: GoalViewSource): GoalView {
   const recordOf = (id: string) => content.case?.(id) ?? content.opener?.(id);
   const casesSolved = [...replay.cases.values()].filter((c) => c.solved).flatMap((c) => {
     const record = recordOf(c.case_id);
-    return record ? [{ case_id: c.case_id, level: record.level, exported: c.exports.length > 0 }] : [];
+    return record ? [{ case_id: c.case_id, level: record.level, exported: c.exports.length > 0, real: record.data_source?.real === true }] : [];
   });
+  // S6-26: the inbox's own availability (S6-13), counted over the cases on real data.
+  const realCasesAvailable = (content.cases?.() ?? content.openers?.() ?? []).filter((r) => r.data_source?.real === true && caseUnavailable(content, r) === null).length;
   return {
     conceptsOf: (section, maxLevel) => (section === 'sql'
       ? content.curriculum.concepts.filter((c) => c.level <= maxLevel).map((c) => c.id)
@@ -35,6 +38,7 @@ export function goalView(s: GoalViewSource): GoalView {
     externals,
     mocksPassed: new Set(),
     casesSolved,
+    realCasesAvailable,
     liveReps: liveReps([...s.attempts], [...s.events]),
   };
 }

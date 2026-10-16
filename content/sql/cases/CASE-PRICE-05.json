@@ -1,0 +1,167 @@
+{
+  "case_id": "CASE-PRICE-05",
+  "kind": "inbox",
+  "level": 4,
+  "world": "PRICE",
+  "company_id": "voltmarkt",
+  "title": "Gross margin bridge, Q2 to Q3 2025",
+  "persona": {
+    "name": "Marieke",
+    "role": "CFO"
+  },
+  "brief": {
+    "decision": "How to explain to the board why gross margin in euros changed from Q2 to Q3 2025: how much came from price, unit cost, volume and mix",
+    "deadline": "Wednesday's board pack"
+  },
+  "data_needed": [
+    "sales",
+    "cost_history"
+  ],
+  "expected_output": {
+    "columns": [
+      "step",
+      "component",
+      "amount_eur"
+    ],
+    "grain": "one row per bridge line, from the Q2 2025 margin to the Q3 2025 margin",
+    "sort": [
+      {
+        "column": "step",
+        "desc": false
+      }
+    ]
+  },
+  "checkpoints": [
+    {
+      "id": "CP1",
+      "kind": "CP1",
+      "item_id": "CASE-PRICE-05:CP1",
+      "credits_concepts": [],
+      "prompt": "Marieke's bridge from the Q2 2025 to the Q3 2025 gross margin has price, cost, volume and mix lines, each worked out per product from its units, price per unit and cost per unit in both quarters. Which products should those four lines cover?",
+      "options": [
+        {
+          "oid": "o7f870d3",
+          "text": "Every product sold in either quarter, with the quarter it did not sell in counted as 0 units at a price and a cost of 0"
+        },
+        {
+          "oid": "o788b122",
+          "text": "Only the products sold in both quarters; products sold in one quarter only go on a line of their own"
+        },
+        {
+          "oid": "o4fcfa68",
+          "text": "Only the products whose unit cost changed between the quarters, because the bridge is there to explain the cost change"
+        },
+        {
+          "oid": "o931d53a",
+          "text": "Every product sold in Q3, with the margin of products sold only in Q2 left out of the bridge"
+        }
+      ]
+    },
+    {
+      "id": "CP2",
+      "kind": "CP2",
+      "item_id": "CASE-PRICE-05:CP2",
+      "credits_concepts": [
+        "SQL-AGG-01"
+      ],
+      "prompt": "Marieke's bridge compares Q2 2025 (2025-04-01 to 2025-06-30) with Q3 2025 (2025-07-01 to 2025-09-30), both ends included, with each order line in the quarter of its UTC order date. How many products sold at least one unit in both quarters? Type a whole number.",
+      "typed": {
+        "precision": "count",
+        "scale": "plain",
+        "decimals": 0,
+        "unit_label": "products"
+      },
+      "truth_key": "CASE-PRICE-05:CP2"
+    },
+    {
+      "id": "CP3",
+      "kind": "CP3",
+      "item_id": "EX-CASE-PRICE-05",
+      "credits_concepts": [
+        "SQL-SUBQ-01",
+        "SQL-CTE-01",
+        "SQL-SET-01",
+        "SQL-JOIN-04"
+      ],
+      "prompt": "Write the query that answers Marieke's question."
+    },
+    {
+      "id": "CP4",
+      "kind": "CP4",
+      "item_id": "CASE-PRICE-05:CP4",
+      "credits_concepts": [],
+      "prompt": "Marieke's headline is the cost rise. Compare Q2 2025 (2025-04-01 to 2025-06-30) with Q3 2025 (2025-07-01 to 2025-09-30), both ends included, with each order line in the quarter of its UTC order date. A line's cost is its units times the product's unit cost on the line's order date, from the cost version valid that day (valid_from to valid_to, both days included; valid_to is missing for the current cost). For each product sold in both quarters, its cost per unit in a quarter is its total cost there divided by its units there. How many euros of margin did higher unit costs take away in Q3: the sum, over those products, of (Q3 cost per unit minus Q2 cost per unit) times the product's Q3 units? Type the amount in euros, rounded to 2 decimals.",
+      "typed": {
+        "precision": "money",
+        "scale": "eur",
+        "decimals": 2,
+        "unit_label": "euros"
+      },
+      "truth_key": "CASE-PRICE-05:CP4"
+    },
+    {
+      "id": "CP5",
+      "kind": "CP5",
+      "item_id": "CASE-PRICE-05:CP5",
+      "credits_concepts": [],
+      "prompt": "Marieke's bridge from the Q2 2025 to the Q3 2025 gross margin in euros shows the margin rose. Its cost line is negative, and its price, volume and mix lines are positive. Price and cost are per unit, net of discounts, and mix is worked out from each product's Q2 margin per unit, not as a leftover. Which reading can Marieke give the board?",
+      "options": [
+        {
+          "oid": "o1094c26",
+          "text": "Unit costs fell in Q3, which is why the cost line is negative, so cheaper buying helped the margin."
+        },
+        {
+          "oid": "o014cb04",
+          "text": "Higher unit costs took margin away in Q3, and higher net prices, more units and a richer mix more than made up for it."
+        },
+        {
+          "oid": "o0b4d9b6",
+          "text": "The mix line is simply what is left over to make the bridge add up, so the board can leave it out of the story."
+        },
+        {
+          "oid": "o69ebb5b",
+          "text": "The price line shows that Voltmarkt raised its list prices in Q3, because the price per unit went up."
+        }
+      ]
+    },
+    {
+      "id": "CP6",
+      "kind": "CP6",
+      "credits_concepts": [],
+      "prompt": "Write 2 to 4 sentences for Marieke's board pack: how gross margin moved from Q2 to Q3 2025, the biggest driver with its sign, one caveat about how the bridge is built, and one next step."
+    }
+  ],
+  "model_plan": "Metric formula: per product and quarter, units V, price per unit P (net revenue divided by units) and cost per unit C (cost divided by units), with each line costed at the unit cost valid on its order date; over the products sold in both quarters, price = sum of (P3 minus P2) times V3, cost = minus the sum of (C3 minus C2) times V3, volume = (total V3 minus total V2) times their Q2 margin per unit, and mix = sum of V3 times (P2 minus C2) minus total V3 times that Q2 margin per unit; new_discontinued = margin of Q3-only products minus margin of Q2-only products.\nOutput grain: one row per bridge line, seven lines from q2_margin to q3_margin.\nTables and keys: sales (one row per order line) joined to cost_history on product_id, with the order date inside the cost version's valid_from to valid_to.\nFilters: order dates from 2025-04-01 to 2025-09-30, split into quarters at 2025-07-01.\nEdge cases: valid_to is missing for the current cost; a cost can change inside a quarter, so each line takes its own day's cost; products sold in one quarter only stay out of price, cost, volume and mix; the lines must add up from q2_margin to q3_margin.\nExpected row count: 7",
+  "model_answer_template": "Gross margin rose from Q2 to Q3 2025 even though higher unit costs took {CP4} euros away, which comes from the supplier cost rise on Audio products in July. Higher net prices, more units and a richer mix more than made up for it; the {CP2} products sold in both quarters carry those lines, while new and discontinued products sit on a line of their own. Mix is measured from each product's Q2 margin per unit rather than used as a plug, so the lines add up from the Q2 margin to the Q3 margin. Next, I would check whether Audio prices can rise to pass the cost increase on, starting with the products whose cost rose most.",
+  "follow_up_question": "What one-line story should Marieke give the board about the Q3 2025 margin?",
+  "data_source": {
+    "label": "Fictional, generated data: Voltmarkt",
+    "real": false,
+    "licence": null
+  },
+  "difficulty": 5,
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CASE-01",
+    "SQL-TYPE-01",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-JOIN-04",
+    "SQL-SET-01",
+    "SQL-SUBQ-01"
+  ],
+  "metric_ids": [
+    "MET-PRICE-07",
+    "MET-PRICE-08",
+    "MET-PRICE-02"
+  ],
+  "find_ids": [],
+  "uses_raw": false
+}

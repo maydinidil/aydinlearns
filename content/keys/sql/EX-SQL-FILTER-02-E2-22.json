@@ -14,7 +14,7 @@
   "planted_wrong": [
     {
       "id": "PW1",
-      "error_id": "ERR-LOG-06",
+      "error_id": "ERR-LOG-23",
       "sql": "SELECT promo_code, promo_name, end_date, discount_pct FROM promotions WHERE end_date >= DATE '2025-03-01' AND end_date < DATE '2025-03-31' AND discount_pct >= 20"
     },
     {

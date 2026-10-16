@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-CLEAN-01-E1-04",
+  "item_version": 1,
+  "reference_sql": "SELECT brand, COUNT(*) FILTER (WHERE category_id IS NULL) / NULLIF(COUNT(*), 0) AS missing_share\nFROM products\nGROUP BY brand",
+  "alternatives": [
+    "SELECT brand, (COUNT(*) - COUNT(category_id)) / NULLIF(COUNT(*), 0) AS missing_share FROM products GROUP BY brand",
+    "SELECT brand, SUM(CASE WHEN category_id IS NULL THEN 1 ELSE 0 END) * 1.0 / NULLIF(COUNT(*), 0) AS missing_share FROM products GROUP BY brand"
+  ],
+  "other_way": {
+    "sql": "SELECT brand, (COUNT(*) - COUNT(category_id)) / NULLIF(COUNT(*), 0) AS missing_share FROM products GROUP BY brand",
+    "tradeoff": "COUNT(*) minus COUNT(category_id) counts the missing values without a filter, but the FILTER says plainly what it counts."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-05",
+      "sql": "SELECT brand, COUNT(*) FILTER (WHERE category_id IS NULL) // NULLIF(COUNT(*), 0) AS missing_share FROM products GROUP BY brand"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-04",
+      "sql": "SELECT brand, COUNT(category_id) / NULLIF(COUNT(*), 0) AS missing_share FROM products GROUP BY brand"
+    }
+  ],
+  "hint3_partial": "SELECT brand, COUNT(*) FILTER (WHERE ___) / NULLIF(___, 0) AS missing_share\nFROM products\nGROUP BY brand",
+  "solver": {
+    "prompt_hash": "7e0c6c3bdcc738bd",
+    "schema_version": "d77fe1c31a0e",
+    "dataset_version": "b2d2b40fb117bb07",
+    "grader_version": "6a.1",
+    "query": "SELECT brand, count(*) FILTER (WHERE category_id IS NULL) * 1.0 / NULLIF(count(*), 0) AS missing_share FROM products GROUP BY brand\n",
+    "at": "2026-10-15T11:06:09.149Z"
+  }
+}

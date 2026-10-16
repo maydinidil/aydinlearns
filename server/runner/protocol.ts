@@ -1,5 +1,9 @@
 // server/runner/protocol.ts
-export type GateReason = 'empty' | 'multi_statement' | 'not_select' | 'qualified_schema' | 'table_function' | 'table_check_unavailable';
+/** The most rows a display returns (as POST /api/run, the grader and the explore route all ask). Written once, here. */
+export const DISPLAY_CAP = 1000;
+
+/** 'too_deep' (S6-08) is given by the client (client.ts) before the child receives the text; the child's gate gives the rest. */
+export type GateReason = 'empty' | 'multi_statement' | 'not_select' | 'qualified_schema' | 'table_function' | 'table_check_unavailable' | 'too_deep';
 export interface ColumnMeta { name: string; type: string }
 export interface TableRef { schema: string | null; table: string }
 export type RunnerRequest =

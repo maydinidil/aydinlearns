@@ -37,7 +37,10 @@ class VoltmarktV0(unittest.TestCase):
         again, _ = vm.generate()
         for name, table in self.clean.items():
             self.assertTrue(table.equals(again["clean"][name]), name)
-        self.assertTrue(self.tables["raw"]["products"].equals(again["raw"]["products"]), "raw products")
+        # Sprint 6 (S6-02): every raw table, the order quirks included.
+        self.assertEqual(set(again["raw"]), set(self.tables["raw"]))
+        for name, table in self.tables["raw"].items():
+            self.assertTrue(table.equals(again["raw"][name]), f"raw {name}")
 
     def test_appending_to_table_order_keeps_streams(self):
         # GEN-02: tables appended to TABLE_ORDER later must not shift these tables' streams.
@@ -45,7 +48,13 @@ class VoltmarktV0(unittest.TestCase):
             later, _ = vm.generate()
         for name, table in self.clean.items():
             self.assertTrue(table.equals(later["clean"][name]), f"{name} after appending a table")
-        self.assertTrue(self.tables["raw"]["products"].equals(later["raw"]["products"]), "raw products after appending")
+        for name, table in self.tables["raw"].items():
+            self.assertTrue(table.equals(later["raw"][name]), f"raw {name} after appending")
+
+    def test_cost_history_and_the_raw_quirks_draw_from_their_reserved_streams(self):
+        # S6-02 and S6-07: both streams were reserved in TABLE_ORDER before sprint 6, in this order; no new stream is spawned.
+        self.assertEqual(vm.TABLE_ORDER[-3:], ["quirks", "cost_history", "inventory_chain"])
+        self.assertIn("cost_history", self.clean)
 
     def test_names_do_not_follow_locale(self):
         # Day and month names must not follow LC_TIME (a Dutch LC_TIME turns "Monday" into "maandag").

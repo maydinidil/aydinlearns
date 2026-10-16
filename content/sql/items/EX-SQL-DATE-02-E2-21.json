@@ -1,0 +1,119 @@
+{
+  "id": "EX-SQL-DATE-02-E2-21",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-04",
+    "date",
+    "date_arithmetic",
+    "ab_assignments",
+    "ab_conversions",
+    "interval",
+    "minutes"
+  ],
+  "level": 4,
+  "source_ids": [
+    "01:SQL-DATE-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-15",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-DATE-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-JOIN-01",
+    "SQL-DATE-02"
+  ],
+  "template_id": "T-DATE-02-within-minutes",
+  "template_params": {
+    "tables": "ab_assignments, ab_conversions",
+    "minutes": 60
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_interval",
+  "prompt": "For each variant of the A/B test, how many conversions came within 60 minutes of the customer's assignment: converted_at from assigned_at up to 60 minutes later, both ends included? Match each conversion to its customer's assignments in the same test; a customer assigned to both variants is checked against each assignment on its own. Return two columns, in this order: variant, and quick_conversions. Return one row for each variant with at least one such conversion. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "variant",
+        "type_class": "text"
+      },
+      {
+        "name": "quick_conversions",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "variant",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "quick_conversions",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "variant"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the row filter: conversions from the assignment time up to 60 minutes after it.",
+    "date_diff('hour', ...) counts clock hours started, so 23:30 to 00:15 gives 1 though only 45 minutes passed. Compare converted_at with assigned_at moved on by an INTERVAL instead."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 47,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 48,
+      "to": 153,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 154,
+      "to": 250,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 251,
+      "to": 269,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "Comparing converted_at with assigned_at plus INTERVAL 60 MINUTE measures the real gap, where date_diff('hour', ...) would count clock hours crossed."
+}

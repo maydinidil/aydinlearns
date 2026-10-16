@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-STR-01-E1-06",
+  "item_version": 2,
+  "reference_sql": "SELECT length(TRIM(sku)) AS sku_length, COUNT(*) AS n_products, COUNT(*) FILTER (WHERE sku <> TRIM(sku)) AS n_padded\nFROM products\nGROUP BY length(TRIM(sku))",
+  "alternatives": [
+    "WITH measured AS (  -- one row per product\n  SELECT length(TRIM(sku)) AS sku_length,\n         CASE WHEN sku <> TRIM(sku) THEN 1 ELSE 0 END AS is_padded\n  FROM products\n)\nSELECT sku_length, COUNT(*) AS n_products, SUM(is_padded) AS n_padded\nFROM measured\nGROUP BY sku_length",
+    "SELECT length(TRIM(sku)) AS sku_length, COUNT(*) AS n_products, COUNT(*) FILTER (WHERE length(sku) <> length(TRIM(sku))) AS n_padded FROM products GROUP BY 1"
+  ],
+  "other_way": {
+    "sql": "WITH measured AS (  -- one row per product\n  SELECT length(TRIM(sku)) AS sku_length,\n         CASE WHEN sku <> TRIM(sku) THEN 1 ELSE 0 END AS is_padded\n  FROM products\n)\nSELECT sku_length, COUNT(*) AS n_products, SUM(is_padded) AS n_padded\nFROM measured\nGROUP BY sku_length",
+    "tradeoff": "A named step measures and flags each sku once before grouping, while one grouped query with FILTER is shorter."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-32",
+      "sql": "SELECT length(sku) AS sku_length, COUNT(*) AS n_products, COUNT(*) FILTER (WHERE sku <> TRIM(sku)) AS n_padded FROM products GROUP BY length(sku)"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-22",
+      "sql": "SELECT length(TRIM(sku)) AS sku_length, COUNT(*) AS n_products, COUNT(*) FILTER (WHERE sku LIKE '% %') AS n_padded FROM products GROUP BY length(TRIM(sku))"
+    }
+  ],
+  "hint3_partial": "SELECT length(___) AS sku_length, COUNT(*) AS n_products, COUNT(*) FILTER (WHERE ___) AS n_padded\nFROM products\nGROUP BY length(___)",
+  "solver": {
+    "prompt_hash": "d05e4ae4cf15b901",
+    "schema_version": "d77fe1c31a0e",
+    "dataset_version": "b2d2b40fb117bb07",
+    "grader_version": "6a.1",
+    "query": "SELECT LENGTH(TRIM(sku)) AS sku_length,\n       COUNT(*) AS n_products,\n       COUNT(*) FILTER (WHERE sku <> TRIM(sku)) AS n_padded\nFROM products\nGROUP BY LENGTH(TRIM(sku))\n",
+    "at": "2026-10-15T11:06:12.217Z"
+  }
+}

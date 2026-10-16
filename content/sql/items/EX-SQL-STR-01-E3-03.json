@@ -1,0 +1,117 @@
+{
+  "id": "EX-SQL-STR-01-E3-03",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-04",
+    "text_helper",
+    "case",
+    "left_join",
+    "category_raw",
+    "products",
+    "categories"
+  ],
+  "level": 4,
+  "source_ids": [
+    "01:SQL-STR-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-15",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-STR-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-NULL-01",
+    "SQL-CASE-01",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-STR-01"
+  ],
+  "template_id": "T-STR-01-recover-parent",
+  "template_params": {
+    "parent": "TV & Video"
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "voltmarkt",
+  "schema": "voltmarkt_raw",
+  "edge_schema": "voltmarkt_edge_clean",
+  "uses_raw": true,
+  "prompt": "Products with a missing category_id still name their category in category_raw. For each of them, which parent category does category_raw point to? These tables may hold errors. A category_raw value names a child category when it equals that category's category_name, ignoring letter case and spaces at the start or end, and points to that child's parent_category. It names the parent TV & Video itself when it is 'tv & video', 'tv en video', 'tv/video' or 'téléviseurs', ignoring letter case and outer spaces. Return two columns, in this order: product_id and parent_category, missing when category_raw names neither. Return one row for each product with a missing category_id. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "parent_category",
+        "type_class": "text"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "parent_category",
+        "type_class": "text",
+        "precision": "exact"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "product_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the CASE that turns category_raw into a parent category.",
+    "Spot the parent's own spellings first, then fall back to the parent of the category whose name matches; a LEFT JOIN keeps a value that matches nothing."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 189,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 190,
+      "to": 284,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 285,
+      "to": 312,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "The CASE spots the parent's own spellings after cleaning, and the LEFT JOIN on the cleaned name finds the parent of a child category."
+}

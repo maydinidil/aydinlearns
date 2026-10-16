@@ -1,0 +1,124 @@
+{
+  "id": "EX-SQL-DATE-02-E2-02",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-04",
+    "date",
+    "date_arithmetic",
+    "products",
+    "sales",
+    "days-between",
+    "first-sale"
+  ],
+  "level": 4,
+  "source_ids": [
+    "01:SQL-DATE-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-15",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "lesson",
+  "target_concept_id": "SQL-DATE-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-JOIN-01",
+    "SQL-DATE-02"
+  ],
+  "template_id": "T-DATE-02-days-to-first-sale",
+  "template_params": {
+    "tables": "products, sales",
+    "from": "2024-01-01"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_interval",
+  "prompt": "For each product launched on or after 1 January 2024, how many days passed from its launch_date to the UTC day of its first sale? Count the days between the two dates, so a product that first sold on its launch day shows 0. Return two columns, in this order: product_id, and days_to_first_sale. Return one row for each of those products that has sold. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "days_to_first_sale",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per product launched from 1 January 2024 on that has sold"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "days_to_first_sale",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "product_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the calculated column days_to_first_sale: each product's first sale day minus its launch_date.",
+    "The first sale is the earliest order day among the product's lines. A DATE minus a DATE gives the days between them, so a first sale on the launch day gives 0."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 76,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 77,
+      "to": 136,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 137,
+      "to": 177,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 178,
+      "to": 214,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": {
+    "stage1": 21,
+    "stage2": 21
+  },
+  "faded_shape": "SELECT p.product_id, ",
+  "faded_suffix": "\nFROM products p\nJOIN sales s ON s.product_id = p.product_id\nWHERE p.launch_date >= DATE '2024-01-01'\nGROUP BY p.product_id, p.launch_date",
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "MIN finds each product's earliest sale day, and subtracting the launch_date counts the days between them, so a sale on launch day gives 0."
+}

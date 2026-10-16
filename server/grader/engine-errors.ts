@@ -1,11 +1,14 @@
 // server/grader/engine-errors.ts: DuckDB error messages to error IDs (02's taxonomy, rewritten for
-// DuckDB 1.5.6 by knowledge/ERRATA.md E-145; rulings R20 and R22)
+// DuckDB 1.5.6 by knowledge/ERRATA.md E-145; rulings R20 and R22; ERR-SYN-08 by E-189 in sprint 6)
 import { maskSql } from '../runner/tables.ts';
 
 export interface EngineErrorClass { errorId: string; column?: string; table?: string }
 
 interface Rule { re: RegExp; id: string; capture?: 'column' | 'table' }
 const RULES: Rule[] = [
+  // S6-11 (sprint 6, Task A1; ERRATA E-189): DuckDB 1.5.6's binder message for a window function in WHERE, before the generic
+  // Binder Error rule below would make it ERR-SYN-02.
+  { re: /WHERE clause cannot contain window functions/i, id: 'ERR-SYN-08' },
   { re: /column "([^"]+)" must appear in the GROUP BY clause|must appear in the GROUP BY clause|must be part of an aggregate function/i, id: 'ERR-SEM-01', capture: 'column' },
   { re: /More than one row returned by a subquery/i, id: 'ERR-SEM-05' },
   { re: /Ambiguous reference to column name "([^"]+)"/i, id: 'ERR-SYN-03', capture: 'column' },

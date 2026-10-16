@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-DATE-02-E2-04",
+  "item_version": 1,
+  "reference_sql": "SELECT store_code, EXTRACT(year FROM age(DATE '2026-01-05', opened_on)) AS whole_years\nFROM stores\nWHERE close_date IS NULL",
+  "alternatives": [
+    "SELECT store_code, date_sub('year', opened_on, DATE '2026-01-05') AS whole_years FROM stores WHERE close_date IS NULL",
+    "SELECT store_code, 2026 - EXTRACT(year FROM opened_on) - CASE WHEN EXTRACT(month FROM opened_on) * 100 + EXTRACT(day FROM opened_on) > 105 THEN 1 ELSE 0 END AS whole_years FROM stores WHERE close_date IS NULL"
+  ],
+  "other_way": {
+    "sql": "SELECT store_code, 2026 - EXTRACT(year FROM opened_on) - CASE WHEN EXTRACT(month FROM opened_on) * 100 + EXTRACT(day FROM opened_on) > 105 THEN 1 ELSE 0 END AS whole_years FROM stores WHERE close_date IS NULL",
+    "tradeoff": "Comparing the month and day by hand shows the anniversary rule, but age() gives the whole years in one call."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-34",
+      "sql": "SELECT store_code, date_diff('year', opened_on, DATE '2026-01-05') AS whole_years FROM stores WHERE close_date IS NULL"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-34",
+      "sql": "SELECT store_code, date_diff('year', opened_on, DATE '2026-01-05') - 1 AS whole_years FROM stores WHERE close_date IS NULL"
+    }
+  ],
+  "hint3_partial": "SELECT store_code, EXTRACT(year FROM ___) AS whole_years\nFROM stores\nWHERE close_date IS NULL",
+  "solver": {
+    "prompt_hash": "9159323404b44e6e",
+    "schema_version": "9a8d01143702",
+    "dataset_version": "b2d2b40fb117bb07",
+    "grader_version": "6a.1",
+    "query": "SELECT store_code, date_sub('year', CAST(opened_on AS DATE), DATE '2026-01-05') AS whole_years\nFROM stores\nWHERE close_date IS NULL\n",
+    "at": "2026-10-15T11:06:11.534Z"
+  }
+}

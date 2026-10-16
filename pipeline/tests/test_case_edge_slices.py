@@ -8,9 +8,14 @@
   covers a product, and no order line carried (the "keeps 0" clause).
 - Every line in both schemas follows E-103: the list price on the order date, less the discount of a promotion that exists
   and covers the product on that day, rounded half up; a line of a covered product sold during a promotion carries it.
+- Sprint 6 Task B1 (fix round): voltmarkt_edge_promo holds CASE-PRICE-04's promotion, P-2025-03 (FIND-01-05, E-092), with the
+  code, name, dates and discount it has in voltmarkt: two Earbuds products on promotion, the sister of one of them not on it,
+  and Earbuds sales in each of its 4 baseline weeks and 2 promotion weeks, with weeks where a product sold nothing (E-011).
+  Its lines follow E-103 (pipeline/tests/test_build.py checks every line of the promo edge schema).
 
 Assertions name data facts only; no key is read here.
 """
+import datetime as dt
 import pathlib
 import shutil
 import sys
@@ -26,6 +31,9 @@ NO_NETWORK = {"autoinstall_known_extensions": False, "autoload_known_extensions"
 JOIN = "voltmarkt_edge_join"
 SET = "voltmarkt_edge_set"
 WEEK_11 = ("DATE '2025-03-10'", "DATE '2025-03-16'")
+PROMO = "voltmarkt_edge_promo"
+P_2025_03 = "P-2025-03"                     # CASE-PRICE-04's promotion (05 FIND-01-05, E-092)
+BASELINE = dt.timedelta(28)                 # its 4 baseline weeks (05 FIND-01-05)
 
 
 class CaseEdgeSlices(unittest.TestCase):
@@ -41,8 +49,8 @@ class CaseEdgeSlices(unittest.TestCase):
         cls.con.close()
         shutil.rmtree(cls.dir, ignore_errors=True)
 
-    def one(self, sql):
-        return self.con.execute(sql).fetchone()
+    def one(self, sql, params=None):
+        return self.con.execute(sql, params or []).fetchone()
 
     def week11_lines(self, s=JOIN):
         """Every week 11 sales line with its product's category and that week's average competitor price (missing when none)."""
@@ -105,6 +113,67 @@ class CaseEdgeSlices(unittest.TestCase):
                            AND NOT EXISTS (SELECT 1 FROM {SET}.order_lines ol WHERE ol.promo_id = pr.promo_id)
                            AND EXISTS (SELECT 1 FROM {SET}.promotion_products pp WHERE pp.promo_id = pr.promo_id)""")[0]
         self.assertGreater(n, 0, "a 2025 promotion that covers a product and that no order line carried")
+
+    # ---- CASE-PRICE-04: P-2025-03 in voltmarkt_edge_promo (sprint 6 Task B1, fix round) ----
+
+    def p_2025_03(self):
+        """The edge schema's P-2025-03 as (promo_id, start_date, end_date); the test fails when it is not there."""
+        row = self.one(f"SELECT promo_id, start_date, end_date FROM {PROMO}.promotions WHERE promo_code = ?", [P_2025_03])
+        self.assertIsNotNone(row, f"{PROMO} holds {P_2025_03}, CASE-PRICE-04's promotion")
+        return row
+
+    def earbuds_weeks(self):
+        """Every Earbuds product in every week of P-2025-03's baseline and promotion, from weekly_units, with whether it is in
+        the promotion and whether the week is a baseline week."""
+        promo_id, start, end = self.p_2025_03()
+        return self.con.execute(f"""SELECT w.product_id, w.week_start, w.units, w.week_start < ? AS baseline,
+                                           pp.product_id IS NOT NULL AS promoted
+                                    FROM {PROMO}.weekly_units w JOIN {PROMO}.products p USING (product_id)
+                                    JOIN {PROMO}.categories c USING (category_id)
+                                    LEFT JOIN {PROMO}.promotion_products pp ON pp.promo_id = ? AND pp.product_id = w.product_id
+                                    WHERE c.category_name = 'Earbuds' AND w.week_start BETWEEN ? AND ?""",
+                                [start, promo_id, start - BASELINE, end]).fetchall()
+
+    def test_promo_edge_has_p_2025_03_as_voltmarkt_does(self):
+        cols = "promo_code, promo_name, promo_type, start_date, end_date, discount_pct"
+        edge = self.con.execute(f"SELECT {cols} FROM {PROMO}.promotions WHERE promo_code = ?", [P_2025_03]).fetchall()
+        visible = self.con.execute(f"SELECT {cols} FROM voltmarkt.promotions WHERE promo_code = ?", [P_2025_03]).fetchall()
+        self.assertEqual(len(edge), 1, f"{PROMO} holds {P_2025_03} once")
+        self.assertEqual(edge, visible, "with the code, name, type, dates and discount it has in voltmarkt")
+
+    def test_promo_calendar_holds_p_2025_03_and_its_4_baseline_weeks(self):
+        _, start, end = self.p_2025_03()
+        days, weeks, mondays = self.one(f"""SELECT count(*), count(DISTINCT week_start), count(*) FILTER (WHERE cal_date = week_start)
+                                            FROM {PROMO}.calendar WHERE cal_date BETWEEN ? AND ?""", [start - BASELINE, end])
+        self.assertEqual((days, weeks, mondays), (42, 6, 6), "every day of the 4 weeks before the promotion and its 2 weeks")
+
+    def test_p_2025_03_promotes_two_earbuds_products_and_not_a_sister(self):
+        promo_id, _, _ = self.p_2025_03()
+        rows = self.con.execute(f"""SELECT p.product_id, p.sister_product_id, pp.product_id IS NOT NULL
+                                    FROM {PROMO}.products p JOIN {PROMO}.categories c USING (category_id)
+                                    LEFT JOIN {PROMO}.promotion_products pp ON pp.promo_id = ? AND pp.product_id = p.product_id
+                                    WHERE c.category_name = 'Earbuds'""", [promo_id]).fetchall()
+        promoted = {p for p, _, on in rows if on}
+        unpromoted = {p for p, _, on in rows if not on}
+        self.assertGreaterEqual(len(promoted), 2, "two Earbuds products on promotion: each one leaves the cannibalisation set (E-092)")
+        self.assertTrue(any(s in unpromoted for p, s, on in rows if on),
+                        "a promoted product's sister is an Earbuds product not on promotion (FIND-01-05)")
+
+    def test_p_2025_03_has_earbuds_sales_in_each_baseline_and_promotion_week(self):
+        _, start, end = self.p_2025_03()
+        weeks = self.one(f"""SELECT count(DISTINCT order_week) FROM {PROMO}.sales
+                             WHERE category_name = 'Earbuds' AND order_date BETWEEN ? AND ?""", [start - BASELINE, end])[0]
+        self.assertEqual(weeks, 6, "orders in each of the 4 baseline weeks and the 2 promotion weeks")
+
+    def test_p_2025_03_has_weeks_of_no_sales_on_each_side(self):
+        # E-011: a zero-filled week moves the average. A promoted product sells nothing in a baseline week, and a product
+        # that is not on promotion sells nothing in a promotion week; each sells in another week of the slice.
+        rows = self.earbuds_weeks()
+        sold = {p for p, _, units, _, _ in rows if units > 0}
+        promoted_baseline = [p for p, _, units, baseline, promoted in rows if promoted and baseline and units == 0 and p in sold]
+        other_promotion = [p for p, _, units, baseline, promoted in rows if not promoted and not baseline and units == 0 and p in sold]
+        self.assertTrue(promoted_baseline, "a promoted product with a baseline week of no sales")
+        self.assertTrue(other_promotion, "a product not on promotion with a promotion week of no sales")
 
     # ---- E-103 for every line of both schemas ----
 

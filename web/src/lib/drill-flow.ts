@@ -1,10 +1,11 @@
 // web/src/lib/drill-flow.ts: the drill screen's wording, countdown and states, kept pure so they are testable (design §14;
 // rulings D9, D10, S2-42 to S2-44, S2-98; Task B16). The countdown is display only: the server is the clock.
-import { ApiError, type DrillHistoryRow, type DrillQuestionOutcome, type DrillScoreView, type DrillStarted } from '../api.ts';
+import { ApiError, type CumulativeFillView, type CumulativeOffer, type CumulativeOverallView, type DrillHistoryRow, type DrillQuestionOutcome, type DrillScoreView, type DrillStarted } from '../api.ts';
 import { amsterdamDate } from '../../../core/time.ts';
 import { formatDate } from './labels.ts';
-import { drillKindText } from './polish-p2b.ts';
-export type { DrillQuestionOutcome, DrillScoreView };
+import { CUMULATIVE_NAME, drillKindText } from './polish-p2b.ts';
+export type { CumulativeFillView, CumulativeOffer, DrillQuestionOutcome, DrillScoreView };
+export { CUMULATIVE_NAME };
 
 export const HELP_LINE = 'Help opens in the end-of-run review.';
 export const TIME_UP = 'Time is up.';
@@ -20,6 +21,45 @@ export const SCREEN_MODE_HINT = 'The same questions, time limit and pass mark, w
 /** S4B-23: a drill start's body, which names screen mode only when it is chosen. */
 export function startBody<T extends { level: number } | { concept_ids: string[] }>(target: T, screenMode: boolean): T & { screen_mode?: true } {
   return screenMode ? { ...target, screen_mode: true } : target;
+}
+
+// ---- the cumulative drill (S6-19, sprint 6 Task B4) ----
+
+export const CUMULATIVE_LABEL = 'Cumulative drill, levels 1 to 4 (screen mode)';
+/** K2: the Drills screen's "Cumulative drill" heading, or null when the server offers no cumulative drill (no empty heading). */
+export const cumulativeHeading = (offers: readonly unknown[]): string | null => (offers.length > 0 ? CUMULATIVE_NAME : null);
+/** A cumulative run's block ID starts with "cum-" (the server's rule; the screen tells a cumulative run by it). */
+export const isCumulativeRun = (blockId: string): boolean => blockId.startsWith('cum-');
+/** The line under the cumulative drill's entry: its size, time and pass mark from the server, and what screen mode means. */
+export function cumulativeRule(o: Pick<CumulativeOffer, 'levels' | 'questions' | 'minutes' | 'pass_pct'>): string {
+  const levels = [...o.levels].sort((a, b) => a - b);
+  const limit = `${o.minutes} minutes`;
+  return `${o.questions} questions from levels ${levels[0]} to ${levels.at(-1)}, ${limit}, pass at ${o.pass_pct}%. `
+    + 'Screen mode: no autocomplete, and types and rounding are checked as an online test does.';
+}
+/** What the draw could not give from unseen exercises, level by level; nothing to say when every level gave its full share of new ones. */
+export function fillLines(fill: readonly CumulativeFillView[] | undefined): string[] {
+  const out: string[] = [];
+  for (const f of fill ?? []) {
+    if (f.from_seen > 0) out.push(`Level ${f.level}: ${f.from_seen} of ${f.wanted} questions come from exercises you have seen before.`);
+    if (f.taken === 0) out.push(`Level ${f.level}: no exercises are written yet, so it adds no questions.`);
+    else if (f.taken < f.wanted) out.push(`Level ${f.level}: only ${f.taken} of ${f.wanted} questions are available.`);
+  }
+  return out;
+}
+/**
+ * P15: one line for the whole cumulative run when it has more seen questions than `unseenMinPct` allows (nothing at or above the floor).
+ * The numbers are the server's.
+ */
+export function overallLine(overall: CumulativeOverallView | undefined, unseenMinPct: number): string | null {
+  if (!overall || overall.questions <= 0) return null;
+  if (overall.from_seen * 100 <= (100 - unseenMinPct) * overall.questions) return null;
+  return `${overall.from_seen} of ${overall.questions} questions are ones you have seen before (the drill aims for at most ${100 - unseenMinPct}%).`;
+}
+/** The heading of a run on screen: a level's, the cumulative drill's, or a chosen drill's. */
+export function runTitle(run: { kind: 'level' | 'chosen' | 'cumulative'; level: number | null }, review = false): string {
+  const name = run.kind === 'level' ? `Level ${run.level} drill` : run.kind === 'cumulative' ? CUMULATIVE_NAME : null;
+  return name === null ? (review ? 'Drill review' : 'Drill on chosen concepts') : review ? `${name}: review` : name;
 }
 
 // ---- live reps (S4B-26, D42; Task E4) ----
@@ -63,8 +103,9 @@ const scoreText = (s: DrillScoreView): string => `${s.passed} of ${s.questions} 
 export const scoreLine = (s: DrillScoreView): string => `Score: ${scoreText(s)}. ${s.run_passed ? 'Passed.' : 'Not passed.'}`;
 
 /** S2-43: a passed level run counts toward level completion only when enough of its items were unseen. */
-export function unseenLine(s: DrillScoreView, run: { kind: 'level' | 'chosen'; unseen_min_pct: number }): string {
+export function unseenLine(s: DrillScoreView, run: { kind: 'level' | 'chosen' | 'cumulative'; unseen_min_pct: number }): string {
   const seen = `Unseen items: ${s.unseen} of ${s.questions}.`;
+  if (run.kind === 'cumulative') return `${seen} A cumulative drill never counts toward level completion.`;
   if (run.kind === 'chosen') return `${seen} A drill you chose never counts toward level completion.`;
   const needed = Math.ceil((run.unseen_min_pct * s.questions) / 100);
   if (s.unseen < needed) return `This run does not count toward level completion: fewer than ${needed} of ${s.questions} items were unseen.`;

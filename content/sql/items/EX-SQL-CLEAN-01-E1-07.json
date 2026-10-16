@@ -1,0 +1,136 @@
+{
+  "id": "EX-SQL-CLEAN-01-E1-07",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-04",
+    "duplicates",
+    "date_trunc",
+    "order_lines",
+    "orders"
+  ],
+  "level": 4,
+  "source_ids": [
+    "01:SQL-CLEAN-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-15",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-CLEAN-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-AGG-03",
+    "SQL-TYPE-01",
+    "SQL-DATE-01",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-CLEAN-01"
+  ],
+  "template_id": "T-CLEAN-01-copies-per-month",
+  "template_params": {
+    "period": "month"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt_raw",
+  "edge_schema": "voltmarkt_edge_clean",
+  "uses_raw": true,
+  "prompt": "In which months were resent copies loaded, and how many? This table may hold errors. Two lines are copies of one order line when order_id, product_id, quantity, unit_price_eur, promo_id and line_discount_eur all match, with a missing promo_id matching a missing one; every line beyond the first of such a set is a resent copy. The month is the first day of the month of the order's order_ts as stored, such as 2024-06-01. Return two columns, in this order: order_month and n_copies. Return one row for each month with at least one copy. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "order_month",
+        "type_class": "temporal"
+      },
+      {
+        "name": "n_copies",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "order_month",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "n_copies",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "order_month"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, join the copied sets to their orders to find each one's month.",
+    "Each set of n matching lines holds n - 1 copies; the original line is not a copy, so it must not be counted."
+  ],
+  "subgoals": [
+    {
+      "from": 74,
+      "to": 110,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 113,
+      "to": 129,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 132,
+      "to": 216,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 219,
+      "to": 238,
+      "subgoal": "group_filter"
+    },
+    {
+      "from": 241,
+      "to": 341,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 342,
+      "to": 403,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 404,
+      "to": 458,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "Each copied set adds its size minus 1 to its order's month, so the original line is never counted as a copy."
+}

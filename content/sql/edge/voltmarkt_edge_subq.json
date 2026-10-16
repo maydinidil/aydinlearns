@@ -1,0 +1,83 @@
+{
+  "schema": "voltmarkt_edge_subq",
+  "mirrors": "voltmarkt",
+  "family": "subq",
+  "contains": [
+    "promotions that no order line carried, beside order lines with no promotion (promo_id missing)",
+    "guest orders with a missing customer ID",
+    "A/B test customers who have no orders",
+    "categories with only one product",
+    "two products tied at the top current list price of their category, both sold at that price",
+    "a category with no products, a product that never sold and a store with no orders",
+    "products with two price versions, so one product has two rows in price_history",
+    "categories and stores with very different numbers of order lines",
+    "orders from November 2024 to September 2025, not only in May 2025",
+    "a store where one customer ordered in 2024 and never again, beside a customer who ordered again in 2025 and guest orders",
+    "a product with exactly 2,000 units sold in all and one with 2,001, from bulk lines of under 2,000 units each",
+    "an A/B test customer who converted and ordered on the web only, beside one who converted and also ordered in a store",
+    "a calendar that holds every day of each promotion"
+  ],
+  "tables": {
+    "stores": [
+      "a category with no products, a product that never sold and a store with no orders",
+      "categories and stores with very different numbers of order lines",
+      "a store where one customer ordered in 2024 and never again, beside a customer who ordered again in 2025 and guest orders"
+    ],
+    "categories": [
+      "categories with only one product",
+      "a category with no products, a product that never sold and a store with no orders",
+      "categories and stores with very different numbers of order lines"
+    ],
+    "products": [
+      "categories with only one product",
+      "two products tied at the top current list price of their category, both sold at that price",
+      "a category with no products, a product that never sold and a store with no orders",
+      "products with two price versions, so one product has two rows in price_history",
+      "a product with exactly 2,000 units sold in all and one with 2,001, from bulk lines of under 2,000 units each"
+    ],
+    "promotions": [
+      "promotions that no order line carried, beside order lines with no promotion (promo_id missing)"
+    ],
+    "price_history": [
+      "two products tied at the top current list price of their category, both sold at that price",
+      "products with two price versions, so one product has two rows in price_history"
+    ],
+    "promotion_products": [
+      "promotions that no order line carried, beside order lines with no promotion (promo_id missing)"
+    ],
+    "orders": [
+      "guest orders with a missing customer ID",
+      "A/B test customers who have no orders",
+      "a category with no products, a product that never sold and a store with no orders",
+      "orders from November 2024 to September 2025, not only in May 2025",
+      "a store where one customer ordered in 2024 and never again, beside a customer who ordered again in 2025 and guest orders",
+      "an A/B test customer who converted and ordered on the web only, beside one who converted and also ordered in a store"
+    ],
+    "order_lines": [
+      "promotions that no order line carried, beside order lines with no promotion (promo_id missing)",
+      "two products tied at the top current list price of their category, both sold at that price",
+      "a category with no products, a product that never sold and a store with no orders",
+      "categories and stores with very different numbers of order lines",
+      "a product with exactly 2,000 units sold in all and one with 2,001, from bulk lines of under 2,000 units each"
+    ],
+    "ab_assignments": [
+      "A/B test customers who have no orders",
+      "an A/B test customer who converted and ordered on the web only, beside one who converted and also ordered in a store"
+    ],
+    "sales": [
+      "two products tied at the top current list price of their category, both sold at that price",
+      "a category with no products, a product that never sold and a store with no orders",
+      "categories and stores with very different numbers of order lines",
+      "orders from November 2024 to September 2025, not only in May 2025",
+      "a store where one customer ordered in 2024 and never again, beside a customer who ordered again in 2025 and guest orders",
+      "a product with exactly 2,000 units sold in all and one with 2,001, from bulk lines of under 2,000 units each"
+    ],
+    "calendar": [
+      "orders from November 2024 to September 2025, not only in May 2025",
+      "a calendar that holds every day of each promotion"
+    ],
+    "ab_conversions": [
+      "an A/B test customer who converted and ordered on the web only, beside one who converted and also ordered in a store"
+    ]
+  }
+}

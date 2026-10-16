@@ -1,0 +1,147 @@
+{
+  "concept_id": "SQL-CLEAN-01",
+  "version": 1,
+  "reading_md": "## Data quality checks and safe maths\n\nBefore you report a number, check the data it comes from. Voltmarkt's raw tables carry the note \"This table may hold errors\", and they do: some order lines were sent twice, one store's June 2024 prices were loaded in cents, some products have a missing category_id, and some price windows overlap. A query on raw data runs without a warning and gives a confident, wrong total. A check finds the problem first and tells you how big it is.\n\n### A check returns what it found\n\nA data-quality query reports: a count of the bad rows, the list of keys that fail, or one row per check with a pass or fail column. It does not return a cleaned copy of the table. The question says what \"wrong\" means, for example \"a unit price more than 10 times the product's cost is in cents\".\n\n### Duplicates\n\nA resent order line has a new order_line_id but repeats every other column. So `COUNT(DISTINCT order_line_id)` finds nothing: each copy has an ID of its own. Group by the columns that make a record instead, and keep the groups with more than one row:\n\n`GROUP BY order_id, product_id, quantity, unit_price_eur, promo_id, line_discount_eur HAVING COUNT(*) > 1`\n\nGROUP BY puts two missing promo_id values in one group, so copies with no promotion are found too; a join with `=` on promo_id would miss them. Each group of n lines holds one real line and n - 1 copies. Two lines of one product in one order with different quantities are two real lines, not a copy.\n\n### Safe ratios\n\nA ratio needs a denominator that is not 0. `x / NULLIF(y, 0)` turns a 0 denominator into a missing value, so the ratio is missing instead of an error or Infinity. A missing ratio means \"nothing to measure\", which is not the same as 0: a store with no lines has no copy share, not a share of 0. Wrapping the ratio in `COALESCE(..., 0)` hides that, and an average of the ratios then comes out too low. Use 0 only when the question says so.\n\nKeep the decimals too: divide with `/`, and multiply by `100.0` for a percentage. `//`, or two whole numbers divided on PostgreSQL, drops everything after the decimal point.\n\n### A check report\n\nStack one count per check with UNION ALL, each with the same columns, then turn the counts into a result:\n\n`CASE WHEN n_bad = 0 THEN 'pass' ELSE 'fail' END`\n\nWhen a share can be missing, test `IS NULL` first: a comparison with a missing value is never true.\n\n### Reconcile to a known total\n\nWhen finance states a figure, compare yours with it: return the figure as stored, the figure after the fix, and the gap or a pass or fail. A gap of 0 after the fix tells you the fix is the whole story.",
+  "syntax_md": "```sql\nWITH line_sets AS (                                   -- one row per set of matching lines\n  SELECT order_id, COUNT(*) AS n_lines                -- metrics\n  FROM order_lines                                    -- source: the raw table\n  GROUP BY order_id, product_id, quantity,            -- output grain: every column\n           unit_price_eur, promo_id, line_discount_eur  -- but order_line_id\n)\nSELECT SUM(n_lines - 1) AS n_copies,                  -- copies: each set's size minus 1\n       SUM(n_lines - 1) / NULLIF(SUM(n_lines), 0) AS copy_share   -- safe ratio\nFROM line_sets;\n```\n\n- Duplicates: GROUP BY the columns that make a record, HAVING COUNT(*) > 1.\n- Ratios: `x / NULLIF(y, 0)`; keep a missing ratio missing.\n- A check report: one row per check, `CASE WHEN n_bad = 0 THEN 'pass' ELSE 'fail' END`.",
+  "dialect_note": "Division by zero differs by engine: in DuckDB 1 / 0 gives Infinity (inf, checked on DuckDB 1.5.6), PostgreSQL stops with an error, and SQLite returns a missing value. x / NULLIF(y, 0) returns a missing value on all of them. Dividing two whole numbers keeps the decimals in DuckDB but drops them in PostgreSQL and SQLite, so multiply by 1.0 or use a decimal before you divide.",
+  "worked_examples": [
+    {
+      "title": "Resent copies for each store",
+      "prompt": "For each store, how many order lines are resent copies? This table may hold errors: two lines are copies of one order line when every column but order_line_id matches. Return store_code and n_copies for each store with at least one copy.",
+      "clauses": [
+        {
+          "text": "WITH line_sets AS (SELECT order_id, COUNT(*) AS n_lines  -- one row per set of matching lines",
+          "subgoal": "metrics",
+          "why": "The first step counts how many lines share one set of values."
+        },
+        {
+          "text": "FROM order_lines",
+          "subgoal": "source_grain",
+          "why": "One row per order line as stored, copies included."
+        },
+        {
+          "text": "GROUP BY order_id, product_id, quantity, unit_price_eur, promo_id, line_discount_eur)",
+          "subgoal": "output_grain",
+          "why": "Every column but order_line_id, so a copy lands in the same group as its original."
+        },
+        {
+          "text": "SELECT s.store_code, SUM(ls.n_lines - 1) AS n_copies",
+          "subgoal": "metrics",
+          "why": "A set of n lines holds one real line, so n - 1 of them are copies."
+        },
+        {
+          "text": "FROM line_sets ls JOIN orders o ON o.order_id = ls.order_id JOIN stores s ON s.store_id = o.store_id",
+          "subgoal": "source_grain",
+          "why": "Each set belongs to one order, and each order to one store."
+        },
+        {
+          "text": "GROUP BY s.store_code",
+          "subgoal": "output_grain",
+          "why": "One row per store."
+        },
+        {
+          "text": "HAVING SUM(ls.n_lines - 1) > 0",
+          "subgoal": "group_filter",
+          "why": "Only the stores with at least one copy stay."
+        }
+      ]
+    },
+    {
+      "title": "Units per order for each store, safely",
+      "prompt": "For each store, how many units did an order hold on average in June 2024? The average is missing for a store with no June 2024 orders. Return store_code and units_per_order.",
+      "clauses": [
+        {
+          "text": "WITH june_orders AS (SELECT o.store_id, o.order_id, SUM(ol.quantity) AS units  -- one row per June 2024 order",
+          "subgoal": "metrics",
+          "why": "The first step adds up each order's units."
+        },
+        {
+          "text": "FROM orders o JOIN order_lines ol ON ol.order_id = o.order_id",
+          "subgoal": "source_grain",
+          "why": "One row per order line, each with its order."
+        },
+        {
+          "text": "WHERE o.order_ts >= TIMESTAMP '2024-06-01' AND o.order_ts < TIMESTAMP '2024-07-01'",
+          "subgoal": "row_filter",
+          "why": "June 2024, from the first day up to but not including 1 July."
+        },
+        {
+          "text": "GROUP BY o.store_id, o.order_id)",
+          "subgoal": "output_grain",
+          "why": "One row per order."
+        },
+        {
+          "text": "SELECT s.store_code, SUM(j.units) / NULLIF(COUNT(j.order_id), 0) AS units_per_order",
+          "subgoal": "metrics",
+          "why": "NULLIF turns a zero order count into a missing value, so the average is missing, not Infinity."
+        },
+        {
+          "text": "FROM stores s LEFT JOIN june_orders j ON j.store_id = s.store_id",
+          "subgoal": "source_grain",
+          "why": "The LEFT JOIN keeps a store with no June orders, which then has nothing to divide."
+        },
+        {
+          "text": "GROUP BY s.store_code",
+          "subgoal": "output_grain",
+          "why": "One row per store."
+        }
+      ]
+    }
+  ],
+  "pretest_item_ids": [
+    "EX-SQL-CLEAN-01-E1-01",
+    "EX-SQL-CLEAN-01-E1-02"
+  ],
+  "lesson_item_ids": [
+    "EX-SQL-CLEAN-01-E1-03",
+    "EX-SQL-CLEAN-01-E1-04",
+    "EX-SQL-CLEAN-01-E2-01",
+    "EX-SQL-CLEAN-01-E2-02"
+  ],
+  "retest_item_id": "EX-SQL-CLEAN-01-E1-05",
+  "pool_item_ids": [
+    "EX-SQL-CLEAN-01-E1-06",
+    "EX-SQL-CLEAN-01-E1-07",
+    "EX-SQL-CLEAN-01-E1-08",
+    "EX-SQL-CLEAN-01-E2-03",
+    "EX-SQL-CLEAN-01-E2-04",
+    "EX-SQL-CLEAN-01-E2-05",
+    "EX-SQL-CLEAN-01-E2-06",
+    "EX-SQL-CLEAN-01-E3-01",
+    "EX-SQL-CLEAN-01-E3-02",
+    "EX-SQL-CLEAN-01-E3-03",
+    "EX-SQL-CLEAN-01-E1-31",
+    "EX-SQL-CLEAN-01-E1-32",
+    "EX-SQL-CLEAN-01-E2-31",
+    "EX-SQL-CLEAN-01-E1-42",
+    "EX-SQL-CLEAN-01-E2-41",
+    "EX-SQL-CLEAN-01-E2-42"
+  ],
+  "source_ids": [
+    "01:SQL-CLEAN-01"
+  ],
+  "why_clause": {
+    "clause": "GROUP BY order_id, product_id, quantity, unit_price_eur, promo_id, line_discount_eur)",
+    "stem": "Why does the first step group by every column except order_line_id?",
+    "options": [
+      {
+        "id": "a",
+        "text": "A resent copy has a new order_line_id, so only the other columns show that two lines are the same order line."
+      },
+      {
+        "id": "b",
+        "text": "order_line_id is the primary key, and GROUP BY may not use a primary key column."
+      },
+      {
+        "id": "c",
+        "text": "Grouping by order_line_id too would merge each copy with its original and hide it."
+      },
+      {
+        "id": "d",
+        "text": "COUNT(*) only counts the lines when every other column is in the GROUP BY."
+      }
+    ],
+    "correct_id": "a",
+    "explanation": "The copy repeats every value of the original line except its order_line_id, which is new. Grouping by the other columns puts the two in one group of 2. Adding order_line_id would split them again, one group per line, so no copy would show. GROUP BY may name any column, and COUNT(*) counts the rows of each group whatever you group by."
+  }
+}

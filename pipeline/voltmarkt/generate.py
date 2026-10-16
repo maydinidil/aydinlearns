@@ -5,12 +5,14 @@ Slice 1b adds the order data level 2 reads through the `sales` view: price_histo
 promotion_products, orders and order_lines. Each comes from the stream TABLE_ORDER already reserved
 for it, so no v0 table's draws change (GEN-02), and nothing v0 built is changed afterwards. Later
 tables are appended to TABLE_ORDER only. Sprint 4a adds competitor_prices (level 3) from its reserved
-stream, built after the order data, so no earlier table changes (S4-02).
+stream, built after the order data, so no earlier table changes (S4-02). Sprint 6 adds cost_history from its reserved
+stream (S6-07) and the raw order quirks (raw.py, S6-02) from the quirks stream after the product quirks, so no table
+built before changes.
 """
 from __future__ import annotations
 
 import datetime as dt
-from decimal import Decimal
+from decimal import ROUND_HALF_UP, Decimal
 
 import duckdb
 import numpy as np
@@ -128,6 +130,7 @@ MONTH_NAMES = ("January", "February", "March", "April", "May", "June", "July", "
 LEVEL1_TABLES = ["calendar", "stores", "categories", "products", "promotions"]
 ORDER_TABLES = ["price_history", "promotion_products", "orders", "order_lines"]
 LEVEL3_TABLES = ["competitor_prices"]                   # sprint 4a (S4-02)
+COST_TABLES = ["cost_history"]                          # sprint 6 (S6-07), loaded after the A/B test's tables
 NO_NETWORK = {"autoinstall_known_extensions": False, "autoload_known_extensions": False}   # ruling R17
 
 # Demand: each parent's share of order lines at launch prices, split over its children (equally, or by
@@ -277,6 +280,12 @@ COMPETITOR_BAND = (0.80, 1.20)                             # a rival's price sta
 OBSERVED_HOURS = (5, 9)                                    # integers(low, high): weekly checks run 05:00 to 08:59 UTC
 RECHECK_SHARE = 0.03                                       # a second check of the product later the same day
 RECHECK_GAP_HOURS = (6, 13)                                # integers(low, high): 6 to 12 hours after the first
+
+# ---- Sprint 6: cost history (D83, E-081, S6-07) ------------------------------------------------------------------------
+# A planted supplier cost rise (GEN-03): from its date on, every product of the parent category costs rise_pct more,
+# rounded half up to the cent. Every other product keeps products.unit_cost_eur for its whole life. 05 gives no cost
+# history; the category, date and size are this sprint's plant for CASE-PRICE-05's Q2 against Q3 2025 bridge.
+COST_RISE = {"parent_category": "Audio", "from": "2025-07-01", "rise_pct": 8}
 
 
 def d(s: str | None) -> dt.date | None:
@@ -938,6 +947,36 @@ def build_competitor_prices(rng: np.random.Generator, pf: dict, demand: np.ndarr
     })
 
 
+def build_cost_history(rng: np.random.Generator, products: pa.Table, categories: pa.Table) -> pa.Table:
+    """S6-07: one row per product per unit cost version, from its launch date, like price_history (valid_to is inclusive,
+    missing for the current version): products.unit_cost_eur, and for COST_RISE's parent category a second version from
+    COST_RISE's date at the risen cost. A product of that category launched on or after that date starts at the risen cost.
+
+    The stream is the one TABLE_ORDER reserved for this table; the build draws nothing from it today (the rise is a
+    constant plant), so a later random cost step can draw there without shifting any other table (GEN-02).
+    """
+    parent = {r["category_id"]: r["parent_category"] for r in categories.to_pylist()}
+    rise_from = d(COST_RISE["from"])
+    factor = Decimal(100 + COST_RISE["rise_pct"]) / 100
+    rows = []
+    for p in products.to_pylist():
+        cost, launch = p["unit_cost_eur"], p["launch_date"]
+        if parent[p["category_id"]] != COST_RISE["parent_category"]:
+            rows.append((p["product_id"], launch, None, cost))
+            continue
+        risen = (cost * factor).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+        if launch < rise_from:
+            rows += [(p["product_id"], launch, rise_from - dt.timedelta(1), cost), (p["product_id"], rise_from, None, risen)]
+        else:
+            rows.append((p["product_id"], launch, None, risen))
+    return pa.table({
+        "product_id": pa.array([r[0] for r in rows], pa.int32()),
+        "valid_from": pa.array([r[1] for r in rows], pa.date32()),
+        "valid_to": pa.array([r[2] for r in rows], pa.date32()),
+        "unit_cost_eur": pa.array([r[3] for r in rows], pa.decimal128(10, 2)),
+    })
+
+
 def sinterklaas_days() -> list[dt.date]:
     """E-079: 20 Nov to 5 Dec of each year, without Black Week (the Monday before Black Friday to Cyber Monday)."""
     out = []
@@ -971,8 +1010,17 @@ def generate(seed: int = SEED) -> tuple[dict, dict]:
                                                          promo_products, clean["price_history"])
     # Sprint 4a (S4-02): competitor prices, from their reserved stream, after every other table; nothing above changes.
     clean["competitor_prices"] = build_competitor_prices(r["competitor_prices"], pf, demand, clean["price_history"])
-    raw = dict(clean)
+    # Sprint 6 (S6-07): cost history, from its reserved stream, after every other table; nothing above changes.
+    clean["cost_history"] = build_cost_history(r["cost_history"], clean["products"], categories)
+    # Sprint 6 (S6-02): voltmarkt_raw's tables. The product quirks draw from the quirks stream first, as before sprint 6, so
+    # raw products stays as it was; the order quirks then draw from the same stream. raw.py imports this module, so it is
+    # imported here, when generate() runs.
+    from . import raw as vm_raw
+    raw = {name: clean[name] for name in vm_raw.RAW_TABLES}
     raw["products"] = inject_product_quirks(r["quirks"], clean["products"])
+    raw_orders, planted_raw = vm_raw.inject_order_quirks(r["quirks"], clean)
+    raw.update(raw_orders)
+    planted_raw.update(vm_raw.product_quirk_counts(raw["products"], clean["products"], categories))
     truth = {
         "company": "voltmarkt", "seed": seed, "as_of_date": "2026-01-05",
         "planted_products": {str(k): v[0] for k, v in PLANTED_PRODUCTS.items()},
@@ -997,6 +1045,9 @@ def generate(seed: int = SEED) -> tuple[dict, dict]:
             # these prices and may not change (S4-02), so the measured gap is whatever the data holds.
             "competitor_prices": {"competitors": list(COMPETITORS), "levels": COMPETITOR_LEVEL,
                                   "undercut_depth": list(UNDERCUT_DEPTH), "band": list(COMPETITOR_BAND)},
+            # Sprint 6: the raw quirks with their counts, by quirk ID (Q-01-03 is no quirk: E-155), and the cost plant.
+            "raw": dict(sorted(planted_raw.items())),
+            "cost_history": COST_RISE,
         },
     }
     return {"clean": clean, "raw": raw}, truth

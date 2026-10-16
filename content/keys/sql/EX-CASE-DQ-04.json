@@ -1,0 +1,39 @@
+{
+  "item_id": "EX-CASE-DQ-04",
+  "item_version": 1,
+  "reference_sql": "WITH order_days AS (  -- one row per order\n  SELECT o.order_id,\n         o.store_id,\n         CAST(timezone('Europe/Amsterdam', timezone(s.timezone, o.order_ts)) AS DATE) AS true_day,\n         CAST(timezone('Europe/Amsterdam', timezone('UTC', o.order_ts)) AS DATE) AS report_day\n  FROM orders AS o\n  JOIN stores AS s ON s.store_id = o.store_id\n)\nSELECT s.store_id,\n       s.store_code,\n       COUNT(*) AS n_orders,\n       SUM(CASE WHEN d.true_day <> d.report_day THEN 1 ELSE 0 END) AS n_wrong_day\nFROM order_days AS d\nJOIN stores AS s ON s.store_id = d.store_id\nGROUP BY s.store_id, s.store_code\nORDER BY s.store_id",
+  "alternatives": [
+    "SELECT s.store_id,\n       s.store_code,\n       COUNT(*) AS n_orders,\n       SUM(CASE WHEN CAST(timezone('Europe/Amsterdam', timezone(s.timezone, o.order_ts)) AS DATE)\n                  <> CAST(timezone('Europe/Amsterdam', timezone('UTC', o.order_ts)) AS DATE)\n                THEN 1 ELSE 0 END) AS n_wrong_day\nFROM orders AS o\nJOIN stores AS s ON s.store_id = o.store_id\nGROUP BY s.store_id, s.store_code\nORDER BY s.store_id",
+    "WITH order_days AS (  -- one row per order\n  SELECT o.order_id,\n         o.store_id,\n         CASE WHEN o.channel = 'web'\n              THEN CAST(timezone('Europe/Amsterdam', timezone('UTC', o.order_ts)) AS DATE)\n              ELSE CAST(timezone('Europe/Amsterdam', timezone(s.timezone, o.order_ts)) AS DATE)\n         END AS true_day,\n         CAST(timezone('Europe/Amsterdam', timezone('UTC', o.order_ts)) AS DATE) AS report_day\n  FROM orders AS o\n  JOIN stores AS s ON s.store_id = o.store_id\n)\nSELECT s.store_id,\n       s.store_code,\n       COUNT(*) AS n_orders,\n       COUNT(*) FILTER (WHERE d.true_day <> d.report_day) AS n_wrong_day\nFROM order_days AS d\nJOIN stores AS s ON s.store_id = d.store_id\nGROUP BY s.store_id, s.store_code\nORDER BY s.store_id"
+  ],
+  "other_way": {
+    "sql": "SELECT s.store_id,\n       s.store_code,\n       COUNT(*) AS n_orders,\n       SUM(CASE WHEN CAST(timezone('Europe/Amsterdam', timezone(s.timezone, o.order_ts)) AS DATE)\n                  <> CAST(timezone('Europe/Amsterdam', timezone('UTC', o.order_ts)) AS DATE)\n                THEN 1 ELSE 0 END) AS n_wrong_day\nFROM orders AS o\nJOIN stores AS s ON s.store_id = o.store_id\nGROUP BY s.store_id, s.store_code\nORDER BY s.store_id",
+    "tradeoff": "Doing both conversions inside the SUM is shorter, but the named step lets you check the two days side by side."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-26",
+      "sql": "WITH order_days AS (SELECT o.order_id, o.store_id, CAST(o.order_ts AS DATE) AS true_day, CAST(timezone('Europe/Amsterdam', timezone('UTC', o.order_ts)) AS DATE) AS report_day FROM orders AS o)\nSELECT s.store_id, s.store_code, COUNT(*) AS n_orders, SUM(CASE WHEN d.true_day <> d.report_day THEN 1 ELSE 0 END) AS n_wrong_day FROM order_days AS d JOIN stores AS s ON s.store_id = d.store_id GROUP BY s.store_id, s.store_code ORDER BY s.store_id"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-01",
+      "sql": "WITH order_days AS (SELECT o.order_id, o.store_id, CAST(timezone('Europe/Amsterdam', timezone(s.timezone, o.order_ts)) AS DATE) AS true_day, CAST(timezone('Europe/Amsterdam', timezone('UTC', o.order_ts)) AS DATE) AS report_day FROM orders AS o JOIN stores AS s ON s.store_id = o.store_id)\nSELECT s.store_id, s.store_code, COUNT(*) AS n_orders, SUM(CASE WHEN d.true_day <> d.report_day THEN 1 ELSE 0 END) AS n_wrong_day FROM order_days AS d JOIN order_lines AS ol ON ol.order_id = d.order_id JOIN stores AS s ON s.store_id = d.store_id GROUP BY s.store_id, s.store_code ORDER BY s.store_id"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-26",
+      "sql": "WITH order_days AS (SELECT o.order_id, o.store_id, CAST(timezone('Europe/Amsterdam', timezone(s.timezone, o.order_ts)) AS DATE) AS true_day, CAST(o.order_ts AT TIME ZONE 'Europe/Amsterdam' AS DATE) AS report_day FROM orders AS o JOIN stores AS s ON s.store_id = o.store_id)\nSELECT s.store_id, s.store_code, COUNT(*) AS n_orders, SUM(CASE WHEN d.true_day <> d.report_day THEN 1 ELSE 0 END) AS n_wrong_day FROM order_days AS d JOIN stores AS s ON s.store_id = d.store_id GROUP BY s.store_id, s.store_code ORDER BY s.store_id"
+    }
+  ],
+  "hint3_partial": "WITH order_days AS (  -- one row per order\n  SELECT o.order_id,\n         o.store_id,\n         CAST(timezone('Europe/Amsterdam', timezone(___, o.order_ts)) AS DATE) AS true_day,\n         CAST(timezone('Europe/Amsterdam', timezone(___, o.order_ts)) AS DATE) AS report_day\n  FROM orders AS o\n  JOIN stores AS s ON s.store_id = o.store_id\n)\nSELECT s.store_id,\n       s.store_code,\n       COUNT(*) AS n_orders,\n       SUM(CASE WHEN ___ THEN 1 ELSE 0 END) AS n_wrong_day\nFROM order_days AS d\nJOIN stores AS s ON s.store_id = d.store_id\nGROUP BY ___\nORDER BY s.store_id",
+  "solver": {
+    "prompt_hash": "3bac8e0d29ac9c82",
+    "schema_version": "b1c1a5d57d7d",
+    "dataset_version": "b2d2b40fb117bb07",
+    "grader_version": "6a.1",
+    "query": "SELECT s.store_id, s.store_code, COUNT(*) AS n_orders,\n  COUNT(*) FILTER (WHERE CAST((o.order_ts AT TIME ZONE 'UTC') AT TIME ZONE 'Europe/Amsterdam' AS DATE)\n     <> CAST((o.order_ts AT TIME ZONE (CASE WHEN o.channel = 'web' THEN 'UTC' ELSE s.timezone END)) AT TIME ZONE 'Europe/Amsterdam' AS DATE)) AS n_wrong_day\nFROM orders o\nJOIN stores s ON s.store_id = o.store_id\nGROUP BY s.store_id, s.store_code\nORDER BY s.store_id\n",
+    "at": "2026-10-15T19:10:07.900Z"
+  }
+}

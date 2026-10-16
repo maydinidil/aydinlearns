@@ -50,7 +50,7 @@ async function setup() {
   const servings = new Servings();
   const d: AppDeps = { port: 5174, checks: [], runner, content, logger, session: new SessionTracker(logger, async (at) => { for (const h of endHooks) await h(at); }), endHooks,
     closedInstances: [], schemaNotes: [], manifest: { dataset_version: 'x', library_version: 'v1.5.6' },
-    settings: { backup_folder: null, exam_date: null, goal_dates: {} }, tableCheck: 'parse_tree', state, servings };
+    settings: { backup_folder: null, exam_date: null, goal_dates: {}, portfolio_folder: null }, tableCheck: 'parse_tree', state, servings };
   const recs = async () => (await log.readAll('attempts')) as any[];
   const opened = async () => (await recs()).filter((r) => r.record === 'other_way_opened');
   return { log, d, app: createApp(d), servings, recs, opened };

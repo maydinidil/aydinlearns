@@ -1,0 +1,125 @@
+{
+  "id": "EX-SQL-SUBQ-02-E1-01",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-04",
+    "derived_table",
+    "avg",
+    "orders",
+    "customers"
+  ],
+  "level": 4,
+  "source_ids": [
+    "01:SQL-SUBQ-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-15",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pretest",
+  "target_concept_id": "SQL-SUBQ-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-SUBQ-01",
+    "SQL-SUBQ-02"
+  ],
+  "template_id": "T-SUBQ-02-avg-of-counts",
+  "template_params": {
+    "table": "orders",
+    "step": "customer"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_subq",
+  "prompt": "What is the average number of orders per registered customer, over the customers with at least one order? Guest orders have a missing customer_id and do not count. Round to 2 decimals. Return one column, avg_orders. The result is a single row. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "avg_orders",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row in total"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "avg_orders",
+        "type_class": "numeric",
+        "precision": "ratio",
+        "require_rounding": 2
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, count the orders of each registered customer in an inner query, then average those counts.",
+    "The inner query has one row per customer and needs a name after its closing bracket; the outer query rounds the average."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 46,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 47,
+      "to": 90,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 91,
+      "to": 133,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 134,
+      "to": 147,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 148,
+      "to": 179,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 180,
+      "to": 202,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 203,
+      "to": 209,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "The inner query turns the orders into one row per registered customer, so the outer AVG weighs every customer once."
+}

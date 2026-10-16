@@ -1,0 +1,129 @@
+{
+  "id": "EX-SQL-SUBQ-02-E2-04",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-04",
+    "derived_table",
+    "scalar_subquery",
+    "above_average",
+    "orders",
+    "customers"
+  ],
+  "level": 4,
+  "source_ids": [
+    "01:SQL-SUBQ-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-15",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-SUBQ-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-SUBQ-01",
+    "SQL-SUBQ-02"
+  ],
+  "template_id": "T-SUBQ-02-groups-above-average",
+  "template_params": {
+    "table": "orders",
+    "step": "customer"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_subq",
+  "prompt": "How many registered customers placed more orders than the average registered customer? The average is the mean number of orders over the registered customers. Guest orders have a missing customer_id and do not count. Return one column, n_customers. The result is a single row. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "n_customers",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "n_customers",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the step that gives each registered customer's number of orders; the question uses it twice.",
+    "The outer filter compares each customer's count with one number, the average of those same counts."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 30,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 31,
+      "to": 74,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 75,
+      "to": 117,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 118,
+      "to": 131,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 132,
+      "to": 163,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 164,
+      "to": 186,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 187,
+      "to": 193,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 194,
+      "to": 420,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "The derived table gives one row per registered customer, and the subquery in WHERE averages the same counts, so each customer is compared with the mean customer."
+}

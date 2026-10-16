@@ -1,0 +1,22 @@
+{
+  "case_id": "CASE-DQ-01",
+  "truths": {
+    "CP2": "WITH line_sets AS (  -- one row per set of matching BE-14 lines from 2024\n  SELECT COUNT(*) AS n_lines\n  FROM order_lines AS ol\n  JOIN orders AS o ON o.order_id = ol.order_id\n  JOIN stores AS s ON s.store_id = o.store_id\n  WHERE s.store_code = 'BE-14'\n    AND o.order_ts >= TIMESTAMP '2024-01-01 00:00:00'\n    AND o.order_ts < TIMESTAMP '2025-01-01 00:00:00'\n  GROUP BY ol.order_id, ol.product_id, ol.quantity, ol.unit_price_eur, ol.promo_id, ol.line_discount_eur\n)\nSELECT COALESCE(SUM(n_lines - 1), 0)\nFROM line_sets",
+    "CP4": "WITH line_sets AS (  -- one row per set of matching BE-14 lines from 2024\n  SELECT COUNT(*) AS n_lines,\n         ol.quantity * ol.unit_price_eur - ol.line_discount_eur AS line_revenue_eur\n  FROM order_lines AS ol\n  JOIN orders AS o ON o.order_id = ol.order_id\n  JOIN stores AS s ON s.store_id = o.store_id\n  WHERE s.store_code = 'BE-14'\n    AND o.order_ts >= TIMESTAMP '2024-01-01 00:00:00'\n    AND o.order_ts < TIMESTAMP '2025-01-01 00:00:00'\n  GROUP BY ol.order_id, ol.product_id, ol.quantity, ol.unit_price_eur, ol.promo_id, ol.line_discount_eur\n)\nSELECT ROUND(COALESCE(SUM((n_lines - 1) * line_revenue_eur), 0), 2)\nFROM line_sets"
+  },
+  "choices": {},
+  "solver": {
+    "CP2": {
+      "pass": true,
+      "prompt_hash": "47b0aabf9214161f",
+      "key_hash": "ba2f1a1da14d1131",
+      "at": "2026-10-15T23:01:46.505Z"
+    },
+    "CP4": {
+      "pass": true,
+      "prompt_hash": "16b99d79850581bd",
+      "key_hash": "0f4ec34533437bc2",
+      "at": "2026-10-15T23:01:46.505Z"
+    }
+  }
+}

@@ -1,0 +1,144 @@
+{
+  "id": "EX-SQL-STR-01-E3-02",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-04",
+    "text_helper",
+    "case",
+    "mapping",
+    "category_raw",
+    "products",
+    "categories"
+  ],
+  "level": 4,
+  "source_ids": [
+    "01:SQL-STR-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-15",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-STR-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CASE-01",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-STR-01"
+  ],
+  "template_id": "T-STR-01-parent-counts-from-raw",
+  "template_params": {
+    "parent": "TV & Video"
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "voltmarkt",
+  "schema": "voltmarkt_raw",
+  "edge_schema": "voltmarkt_edge_clean",
+  "uses_raw": true,
+  "prompt": "Using category_raw alone, how many products belong to each parent category, and how many of them name the parent itself? These tables may hold errors. A category_raw value names a child category when it equals that category's category_name, ignoring letter case and spaces at the start or end, and the child's parent_category is then its parent. It names the parent TV & Video itself when it is 'tv & video', 'tv en video', 'tv/video' or 'téléviseurs', ignoring letter case and outer spaces. Return three columns, in this order: parent_category, n_products and n_parent_spelling. Return one row for each parent category with at least one product. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "parent_category",
+        "type_class": "text"
+      },
+      {
+        "name": "n_products",
+        "type_class": "numeric"
+      },
+      {
+        "name": "n_parent_spelling",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "parent_category",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "n_products",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "n_parent_spelling",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "parent_category"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, map each product's category_raw to a parent category in a named step.",
+    "Clean category_raw once and use the cleaned text both in the CASE that spots the parent's spellings and in the join on category_name."
+  ],
+  "subgoals": [
+    {
+      "from": 43,
+      "to": 63,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 385,
+      "to": 481,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 484,
+      "to": 576,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 577,
+      "to": 588,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 589,
+      "to": 622,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 623,
+      "to": 647,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "Each product gets one parent: the parent's own spellings map straight to TV & Video, and a child name maps through its category."
+}

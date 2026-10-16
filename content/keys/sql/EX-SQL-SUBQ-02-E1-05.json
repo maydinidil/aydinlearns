@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-SUBQ-02-E1-05",
+  "item_version": 1,
+  "reference_sql": "SELECT ROUND(AVG(t.n_promotions), 2) AS avg_promotions\nFROM (\n  -- one row per product in a promotion\n  SELECT product_id, COUNT(*) AS n_promotions\n  FROM promotion_products\n  GROUP BY product_id\n) AS t",
+  "alternatives": [
+    "WITH product_promotions AS (\n  -- one row per product in a promotion\n  SELECT product_id, COUNT(*) AS n_promotions\n  FROM promotion_products\n  GROUP BY product_id\n)\nSELECT ROUND(AVG(n_promotions), 2) AS avg_promotions\nFROM product_promotions",
+    "SELECT ROUND(COUNT(*) * 1.0 / COUNT(DISTINCT product_id), 2) AS avg_promotions\nFROM promotion_products"
+  ],
+  "other_way": {
+    "sql": "SELECT ROUND(COUNT(*) * 1.0 / COUNT(DISTINCT product_id), 2) AS avg_promotions\nFROM promotion_products",
+    "tradeoff": "Dividing the pairs by the distinct products needs no inner step, but hides the one-row-per-product grain the average works on."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-07",
+      "sql": "SELECT ROUND(AVG(t.n_products), 2) AS avg_promotions FROM (SELECT promo_id, COUNT(*) AS n_products FROM promotion_products GROUP BY promo_id) AS t"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-14",
+      "sql": "SELECT ROUND(MAX(t.n_promotions), 2) AS avg_promotions FROM (SELECT product_id, COUNT(*) AS n_promotions FROM promotion_products GROUP BY product_id) AS t"
+    }
+  ],
+  "hint3_partial": "SELECT ROUND(AVG(t.n_promotions), 2) AS avg_promotions\nFROM (\n  -- one row per product in a promotion\n  SELECT product_id, COUNT(*) AS n_promotions\n  FROM promotion_products\n  GROUP BY ___\n) AS t",
+  "solver": {
+    "prompt_hash": "181abee059563445",
+    "schema_version": "fe85d04d4c0e",
+    "dataset_version": "b2d2b40fb117bb07",
+    "grader_version": "6a.1",
+    "query": "SELECT ROUND(AVG(n_promos), 2) AS avg_promotions FROM (SELECT product_id, COUNT(*) AS n_promos FROM promotion_products GROUP BY product_id) AS t\r\n",
+    "at": "2026-10-15T11:06:13.506Z"
+  }
+}

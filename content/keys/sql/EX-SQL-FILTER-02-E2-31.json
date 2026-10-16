@@ -1,6 +1,6 @@
 {
   "item_id": "EX-SQL-FILTER-02-E2-31",
-  "item_version": 1,
+  "item_version": 2,
   "reference_sql": "SELECT promo_code, promo_name, start_date, discount_pct\nFROM promotions\nWHERE start_date BETWEEN DATE '2025-06-01' AND DATE '2025-06-30'",
   "alternatives": [
     "SELECT promo_code, promo_name, start_date, discount_pct\nFROM promotions\nWHERE start_date >= DATE '2025-06-01' AND start_date <= DATE '2025-06-30'",
@@ -13,7 +13,7 @@
   "planted_wrong": [
     {
       "id": "EX-SQL-FILTER-02-E2-31-PW1",
-      "error_id": "ERR-LOG-06",
+      "error_id": "ERR-LOG-23",
       "sql": "SELECT promo_code, promo_name, start_date, discount_pct\nFROM promotions\nWHERE start_date >= DATE '2025-06-01' AND start_date < DATE '2025-06-30'"
     },
     {

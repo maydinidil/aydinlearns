@@ -1,0 +1,132 @@
+{
+  "id": "EX-SQL-CLEAN-01-E1-31",
+  "version": 1,
+  "kind": "fix",
+  "tags": [
+    "sql",
+    "LVL-04",
+    "duplicates",
+    "distinct",
+    "units",
+    "order_lines",
+    "orders",
+    "stores",
+    "fix"
+  ],
+  "level": 4,
+  "source_ids": [
+    "01:SQL-CLEAN-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-15",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-CLEAN-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-SUBQ-01",
+    "SQL-CLEAN-01"
+  ],
+  "template_id": "T-CLEAN-01-fix-distinct-id",
+  "template_params": {
+    "store": "BE-14",
+    "year": 2024
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt_raw",
+  "edge_schema": "voltmarkt_edge_clean",
+  "uses_raw": true,
+  "prompt": "The query in the editor has one mistake. Fix it so that it answers this question: how many units did store BE-14 sell in 2024, as stored and with resent copies removed? These tables may hold errors. Two lines are copies of one order line when order_id, product_id, quantity, unit_price_eur, promo_id and line_discount_eur all match, with a missing promo_id matching a missing one; keep one line of each such set. 2024 means order_ts, as stored, from 1 January 2024 up to but not including 1 January 2025. Return two columns, in this order: units_stored and units_unique. The result is a single row. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "units_stored",
+        "type_class": "numeric"
+      },
+      {
+        "name": "units_unique",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "units_stored",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "units_unique",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, check which columns the DISTINCT step compares.",
+    "Each resent copy has an order_line_id of its own, so a DISTINCT that keeps order_line_id keeps every copy too."
+  ],
+  "subgoals": [
+    {
+      "from": 75,
+      "to": 193,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 196,
+      "to": 302,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 305,
+      "to": 418,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 485,
+      "to": 576,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 579,
+      "to": 594,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 597,
+      "to": 723,
+      "subgoal": "metrics"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": "WITH be14_lines AS (  -- one row per BE-14 order line of 2024, as stored\n  SELECT ol.order_line_id, ol.order_id, ol.product_id, ol.quantity, ol.unit_price_eur, ol.promo_id, ol.line_discount_eur\n  FROM order_lines ol\n  JOIN orders o ON o.order_id = ol.order_id\n  JOIN stores s ON s.store_id = o.store_id\n  WHERE s.store_code = 'BE-14'\n    AND o.order_ts >= TIMESTAMP '2024-01-01' AND o.order_ts < TIMESTAMP '2025-01-01'\n),\nunique_lines AS (  -- one row per order line, copies removed\n  SELECT DISTINCT order_line_id, order_id, product_id, quantity, unit_price_eur, promo_id, line_discount_eur\n  FROM be14_lines\n)\nSELECT (SELECT SUM(quantity) FROM be14_lines) AS units_stored,\n       (SELECT SUM(quantity) FROM unique_lines) AS units_unique",
+  "starter_error_id": "ERR-LOG-36",
+  "time_target_ms": 120000,
+  "why_this_works": "Leaving order_line_id out of the DISTINCT lets a copy and its original collapse into one line, so its units count once."
+}

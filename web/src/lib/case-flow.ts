@@ -125,12 +125,14 @@ export const kindLabel = (k: CaseKind): string => KIND[k];
 export interface InboxRow {
   case_id: string; href: string; title: string; meta: string; decision: string; deadline: string;
   chip: { label: string; tone: '' | 'practising' | 'mastered' }; score: string;
+  /** S6-13: the line of a case whose dataset is not prepared, or null. */
+  unavailable: string | null;
 }
 /** S4B-12: a case as a manager's message: who asks, the kind and level, the decision and deadline, the status and the score. */
 export function inboxRow(e: CaseListEntry): InboxRow {
   const meta = [`From ${e.persona.name}, ${e.persona.role}`, INBOX_KIND[e.kind], e.level === null ? null : `Level ${e.level}`].filter((x): x is string => x !== null).join(' · ');
   return { case_id: e.case_id, href: caseHref(e.case_id), title: e.title, meta, decision: e.brief.decision, deadline: `Deadline: ${e.brief.deadline}`,
-    chip: statusChip(e.status), score: scoreText(e.checkpoints_passed, e.checkpoints_total) };
+    chip: statusChip(e.status), score: scoreText(e.checkpoints_passed, e.checkpoints_total), unavailable: e.unavailable ?? null };
 }
 
 // ---- the brief ----------------------------------------------------------------------------------------------------
@@ -165,6 +167,15 @@ export function typedFeedback(r: CaseCheckpointResult, t: TypedView): string[] {
 export const modelPlanOf = (r: PlanReply): string | null => ('model_plan' in r ? r.model_plan : null);
 /** S4B-10: the filled model answer and the rubric come only in an insight reply sent once CP5 has an answer. */
 export const modelAnswerOf = (r: InsightReply): { text: string; rubric: readonly Point[] } | null => ('model_answer' in r ? { text: r.model_answer, rubric: r.rubric } : null);
+/** S6-15: the rubric points that are CRAFT-01's habits (server/routes/cases.ts CRAFT_RUBRIC), sent from level 4. */
+export const CRAFT_TICKS: readonly string[] = ['grain_comment', 'reconciliation'];
+/**
+ * S6-15: the rubric as the case screen ticks it: the points the written insight makes, and CRAFT-01's habits, which are about the
+ * queries, under their own legend. Below level 4 there are no habits. Every point keeps its ID, so one rubric self-check logs both.
+ */
+export function rubricGroups(rubric: readonly Point[]): { insight: Point[]; habits: Point[] } {
+  return { insight: rubric.filter((p) => !CRAFT_TICKS.includes(p.id)), habits: rubric.filter((p) => CRAFT_TICKS.includes(p.id)) };
+}
 
 /**
  * A model text for the lesson parser (lib/markdown.ts), which joins a paragraph's lines: CRAFT-03's fields sit one per line, so each

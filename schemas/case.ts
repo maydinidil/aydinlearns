@@ -12,7 +12,7 @@ export type CaseKind = 'opener' | 'inbox' | 'daily';
 export interface CheckpointOption { oid: string; text: string }
 /**
  * One checkpoint (design §7, S4B-02). CP1 and CP5 carry `options`. CP2 and CP4 are typed numbers: `typed` is how they are graded
- * (D15) and `truth_key` names their value in data/truth/voltmarkt.json, `<case_id>:CP2` or `<case_id>:CP4`. CP1, CP2, CP4 and CP5
+ * (D15) and `truth_key` names their value in data/truth/checkpoints.json, `<case_id>:CP2` or `<case_id>:CP4`. CP1, CP2, CP4 and CP5
  * have the item ID `<case_id>:<CP>`, the ID their attempts and credits carry; CP3's `item_id` is its SQL item. CP6 has a prompt only.
  */
 export interface Checkpoint {
@@ -21,21 +21,45 @@ export interface Checkpoint {
 }
 /** S4B-02: CP1's or CP5's correct option and a one-line explanation, sent only in the reply to the learner's logged answer. */
 export interface CaseChoiceKey { correct_oid: string; explanation: string }
+/** The auto-graded checkpoints a blind solver answers (sprint 6, Task B3): CP3 is an SQL item with its own record (C14). */
+export type SolvedKind = 'CP1' | 'CP2' | 'CP4' | 'CP5';
+export const SOLVED_KINDS: readonly SolvedKind[] = ['CP1', 'CP2', 'CP4', 'CP5'];
+/**
+ * Sprint 6 (Task B3): one checkpoint's blind solve, written by `npm run record:case-solver`: whether the solver's answer passed, the
+ * hash of what it saw (the checkpoint and the case's brief, tools/export-case-view.ts casePromptHash) and when. C50 wants a passing
+ * record for the current hash of every CP1, CP2, CP4 and CP5 a case lists.
+ */
+export interface CaseSolverRecord { pass: boolean; prompt_hash: string; /** Sprint 6, K1 (F32): the answer fingerprint, tools/case-key-hash.ts. Absent on a record from before it. */ key_hash?: string; at: string }
 /**
  * content/keys/cases/<case_id>.json, server-only (S4B-02). `truths` holds the CP2 and CP4 truth queries: the build runs each on the
- * visible schema and writes its value to the truth file as `<case_id>:CP2` or `<case_id>:CP4`. `choices` holds CP1's and CP5's
- * correct option. A checkpoint the case does not list has no entry, so an opener with only a CP4 has `choices: {}`.
+ * case's own schema (S6-13) and writes its value to data/truth/checkpoints.json as `<case_id>:CP2` or `<case_id>:CP4`. `choices`
+ * holds CP1's and CP5's correct option. A checkpoint the case does not list has no entry, so an opener with only a CP4 has
+ * `choices: {}`. `solver` holds the blind-solve records (sprint 6), `{}` until the first one.
  */
-export interface CaseKey { case_id: string; truths: { CP2?: string; CP4?: string }; choices: { CP1?: CaseChoiceKey; CP5?: CaseChoiceKey } }
+export interface CaseKey {
+  case_id: string; truths: { CP2?: string; CP4?: string }; choices: { CP1?: CaseChoiceKey; CP5?: CaseChoiceKey };
+  solver?: Partial<Record<SolvedKind, CaseSolverRecord>>;
+}
 /** S4B-01: the result the case asks for: its columns in order, one row per what, and the sort (its keys as the CP3 item's rules). */
 export interface ExpectedOutput { columns: string[]; grain: string; sort: SortKey[] }
 /** S4B-01: where the case's data comes from, as its portfolio page says. A fictional source has no licence. */
 export interface DataSource { label: string; real: boolean; licence: string | null }
+/** The case worlds (D80, S6-17): pricing, retail, marketing and, from sprint 6, data quality (the incident tickets, S6-14). */
+export const CASE_WORLDS = ['PRICE', 'RETAIL', 'MKT', 'DQ'] as const;
+export type CaseWorld = (typeof CASE_WORLDS)[number];
+/** S6-13: the schema a case reads when its record names none. */
+export const DEFAULT_CASE_SCHEMA = 'voltmarkt';
 export interface CaseRecord {
   case_id: string;
   /** S4B-01: the kind, and the highest curriculum level its credited concepts reach (for an opener, the level it opens). */
   kind: CaseKind; level: number;
+  /** One of CASE_WORLDS. */
   world: string; company_id: string; title: string;
+  /**
+   * S6-13: the visible schema the case's checkpoints read (its CP3 item's `schema`, and where the build runs its truth queries).
+   * Absent means `voltmarkt`, so no older file changes. A case whose schema is not in the database is unavailable.
+   */
+  schema?: string;
   persona: { name: string; role: string }; brief: { decision: string; deadline: string };
   /** S4B-01: the tables the case reads. */
   data_needed: string[];
@@ -46,6 +70,10 @@ export interface CaseRecord {
   data_source: DataSource;
   difficulty: 1 | 2 | 3 | 4 | 5; concept_ids: string[]; metric_ids: string[]; find_ids: string[]; uses_raw: boolean;
 }
+
+/** S6-13: the schema a case reads, `voltmarkt` when its record names none. */
+export const caseSchema = (r: { schema?: unknown } | null | undefined): string =>
+  (typeof r?.schema === 'string' && r.schema !== '' ? r.schema : DEFAULT_CASE_SCHEMA);
 
 const CP_KINDS: CheckpointKind[] = ['CP1', 'CP2', 'CP3', 'CP4', 'CP5', 'CP6'];
 const CASE_KINDS: CaseKind[] = ['opener', 'inbox', 'daily'];
@@ -180,6 +208,9 @@ export function validateCaseRecord(x: unknown): string[] {
   if (!isCaseKind(x.kind)) e.push('kind must be opener, inbox or daily');
   if (!(Number.isInteger(x.level) && (x.level as number) >= 1 && (x.level as number) <= MAX_LEVEL)) e.push(`level must be a whole number from 1 to ${MAX_LEVEL}`);
   for (const f of ['world', 'company_id', 'title', 'model_plan', 'model_answer_template', 'follow_up_question'] as const) if (!isStr(x[f])) e.push(`${f} is missing`);
+  if (isStr(x.world) && !(CASE_WORLDS as readonly string[]).includes(x.world)) e.push(`world must be one of ${CASE_WORLDS.join(', ')}`);
+  // S6-13: the schema is optional (absent means voltmarkt); when named, it is a plain schema name.
+  if (x.schema !== undefined && !(typeof x.schema === 'string' && TABLE.test(x.schema))) e.push('schema must be a plain schema name such as voltmarkt_raw, or left out for voltmarkt');
   if (!isObj(x.persona) || !isStr(x.persona.name) || !isStr(x.persona.role)) e.push('persona needs a name and a role');
   if (!isObj(x.brief) || !isStr(x.brief.decision) || !isStr(x.brief.deadline)) e.push('brief needs a decision and a deadline');
   const tables = x.data_needed;
@@ -215,7 +246,7 @@ export function validateCaseKey(x: unknown): string[] {
   if (!isObj(x)) return ['a case key must be an object'];
   const e: string[] = [];
   if (typeof x.case_id !== 'string' || !CASE_ID.test(x.case_id)) e.push('case_id must look like CASE-VOLT-L1');
-  if (Object.keys(x).some((k) => k !== 'case_id' && k !== 'truths' && k !== 'choices')) e.push('a case key holds only case_id, truths and choices');
+  if (Object.keys(x).some((k) => !['case_id', 'truths', 'choices', 'solver'].includes(k))) e.push('a case key holds only case_id, truths, choices and solver');
   const truths = x.truths;
   if (!isObj(truths)) e.push('truths must be an object of CP2 and CP4 truth queries');
   else {
@@ -234,6 +265,21 @@ export function validateCaseKey(x: unknown): string[] {
       if (c === undefined) continue;
       if (!isObj(c) || !isStr(c.correct_oid) || !isStr(c.explanation)) e.push(`choices.${k} needs a correct_oid and a one-line explanation`);
       else if (Object.keys(c).some((f) => f !== 'correct_oid' && f !== 'explanation')) e.push(`choices.${k} holds only correct_oid and explanation`);
+    }
+  }
+  // Sprint 6 (Task B3): the blind-solve records, written by record:case-solver. Never the answer itself: a right answer is the key.
+  const solver = x.solver;
+  if (solver !== undefined) {
+    if (!isObj(solver)) e.push('solver must be an object of CP1, CP2, CP4 and CP5 records');
+    else {
+      if (Object.keys(solver).some((k) => !(SOLVED_KINDS as readonly string[]).includes(k))) e.push('solver may hold only CP1, CP2, CP4 and CP5');
+      for (const k of SOLVED_KINDS) {
+        const r = solver[k];
+        if (r === undefined) continue;
+        if (!isObj(r) || typeof r.pass !== 'boolean' || !isStr(r.prompt_hash) || !isStr(r.at)) e.push(`solver.${k} needs pass, prompt_hash and at`);
+        else if (r.key_hash !== undefined && !isStr(r.key_hash)) e.push(`solver.${k} key_hash must be text`);
+        else if (Object.keys(r).some((f) => !['pass', 'prompt_hash', 'key_hash', 'at'].includes(f))) e.push(`solver.${k} holds only pass, prompt_hash, key_hash and at`);
+      }
     }
   }
   return e;

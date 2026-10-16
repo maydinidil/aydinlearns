@@ -1,6 +1,6 @@
 {
   "id": "EX-SQL-FILTER-02-E2-31",
-  "version": 1,
+  "version": 2,
   "kind": "fix",
   "tags": [
     "sql",
@@ -120,7 +120,7 @@
   "fading": null,
   "faded_shape": null,
   "starter_sql": "SELECT promo_code, promo_name, start_date, discount_pct\nFROM promotions\nWHERE start_date >= DATE '2025-06-01' AND start_date < DATE '2025-06-30'",
-  "starter_error_id": "ERR-LOG-06",
+  "starter_error_id": "ERR-LOG-23",
   "time_target_ms": 120000,
   "why_this_works": "BETWEEN keeps both end days of a DATE range, so a promotion that started on 30 June counts; < 30 June left that day out."
 }

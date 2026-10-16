@@ -2,7 +2,7 @@
 // S4B-07, S4B-10 to S4B-13, S2-39). The manager's message and brief, then the steps: an opener's sketch while it has no passing CP3
 // (S4B-13), the optional plan with the model plan and its tick list after it, each checkpoint in the case's order with its own panel
 // (CP3 through the exercise panel in phase case, labels hidden until a submission), CP6's insight with the filled model answer and
-// the rubric, "say it in 60 seconds" (S4B-11), and the score.
+// the rubric (from level 4 with CRAFT-01's two habits, S6-15), "say it in 60 seconds" (S4B-11), and the score.
 // Nothing is locked: the step strip opens any step at any time, and every step can be skipped and reopened. Each checkpoint takes one
 // answer per serving, then its instance closes; answering again serves a new instance (S4B-07). Model texts and correct answers come
 // only in the replies to the learner's logged answers (S4B-10); the case view never carries them. CP1 and CP5 show the options of
@@ -20,11 +20,11 @@ import { isClosedError } from '../lib/exercise.ts';
 import { formatDate } from '../lib/labels.ts';
 import {
   INBOX_HREF, INBOX_TITLE, SAY_PROMPTS, SCORE_RULE, actualRowCount, allBlank, askedStep, caseSteps, checkpointLabel, choiceFeedback, countdown, dataSourceLine, fieldsFrom,
-  heldBackNote, keepLines, kindLabel, lastLine, mainIsAnswer, modelAnswerOf, modelPlanOf, nextStep, rowCountLine, scoreText, startStep, statusChip, stepName, stepState,
-  typedFeedback, viewScore, type StepId, type StepState,
+  heldBackNote, keepLines, kindLabel, lastLine, mainIsAnswer, modelAnswerOf, modelPlanOf, nextStep, rowCountLine, rubricGroups, scoreText, startStep, statusChip, stepName,
+  stepState, typedFeedback, viewScore, type StepId, type StepState,
 } from '../lib/case-flow.ts';
 import {
-  casesApi, type AnswerableKind, type CaseCheckpointResult, type CaseCheckpointServed, type CaseCheckpointView, type CaseView, type InsightReply, type PlanReply,
+  casesApi, type AnswerableKind, type CaseCheckpointResult, type CaseCheckpointServed, type CaseCheckpointView, type CaseView, type InsightReply, type PlanReply, type Point,
 } from '../lib/cases-api.ts';
 
 const BACK = 'Back to the case inbox';
@@ -404,6 +404,12 @@ function InsightStep({ caseId, cp, view, onSaved }: { caseId: string; cp: CaseCh
   }
   const model = reply ? modelAnswerOf(reply) : null;
   const note = reply && 'note' in reply ? reply.note : null;
+  // S6-15: from level 4 the rubric adds CRAFT-01's habits, ticked under their own legend and saved with the rest.
+  const groups = rubricGroups(model?.rubric ?? []);
+  const tick = (p: Point) => (
+    <label key={p.id}><input type="checkbox" checked={ticked.includes(p.id)} disabled={busy}
+      onChange={(e) => { setTicksSaved(false); setTicked(e.target.checked ? [...ticked, p.id] : ticked.filter((x) => x !== p.id)); }} /> {p.label}</label>
+  );
   return (
     <section className="card case-step">
       <h2 tabIndex={-1}>{checkpointLabel('CP6')}</h2>
@@ -423,11 +429,14 @@ function InsightStep({ caseId, cp, view, onSaved }: { caseId: string; cp: CaseCh
           <Markdown text={keepLines(model.text)} />
           <fieldset className="case-ticks">
             <legend>Tick each point your insight makes.</legend>
-            {model.rubric.map((p) => (
-              <label key={p.id}><input type="checkbox" checked={ticked.includes(p.id)} disabled={busy}
-                onChange={(e) => { setTicksSaved(false); setTicked(e.target.checked ? [...ticked, p.id] : ticked.filter((x) => x !== p.id)); }} /> {p.label}</label>
-            ))}
+            {groups.insight.map(tick)}
           </fieldset>
+          {groups.habits.length > 0 && (
+            <fieldset className="case-ticks">
+              <legend>Tick each habit your queries show.</legend>
+              {groups.habits.map(tick)}
+            </fieldset>
+          )}
           <p><button type="button" onClick={() => void saveTicks()} disabled={busy || ticksSaved}>Save the rubric</button></p>
           {ticksSaved && <p role="status">Rubric saved.</p>}
         </div>

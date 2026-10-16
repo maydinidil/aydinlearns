@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-DATE-02-E1-02",
+  "item_version": 1,
+  "reference_sql": "SELECT channel, COUNT(*) AS orders\nFROM orders\nWHERE order_ts >= DATE '2026-01-05' - INTERVAL 29 DAY\n  AND order_ts < DATE '2026-01-05' + INTERVAL 1 DAY\nGROUP BY channel",
+  "alternatives": [
+    "SELECT channel, COUNT(*) AS orders FROM orders WHERE CAST(order_ts AS DATE) BETWEEN DATE '2025-12-07' AND DATE '2026-01-05' GROUP BY channel",
+    "SELECT channel, COUNT(*) AS orders FROM orders WHERE CAST(order_ts AS DATE) > DATE '2026-01-05' - INTERVAL 30 DAY AND CAST(order_ts AS DATE) <= DATE '2026-01-05' GROUP BY channel"
+  ],
+  "other_way": {
+    "sql": "SELECT channel, COUNT(*) AS orders FROM orders WHERE CAST(order_ts AS DATE) BETWEEN DATE '2025-12-07' AND DATE '2026-01-05' GROUP BY channel",
+    "tradeoff": "Typing both end dates reads clearly, but counting back from the as-of date with an INTERVAL shows where the 30 days come from."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-06",
+      "sql": "SELECT channel, COUNT(*) AS orders FROM orders WHERE order_ts >= DATE '2026-01-05' - INTERVAL 30 DAY AND order_ts < DATE '2026-01-05' + INTERVAL 1 DAY GROUP BY channel"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-06",
+      "sql": "SELECT channel, COUNT(*) AS orders FROM orders WHERE CAST(order_ts AS DATE) > DATE '2025-12-07' AND CAST(order_ts AS DATE) <= DATE '2026-01-05' GROUP BY channel"
+    }
+  ],
+  "hint3_partial": "SELECT channel, COUNT(*) AS orders\nFROM orders\nWHERE order_ts >= DATE '2026-01-05' - INTERVAL ___ DAY\n  AND order_ts < ___\nGROUP BY channel",
+  "solver": {
+    "prompt_hash": "93be9087467128db",
+    "schema_version": "7ed366279088",
+    "dataset_version": "b2d2b40fb117bb07",
+    "grader_version": "6a.1",
+    "query": "SELECT channel, COUNT(*) AS orders\nFROM orders\nWHERE CAST(order_ts AS DATE) BETWEEN DATE '2025-12-07' AND DATE '2026-01-05'\nGROUP BY channel\n",
+    "at": "2026-10-15T11:06:11.159Z"
+  }
+}

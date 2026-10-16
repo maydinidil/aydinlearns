@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-STR-01-E1-02",
+  "item_version": 1,
+  "reference_sql": "SELECT split_part(sku, '-', 1) AS sku_prefix, COUNT(*) AS n_products\nFROM products\nGROUP BY split_part(sku, '-', 1)",
+  "alternatives": [
+    "WITH prefixes AS (  -- one row per product\n  SELECT split_part(sku, '-', 1) AS sku_prefix\n  FROM products\n)\nSELECT sku_prefix, COUNT(*) AS n_products\nFROM prefixes\nGROUP BY sku_prefix",
+    "SELECT substring(sku, 1, strpos(sku, '-') - 1) AS sku_prefix, COUNT(*) AS n_products FROM products GROUP BY 1"
+  ],
+  "other_way": {
+    "sql": "WITH prefixes AS (  -- one row per product\n  SELECT split_part(sku, '-', 1) AS sku_prefix\n  FROM products\n)\nSELECT sku_prefix, COUNT(*) AS n_products\nFROM prefixes\nGROUP BY sku_prefix",
+    "tradeoff": "A named step works out each prefix once and groups by its name, but grouping by the expression needs one query only."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-33",
+      "sql": "SELECT substring(sku, 1, 3) AS sku_prefix, COUNT(*) AS n_products FROM products GROUP BY substring(sku, 1, 3)"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-33",
+      "sql": "SELECT substring(sku, 0, 2) AS sku_prefix, COUNT(*) AS n_products FROM products GROUP BY substring(sku, 0, 2)"
+    }
+  ],
+  "hint3_partial": "SELECT split_part(sku, ___, ___) AS sku_prefix, COUNT(*) AS n_products\nFROM products\nGROUP BY split_part(sku, ___, ___)",
+  "solver": {
+    "prompt_hash": "8e160855de28978b",
+    "schema_version": "d77fe1c31a0e",
+    "dataset_version": "b2d2b40fb117bb07",
+    "grader_version": "6a.1",
+    "query": "SELECT split_part(sku, '-', 1) AS sku_prefix, count(*) AS n_products FROM products GROUP BY split_part(sku, '-', 1)\n",
+    "at": "2026-10-15T11:06:12.159Z"
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-DATE-02-E1-42",
+  "item_version": 1,
+  "value": 26,
+  "explanation": "DATE '2026-01-05' - INTERVAL 30 DAY is midnight at the start of 6 December 2025, so the filter keeps every order from 6 December on. The data stops on 31 December, so the days left are 6 to 31 December: 26 rows, one per day, not 30. A window counted back from the as-of date can reach past the last day with data.",
+  "solver": {
+    "prompt_hash": "c8e527863e932513",
+    "grader_version": "choice.3",
+    "chosen": null,
+    "typed": "26",
+    "at": "2026-10-15T10:40:24.693Z"
+  }
+}

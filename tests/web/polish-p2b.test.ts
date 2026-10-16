@@ -102,7 +102,7 @@ test('5: the explorer keeps the editor, Run and the result in one column beside 
 });
 
 test('8: Portfolio wording has no build jargon, a capital M and a full stop after the Settings link', async () => {
-  assert.equal(FLAGSHIP_LINE, 'Flagship pieces on real data come in a later version.');
+  assert.equal(FLAGSHIP_LINE, 'Flagship pieces use real data: open a real dataset in the explorer, run your query and choose "Save as a flagship draft".');
   const s = await src('screens/PortfolioScreen.tsx');
   assert.match(s, /as a Markdown page/);
   assert.match(s, /\{folder\.link\}<\/a>\./);

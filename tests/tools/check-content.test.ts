@@ -388,7 +388,7 @@ async function openerStore(patch: (rec: Record<string, any>, it: Record<string, 
   await mkdir(join(root, 'sql/openers'), { recursive: true });
   const base = JSON.parse(await readFile(join(root, 'sql/items', `${lesson.pool_item_ids[0]}.json`), 'utf8'));
   const rec: Record<string, any> = {
-    ...structuredClone(OPENER_FIELDS), case_id: 'CASE-VOLT-L1', world: 'voltmarkt', company_id: 'voltmarkt', title: 't', persona: { name: 'S', role: 'M' },
+    ...structuredClone(OPENER_FIELDS), case_id: 'CASE-VOLT-L1', world: 'PRICE', company_id: 'voltmarkt', title: 't', persona: { name: 'S', role: 'M' },
     brief: { decision: 'd', deadline: 'f' }, model_plan: 'p', model_answer_template: 'a', difficulty: 1, concept_ids: [FIXTURE_CONCEPT],
     metric_ids: [], find_ids: [], uses_raw: false,
     checkpoints: [{ id: 'CP3', kind: 'CP3', prompt: 'Write it.', credits_concepts: [FIXTURE_CONCEPT], item_id: 'EX-OPENER-L1-01' }],
@@ -434,7 +434,7 @@ test('C29: one item_id used by two openers fails on both (s2:L69)', async () => 
   await mkdir(join(root, 'sql/openers'), { recursive: true });
   const base = JSON.parse(await readFile(join(root, 'sql/items', `${lesson.pool_item_ids[0]}.json`), 'utf8'));
   const rec = (case_id: string) => ({
-    ...OPENER_FIELDS, case_id, world: 'voltmarkt', company_id: 'voltmarkt', title: 't', persona: { name: 'S', role: 'M' }, brief: { decision: 'd', deadline: 'f' }, model_plan: 'p',
+    ...OPENER_FIELDS, case_id, world: 'PRICE', company_id: 'voltmarkt', title: 't', persona: { name: 'S', role: 'M' }, brief: { decision: 'd', deadline: 'f' }, model_plan: 'p',
     model_answer_template: 'a', difficulty: 1, concept_ids: [FIXTURE_CONCEPT], metric_ids: [], find_ids: [], uses_raw: false,
     checkpoints: [{ id: 'CP3', kind: 'CP3', prompt: 'Write it.', credits_concepts: [FIXTURE_CONCEPT], item_id: 'EX-OPENER-L1-01' }],
   });

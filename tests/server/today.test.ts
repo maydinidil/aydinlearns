@@ -88,7 +88,7 @@ async function deps(over: Partial<AppDeps> = {}): Promise<AppDeps & { servings: 
   logger.onWrite((file, r) => state.record(file, r));
   return { port: 5174, checks: [], runner: null, content, logger, session: new SessionTracker(logger, async (at) => { for (const h of endHooks) await h(at); }),
     endHooks, closedInstances: [], schemaNotes: [], manifest: { dataset_version: 'x', library_version: 'v1.5.6' },
-    settings: { backup_folder: null, exam_date: null, goal_dates: {} }, tableCheck: 'parse_tree', state, servings: new Servings(), ...over };
+    settings: { backup_folder: null, exam_date: null, goal_dates: {}, portfolio_folder: null }, tableCheck: 'parse_tree', state, servings: new Servings(), ...over };
 }
 const events = async (d: AppDeps) => (await d.logger.readAll('events')) as any[];
 const records = async (d: AppDeps) => (await d.logger.readAll('attempts')) as any[];
@@ -237,7 +237,7 @@ test('GET /api/goals/progress: every goal evaluated, with its effective date', a
     { id: 'G-A', title: 'A', target_date: '2026-10-09', stage: null, criteria: [{ kind: 'concept_state', section: 'sql', concept_id: 'SQL-BASICS-01', state: 'practised' }] },
     { id: 'G-B', title: 'B', target_date: '2026-10-16', stage: 2, criteria: [{ kind: 'mock_pass', mock: 'screen' }] },
   ];
-  const d = await deps({ content: memoryContent(goals), settings: { backup_folder: null, exam_date: null, goal_dates: { 'G-B': '2026-11-01' } } });
+  const d = await deps({ content: memoryContent(goals), settings: { backup_folder: null, exam_date: null, goal_dates: { 'G-B': '2026-11-01' }, portfolio_folder: null } });
   const body = await json(get(createApp(d), '/api/goals/progress'));
   assert.deepEqual(body.goals, [
     { goal: { id: 'G-A', title: 'A', target_date: '2026-10-09', stage: null }, effective_date: '2026-10-09', met: false,

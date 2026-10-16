@@ -1,0 +1,116 @@
+{
+  "id": "EX-SQL-CLEAN-01-E1-05",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-04",
+    "duplicates",
+    "count_distinct",
+    "order_lines"
+  ],
+  "level": 4,
+  "source_ids": [
+    "01:SQL-CLEAN-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-15",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "retest",
+  "target_concept_id": "SQL-CLEAN-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-AGG-03",
+    "SQL-CTE-01",
+    "SQL-CLEAN-01"
+  ],
+  "template_id": "T-CLEAN-01-orders-with-copies",
+  "template_params": {
+    "table": "order_lines"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt_raw",
+  "edge_schema": "voltmarkt_edge_clean",
+  "uses_raw": true,
+  "prompt": "How many orders hold at least one resent copy? This table may hold errors. Two lines are copies of one order line when order_id, product_id, quantity, unit_price_eur, promo_id and line_discount_eur all match, with a missing promo_id matching a missing one, and a set of two or more such lines holds a copy. Count each order once. Return one column, n_orders. The result is a single row. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "n_orders",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "n_orders",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, find the sets of matching lines that hold more than one line.",
+    "Group by every column but order_line_id and keep the groups of two or more; then count the different orders among them."
+  ],
+  "subgoals": [
+    {
+      "from": 74,
+      "to": 89,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 92,
+      "to": 108,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 111,
+      "to": 195,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 198,
+      "to": 217,
+      "subgoal": "group_filter"
+    },
+    {
+      "from": 220,
+      "to": 263,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 264,
+      "to": 280,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "A set with more than one line holds a copy, and COUNT(DISTINCT order_id) counts each order once, even one with several copied sets."
+}

@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-DATE-02-E2-42",
+  "item_version": 1,
+  "correct_oid": "oca5f714",
+  "explanation": "One month on from a date keeps its day number in the next month, and when that month is shorter it stops at the last day: 31 January 2025 plus one month is 28 February 2025. Adding an INTERVAL to a DATE gives a TIMESTAMP, so it shows midnight. Adding the whole number 30 moves on 30 days and keeps a DATE: 2 March 2025.",
+  "solver": {
+    "prompt_hash": "9e3f920f1f57fe0c",
+    "grader_version": "choice.3",
+    "chosen": "oca5f714",
+    "typed": null,
+    "at": "2026-10-15T10:40:24.698Z"
+  }
+}

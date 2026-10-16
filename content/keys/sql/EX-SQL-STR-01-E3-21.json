@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-STR-01-E3-21",
+  "item_version": 1,
+  "reference_sql": "SELECT p.product_id, p.category_raw,\n       CASE WHEN c.parent_category = 'TV & Video' THEN 'yes' ELSE 'no' END AS in_parent\nFROM products p\nLEFT JOIN categories c ON c.category_id = p.category_id\nWHERE LOWER(TRIM(p.category_raw)) IN ('tv & video', 'tv en video', 'tv/video', 'téléviseurs')",
+  "alternatives": [
+    "SELECT p.product_id, p.category_raw,\n       CASE WHEN EXISTS (SELECT 1 FROM categories c WHERE c.category_id = p.category_id AND c.parent_category = 'TV & Video')\n            THEN 'yes' ELSE 'no' END AS in_parent\nFROM products p\nWHERE LOWER(TRIM(p.category_raw)) IN ('tv & video', 'tv en video', 'tv/video', 'téléviseurs')",
+    "SELECT p.product_id, p.category_raw, CASE WHEN c.parent_category IS NOT NULL AND c.parent_category = 'TV & Video' THEN 'yes' ELSE 'no' END AS in_parent FROM products p LEFT JOIN categories c ON c.category_id = p.category_id WHERE TRIM(LOWER(p.category_raw)) IN ('tv & video', 'tv en video', 'tv/video', 'téléviseurs')"
+  ],
+  "other_way": {
+    "sql": "SELECT p.product_id, p.category_raw,\n       CASE WHEN EXISTS (SELECT 1 FROM categories c WHERE c.category_id = p.category_id AND c.parent_category = 'TV & Video')\n            THEN 'yes' ELSE 'no' END AS in_parent\nFROM products p\nWHERE LOWER(TRIM(p.category_raw)) IN ('tv & video', 'tv en video', 'tv/video', 'téléviseurs')",
+    "tradeoff": "EXISTS asks the yes or no question straight away, but the LEFT JOIN also lets you show the parent it found."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-11",
+      "sql": "SELECT p.product_id, p.category_raw, CASE WHEN c.parent_category = 'TV & Video' THEN 'yes' ELSE 'no' END AS in_parent FROM products p JOIN categories c ON c.category_id = p.category_id WHERE LOWER(TRIM(p.category_raw)) IN ('tv & video', 'tv en video', 'tv/video', 'téléviseurs')"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-32",
+      "sql": "SELECT p.product_id, p.category_raw, CASE WHEN c.parent_category = 'TV & Video' THEN 'yes' ELSE 'no' END AS in_parent FROM products p LEFT JOIN categories c ON c.category_id = p.category_id WHERE LOWER(p.category_raw) IN ('tv & video', 'tv en video', 'tv/video', 'téléviseurs')"
+    }
+  ],
+  "hint3_partial": "SELECT p.product_id, p.category_raw,\n       CASE WHEN ___ THEN 'yes' ELSE 'no' END AS in_parent\nFROM products p\nLEFT JOIN categories c ON c.category_id = p.category_id\nWHERE LOWER(TRIM(p.category_raw)) IN ('tv & video', 'tv en video', 'tv/video', 'téléviseurs')",
+  "solver": {
+    "prompt_hash": "ffe0618f8215b77d",
+    "schema_version": "81419b0500f4",
+    "dataset_version": "b2d2b40fb117bb07",
+    "grader_version": "6a.1",
+    "query": "SELECT p.product_id, p.category_raw,\n       CASE WHEN EXISTS (SELECT 1 FROM categories c WHERE c.category_id = p.category_id AND c.parent_category = 'TV & Video') THEN 'yes' ELSE 'no' END AS in_parent\nFROM products p\nWHERE lower(trim(p.category_raw)) IN ('tv & video','tv en video','tv/video','téléviseurs','tã©lã©viseurs')\n",
+    "at": "2026-10-15T11:06:12.608Z"
+  }
+}

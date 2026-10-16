@@ -277,7 +277,7 @@ sprint 5b.
 [`2026-10-08-aydinlearns-sprint-5b.md`](../superpowers/plans/2026-10-08-aydinlearns-sprint-5b.md)).
 A hygiene PR after the merge (plan
 [`2026-10-09-aydinlearns-hygiene-1-1.md`](../superpowers/plans/2026-10-09-aydinlearns-hygiene-1-1.md))
-fixed Codex F27 and ten backlog rows before the release.
+fixed Codex F27 and ten backlog rows (PR #44). Released as 1.1 on 2026-10-09 (tag `v1.1.0`).
 The owner's answers (D65): the exam date is not needed, the Skillshop check comes later (full
 mocks use the design's defaults and say so), and the demo account opens. Job 1 was already done
 in sprint 3 (D66). Built: 10 interview labs with a demo account guide (job 4), full mocks on
@@ -285,6 +285,12 @@ dated blueprints (job 2; Codex F14 fixed), the readiness check (job 3, D70), log
 (D68), the audiences item fixed (D73), and 28 small screen fixes. Its rulings and findings are in
 [the sprint 5b record](2026-10-08-sprint-5b-record.md). Still waiting on the owner: the Skillshop
 check (it may change the full mock's blueprint, a new dated entry) and the exam date.
+
+**Releases 1.2 and 1.3, between 5b and sprint 6.** 1.2 (2026-10-12, tag `v1.2.0`, PRs #45 to #47)
+added the optional OpenTelemetry to Dash0 (D75) and each answer's details (D76). 1.3 (2026-10-13,
+PR #48, tag `v1.3.0`) added the study journey (D77): every visit kept as one ordered list of events in
+`journey/`, and `npm run journey` to analyse it in DuckDB. Neither changes a sprint's contents.
+Its rulings, reviews and deferred findings are in [the release 1.3 record](2026-10-13-release-1-3-record.md).
 
 **Contents and jobs:**
 1. All remaining GA4 lessons.
@@ -307,6 +313,22 @@ GA4 readiness check can be taken, and all Methodology areas can be practised.
 
 Live by 2026-11-09. **Owner:** triggers each dataset download, and writes the flagship pieces in
 late November.
+
+**Status, Part 1 (6a): merged as 1.4.0 (2026-10-15).** Plan
+[`docs/superpowers/plans/2026-10-14-aydinlearns-sprint-6.md`](../superpowers/plans/2026-10-14-aydinlearns-sprint-6.md), decisions D78
+to D87. Jobs 1 to 3 and the data-quality arc are built: the five level 4 concepts with their drill, `voltmarkt_raw` with
+its quirks, the error IDs `ERR-LOG-30` to `-39` and `ERR-SYN-08`, twelve cases (the level 4 opener, two daily cases,
+CASE-PRICE-03 to -05, CASE-RETAIL-03 and the incident tickets CASE-DQ-01 to -05) and the cumulative drill over levels
+1 to 4. No public release for 1.4 (D78). Its rulings and deferred findings are in
+[the sprint 6 record](2026-10-15-sprint-6-record.md).
+
+**Status, Part 2 (6b): done, merging as 1.5.0 (2026-10-16), the public release `v1.5.0`.** Block K first (Codex F32 and
+thirteen backlog rows, D88 to D90), then jobs 4 to 6: Mailvora (`mailvora`, `mailvora_raw`, `mailvora_edge_case`) with
+CASE-MKT-01 to -04; the dataset registry and `npm run prep:datasets` for Online Retail II, Breakfast at the Frat and the
+8 Week SQL Challenge; CASE-REAL-01 and -02; the explorer's dataset picker and registry cards; flagship drafts on real
+data; and the `real_data_analysis` goal criterion (D85). Done when: met on the worktree with real data, where
+CASE-REAL-01 was solved end to end and "First real-data analysis" was met. Its rulings (P29 to P47) and deferred
+findings are in the same record.
 
 **Contents and jobs:**
 1. Level 4 (5 concepts): SQL-SUBQ-01, SQL-SUBQ-02, SQL-STR-01, SQL-DATE-02, SQL-CLEAN-01; the level
@@ -408,7 +430,7 @@ more than one user, audio, Dutch.
 | Before sprint 2 | The decisions under "Sprint 2, Before starting" |
 | Before 2a's GA4 work | Review the slice 0 paper: E-115, E-022, E-010, E-009, Appendix B |
 | Before sprint 5b | Check Skillshop (question count, time limit, languages, 2026 features), set the exam date, and confirm the GA4 demo account opens |
-| From sprint 6 | Trigger each dataset download; write the flagship pieces in late November |
+| From sprint 6 | Trigger each dataset download, then run `npm run prep:datasets -- --from <your downloads folder>` (again after each update); write the flagship pieces in late November |
 | Before sprint 9 | Check the Kaggle rules for KKBox |
 | From week 3 of use | Approve the weekly tune-up's fixes |
 | Any time | Confirm the screen mock target date |

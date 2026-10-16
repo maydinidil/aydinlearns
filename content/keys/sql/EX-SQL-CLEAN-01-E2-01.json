@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-CLEAN-01-E2-01",
+  "item_version": 1,
+  "reference_sql": "WITH june_lines AS (  -- one row per June 2024 order line\n  SELECT o.store_id, ol.unit_price_eur, p.unit_cost_eur\n  FROM order_lines ol\n  JOIN orders o ON o.order_id = ol.order_id\n  JOIN products p ON p.product_id = ol.product_id\n  WHERE o.order_ts >= TIMESTAMP '2024-06-01' AND o.order_ts < TIMESTAMP '2024-07-01'\n)\nSELECT s.store_code, COUNT(*) FILTER (WHERE j.unit_price_eur > 10 * j.unit_cost_eur) / NULLIF(COUNT(j.store_id), 0) AS cents_share\nFROM stores s\nLEFT JOIN june_lines j ON j.store_id = s.store_id\nGROUP BY s.store_code",
+  "alternatives": [
+    "WITH per_store AS (  -- one row per store with June 2024 lines\n  SELECT o.store_id, COUNT(*) AS n_lines,\n         COUNT(*) FILTER (WHERE ol.unit_price_eur > 10 * p.unit_cost_eur) AS n_cents\n  FROM order_lines ol\n  JOIN orders o ON o.order_id = ol.order_id\n  JOIN products p ON p.product_id = ol.product_id\n  WHERE o.order_ts >= TIMESTAMP '2024-06-01' AND o.order_ts < TIMESTAMP '2024-07-01'\n  GROUP BY o.store_id\n)\nSELECT s.store_code, ps.n_cents / NULLIF(ps.n_lines, 0) AS cents_share\nFROM stores s\nLEFT JOIN per_store ps ON ps.store_id = s.store_id",
+    "WITH june_lines AS (  -- one row per June 2024 order line\n  SELECT o.store_id, ol.unit_price_eur, p.unit_cost_eur\n  FROM order_lines ol\n  JOIN orders o ON o.order_id = ol.order_id\n  JOIN products p ON p.product_id = ol.product_id\n  WHERE o.order_ts >= TIMESTAMP '2024-06-01' AND o.order_ts < TIMESTAMP '2024-07-01'\n)\nSELECT s.store_code, SUM(CASE WHEN j.unit_price_eur > 10 * j.unit_cost_eur THEN 1 ELSE 0 END) * 1.0 / NULLIF(COUNT(j.store_id), 0) AS cents_share\nFROM stores s\nLEFT JOIN june_lines j ON j.store_id = s.store_id\nGROUP BY s.store_code"
+  ],
+  "other_way": {
+    "sql": "WITH per_store AS (  -- one row per store with June 2024 lines\n  SELECT o.store_id, COUNT(*) AS n_lines,\n         COUNT(*) FILTER (WHERE ol.unit_price_eur > 10 * p.unit_cost_eur) AS n_cents\n  FROM order_lines ol\n  JOIN orders o ON o.order_id = ol.order_id\n  JOIN products p ON p.product_id = ol.product_id\n  WHERE o.order_ts >= TIMESTAMP '2024-06-01' AND o.order_ts < TIMESTAMP '2024-07-01'\n  GROUP BY o.store_id\n)\nSELECT s.store_code, ps.n_cents / NULLIF(ps.n_lines, 0) AS cents_share\nFROM stores s\nLEFT JOIN per_store ps ON ps.store_id = s.store_id",
+    "tradeoff": "Counting per store first and then joining gives one row per store before any division, but one filtered count is shorter."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-35",
+      "sql": "WITH june_lines AS (  -- one row per June 2024 order line\n  SELECT o.store_id, ol.unit_price_eur, p.unit_cost_eur\n  FROM order_lines ol\n  JOIN orders o ON o.order_id = ol.order_id\n  JOIN products p ON p.product_id = ol.product_id\n  WHERE o.order_ts >= TIMESTAMP '2024-06-01' AND o.order_ts < TIMESTAMP '2024-07-01'\n)\nSELECT s.store_code, COALESCE(COUNT(*) FILTER (WHERE j.unit_price_eur > 10 * j.unit_cost_eur) / NULLIF(COUNT(j.store_id), 0), 0) AS cents_share FROM stores s LEFT JOIN june_lines j ON j.store_id = s.store_id GROUP BY s.store_code"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-11",
+      "sql": "WITH june_lines AS (  -- one row per June 2024 order line\n  SELECT o.store_id, ol.unit_price_eur, p.unit_cost_eur\n  FROM order_lines ol\n  JOIN orders o ON o.order_id = ol.order_id\n  JOIN products p ON p.product_id = ol.product_id\n  WHERE o.order_ts >= TIMESTAMP '2024-06-01' AND o.order_ts < TIMESTAMP '2024-07-01'\n)\nSELECT s.store_code, COUNT(*) FILTER (WHERE j.unit_price_eur > 10 * j.unit_cost_eur) / NULLIF(COUNT(j.store_id), 0) AS cents_share FROM stores s JOIN june_lines j ON j.store_id = s.store_id GROUP BY s.store_code"
+    }
+  ],
+  "hint3_partial": "WITH june_lines AS (  -- one row per June 2024 order line\n  SELECT o.store_id, ol.unit_price_eur, p.unit_cost_eur\n  FROM order_lines ol\n  JOIN orders o ON o.order_id = ol.order_id\n  JOIN products p ON p.product_id = ol.product_id\n  WHERE o.order_ts >= TIMESTAMP '2024-06-01' AND o.order_ts < TIMESTAMP '2024-07-01'\n)\nSELECT s.store_code, COUNT(*) FILTER (WHERE j.unit_price_eur > 10 * j.unit_cost_eur) / NULLIF(___, 0) AS cents_share\nFROM stores s\nLEFT JOIN june_lines j ON j.store_id = s.store_id\nGROUP BY s.store_code",
+  "solver": {
+    "prompt_hash": "bb678566d451229e",
+    "schema_version": "018678d60891",
+    "dataset_version": "b2d2b40fb117bb07",
+    "grader_version": "6a.1",
+    "query": "WITH j AS (\n  SELECT o.store_id, ol.unit_price_eur > 10 * p.unit_cost_eur AS cents\n  FROM order_lines ol\n  JOIN orders o ON o.order_id = ol.order_id\n  LEFT JOIN products p ON p.product_id = ol.product_id\n  WHERE o.order_ts >= TIMESTAMP '2024-06-01' AND o.order_ts < TIMESTAMP '2024-07-01'\n)\nSELECT s.store_code, count(*) FILTER (WHERE j.cents) * 1.0 / NULLIF(count(j.store_id), 0) AS cents_share\nFROM stores s\nLEFT JOIN j ON j.store_id = s.store_id\nGROUP BY s.store_code\n",
+    "at": "2026-10-15T11:06:09.785Z"
+  }
+}

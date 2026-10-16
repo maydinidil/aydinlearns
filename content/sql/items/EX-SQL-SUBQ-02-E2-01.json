@@ -1,0 +1,140 @@
+{
+  "id": "EX-SQL-SUBQ-02-E2-01",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-04",
+    "derived_table",
+    "avg",
+    "two_step",
+    "sales",
+    "parent_category"
+  ],
+  "level": 4,
+  "source_ids": [
+    "01:SQL-SUBQ-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-15",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "lesson",
+  "target_concept_id": "SQL-SUBQ-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-SUBQ-01",
+    "SQL-SUBQ-02"
+  ],
+  "template_id": "T-SUBQ-02-avg-of-sums-per-group",
+  "template_params": {
+    "table": "sales",
+    "step": "product",
+    "group": "parent_category"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_subq",
+  "prompt": "For each parent category, what is the average number of units sold per product, over the products that sold at least one unit? A product's units are the quantity summed over all its order lines. Round to 2 decimals. Return two columns, in this order: parent_category and avg_units. Return one row for each parent category. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "parent_category",
+        "type_class": "text"
+      },
+      {
+        "name": "avg_units",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per parent category"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "parent_category",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "avg_units",
+        "type_class": "numeric",
+        "precision": "ratio",
+        "require_rounding": 2
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "parent_category"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the derived table: each product's total units, with the product's parent category.",
+    "The outer query averages those per-product totals for each parent category; averaging the lines directly would give the average line instead."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 61,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 62,
+      "to": 93,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 94,
+      "to": 151,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 152,
+      "to": 164,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 165,
+      "to": 203,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 204,
+      "to": 210,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 211,
+      "to": 237,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": {
+    "stage1": 67,
+    "stage2": 67
+  },
+  "faded_shape": "SELECT t.parent_category, ROUND(AVG(t.units), 2) AS avg_units\nFROM ",
+  "faded_suffix": "\nGROUP BY t.parent_category",
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "The derived table adds up each product's units first, so the outer AVG works over products, not over order lines."
+}

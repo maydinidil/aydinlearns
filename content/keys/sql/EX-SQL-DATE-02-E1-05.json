@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-DATE-02-E1-05",
+  "item_version": 1,
+  "reference_sql": "SELECT product_id, valid_from, valid_to - valid_from + 1 AS days_valid\nFROM price_history\nWHERE valid_to >= DATE '2024-12-01'\n  AND valid_to <= DATE '2024-12-31'",
+  "alternatives": [
+    "SELECT product_id, valid_from, date_diff('day', valid_from, valid_to) + 1 AS days_valid FROM price_history WHERE valid_to BETWEEN DATE '2024-12-01' AND DATE '2024-12-31'",
+    "SELECT product_id, valid_from, valid_to - valid_from + 1 AS days_valid FROM price_history WHERE year(valid_to) = 2024 AND month(valid_to) = 12"
+  ],
+  "other_way": {
+    "sql": "SELECT product_id, valid_from, valid_to - valid_from + 1 AS days_valid FROM price_history WHERE year(valid_to) = 2024 AND month(valid_to) = 12",
+    "tradeoff": "Filtering on the year and month of valid_to is short, but a date range names both end days and works on any date column."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-34",
+      "sql": "SELECT product_id, valid_from, valid_to - valid_from AS days_valid FROM price_history WHERE valid_to >= DATE '2024-12-01' AND valid_to <= DATE '2024-12-31'"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-06",
+      "sql": "SELECT product_id, valid_from, valid_to - valid_from + 1 AS days_valid FROM price_history WHERE valid_to >= DATE '2024-12-01' AND valid_to < DATE '2024-12-31'"
+    }
+  ],
+  "hint3_partial": "SELECT product_id, valid_from, valid_to - valid_from ___ AS days_valid\nFROM price_history\nWHERE valid_to >= DATE '2024-12-01'\n  AND valid_to <= ___",
+  "solver": {
+    "prompt_hash": "b62fd82e03d979b0",
+    "schema_version": "e8cea7c4eacc",
+    "dataset_version": "b2d2b40fb117bb07",
+    "grader_version": "6a.1",
+    "query": "SELECT product_id, valid_from, CAST(valid_to AS DATE) - CAST(valid_from AS DATE) + 1 AS days_valid\nFROM price_history\nWHERE CAST(valid_to AS DATE) BETWEEN DATE '2024-12-01' AND DATE '2024-12-31'\n",
+    "at": "2026-10-15T11:06:11.208Z"
+  }
+}

@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-SUBQ-01-E2-03",
+  "item_version": 1,
+  "reference_sql": "SELECT DISTINCT c.customer_id\nFROM ab_conversions c\nWHERE NOT EXISTS (\n  SELECT 1\n  FROM orders o\n  WHERE o.customer_id = c.customer_id\n    AND o.channel = 'store'\n)",
+  "alternatives": [
+    "SELECT DISTINCT customer_id\nFROM ab_conversions\nWHERE customer_id NOT IN (\n  SELECT customer_id\n  FROM orders\n  WHERE channel = 'store'\n    AND customer_id IS NOT NULL\n)",
+    "SELECT DISTINCT c.customer_id\nFROM ab_conversions c\nLEFT JOIN orders o ON o.customer_id = c.customer_id AND o.channel = 'store'\nWHERE o.order_id IS NULL"
+  ],
+  "other_way": {
+    "sql": "SELECT DISTINCT customer_id\nFROM ab_conversions\nWHERE customer_id NOT IN (\n  SELECT customer_id\n  FROM orders\n  WHERE channel = 'store'\n    AND customer_id IS NOT NULL\n)",
+    "tradeoff": "NOT IN works once the missing customer IDs are kept out of its list, but forget that filter and it returns no rows."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-30",
+      "sql": "SELECT DISTINCT customer_id FROM ab_conversions WHERE customer_id NOT IN (SELECT customer_id FROM orders WHERE channel = 'store')"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-08",
+      "sql": "SELECT c.customer_id FROM ab_conversions c WHERE NOT EXISTS (SELECT 1 FROM orders o WHERE o.customer_id = c.customer_id AND o.channel = 'store')"
+    }
+  ],
+  "hint3_partial": "SELECT DISTINCT c.customer_id\nFROM ab_conversions c\nWHERE NOT EXISTS (\n  SELECT 1\n  FROM orders o\n  WHERE o.customer_id = ___\n    AND o.channel = 'store'\n)",
+  "solver": {
+    "prompt_hash": "030f6e886b2be76c",
+    "schema_version": "aae731091f55",
+    "dataset_version": "b2d2b40fb117bb07",
+    "grader_version": "6a.1",
+    "query": "SELECT DISTINCT c.customer_id FROM ab_conversions c WHERE c.test_id = 'AB-2025-01' AND NOT EXISTS (SELECT 1 FROM orders o WHERE o.customer_id = c.customer_id AND o.channel = 'store')\r\n",
+    "at": "2026-10-15T11:06:12.902Z"
+  }
+}

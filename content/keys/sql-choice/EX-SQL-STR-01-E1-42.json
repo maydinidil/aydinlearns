@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-STR-01-E1-42",
+  "item_version": 1,
+  "value": 2,
+  "explanation": "split_part returns the text before the first hyphen exactly as stored, so VM and vm are two different values and DISTINCT keeps both: 2 rows. The spaces sit at the end of the sku, after the hyphen, so they never reach the prefix. Putting the prefix in upper case before DISTINCT would give 1 row.",
+  "solver": {
+    "prompt_hash": "a36a26aaea5d1261",
+    "grader_version": "choice.3",
+    "chosen": null,
+    "typed": "2",
+    "at": "2026-10-15T10:40:24.702Z"
+  }
+}

@@ -1,0 +1,174 @@
+{
+  "case_id": "CASE-MKT-01",
+  "kind": "inbox",
+  "level": 4,
+  "world": "MKT",
+  "company_id": "mailvora",
+  "schema": "mailvora",
+  "title": "September 2025 spend and cost per click by channel",
+  "persona": {
+    "name": "Aoife",
+    "role": "Performance marketing manager"
+  },
+  "brief": {
+    "decision": "Which paid channels to look at first in next month's channel plan, from September 2025 spend, clicks and cost per click in the monthly performance report",
+    "deadline": "The monthly performance report, due tomorrow"
+  },
+  "data_needed": [
+    "channels",
+    "campaigns",
+    "ad_spend_daily"
+  ],
+  "expected_output": {
+    "columns": [
+      "channel_id",
+      "channel_name",
+      "spend_eur",
+      "clicks",
+      "cpc_eur"
+    ],
+    "grain": "one row per paid channel, including a paid channel with no spend in September 2025",
+    "sort": [
+      {
+        "column": "spend_eur",
+        "desc": true
+      },
+      {
+        "column": "channel_id",
+        "desc": false
+      }
+    ]
+  },
+  "checkpoints": [
+    {
+      "id": "CP1",
+      "kind": "CP1",
+      "item_id": "CASE-MKT-01:CP1",
+      "credits_concepts": [],
+      "prompt": "Aoife needs one cost per click for each paid channel for September 2025. Mailvora's spend data has one row per campaign and day, with that day's spend and clicks, and a channel runs several campaigns. How should a channel's September cost per click be worked out?",
+      "options": [
+        {
+          "oid": "of7a5fe3",
+          "text": "Add up the channel's September spend over all its campaigns and days, then divide it by its September clicks added up the same way"
+        },
+        {
+          "oid": "o3c0323d",
+          "text": "Work out a cost per click for each campaign and day, then take the average of those daily figures over the month"
+        },
+        {
+          "oid": "o0b26145",
+          "text": "Work out each campaign's cost per click for the month, then take the average of those campaign figures across all the campaigns in the channel"
+        },
+        {
+          "oid": "o409b541",
+          "text": "Divide the channel's September spend by the number of signups it brought in during September"
+        }
+      ]
+    },
+    {
+      "id": "CP2",
+      "kind": "CP2",
+      "item_id": "CASE-MKT-01:CP2",
+      "credits_concepts": [
+        "SQL-AGG-01"
+      ],
+      "prompt": "Aoife's report needs the total number of clicks behind the September 2025 cost per click. Add up the clicks of every paid campaign on every UTC day of spend from 2025-09-01 to 2025-09-30, both days included. Type a whole number.",
+      "typed": {
+        "precision": "count",
+        "scale": "plain",
+        "decimals": 0,
+        "unit_label": "clicks"
+      },
+      "truth_key": "CASE-MKT-01:CP2"
+    },
+    {
+      "id": "CP3",
+      "kind": "CP3",
+      "item_id": "EX-CASE-MKT-01",
+      "credits_concepts": [
+        "SQL-CLEAN-01",
+        "SQL-JOIN-02",
+        "SQL-JOIN-01",
+        "SQL-AGG-02"
+      ],
+      "prompt": "Write the query that answers Aoife's question."
+    },
+    {
+      "id": "CP4",
+      "kind": "CP4",
+      "item_id": "CASE-MKT-01:CP4",
+      "credits_concepts": [],
+      "prompt": "Aoife's headline is the paid channel whose clicks cost the most in September 2025. A channel's cost per click is the spend of all its campaigns on the UTC days from 2025-09-01 to 2025-09-30, both days included, divided by the clicks of those campaigns on the same days; a channel with no clicks in that period has no cost per click. What is the highest cost per click of any paid channel? Type the amount in euros, rounded to 2 decimals.",
+      "typed": {
+        "precision": "money",
+        "scale": "eur",
+        "decimals": 2,
+        "unit_label": "euros"
+      },
+      "truth_key": "CASE-MKT-01:CP4"
+    },
+    {
+      "id": "CP5",
+      "kind": "CP5",
+      "item_id": "CASE-MKT-01:CP5",
+      "credits_concepts": [],
+      "prompt": "In Aoife's September 2025 table, brand search has the lowest cost per click of the paid channels and LinkedIn the highest. Nothing else has been checked yet. Aoife asks: is brand search our most efficient channel?",
+      "options": [
+        {
+          "oid": "occ55a60",
+          "text": "Yes. Its clicks cost the least, so every euro spent there buys the most visits, and visits are what the paid channels are paid to bring in."
+        },
+        {
+          "oid": "o842b426",
+          "text": "Not from this table. A cost per click says nothing about what a click is worth, and brand search mostly reaches people already looking for Mailvora."
+        },
+        {
+          "oid": "o4dfbb04",
+          "text": "No. LinkedIn is the most efficient channel, because the high price of its clicks shows that LinkedIn visitors are worth more to Mailvora than visitors from any other channel."
+        },
+        {
+          "oid": "o1ac86fc",
+          "text": "Yes, as long as its average daily cost per click over the month is also the lowest, which rules out one cheap week making it look better than it is."
+        }
+      ]
+    },
+    {
+      "id": "CP6",
+      "kind": "CP6",
+      "credits_concepts": [],
+      "prompt": "Write 2 to 4 sentences for Aoife's monthly report: which paid channel's clicks cost the most in September 2025 and what that does and does not tell us, one caveat, and one next step."
+    }
+  ],
+  "model_plan": "Metric formula: spend_eur is the channel's September 2025 spend and clicks its September clicks, both added up over its campaigns and days; cpc_eur = spend_eur divided by clicks, rounded to 2 decimals, and missing when clicks is 0.\nOutput grain: one row per paid channel (every channel outside the unpaid group), whether or not it spent in September.\nTables and keys: ad_spend_daily joins campaigns on campaign_id, which gives each campaign's channel_id; channels is kept whole with a LEFT JOIN on channel_id.\nFilters: spend_date from 2025-09-01 to 2025-09-30, both days included (UTC days); channels whose channel_group is not unpaid.\nEdge cases: a paid channel with no September spend keeps its row with 0 spend and 0 clicks; a channel with spend and no clicks gets a missing cpc_eur, not 0 and not a division by 0; the cost per click is total spend over total clicks, not an average of daily figures; a month number without its year would add September 2024.\nExpected row count: 7",
+  "model_answer_template": "LinkedIn's clicks cost the most of any paid channel in September 2025, at {CP4} euros a click, while brand search had the cheapest clicks. A cost per click prices traffic, not results: LinkedIn may bring fewer but better signups, and brand search mostly reaches people who were already looking for Mailvora. Before ranking channels by efficiency, I would add each channel's signups, paid conversions and revenue to this table and compare the cost per signup and the return on spend.",
+  "follow_up_question": "Which of our paid channels is the most efficient?",
+  "data_source": {
+    "label": "Fictional, generated data: Mailvora",
+    "real": false,
+    "licence": null
+  },
+  "difficulty": 1,
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-CLEAN-01"
+  ],
+  "metric_ids": [
+    "MET-MKT-01",
+    "MET-MKT-02"
+  ],
+  "find_ids": [
+    "FIND-03-02"
+  ],
+  "uses_raw": false
+}

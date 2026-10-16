@@ -1,0 +1,137 @@
+{
+  "id": "EX-SQL-SUBQ-02-E2-05",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-04",
+    "derived_table",
+    "join",
+    "avg",
+    "price_history",
+    "parent_category"
+  ],
+  "level": 4,
+  "source_ids": [
+    "01:SQL-SUBQ-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-15",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-SUBQ-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-JOIN-01",
+    "SQL-SUBQ-01",
+    "SQL-SUBQ-02"
+  ],
+  "template_id": "T-SUBQ-02-join-derived-avg",
+  "template_params": {
+    "table": "price_history",
+    "step": "product",
+    "group": "parent_category"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_subq",
+  "prompt": "For each parent category, what is the average number of price versions a product has had? A product has one price_history row per price version, and the average covers the products of the parent category that have at least one version. Round to 2 decimals. Return two columns, in this order: parent_category and avg_versions. Return one row for each parent category. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "parent_category",
+        "type_class": "text"
+      },
+      {
+        "name": "avg_versions",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "parent_category",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "avg_versions",
+        "type_class": "numeric",
+        "precision": "ratio",
+        "require_rounding": 2
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "parent_category"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the derived table: each product's number of price versions.",
+    "Join that one row per product to the product and its category to reach the parent category, then average per parent category."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 69,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 70,
+      "to": 101,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 102,
+      "to": 145,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 146,
+      "to": 166,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 167,
+      "to": 188,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 189,
+      "to": 293,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 294,
+      "to": 320,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "The derived table counts each product's versions once, so joining it to the categories cannot repeat a product before the average."
+}

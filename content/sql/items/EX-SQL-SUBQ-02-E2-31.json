@@ -1,0 +1,119 @@
+{
+  "id": "EX-SQL-SUBQ-02-E2-31",
+  "version": 1,
+  "kind": "fix",
+  "tags": [
+    "sql",
+    "LVL-04",
+    "derived_table",
+    "wrong_grain",
+    "order_lines",
+    "fix"
+  ],
+  "level": 4,
+  "source_ids": [
+    "01:SQL-SUBQ-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-15",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-SUBQ-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-SUBQ-01",
+    "SQL-SUBQ-02"
+  ],
+  "template_id": "T-SUBQ-02-fix-step-grain",
+  "template_params": {
+    "table": "order_lines",
+    "step": "order"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_subq",
+  "prompt": "The query in the editor has one mistake. Fix it so that it answers this question: what is the average number of different products in an order, over the orders with at least one line? Round to 2 decimals. Return one column, avg_products. The result is a single row. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "avg_products",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "avg_products",
+        "type_class": "numeric",
+        "precision": "ratio",
+        "require_rounding": 2
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, check the grain of the derived table against its comment: what does one of its rows stand for?",
+    "The average must run over orders, so the inner query needs exactly one row per order, with that order's count of different products."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 50,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 51,
+      "to": 80,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 81,
+      "to": 140,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 141,
+      "to": 159,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 160,
+      "to": 179,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 180,
+      "to": 186,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": "SELECT ROUND(AVG(t.n_products), 2) AS avg_products\nFROM (\n  -- one row per order\n  SELECT order_id, product_id, COUNT(*) AS n_products\n  FROM order_lines\n  GROUP BY order_id, product_id\n) AS t",
+  "starter_error_id": "ERR-LOG-07",
+  "time_target_ms": 180000,
+  "why_this_works": "Grouped by order alone, the derived table has one row per order with its number of different products, so the average runs over orders."
+}

@@ -1,0 +1,107 @@
+{
+  "concept_id": "SQL-STR-01",
+  "version": 1,
+  "reading_md": "## Text functions: cleaning and cutting text keys\n\nRaw data is typed by people and loaded by scripts, so text keys arrive messy. The raw tables carry the note \"This table may hold errors.\" In Voltmarkt's raw `products`, some skus are in lower case and some end in spaces, and `category_raw` spells the parent category TV & Video in four ways: 'TV & Video', 'tv en video', 'TV/Video ' and 'Téléviseurs'. Each of those names the parent, never one of its child categories.\n\n### Why messy text breaks a query\n\nText is compared character by character. 'VM-000022', 'vm-000022' and 'VM-000022 ' are three different values to SQL: a capital letter differs from a small one, and a space at the end is a character too. So a messy key splits one group into several, and a filter or a join on it misses the rows written another way. Nothing warns you; the counts just come out wrong.\n\n### Cleaning helpers\n\n- `TRIM(x)` removes the spaces at the start and end, and keeps the spaces between words.\n- `UPPER(x)` and `LOWER(x)` put every letter in one case.\n- `REPLACE(x, ' ', '')` removes every space, inside the text too.\n- `length(x)` counts the characters, spaces included, so it shows hidden padding.\n\nNest them to reach a standard form: `UPPER(TRIM(sku))`. The question says what the standard form is, and you clean only what it asks about.\n\n### Clean both sides the same way\n\nClean the key in every place you use it: in SELECT and in GROUP BY, or on both sides of a comparison. Compare `LOWER(TRIM(category_raw))` with spellings written in lower case, never with a mix.\n\n### Cutting text\n\n- `substring(x, start, n)` keeps `n` characters from position `start`. Positions count from 1, and `n` is how many characters to keep, not where to stop: `substring('VM-000123', 4, 6)` gives '000123'.\n- `split_part(x, '-', 2)` cuts at each hyphen and returns part 2, counting from 1. A part past the last one gives empty text.\n- `left(x, n)` and `right(x, n)` keep the first or last `n` characters.\n\nA fixed position works only when every value has the same layout: 'WEB-01' has three letters before its hyphen, so `split_part` is safer there than `substring(store_code, 1, 2)`.\n\n### Joining text\n\n`concat(a, ' ', b)` joins its pieces in order and skips a missing one. `a || ' ' || b` does the same, but a missing piece makes the whole result missing.\n\n### Finding the quirk\n\nA good check on raw text returns what is wrong: the rows whose stored value differs from its clean form, `WHERE sku <> UPPER(TRIM(sku))`, or the count of each spelling. Count the bad values before you fix them, so you know how big the problem is.",
+  "syntax_md": "```sql\nSELECT UPPER(TRIM(sku)) AS clean_sku, COUNT(*) AS n_products   -- metrics: the cleaned key\nFROM products                                                   -- source: the raw table\nWHERE sku <> UPPER(TRIM(sku))                                   -- row filter: keep the messy values\nGROUP BY UPPER(TRIM(sku))                                       -- output grain: the same cleaned key\n```\n\n- Clean a key the same way everywhere you use it: in SELECT, GROUP BY, WHERE and ON.\n- `substring(x, start, n)`: positions from 1, `n` characters kept.\n- `split_part(x, separator, k)`: part `k`, counting from 1.\n- `concat` skips a missing piece; `||` returns missing.",
+  "dialect_note": "split_part and the regexp_ functions (regexp_replace, regexp_extract and the rest) are not standard SQL: their names, arguments and results differ from engine to engine, so check the engine's own documentation before you rely on them in a test. In DuckDB, text positions count from 1, and a start of 0 points at the place before the first character, so substring('VM-000123', 0, 3) keeps only 2 characters (checked on DuckDB 1.5.6).",
+  "worked_examples": [
+    {
+      "title": "Products for each cleaned sku prefix",
+      "prompt": "For each sku prefix, the text before the first hyphen, how many products are there once the prefix is in upper case? This table may hold errors. Return sku_prefix and n_products.",
+      "clauses": [
+        {
+          "text": "SELECT UPPER(split_part(TRIM(sku), '-', 1)) AS sku_prefix, COUNT(*) AS n_products",
+          "subgoal": "metrics",
+          "why": "split_part cuts at the hyphen and UPPER makes 'vm' and 'VM' one prefix."
+        },
+        {
+          "text": "FROM products",
+          "subgoal": "source_grain",
+          "why": "One row per product, read from the raw table."
+        },
+        {
+          "text": "GROUP BY UPPER(split_part(TRIM(sku), '-', 1))",
+          "subgoal": "output_grain",
+          "why": "The group is the cleaned prefix, written exactly as in SELECT, so each prefix makes one row."
+        }
+      ]
+    },
+    {
+      "title": "Finding one sku however it was typed",
+      "prompt": "Which product has the sku VM-000022, however it was typed? This table may hold errors: a sku matches when it equals VM-000022 in upper case with every space removed. Return product_id and sku as stored.",
+      "clauses": [
+        {
+          "text": "SELECT product_id, sku",
+          "subgoal": "metrics",
+          "why": "The stored sku shows how it was typed."
+        },
+        {
+          "text": "FROM products",
+          "subgoal": "source_grain",
+          "why": "One row per product."
+        },
+        {
+          "text": "WHERE UPPER(REPLACE(sku, ' ', '')) = 'VM-000022'",
+          "subgoal": "row_filter",
+          "why": "The column side is cleaned to the form the value is written in, so 'vm-000022  ' still matches."
+        }
+      ]
+    }
+  ],
+  "pretest_item_ids": [
+    "EX-SQL-STR-01-E1-01",
+    "EX-SQL-STR-01-E1-02"
+  ],
+  "lesson_item_ids": [
+    "EX-SQL-STR-01-E1-03",
+    "EX-SQL-STR-01-E1-04",
+    "EX-SQL-STR-01-E2-01",
+    "EX-SQL-STR-01-E2-02"
+  ],
+  "retest_item_id": "EX-SQL-STR-01-E1-05",
+  "pool_item_ids": [
+    "EX-SQL-STR-01-E1-06",
+    "EX-SQL-STR-01-E1-07",
+    "EX-SQL-STR-01-E1-08",
+    "EX-SQL-STR-01-E1-09",
+    "EX-SQL-STR-01-E2-03",
+    "EX-SQL-STR-01-E2-04",
+    "EX-SQL-STR-01-E2-05",
+    "EX-SQL-STR-01-E2-06",
+    "EX-SQL-STR-01-E3-01",
+    "EX-SQL-STR-01-E3-02",
+    "EX-SQL-STR-01-E3-03",
+    "EX-SQL-STR-01-E1-31",
+    "EX-SQL-STR-01-E2-31",
+    "EX-SQL-STR-01-E1-42",
+    "EX-SQL-STR-01-E2-41",
+    "EX-SQL-STR-01-E2-42"
+  ],
+  "source_ids": [
+    "01:SQL-STR-01"
+  ],
+  "why_clause": {
+    "clause": "GROUP BY UPPER(split_part(TRIM(sku), '-', 1))",
+    "stem": "Why does the GROUP BY repeat the whole cleaned expression instead of grouping by sku?",
+    "options": [
+      {
+        "id": "a",
+        "text": "Grouping by sku would make one row per product; the group has to be the cleaned prefix, written the same way as in SELECT."
+      },
+      {
+        "id": "b",
+        "text": "GROUP BY cannot name a column that the SELECT list changes, so the whole expression must be written out."
+      },
+      {
+        "id": "c",
+        "text": "UPPER and TRIM only work inside GROUP BY, so SELECT shows the prefix without cleaning it."
+      },
+      {
+        "id": "d",
+        "text": "Repeating the expression makes DuckDB read the table once instead of twice."
+      }
+    ],
+    "correct_id": "a",
+    "explanation": "Every sku is different, so GROUP BY sku gives one row per product. The question groups by the cleaned prefix, so the same expression goes in SELECT and in GROUP BY; GROUP BY 1 would also work. GROUP BY can name an expression that SELECT changes, the helpers work anywhere, and repeating the expression changes nothing about speed."
+  }
+}

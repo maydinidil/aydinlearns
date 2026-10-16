@@ -1,0 +1,103 @@
+{
+  "id": "EX-SQL-SUBQ-01-E2-03",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-04",
+    "not_exists",
+    "not_in_missing",
+    "ab_conversions",
+    "orders",
+    "guest_orders"
+  ],
+  "level": 4,
+  "source_ids": [
+    "01:SQL-SUBQ-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-15",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-SUBQ-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-SORT-01",
+    "SQL-SUBQ-01"
+  ],
+  "template_id": "T-SUBQ-01-not-exists-nullable-key",
+  "template_params": {
+    "outer": "ab_conversions",
+    "inner": "orders",
+    "channel": "store"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_subq",
+  "prompt": "Which customers who converted in the A/B test AB-2025-01, with at least one row in ab_conversions, have never placed a store order, that is an order whose channel is 'store'? Guest orders have a missing customer_id. Return one column, customer_id, with one row for each such customer. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "customer_id",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "customer_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "customer_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the row filter: keep a converted customer when no store order of that customer exists.",
+    "Guest orders put a missing value into any list of store customers, so test for a matching order instead of comparing with that list; a customer can also convert more than once."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 29,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 30,
+      "to": 51,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 52,
+      "to": 165,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "NOT EXISTS looks for a store order of each converted customer, so the guest orders with a missing customer_id never match and cannot wipe out every row."
+}

@@ -9,8 +9,15 @@
 // Sprint 4b (Task B2) adds C41, the cases: the openers and content/sql/cases/, their CP3 items, keys and truth values.
 // Sprint 5b (Task B1) adds C42 to C45, the GA4 labs: each lab, its key, its blind solve and the lab guide (checkLabs).
 // Sprint 5b (Task B4 fix) adds C46: the full mock of the entry in force today, and of every later-dated entry, asks no more questions than the held-out pool (checkFullMockPool).
+// Sprint 6 (Task B3) repairs C41 (the truth queries parsed and run on each case's schema and edge schema, a stale truth, a key with no
+// case, a daily case's level), teaches C19 the cumulative drill entry, and adds C47 (raw data), C48 (the level 4 traps), C49 (the level 4
+// drill pool and the cumulative entry) and C50 (each case CP1, CP2, CP4 and CP5's blind-solve record). The F2 seams fix round adds C52
+// (every table the schema panel shows an item is in its edge schema; C51 is Part 2's) and fails C41 once when the schemas cannot be read.
+// Sprint 6 Part 2 (Task G2) adds C51: the dataset registry, its prep scripts and the cases on its data (checkDatasets), and skips by
+// name an item whose registry dataset is not prepared (unbuiltItems), as C41 skips its case.
 // Usage: node tools/check-content.ts [content-root]   (default: content/)
 import { createHash } from 'node:crypto';
+import { existsSync } from 'node:fs';
 import { readdir, readFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -19,7 +26,8 @@ import type { DisplayOk, GateOk, RowsOk } from '../server/runner/protocol.ts';
 import { maskSql, stripTrailing } from '../server/runner/tables.ts';
 import { grade, type Feedback } from '../server/grader/grade.ts';
 import type { GradeResult } from '../server/grader/types.ts';
-import { ContentFileError, LAB_GUIDE_FILE, LAB_KEY_DIR, loadContent, type ContentStore, type LoadOptions } from '../server/content.ts';
+import { caseUnavailable, ContentFileError, LAB_GUIDE_FILE, LAB_KEY_DIR, loadContent, truthSourceHash, type ContentStore, type LoadOptions } from '../server/content.ts';
+import { parseDrillFile, type DrillFile } from '../server/drill.ts';
 import { EM_DASH, sameStructuralAnswer, validateLab, validateLabKey, type Lab, type LabKey } from '../schemas/lab.ts';
 import { readingWords } from '../schemas/reading.ts';
 import { amsterdamDate } from '../core/time.ts';
@@ -27,12 +35,16 @@ import { openerLevel } from '../server/session-composer.ts';
 import { isSqlChoiceKind, validateSqlItem, type SqlItem } from '../schemas/item.ts';
 import { validateSqlKey, type SqlKey } from '../schemas/keys.ts';
 import { validateLesson, type Lesson } from '../schemas/lesson.ts';
-import { validateCaseKey, validateCaseRecord, type CaseRecord } from '../schemas/case.ts';
+import { caseSchema, SOLVED_KINDS, validateCaseKey, validateCaseRecord, type CaseRecord, type SolvedKind } from '../schemas/case.ts';
 import type { Curriculum } from '../schemas/concepts.ts';
 import type { EdgeDescription } from '../schemas/edge.ts';
+import { validateDataset, type DatasetRecord } from '../schemas/dataset.ts';
+import { notesForLevel, type TableNote } from '../schemas/schema-notes.ts';
 import { detectConstructs, helperCalls } from './constructs.ts';
 import { checkChoice, tallyLine } from './check-choice.ts';
 import { checkSqlChoiceItem, checkWhyClause, outermost, sqlChoiceTallyLine } from './check-sql-choice.ts';
+import { caseKeyHash } from './case-key-hash.ts';
+import { casePromptHash } from './export-case-view.ts';
 
 export interface CheckResult { id: string; check: string; ok: boolean; warn?: boolean; detail: string }   // detail never contains SQL
 export interface CheckContext {
@@ -80,6 +92,28 @@ export async function schemaVersion(runner: RunnerClient, schema: string, tables
   const r = await runner.request<RowsOk>({ op: 'app_query', sql: `SELECT lower(table_name), column_name, data_type FROM information_schema.columns WHERE table_schema = '${schema}' AND lower(table_name) IN (${list}) ORDER BY ALL` });
   if (!r.ok) throw new Error('the schema could not be read');
   return sha(JSON.stringify(r.data.rows)).slice(0, 12);
+}
+
+/** Each runner's DATE columns by schema, read once (dateColumns). */
+const dateColumnCache = new WeakMap<RunnerClient, Map<string, Promise<ReadonlySet<string>>>>();
+
+/**
+ * S6-09 (sprint 6, Task A1): the lower-case names of a schema's DATE-typed columns, from the database the checks run on, so C09 can
+ * see a DATE column minus a DATE as date arithmetic (tools/constructs.ts). An unsafe name or an unreadable schema gives none.
+ * S6-34 (Task K3): a name counts only when every table and view of the schema that has a column of that name types it DATE, since a
+ * bare name cannot say which table it reads: `opened_on` that is a DATE in one table and a TIMESTAMP in another is left out.
+ */
+export function dateColumns(runner: RunnerClient, schema: string): Promise<ReadonlySet<string>> {
+  if (!/^[a-z_][a-z0-9_]*$/.test(schema)) return Promise.resolve(new Set());
+  let bySchema = dateColumnCache.get(runner);
+  if (!bySchema) dateColumnCache.set(runner, bySchema = new Map());
+  let found = bySchema.get(schema);
+  if (!found) {
+    found = runner.request<RowsOk>({ op: 'app_query', sql: `SELECT lower(column_name) FROM information_schema.columns WHERE table_schema = '${schema}' GROUP BY lower(column_name) HAVING bool_and(data_type = 'DATE')` })
+      .then((r) => new Set(r.ok ? r.data.rows.map((row) => String(row[0])) : []));
+    bySchema.set(schema, found);
+  }
+  return found;
 }
 
 const NAME_PART = '(?:"(?:[^"]|"")+"|[A-Za-z_][\\w$]*)';
@@ -271,14 +305,17 @@ export async function checkItem(item: SqlItem, key: SqlKey, ctx: CheckContext): 
     add('C08', problems.length === 0, problems.join('; '));
   });
 
-  await check('C09', () => {
+  await check('C09', async () => {
     const order = new Map(ctx.curriculum.concepts.map((c) => [c.id, c.order]));
     const targetOrder = order.get(item.target_concept_id) ?? -1;
     const conceptOf = new Map(ctx.constructs.map((c) => [c.construct, c.concept_id]));
     const problems = new Set<string>();
+    // S6-09: the item schema's DATE columns, so a DATE column minus a DATE counts as date arithmetic (S6-34: names typed DATE in
+    // every table that has them, also read through min, max, any_value, least, greatest, date_trunc or a cast to DATE).
+    const dates = await dateColumns(ctx.runner, item.schema);
     for (const k of shown()) {
       if (/\bsum\s*\(\s*distinct\b/i.test(maskSql(k))) problems.add('SUM(DISTINCT ...) used');
-      for (const c of detectConstructs(k)) {
+      for (const c of detectConstructs(k, { dateColumns: dates })) {
         const concept = conceptOf.get(c);
         if (!concept || (order.get(concept) ?? Infinity) <= targetOrder || helperAllowed(c, k)) continue;
         problems.add(`uses ${c} (${concept}), which comes later than ${item.target_concept_id}`);
@@ -464,6 +501,13 @@ export async function checkItem(item: SqlItem, key: SqlKey, ctx: CheckContext): 
     add('C40', problems.length === 0, problems.join('; '));
   });
 
+  // C47 (sprint 6, S6-01, Review Focus 2): a raw-data item is on voltmarkt_raw with the clean edge schema, names no schema and finds the
+  // quirk; a clean item's key reads no raw table.
+  await check('C47', async () => {
+    const problems = await rawDataProblems(item, key, ctx.runner);
+    add('C47', problems.length === 0, problems.join('; '));
+  });
+
   return out.map((r) => (r.ok ? { ...r, detail: '' } : r));
 }
 
@@ -610,24 +654,119 @@ export function checkOpeners(store: ContentStore): CheckResult[] {
 
 const CASE_CHOICES = ['CP1', 'CP5'] as const;
 const CASE_TRUTHS = ['CP2', 'CP4'] as const;
+/** The runner's time limit for one truth query, on the visible or the edge schema (the build has none: it is ours, not a learner's). */
+const TRUTH_TIMEOUT_MS = 30_000;
+
+/** Sprint 6 (Task B3): the database C41 runs the truth queries on, and the schemas it holds (schemasIn). */
+export interface CaseDb { runner: RunnerClient; schemas: ReadonlySet<string> }
+export interface CaseCheckOptions {
+  /** The database: each truth query is parsed by the gate and run on the case's schema and its CP3 item's edge schema. */
+  db?: CaseDb;
+}
 
 /**
- * C41 (sprint 4b, Task B2; S4B-01 to S4B-05, design §7): every case, the level openers and content/sql/cases/ alike, one result per
- * case file, named by case ID. C29 keeps the opener rules; this check adds, for every case:
+ * Every schema the database holds, from the runner: what C41 and C47 run on, and which cases are unavailable (S6-13). Null when the
+ * query fails: an empty set would make every case look unavailable, and C41 would skip them all with a warning (F2 seams triage).
+ */
+export async function schemasIn(runner: RunnerClient): Promise<Set<string> | null> {
+  const r = await runner.request<RowsOk>({ op: 'app_query', sql: 'SELECT DISTINCT schema_name FROM information_schema.schemata' });
+  return r.ok ? new Set(r.data.rows.map((row) => String(row[0]))) : null;
+}
+
+/**
+ * C41 with the database the runner reads (check:content's call). When the schemas it holds cannot be read, C41 fails once, by the
+ * database's name, and the cases are checked without the database (records, keys and the truth file; a case whose schema the build
+ * did not name is still skipped by name), so none is skipped for want of a schema list.
+ */
+export async function checkCasesOnDb(store: ContentStore, runner: RunnerClient): Promise<CheckResult[]> {
+  const schemas = await schemasIn(runner);
+  if (schemas === null) {
+    return [{ id: 'data/course.duckdb', check: 'C41', ok: false, detail: 'the schemas the database holds could not be read, so no truth query ran on it: check that npm run build:data finished' },
+      ...(await checkCases(store))];
+  }
+  return checkCases(store, { db: { runner, schemas } });
+}
+
+/** The type names DuckDB gives a number column: a truth query must return one of them. */
+const NUMBER_TYPE = /^(TINYINT|SMALLINT|INTEGER|BIGINT|HUGEINT|UTINYINT|USMALLINT|UINTEGER|UBIGINT|UHUGEINT|FLOAT|DOUBLE|DECIMAL(\(\d+,\s*\d+\))?)$/i;
+/** A display result's one number: one row, one numeric column, a finite value (a BIGINT or DECIMAL comes back as text); else null. */
+export function oneNumber(r: DisplayOk): number | null {
+  if (r.columns.length !== 1 || r.rows.length !== 1 || r.truncated || !NUMBER_TYPE.test(r.columns[0]!.type)) return null;
+  const v = r.rows[0]![0];
+  const n = typeof v === 'number' ? v : typeof v === 'string' && /^-?\d+(\.\d+)?$/.test(v.trim()) ? Number(v) : NaN;
+  return Number.isFinite(n) ? n : null;
+}
+
+/**
+ * B2-M4 and S4C-05: what is wrong with one truth query, parsed by the runner's gate on the case's schema (exactly one statement, a
+ * SELECT, its tables named without a schema, so the edge run swaps them) and run on the visible schema and on the edge schema, where
+ * it must return one number. `stored` is the truth file's value, which must be what the query returns on the visible schema now.
+ * Never quotes the query or a value. P16: on the edge run only, a one-row, one-column missing value is a warning (`warns`), not a
+ * failure (`fails`); everything else, and any missing value on the visible schema, fails.
+ */
+async function truthQueryProblems(db: CaseDb, cp: string, truthKey: string, sql: string, schema: string, edge: string | null, stored: number | undefined): Promise<{ fails: string[]; warns: string[] }> {
+  const what = `the truth query for ${cp}`;
+  const g = await db.runner.request<GateOk>({ op: 'gate', schema, allowedSchemas: [], sql });
+  if (!g.ok) {
+    const e = g.error;
+    if (e.kind === 'gate' && (e.reason === 'multi_statement' || e.reason === 'empty')) return { fails: [`${what} must be one statement`], warns: [] };
+    if (e.kind === 'gate' && e.reason === 'not_select') return { fails: [`${what} must be one SELECT (it may start with WITH)`], warns: [] };
+    if (e.kind === 'gate' && e.reason === 'qualified_schema') return { fails: [`${what} must name its tables without a schema`], warns: [] };
+    return { fails: [`${what} does not return one number on ${schema}`], warns: [] };
+  }
+  if (g.data.tables.some((t) => t.schema !== null)) return { fails: [`${what} must name its tables without a schema`], warns: [] };
+  const out: string[] = [];
+  const warns: string[] = [];
+  /** The one number the query returns on `on`, or why it returns none (a kind, never the error's text). */
+  const run = async (on: string): Promise<{ n: number } | { why: string }> => {
+    const r = await db.runner.request<DisplayOk>({ op: 'display', schema: on, allowedSchemas: [], sql, cap: 2, deadlineMs: TRUTH_TIMEOUT_MS });
+    if (!r.ok) return { why: r.error.kind === 'timeout' ? 'it runs past the time limit' : 'it does not run there' };
+    const n = oneNumber(r.data);
+    if (n !== null) return { n };
+    const d = r.data;
+    if (d.rows.length !== 1 || d.columns.length !== 1) return { why: `it returns ${d.rows.length === 0 ? 'no row' : d.rows.length > 1 ? 'more than one row' : 'more than one column'}` };
+    return { why: d.rows[0]![0] === null ? 'it returns a missing value' : 'it returns something other than a number' };
+  };
+  const visible = await run(schema);
+  if ('why' in visible) out.push(`${what} does not return one number on ${schema} (${visible.why})`);
+  else if (stored !== undefined && Math.abs(visible.n - stored) > 1e-9 * Math.max(1, Math.abs(stored))) {
+    out.push(`the truth file's value for ${truthKey} is not what its query returns on ${schema}: run npm run build:data`);
+  }
+  if (edge !== null && !db.schemas.has(edge)) out.push(`the edge schema ${edge} is not in the database`);
+  else if (edge !== null) {
+    const e = await run(edge);
+    if (!('why' in e)) { /* one number */ }
+    else if (e.why === 'it returns a missing value') warns.push(`${what} returns a missing value on ${edge}`);
+    else out.push(`${what} does not return one number on ${edge} (${e.why})`);
+  }
+  return { fails: out, warns };
+}
+
+/**
+ * C41 (sprint 4b, Task B2; S4B-01 to S4B-05, design §7; repaired in sprint 6, Task B3): every case, the level openers and
+ * content/sql/cases/ alike, one result per case file, named by case ID, and one per key file with no case. C29 keeps the opener
+ * rules; this check adds, for every case:
  * - the record validates (validateCaseRecord, a daily case's CP3 and CP4 only included); a malformed record fails on those
  *   messages alone, and the check finishes;
  * - an opener sits in content/sql/openers/, an inbox or daily case in content/sql/cases/; no case ID and no checkpoint item is
  *   used by two case files (the store keeps one credit list per item);
- * - its CP3 item exists with use `opener` (an opener) or `case` (otherwise) and no grain line, and the expected output is that
- *   item's output columns and sort keys;
- * - an opener's level is openerLevel's; every credited concept is an SQL curriculum concept at or below the case's level;
- * - every truth_key has a value in the truth file the store read (`store.checkpointTruth`);
- * - its key (content/keys/cases/<case_id>.json) validates, names the case, has a truth query for each CP2 and CP4 and a correct
- *   option for each CP1 and CP5 the case lists and nothing for any other, and each correct option is one of that checkpoint's
- *   options, whose oids are unique.
- * A detail names case IDs, item IDs, checkpoints and fields: never a truth query, a value, a correct oid or an explanation.
+ * - its CP3 item exists with use `opener` (an opener) or `case` (otherwise), no grain line and the case's schema (S6-13), and the
+ *   expected output is that item's output columns and sort keys;
+ * - an opener's level is openerLevel's; a daily case's level is its highest credited concept's (B2-M3); every credited concept is
+ *   an SQL curriculum concept at or below the case's level;
+ * - every `{CP2}` or `{CP4}` in the model answer names a checkpoint the case lists (S4B-10);
+ * - every truth_key has a value in the truth file the store read, computed from the key as it is now: a source hash that differs
+ *   from the case's schema and truth query says the key changed since the build (C1 fix report, note 5);
+ * - its key (content/keys/cases/<case_id>.json, the file named after the case) validates, names that case, has a truth query for
+ *   each CP2 and CP4 and a correct option for each CP1 and CP5 the case lists and nothing for any other, and each correct option is
+ *   one of that checkpoint's options (the validator's S2-60 rule already makes every oid of a record different);
+ * - with the database (`db`): each truth query is one SELECT by the gate's parse, names no schema, and returns one number on the
+ *   case's schema, equal to the truth file's value, and on its CP3 item's edge schema (B2-M4, S4C-05).
+ * A case whose schema the database does not hold (`db`, or else the schemas the build named) is unavailable until its dataset is
+ * prepared (S6-13): once its record and key pass, it is skipped by name with a warning, never failed (Review Focus 3).
+ * A detail names case IDs, item IDs, checkpoints, schemas and fields: never a truth query, a value, a correct oid or an explanation.
  */
-export function checkCases(store: ContentStore): CheckResult[] {
+export async function checkCases(store: ContentStore, options: CaseCheckOptions = {}): Promise<CheckResult[]> {
   const all = store.cases?.() ?? [];
   const openers = new Set<unknown>(store.openers?.() ?? []);
   const idOf = (rec: CaseRecord, n: number): string => (typeof rec?.case_id === 'string' ? rec.case_id : `case file #${n + 1}`);
@@ -638,18 +777,23 @@ export function checkCases(store: ContentStore): CheckResult[] {
     for (const c of Array.isArray(rec?.checkpoints) ? rec.checkpoints : []) if (typeof c?.item_id === 'string') itemOwners.set(c.item_id, (itemOwners.get(c.item_id) ?? 0) + 1);
   }
   const levelOf = new Map(store.curriculum.concepts.map((c) => [c.id, c.level]));
-  return all.map((rec, n) => {
+  const built = options.db?.schemas ?? store.builtSchemas?.() ?? null;
+  const out: CheckResult[] = [];
+  for (const [n, rec] of all.entries()) {
     const id = idOf(rec, n);
     const invalid = validateCaseRecord(rec);
     const why = [...invalid];
+    const warns: string[] = [];
     const isOpener = openers.has(rec);
     if ((files.get(id) ?? 0) > 1) why.push(`the case ID ${id} is used by ${files.get(id)} case files`);
     // Codex F22's lesson: the checks below read the record's fields, so they run only on a record that validated.
-    if (invalid.length) return { id, check: 'C41', ok: false, detail: why.join('; ') };
+    if (invalid.length) { out.push({ id, check: 'C41', ok: false, detail: why.join('; ') }); continue; }
+    const schema = caseSchema(rec);
+    const absent = built !== null && !built.has(schema);
     if (isOpener && rec.kind !== 'opener') why.push('content/sql/openers/ holds the level openers only: an inbox or daily case goes in content/sql/cases/');
     if (!isOpener && rec.kind === 'opener') why.push('a level opener goes in content/sql/openers/, not content/sql/cases/');
     for (const c of rec.checkpoints) if (c.item_id !== undefined && (itemOwners.get(c.item_id) ?? 0) > 1) why.push(`${c.item_id} is also a checkpoint item of another case`);
-    // The CP3 item: its use, no grain line, and the expected output it promises.
+    // The CP3 item: its use, no grain line, the case's schema, and the expected output it promises.
     const cp3 = rec.checkpoints.find((c) => c.kind === 'CP3')!;
     const item = store.item(cp3.item_id!);
     const use = rec.kind === 'opener' ? 'opener' : 'case';
@@ -657,54 +801,469 @@ export function checkCases(store: ContentStore): CheckResult[] {
     else {
       if (item.use !== use) why.push(`${cp3.item_id} must have use ${use}`);
       if (item.output_contract?.grain != null) why.push(`${cp3.item_id} must have no grain line`);
+      if (item.schema !== schema) why.push(`${cp3.item_id} must read ${schema}, the case's schema (it reads ${String(item.schema)})`);
       const columns = item.output_contract?.columns?.map((c) => c.name) ?? [];
       if (JSON.stringify(rec.expected_output.columns) !== JSON.stringify(columns)) why.push(`expected_output.columns must be ${cp3.item_id}'s output columns, in order`);
       const sort = (item.rules?.sort_keys ?? []).map((k) => ({ column: k.column, desc: k.desc }));
       const promised = rec.expected_output.sort.map((k) => ({ column: k.column, desc: k.desc }));
       if (JSON.stringify(promised) !== JSON.stringify(sort)) why.push(`expected_output.sort must be ${cp3.item_id}'s sort keys`);
     }
-    // Levels: an opener opens the level its concepts reach; every credit sits at or below the case's level.
+    // Levels: an opener opens the level its concepts reach; a daily case is the level of its highest credit (B2-M3); every credit
+    // sits at or below the case's level.
     if (rec.kind === 'opener') {
       const opens = openerLevel(rec, store.curriculum);
       if (opens !== rec.level) why.push(`the opener is level ${rec.level}, but its concepts reach level ${opens ?? 'none'} (openerLevel)`);
+    }
+    const credited = rec.checkpoints.flatMap((c) => c.credits_concepts).map((c) => levelOf.get(c)).filter((l): l is number => l !== undefined);
+    if (rec.kind === 'daily' && credited.length && Math.max(...credited) !== rec.level) {
+      why.push(`a daily case's level must be ${Math.max(...credited)}, the level of its highest credited concept`);
     }
     for (const c of rec.checkpoints) for (const concept of c.credits_concepts) {
       const level = levelOf.get(concept);
       if (level === undefined) why.push(`${c.kind} credits ${concept}, which is not a concept of the SQL curriculum`);
       else if (level > rec.level) why.push(`${c.kind} credits ${concept}, a level ${level} concept, above the case's level ${rec.level}`);
     }
-    // The truth file: every CP2 and CP4 value the build wrote.
-    for (const c of rec.checkpoints) if (c.truth_key !== undefined && store.checkpointTruth?.(c.truth_key) === undefined) {
-      why.push(`${c.truth_key} has no value in the truth file: run npm run build:data, and check the key's truth query`);
+    // S4B-10: a placeholder the case cannot fill would read "(answer CP4 to see this number)" for good.
+    const kinds = new Set<string>(rec.checkpoints.map((c) => c.kind));
+    for (const k of new Set([...rec.model_answer_template.matchAll(/\{(CP\d)\}/g)].map((m) => m[1]!))) {
+      if (!(CASE_TRUTHS as readonly string[]).includes(k)) why.push(`model_answer_template fills {${k}}, but only {CP2} and {CP4} can be filled`);
+      else if (!kinds.has(k)) why.push(`model_answer_template fills {${k}}, but the case has no ${k}`);
     }
     // The key: its shape, then each entry against the checkpoints the case lists.
-    const kinds = new Set<string>(rec.checkpoints.map((c) => c.kind));
     const needsKey = [...CASE_CHOICES, ...CASE_TRUTHS].some((k) => kinds.has(k));
-    const key = store.caseKey?.(rec.case_id);
-    if (!key) { if (needsKey) why.push(`content/keys/cases/${rec.case_id}.json is missing: its CP1, CP2, CP4 and CP5 need it`); }
-    else {
-      const shape = validateCaseKey(key);
-      if (shape.length) why.push(...shape.map((m) => `the key: ${m}`));
-      else {
-        if (key.case_id !== rec.case_id) why.push('the key names another case');
-        for (const k of CASE_TRUTHS) {
-          if (kinds.has(k) && key.truths[k] === undefined) why.push(`the key has no truth query for ${k}`);
-          if (!kinds.has(k) && key.truths[k] !== undefined) why.push(`the key has a truth query for ${k}, but the case has no ${k}`);
-        }
-        for (const k of CASE_CHOICES) {
-          const cp = rec.checkpoints.find((c) => c.kind === k);
-          const choice = key.choices[k];
-          if (cp && !choice) why.push(`the key has no correct option for ${k}`);
-          if (!cp && choice) why.push(`the key has a correct option for ${k}, but the case has no ${k}`);
-          if (!cp || !choice) continue;
-          const oids = (cp.options ?? []).map((o) => o.oid);
-          if (new Set(oids).size !== oids.length) why.push(`${k}'s options repeat an oid`);
-          if (!oids.includes(choice.correct_oid)) why.push(`the key's ${k} correct option is not one of its options`);
-        }
+    const raw = store.caseKey?.(rec.case_id);
+    const shape = raw === undefined ? [] : validateCaseKey(raw);
+    const key = raw !== undefined && shape.length === 0 ? raw : null;
+    if (raw === undefined) { if (needsKey) why.push(`content/keys/cases/${rec.case_id}.json is missing: its CP1, CP2, CP4 and CP5 need it`); }
+    else if (shape.length) why.push(...shape.map((m) => `the key: ${m}`));
+    else if (key) {
+      if (key.case_id !== rec.case_id) why.push('the key names another case');
+      for (const k of CASE_TRUTHS) {
+        if (kinds.has(k) && key.truths[k] === undefined) why.push(`the key has no truth query for ${k}`);
+        if (!kinds.has(k) && key.truths[k] !== undefined) why.push(`the key has a truth query for ${k}, but the case has no ${k}`);
+      }
+      for (const k of CASE_CHOICES) {
+        const cp = rec.checkpoints.find((c) => c.kind === k);
+        const choice = key.choices[k];
+        if (cp && !choice) why.push(`the key has no correct option for ${k}`);
+        if (!cp && choice) why.push(`the key has a correct option for ${k}, but the case has no ${k}`);
+        if (cp && choice && !(cp.options ?? []).some((o) => o.oid === choice.correct_oid)) why.push(`the key's ${k} correct option is not one of its options`);
       }
     }
-    return { id, check: 'C41', ok: why.length === 0, detail: why.join('; ') };
+    // S6-13 and Review Focus 3: a case on a schema the database does not hold has no truth values and nothing to run: skipped by name.
+    if (absent) {
+      out.push(why.length ? { id, check: 'C41', ok: false, detail: why.join('; ') }
+        : { id, check: 'C41', ok: false, warn: true, detail: `skipped: the database has no schema ${schema}, so the case is unavailable until its dataset is prepared` });
+      continue;
+    }
+    // The truth file: every CP2 and CP4 value the build wrote, from the key as it is now (C1 fix report, note 5).
+    for (const c of rec.checkpoints) {
+      if (c.truth_key === undefined) continue;
+      if (store.checkpointTruth?.(c.truth_key) === undefined) { why.push(`${c.truth_key} has no value in the truth file: run npm run build:data, and check the key's truth query`); continue; }
+      const query = key?.truths[c.kind as 'CP2' | 'CP4'];
+      if (typeof query === 'string' && store.checkpointTruthHash?.(c.truth_key) !== truthSourceHash(schema, query)) {
+        why.push(`the truth for ${c.truth_key} is stale: its key or the case's schema changed since the last build. Run npm run build:data`);
+      }
+    }
+    // B2-M4 and S4C-05: each truth query parsed by the gate and run on the visible and the edge data.
+    if (options.db && key) {
+      const edge = item && typeof item.edge_schema === 'string' ? item.edge_schema : null;
+      for (const c of rec.checkpoints) {
+        const query = c.truth_key === undefined ? undefined : key.truths[c.kind as 'CP2' | 'CP4'];
+        if (typeof query !== 'string') continue;
+        const p = await truthQueryProblems(options.db, c.kind, c.truth_key!, query, schema, edge, store.checkpointTruth?.(c.truth_key!));
+        why.push(...p.fails);
+        warns.push(...p.warns);
+      }
+    }
+    // P16: only warnings (a missing value on the edge data) is a WARN; any failure is a FAIL, with the warnings after it.
+    out.push(why.length === 0 && warns.length > 0 ? { id, check: 'C41', ok: false, warn: true, detail: warns.join('; ') }
+      : { id, check: 'C41', ok: why.length === 0, detail: [...why, ...warns].join('; ') });
+  }
+  // A key file named after no case is a key nobody grades with (the store finds a key by its file's name).
+  const ids = new Set(all.map((r) => (typeof r?.case_id === 'string' ? r.case_id : '')));
+  for (const name of store.caseKeyIds?.() ?? []) {
+    if (!ids.has(name)) out.push({ id: `keys/cases/${name}.json`, check: 'C41', ok: false, detail: 'a case key with no case of its name in content/sql/openers/ or content/sql/cases/' });
+  }
+  return out;
+}
+
+// ---- sprint 6 (Task B3): C47 raw data, C48 level 4 traps, C49 the level 4 drill and the cumulative entry, C50 case solves --------
+
+/** S6-01: the raw schema, its clean edge schema, and the clean schema a raw key must give another result on. */
+export const RAW_SCHEMA = 'voltmarkt_raw';
+export const RAW_EDGE_SCHEMA = 'voltmarkt_edge_clean';
+const CLEAN_SCHEMA = 'voltmarkt';
+/** `voltmarkt_raw.` with or without quotes, in key text with its strings and comments masked. */
+const NAMES_RAW = /(?:\bvoltmarkt_raw|"voltmarkt_raw")\s*\./i;
+/** Any Voltmarkt schema written before a dot: a qualified name in a partial query the gate cannot read (hint 3). */
+const NAMES_SCHEMA = /(?:\bvoltmarkt[a-z0-9_]*|"voltmarkt[a-z0-9_]*")\s*\./i;
+
+/** S6-01: an item reads raw data when it says so (`uses_raw`), names the raw schema, or names the raw data's edge schema. */
+const isRawItem = (item: SqlItem): boolean =>
+  (item as { uses_raw?: unknown }).uses_raw === true || item.schema === RAW_SCHEMA || item.edge_schema === RAW_EDGE_SCHEMA;
+
+/** Whether a complete query names a schema, by the gate's parse on the raw schema (it lists a qualified table with its schema). */
+async function namesSchema(runner: RunnerClient, sql: string): Promise<boolean> {
+  const g = await runner.request<GateOk>({ op: 'gate', schema: RAW_SCHEMA, allowedSchemas: [], sql });
+  if (!g.ok) return g.error.kind === 'gate' && g.error.reason === 'qualified_schema';
+  return g.data.tables.some((t) => t.schema !== null);
+}
+
+/**
+ * C47 (S6-01, Review Focus 2) for one item: a raw-data item is on `voltmarkt_raw` with the edge schema `voltmarkt_edge_clean`, its
+ * key names no schema (graded runs swap unqualified names only), and its reference gives another result on the clean `voltmarkt`
+ * than on `voltmarkt_raw` (the quirk is what it finds). A clean item's key, hint 3 included, reads no raw table. Returns the
+ * problems, naming the key's parts, never their text.
+ */
+export async function rawDataProblems(item: SqlItem, key: SqlKey, runner: RunnerClient): Promise<string[]> {
+  const complete: [string, string][] = [['the reference', key.reference_sql],
+    ...(Array.isArray(key.alternatives) ? key.alternatives : []).map((s, i): [string, string] => [`alternative ${i + 1}`, s]),
+    ...(typeof key.other_way?.sql === 'string' ? [['the other way', key.other_way.sql] as [string, string]] : [])];
+  const all: [string, string][] = [...complete, ...(typeof key.hint3_partial === 'string' ? [['hint 3', key.hint3_partial] as [string, string]] : [])];
+  if (!isRawItem(item)) {
+    return all.filter(([, sql]) => typeof sql === 'string' && NAMES_RAW.test(maskSql(sql)))
+      .map(([label]) => `${label} reads a raw table (voltmarkt_raw.): a clean item reads its own schema only (S6-01)`);
+  }
+  const out: string[] = [];
+  if (item.schema !== RAW_SCHEMA) out.push('a raw-data item has the schema voltmarkt_raw');
+  if (item.edge_schema !== RAW_EDGE_SCHEMA) out.push('a raw-data item has the edge schema voltmarkt_edge_clean');
+  for (const [label, sql] of complete) if (typeof sql === 'string' && (await namesSchema(runner, sql))) out.push(`${label} names a schema: a raw-data key reads its tables by name only (S6-01)`);
+  if (typeof key.hint3_partial === 'string' && NAMES_SCHEMA.test(maskSql(key.hint3_partial))) out.push('hint 3 names a schema: a raw-data key reads its tables by name only (S6-01)');
+  const timeout = item.rules?.timeout_ms ?? 5000;
+  const [clean, raw] = [await rowBag(runner, CLEAN_SCHEMA, key.reference_sql, timeout), await rowBag(runner, RAW_SCHEMA, key.reference_sql, timeout)];
+  if (clean !== null && raw !== null && clean === raw) out.push('the key gives the same result on voltmarkt as on voltmarkt_raw, so it finds no quirk (Review Focus 2)');
+  return out;
+}
+
+/**
+ * C47 (S6-01, S6-14, Review Focus 2) for every case, one result each, named by case ID. A case on raw data (`uses_raw`, or the schema
+ * `voltmarkt_raw`) has both; its CP3 item is on `voltmarkt_raw` with the edge schema `voltmarkt_edge_clean` and its key finds the
+ * quirk (another result on the clean `voltmarkt`); no truth query names a schema. A clean case passes. A record that does not
+ * validate is C41's.
+ */
+export async function checkRawCases(store: ContentStore, runner: RunnerClient): Promise<CheckResult[]> {
+  const out: CheckResult[] = [];
+  for (const [n, rec] of (store.cases?.() ?? []).entries()) {
+    const id = typeof rec?.case_id === 'string' ? rec.case_id : `case file #${n + 1}`;
+    if (validateCaseRecord(rec).length) { out.push({ id, check: 'C47', ok: false, detail: 'the record is not valid; see C41' }); continue; }
+    const raw = rec.uses_raw === true || caseSchema(rec) === RAW_SCHEMA;
+    const why: string[] = [];
+    if (raw) {
+      if (rec.uses_raw !== true) why.push('a case on voltmarkt_raw has uses_raw true');
+      if (caseSchema(rec) !== RAW_SCHEMA) why.push('a case with uses_raw has the schema voltmarkt_raw');
+      const cp3 = rec.checkpoints.find((c) => c.kind === 'CP3')!.item_id!;
+      const item = store.item(cp3);
+      const key = store.key(cp3);
+      if (item) {
+        if (item.schema !== RAW_SCHEMA) why.push(`${cp3} has the schema voltmarkt_raw`);
+        if (item.edge_schema !== RAW_EDGE_SCHEMA) why.push(`${cp3} has the edge schema voltmarkt_edge_clean`);
+      }
+      if (item && key) {
+        const timeout = item.rules?.timeout_ms ?? 5000;
+        const [clean, dirty] = [await rowBag(runner, CLEAN_SCHEMA, key.reference_sql, timeout), await rowBag(runner, RAW_SCHEMA, key.reference_sql, timeout)];
+        if (clean !== null && dirty !== null && clean === dirty) why.push(`${cp3}'s key gives the same result on voltmarkt as on voltmarkt_raw, so it finds no quirk (Review Focus 2)`);
+      }
+      const caseKey = store.caseKey?.(rec.case_id);
+      const truths = caseKey && validateCaseKey(caseKey).length === 0 ? caseKey.truths : {};
+      for (const k of CASE_TRUTHS) {
+        const q = truths[k];
+        if (typeof q === 'string' && (await namesSchema(runner, q))) why.push(`the truth query for ${k} names a schema: it reads its tables by name only (S6-01)`);
+      }
+    }
+    out.push({ id, check: 'C47', ok: why.length === 0, detail: why.join('; ') });
+  }
+  return out;
+}
+
+/**
+ * C48 (S6-11, ruling P3): the must-have traps of each level 4 concept, as the generator brief's level 4 table lists them. Task B2
+ * writes the same table into docs/content/generator-brief.md; this is the check's own copy.
+ */
+export const LEVEL4_TRAPS: Readonly<Record<string, readonly string[]>> = {
+  'SQL-SUBQ-01': ['ERR-SEM-05', 'ERR-LOG-30', 'ERR-LOG-31'],
+  'SQL-SUBQ-02': ['ERR-LOG-07', 'ERR-LOG-20'],
+  'SQL-STR-01': ['ERR-LOG-32', 'ERR-LOG-33'],
+  'SQL-DATE-02': ['ERR-LOG-34', 'ERR-LOG-06'],
+  'SQL-CLEAN-01': ['ERR-LOG-35', 'ERR-LOG-36', 'ERR-LOG-05'],
+};
+
+/**
+ * C48: every must-have trap of a level 4 concept is planted in at least one active pool item or fix item of that concept: a planted
+ * wrong query in its key, or a fix item's starter. One result per concept, named by concept ID; the detail names the traps missing.
+ */
+export function checkLevel4Traps(items: readonly SqlItem[], keyOf: (id: string) => SqlKey | undefined): CheckResult[] {
+  return Object.entries(LEVEL4_TRAPS).map(([concept, traps]) => {
+    const planted = new Set<string>();
+    for (const i of items) {
+      if (i?.target_concept_id !== concept || i.status !== 'active' || (i.use !== 'pool' && i.kind !== 'fix')) continue;
+      const plants = keyOf(i.id)?.planted_wrong;
+      for (const p of Array.isArray(plants) ? plants : []) if (typeof p?.error_id === 'string') planted.add(p.error_id);
+      if (i.kind === 'fix' && typeof i.starter_error_id === 'string') planted.add(i.starter_error_id);
+    }
+    const missing = traps.filter((t) => !planted.has(t));
+    return { id: concept, check: 'C48', ok: missing.length === 0, detail: missing.length ? `${missing.join(', ')} planted in no pool or fix item of ${concept}` : '' };
   });
+}
+
+/** S6-19 and the generator brief: the level 4 drill pool holds this many drill items across the level's concepts. */
+export const LEVEL4_DRILL_POOL = 30;
+/** What a drill serves: an active blank-editor or fix-this-query item with use drill (as server/drill.ts draws it). */
+const drillServable = (i: SqlItem | undefined): i is SqlItem => i !== undefined && i.use === 'drill' && i.status === 'active' && (i.kind === 'write' || i.kind === 'fix');
+
+/**
+ * C49 (S6-19): the level 4 drill entry's pool holds at least 30 drill items of the level 4 concepts, each concept at least one (one
+ * result, `drill-L4`); and each cumulative entry draws from levels whose pools are not empty, asking `per_level` no more than any of
+ * them can serve with `unseen_min_pct` of it unseen: a pool of n serves at most n / (unseen_min_pct / 100) (one result per entry,
+ * named by its ID). Pools are counted, never listed.
+ */
+export function checkLevel4Drills(file: DrillFile, items: readonly SqlItem[], curriculum: Curriculum): CheckResult[] {
+  const byId = new Map(items.map((i) => [i.id, i]));
+  const poolOf = (level: number): SqlItem[] | null => {
+    const spec = file.levels.find((d) => d.level === level);
+    return spec ? [...new Set(spec.pool_item_ids)].map((id) => byId.get(id)).filter(drillServable) : null;
+  };
+  const out: CheckResult[] = [];
+  const level4 = curriculum.concepts.filter((c) => c.level === 4).map((c) => c.id);
+  const why4: string[] = [];
+  const pool4 = poolOf(4);
+  if (pool4 === null) why4.push('content/sql/drills.json has no level 4 entry: Task C1 writes it with its pool');
+  else {
+    const mine = pool4.filter((i) => level4.includes(i.target_concept_id));
+    if (mine.length < LEVEL4_DRILL_POOL) why4.push(`the level 4 pool holds ${mine.length} drill items; it needs ${LEVEL4_DRILL_POOL}`);
+    const bare = level4.filter((c) => !mine.some((i) => i.target_concept_id === c));
+    if (bare.length) why4.push(`no drill item for ${bare.join(', ')}`);
+  }
+  out.push({ id: 'drill-L4', check: 'C49', ok: why4.length === 0, detail: why4.join('; ') });
+  if (!file.cumulative.length) out.push({ id: 'sql/drills.json', check: 'C49', ok: false, detail: 'there is no cumulative drill entry (S6-19)' });
+  for (const c of file.cumulative) {
+    const why: string[] = [];
+    for (const level of c.levels) {
+      const pool = poolOf(level);
+      if (!pool?.length) { why.push(`level ${level} has no drill pool`); continue; }
+      const serves = c.unseen_min_pct > 0 ? Math.floor((pool.length * 100) / c.unseen_min_pct) : Infinity;
+      if (c.per_level > serves) why.push(`per_level is ${c.per_level}, but level ${level}'s pool of ${pool.length} serves at most ${serves} with ${c.unseen_min_pct}% unseen`);
+    }
+    out.push({ id: c.id, check: 'C49', ok: why.length === 0, detail: why.join('; ') });
+  }
+  return out;
+}
+
+/**
+ * C19 for a cumulative drill entry (S6-19, ruling P12), by its own shape, which server/drill.ts parseDrillFile has read: every level it
+ * names has concepts in the curriculum, and per_level, minutes and pass_pct are above 0. Its pools are C49's. One result per entry.
+ */
+export function checkCumulativeDrills(file: DrillFile, curriculum: Curriculum): CheckResult[] {
+  const levels = new Set(curriculum.concepts.map((c) => c.level));
+  return file.cumulative.map((c) => {
+    const why = c.levels.filter((l) => !levels.has(l)).map((l) => `level ${l} has no concept in the curriculum`);
+    if (!(c.per_level >= 1)) why.push('per_level must be 1 or more');
+    if (!(c.minutes > 0)) why.push('minutes must be above 0');
+    if (!(c.pass_pct > 0)) why.push('pass_pct must be above 0');
+    return { id: c.id, check: 'C19', ok: why.length === 0, detail: why.join('; ') };
+  });
+}
+
+/**
+ * C50 (the backlog's B2-M6): every CP1, CP2, CP4 and CP5 a case lists has a blind-solve record in its key that passed, for the
+ * checkpoint as it is now (casePromptHash: its prompt, options or typed spec, and the case's title, brief and schema). One result per
+ * case, named by case ID; the detail names checkpoints, never an answer. A record that does not validate is C41's.
+ * A case on a schema the build did not hold (S6-13, Review Focus 3) has no built CP2 or CP4 value to compare: once every record is
+ * there and current, it is skipped with a warning naming those checkpoints, as C41 skips the case.
+ */
+export function checkCaseSolvers(store: ContentStore): CheckResult[] {
+  return (store.cases?.() ?? []).map((rec, n) => {
+    const id = typeof rec?.case_id === 'string' ? rec.case_id : `case file #${n + 1}`;
+    if (validateCaseRecord(rec).length) return { id, check: 'C50', ok: false, detail: 'the record is not valid; see C41' };
+    const key = store.caseKey?.(rec.case_id);
+    const records = key && validateCaseKey(key).length === 0 ? key.solver ?? {} : {};
+    const absent = caseUnavailable(store, rec) !== null;
+    const waiting: string[] = [];
+    const why: string[] = [];
+    for (const cp of rec.checkpoints) {
+      if (!(SOLVED_KINDS as readonly string[]).includes(cp.kind)) continue;
+      const r = records[cp.kind as SolvedKind];
+      if (!r) why.push(`${cp.kind} has no solver record: blind-solve it (npm run export:case-view, then npm run record:case-solver)`);
+      else if (r.prompt_hash !== casePromptHash(rec, cp)) why.push(`${cp.kind}: the prompt or the brief changed since the solver record: blind-solve it again`);
+      else if (r.key_hash === undefined) why.push(`${cp.kind}: recorded before answer fingerprints (F32): blind-solve it again`);
+      else {
+        const truth = cp.truth_key ? store.checkpointTruth?.(cp.truth_key) : undefined;
+        const now = key && validateCaseKey(key).length === 0 ? caseKeyHash(cp.kind as SolvedKind, key, truth) : null;
+        if (now === null && absent && (cp.kind === 'CP2' || cp.kind === 'CP4')) waiting.push(cp.kind);
+        else if (now === null) why.push(`${cp.kind}: ${cp.kind === 'CP2' || cp.kind === 'CP4' ? 'no value built: run npm run build:data' : 'the key has no correct option; see C41'}`);
+        else if (r.key_hash !== now) why.push(`${cp.kind}: the answer key or its built value changed since the solver record: blind-solve it again`);
+        else if (!r.pass) why.push(`${cp.kind}: the blind solver's answer did not pass; read the prompt as ambiguous first`);
+      }
+    }
+    if (why.length === 0 && waiting.length > 0) {
+      return { id, check: 'C50', ok: false, warn: true,
+        detail: `${waiting.join(', ')}: skipped: the database has no schema ${caseSchema(rec)}, so their values wait until its dataset is prepared` };
+    }
+    return { id, check: 'C50', ok: why.length === 0, detail: why.join('; ') };
+  });
+}
+
+// ---- sprint 6, F2 seams fix round: C52, the schema panel's tables on the edge schema ------------------------------------------
+// C51 is Part 2's (the plan: the dataset registry), so this check takes C52.
+
+/** C52's facts about one edge schema. */
+export interface EdgeFacts {
+  /** Its tables and views, lower case; null when they cannot be read. */
+  tables: ReadonlySet<string> | null;
+  /** How many of its promotions have a day its calendar lacks; null when it holds no calendar or no promotions; 'unreadable' when the count failed. */
+  promotionsShort: number | null | 'unreadable';
+}
+
+const plural = (n: number, one: string, many: string): string => `${n} ${n === 1 ? one : many}`;
+
+/**
+ * C52 (the F2 seams review's C1, C2 and M5): every table the schema panel shows an active write or fix item at its level (its
+ * schema's notes, notesForLevel, as the panel and autocomplete pick them) is in the item's edge schema, so a correct answer that
+ * reads it gets no engine error on the hidden run. One result per edge schema, named by schema, in name order, and each problem
+ * fails: S6-36 (sprint 6, Task K3) removed the WARN tier once K5 gave the ten edge schemas built before sprint 6 every table their
+ * panel shows and every promotion day, so no edge schema is exempt:
+ * - a table it lacks fails, naming the table, how many items the panel shows it to and the first of them;
+ * - a calendar that lacks a day of one of the schema's own promotions fails, when the panel shows calendar and promotions (C2:
+ *   promotion days counted through the calendar come out short there);
+ * - a schema that is not in the database, or whose tables, or calendar against its promotions, cannot be read fails.
+ * Choice items are never graded on the edge schema, so they are left out. A detail names schemas, tables, counts and item IDs only.
+ */
+export function checkEdgePanels(items: readonly SqlItem[], notes: readonly TableNote[], facts: (edge: string) => EdgeFacts | undefined): CheckResult[] {
+  const byEdge = new Map<string, Map<string, string[]>>();   // edge schema -> table the panel shows -> the items it shows it to
+  for (const item of items) {
+    if (item?.status !== 'active' || isSqlChoiceKind(item.kind) || typeof item.edge_schema !== 'string' || typeof item.schema !== 'string') continue;
+    const shown = byEdge.get(item.edge_schema) ?? new Map<string, string[]>();
+    for (const n of notesForLevel(notes.filter((x) => x.schema === item.schema), item.level)) shown.set(n.table, [...(shown.get(n.table) ?? []), item.id]);
+    byEdge.set(item.edge_schema, shown);
+  }
+  return [...byEdge.keys()].sort().map((edge): CheckResult => {
+    const shown = byEdge.get(edge)!;
+    const f = facts(edge);
+    const fails: string[] = [];
+    if (!f?.tables) fails.push(`the tables of ${edge} could not be read`);
+    else if (f.tables.size === 0) fails.push(`${edge} holds no table: it is not in the database`);
+    else {
+      fails.push(...[...shown].sort(([a], [b]) => a.localeCompare(b)).filter(([table]) => !f.tables!.has(table))
+        .map(([table, ids]) => `${edge} lacks ${table}, which the schema panel shows to ${plural(ids.length, 'item', 'items')} at their level (first ${[...ids].sort()[0]})`));
+    }
+    if (shown.has('calendar') && shown.has('promotions')) {
+      if (f?.promotionsShort === 'unreadable') fails.push(`the calendar of ${edge} could not be compared with its promotions`);
+      else if (typeof f?.promotionsShort === 'number' && f.promotionsShort > 0) {
+        fails.push(`${plural(f.promotionsShort, 'promotion', 'promotions')} in ${edge} ${f.promotionsShort === 1 ? 'has' : 'have'} days its calendar lacks, so promotion days counted through the calendar come out short there`);
+      }
+    }
+    return { id: edge, check: 'C52', ok: fails.length === 0, detail: fails.join('; ') };
+  });
+}
+
+/** C52's facts about one edge schema, read through the runner: its tables (tablesIn), then, when it holds both, how many of its promotions have a day its calendar lacks. */
+export async function edgeFacts(runner: RunnerClient, edge: string): Promise<EdgeFacts> {
+  const tables = await tablesIn(runner, edge);       // null for a name that is not a plain schema name, so `edge` below is one
+  if (!tables || !tables.has('calendar') || !tables.has('promotions')) return { tables, promotionsShort: null };
+  const r = await runner.request<RowsOk>({ op: 'app_query', sql: `SELECT count(*) FROM ${edge}.promotions p
+    WHERE (SELECT count(*) FROM ${edge}.calendar c WHERE c.cal_date BETWEEN p.start_date AND p.end_date) <> date_diff('day', p.start_date, p.end_date) + 1` });
+  const n = r.ok ? Number(r.data.rows[0]?.[0]) : Number.NaN;
+  return { tables, promotionsShort: Number.isInteger(n) ? n : 'unreadable' };
+}
+
+/** C52 on the database the runner reads: the facts of each edge schema an active write or fix item names, then checkEdgePanels. */
+export async function checkEdgePanelsOnDb(items: readonly SqlItem[], notes: readonly TableNote[], runner: RunnerClient): Promise<CheckResult[]> {
+  const facts = new Map<string, EdgeFacts>();
+  for (const item of items) {
+    const edge = item?.edge_schema;
+    if (item?.status === 'active' && !isSqlChoiceKind(item.kind) && typeof edge === 'string' && !facts.has(edge)) facts.set(edge, await edgeFacts(runner, edge));
+  }
+  return checkEdgePanels(items, notes, (edge) => facts.get(edge));
+}
+
+// ---- sprint 6 Part 2 (Task G2): C51, the dataset registry --------------------------------------------------------------------
+
+/** P35: a real dataset has no questions until H2 writes them, then at least this many (E-064). */
+export const REAL_DATASET_QUESTIONS = 5;
+
+/**
+ * C51 (S6-21, ruling P35): the dataset registry (content/datasets/registry.json, as loaded) and the cases that read its data.
+ * One result per registry record, named by its ID (`registry record #n` when it has none):
+ * - the record passes validateDataset (its shape, its label and licence, no question with a relative date);
+ * - its prep script exists (`exists` takes a path from the project root);
+ * - no other record has its ID, holds its alias as an ID or alias, or claimed its schema first;
+ * - a real dataset has no questions yet or at least 5 (P35: 1 to 4 fail).
+ * And one result per case that is real (`data_source.real`) or reads a registry schema, named by case ID: a real case reads a schema
+ * of a real registry dataset, and a case on a registry schema agrees with its record on `real` and, when real, on the licence. Any
+ * other case is not C51's. A detail names IDs, schemas, fields and file paths only.
+ */
+export function checkDatasets(store: ContentStore, exists: (path: string) => boolean): CheckResult[] {
+  const records = store.datasetRecords?.() ?? [];
+  const out: CheckResult[] = [];
+  const isObj = (v: unknown): v is Record<string, unknown> => v !== null && typeof v === 'object' && !Array.isArray(v);
+  const idOf = (r: unknown, n: number): string => (isObj(r) && typeof r.id === 'string' && r.id !== '' ? r.id : `registry record #${n + 1}`);
+  const idCount = new Map<string, number>();
+  for (const r of records) if (isObj(r) && typeof r.id === 'string') idCount.set(r.id, (idCount.get(r.id) ?? 0) + 1);
+  const schemaOwner = new Map<string, string>();      // the first record to name each schema
+  const valid: DatasetRecord[] = [];
+  records.forEach((r, n) => {
+    const id = idOf(r, n);
+    const shape = validateDataset(r);
+    const why = [...shape];
+    if (isObj(r)) {
+      if ((idCount.get(id) ?? 0) > 1) why.push(`the ID ${id} is used by ${idCount.get(id)} records`);
+      for (const a of Array.isArray(r.aliases) ? r.aliases : []) {
+        const elsewhere = records.some((o, m) => m !== n && isObj(o) && (o.id === a || (Array.isArray(o.aliases) && o.aliases.includes(a))));
+        if (elsewhere) why.push(`the alias ${String(a)} is another record's ID or alias`);
+      }
+      for (const s of Array.isArray(r.schemas) ? r.schemas : []) {
+        const name = isObj(s) && typeof s.name === 'string' ? s.name : null;
+        if (name === null) continue;
+        const owner = schemaOwner.get(name);
+        if (owner !== undefined && owner !== id) why.push(`the schema ${name} is also ${owner}'s`);
+        else schemaOwner.set(name, id);
+      }
+      if (typeof r.prep === 'string' && !exists(r.prep)) why.push(`the prep script ${r.prep} does not exist`);
+      const asked = Array.isArray(r.questions) ? r.questions.length : 0;
+      if (r.real === true && asked > 0 && asked < REAL_DATASET_QUESTIONS) {
+        why.push(`a real dataset needs at least ${REAL_DATASET_QUESTIONS} questions (it has ${asked}), or none until they are written`);
+      }
+    }
+    if (shape.length === 0) valid.push(r as DatasetRecord);
+    out.push({ id, check: 'C51', ok: why.length === 0, detail: why.join('; ') });
+  });
+  const bySchema = (schema: string) => valid.find((d) => d.schemas.some((s) => s.name === schema));
+  for (const rec of store.cases?.() ?? []) {
+    if (!isObj(rec) || typeof rec.case_id !== 'string') continue;   // C41 names a record with no case ID
+    const source = isObj(rec.data_source) ? rec.data_source : null;
+    const schema = caseSchema(rec);
+    const dataset = bySchema(schema);
+    const real = source?.real === true;
+    if (!real && !dataset) continue;
+    const why: string[] = [];
+    if (real && !dataset) why.push(`a real-data case must read a schema of a real registry dataset: ${schema} is in none`);
+    else if (dataset && real && !dataset.real) why.push(`${schema} is ${dataset.id}'s, which the registry marks fictional: a real-data case needs real data`);
+    else if (dataset && !real && dataset.real) why.push(`${rec.case_id} reads ${schema}, ${dataset.id}'s schema, so data_source.real must be true`);
+    else if (dataset && real && source?.licence !== dataset.licence.name) {
+      why.push(`data_source.licence must be ${dataset.licence.name}, ${dataset.id}'s licence in the registry`);
+    }
+    out.push({ id: rec.case_id, check: 'C51', ok: why.length === 0, detail: why.join('; ') });
+  }
+  return out;
+}
+
+/**
+ * The backlog row "Case build and inbox details" (S6-13): an item whose schema belongs to a registry dataset the database does not
+ * hold waits for its dataset to be prepared, as its case does (C41). It is skipped by name with a warning, and the item checks do
+ * not run on it. An item on any other missing schema is not skipped, so a misspelt schema still fails. With no schema list (the
+ * query failed, and C41 fails once for it) nothing is skipped.
+ */
+export function unbuiltItems(items: readonly SqlItem[], schemas: ReadonlySet<string> | null, store: Pick<ContentStore, 'datasetOfSchema'>): CheckResult[] {
+  if (schemas === null) return [];
+  const out: CheckResult[] = [];
+  for (const item of items) {
+    if (typeof item?.schema !== 'string' || schemas.has(item.schema)) continue;
+    const dataset = store.datasetOfSchema?.(item.schema);
+    if (!dataset) continue;
+    out.push({ id: item.id, check: 'C51', ok: false, warn: true,
+      detail: `skipped: the database has no schema ${item.schema}, so the item waits until ${dataset.id} is prepared (npm run prep:datasets)` });
+  }
+  return out;
 }
 
 /**
@@ -902,8 +1461,9 @@ async function itemFiles(dir: string): Promise<{ ids: string[]; unreadable: stri
 async function main(): Promise<void> {
   const at = (p: string) => fileURLToPath(new URL(`../${p}`, import.meta.url));
   const root = process.argv[2] ? resolve(process.argv[2]) : at('content');
-  // C41 reads every CP2 and CP4 value from the truth file the build wrote, beside the database the item checks run on.
-  const store = await loadContentForCli(root, { truthFile: at('data/truth/voltmarkt.json') });
+  // C41 reads every CP2 and CP4 value from the truth file the build wrote (S6-13: checkpoints.json, or an older build's voltmarkt.json),
+  // beside the database the item checks run on.
+  const store = await loadContentForCli(root, { checkpointsFile: at('data/truth/checkpoints.json'), truthFile: at('data/truth/voltmarkt.json') });
   if (!store) return;
   const results: CheckResult[] = [];
   const ids: string[] = [];
@@ -927,29 +1487,53 @@ async function main(): Promise<void> {
   // Every case's CP3 item is an SQL item the item checks run on (the other checkpoints' item IDs name no item file).
   for (const o of (store.cases?.() ?? store.openers?.() ?? [])) for (const c of Array.isArray(o?.checkpoints) ? o.checkpoints : []) if (typeof c?.item_id === 'string' && store.item(c.item_id)) ids.push(c.item_id);
   results.push(...checkOpeners(store));
-  results.push(...checkCases(store));
+  results.push(...checkCaseSolvers(store));
+  // C51: the dataset registry, its prep scripts (paths from the project root) and the cases on its data.
+  results.push(...checkDatasets(store, (p) => existsSync(at(p))));
   results.push(...checkReadings(store));
   results.push(...(await checkLabs(store, root)));
   results.push(...checkFullMockPool(store));
-  // C19 reads content/sql/drills.json; a missing file means no drills yet, an unreadable one is one failure.
-  try {
-    const drills = JSON.parse(await readFile(join(root, 'sql/drills.json'), 'utf8')).drills as DrillSpec[];
-    const all = files.ids.map((i) => store.item(i)).filter((i): i is SqlItem => !!i);
-    results.push(...checkDrillPools(drills, all));
-  } catch (e) {
-    if ((e as NodeJS.ErrnoException).code !== 'ENOENT') results.push({ id: 'sql/drills.json', check: 'C19', ok: false, detail: 'not valid JSON, or has no drills list' });
+  // C19 and C49 read content/sql/drills.json through the app's own parser (server/drill.ts, which knows the cumulative entry's shape,
+  // P12); a missing file means no drills yet, one the parser refuses is one failure, named by its message (fields, never content).
+  const allItems = files.ids.map((i) => store.item(i)).filter((i): i is SqlItem => !!i);
+  let drillFile: DrillFile | null = null;
+  try { drillFile = parseDrillFile(JSON.parse(await readFile(join(root, 'sql/drills.json'), 'utf8'))); } catch (e) {
+    if ((e as NodeJS.ErrnoException).code !== 'ENOENT') {
+      const why = e instanceof SyntaxError ? 'not valid JSON' : e instanceof Error ? e.message.replace(/^content\/sql\/drills\.json: /, '') : 'it could not be read';
+      results.push({ id: 'sql/drills.json', check: 'C19', ok: false, detail: why });
+    }
   }
+  if (drillFile) {
+    results.push(...checkDrillPools(drillFile.levels, allItems), ...checkCumulativeDrills(drillFile, store.curriculum));
+    results.push(...checkLevel4Drills(drillFile, allItems, store.curriculum));
+  }
+  // C48: the level 4 traps, on every SQL item and its key.
+  results.push(...checkLevel4Traps(allItems, (id) => store.key(id)));
   for (const n of files.unreadable) results.push({ id: `sql/items/${n}`, check: 'C01', ok: false, detail: 'not valid JSON, or has no id' });
   const active = [...new Set(ids)].filter((id) => store.item(id)?.status === 'active');
-  if (active.length) {
-    // The runner and the built data are needed only when there is an item to check.
+  const hasCases = (store.cases?.() ?? []).length > 0;
+  if (active.length || hasCases) {
+    // The runner and the built data are needed only when there is an item or a case to check.
     const manifest = JSON.parse(await readFile(at('data/manifest.json'), 'utf8'));
     const constructs = JSON.parse(await readFile(join(root, 'sql/constructs.json'), 'utf8'));
     const runner = await startRunner(at('data/course.duckdb'));
     const ctx: CheckContext = { runner, curriculum: store.curriculum, feedback: store.feedback, edge: (s) => store.edge(s) ?? null,
       datasetVersion: manifest.dataset_version, constructs: constructs.constructs, helpers: constructs.helpers_allowed_when_named };
     try {
-      for (const id of active) {
+      // C41 with the database: each truth query parsed and run on its case's schema and edge schema (S4C-05); a case whose schema
+      // the database does not hold is skipped by name (S6-13). C47 for the cases on raw data.
+      results.push(...(await checkCasesOnDb(store, runner)));
+      results.push(...(await checkRawCases(store, runner)));
+      // C51 (the backlog row "Case build and inbox details"): an item on a registry dataset that is not prepared is skipped by name, as
+      // C41 skips its case; the checks below run on the rest.
+      const skips = unbuiltItems(active.map((id) => store.item(id)!), await schemasIn(runner), store);
+      results.push(...skips);
+      const waiting = new Set(skips.map((r) => r.id));
+      const checkable = active.filter((id) => !waiting.has(id));
+      // C52 (F2): every table the schema panel shows an item at its level is in the item's edge schema, from the notes the build wrote.
+      const notes = JSON.parse(await readFile(at('data/schema-notes.json'), 'utf8')) as TableNote[];
+      results.push(...(await checkEdgePanelsOnDb(checkable.map((id) => store.item(id)!), notes, runner)));
+      for (const id of checkable) {
         const item = store.item(id)!;
         // S3-13: an SQL choice item has a choice key and its own checks (tools/check-sql-choice.ts), never the write checks.
         if (isSqlChoiceKind(item.kind)) { results.push(...(await checkSqlChoiceItem(item, store.sqlChoiceKey?.(id), ctx))); continue; }

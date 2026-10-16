@@ -1,0 +1,116 @@
+{
+  "id": "EX-SQL-DATE-02-E1-03",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-04",
+    "date",
+    "date_arithmetic",
+    "products",
+    "days-between",
+    "as-of"
+  ],
+  "level": 4,
+  "source_ids": [
+    "01:SQL-DATE-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-15",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "lesson",
+  "target_concept_id": "SQL-DATE-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-DATE-02"
+  ],
+  "template_id": "T-DATE-02-days-to-as-of",
+  "template_params": {
+    "table": "products",
+    "from": "2024-01-01",
+    "as_of": "2026-01-05"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_interval",
+  "prompt": "For each product launched on or after 1 January 2024, how many days passed from its launch_date to Voltmarkt's as-of date, 5 January 2026? Count the days between the two dates, so a product launched on 4 January 2026 would show 1. Return two columns, in this order: product_id, and days_since_launch. Return one row for each of those products. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "days_since_launch",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per product launched from 1 January 2024 on"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "days_since_launch",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "product_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the calculated column days_since_launch: the days from each launch_date to the as-of date.",
+    "One DATE minus another gives the whole days between them, with the later date first. Write the as-of date as a DATE literal."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 71,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 72,
+      "to": 85,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 86,
+      "to": 124,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": {
+    "stage1": 19,
+    "stage2": 19
+  },
+  "faded_shape": "SELECT product_id, ",
+  "faded_suffix": "\nFROM products\nWHERE launch_date >= DATE '2024-01-01'",
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "A DATE minus a DATE gives the whole days between them, so the launch day itself is not counted."
+}

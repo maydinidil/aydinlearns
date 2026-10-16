@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-CLEAN-01-E1-31",
+  "item_version": 1,
+  "reference_sql": "WITH be14_lines AS (  -- one row per BE-14 order line of 2024, as stored\n  SELECT ol.order_line_id, ol.order_id, ol.product_id, ol.quantity, ol.unit_price_eur, ol.promo_id, ol.line_discount_eur\n  FROM order_lines ol\n  JOIN orders o ON o.order_id = ol.order_id\n  JOIN stores s ON s.store_id = o.store_id\n  WHERE s.store_code = 'BE-14'\n    AND o.order_ts >= TIMESTAMP '2024-01-01' AND o.order_ts < TIMESTAMP '2025-01-01'\n),\nunique_lines AS (  -- one row per order line, copies removed\n  SELECT DISTINCT order_id, product_id, quantity, unit_price_eur, promo_id, line_discount_eur\n  FROM be14_lines\n)\nSELECT (SELECT SUM(quantity) FROM be14_lines) AS units_stored,\n       (SELECT SUM(quantity) FROM unique_lines) AS units_unique",
+  "alternatives": [
+    "WITH line_sets AS (  -- one row per set of matching BE-14 lines of 2024\n  SELECT ol.quantity, COUNT(*) AS n_lines\n  FROM order_lines ol\n  JOIN orders o ON o.order_id = ol.order_id\n  JOIN stores s ON s.store_id = o.store_id\n  WHERE s.store_code = 'BE-14'\n    AND o.order_ts >= TIMESTAMP '2024-01-01' AND o.order_ts < TIMESTAMP '2025-01-01'\n  GROUP BY ol.order_id, ol.product_id, ol.quantity, ol.unit_price_eur, ol.promo_id, ol.line_discount_eur\n)\nSELECT SUM(quantity * n_lines) AS units_stored, SUM(quantity) AS units_unique\nFROM line_sets",
+    "WITH be14_lines AS (  -- one row per BE-14 order line of 2024, as stored\n  SELECT ol.order_line_id, ol.order_id, ol.product_id, ol.quantity, ol.unit_price_eur, ol.promo_id, ol.line_discount_eur\n  FROM order_lines ol\n  JOIN orders o ON o.order_id = ol.order_id\n  JOIN stores s ON s.store_id = o.store_id\n  WHERE s.store_code = 'BE-14'\n    AND o.order_ts >= TIMESTAMP '2024-01-01' AND o.order_ts < TIMESTAMP '2025-01-01'\n),\nunique_lines AS (  -- one row per order line, copies removed\n  SELECT DISTINCT order_id, product_id, quantity, unit_price_eur, promo_id, line_discount_eur\n  FROM be14_lines\n)\nSELECT st.units_stored, un.units_unique\nFROM (SELECT SUM(quantity) AS units_stored FROM be14_lines) AS st\nCROSS JOIN (SELECT SUM(quantity) AS units_unique FROM unique_lines) AS un"
+  ],
+  "other_way": {
+    "sql": "WITH line_sets AS (  -- one row per set of matching BE-14 lines of 2024\n  SELECT ol.quantity, COUNT(*) AS n_lines\n  FROM order_lines ol\n  JOIN orders o ON o.order_id = ol.order_id\n  JOIN stores s ON s.store_id = o.store_id\n  WHERE s.store_code = 'BE-14'\n    AND o.order_ts >= TIMESTAMP '2024-01-01' AND o.order_ts < TIMESTAMP '2025-01-01'\n  GROUP BY ol.order_id, ol.product_id, ol.quantity, ol.unit_price_eur, ol.promo_id, ol.line_discount_eur\n)\nSELECT SUM(quantity * n_lines) AS units_stored, SUM(quantity) AS units_unique\nFROM line_sets",
+    "tradeoff": "Grouping the matching lines gives both totals from one step, while DISTINCT keeps the copy-free lines as a table you can look at."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-36",
+      "sql": "WITH be14_lines AS (  -- one row per BE-14 order line of 2024, as stored\n  SELECT ol.order_line_id, ol.order_id, ol.product_id, ol.quantity, ol.unit_price_eur, ol.promo_id, ol.line_discount_eur\n  FROM order_lines ol\n  JOIN orders o ON o.order_id = ol.order_id\n  JOIN stores s ON s.store_id = o.store_id\n  WHERE s.store_code = 'BE-14'\n    AND o.order_ts >= TIMESTAMP '2024-01-01' AND o.order_ts < TIMESTAMP '2025-01-01'\n),\nunique_lines AS (  -- one row per order line, copies removed\n  SELECT DISTINCT order_line_id, order_id, product_id, quantity, unit_price_eur, promo_id, line_discount_eur\n  FROM be14_lines\n)\nSELECT (SELECT SUM(quantity) FROM be14_lines) AS units_stored,\n       (SELECT SUM(quantity) FROM unique_lines) AS units_unique"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-14",
+      "sql": "WITH be14_lines AS (  -- one row per BE-14 order line of 2024, as stored\n  SELECT ol.order_line_id, ol.order_id, ol.product_id, ol.quantity, ol.unit_price_eur, ol.promo_id, ol.line_discount_eur\n  FROM order_lines ol\n  JOIN orders o ON o.order_id = ol.order_id\n  JOIN stores s ON s.store_id = o.store_id\n  WHERE s.store_code = 'BE-14'\n    AND o.order_ts >= TIMESTAMP '2024-01-01' AND o.order_ts < TIMESTAMP '2025-01-01'\n),\nunique_lines AS (  -- one row per order line, copies removed\n  SELECT DISTINCT order_id, product_id, quantity, unit_price_eur, promo_id, line_discount_eur\n  FROM be14_lines\n)\nSELECT (SELECT COUNT(*) FROM be14_lines) AS units_stored, (SELECT COUNT(*) FROM unique_lines) AS units_unique"
+    }
+  ],
+  "hint3_partial": "WITH be14_lines AS (  -- one row per BE-14 order line of 2024, as stored\n  SELECT ol.order_line_id, ol.order_id, ol.product_id, ol.quantity, ol.unit_price_eur, ol.promo_id, ol.line_discount_eur\n  FROM order_lines ol\n  JOIN orders o ON o.order_id = ol.order_id\n  JOIN stores s ON s.store_id = o.store_id\n  WHERE s.store_code = 'BE-14'\n    AND o.order_ts >= TIMESTAMP '2024-01-01' AND o.order_ts < TIMESTAMP '2025-01-01'\n),\nunique_lines AS (  -- one row per order line, copies removed\n  SELECT DISTINCT ___\n  FROM be14_lines\n)\nSELECT (SELECT SUM(quantity) FROM be14_lines) AS units_stored,\n       (SELECT SUM(quantity) FROM unique_lines) AS units_unique",
+  "solver": {
+    "prompt_hash": "c267a03ecca0f2a4",
+    "schema_version": "6ef9ff4e4ad1",
+    "dataset_version": "b2d2b40fb117bb07",
+    "grader_version": "6a.1",
+    "query": "WITH be14_lines AS (  -- one row per BE-14 order line of 2024, as stored\n  SELECT ol.order_line_id, ol.order_id, ol.product_id, ol.quantity, ol.unit_price_eur, ol.promo_id, ol.line_discount_eur\n  FROM order_lines ol\n  JOIN orders o ON o.order_id = ol.order_id\n  JOIN stores s ON s.store_id = o.store_id\n  WHERE s.store_code = 'BE-14'\n    AND o.order_ts >= TIMESTAMP '2024-01-01' AND o.order_ts < TIMESTAMP '2025-01-01'\n),\nunique_lines AS (  -- one row per order line, copies removed\n  SELECT DISTINCT order_id, product_id, quantity, unit_price_eur, promo_id, line_discount_eur\n  FROM be14_lines\n)\nSELECT (SELECT SUM(quantity) FROM be14_lines) AS units_stored,\n       (SELECT SUM(quantity) FROM unique_lines) AS units_unique\n",
+    "at": "2026-10-15T11:06:09.678Z"
+  }
+}

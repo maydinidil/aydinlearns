@@ -1,6 +1,6 @@
 {
   "id": "EX-CASE-DAILY-L3-03",
-  "version": 1,
+  "version": 2,
   "kind": "write",
   "tags": [
     "sql",
@@ -52,7 +52,7 @@
   "company": "voltmarkt",
   "schema": "voltmarkt",
   "edge_schema": "voltmarkt_edge_join",
-  "prompt": "Fleur, in trade marketing, needs the readout of the checkout test AB-2025-01 for Monday's web shop meeting: for each variant, how many customers it had, how many of them converted, and how much revenue each of its customers brought. Leave out every customer assigned to both variants. A customer converted when the customer has a conversion in the test at or after the customer's assigned_at: a conversion before it does not count, and a customer who converted more than once counts once. Return one row for each variant, including a variant with no conversions. Return five columns, in this order: variant; n_customers; n_converted; conversion_rate_pct, 100 times n_converted divided by n_customers, rounded to 2 decimals; and revenue_per_customer_eur, the revenue_eur of the conversions that count, added up and divided by n_customers, in euros rounded to 2 decimals. A missing revenue_eur adds nothing, and a variant with no conversions that count gets 0. Sort by variant, alphabetically.",
+  "prompt": "Fleur, in trade marketing, needs the readout of the checkout test AB-2025-01 for Monday's webshop meeting: for each variant, how many customers it had, how many of them converted, and how much revenue each of its customers brought. Leave out every customer assigned to both variants. A customer converted when the customer has a conversion in the test at or after the customer's assigned_at: a conversion before it does not count, and a customer who converted more than once counts once. Return one row for each variant, including a variant with no conversions. Return five columns, in this order: variant; n_customers; n_converted; conversion_rate_pct, 100 times n_converted divided by n_customers, rounded to 2 decimals; and revenue_per_customer_eur, the revenue_eur of the conversions that count, added up and divided by n_customers, in euros rounded to 2 decimals. A missing revenue_eur adds nothing, and a variant with no conversions that count gets 0. Sort by variant, alphabetically.",
   "output_contract": {
     "columns": [
       {

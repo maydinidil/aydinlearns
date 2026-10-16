@@ -1,0 +1,130 @@
+{
+  "id": "EX-SQL-SUBQ-02-E3-02",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-04",
+    "derived_table",
+    "share",
+    "case",
+    "sales",
+    "orders",
+    "customers"
+  ],
+  "level": 4,
+  "source_ids": [
+    "01:SQL-SUBQ-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-15",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-SUBQ-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CASE-01",
+    "SQL-TYPE-01",
+    "SQL-JOIN-01",
+    "SQL-SUBQ-01",
+    "SQL-SUBQ-02"
+  ],
+  "template_id": "T-SUBQ-02-share-from-big-groups",
+  "template_params": {
+    "fact": "sales",
+    "step": "customer",
+    "threshold_eur": 1000
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_subq",
+  "prompt": "What share of the net revenue from registered customers comes from customers whose own total net revenue is 1,000 euros or more? A customer's total is the sum of net_revenue_eur over all lines of all their orders. Give the share as a fraction between 0 and 1, rounded to 4 decimals. Guest orders have a missing customer_id and do not count. Return one column, share_big_customers. The result is a single row. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "share_big_customers",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "share_big_customers",
+        "type_class": "numeric",
+        "precision": "ratio",
+        "require_rounding": 4
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the derived table: each registered customer with that customer's total net revenue.",
+    "The share is the revenue of the customers at or above 1,000 euros divided by the revenue of all registered customers; both sums run over the same derived table."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 127,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 128,
+      "to": 171,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 172,
+      "to": 233,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 234,
+      "to": 291,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 292,
+      "to": 325,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 326,
+      "to": 350,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 351,
+      "to": 357,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "The derived table adds up each registered customer's revenue first, so the 1,000 euro test applies to customers, not to single orders or lines."
+}

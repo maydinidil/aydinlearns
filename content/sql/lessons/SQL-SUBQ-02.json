@@ -1,0 +1,145 @@
+{
+  "concept_id": "SQL-SUBQ-02",
+  "version": 1,
+  "reading_md": "## Derived tables: a subquery in FROM\n\nA subquery can stand where a table goes. The query in brackets runs first, its result gets a name, and the outer query reads it like any table. This is a derived table. It does the same job as a WITH step, written in place:\n\n```sql\nSELECT AVG(t.n_checks) AS avg_checks\nFROM (\n  -- one row per checked product\n  SELECT product_id, COUNT(*) AS n_checks\n  FROM competitor_prices\n  GROUP BY product_id\n) AS t;\n```\n\nThe inner query counts the checks of each product; the outer query averages those counts, so every product weighs the same.\n\n### Name it: AS t\n\nEvery derived table needs an alias after its closing bracket. DuckDB runs without one, but PostgreSQL before version 16 and SQL Server stop with an error, so the app shows a note when yours has none. Write `AS t`, or a name that says what the rows are.\n\n### Say the grain\n\nPut the inner query's grain in a comment on its first line, as above. The outer AVG, MAX or COUNT works over those rows, so the grain decides the answer. Most mistakes here are a wrong grain:\n\n- one GROUP BY column too many, such as customer and store, gives an average per customer and store, not per customer;\n- a missing filter puts every guest order in one group with a missing customer_id: a single huge \"customer\".\n\nThe outer query sets the grain of the result. With no GROUP BY outside, the outer AVG returns one row, however many rows the derived table has.\n\n### Averages of averages\n\nAn average of group averages is not the overall average when the groups differ in size. The average order value of a store type is the revenue of all its orders divided by their number. Averaging each store's own average order value gives a small store the same weight as a big one. Carry sums and counts through the derived table, and divide the totals once at the end.\n\n### Joining a derived table\n\nA derived table can be joined like a table. Add up the order lines to one row per product first, then join the result to `products`: each product meets one row, so nothing repeats. This is the fan-out fix from level 3, written in place.\n\n### Derived table or CTE?\n\nBoth give the same result. A derived table sits where it is used, which suits one short step. A CTE reads top to bottom and has a name you can use twice. Prefer the CTE when:\n\n- the same step is needed twice, such as each customer's order count and the average of those counts: a derived table would be written out in full both times;\n- the steps nest deeper than two levels of brackets.",
+  "syntax_md": "```sql\nSELECT AVG(t.n_checks) AS avg_checks        -- metrics of the outer step\nFROM (\n  -- one row per checked product\n  SELECT product_id, COUNT(*) AS n_checks    -- metrics of the inner step\n  FROM competitor_prices                     -- its source\n  GROUP BY product_id                        -- its grain: one row per product\n) AS t;                                      -- the alias the outer query reads\n```\n\n- The inner query runs first; the outer query reads its columns through the alias, as `t.n_checks`.\n- Name every calculated column of the inner query with AS.\n- Always give the derived table an alias, and say its grain in a comment.\n- A derived table can be joined: `JOIN ( ... ) AS u ON u.product_id = p.product_id`.",
+  "dialect_note": "A subquery in FROM is standard SQL. DuckDB runs one without an alias, but PostgreSQL before version 16 and SQL Server need one and stop with an error without it, so the app adds the note \"PostgreSQL before version 16 and SQL Server need an alias here: add AS t\" when yours has none. Write AS t, or a better name, every time. A CTE written with WITH does the same job in all of these engines.",
+  "worked_examples": [
+    {
+      "title": "Average units per order for each country",
+      "prompt": "For each country that orders ship to, what is the average number of units in an order? An order's units are the quantity summed over its lines. Return ship_to_country and avg_units.",
+      "clauses": [
+        {
+          "text": "SELECT t.ship_to_country, AVG(t.units) AS avg_units",
+          "subgoal": "metrics",
+          "why": "The outer step averages the rows of the derived table, one country at a time."
+        },
+        {
+          "text": "FROM (  -- one row per order",
+          "subgoal": "source_grain",
+          "why": "The derived table opens here, and the comment on its first line names its grain."
+        },
+        {
+          "text": "SELECT o.order_id, o.ship_to_country, SUM(ol.quantity) AS units",
+          "subgoal": "metrics",
+          "why": "The inner step adds up each order's units and names the result, so the outer step can read it."
+        },
+        {
+          "text": "FROM orders o JOIN order_lines ol ON ol.order_id = o.order_id",
+          "subgoal": "source_grain",
+          "why": "One row per order line, each with its order's country."
+        },
+        {
+          "text": "GROUP BY o.order_id, o.ship_to_country",
+          "subgoal": "output_grain",
+          "why": "The inner step ends at one row per order; the country comes along, one value per order."
+        },
+        {
+          "text": ") AS t",
+          "subgoal": "source_grain",
+          "why": "The alias names the derived table; PostgreSQL before 16 and SQL Server refuse it without one."
+        },
+        {
+          "text": "GROUP BY t.ship_to_country",
+          "subgoal": "output_grain",
+          "why": "The outer step ends at one row per country, each an average over orders."
+        }
+      ]
+    },
+    {
+      "title": "Products above 1,000 units",
+      "prompt": "How many products sold more than 1,000 units in total? Return n_products.",
+      "clauses": [
+        {
+          "text": "SELECT COUNT(*) AS n_products",
+          "subgoal": "metrics",
+          "why": "The outer step counts rows of the derived table: products."
+        },
+        {
+          "text": "FROM (  -- one row per product",
+          "subgoal": "source_grain",
+          "why": "The derived table opens, with its grain in a comment."
+        },
+        {
+          "text": "SELECT product_id, SUM(quantity) AS units",
+          "subgoal": "metrics",
+          "why": "Each product's total, named so the outer filter can test it."
+        },
+        {
+          "text": "FROM order_lines",
+          "subgoal": "source_grain",
+          "why": "One row per order line."
+        },
+        {
+          "text": "GROUP BY product_id",
+          "subgoal": "output_grain",
+          "why": "The inner step ends at one row per product."
+        },
+        {
+          "text": ") AS t",
+          "subgoal": "source_grain",
+          "why": "The alias the outer query reads the totals through."
+        },
+        {
+          "text": "WHERE t.units > 1000",
+          "subgoal": "row_filter",
+          "why": "The outer WHERE tests a total the inner step built; a WHERE inside would test single lines instead."
+        }
+      ]
+    }
+  ],
+  "pretest_item_ids": [
+    "EX-SQL-SUBQ-02-E1-01",
+    "EX-SQL-SUBQ-02-E1-02"
+  ],
+  "lesson_item_ids": [
+    "EX-SQL-SUBQ-02-E1-03",
+    "EX-SQL-SUBQ-02-E1-04",
+    "EX-SQL-SUBQ-02-E2-01",
+    "EX-SQL-SUBQ-02-E2-02"
+  ],
+  "retest_item_id": "EX-SQL-SUBQ-02-E1-05",
+  "pool_item_ids": [
+    "EX-SQL-SUBQ-02-E1-06",
+    "EX-SQL-SUBQ-02-E1-07",
+    "EX-SQL-SUBQ-02-E2-03",
+    "EX-SQL-SUBQ-02-E2-04",
+    "EX-SQL-SUBQ-02-E2-05",
+    "EX-SQL-SUBQ-02-E2-06",
+    "EX-SQL-SUBQ-02-E3-01",
+    "EX-SQL-SUBQ-02-E3-02",
+    "EX-SQL-SUBQ-02-E3-03",
+    "EX-SQL-SUBQ-02-E2-31",
+    "EX-SQL-SUBQ-02-E2-32",
+    "EX-SQL-SUBQ-02-E1-42",
+    "EX-SQL-SUBQ-02-E2-41",
+    "EX-SQL-SUBQ-02-E2-42"
+  ],
+  "source_ids": [
+    "01:SQL-SUBQ-02"
+  ],
+  "why_clause": {
+    "clause": "GROUP BY o.order_id, o.ship_to_country",
+    "stem": "Why does the inner step group by order before the outer step averages?",
+    "options": [
+      {
+        "id": "a",
+        "text": "So each order becomes one row, and the average weighs every order once."
+      },
+      {
+        "id": "b",
+        "text": "Because AVG cannot read a column that SUM has just made in the same query."
+      },
+      {
+        "id": "c",
+        "text": "So that orders with no lines are kept, with 0 units."
+      },
+      {
+        "id": "d",
+        "text": "Because the outer query cannot GROUP BY a column of a derived table."
+      }
+    ],
+    "correct_id": "a",
+    "explanation": "Grouping by order turns the lines into one row per order with its units, the grain the question averages over. The outer AVG can read any named column of the derived table, the join to the lines drops an order with no lines instead of keeping it with 0, and the outer query groups by t.ship_to_country like any other column."
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-SUBQ-01-E2-42",
+  "item_version": 1,
+  "value": 0,
+  "explanation": "The subquery's list holds the promo_id of every line of 4 or more units, and many of those lines carry no promotion, so the list holds missing values. NOT IN then tests promo_id <> a missing value for every promotion, which is unknown, never true, so no promotion is kept: 0 rows, not the 10 unused promotions. NOT EXISTS, or a list filtered with IS NOT NULL, finds the 10.",
+  "solver": {
+    "prompt_hash": "69da0e6db7f1b69a",
+    "grader_version": "choice.3",
+    "chosen": null,
+    "typed": "0",
+    "at": "2026-10-15T10:40:24.716Z"
+  }
+}

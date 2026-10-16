@@ -1,0 +1,106 @@
+{
+  "id": "EX-SQL-CLEAN-01-E1-02",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-04",
+    "missing_values",
+    "nullif",
+    "ratio",
+    "products"
+  ],
+  "level": 4,
+  "source_ids": [
+    "01:SQL-CLEAN-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-15",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pretest",
+  "target_concept_id": "SQL-CLEAN-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-04",
+    "SQL-CLEAN-01"
+  ],
+  "template_id": "T-CLEAN-01-missing-share",
+  "template_params": {
+    "column": "category_id"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt_raw",
+  "edge_schema": "voltmarkt_edge_clean",
+  "uses_raw": true,
+  "prompt": "How many products have a missing category_id, and what share of all products is that? This table may hold errors. Return two columns, in this order: n_missing and share_missing, a fraction from 0 to 1, not rounded. The result is a single row. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "n_missing",
+        "type_class": "numeric"
+      },
+      {
+        "name": "share_missing",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row in total"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "n_missing",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "share_missing",
+        "type_class": "numeric",
+        "precision": "ratio"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the two calculated columns: the missing count, then that count over all products.",
+    "A FILTER on IS NULL counts the missing ones; divide by COUNT(*) wrapped in NULLIF(..., 0) so a 0 can never divide."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 154,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 155,
+      "to": 168,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "The filtered count finds the missing category_id values, and dividing by all products, kept safe with NULLIF, gives their share."
+}

@@ -1,6 +1,6 @@
 {
   "id": "EX-SQL-SET-01-E1-07",
-  "version": 3,
+  "version": 4,
   "kind": "write",
   "tags": [
     "sql",
@@ -75,7 +75,7 @@
   },
   "hints": [
     "Next, write the list of stores that did take a store order in July, and take it away from the list of physical stores.",
-    "EXCEPT keeps the rows of the first query that the second does not return, so the stores come first and the stores with July orders second. Keep the web shop out of the first list."
+    "EXCEPT keeps the rows of the first query that the second does not return, so the stores come first and the stores with July orders second. Keep the webshop out of the first list."
   ],
   "subgoals": [
     {

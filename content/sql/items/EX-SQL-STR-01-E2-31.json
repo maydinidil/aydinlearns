@@ -1,0 +1,114 @@
+{
+  "id": "EX-SQL-STR-01-E2-31",
+  "version": 1,
+  "kind": "fix",
+  "tags": [
+    "sql",
+    "LVL-04",
+    "string_fn",
+    "substring",
+    "length",
+    "product_name",
+    "products",
+    "fix"
+  ],
+  "level": 4,
+  "source_ids": [
+    "01:SQL-STR-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-15",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-STR-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-STR-01"
+  ],
+  "template_id": "T-STR-01-fix-substring-start",
+  "template_params": {
+    "keep": 3
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt_raw",
+  "edge_schema": "voltmarkt_edge_clean",
+  "uses_raw": true,
+  "prompt": "The query in the editor has one mistake. Fix it so that it answers this question: for each product whose sku is in lower case, what is its model number? This table may hold errors. Some skus are in lower case. Each product_name ends with a three-digit model number, such as 878 in 'Nordvue Neo 878'. Return two columns, in this order: product_id and model_number, the last three characters of product_name, as text. Return one row for each product whose sku starts with 'vm' in lower case. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "model_number",
+        "type_class": "text"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "model_number",
+        "type_class": "text",
+        "precision": "exact"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "product_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, count the start position of the last three characters by hand.",
+    "In a name of 15 characters the last three are characters 13, 14 and 15, so the start is the length minus 2, not minus 3."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 87,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 88,
+      "to": 101,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 102,
+      "to": 122,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": "SELECT product_id, substring(product_name, length(product_name) - 3, 3) AS model_number\nFROM products\nWHERE sku LIKE 'vm%'",
+  "starter_error_id": "ERR-LOG-33",
+  "time_target_ms": 180000,
+  "why_this_works": "Positions count from 1, so the last three characters start at the length minus 2."
+}

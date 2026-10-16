@@ -1,0 +1,139 @@
+{
+  "id": "EX-SQL-CLEAN-01-E2-01",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-04",
+    "nullif",
+    "ratio",
+    "left_join",
+    "prices_in_cents",
+    "order_lines",
+    "orders",
+    "products",
+    "stores"
+  ],
+  "level": 4,
+  "source_ids": [
+    "01:SQL-CLEAN-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-15",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "lesson",
+  "target_concept_id": "SQL-CLEAN-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-AGG-04",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-CLEAN-01"
+  ],
+  "template_id": "T-CLEAN-01-cents-share-per-store",
+  "template_params": {
+    "month": "2024-06"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt_raw",
+  "edge_schema": "voltmarkt_edge_clean",
+  "uses_raw": true,
+  "prompt": "For each store, what share of its June 2024 order lines are priced in cents? These tables may hold errors. A line is priced in cents when its unit_price_eur is more than 10 times the product's unit_cost_eur. June 2024 means order_ts, as stored, from 1 June 2024 up to but not including 1 July 2024. Return two columns, in this order: store_code and cents_share, a fraction from 0 to 1, not rounded, missing for a store with no June 2024 lines. Return one row for each store. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "store_code",
+        "type_class": "text"
+      },
+      {
+        "name": "cents_share",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per store"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "store_code",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "cents_share",
+        "type_class": "numeric",
+        "precision": "ratio"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "store_code"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the calculated column: the store's lines in cents over all its June lines.",
+    "Count the cents lines with a filter and divide by the count of joined lines inside NULLIF(..., 0), so a store with no lines gets a missing share."
+  ],
+  "subgoals": [
+    {
+      "from": 60,
+      "to": 113,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 116,
+      "to": 229,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 232,
+      "to": 314,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 317,
+      "to": 447,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 448,
+      "to": 511,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 512,
+      "to": 533,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": {
+    "stage1": 338,
+    "stage2": 338
+  },
+  "faded_shape": "WITH june_lines AS (  -- one row per June 2024 order line\n  SELECT o.store_id, ol.unit_price_eur, p.unit_cost_eur\n  FROM order_lines ol\n  JOIN orders o ON o.order_id = ol.order_id\n  JOIN products p ON p.product_id = ol.product_id\n  WHERE o.order_ts >= TIMESTAMP '2024-06-01' AND o.order_ts < TIMESTAMP '2024-07-01'\n)\nSELECT s.store_code, ",
+  "faded_suffix": "\nFROM stores s\nLEFT JOIN june_lines j ON j.store_id = s.store_id\nGROUP BY s.store_code",
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "NULLIF turns a store's zero line count into a missing value, so its share is missing rather than Infinity or a made-up 0."
+}

@@ -1,0 +1,43 @@
+{
+  "case_id": "CASE-MKT-01",
+  "truths": {
+    "CP2": "SELECT SUM(clicks)\nFROM ad_spend_daily\nWHERE spend_date BETWEEN DATE '2025-09-01' AND DATE '2025-09-30'",
+    "CP4": "SELECT ROUND(MAX(t.cpc), 2)\nFROM (\n  -- one row per channel that spent in September 2025, with its cost per click\n  SELECT c.channel_id, SUM(a.spend) / NULLIF(SUM(a.clicks), 0) AS cpc\n  FROM ad_spend_daily AS a\n  JOIN campaigns AS c ON c.campaign_id = a.campaign_id\n  WHERE a.spend_date BETWEEN DATE '2025-09-01' AND DATE '2025-09-30'\n  GROUP BY c.channel_id\n) AS t"
+  },
+  "choices": {
+    "CP1": {
+      "correct_oid": "of7a5fe3",
+      "explanation": "A cost per click is a ratio of totals, all spend over all clicks; an average of daily or campaign figures gives a quiet day or a small campaign the weight of a busy one, and spend per signup is a cost per signup, not per click."
+    },
+    "CP5": {
+      "correct_oid": "o842b426",
+      "explanation": "A cost per click prices traffic, not results: brand search often catches people who would have found Mailvora anyway, so efficiency needs signups or revenue per euro, and a high price per click does not prove the visitors are worth more."
+    }
+  },
+  "solver": {
+    "CP1": {
+      "pass": true,
+      "prompt_hash": "9f155c8ac283ca61",
+      "key_hash": "5f3fb97a08cd1d0e",
+      "at": "2026-10-16T15:28:34.740Z"
+    },
+    "CP2": {
+      "pass": true,
+      "prompt_hash": "bd902e6c6e30b5bb",
+      "key_hash": "81536560fe8c4575",
+      "at": "2026-10-16T15:28:34.740Z"
+    },
+    "CP4": {
+      "pass": true,
+      "prompt_hash": "89ac8e1cd22197ab",
+      "key_hash": "82ae47bcd75ab7e6",
+      "at": "2026-10-16T15:28:34.740Z"
+    },
+    "CP5": {
+      "pass": true,
+      "prompt_hash": "f69ffd1e10c32408",
+      "key_hash": "4486f87f1eebc132",
+      "at": "2026-10-16T15:28:34.740Z"
+    }
+  }
+}

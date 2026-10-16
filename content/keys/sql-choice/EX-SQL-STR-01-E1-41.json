@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-STR-01-E1-41",
+  "item_version": 1,
+  "correct_oid": "ob984d05",
+  "explanation": "length counts every character, the two spaces at the end too, so it gives 11, not 9. TRIM removes the outer spaces and UPPER the lower case, giving VM-000022. substring(text, 4, 6) starts at the fourth character, counting from 1, and keeps 6 characters: 000022. Reading 6 as the position to stop at would give only 000, and counting from 0 would start one character late.",
+  "solver": {
+    "prompt_hash": "193868ba0940fb07",
+    "grader_version": "choice.3",
+    "chosen": "ob984d05",
+    "typed": null,
+    "at": "2026-10-15T10:40:24.700Z"
+  }
+}

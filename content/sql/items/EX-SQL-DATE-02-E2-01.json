@@ -1,0 +1,124 @@
+{
+  "id": "EX-SQL-DATE-02-E2-01",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-04",
+    "date",
+    "date_arithmetic",
+    "sales",
+    "last-n-days",
+    "as-of",
+    "stores"
+  ],
+  "level": 4,
+  "source_ids": [
+    "01:SQL-DATE-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-15",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "lesson",
+  "target_concept_id": "SQL-DATE-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-DATE-02"
+  ],
+  "template_id": "T-DATE-02-last-n-days",
+  "template_params": {
+    "table": "sales",
+    "days": 30,
+    "as_of": "2026-01-05",
+    "as_of_day": "excluded"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_interval",
+  "prompt": "What was each store's net revenue in the 30 days before Voltmarkt's as-of date, 5 January 2026, with the as-of day itself not counted: from 6 December 2025 to 4 January 2026, both days included? Place each order line on its UTC order day. Return two columns, in this order: store_code, and net_revenue_eur, the total net revenue. Return one row for each store with sales in those days. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "store_code",
+        "type_class": "text"
+      },
+      {
+        "name": "net_revenue_eur",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per store with sales in those 30 days"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "store_code",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "net_revenue_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "store_code"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the row filter: the order days from 6 December 2025 to 4 January 2026.",
+    "Count back 30 days from the as-of date for the first day, and stop before the as-of day itself. Check both end days by hand."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 58,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 59,
+      "to": 69,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 70,
+      "to": 162,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 163,
+      "to": 182,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": {
+    "stage1": 70,
+    "stage2": 70
+  },
+  "faded_shape": "SELECT store_code, SUM(net_revenue_eur) AS net_revenue_eur\nFROM sales\n",
+  "faded_suffix": "\nGROUP BY store_code",
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "Thirty days back from 5 January is 6 December, and < the as-of date leaves the as-of day out, so the window holds exactly 30 days."
+}

@@ -1,0 +1,192 @@
+{
+  "id": "EX-CASE-REAL-01",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-04",
+    "case",
+    "inbox",
+    "retail",
+    "real_data",
+    "online_retail_ii",
+    "invoice_lines",
+    "cancellations",
+    "duplicates",
+    "monthly_revenue"
+  ],
+  "level": 4,
+  "source_ids": [
+    "03:DS-RETAIL-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-16",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "case",
+  "target_concept_id": "SQL-CLEAN-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CASE-01",
+    "SQL-AGG-04",
+    "SQL-TYPE-01",
+    "SQL-DATE-01",
+    "SQL-CTE-01",
+    "SQL-STR-01",
+    "SQL-CLEAN-01"
+  ],
+  "template_id": "T-CASE-REAL-01-net-product-revenue-by-month",
+  "template_params": {
+    "year": 2010,
+    "grain": "month"
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "online_retail_ii",
+  "schema": "online_retail_ii",
+  "edge_schema": "online_retail_ii_edge",
+  "prompt": "Noor, the analytics lead, sets this take-home task on Online Retail II, a public dataset of the invoice lines of a UK online gift shop, and asks how the shop's net product revenue moved through 2010. Take the lines dated from 1 January to 31 December 2010, each in the month of its invoice date. A product line is a line whose stock code starts with a digit; every other code, such as POST, DOT, M or BANK CHARGES, is postage, a fee, an adjustment or a voucher, and stays out. An invoice whose number starts with C is a cancellation: it counts in the month of its own date, and its quantities are negative. A line's value is its quantity times its price, in pounds sterling, and lines with a missing customer ID count. The data holds December 2010 once, although both of the source's sheets held that month. A line that matches another line in every column, a missing value matching a missing value, is a copy: count it once. Return one row per month with five columns in this order: month_start, the first day of the month; sales_gbp, the value of the product lines on invoices that are not cancellations; cancelled_gbp, the value of the product lines on cancellations, as a positive amount; net_revenue_gbp, sales_gbp minus cancelled_gbp; and cancelled_pct, 100 times cancelled_gbp divided by sales_gbp, missing when sales_gbp is 0. Round the three amounts to 2 decimals and cancelled_pct to 1 decimal. Sort by month_start from early to late.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "month_start",
+        "type_class": "temporal"
+      },
+      {
+        "name": "sales_gbp",
+        "type_class": "numeric"
+      },
+      {
+        "name": "cancelled_gbp",
+        "type_class": "numeric"
+      },
+      {
+        "name": "net_revenue_gbp",
+        "type_class": "numeric"
+      },
+      {
+        "name": "cancelled_pct",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": true,
+    "sort_keys": [
+      {
+        "column": "month_start",
+        "desc": false
+      }
+    ],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "month_start",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "sales_gbp",
+        "type_class": "numeric",
+        "precision": "money",
+        "require_rounding": 2
+      },
+      {
+        "name": "cancelled_gbp",
+        "type_class": "numeric",
+        "precision": "money",
+        "require_rounding": 2
+      },
+      {
+        "name": "net_revenue_gbp",
+        "type_class": "numeric",
+        "precision": "money",
+        "require_rounding": 2
+      },
+      {
+        "name": "cancelled_pct",
+        "type_class": "numeric",
+        "precision": "ratio",
+        "require_rounding": 1
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "month_start"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, keep only the 2010 product lines, with one copy of each repeated line, before you add anything up.",
+    "Group the kept lines by month, and split each month's value with a condition on whether the invoice number starts with C."
+  ],
+  "subgoals": [
+    {
+      "from": 111,
+      "to": 212,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 215,
+      "to": 233,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 236,
+      "to": 382,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 469,
+      "to": 717,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 720,
+      "to": 730,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 733,
+      "to": 789,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 792,
+      "to": 1019,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 1020,
+      "to": 1031,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 1032,
+      "to": 1052,
+      "subgoal": "sort_limit"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "Removing the copies first counts each sale once, and a condition on the invoice number splits sales from cancellations without losing the lines that have no customer ID."
+}

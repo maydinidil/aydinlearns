@@ -1,0 +1,138 @@
+{
+  "id": "EX-SQL-SUBQ-02-E2-21",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-04",
+    "derived_table",
+    "join",
+    "avg",
+    "orders",
+    "stores",
+    "drill"
+  ],
+  "level": 4,
+  "source_ids": [
+    "01:SQL-SUBQ-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-15",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-SUBQ-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-JOIN-01",
+    "SQL-SUBQ-01",
+    "SQL-SUBQ-02"
+  ],
+  "template_id": "T-SUBQ-02-join-derived-avg",
+  "template_params": {
+    "table": "orders",
+    "step": "store",
+    "group": "country_code"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_subq",
+  "prompt": "For each country of the stores, what is the average number of orders a store took, over the stores with at least one order? A store's country is its country_code, and the webshop, store_id 99, is a store in NL. Round to 2 decimals. Return two columns, in this order: country_code and avg_orders. Return one row for each country with such a store. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "country_code",
+        "type_class": "text"
+      },
+      {
+        "name": "avg_orders",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "country_code",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "avg_orders",
+        "type_class": "numeric",
+        "precision": "ratio",
+        "require_rounding": 2
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "country_code"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the derived table: each store with its number of orders.",
+    "Join that one row per store to the stores to reach the country, then average per country; a store with no order has no row to average."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 62,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 63,
+      "to": 104,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 105,
+      "to": 144,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 145,
+      "to": 158,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 159,
+      "to": 178,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 179,
+      "to": 226,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 227,
+      "to": 250,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "The derived table has one row per store that took orders, so the average per country weighs every such store once."
+}

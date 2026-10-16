@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-SUBQ-02-E3-02",
+  "item_version": 1,
+  "reference_sql": "SELECT ROUND(SUM(CASE WHEN t.revenue_eur >= 1000 THEN t.revenue_eur ELSE 0 END) / SUM(t.revenue_eur), 4) AS share_big_customers\nFROM (\n  -- one row per registered customer\n  SELECT o.customer_id, SUM(s.net_revenue_eur) AS revenue_eur\n  FROM sales s\n  JOIN orders o ON o.order_id = s.order_id\n  WHERE o.customer_id IS NOT NULL\n  GROUP BY o.customer_id\n) AS t",
+  "alternatives": [
+    "WITH customer_revenue AS (\n  -- one row per registered customer\n  SELECT o.customer_id, SUM(ol.quantity * ol.unit_price_eur - ol.line_discount_eur) AS revenue_eur\n  FROM orders o\n  JOIN order_lines ol ON ol.order_id = o.order_id\n  WHERE o.customer_id IS NOT NULL\n  GROUP BY o.customer_id\n)\nSELECT ROUND(SUM(CASE WHEN revenue_eur >= 1000 THEN revenue_eur ELSE 0 END) / SUM(revenue_eur), 4) AS share_big_customers\nFROM customer_revenue",
+    "SELECT ROUND(SUM(t.revenue_eur) FILTER (WHERE t.revenue_eur >= 1000) / SUM(t.revenue_eur), 4) AS share_big_customers\nFROM (\n  -- one row per registered customer\n  SELECT o.customer_id, SUM(s.net_revenue_eur) AS revenue_eur\n  FROM sales s\n  JOIN orders o ON o.order_id = s.order_id\n  WHERE o.customer_id IS NOT NULL\n  GROUP BY o.customer_id\n) AS t"
+  ],
+  "other_way": {
+    "sql": "WITH customer_revenue AS (\n  -- one row per registered customer\n  SELECT o.customer_id, SUM(ol.quantity * ol.unit_price_eur - ol.line_discount_eur) AS revenue_eur\n  FROM orders o\n  JOIN order_lines ol ON ol.order_id = o.order_id\n  WHERE o.customer_id IS NOT NULL\n  GROUP BY o.customer_id\n)\nSELECT ROUND(SUM(CASE WHEN revenue_eur >= 1000 THEN revenue_eur ELSE 0 END) / SUM(revenue_eur), 4) AS share_big_customers\nFROM customer_revenue",
+    "tradeoff": "A WITH step names the customer totals before the share is taken, which reads top to bottom but adds a step name."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-07",
+      "sql": "SELECT ROUND(SUM(CASE WHEN t.revenue_eur >= 1000 THEN t.revenue_eur ELSE 0 END) / SUM(t.revenue_eur), 4) AS share_big_customers FROM (SELECT s.order_id, SUM(s.net_revenue_eur) AS revenue_eur FROM sales s JOIN orders o ON o.order_id = s.order_id WHERE o.customer_id IS NOT NULL GROUP BY s.order_id) AS t"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-03",
+      "sql": "SELECT ROUND(SUM(CASE WHEN t.revenue_eur >= 1000 THEN t.revenue_eur ELSE 0 END) / SUM(t.revenue_eur), 4) AS share_big_customers FROM (SELECT o.customer_id, SUM(s.net_revenue_eur) AS revenue_eur FROM sales s JOIN orders o ON o.order_id = s.order_id GROUP BY o.customer_id) AS t"
+    }
+  ],
+  "hint3_partial": "SELECT ROUND(SUM(CASE WHEN ___ THEN t.revenue_eur ELSE 0 END) / SUM(t.revenue_eur), 4) AS share_big_customers\nFROM (\n  -- one row per registered customer\n  SELECT o.customer_id, SUM(s.net_revenue_eur) AS revenue_eur\n  FROM sales s\n  JOIN orders o ON o.order_id = s.order_id\n  WHERE o.customer_id IS NOT NULL\n  GROUP BY ___\n) AS t",
+  "solver": {
+    "prompt_hash": "56bd4fdd74b8dc89",
+    "schema_version": "669fef2a1651",
+    "dataset_version": "b2d2b40fb117bb07",
+    "grader_version": "6a.1",
+    "query": "WITH cust AS (SELECT o.customer_id, SUM(s.net_revenue_eur) AS total FROM sales s JOIN orders o ON o.order_id = s.order_id WHERE o.customer_id IS NOT NULL GROUP BY o.customer_id)\r\nSELECT ROUND(SUM(CASE WHEN total >= 1000 THEN total ELSE 0 END) / SUM(total), 4) AS share_big_customers FROM cust\r\n",
+    "at": "2026-10-15T11:06:15.367Z"
+  }
+}

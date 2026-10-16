@@ -1,0 +1,180 @@
+{
+  "case_id": "CASE-MKT-04",
+  "kind": "inbox",
+  "level": 4,
+  "world": "MKT",
+  "company_id": "mailvora",
+  "schema": "mailvora",
+  "title": "Revenue by channel under three attribution models",
+  "persona": {
+    "name": "Declan",
+    "role": "Head of growth"
+  },
+  "brief": {
+    "decision": "Whether to move part of the search budget to YouTube, based on how much Q3 2025 paid revenue each channel earns under last click, first click and linear attribution",
+    "deadline": "Monday's budget meeting"
+  },
+  "data_needed": [
+    "payments",
+    "subscriptions",
+    "signups",
+    "sessions",
+    "campaigns",
+    "channels"
+  ],
+  "expected_output": {
+    "columns": [
+      "channel",
+      "last_click_revenue",
+      "first_click_revenue",
+      "linear_revenue",
+      "first_minus_last_revenue"
+    ],
+    "grain": "one row per channel, plus one row named unattributed",
+    "sort": [
+      {
+        "column": "last_click_revenue",
+        "desc": true
+      },
+      {
+        "column": "channel",
+        "desc": false
+      }
+    ]
+  },
+  "checkpoints": [
+    {
+      "id": "CP1",
+      "kind": "CP1",
+      "item_id": "CASE-MKT-04:CP1",
+      "credits_concepts": [],
+      "prompt": "Declan's attribution credits each paying user's Q3 2025 revenue to the sessions that led the user to sign up. Which sessions should make up a paying user's path?",
+      "options": [
+        {
+          "oid": "oe34f712",
+          "text": "Every session of the user's visitor_id, including those after signing up, such as the logins before a payment"
+        },
+        {
+          "oid": "oa13409c",
+          "text": "Every session of the user's visitor_id that started at or before the moment the user signed up"
+        },
+        {
+          "oid": "o56c6e8e",
+          "text": "Only the user's sessions that started in Q3 2025, the same quarter as the payments being credited"
+        },
+        {
+          "oid": "odd4489a",
+          "text": "Only the user's sessions with a utm_campaign, since visits from unpaid channels cost nothing"
+        }
+      ]
+    },
+    {
+      "id": "CP2",
+      "kind": "CP2",
+      "item_id": "CASE-MKT-04:CP2",
+      "credits_concepts": [
+        "SQL-AGG-01"
+      ],
+      "prompt": "How many users made at least one payment in Q3 2025 that was not refunded? A payment is in Q3 2025 when its paid_at is from 1 July 2025 00:00 up to but not including 1 October 2025 00:00, UTC, and it belongs to the user of the subscription it paid. A user with two subscriptions counts once. Type a whole number.",
+      "typed": {
+        "precision": "count",
+        "scale": "plain",
+        "decimals": 0,
+        "unit_label": "users"
+      },
+      "truth_key": "CASE-MKT-04:CP2"
+    },
+    {
+      "id": "CP3",
+      "kind": "CP3",
+      "item_id": "EX-CASE-MKT-04",
+      "credits_concepts": [
+        "SQL-SUBQ-01",
+        "SQL-CTE-01",
+        "SQL-JOIN-02",
+        "SQL-CASE-01"
+      ],
+      "prompt": "Write the query that answers Declan's question."
+    },
+    {
+      "id": "CP4",
+      "kind": "CP4",
+      "item_id": "CASE-MKT-04:CP4",
+      "credits_concepts": [],
+      "prompt": "Take every payment with paid_at from 1 July 2025 00:00 up to but not including 1 October 2025 00:00, UTC, that was not refunded, and give its amount_eur to the user of the subscription it paid. A paying user's touches are the sessions of the user's visitor_id that started at or before signup_ts. A touch's channel follows the channel rule: a session with a utm_campaign takes the channel_name of the campaign with that utm_campaign, and a session without one is organic when utm_medium is 'organic', referral when utm_medium is 'referral', and direct when utm_source, utm_medium and utm_campaign are all missing. Order a user's touches by session_start, and by session_id when two start at the same moment. Last click gives all of a user's revenue to the channel of the last touch, and first click gives it all to the channel of the first touch. How many euros more does first click give to youtube than last click does? Type the amount in euros, rounded to 2 decimals, for example 2500.00; use a minus sign if first click gives youtube less.",
+      "typed": {
+        "precision": "money",
+        "scale": "eur",
+        "decimals": 2,
+        "unit_label": "euros"
+      },
+      "truth_key": "CASE-MKT-04:CP4"
+    },
+    {
+      "id": "CP5",
+      "kind": "CP5",
+      "item_id": "CASE-MKT-04:CP5",
+      "credits_concepts": [],
+      "prompt": "Under first click, youtube is credited with far more Q3 2025 paid revenue than under last click, and brand_search with far less: many paying users first came from a YouTube video and later signed up after a brand search. Declan wants to move 20% of the search budget to YouTube on the strength of this table. What should Declan be told?",
+      "options": [
+        {
+          "oid": "o6e7bce0",
+          "text": "Go ahead: first click shows the revenue YouTube really earns, so the gap over last click is revenue the search budget is wrongly taking credit for."
+        },
+        {
+          "oid": "oa1558e1",
+          "text": "Keep the budget as it is: last click is what Google Ads reports, so it shows each channel's true value, and YouTube's last click revenue is small."
+        },
+        {
+          "oid": "of7fbec6",
+          "text": "Use linear instead: it shares the credit fairly between every touch, so linear revenue per euro of spend gives each channel's true return."
+        },
+        {
+          "oid": "of3483b6",
+          "text": "Test before moving that much: each model only shares out credit by a rule, so none shows what YouTube caused; a geo or holdout test can."
+        }
+      ]
+    },
+    {
+      "id": "CP6",
+      "kind": "CP6",
+      "credits_concepts": [],
+      "prompt": "Write 2 to 4 sentences for Declan: how the three models credit YouTube and brand search, why they differ, one caveat, and one next step before Monday's budget meeting."
+    }
+  ],
+  "model_plan": "Metric formula: per channel, last_click_revenue adds the revenue of the users whose last touch is in the channel, first_click_revenue that of the users whose first touch is, and linear_revenue adds each user's revenue divided by the number of the user's touches, once for each of the user's touches in the channel; first_minus_last_revenue is first click minus last click; each in euros, rounded to 2 decimals.\nOutput grain: one row per channel in channels, plus one row named unattributed.\nTables and keys: payments to subscriptions on subscription_id for the user; signups on user_id; sessions on visitor_id, with session_start at or before signup_ts; campaigns on utm_campaign and channels on channel_id for the channel rule.\nFilters: payments with paid_at from 1 July 2025 up to but not including 1 October 2025, UTC, and refunded false.\nEdge cases: sessions after the signup are not touches; two touches at the same moment are ordered by session_id; a user with two subscriptions has one path; a paying user with no touch goes to unattributed; a channel with no credit shows 0.\nExpected row count: 11",
+  "model_answer_template": "First click gives YouTube {CP4} euros more of Q3 2025 paid revenue than last click does, because many paying users first arrive from a YouTube video and later sign up after a brand search or another visit, so last click hands that revenue to the channels that close the journey, brand search most of all. The three models only share out the same revenue by different rules, so none of them shows how much revenue YouTube actually caused. Before Monday, I would propose a smaller YouTube increase measured with a geo or holdout test, rather than a large shift away from search based on this table alone.",
+  "follow_up_question": "Should Declan move 20% of the search budget to YouTube based on this table?",
+  "data_source": {
+    "label": "Fictional, generated data: Mailvora",
+    "real": false,
+    "licence": null
+  },
+  "difficulty": 4,
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-SORT-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CASE-01",
+    "SQL-TYPE-01",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-SET-01",
+    "SQL-SUBQ-01"
+  ],
+  "metric_ids": [
+    "MET-MKT-08",
+    "MET-MKT-09",
+    "MET-MKT-10",
+    "MET-MKT-12"
+  ],
+  "find_ids": [
+    "FIND-03-15"
+  ],
+  "uses_raw": false
+}

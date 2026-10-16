@@ -1,0 +1,175 @@
+{
+  "case_id": "CASE-PRICE-03",
+  "kind": "inbox",
+  "level": 4,
+  "world": "PRICE",
+  "company_id": "voltmarkt",
+  "title": "Uplift of the Q3 2025 promotions",
+  "persona": {
+    "name": "Fleur",
+    "role": "Trade marketing"
+  },
+  "brief": {
+    "decision": "Which Q3 2025 promotions to present to the supplier as successes, based on how many units each promoted product sold per week against its normal weeks",
+    "deadline": "Friday's supplier meeting"
+  },
+  "data_needed": [
+    "promotions",
+    "promotion_products",
+    "weekly_units"
+  ],
+  "expected_output": {
+    "columns": [
+      "promo_id",
+      "product_id",
+      "baseline_units_wk",
+      "promo_units_wk",
+      "uplift_pct"
+    ],
+    "grain": "one row per promotion that started in Q3 2025 and product in that promotion",
+    "sort": [
+      {
+        "column": "uplift_pct",
+        "desc": true
+      },
+      {
+        "column": "promo_id",
+        "desc": false
+      },
+      {
+        "column": "product_id",
+        "desc": false
+      }
+    ]
+  },
+  "checkpoints": [
+    {
+      "id": "CP1",
+      "kind": "CP1",
+      "item_id": "CASE-PRICE-03:CP1",
+      "credits_concepts": [],
+      "prompt": "Fleur needs each promoted product's baseline: its average weekly units over the 4 weeks just before its promotion started. Some products sold nothing at all in one or more of those weeks. How should the baseline treat such a week?",
+      "options": [
+        {
+          "oid": "ofea3779",
+          "text": "Leave it out, so the average covers only the weeks in which the product sold something"
+        },
+        {
+          "oid": "o8f54a22",
+          "text": "Count it as a week with 0 units, so the average always covers all 4 weeks"
+        },
+        {
+          "oid": "o93b45a8",
+          "text": "Replace it with the product's average week over the whole year, so one quiet week does not pull the baseline down"
+        },
+        {
+          "oid": "o2e04332",
+          "text": "Drop every product that had such a week, because its baseline cannot be worked out"
+        }
+      ]
+    },
+    {
+      "id": "CP2",
+      "kind": "CP2",
+      "item_id": "CASE-PRICE-03:CP2",
+      "credits_concepts": [
+        "SQL-AGG-01"
+      ],
+      "prompt": "Fleur's promotions are those with a start date from 2025-07-01 to 2025-09-30, both days included; every promotion starts on a Monday. For each of them, take each product in the promotion and its 4 baseline weeks: the 4 weeks, Monday to Sunday, just before the promotion's start date, with each order counted in the week of its UTC order date. How many promotion and product pairs had at least one baseline week in which the product sold no units at all? Count each pair once. Type a whole number.",
+      "typed": {
+        "precision": "count",
+        "scale": "plain",
+        "decimals": 0,
+        "unit_label": "pairs"
+      },
+      "truth_key": "CASE-PRICE-03:CP2"
+    },
+    {
+      "id": "CP3",
+      "kind": "CP3",
+      "item_id": "EX-CASE-PRICE-03",
+      "credits_concepts": [
+        "SQL-DATE-02",
+        "SQL-CTE-01",
+        "SQL-AGG-04",
+        "SQL-JOIN-01"
+      ],
+      "prompt": "Write the query that answers Fleur's question."
+    },
+    {
+      "id": "CP4",
+      "kind": "CP4",
+      "item_id": "CASE-PRICE-03:CP4",
+      "credits_concepts": [],
+      "prompt": "Fleur wants a headline for the supplier. Take every promotion with a start date from 2025-07-01 to 2025-09-30, both days included, and each product in it. For each pair, the baseline is the product's average weekly units over the 4 weeks, Monday to Sunday, just before the promotion's start date, and the promotion average is its average weekly units over the weeks from the start date to the end date. A week with no sales counts as 0 units, and an order counts in the week of its UTC order date. A pair's uplift is 100 times (promotion average minus baseline) divided by the baseline. What is the highest uplift of any pair? Type the percentage rounded to 1 decimal, for example 85.5.",
+      "typed": {
+        "precision": "ratio",
+        "scale": "percent",
+        "decimals": 1,
+        "unit_label": "%"
+      },
+      "truth_key": "CASE-PRICE-03:CP4"
+    },
+    {
+      "id": "CP5",
+      "kind": "CP5",
+      "item_id": "CASE-PRICE-03:CP5",
+      "credits_concepts": [],
+      "prompt": "Fleur's best Q3 2025 promotion and product pair sold several times more units per week during the promotion than in the 4 weeks just before it. That uplift compares the promotion weeks with a plain average of those 4 weeks, and nothing else has been checked yet. Fleur asks: can we conclude the promotion worked?",
+      "options": [
+        {
+          "oid": "o925ea10",
+          "text": "Yes. Every unit sold above the 4-week baseline is a sale the promotion created, so the uplift already is the promotion's real effect on the business."
+        },
+        {
+          "oid": "of4bb525",
+          "text": "No. Sales often dip in the weeks after a promotion, so a promotion that is followed by any dip at all has failed, however large its uplift was."
+        },
+        {
+          "oid": "o2fabd8e",
+          "text": "Not yet. This is gross lift: units taken from sister products, a dip after the promotion, other events and the margin after the discount still need checking."
+        },
+        {
+          "oid": "o3e6682a",
+          "text": "Yes, and the case gets even stronger when the uplift is measured against whichever earlier period shows the biggest rise, such as a quiet month earlier in the year."
+        }
+      ]
+    },
+    {
+      "id": "CP6",
+      "kind": "CP6",
+      "credits_concepts": [],
+      "prompt": "Write 2 to 4 sentences for Fleur: how the Q3 2025 promotions did against their baselines, which pair stands out and why, one caveat about what uplift does not show, and one next step before Friday's supplier meeting."
+    }
+  ],
+  "model_plan": "Metric formula: uplift_pct = 100 times (promotion-week average minus baseline average) divided by the baseline average, from each product's weekly units, rounded to 1 decimal and missing when the baseline is 0.\nOutput grain: one row per promotion that started in Q3 2025 and product in that promotion.\nTables and keys: promotions joined to promotion_products on promo_id, then to weekly_units on product_id.\nFilters: promotions with a start date from 2025-07-01 to 2025-09-30; baseline weeks starting 28 to 7 days before the start date; promotion weeks starting from the start date to the end date.\nEdge cases: weeks with no sales count as 0 (weekly_units holds them, the sales view does not); a product in two promotions gets a row for each; a baseline of 0 leaves the uplift missing, sorted last; tied uplifts follow promo_id, then product_id.\nExpected row count: 122",
+  "model_answer_template": "The best Q3 2025 promotion and product pair sold {CP4} percent more units per week during its promotion than in its 4 baseline weeks, but the biggest uplifts come from products that sell only a few units in a normal week, so a large percentage can mean few extra units. {CP2} of the pairs had at least one baseline week with no sales, which is why those weeks count as 0 instead of being left out. Uplift is gross: it leaves out units taken from sister products, any dip after the promotion and the margin given away. For Friday, I would show each uplift next to its baseline units and discount, and check the category's net effect for the promotions Fleur wants to present.",
+  "follow_up_question": "Is it fair for Fleur to tell the supplier that the best promotion grew sales by that percentage?",
+  "data_source": {
+    "label": "Fictional, generated data: Voltmarkt",
+    "real": false,
+    "licence": null
+  },
+  "difficulty": 3,
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CASE-01",
+    "SQL-AGG-04",
+    "SQL-TYPE-01",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-DATE-02"
+  ],
+  "metric_ids": [
+    "MET-PRICE-04"
+  ],
+  "find_ids": [],
+  "uses_raw": false
+}

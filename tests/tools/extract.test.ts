@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { extractJsonBlock, buildCurriculum } from '../../tools/extract.ts';
-import { buildErrors } from '../../tools/extract.ts';
+import { buildErrors, NEW_ERRORS } from '../../tools/extract.ts';
 
 const json01 = extractJsonBlock(await readFile('knowledge/01_sql_curriculum.md', 'utf8')) as any;
 const cur = buildCurriculum(json01);
@@ -34,11 +34,16 @@ test('levels 1-2 keep their 12 concepts; the graph has no cycle', () => {
     seen.add(c.id);
   }
 });
-test('47 error types (37 + 10 new), each tied to a known concept', async () => {
+// Sprint 6 Task K3: the one test that asserts how many error types there are. The count is read from content/sql/errors.json, never
+// typed, so a new ID changes no test (sprint 6 Task B2 added ERR-LOG-30 to ERR-LOG-39).
+test('the extract builds as many error types as errors.json holds, each tied to a known concept', async () => {
   const j02 = extractJsonBlock(await readFile('knowledge/02_mistakes_and_learning.md', 'utf8')) as any;
   const map = JSON.parse(await readFile('content/sql/error-concepts.json', 'utf8'));
+  const written = JSON.parse(await readFile('content/sql/errors.json', 'utf8')) as { errors: unknown[] };
   const cat = buildErrors(j02, map);
-  assert.equal(cat.errors.length, 47);
+  assert.ok(written.errors.length > 0, 'errors.json holds error types');
+  assert.equal(cat.errors.length, written.errors.length);
+  assert.deepEqual(cat.errors.slice(-10).map((e) => e.id), Array.from({ length: 10 }, (_, i) => `ERR-LOG-${30 + i}`), 'the ten new IDs come last, so errors.json only grows');
   for (const e of cat.errors) assert.ok(byId.has(e.concept_id), `${e.id} -> ${e.concept_id}`);
 });
 test('R38: ERR-LOG-22 (LIKE pattern) and ERR-LOG-23 (BETWEEN range) belong to SQL-FILTER-02, with ERRATA entries and refutation feedback', async () => {
@@ -79,6 +84,27 @@ test('sprint 4a Task B2: the level 3 IDs ERR-LOG-24 (UNION), -25 (date truncatio
     assert.ok(feedback[id]?.assumed && feedback[id]?.why && feedback[id]?.model, `${id} feedback`);
     assert.match(errata, new RegExp(`^\\| ${w.row} \\| fix \\|[^\\n]*\\| ${id} \\|`, 'm'), `${id} ERRATA entry`);
   }
+});
+test('sprint 6 Task A1: ERR-SYN-08 (a window function in WHERE) belongs to SQL-WIN-01, with its ERRATA row and refutation feedback', async () => {
+  const j02 = extractJsonBlock(await readFile('knowledge/02_mistakes_and_learning.md', 'utf8')) as any;
+  const cat = buildErrors(j02, JSON.parse(await readFile('content/sql/error-concepts.json', 'utf8')));
+  const written = JSON.parse(await readFile('content/sql/errors.json', 'utf8'));
+  const feedback = JSON.parse(await readFile('content/sql/error-feedback.json', 'utf8'));
+  const errata = await readFile('knowledge/ERRATA.md', 'utf8');
+  const e = cat.errors.find((x) => x.id === 'ERR-SYN-08');
+  assert.deepEqual({ ...e, feedback_template: '' }, { id: 'ERR-SYN-08', category: 'SYN', name: 'A window function in WHERE', detection_checks: ['CHK-ENGINE-ERROR'], feedback_template: '', concept_id: 'SQL-WIN-01' });
+  assert.match(e!.feedback_template, /WHERE/);
+  assert.ok(NEW_ERRORS.some((x) => x.id === 'ERR-SYN-08'), 'one of the extract\'s NEW_ERRORS, so npm run extract keeps it');
+  assert.deepEqual(written.errors.find((x: { id: string }) => x.id === 'ERR-SYN-08'), e, 'run npm run extract');
+  const f = feedback['ERR-SYN-08'];
+  assert.ok(f?.assumed && f.why && f.model, 'feedback');
+  assert.match(f.assumed, /^You probably expected /);
+  const all = `${f.assumed} ${f.why} ${f.model} ${e!.feedback_template}`;
+  assert.doesNotMatch(all, /—/, 'no em dash');
+  assert.doesNotMatch(all, /\b(he|she|him|her|his|hers)\b/i, 'no gendered pronoun');
+  assert.doesNotMatch(all, /\bqualify\b/i, 'the model is portable: QUALIFY works only in DuckDB');
+  assert.doesNotMatch(JSON.stringify(f), /\{[a-z_]+\}/, 'needs no placeholder');
+  assert.match(errata, /^\| E-189 \| fix \|[^\n]*ERR-SYN-08/m, 'ERRATA entry');
 });
 test('errors.json is exactly what the extract builds, so npm run extract never drops an ID', async () => {
   const j02 = extractJsonBlock(await readFile('knowledge/02_mistakes_and_learning.md', 'utf8')) as any;

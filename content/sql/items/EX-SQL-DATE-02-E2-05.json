@@ -1,0 +1,105 @@
+{
+  "id": "EX-SQL-DATE-02-E2-05",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-04",
+    "date",
+    "date_arithmetic",
+    "promotions",
+    "date_diff",
+    "month",
+    "boundaries"
+  ],
+  "level": 4,
+  "source_ids": [
+    "01:SQL-DATE-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-15",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-DATE-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-DATE-02"
+  ],
+  "template_id": "T-DATE-02-months-touched",
+  "template_params": {
+    "table": "promotions"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_interval",
+  "prompt": "Voltmarkt's monthly report lists a promotion under every calendar month in which it ran on at least one day. For each promotion, in how many calendar months did it run? A promotion from 29 January to 11 February ran in 2 months. Return two columns, in this order: promo_code, and months_run. Return one row for each promotion. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "promo_code",
+        "type_class": "text"
+      },
+      {
+        "name": "months_run",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "promo_code",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "months_run",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "promo_code"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the calculated column months_run: how many calendar months the run touches.",
+    "date_diff with the unit 'month' counts how many times a new month starts between two dates. The month the promotion starts in counts too."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 77,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 78,
+      "to": 93,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "date_diff('month', ...) counts the new months that start during the run, and + 1 adds the month the promotion starts in."
+}

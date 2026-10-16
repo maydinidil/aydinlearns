@@ -1,0 +1,43 @@
+{
+  "case_id": "CASE-PRICE-03",
+  "truths": {
+    "CP2": "WITH promo_products AS (\n  -- one row per promotion that started in Q3 2025 and product in it\n  SELECT p.promo_id, pp.product_id, p.start_date, p.end_date\n  FROM promotions AS p\n  JOIN promotion_products AS pp ON pp.promo_id = p.promo_id\n  WHERE p.start_date BETWEEN DATE '2025-07-01' AND DATE '2025-09-30'\n),\nzero_weeks AS (\n  -- one row per promotion and product with at least one baseline week of no units\n  SELECT x.promo_id, x.product_id\n  FROM promo_products AS x\n  JOIN weekly_units AS w ON w.product_id = x.product_id\n  WHERE w.week_start >= x.start_date - INTERVAL 28 DAY\n    AND w.week_start < x.start_date\n    AND w.units = 0\n  GROUP BY x.promo_id, x.product_id\n)\nSELECT COUNT(*) FROM zero_weeks",
+    "CP4": "WITH promo_products AS (\n  -- one row per promotion that started in Q3 2025 and product in it\n  SELECT p.promo_id, pp.product_id, p.start_date, p.end_date\n  FROM promotions AS p\n  JOIN promotion_products AS pp ON pp.promo_id = p.promo_id\n  WHERE p.start_date BETWEEN DATE '2025-07-01' AND DATE '2025-09-30'\n),\nweekly_averages AS (\n  -- one row per promotion and product\n  SELECT x.promo_id, x.product_id,\n         AVG(CASE WHEN w.week_start >= x.start_date - INTERVAL 28 DAY\n                   AND w.week_start < x.start_date THEN w.units END) AS baseline_units_wk,\n         AVG(CASE WHEN w.week_start BETWEEN x.start_date AND x.end_date THEN w.units END) AS promo_units_wk\n  FROM promo_products AS x\n  JOIN weekly_units AS w ON w.product_id = x.product_id\n  GROUP BY x.promo_id, x.product_id\n)\nSELECT ROUND(MAX(100.0 * (promo_units_wk - baseline_units_wk) / NULLIF(baseline_units_wk, 0)), 1)\nFROM weekly_averages"
+  },
+  "choices": {
+    "CP1": {
+      "correct_oid": "o8f54a22",
+      "explanation": "A week with no sales is part of the product's normal pattern, so it counts as 0; leaving it out raises the baseline and shrinks the uplift."
+    },
+    "CP5": {
+      "correct_oid": "o2fabd8e",
+      "explanation": "A promotion worked only once cannibalisation, the dip after it, other events and the margin after the discount are checked; calling every extra unit new demand or picking the most flattering baseline overstates it."
+    }
+  },
+  "solver": {
+    "CP1": {
+      "pass": true,
+      "prompt_hash": "96393073b85dd0a7",
+      "key_hash": "f824d48f20c6b2cb",
+      "at": "2026-10-15T23:01:46.505Z"
+    },
+    "CP2": {
+      "pass": true,
+      "prompt_hash": "5defda9967dda74c",
+      "key_hash": "939718c80d120f3e",
+      "at": "2026-10-15T23:01:46.505Z"
+    },
+    "CP4": {
+      "pass": true,
+      "prompt_hash": "c03ef1169043930b",
+      "key_hash": "5ed8aaf48cf2e791",
+      "at": "2026-10-15T23:01:46.505Z"
+    },
+    "CP5": {
+      "pass": true,
+      "prompt_hash": "833fa548c2f4052e",
+      "key_hash": "c09e0b167134bc88",
+      "at": "2026-10-15T23:03:04.232Z"
+    }
+  }
+}

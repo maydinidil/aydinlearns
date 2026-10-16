@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-SUBQ-01-E1-41",
+  "item_version": 1,
+  "value": 6,
+  "explanation": "IN tests each category once against the list the subquery returns. That list holds 41 category IDs, one per Lumio product, but a category is kept once however often its ID appears, so the query returns the 6 categories, not 41 rows. A join to products would have repeated each category once per Lumio product.",
+  "solver": {
+    "prompt_hash": "b4788e16281350bc",
+    "grader_version": "choice.3",
+    "chosen": null,
+    "typed": "6",
+    "at": "2026-10-15T10:40:24.709Z"
+  }
+}

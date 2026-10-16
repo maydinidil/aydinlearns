@@ -5,7 +5,7 @@
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import type { Section } from '../core/envelope.ts';
-import { parseMistakeCardId, type InstanceResult, type ReplayResult } from '../core/replay.ts';
+import { countsAsAttempt, parseMistakeCardId, type InstanceResult, type ReplayResult } from '../core/replay.ts';
 import { configFor, retrievability, type CardSnapshot } from '../core/scheduler.ts';
 import {
   AT_LEAST_PRACTISED, DAILY_NEW_CAP, interleave, type ComposerCard, type ComposerConcept, type ComposerDailyCase, type ComposerInput, type ComposerOpener,
@@ -216,7 +216,7 @@ export function dailyCase(a: DailyCaseArgs): ComposerDailyCase | null {
   for (const r of a.records as { record?: unknown; item_id?: unknown; submitted_at?: unknown; grading_source?: unknown; outcome?: unknown }[]) {
     if (r.record !== 'attempt' || typeof r.item_id !== 'string' || typeof r.submitted_at !== 'string') continue;
     const c = owner.get(r.item_id);
-    if (!c || r.grading_source === 'override' || r.outcome === 'crash' || r.outcome === 'rejected') continue;
+    if (!c || !countsAsAttempt(r)) continue;
     const at = Date.parse(r.submitted_at);
     if (Number.isNaN(at) || at > t || amsterdamDate(new Date(at)) !== today) continue;
     if (first === null || at < first.at || (at === first.at && order(c, first.c) < 0)) first = { at, c };

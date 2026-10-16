@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-STR-01-E2-05",
+  "item_version": 1,
+  "reference_sql": "SELECT UPPER(TRIM(p.sku)) AS clean_sku, SUM(ol.quantity) AS units\nFROM products p\nJOIN order_lines ol ON ol.product_id = p.product_id\nWHERE p.sku <> UPPER(TRIM(p.sku))\nGROUP BY UPPER(TRIM(p.sku))",
+  "alternatives": [
+    "WITH bad_skus AS (  -- one row per product with a sku off the standard\n  SELECT product_id, UPPER(TRIM(sku)) AS clean_sku\n  FROM products\n  WHERE sku <> UPPER(TRIM(sku))\n),\nsold AS (  -- one row per product sold\n  SELECT product_id, SUM(quantity) AS units\n  FROM order_lines\n  GROUP BY product_id\n)\nSELECT b.clean_sku, s.units\nFROM bad_skus b\nJOIN sold s ON s.product_id = b.product_id",
+    "SELECT UPPER(TRIM(p.sku)) AS clean_sku, SUM(ol.quantity) AS units FROM products p JOIN order_lines ol ON ol.product_id = p.product_id WHERE p.sku <> UPPER(TRIM(p.sku)) GROUP BY 1"
+  ],
+  "other_way": {
+    "sql": "WITH bad_skus AS (  -- one row per product with a sku off the standard\n  SELECT product_id, UPPER(TRIM(sku)) AS clean_sku\n  FROM products\n  WHERE sku <> UPPER(TRIM(sku))\n),\nsold AS (  -- one row per product sold\n  SELECT product_id, SUM(quantity) AS units\n  FROM order_lines\n  GROUP BY product_id\n)\nSELECT b.clean_sku, s.units\nFROM bad_skus b\nJOIN sold s ON s.product_id = b.product_id",
+    "tradeoff": "Two named steps keep each grain plain, one row per product in each, but the single grouped join is shorter."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-32",
+      "sql": "SELECT UPPER(p.sku) AS clean_sku, SUM(ol.quantity) AS units FROM products p JOIN order_lines ol ON ol.product_id = p.product_id WHERE p.sku <> UPPER(TRIM(p.sku)) GROUP BY UPPER(p.sku)"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-14",
+      "sql": "SELECT UPPER(TRIM(p.sku)) AS clean_sku, COUNT(*) AS units FROM products p JOIN order_lines ol ON ol.product_id = p.product_id WHERE p.sku <> UPPER(TRIM(p.sku)) GROUP BY UPPER(TRIM(p.sku))"
+    }
+  ],
+  "hint3_partial": "SELECT ___ AS clean_sku, SUM(ol.quantity) AS units\nFROM products p\nJOIN order_lines ol ON ol.product_id = p.product_id\nWHERE p.sku <> UPPER(TRIM(p.sku))\nGROUP BY ___",
+  "solver": {
+    "prompt_hash": "235e3e7c4d82a5d2",
+    "schema_version": "aa46c7717652",
+    "dataset_version": "b2d2b40fb117bb07",
+    "grader_version": "6a.1",
+    "query": "SELECT upper(trim(p.sku)) AS clean_sku, sum(ol.quantity) AS units\nFROM order_lines ol\nJOIN products p ON p.product_id = ol.product_id\nWHERE p.sku <> upper(trim(sku))\nGROUP BY p.product_id, upper(trim(p.sku))\n",
+    "at": "2026-10-15T11:06:12.421Z"
+  }
+}

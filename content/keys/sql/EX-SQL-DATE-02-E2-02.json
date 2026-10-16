@@ -1,0 +1,39 @@
+{
+  "item_id": "EX-SQL-DATE-02-E2-02",
+  "item_version": 1,
+  "reference_sql": "SELECT p.product_id, MIN(s.order_date) - p.launch_date AS days_to_first_sale\nFROM products p\nJOIN sales s ON s.product_id = p.product_id\nWHERE p.launch_date >= DATE '2024-01-01'\nGROUP BY p.product_id, p.launch_date",
+  "alternatives": [
+    "WITH first_sales AS (  -- one row per product\n  SELECT product_id, MIN(order_date) AS first_day\n  FROM sales\n  GROUP BY product_id\n)\nSELECT p.product_id, f.first_day - p.launch_date AS days_to_first_sale\nFROM products p\nJOIN first_sales f ON f.product_id = p.product_id\nWHERE p.launch_date >= DATE '2024-01-01'",
+    "SELECT p.product_id, date_diff('day', p.launch_date, MIN(s.order_date)) AS days_to_first_sale FROM products p JOIN sales s ON s.product_id = p.product_id WHERE p.launch_date >= DATE '2024-01-01' GROUP BY p.product_id, p.launch_date"
+  ],
+  "other_way": {
+    "sql": "WITH first_sales AS (  -- one row per product\n  SELECT product_id, MIN(order_date) AS first_day\n  FROM sales\n  GROUP BY product_id\n)\nSELECT p.product_id, f.first_day - p.launch_date AS days_to_first_sale\nFROM products p\nJOIN first_sales f ON f.product_id = p.product_id\nWHERE p.launch_date >= DATE '2024-01-01'",
+    "tradeoff": "Finding each product's first sale in its own step makes the grain clear, but one GROUP BY does it in fewer lines."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-34",
+      "sql": "SELECT p.product_id, MIN(s.order_date) - p.launch_date + 1 AS days_to_first_sale FROM products p JOIN sales s ON s.product_id = p.product_id WHERE p.launch_date >= DATE '2024-01-01' GROUP BY p.product_id, p.launch_date"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-14",
+      "sql": "SELECT p.product_id, MAX(s.order_date) - p.launch_date AS days_to_first_sale FROM products p JOIN sales s ON s.product_id = p.product_id WHERE p.launch_date >= DATE '2024-01-01' GROUP BY p.product_id, p.launch_date"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-06",
+      "sql": "SELECT p.product_id, MIN(s.order_date) - p.launch_date AS days_to_first_sale FROM products p JOIN sales s ON s.product_id = p.product_id WHERE p.launch_date > DATE '2024-01-01' GROUP BY p.product_id, p.launch_date"
+    }
+  ],
+  "hint3_partial": "SELECT p.product_id, ___(s.order_date) - p.launch_date AS days_to_first_sale\nFROM products p\nJOIN sales s ON s.product_id = p.product_id\nWHERE p.launch_date >= DATE '2024-01-01'\nGROUP BY p.product_id, p.launch_date",
+  "solver": {
+    "prompt_hash": "d2a167ec7e62973e",
+    "schema_version": "acdebeeb01ea",
+    "dataset_version": "b2d2b40fb117bb07",
+    "grader_version": "6a.1",
+    "query": "SELECT p.product_id, MIN(CAST(s.order_date AS DATE)) - CAST(p.launch_date AS DATE) AS days_to_first_sale\nFROM products p\nJOIN sales s ON s.product_id = p.product_id\nWHERE CAST(p.launch_date AS DATE) >= DATE '2024-01-01'\nGROUP BY p.product_id, p.launch_date\n",
+    "at": "2026-10-15T11:06:11.468Z"
+  }
+}

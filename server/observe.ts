@@ -9,6 +9,7 @@ import { getRPCMetadata, RPCType } from '@opentelemetry/core';
 import type { MiddlewareHandler } from 'hono';
 import { routePath } from 'hono/route';
 import type { ChoiceSection } from '../schemas/choice.ts';
+import type { SqlItem } from '../schemas/item.ts';
 import type { ContentStore } from './content.ts';
 import { journey, type JourneyAttributes } from './journey.ts';
 
@@ -18,8 +19,38 @@ export interface FunnelAttributes { topic: 'SQL' | 'GA4' | 'Methodology'; case_t
 /** A level as a difficulty, for what has no difficulty grade of its own: 'L3', or 'unrated'. */
 export const levelName = (level: number | null | undefined): string => (level == null ? 'unrated' : `L${level}`);
 
-/** A SQL lesson or item. The SQL course has one case world, Voltmarkt's pricing (the attempt log's `world`). */
-export const sqlFunnel = (difficulty: string): FunnelAttributes => ({ topic: 'SQL', case_theme: 'pricing', difficulty });
+/**
+ * The one theme map for SQL (D80, S6-17, S6-32). A case's funnel theme follows its world; an exercise or lesson follows its company
+ * (THEME_OF_COMPANY). Anything unknown keeps the old value, pricing.
+ */
+const THEME_OF_WORLD: Readonly<Record<string, string>> = { PRICE: 'pricing', RETAIL: 'retail', MKT: 'marketing', DQ: 'data_quality' };
+const THEME_OF_COMPANY: Readonly<Record<string, string>> = { voltmarkt: 'pricing', mailvora: 'marketing' };
+export const caseFunnel = (world: string, difficulty: string): FunnelAttributes =>
+  ({ topic: 'SQL', case_theme: THEME_OF_WORLD[world] ?? 'pricing', difficulty });
+
+/**
+ * A SQL lesson or item follows its company (D80): Voltmarkt is pricing, Mailvora marketing. No company, or one with no theme yet
+ * (a real dataset's world comes with Part 2), keeps pricing, so a call that passes none reads as before.
+ */
+export const sqlFunnel = (difficulty: string, company?: string): FunnelAttributes =>
+  ({ topic: 'SQL', case_theme: (company === undefined ? undefined : THEME_OF_COMPANY[company]) ?? 'pricing', difficulty });
+
+/**
+ * S6-32: an SQL item's funnel. An item of use `case` or `opener` takes its case's world (the case that names it as a checkpoint's
+ * item), so a case's CP3 matches its other checkpoints; any other item takes its company, from the item or its schema's prefix.
+ * Used for both the item_viewed event and the attempt, so the two agree.
+ */
+export function itemFunnel(content: Pick<ContentStore, 'cases'>, item: Pick<SqlItem, 'id' | 'use' | 'difficulty' | 'schema'> & { company?: string }): FunnelAttributes {
+  if (item.use === 'case' || item.use === 'opener') {
+    const owner = (content.cases?.() ?? []).find((c) => Array.isArray(c.checkpoints) && c.checkpoints.some((cp) => cp.item_id === item.id));
+    if (owner) return caseFunnel(owner.world, item.difficulty);
+  }
+  const company = [item.company, companyOf(item.schema)].find((c) => c !== undefined && THEME_OF_COMPANY[c] !== 'pricing' && c in THEME_OF_COMPANY) ?? item.company;
+  return sqlFunnel(item.difficulty, company);
+}
+
+/** The company of an item's schema: the text before its first underscore (`voltmarkt_raw` is voltmarkt). */
+export const companyOf = (schema: string | undefined): string | undefined => schema?.split('_')[0];
 
 /** A GA4 or Methodology question or reading. Its exam topic is the theme; these have no difficulty grade, so the concept's level stands in. */
 export function choiceFunnel(content: Pick<ContentStore, 'choiceConcepts'>, section: ChoiceSection, conceptId: string): FunnelAttributes {

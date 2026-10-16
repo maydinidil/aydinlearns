@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-STR-01-E1-22",
+  "item_version": 1,
+  "reference_sql": "SELECT product_id, sku, length(sku) AS n_chars\nFROM products\nWHERE sku <> UPPER(sku)",
+  "alternatives": [
+    "SELECT product_id, sku, length(sku) AS n_chars FROM products WHERE sku LIKE 'vm%'",
+    "SELECT product_id, sku, length(sku) AS n_chars FROM products WHERE NOT (sku = UPPER(sku))"
+  ],
+  "other_way": {
+    "sql": "SELECT product_id, sku, length(sku) AS n_chars FROM products WHERE sku LIKE 'vm%'",
+    "tradeoff": "LIKE 'vm%' works only because every lower-case sku here starts with vm, while comparing with UPPER(sku) finds one anywhere."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-32",
+      "sql": "SELECT product_id, sku, length(sku) AS n_chars FROM products WHERE sku = LOWER(TRIM(sku))"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-32",
+      "sql": "SELECT product_id, sku, length(sku) AS n_chars FROM products WHERE sku <> TRIM(sku)"
+    }
+  ],
+  "hint3_partial": "SELECT product_id, sku, length(sku) AS n_chars\nFROM products\nWHERE sku <> ___",
+  "solver": {
+    "prompt_hash": "4e36ab563adeb10d",
+    "schema_version": "d77fe1c31a0e",
+    "dataset_version": "b2d2b40fb117bb07",
+    "grader_version": "6a.1",
+    "query": "SELECT product_id, sku, length(sku) AS n_chars FROM products WHERE sku <> upper(sku)\n",
+    "at": "2026-10-15T11:06:12.301Z"
+  }
+}

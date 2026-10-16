@@ -93,7 +93,7 @@ async function deps(log?: JsonlLog, specs?: DrillSpec[]): Promise<AppDeps & { se
   logger.onWrite((file, r) => state.record(file, r));
   return { port: 5174, checks: [], runner, content: store, logger, session: new SessionTracker(logger, async (at) => { for (const h of endHooks) await h(at); }),
     endHooks, closedInstances: loggedInstanceIds(await logger.readAll('attempts')), schemaNotes: [], manifest: { dataset_version: 'x', library_version: 'v1.5.6' },
-    settings: { backup_folder: null, exam_date: null, goal_dates: {} }, tableCheck: 'parse_tree', state, servings: new Servings() };
+    settings: { backup_folder: null, exam_date: null, goal_dates: {}, portfolio_folder: null }, tableCheck: 'parse_tree', state, servings: new Servings() };
 }
 const records = async (d: { logger: AttemptLogger }) => (await d.logger.readAll('attempts')) as any[];
 type Serving = { item_id: string; item_instance_id: string };
@@ -184,7 +184,7 @@ test('S4B-26: a live block is never a level or chosen run in drillRuns', () => {
 
 test('G-STAGE-6: evaluateGoal meets the live criterion at 4 reps with 3 passed in 4 weeks; reps outside the window do not count', () => {
   const goal = { id: 'G-STAGE-6', title: 'Live SQL habit', target_date: '2026-12-07', stage: 6, criteria: [{ kind: 'live_rep', window_weeks: 4, min_logged: 4, min_passed: 3 }] } as unknown as Goal;
-  const view = (liveReps: { local_date: string; passed: boolean }[]) => ({ concepts: new Map(), externals: [], mocksPassed: new Set(), casesSolved: [], liveReps }) as any;
+  const view = (liveReps: { local_date: string; passed: boolean }[]) => ({ concepts: new Map(), externals: [], mocksPassed: new Set(), casesSolved: [], realCasesAvailable: 0, liveReps }) as any;
   const today = '2026-10-31';
   const inside = [
     ...rep('live-1', '2026-10-05', { pass: true, tick: true }), ...rep('live-2', '2026-10-12', { pass: true, tick: true }),
@@ -360,4 +360,26 @@ test('D50: a rep whose review is long closed is ticked from the history: one sel
   assert.equal(two.length, 2);
   assert.deepEqual(two[1].ticked, [], 'an untick is the same record with nothing ticked');
   assert.deepEqual([(await liveRow()).run_passed, (await liveRow()).explained_aloud], [false, false], 'unticking takes it back');
+});
+
+// K7a (backlog 4b, E4-m6): the self-check names only a rep that closed. An unclosed live rep (its app stopped before the end) and a block
+// that is no live rep (a closed level drill, an unknown ID) both answer 404 and log nothing.
+test('E4-m6: a self-check for a rep that never closed, or for a block that is not a live rep, is 404 and logs no self_check', async () => {
+  const log = await primedLog([
+    ...rep('live-open', '2026-10-05', { pass: true, closed: false }),     // an unclosed rep: attempts, no block_close
+    ...rep('plain-closed', '2026-10-06', { pass: true }),                  // a closed block whose ID is not a live rep's
+  ]);
+  const d = await deps(log);
+  const app = createApp(d);
+  for (const block_id of ['live-open', 'plain-closed', 'live-nothing-logged']) {
+    for (const ticked of [true, false]) {
+      const res = await post(app, '/api/drill/self-check', { block_id, ticked });
+      assert.equal(res.status, 404, `${block_id} ticked=${ticked}`);
+      assert.equal((await res.json()).error, 'Unknown live rep.');
+    }
+  }
+  assert.equal((await records(d)).filter((r) => r.record === 'self_check').length, 0, 'nothing was logged');
+  // The closed live rep beside them still takes its tick, so the 404s are about the block and not the route.
+  const ok = await post(createApp(await deps(await primedLog(rep('live-closed', '2026-10-07', { pass: true })))), '/api/drill/self-check', { block_id: 'live-closed', ticked: true });
+  assert.equal(ok.status, 200);
 });

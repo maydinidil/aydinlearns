@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-SUBQ-02-E2-22",
+  "item_version": 1,
+  "reference_sql": "SELECT v.product_id, v.n_versions\nFROM (\n  -- one row per product\n  SELECT product_id, COUNT(*) AS n_versions\n  FROM price_history\n  GROUP BY product_id\n) AS v\nWHERE v.n_versions > (\n  SELECT AVG(v2.n_versions)\n  FROM (\n    -- one row per product\n    SELECT product_id, COUNT(*) AS n_versions\n    FROM price_history\n    GROUP BY product_id\n  ) AS v2\n)",
+  "alternatives": [
+    "WITH product_versions AS (\n  -- one row per product\n  SELECT product_id, COUNT(*) AS n_versions\n  FROM price_history\n  GROUP BY product_id\n)\nSELECT product_id, n_versions\nFROM product_versions\nWHERE n_versions > (SELECT AVG(n_versions) FROM product_versions)",
+    "SELECT v.product_id, v.n_versions\nFROM (\n  -- one row per product\n  SELECT product_id, COUNT(*) AS n_versions\n  FROM price_history\n  GROUP BY product_id\n) AS v\nWHERE v.n_versions > (\n  SELECT COUNT(*) * 1.0 / COUNT(DISTINCT product_id)\n  FROM price_history\n)"
+  ],
+  "other_way": {
+    "sql": "WITH product_versions AS (\n  -- one row per product\n  SELECT product_id, COUNT(*) AS n_versions\n  FROM price_history\n  GROUP BY product_id\n)\nSELECT product_id, n_versions\nFROM product_versions\nWHERE n_versions > (SELECT AVG(n_versions) FROM product_versions)",
+    "tradeoff": "A WITH step is written once and read twice, by the filter and by the average, where a derived table is written out twice."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-14",
+      "sql": "SELECT v.product_id, v.n_versions FROM (SELECT product_id, COUNT(*) AS n_versions FROM price_history GROUP BY product_id) AS v WHERE v.n_versions > (SELECT MIN(v2.n_versions) FROM (SELECT product_id, COUNT(*) AS n_versions FROM price_history GROUP BY product_id) AS v2)"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-07",
+      "sql": "SELECT v.product_id, v.n_versions FROM (SELECT product_id, valid_from, COUNT(*) AS n_versions FROM price_history GROUP BY product_id, valid_from) AS v WHERE v.n_versions > (SELECT AVG(v2.n_versions) FROM (SELECT product_id, valid_from, COUNT(*) AS n_versions FROM price_history GROUP BY product_id, valid_from) AS v2)"
+    }
+  ],
+  "hint3_partial": "SELECT v.product_id, v.n_versions\nFROM (\n  -- one row per product\n  SELECT product_id, COUNT(*) AS n_versions\n  FROM price_history\n  GROUP BY product_id\n) AS v\nWHERE v.n_versions > (\n  SELECT ___(v2.n_versions)\n  FROM (\n    -- one row per product\n    SELECT product_id, COUNT(*) AS n_versions\n    FROM price_history\n    GROUP BY ___\n  ) AS v2\n)",
+  "solver": {
+    "prompt_hash": "6d8705e03a2bbfa1",
+    "schema_version": "e8cea7c4eacc",
+    "dataset_version": "b2d2b40fb117bb07",
+    "grader_version": "6a.1",
+    "query": "WITH t AS (SELECT product_id, COUNT(*) AS n_versions FROM price_history GROUP BY product_id)\r\nSELECT product_id, n_versions FROM t WHERE n_versions > (SELECT AVG(n_versions) FROM t)\r\n",
+    "at": "2026-10-15T11:06:14.415Z"
+  }
+}

@@ -1,0 +1,123 @@
+{
+  "id": "EX-SQL-DATE-02-E2-31",
+  "version": 1,
+  "kind": "fix",
+  "tags": [
+    "sql",
+    "LVL-04",
+    "date",
+    "date_arithmetic",
+    "orders",
+    "last-n-days",
+    "as-of",
+    "fix"
+  ],
+  "level": 4,
+  "source_ids": [
+    "01:SQL-DATE-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-15",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-DATE-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-DATE-02"
+  ],
+  "template_id": "T-DATE-02-fix-last-n-days",
+  "template_params": {
+    "table": "orders",
+    "days": 30,
+    "as_of": "2026-01-05",
+    "as_of_day": "excluded"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_interval",
+  "prompt": "The query in the editor has one mistake. Fix it so that it answers this question: how many web orders did Voltmarkt take on each UTC day of the 30 days before its as-of date, 5 January 2026, with the as-of day itself not counted: from 6 December 2025 to 4 January 2026, both days included? Order times are stored in UTC. Return two columns, in this order: order_day, the UTC date, and web_orders. Return one row for each day with web orders. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "order_day",
+        "type_class": "temporal"
+      },
+      {
+        "name": "web_orders",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "order_day",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "web_orders",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "order_day"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, look at the first day in the result: 6 December 2025 should be there.",
+    "Thirty days before 5 January is 6 December, and that day is part of the window. A strict comparison leaves its end day out."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 66,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 67,
+      "to": 78,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 79,
+      "to": 217,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 218,
+      "to": 228,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": "SELECT CAST(order_ts AS DATE) AS order_day, COUNT(*) AS web_orders\nFROM orders\nWHERE channel = 'web'\n  AND CAST(order_ts AS DATE) > DATE '2026-01-05' - INTERVAL 30 DAY\n  AND CAST(order_ts AS DATE) < DATE '2026-01-05'\nGROUP BY 1",
+  "starter_error_id": "ERR-LOG-06",
+  "time_target_ms": 120000,
+  "why_this_works": ">= keeps 6 December, the first of the 30 days, and < the as-of date leaves 5 January out, so exactly 30 days count."
+}

@@ -1,7 +1,7 @@
 -- Voltmarkt clean tables (knowledge/05 CO-01 plus design §10's first-build changes).
 -- {schema} is replaced by the build script. Slice 1a: the five level 1 tables. Slice 1b: the order data
 -- (E-016 adds orders.ship_to_country) and the canonical beginner sales view. Sprint 4a: competitor_prices. Sprint 5a:
--- the A/B test (ab_assignments, ab_conversions).
+-- the A/B test (ab_assignments, ab_conversions). Sprint 6: cost_history and the raw schema.
 CREATE SCHEMA IF NOT EXISTS {schema};
 CREATE TABLE {schema}.calendar (cal_date DATE PRIMARY KEY, iso_year INTEGER, iso_week INTEGER, week_start DATE, month_start DATE, month INTEGER, quarter INTEGER, weekday_name VARCHAR, is_weekend BOOLEAN, event VARCHAR);
 CREATE TABLE {schema}.stores (store_id INTEGER PRIMARY KEY, store_code VARCHAR, city VARCHAR, country_code VARCHAR, store_type VARCHAR, timezone VARCHAR, opened_on DATE, close_date DATE);
@@ -20,6 +20,23 @@ CREATE TABLE {schema}.competitor_prices (product_id INTEGER, competitor VARCHAR,
 -- customer can convert more than once, so the conversions' key names the time. assigned_at and converted_at hold UTC.
 CREATE TABLE {schema}.ab_assignments (test_id VARCHAR, customer_id BIGINT, variant VARCHAR, assigned_at TIMESTAMP, PRIMARY KEY (test_id, customer_id, variant));
 CREATE TABLE {schema}.ab_conversions (test_id VARCHAR, customer_id BIGINT, converted_at TIMESTAMP, revenue_eur DECIMAL(10,2), PRIMARY KEY (test_id, customer_id, converted_at));
+-- Sprint 6 (S6-07, D83, E-081): cost_history, appended and filled after every other table. One row per product per unit
+-- cost version, like price_history: valid_to is inclusive, and missing for the current version.
+CREATE TABLE {schema}.cost_history (product_id INTEGER, valid_from DATE, valid_to DATE, unit_cost_eur DECIMAL(10,2), PRIMARY KEY (product_id, valid_from));
+-- Sprint 6 (S6-02): the raw schema, {schema}_raw. The quirk tables (orders, order_lines, price_history, products) and the
+-- small tables a ticket joins, under the clean names and columns, filled from pipeline/voltmarkt/raw.py. GEN-05: a table
+-- with a key quirk gets no key, so order_lines (resent lines, Q-01-01) and price_history (overlapping windows, Q-01-06)
+-- have none.
+CREATE SCHEMA IF NOT EXISTS {schema}_raw;
+CREATE TABLE {schema}_raw.calendar (cal_date DATE PRIMARY KEY, iso_year INTEGER, iso_week INTEGER, week_start DATE, month_start DATE, month INTEGER, quarter INTEGER, weekday_name VARCHAR, is_weekend BOOLEAN, event VARCHAR);
+CREATE TABLE {schema}_raw.stores (store_id INTEGER PRIMARY KEY, store_code VARCHAR, city VARCHAR, country_code VARCHAR, store_type VARCHAR, timezone VARCHAR, opened_on DATE, close_date DATE);
+CREATE TABLE {schema}_raw.categories (category_id INTEGER PRIMARY KEY, category_name VARCHAR, parent_category VARCHAR);
+CREATE TABLE {schema}_raw.products (product_id INTEGER PRIMARY KEY, sku VARCHAR, product_name VARCHAR, brand VARCHAR, category_id INTEGER, category_raw VARCHAR, sister_product_id INTEGER, unit_cost_eur DECIMAL(10,2), launch_date DATE);
+CREATE TABLE {schema}_raw.promotions (promo_id INTEGER PRIMARY KEY, promo_code VARCHAR, promo_name VARCHAR, promo_type VARCHAR, start_date DATE, end_date DATE, discount_pct DECIMAL(5,2));
+CREATE TABLE {schema}_raw.price_history (product_id INTEGER, valid_from DATE, valid_to DATE, list_price_eur DECIMAL(10,2));
+CREATE TABLE {schema}_raw.promotion_products (promo_id INTEGER, product_id INTEGER, PRIMARY KEY (promo_id, product_id));
+CREATE TABLE {schema}_raw.orders (order_id BIGINT PRIMARY KEY, customer_id BIGINT, store_id INTEGER, order_ts TIMESTAMP, channel VARCHAR, ship_to_country VARCHAR);
+CREATE TABLE {schema}_raw.order_lines (order_line_id BIGINT, order_id BIGINT, product_id INTEGER, quantity INTEGER, unit_price_eur DECIMAL(10,2), promo_id INTEGER, line_discount_eur DECIMAL(10,2));
 -- The canonical beginner sales view (design §10, T-15): one row per order line, no order-level measure.
 -- Net revenue follows E-103, country is the ship-to country (E-016), parent_category is E-147's.
 -- It reads only its own schema's tables, by qualified name, and holds no data literal: the build applies

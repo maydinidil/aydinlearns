@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-SUBQ-02-E2-41",
+  "item_version": 1,
+  "correct_oid": "o60e6a92",
+  "explanation": "The right CTE keeps step 1 at one row per store, so the average in step 2 weighs every store of a type once. Grouping step 1 by store type gives each type its total, so the average of one number is that total. Joining the order lines counts lines, not orders. The LEFT JOIN from stores gives a store with no orders a count of 1, from COUNT(*) on its unmatched row, though the question leaves such stores out.",
+  "solver": {
+    "prompt_hash": "e7be656efb03279b",
+    "grader_version": "choice.3",
+    "chosen": "o60e6a92",
+    "typed": null,
+    "at": "2026-10-15T10:40:24.723Z"
+  }
+}

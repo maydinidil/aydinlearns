@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-STR-01-E3-22",
+  "item_version": 1,
+  "reference_sql": "WITH checks AS (  -- one row per check\n  SELECT 'sku_case' AS check_name, COUNT(*) AS n_bad FROM products WHERE sku <> UPPER(sku)\n  UNION ALL\n  SELECT 'sku_spaces', COUNT(*) FROM products WHERE sku LIKE '% %'\n  UNION ALL\n  SELECT 'tv_spelling', COUNT(*) FROM products WHERE LOWER(TRIM(category_raw)) IN ('tv & video', 'tv en video', 'tv/video', 'téléviseurs')\n)\nSELECT check_name, n_bad, CASE WHEN n_bad = 0 THEN 'pass' ELSE 'fail' END AS result\nFROM checks",
+  "alternatives": [
+    "SELECT 'sku_case' AS check_name, n_bad, CASE WHEN n_bad = 0 THEN 'pass' ELSE 'fail' END AS result\nFROM (  -- one row in total\n  SELECT COUNT(*) AS n_bad FROM products WHERE sku <> UPPER(sku)\n) AS a\nUNION ALL\nSELECT 'sku_spaces', n_bad, CASE WHEN n_bad = 0 THEN 'pass' ELSE 'fail' END\nFROM (  -- one row in total\n  SELECT COUNT(*) AS n_bad FROM products WHERE sku LIKE '% %'\n) AS b\nUNION ALL\nSELECT 'tv_spelling', n_bad, CASE WHEN n_bad = 0 THEN 'pass' ELSE 'fail' END\nFROM (  -- one row in total\n  SELECT COUNT(*) AS n_bad FROM products WHERE LOWER(TRIM(category_raw)) IN ('tv & video', 'tv en video', 'tv/video', 'téléviseurs')\n) AS c",
+    "WITH checks AS (  -- one row per check\n  SELECT 'sku_case' AS check_name, COUNT(*) AS n_bad FROM products WHERE sku <> UPPER(sku)\n  UNION ALL\n  SELECT 'sku_spaces', COUNT(*) FROM products WHERE length(sku) <> length(REPLACE(sku, ' ', ''))\n  UNION ALL\n  SELECT 'tv_spelling', COUNT(*) FROM products WHERE LOWER(TRIM(category_raw)) IN ('tv & video', 'tv en video', 'tv/video', 'téléviseurs')\n)\nSELECT check_name, n_bad, CASE WHEN n_bad = 0 THEN 'pass' ELSE 'fail' END AS result\nFROM checks"
+  ],
+  "other_way": {
+    "sql": "SELECT 'sku_case' AS check_name, n_bad, CASE WHEN n_bad = 0 THEN 'pass' ELSE 'fail' END AS result\nFROM (  -- one row in total\n  SELECT COUNT(*) AS n_bad FROM products WHERE sku <> UPPER(sku)\n) AS a\nUNION ALL\nSELECT 'sku_spaces', n_bad, CASE WHEN n_bad = 0 THEN 'pass' ELSE 'fail' END\nFROM (  -- one row in total\n  SELECT COUNT(*) AS n_bad FROM products WHERE sku LIKE '% %'\n) AS b\nUNION ALL\nSELECT 'tv_spelling', n_bad, CASE WHEN n_bad = 0 THEN 'pass' ELSE 'fail' END\nFROM (  -- one row in total\n  SELECT COUNT(*) AS n_bad FROM products WHERE LOWER(TRIM(category_raw)) IN ('tv & video', 'tv en video', 'tv/video', 'téléviseurs')\n) AS c",
+    "tradeoff": "Three derived tables give each check its own small query, but one named step of counts states the pass rule only once."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-32",
+      "sql": "WITH checks AS (  -- one row per check\n  SELECT 'sku_case' AS check_name, COUNT(*) AS n_bad FROM products WHERE sku <> UPPER(sku)\n  UNION ALL\n  SELECT 'sku_spaces', COUNT(*) FROM products WHERE sku LIKE '% %'\n  UNION ALL\n  SELECT 'tv_spelling', COUNT(*) FROM products WHERE LOWER(category_raw) IN ('tv & video', 'tv en video', 'tv/video', 'téléviseurs')\n)\nSELECT check_name, n_bad, CASE WHEN n_bad = 0 THEN 'pass' ELSE 'fail' END AS result\nFROM checks"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-22",
+      "sql": "WITH checks AS (  -- one row per check\n  SELECT 'sku_case' AS check_name, COUNT(*) AS n_bad FROM products WHERE sku <> UPPER(sku)\n  UNION ALL\n  SELECT 'sku_spaces', COUNT(*) FROM products WHERE sku LIKE '% '\n  UNION ALL\n  SELECT 'tv_spelling', COUNT(*) FROM products WHERE LOWER(TRIM(category_raw)) IN ('tv & video', 'tv en video', 'tv/video', 'téléviseurs')\n)\nSELECT check_name, n_bad, CASE WHEN n_bad = 0 THEN 'pass' ELSE 'fail' END AS result\nFROM checks"
+    }
+  ],
+  "hint3_partial": "WITH checks AS (  -- one row per check\n  SELECT 'sku_case' AS check_name, COUNT(*) AS n_bad FROM products WHERE ___\n  UNION ALL\n  SELECT 'sku_spaces', COUNT(*) FROM products WHERE ___\n  UNION ALL\n  SELECT 'tv_spelling', COUNT(*) FROM products WHERE ___ IN ('tv & video', 'tv en video', 'tv/video', 'téléviseurs')\n)\nSELECT check_name, n_bad, CASE WHEN n_bad = 0 THEN 'pass' ELSE 'fail' END AS result\nFROM checks",
+  "solver": {
+    "prompt_hash": "e6f8c2c9e2311062",
+    "schema_version": "d77fe1c31a0e",
+    "dataset_version": "b2d2b40fb117bb07",
+    "grader_version": "6a.1",
+    "query": "SELECT 'sku_case' AS check_name, count(*) AS n_bad, CASE WHEN count(*) = 0 THEN 'pass' ELSE 'fail' END AS result FROM products WHERE sku <> upper(sku)\nUNION ALL\nSELECT 'sku_spaces', count(*), CASE WHEN count(*) = 0 THEN 'pass' ELSE 'fail' END FROM products WHERE sku LIKE '% %'\nUNION ALL\nSELECT 'tv_spelling', count(*), CASE WHEN count(*) = 0 THEN 'pass' ELSE 'fail' END FROM products WHERE lower(trim(category_raw)) IN ('tv & video','tv en video','tv/video','téléviseurs','tã©lã©viseurs')\n",
+    "at": "2026-10-15T11:06:12.628Z"
+  }
+}

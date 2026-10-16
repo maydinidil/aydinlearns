@@ -1,0 +1,104 @@
+{
+  "id": "EX-SQL-SUBQ-01-E3-22",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-04",
+    "correlated_subquery",
+    "min",
+    "orders",
+    "first_order",
+    "drill"
+  ],
+  "level": 4,
+  "source_ids": [
+    "01:SQL-SUBQ-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-15",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-SUBQ-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-SUBQ-01"
+  ],
+  "template_id": "T-SUBQ-01-first-row-per-key",
+  "template_params": {
+    "table": "orders",
+    "channel": "web",
+    "month": "2025-05"
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_subq",
+  "prompt": "Which registered customers placed their very first order in May 2025, and placed it on the web? A customer's first order is the one with the earliest order_ts. order_ts holds the order time in UTC, and May 2025 runs from 1 May 00:00 up to but not including 1 June 00:00, UTC. Guest orders have a missing customer_id and do not count. Return one column, customer_id, with one row for each such customer. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "customer_id",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "customer_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "customer_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the row filter: a web order in May 2025 that is also the earliest order of its own customer.",
+    "The earliest order time of a customer is one value; work it out in brackets for the customer on the row, not over all orders."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 20,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 21,
+      "to": 34,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 35,
+      "to": 306,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "The subquery gives each customer's earliest order time, so a May 2025 web order passes only when it is that customer's first order."
+}

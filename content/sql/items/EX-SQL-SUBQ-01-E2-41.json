@@ -1,0 +1,92 @@
+{
+  "id": "EX-SQL-SUBQ-01-E2-41",
+  "version": 1,
+  "kind": "choose_query",
+  "tags": [
+    "sql",
+    "LVL-04",
+    "choose_query",
+    "not_exists",
+    "not_in_missing",
+    "products",
+    "sister_product"
+  ],
+  "level": 4,
+  "source_ids": [
+    "01:SQL-SUBQ-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-15",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-SUBQ-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-NULL-01",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-SUBQ-01"
+  ],
+  "template_id": "T-SUBQ-01-choose-not-exists",
+  "template_params": {
+    "table": "products",
+    "column": "sister_product_id",
+    "category_id": 16
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_subq",
+  "prompt": "Some products name a sister product in sister_product_id; most do not, and their sister_product_id is missing. Which products of category 16, Earbuds, does no product name as its sister? Return two columns, product_id and product_name. Which query returns them?",
+  "output_contract": null,
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [],
+  "subgoals": [],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "",
+  "options": [
+    {
+      "oid": "o70aabe7",
+      "text": "SELECT product_id, product_name\nFROM products\nWHERE category_id = 16\n  AND product_id NOT IN (SELECT sister_product_id FROM products)",
+      "misconception_id": "ERR-LOG-30"
+    },
+    {
+      "oid": "odbed896",
+      "text": "SELECT p.product_id, p.product_name\nFROM products p\nWHERE p.category_id = 16\n  AND NOT EXISTS (\n    SELECT 1\n    FROM products s\n    WHERE s.sister_product_id = p.product_id\n  )",
+      "misconception_id": null
+    },
+    {
+      "oid": "of0b8f52",
+      "text": "SELECT p.product_id, p.product_name\nFROM products p\nWHERE p.category_id = 16\n  AND NOT EXISTS (\n    SELECT 1\n    FROM products s\n    WHERE s.sister_product_id = product_id\n  )",
+      "misconception_id": "ERR-LOG-31"
+    },
+    {
+      "oid": "o2979af2",
+      "text": "SELECT p.product_id, p.product_name\nFROM products p\nLEFT JOIN products s ON s.sister_product_id = p.product_id\nWHERE p.category_id = 16\n  AND s.category_id = 16\n  AND s.product_id IS NULL",
+      "misconception_id": "ERR-LOG-10"
+    }
+  ]
+}

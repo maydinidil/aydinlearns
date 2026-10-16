@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-CLEAN-01-E1-41",
+  "item_version": 1,
+  "correct_oid": "o01cb3fc",
+  "explanation": "NULLIF(0, 0) turns the 0 into a missing value, and dividing by a missing value gives a missing value, so a is missing instead of an error or Infinity. COALESCE then puts 0 in its place, which is why b shows 0: a real-looking number for a ratio that does not exist. NULLIF(4, 0) leaves 4 alone, and DuckDB's / keeps the decimals, so c is 2.5.",
+  "solver": {
+    "prompt_hash": "f94cac8e2502ee5a",
+    "grader_version": "choice.3",
+    "chosen": "o01cb3fc",
+    "typed": null,
+    "at": "2026-10-15T10:40:24.684Z"
+  }
+}

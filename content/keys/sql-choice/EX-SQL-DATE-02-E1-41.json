@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-DATE-02-E1-41",
+  "item_version": 1,
+  "correct_oid": "of219895",
+  "explanation": "A DATE minus a DATE counts the days between them, so 31 January and 1 February are 1 day apart. date_diff('month', ...) counts how many times a new month starts between the two dates, and 1 February starts one, so it gives 1 although only one day passed. Reading it as whole months would give 0.",
+  "solver": {
+    "prompt_hash": "8db0de4981525769",
+    "grader_version": "choice.3",
+    "chosen": "of219895",
+    "typed": null,
+    "at": "2026-10-15T10:40:24.692Z"
+  }
+}

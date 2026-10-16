@@ -1,0 +1,40 @@
+{
+  "item_id": "EX-CASE-DAILY-L4-02",
+  "item_version": 1,
+  "reference_sql": "SELECT c.parent_category,\n       COUNT(*) AS n_new_products,\n       ROUND(AVG(f.first_sale_date - f.launch_date), 1) AS avg_days_to_first_sale\nFROM (\n  -- one row per product launched in 2024 or 2025 that sold at least once\n  SELECT p.product_id, p.category_id, p.launch_date, MIN(s.order_date) AS first_sale_date\n  FROM products AS p\n  JOIN sales AS s ON s.product_id = p.product_id\n  WHERE p.launch_date BETWEEN DATE '2024-01-01' AND DATE '2025-12-31'\n  GROUP BY p.product_id, p.category_id, p.launch_date\n) AS f\nJOIN categories AS c ON c.category_id = f.category_id\nGROUP BY c.parent_category\nORDER BY c.parent_category",
+  "alternatives": [
+    "WITH first_sales AS (\n  -- one row per product launched in 2024 or 2025 that sold at least once\n  SELECT p.product_id, p.category_id, p.launch_date, MIN(s.order_date) AS first_sale_date\n  FROM products AS p\n  JOIN sales AS s ON s.product_id = p.product_id\n  WHERE p.launch_date >= DATE '2024-01-01'\n    AND p.launch_date <= DATE '2025-12-31'\n  GROUP BY p.product_id, p.category_id, p.launch_date\n)\nSELECT c.parent_category,\n       COUNT(*) AS n_new_products,\n       ROUND(AVG(date_diff('day', f.launch_date, f.first_sale_date)), 1) AS avg_days_to_first_sale\nFROM first_sales AS f\nJOIN categories AS c ON c.category_id = f.category_id\nGROUP BY c.parent_category\nORDER BY c.parent_category",
+    "SELECT c.parent_category,\n       COUNT(*) AS n_new_products,\n       ROUND(AVG((SELECT MIN(s.order_date) FROM sales AS s WHERE s.product_id = p.product_id) - p.launch_date), 1) AS avg_days_to_first_sale\nFROM products AS p\nJOIN categories AS c ON c.category_id = p.category_id\nWHERE p.launch_date BETWEEN DATE '2024-01-01' AND DATE '2025-12-31'\n  AND EXISTS (SELECT 1 FROM sales AS s2 WHERE s2.product_id = p.product_id)\nGROUP BY c.parent_category\nORDER BY c.parent_category",
+    "SELECT f.parent_category,\n       COUNT(*) AS n_new_products,\n       ROUND(AVG(date_diff('day', f.launch_date, f.first_sale_date)), 1) AS avg_days_to_first_sale\nFROM (\n  -- one row per product launched in 2024 or 2025 that sold at least once\n  SELECT p.product_id, c.parent_category, p.launch_date, MIN(CAST(o.order_ts AS DATE)) AS first_sale_date\n  FROM products AS p\n  JOIN categories AS c ON c.category_id = p.category_id\n  JOIN order_lines AS ol ON ol.product_id = p.product_id\n  JOIN orders AS o ON o.order_id = ol.order_id\n  WHERE p.launch_date BETWEEN DATE '2024-01-01' AND DATE '2025-12-31'\n  GROUP BY p.product_id, c.parent_category, p.launch_date\n) AS f\nGROUP BY f.parent_category\nORDER BY f.parent_category"
+  ],
+  "other_way": {
+    "sql": "WITH first_sales AS (\n  -- one row per product launched in 2024 or 2025 that sold at least once\n  SELECT p.product_id, p.category_id, p.launch_date, MIN(s.order_date) AS first_sale_date\n  FROM products AS p\n  JOIN sales AS s ON s.product_id = p.product_id\n  WHERE p.launch_date >= DATE '2024-01-01'\n    AND p.launch_date <= DATE '2025-12-31'\n  GROUP BY p.product_id, p.category_id, p.launch_date\n)\nSELECT c.parent_category,\n       COUNT(*) AS n_new_products,\n       ROUND(AVG(date_diff('day', f.launch_date, f.first_sale_date)), 1) AS avg_days_to_first_sale\nFROM first_sales AS f\nJOIN categories AS c ON c.category_id = f.category_id\nGROUP BY c.parent_category\nORDER BY c.parent_category",
+    "tradeoff": "A WITH step with date_diff reads top to bottom, and for whole days date_diff gives the same count as subtracting the dates."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-34",
+      "sql": "SELECT c.parent_category,\n       COUNT(*) AS n_new_products,\n       ROUND(AVG(f.first_sale_date - f.launch_date + 1), 1) AS avg_days_to_first_sale\nFROM (\n  SELECT p.product_id, p.category_id, p.launch_date, MIN(s.order_date) AS first_sale_date\n  FROM products AS p\n  JOIN sales AS s ON s.product_id = p.product_id\n  WHERE p.launch_date BETWEEN DATE '2024-01-01' AND DATE '2025-12-31'\n  GROUP BY p.product_id, p.category_id, p.launch_date\n) AS f\nJOIN categories AS c ON c.category_id = f.category_id\nGROUP BY c.parent_category\nORDER BY c.parent_category"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-14",
+      "sql": "SELECT c.parent_category,\n       COUNT(*) AS n_new_products,\n       ROUND(AVG(f.first_sale_date - f.launch_date), 1) AS avg_days_to_first_sale\nFROM (\n  SELECT p.product_id, p.category_id, p.launch_date, MAX(s.order_date) AS first_sale_date\n  FROM products AS p\n  JOIN sales AS s ON s.product_id = p.product_id\n  WHERE p.launch_date BETWEEN DATE '2024-01-01' AND DATE '2025-12-31'\n  GROUP BY p.product_id, p.category_id, p.launch_date\n) AS f\nJOIN categories AS c ON c.category_id = f.category_id\nGROUP BY c.parent_category\nORDER BY c.parent_category"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-07",
+      "sql": "SELECT c.parent_category,\n       COUNT(DISTINCT p.product_id) AS n_new_products,\n       ROUND(AVG(s.order_date - p.launch_date), 1) AS avg_days_to_first_sale\nFROM products AS p\nJOIN sales AS s ON s.product_id = p.product_id\nJOIN categories AS c ON c.category_id = p.category_id\nWHERE p.launch_date BETWEEN DATE '2024-01-01' AND DATE '2025-12-31'\nGROUP BY c.parent_category\nORDER BY c.parent_category"
+    }
+  ],
+  "hint3_partial": "SELECT c.parent_category,\n       COUNT(*) AS n_new_products,\n       ROUND(AVG(___), 1) AS avg_days_to_first_sale\nFROM (\n  -- one row per product launched in 2024 or 2025 that sold at least once\n  SELECT p.product_id, p.category_id, p.launch_date, MIN(s.order_date) AS first_sale_date\n  FROM products AS p\n  JOIN sales AS s ON s.product_id = p.product_id\n  WHERE ___\n  GROUP BY ___\n) AS f\nJOIN categories AS c ON c.category_id = f.category_id\nGROUP BY c.parent_category\nORDER BY c.parent_category",
+  "solver": {
+    "prompt_hash": "01881d7d8dad3f90",
+    "schema_version": "c52b95363cc3",
+    "dataset_version": "b2d2b40fb117bb07",
+    "grader_version": "6a.1",
+    "query": "WITH f AS (\n  SELECT ol.product_id, MIN(CAST(CAST(o.order_ts AS TIMESTAMP) AS DATE)) AS first_sale\n  FROM order_lines ol\n  JOIN orders o ON o.order_id = ol.order_id\n  GROUP BY ol.product_id\n)\nSELECT c.parent_category,\n       COUNT(*) AS n_new_products,\n       ROUND(AVG(date_diff('day', CAST(p.launch_date AS DATE), f.first_sale)), 1) AS avg_days_to_first_sale\nFROM products p\nJOIN f ON f.product_id = p.product_id\nJOIN categories c ON c.category_id = p.category_id\nWHERE CAST(p.launch_date AS DATE) BETWEEN DATE '2024-01-01' AND DATE '2025-12-31'\nGROUP BY c.parent_category\nORDER BY c.parent_category\n",
+    "at": "2026-10-15T19:10:04.436Z"
+  }
+}

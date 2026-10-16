@@ -15,7 +15,7 @@
     },
     {
       "id": "PW2",
-      "error_id": "ERR-LOG-06",
+      "error_id": "ERR-LOG-23",
       "sql": "SELECT product_id, product_name, SUM(units) AS units, SUM(CASE WHEN channel = 'store' THEN units ELSE 0 END) AS store_units FROM sales WHERE order_date >= DATE '2025-01-01' AND order_date < DATE '2025-03-31' GROUP BY product_id, product_name ORDER BY units DESC, product_id LIMIT 10"
     },
     {

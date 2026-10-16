@@ -13,7 +13,7 @@
   "planted_wrong": [
     {
       "id": "PW1",
-      "error_id": "ERR-LOG-06",
+      "error_id": "ERR-LOG-23",
       "sql": "SELECT SUM(CASE WHEN country_code = 'NL' THEN net_revenue_eur ELSE 0 END) AS nl_revenue_eur, SUM(CASE WHEN country_code = 'BE' THEN net_revenue_eur ELSE 0 END) AS be_revenue_eur, SUM(CASE WHEN country_code = 'LU' THEN net_revenue_eur ELSE 0 END) AS lu_revenue_eur FROM sales WHERE order_date > DATE '2025-01-01' AND order_date < DATE '2025-03-31'"
     },
     {

@@ -311,3 +311,86 @@ test('H3: an unanswered question reads "Not answered" and shows no editor; a pas
   assert.equal(showsEditor('not_answered'), false);
   for (const o of ['passed', 'failed', null] as const) assert.equal(showsEditor(o), true, String(o));
 });
+
+// ---- the cumulative drill (sprint 6 Task B4; S6-19) ----
+import {
+  CUMULATIVE_LABEL, CUMULATIVE_NAME, cumulativeRule, fillLines, isCumulativeRun, type CumulativeOffer,
+} from '../../web/src/lib/drill-flow.ts';
+import { drillKindText } from '../../web/src/lib/polish-p2b.ts';
+
+const OFFER: CumulativeOffer = { id: 'cumulative-1-4', levels: [1, 2, 3, 4], questions: 12, minutes: 30, pass_pct: 80, unseen_min_pct: 70, available: true, overall: { questions: 12, from_seen: 0, unseen_pct: 100 },
+  fill: [{ level: 1, wanted: 3, taken: 3, from_seen: 0 }, { level: 2, wanted: 3, taken: 3, from_seen: 0 }, { level: 3, wanted: 3, taken: 3, from_seen: 0 }, { level: 4, wanted: 3, taken: 3, from_seen: 0 }] };
+
+test('S6-19: the drill screen names the cumulative drill and states its rule in the brief\'s words', () => {
+  assert.equal(CUMULATIVE_LABEL, 'Cumulative drill, levels 1 to 4 (screen mode)');
+  assert.equal(cumulativeRule(OFFER),
+    '12 questions from levels 1 to 4, 30 minutes, pass at 80%. Screen mode: no autocomplete, and types and rounding are checked as an online test does.');
+  assert.equal(cumulativeRule({ ...OFFER, levels: [1, 2, 3], questions: 9, minutes: 25, pass_pct: 75 }),
+    '9 questions from levels 1 to 3, 25 minutes, pass at 75%. Screen mode: no autocomplete, and types and rounding are checked as an online test does.');
+  assert.ok(!/—/.test(cumulativeRule(OFFER)), 'no em dash');
+});
+
+test('S6-19: a cum- block is a cumulative run; the history names it and its unseen line never mentions level credit as earned', () => {
+  assert.equal(isCumulativeRun('cum-1234'), true);
+  assert.equal(isCumulativeRun('live-1234'), false);
+  assert.equal(isCumulativeRun('1234-cum-'), false);
+  assert.equal(CUMULATIVE_NAME, 'Cumulative drill');
+  assert.equal(drillKindText({ kind: 'cumulative', level: null }), 'Cumulative drill');
+  assert.match(unseenLine(score(10, 9, { questions: 12 }), { kind: 'cumulative', unseen_min_pct: 70 }), /^Unseen items: 9 of 12\. A cumulative drill never counts toward level completion\.$/);
+  const rows = historyRows([{ block_id: 'cum-a', kind: 'cumulative', level: null, date: '2026-10-05', screen_mode: true, ...score(10, 9, { questions: 12, pct: 83, run_passed: true, counts_for_level: false }) }], '2026-10-06');
+  assert.deepEqual([rows[0]!.cells[1], rows[0]!.cells[2], rows[0]!.cells[3], rows[0]!.cells[4]], ['Cumulative drill', 'Screen mode', '10 of 12 (83%)', 'Yes']);
+  assert.equal(rows[0]!.tick, null);
+});
+
+test('S6-19: a level that gave seen items or came up short says so, level by level, and a full draw says nothing', () => {
+  assert.deepEqual(fillLines(OFFER.fill), []);
+  assert.deepEqual(fillLines([
+    { level: 1, wanted: 3, taken: 3, from_seen: 0 }, { level: 2, wanted: 3, taken: 3, from_seen: 1 }, { level: 3, wanted: 3, taken: 3, from_seen: 3 },
+    { level: 4, wanted: 3, taken: 0, from_seen: 0 }, { level: 5, wanted: 3, taken: 2, from_seen: 0 },
+  ]), [
+    'Level 2: 1 of 3 questions come from exercises you have seen before.',
+    'Level 3: 3 of 3 questions come from exercises you have seen before.',
+    'Level 4: no exercises are written yet, so it adds no questions.',
+    'Level 5: only 2 of 3 questions are available.',
+  ]);
+});
+
+test('S6-19: api.drillCumulativeStart posts to the cumulative route with no body fields', async () => {
+  const calls: { url: string; init: RequestInit }[] = [];
+  const real = globalThis.fetch;
+  globalThis.fetch = (async (url: string, init: RequestInit) => { calls.push({ url, init }); return new Response('{"block_id":"cum-1"}', { status: 200, headers: { 'content-type': 'application/json' } }); }) as typeof fetch;
+  try { await api.drillCumulativeStart(); } finally { globalThis.fetch = real; }
+  assert.equal(calls[0]!.url, '/api/drill/cumulative/start');
+  assert.equal(calls[0]!.init.method, 'POST');
+});
+
+import { runTitle } from '../../web/src/lib/drill-flow.ts';
+test('S6-19: a run\'s heading names a level, the cumulative drill or a chosen drill, in the run and in its review', () => {
+  assert.equal(runTitle({ kind: 'level', level: 2 }), 'Level 2 drill');
+  assert.equal(runTitle({ kind: 'level', level: 2 }, true), 'Level 2 drill: review');
+  assert.equal(runTitle({ kind: 'cumulative', level: null }), 'Cumulative drill');
+  assert.equal(runTitle({ kind: 'cumulative', level: null }, true), 'Cumulative drill: review');
+  assert.equal(runTitle({ kind: 'chosen', level: null }), 'Drill on chosen concepts');
+  assert.equal(runTitle({ kind: 'chosen', level: null }, true), 'Drill review');
+});
+
+import { overallLine } from '../../web/src/lib/drill-flow.ts';
+test('P15: one overall line when the run is below its unseen floor, built from the server numbers; none at or above it', () => {
+  assert.equal(overallLine({ questions: 12, from_seen: 5, unseen_pct: 58 }, 70),
+    '5 of 12 questions are ones you have seen before (the drill aims for at most 30%).');
+  assert.equal(overallLine({ questions: 12, from_seen: 6, unseen_pct: 50 }, 70),
+    '6 of 12 questions are ones you have seen before (the drill aims for at most 30%).');
+  assert.equal(overallLine({ questions: 10, from_seen: 3, unseen_pct: 70 }, 70), null, 'exactly at the floor');
+  assert.equal(overallLine({ questions: 12, from_seen: 0, unseen_pct: 100 }, 70), null);
+  assert.equal(overallLine({ questions: 12, from_seen: 4, unseen_pct: 67 }, 80), '4 of 12 questions are ones you have seen before (the drill aims for at most 20%).');
+  assert.equal(overallLine(undefined, 70), null);
+  assert.equal(overallLine({ questions: 0, from_seen: 0, unseen_pct: 100 }, 70), null);
+  assert.deepEqual(fillLines(OFFER.fill), [], 'the per-level lines stay as they were');
+});
+
+test('K2: the Cumulative heading renders only when the server offers a cumulative drill', async () => {
+  const { cumulativeHeading, CUMULATIVE_NAME } = await import('../../web/src/lib/drill-flow.ts');
+  assert.equal(cumulativeHeading([]), null, 'no offer, no heading');
+  const offer = { id: 'cumulative-1-4', levels: [1, 2, 3, 4], questions: 12, minutes: 30, pass_pct: 80, unseen_min_pct: 70, available: false, fill: [], overall: { questions: 0, from_seen: 0, unseen_pct: 100 } };
+  assert.equal(cumulativeHeading([offer]), CUMULATIVE_NAME, 'an offer, even one that is not open yet, has its heading');
+});

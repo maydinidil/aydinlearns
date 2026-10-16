@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-CLEAN-01-E2-05",
+  "item_version": 2,
+  "reference_sql": "WITH be07_june AS (  -- one row per BE-07 order line of June 2024\n  SELECT ol.quantity, ol.unit_price_eur, ol.line_discount_eur\n  FROM order_lines ol\n  JOIN orders o ON o.order_id = ol.order_id\n  JOIN stores s ON s.store_id = o.store_id\n  WHERE s.store_code = 'BE-07'\n    AND o.order_ts >= TIMESTAMP '2024-06-01' AND o.order_ts < TIMESTAMP '2024-07-01'\n),\ntotals AS (  -- one row in total\n  SELECT SUM(quantity * unit_price_eur - line_discount_eur) AS revenue_stored,\n         SUM(quantity * unit_price_eur / 100 - line_discount_eur) AS revenue_fixed\n  FROM be07_june\n)\nSELECT ROUND(revenue_stored, 2) AS revenue_stored, ROUND(revenue_fixed, 2) AS revenue_fixed,\n       CASE WHEN ROUND(revenue_fixed, 2) = 195532.80 THEN 'pass' ELSE 'fail' END AS result\nFROM totals",
+  "alternatives": [
+    "SELECT ROUND(SUM(ol.quantity * ol.unit_price_eur - ol.line_discount_eur), 2) AS revenue_stored,\n       ROUND(SUM(ol.quantity * ol.unit_price_eur / 100 - ol.line_discount_eur), 2) AS revenue_fixed,\n       CASE WHEN ROUND(SUM(ol.quantity * ol.unit_price_eur / 100 - ol.line_discount_eur), 2) = 195532.80 THEN 'pass' ELSE 'fail' END AS result\nFROM order_lines ol\nJOIN orders o ON o.order_id = ol.order_id\nJOIN stores s ON s.store_id = o.store_id\nWHERE s.store_code = 'BE-07'\n  AND o.order_ts >= TIMESTAMP '2024-06-01' AND o.order_ts < TIMESTAMP '2024-07-01'",
+    "WITH be07_june AS (  -- one row per BE-07 order line of June 2024\n  SELECT ol.quantity, ol.unit_price_eur, ol.line_discount_eur\n  FROM order_lines ol\n  JOIN orders o ON o.order_id = ol.order_id\n  JOIN stores s ON s.store_id = o.store_id\n  WHERE s.store_code = 'BE-07'\n    AND o.order_ts >= TIMESTAMP '2024-06-01' AND o.order_ts < TIMESTAMP '2024-07-01'\n),\ntotals AS (  -- one row in total\n  SELECT SUM(quantity * unit_price_eur - line_discount_eur) AS revenue_stored,\n         SUM(quantity * unit_price_eur / 100 - line_discount_eur) AS revenue_fixed\n  FROM be07_june\n)\nSELECT ROUND(revenue_stored, 2) AS revenue_stored, ROUND(revenue_fixed, 2) AS revenue_fixed,\n       CASE WHEN ABS(revenue_fixed - 195532.80) < 0.005 THEN 'pass' ELSE 'fail' END AS result\nFROM totals"
+  ],
+  "other_way": {
+    "sql": "SELECT ROUND(SUM(ol.quantity * ol.unit_price_eur - ol.line_discount_eur), 2) AS revenue_stored,\n       ROUND(SUM(ol.quantity * ol.unit_price_eur / 100 - ol.line_discount_eur), 2) AS revenue_fixed,\n       CASE WHEN ROUND(SUM(ol.quantity * ol.unit_price_eur / 100 - ol.line_discount_eur), 2) = 195532.80 THEN 'pass' ELSE 'fail' END AS result\nFROM order_lines ol\nJOIN orders o ON o.order_id = ol.order_id\nJOIN stores s ON s.store_id = o.store_id\nWHERE s.store_code = 'BE-07'\n  AND o.order_ts >= TIMESTAMP '2024-06-01' AND o.order_ts < TIMESTAMP '2024-07-01'",
+    "tradeoff": "One query repeats the fixed sum in the result test, while the named totals step works it out once and reuses it."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-05",
+      "sql": "WITH be07_june AS (  -- one row per BE-07 order line of June 2024\n  SELECT ol.quantity, ol.unit_price_eur, ol.line_discount_eur\n  FROM order_lines ol\n  JOIN orders o ON o.order_id = ol.order_id\n  JOIN stores s ON s.store_id = o.store_id\n  WHERE s.store_code = 'BE-07'\n    AND o.order_ts >= TIMESTAMP '2024-06-01' AND o.order_ts < TIMESTAMP '2024-07-01'\n),\ntotals AS (  -- one row in total\n  SELECT SUM(quantity * unit_price_eur - line_discount_eur) AS revenue_stored,\n         SUM(quantity * (CAST(unit_price_eur AS BIGINT) // 100) - line_discount_eur) AS revenue_fixed\n  FROM be07_june\n)\nSELECT ROUND(revenue_stored, 2) AS revenue_stored, ROUND(revenue_fixed, 2) AS revenue_fixed, CASE WHEN ROUND(revenue_fixed, 2) = 195532.80 THEN 'pass' ELSE 'fail' END AS result FROM totals"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-06",
+      "sql": "WITH be07_june AS (  -- one row per BE-07 order line of June 2024\n  SELECT ol.quantity, ol.unit_price_eur, ol.line_discount_eur\n  FROM order_lines ol\n  JOIN orders o ON o.order_id = ol.order_id\n  JOIN stores s ON s.store_id = o.store_id\n  WHERE s.store_code = 'BE-07'\n    AND o.order_ts >= TIMESTAMP '2024-06-01' AND o.order_ts < TIMESTAMP '2024-06-30'\n),\ntotals AS (  -- one row in total\n  SELECT SUM(quantity * unit_price_eur - line_discount_eur) AS revenue_stored,\n         SUM(quantity * unit_price_eur / 100 - line_discount_eur) AS revenue_fixed\n  FROM be07_june\n)\nSELECT ROUND(revenue_stored, 2) AS revenue_stored, ROUND(revenue_fixed, 2) AS revenue_fixed, CASE WHEN ROUND(revenue_fixed, 2) = 195532.80 THEN 'pass' ELSE 'fail' END AS result FROM totals"
+    }
+  ],
+  "hint3_partial": "WITH be07_june AS (  -- one row per BE-07 order line of June 2024\n  SELECT ol.quantity, ol.unit_price_eur, ol.line_discount_eur\n  FROM order_lines ol\n  JOIN orders o ON o.order_id = ol.order_id\n  JOIN stores s ON s.store_id = o.store_id\n  WHERE s.store_code = 'BE-07'\n    AND o.order_ts >= TIMESTAMP '2024-06-01' AND o.order_ts < TIMESTAMP '2024-07-01'\n),\ntotals AS (  -- one row in total\n  SELECT SUM(quantity * unit_price_eur - line_discount_eur) AS revenue_stored,\n         SUM(quantity * ___ - line_discount_eur) AS revenue_fixed\n  FROM be07_june\n)\nSELECT ROUND(revenue_stored, 2) AS revenue_stored, ROUND(revenue_fixed, 2) AS revenue_fixed,\n       CASE WHEN ___ THEN 'pass' ELSE 'fail' END AS result\nFROM totals",
+  "solver": {
+    "prompt_hash": "4240e35566427f5a",
+    "schema_version": "6ef9ff4e4ad1",
+    "dataset_version": "86b0bb39def0dd70",
+    "grader_version": "6a.1",
+    "query": "WITH t AS (\n  SELECT ol.quantity * ol.unit_price_eur - ol.line_discount_eur AS stored,\n         ol.quantity * (ol.unit_price_eur / 100) - ol.line_discount_eur AS fixed\n  FROM order_lines ol\n  JOIN orders o ON o.order_id = ol.order_id\n  JOIN stores s ON s.store_id = o.store_id\n  WHERE s.store_code = 'BE-07'\n    AND o.order_ts >= TIMESTAMP '2024-06-01 00:00:00'\n    AND o.order_ts < TIMESTAMP '2024-07-01 00:00:00'\n), r AS (\n  SELECT round(sum(stored), 2) AS revenue_stored, round(sum(fixed), 2) AS revenue_fixed FROM t\n)\nSELECT revenue_stored, revenue_fixed,\n       CASE WHEN revenue_fixed = 195532.80 THEN 'pass' ELSE 'fail' END AS result\nFROM r\n",
+    "at": "2026-10-15T23:00:11.904Z"
+  }
+}

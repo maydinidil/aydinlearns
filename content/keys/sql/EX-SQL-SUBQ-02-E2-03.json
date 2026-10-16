@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-SUBQ-02-E2-03",
+  "item_version": 1,
+  "reference_sql": "SELECT s.store_type, ROUND(AVG(t.order_eur), 2) AS avg_order_eur\nFROM (\n  -- one row per order\n  SELECT order_id, store_code, SUM(net_revenue_eur) AS order_eur\n  FROM sales\n  GROUP BY order_id, store_code\n) AS t\nJOIN stores s ON s.store_code = t.store_code\nGROUP BY s.store_type",
+  "alternatives": [
+    "SELECT s.store_type, ROUND(SUM(sa.net_revenue_eur) / COUNT(DISTINCT sa.order_id), 2) AS avg_order_eur\nFROM sales sa\nJOIN stores s ON s.store_code = sa.store_code\nGROUP BY s.store_type",
+    "WITH order_values AS (\n  -- one row per order\n  SELECT order_id, store_code, SUM(net_revenue_eur) AS order_eur\n  FROM sales\n  GROUP BY order_id, store_code\n)\nSELECT s.store_type, ROUND(AVG(v.order_eur), 2) AS avg_order_eur\nFROM order_values v\nJOIN stores s ON s.store_code = v.store_code\nGROUP BY s.store_type"
+  ],
+  "other_way": {
+    "sql": "SELECT s.store_type, ROUND(SUM(sa.net_revenue_eur) / COUNT(DISTINCT sa.order_id), 2) AS avg_order_eur\nFROM sales sa\nJOIN stores s ON s.store_code = sa.store_code\nGROUP BY s.store_type",
+    "tradeoff": "Total revenue over the count of distinct orders needs no inner step, but hides the order grain the average stands on."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-20",
+      "sql": "SELECT s.store_type, ROUND(AVG(t.avg_order_eur), 2) AS avg_order_eur FROM (SELECT store_code, SUM(net_revenue_eur) / COUNT(DISTINCT order_id) AS avg_order_eur FROM sales GROUP BY store_code) AS t JOIN stores s ON s.store_code = t.store_code GROUP BY s.store_type"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-07",
+      "sql": "SELECT s.store_type, ROUND(AVG(sa.net_revenue_eur), 2) AS avg_order_eur FROM sales sa JOIN stores s ON s.store_code = sa.store_code GROUP BY s.store_type"
+    }
+  ],
+  "hint3_partial": "SELECT s.store_type, ROUND(AVG(t.order_eur), 2) AS avg_order_eur\nFROM (\n  -- one row per order\n  SELECT order_id, store_code, SUM(net_revenue_eur) AS order_eur\n  FROM sales\n  GROUP BY ___\n) AS t\nJOIN stores s ON s.store_code = t.store_code\nGROUP BY s.store_type",
+  "solver": {
+    "prompt_hash": "7c4eb1f1520a9c08",
+    "schema_version": "5dbd771f9d51",
+    "dataset_version": "b2d2b40fb117bb07",
+    "grader_version": "6a.1",
+    "query": "SELECT st.store_type, ROUND(SUM(t.order_value) / COUNT(*), 2) AS avg_order_eur FROM (SELECT order_id, SUM(net_revenue_eur) AS order_value FROM sales GROUP BY order_id) AS t JOIN orders o ON o.order_id = t.order_id JOIN stores st ON st.store_id = o.store_id GROUP BY st.store_type\r\n",
+    "at": "2026-10-15T11:06:14.279Z"
+  }
+}

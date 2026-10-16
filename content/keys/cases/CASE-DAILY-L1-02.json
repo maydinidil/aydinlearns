@@ -3,5 +3,13 @@
   "truths": {
     "CP4": "SELECT ROUND(MAX(unit_cost_eur * 1.6), 2)\nFROM products\nWHERE category_id IN (15, 16) AND unit_cost_eur < 40"
   },
-  "choices": {}
+  "choices": {},
+  "solver": {
+    "CP4": {
+      "pass": true,
+      "prompt_hash": "1701e01bd742b2cb",
+      "key_hash": "313dd4007e9fe7ed",
+      "at": "2026-10-15T23:01:46.505Z"
+    }
+  }
 }

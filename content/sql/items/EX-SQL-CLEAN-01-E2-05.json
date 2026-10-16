@@ -1,0 +1,147 @@
+{
+  "id": "EX-SQL-CLEAN-01-E2-05",
+  "version": 2,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-04",
+    "reconcile",
+    "prices_in_cents",
+    "money",
+    "order_lines",
+    "orders",
+    "stores"
+  ],
+  "level": 4,
+  "source_ids": [
+    "01:SQL-CLEAN-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-15",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-CLEAN-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-AGG-01",
+    "SQL-CASE-01",
+    "SQL-TYPE-01",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-CLEAN-01"
+  ],
+  "template_id": "T-CLEAN-01-reconcile-cents-revenue",
+  "template_params": {
+    "store": "BE-07",
+    "stated": "195532.80"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt_raw",
+  "edge_schema": "voltmarkt_edge_clean",
+  "uses_raw": true,
+  "prompt": "Finance reports 195,532.80 EUR of revenue for store BE-07 in June 2024. These tables may hold errors. BE-07's unit prices in June 2024 were loaded in cents, so the unit_price_eur of every BE-07 order line of June 2024 must be divided by 100, while line_discount_eur is in euros already. A line's revenue is quantity times unit_price_eur minus line_discount_eur. June 2024 means order_ts, as stored, from 1 June 2024 up to but not including 1 July 2024. Return three columns, in this order: revenue_stored, the revenue as stored, and revenue_fixed, the revenue with the prices in euros, both in euros rounded to 2 decimals, then result: 'pass' when revenue_fixed is 195,532.80, otherwise 'fail'. The result is a single row. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "revenue_stored",
+        "type_class": "numeric"
+      },
+      {
+        "name": "revenue_fixed",
+        "type_class": "numeric"
+      },
+      {
+        "name": "result",
+        "type_class": "text"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "revenue_stored",
+        "type_class": "numeric",
+        "precision": "money",
+        "require_rounding": 2
+      },
+      {
+        "name": "revenue_fixed",
+        "type_class": "numeric",
+        "precision": "money",
+        "require_rounding": 2
+      },
+      {
+        "name": "result",
+        "type_class": "text",
+        "precision": "exact"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, add up the revenue twice: once as stored and once with each unit price divided by 100.",
+    "Divide only unit_price_eur by 100, never the discount, and use / so the cents after the decimal point stay."
+  ],
+  "subgoals": [
+    {
+      "from": 68,
+      "to": 127,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 130,
+      "to": 236,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 239,
+      "to": 352,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 391,
+      "to": 550,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 553,
+      "to": 567,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 570,
+      "to": 753,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 754,
+      "to": 765,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "Dividing only the unit price by 100 turns the cents back into euros, and the stored figure beside it shows how far off the raw total was."
+}

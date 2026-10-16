@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-SUBQ-02-E3-01",
+  "item_version": 1,
+  "reference_sql": "SELECT t.parent_category, t.category_name, t.units\nFROM (\n  -- one row per category\n  SELECT parent_category, category_name, SUM(units) AS units\n  FROM sales\n  GROUP BY parent_category, category_name\n) AS t\nWHERE t.units = (\n  SELECT MAX(t2.units)\n  FROM (\n    -- one row per category\n    SELECT parent_category, category_name, SUM(units) AS units\n    FROM sales\n    GROUP BY parent_category, category_name\n  ) AS t2\n  WHERE t2.parent_category = t.parent_category\n)",
+  "alternatives": [
+    "WITH category_units AS (\n  -- one row per category\n  SELECT parent_category, category_name, SUM(units) AS units\n  FROM sales\n  GROUP BY parent_category, category_name\n),\nparent_top AS (\n  -- one row per parent category\n  SELECT parent_category, MAX(units) AS top_units\n  FROM category_units\n  GROUP BY parent_category\n)\nSELECT c.parent_category, c.category_name, c.units\nFROM category_units c\nJOIN parent_top t ON t.parent_category = c.parent_category AND t.top_units = c.units",
+    "WITH category_units AS (\n  -- one row per category\n  SELECT parent_category, category_name, SUM(units) AS units\n  FROM sales\n  GROUP BY parent_category, category_name\n)\nSELECT c.parent_category, c.category_name, c.units\nFROM category_units c\nWHERE c.units = (\n  SELECT MAX(c2.units)\n  FROM category_units c2\n  WHERE c2.parent_category = c.parent_category\n)"
+  ],
+  "other_way": {
+    "sql": "WITH category_units AS (\n  -- one row per category\n  SELECT parent_category, category_name, SUM(units) AS units\n  FROM sales\n  GROUP BY parent_category, category_name\n),\nparent_top AS (\n  -- one row per parent category\n  SELECT parent_category, MAX(units) AS top_units\n  FROM category_units\n  GROUP BY parent_category\n)\nSELECT c.parent_category, c.category_name, c.units\nFROM category_units c\nJOIN parent_top t ON t.parent_category = c.parent_category AND t.top_units = c.units",
+    "tradeoff": "Two WITH steps, units per category and then the top per parent, write each step once where derived tables repeat it."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-31",
+      "sql": "SELECT t.parent_category, t.category_name, t.units FROM (SELECT parent_category, category_name, SUM(units) AS units FROM sales GROUP BY parent_category, category_name) AS t WHERE t.units = (SELECT MAX(t2.units) FROM (SELECT parent_category, category_name, SUM(units) AS units FROM sales GROUP BY parent_category, category_name) AS t2 WHERE t2.parent_category = parent_category)"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-07",
+      "sql": "SELECT t.parent_category, t.product_name, t.units FROM (SELECT parent_category, product_name, SUM(units) AS units FROM sales GROUP BY parent_category, product_name) AS t WHERE t.units = (SELECT MAX(t2.units) FROM (SELECT parent_category, product_name, SUM(units) AS units FROM sales GROUP BY parent_category, product_name) AS t2 WHERE t2.parent_category = t.parent_category)"
+    }
+  ],
+  "hint3_partial": "SELECT t.parent_category, t.category_name, t.units\nFROM (\n  -- one row per category\n  SELECT parent_category, category_name, SUM(units) AS units\n  FROM sales\n  GROUP BY parent_category, category_name\n) AS t\nWHERE t.units = (\n  SELECT MAX(t2.units)\n  FROM (\n    -- one row per category\n    SELECT parent_category, category_name, SUM(units) AS units\n    FROM sales\n    GROUP BY parent_category, category_name\n  ) AS t2\n  WHERE ___\n)",
+  "solver": {
+    "prompt_hash": "16aeb06978fc151d",
+    "schema_version": "cebf75df442f",
+    "dataset_version": "b2d2b40fb117bb07",
+    "grader_version": "6a.1",
+    "query": "WITH cu AS (SELECT c.parent_category, c.category_name, SUM(ol.quantity) AS units FROM order_lines ol JOIN products p ON p.product_id = ol.product_id JOIN categories c ON c.category_id = p.category_id GROUP BY c.category_id, c.parent_category, c.category_name)\r\nSELECT parent_category, category_name, units FROM cu WHERE units = (SELECT MAX(units) FROM cu x WHERE x.parent_category = cu.parent_category)\r\n",
+    "at": "2026-10-15T11:06:14.957Z"
+  }
+}

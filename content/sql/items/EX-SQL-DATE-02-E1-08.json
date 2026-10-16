@@ -1,0 +1,112 @@
+{
+  "id": "EX-SQL-DATE-02-E1-08",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-04",
+    "date",
+    "date_arithmetic",
+    "stores",
+    "days-inclusive",
+    "as-of"
+  ],
+  "level": 4,
+  "source_ids": [
+    "01:SQL-DATE-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-15",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-DATE-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-NULL-01",
+    "SQL-DATE-02"
+  ],
+  "template_id": "T-DATE-02-days-inclusive-to-as-of",
+  "template_params": {
+    "table": "stores",
+    "as_of": "2026-01-05"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_interval",
+  "prompt": "For each store that is still open, with no close_date, how many days had it been open on Voltmarkt's as-of date, 5 January 2026? Count both the opening day and the as-of day. Return two columns, in this order: store_code, and days_open. Return one row for each of those stores. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "store_code",
+        "type_class": "text"
+      },
+      {
+        "name": "days_open",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "store_code",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "days_open",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "store_code"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the calculated column days_open: the days from opened_on to the as-of date, with both counted.",
+    "The minus gives the days between the two dates, which leaves out the opening day. A store with no close_date has a missing value there, and a comparison with a missing value is never true."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 65,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 66,
+      "to": 77,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 78,
+      "to": 102,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "The minus counts the days between opening and the as-of date, + 1 puts the opening day back, and IS NULL keeps the stores with no close_date."
+}

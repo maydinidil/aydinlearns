@@ -1,0 +1,214 @@
+{
+  "datasets": [
+    {
+      "id": "DS-RETAIL-02",
+      "aliases": [],
+      "name": "Online Retail II",
+      "owner": "Daqing Chen, UCI Machine Learning Repository",
+      "licence": {
+        "name": "CC BY 4.0",
+        "url": "https://creativecommons.org/licenses/by/4.0/",
+        "terms": "Free to share and adapt for any purpose, as long as the source is credited."
+      },
+      "real": true,
+      "label": "Real data: Online Retail II, the invoice lines of a UK online gift shop, December 2009 to December 2011. Source: UCI Machine Learning Repository. Licence: CC BY 4.0.",
+      "source_url": "https://archive.ics.uci.edu/dataset/502/online+retail+ii",
+      "files": [
+        {
+          "name": "online+retail+ii.zip",
+          "sha256": "572e36277c2390fbfde10664750731e0a86f55e33470d91919085f0408e67bfb",
+          "inside": "online_retail_II.xlsx"
+        }
+      ],
+      "schemas": [
+        { "name": "online_retail_ii", "title": "Online Retail II" }
+      ],
+      "prep": "pipeline/datasets/online_retail_ii.py",
+      "questions": [
+        { "id": "DS-RETAIL-02-Q1", "text": "Of the customers whose first purchase was in December 2010, what share bought again on a later day between 1 January and 31 March 2011?" },
+        { "id": "DS-RETAIL-02-Q2", "text": "Which ten products had the highest cancellation rate between 1 January and 9 December 2011, and how much revenue did those cancellations take back?" },
+        { "id": "DS-RETAIL-02-Q3", "text": "Split the customers who bought between 1 December 2010 and 9 December 2011 into segments by the date of their last purchase, their number of invoices and their spend, with fixed cut-offs: how much of that period's product revenue came from the top segment?" },
+        { "id": "DS-RETAIL-02-Q4", "text": "What was the shop's net product revenue in each month of 2010, after cancellations, and leaving out postage, fees and other lines that are not products?" },
+        { "id": "DS-RETAIL-02-Q5", "text": "Which ten countries outside the United Kingdom brought the most net product revenue between 1 December 2009 and 30 November 2011, and how many different customers did each have?" },
+        { "id": "DS-RETAIL-02-Q6", "text": "Between 1 January and 30 November 2011, how did the average invoice value of customers in the United Kingdom compare with that of customers in other countries?" }
+      ],
+      "links": [
+        {
+          "n": 1,
+          "title": "Online Retail II: a data analyst assessment (vasumittal-codes on GitHub)",
+          "url": "https://github.com/vasumittal-codes/online-retail-revenue-customer-analysis-assessment"
+        },
+        {
+          "n": 2,
+          "title": "online-retail-uci (shibinjouhar-oruvil on GitHub)",
+          "url": "https://github.com/shibinjouhar-oruvil/online-retail-uci"
+        }
+      ],
+      "notes": [
+        "Download the zip from the UCI page with its Download button. Keep it zipped: the prep reads the workbook inside it, or the workbook itself if you unzipped it.",
+        "The workbook has two sheets, 2009-2010 and 2010-2011. The prep reads both into one table, invoice_lines, and removes the December 2010 lines that appear in both sheets, counting them.",
+        "Every other line stays as the source has it: cancelled invoices (their number starts with C), lines with a missing customer, negative quantities, postage and other codes that are not products, and repeated lines."
+      ]
+    },
+    {
+      "id": "DS-PRICE-101",
+      "aliases": [],
+      "name": "Breakfast at the Frat",
+      "owner": "dunnhumby",
+      "licence": {
+        "name": "dunnhumby terms",
+        "url": "https://www.dunnhumby.com/terms-and-conditions/",
+        "terms": "For research, personal or non-commercial use only."
+      },
+      "real": true,
+      "label": "Nearly real data: dunnhumby's Breakfast at the Frat, 156 weeks of store sales and promotions for products in four categories. Source: dunnhumby. Licence: dunnhumby terms, for research, personal or non-commercial use.",
+      "source_url": "https://www.dunnhumby.com/source-files/",
+      "files": [
+        {
+          "name": "dunnhumby_Breakfast-at-the-Frat.zip",
+          "sha256": "74cb41cb8b19dc61bb8a5731c3774b802e9a8da3b64cdd1872640890d0b54216",
+          "inside": "dunnhumby_Breakfast-at-the-Frat/dunnhumby - Breakfast at the Frat.xlsx"
+        }
+      ],
+      "schemas": [
+        { "name": "breakfast_at_the_frat", "title": "Breakfast at the Frat" }
+      ],
+      "prep": "pipeline/datasets/breakfast_at_the_frat.py",
+      "questions": [
+        { "id": "DS-PRICE-101-Q1", "text": "For each of the four categories, how did average units per product, store and week under each promotion tactic (featured and on display, featured only, on display only, a price reduction only) compare with weeks of no promotion, from the week ending 14 January 2009 to the week ending 4 January 2012?" },
+        { "id": "DS-PRICE-101-Q2", "text": "In the weeks ending in 2010, what was the average discount in each category when a product sold below its base price, as a share of that base price?" },
+        { "id": "DS-PRICE-101-Q3", "text": "In the weeks ending in 2011, how did the shelf price as a share of the base price differ between the upscale, mainstream and value store tiers?" },
+        { "id": "DS-PRICE-101-Q4", "text": "Which ten products sold the most units in the weeks ending in 2011, and what share of each one's units sold in weeks with any promotion?" },
+        { "id": "DS-PRICE-101-Q5", "text": "How did each category's total spend in the weeks ending in 2011 compare with its total spend in the weeks ending in 2010?" },
+        { "id": "DS-PRICE-101-Q6", "text": "Across every week from 14 January 2009 to 4 January 2012, how many product, store and week records show a shelf price above the base price, and in which category and store tier are they most common?" }
+      ],
+      "links": [
+        {
+          "n": 1,
+          "title": "Breakfast at the Frat, work in progress (RPubs)",
+          "url": "https://rstudio-pubs-static.s3.amazonaws.com/389633_bf35ba8df6fd4acf809922c7c388ac6a.html"
+        },
+        {
+          "n": 2,
+          "title": "Breakfast at the Frat time series analysis (SamuelSousaFerreira on GitHub)",
+          "url": "https://github.com/SamuelSousaFerreira/Breakfast-at-the-Frat-Time-Series-Analysis"
+        },
+        {
+          "n": 3,
+          "title": "Breakfast at Frat!, dataset background (Medium)",
+          "url": "https://medium.com/@atarnvandi/breakfast-at-frat-cda0bc6fb9b8"
+        }
+      ],
+      "notes": [
+        "Download the zip from dunnhumby's Source Files page with the Breakfast at the Frat button. dunnhumby may ask for a name and an email first.",
+        "The zip holds the workbook and a PDF user guide. The prep reads three sheets into three tables: transactions, products and stores.",
+        "The sales name a store STORE_NUM and the store list names it STORE_ID: join store_num to store_id. The prep checks that every store in the sales is in the store list, and records the counts.",
+        "Use this data for research, personal or non-commercial study only, as dunnhumby's terms say."
+      ]
+    },
+    {
+      "id": "CH-01",
+      "aliases": ["DS-SAAS-04"],
+      "name": "8 Week SQL Challenge",
+      "owner": "Danny Ma",
+      "licence": {
+        "name": "No licence stated",
+        "url": null,
+        "terms": "The site states no licence. The app loads only the scripts you saved yourself, and copies none of the challenge's questions, data or scripts."
+      },
+      "real": false,
+      "label": "Fictional data, handmade by its author: Danny Ma's 8 Week SQL Challenge, eight case studies. No licence stated.",
+      "source_url": "https://8weeksqlchallenge.com",
+      "files": [
+        {
+          "name": "case-study-1-dannys-diner.sql",
+          "sha256": "3859953614b341151bc6c28455e1d02a71e22105629f3090765a74a8f5a6bbd0",
+          "schema": "dannys_diner",
+          "url": "https://www.db-fiddle.com/f/2rM8RAnq7h5LLDTzZiRWcd/138"
+        },
+        {
+          "name": "case-study-2-pizza-runner.sql",
+          "sha256": "94d3ac4ccda150040d0762eabdcb0e3144a927ce3b5b40ccb0587be9936e7684",
+          "schema": "pizza_runner",
+          "url": "https://www.db-fiddle.com/f/7VcQKQwsS3CTkGRFG7vu98/65"
+        },
+        {
+          "name": "case-study-3-foodie-fi.sql",
+          "sha256": "524bc4690a2ba97d970de4bc35eff0f3629c8881404025bfe336677be28020a3",
+          "schema": "foodie_fi",
+          "url": "https://www.db-fiddle.com/f/rHJhRrXy5hbVBNJ6F6b9gJ/16"
+        },
+        {
+          "name": "case-study-4-data-bank.sql",
+          "sha256": "d529365449e05fb323ad091f6d401749469d89dfd733da76a51c4dac52d71291",
+          "schema": "data_bank",
+          "url": "https://www.db-fiddle.com/f/2GtQz4wZtuNNu7zXH5HtV4/3"
+        },
+        {
+          "name": "case-study-5-data-mart.sql",
+          "sha256": "fcaa0d6128401e865de4c7ebda9e5b35be51d0906ffe81aab8a6521fc55e8ee3",
+          "schema": "data_mart",
+          "url": "https://www.db-fiddle.com/f/jmnwogTsUE8hGqkZv9H7E8/8"
+        },
+        {
+          "name": "case-study-6-clique-bait.sql",
+          "sha256": "f3a7b984c727b2425ac4d8e68140e6bd1e89b4370dec5561a52868bba0bc9d06",
+          "schema": "clique_bait",
+          "url": "https://www.db-fiddle.com/f/jmnwogTsUE8hGqkZv9H7E8/17"
+        },
+        {
+          "name": "case-study-7-balanced-tree.sql",
+          "sha256": "865f95a2abca86e90a48433fff22049c924b1fbd7b8dfef9e61f6b682b1ee842",
+          "schema": "balanced_tree",
+          "url": "https://www.db-fiddle.com/f/dkhULDEjGib3K58MvDjYJr/8"
+        },
+        {
+          "name": "case-study-8-fresh-segments.sql",
+          "sha256": "29379e6cbd808efeab08b68eafe99021719a8ac1c03388dfd2a0b3c8d38d4c41",
+          "schema": "fresh_segments",
+          "url": "https://www.db-fiddle.com/f/iRdsT76vaus813crPP8Ma4/10"
+        }
+      ],
+      "schemas": [
+        { "name": "dannys_diner", "title": "Case study 1: Danny's Diner", "page": "https://8weeksqlchallenge.com/case-study-1/" },
+        { "name": "pizza_runner", "title": "Case study 2: Pizza Runner", "page": "https://8weeksqlchallenge.com/case-study-2/" },
+        { "name": "foodie_fi", "title": "Case study 3: Foodie-Fi", "page": "https://8weeksqlchallenge.com/case-study-3/" },
+        { "name": "data_bank", "title": "Case study 4: Data Bank", "page": "https://8weeksqlchallenge.com/case-study-4/" },
+        { "name": "data_mart", "title": "Case study 5: Data Mart", "page": "https://8weeksqlchallenge.com/case-study-5/" },
+        { "name": "clique_bait", "title": "Case study 6: Clique Bait", "page": "https://8weeksqlchallenge.com/case-study-6/" },
+        { "name": "balanced_tree", "title": "Case study 7: Balanced Tree Clothing Co.", "page": "https://8weeksqlchallenge.com/case-study-7/" },
+        { "name": "fresh_segments", "title": "Case study 8: Fresh Segments", "page": "https://8weeksqlchallenge.com/case-study-8/" }
+      ],
+      "prep": "pipeline/datasets/wsc.py",
+      "questions": [],
+      "links": [
+        {
+          "n": 1,
+          "title": "8_week_sql_challenge, case study solutions (iweld on GitHub)",
+          "url": "https://github.com/iweld/8_week_sql_challenge"
+        },
+        {
+          "n": 2,
+          "title": "8-Week-SQL-Challenge, case study solutions (manaswikamila05 on GitHub)",
+          "url": "https://github.com/manaswikamila05/8-Week-SQL-Challenge"
+        },
+        {
+          "n": 3,
+          "title": "All eight case studies completed (DaniloCimesa on GitHub)",
+          "url": "https://github.com/DaniloCimesa/Danny-Ma-8-Week-SQL-Challenge-Completed"
+        },
+        {
+          "n": 4,
+          "title": "Case study 1, Danny's Diner, worked through (Medium)",
+          "url": "https://medium.com/@orkunaran/8-weeks-sql-challenge-case-study-week-1-dannys-diner-c90013af6797"
+        }
+      ],
+      "notes": [
+        "Each case study page links its schema script on DB Fiddle. Copy each script into a text file named as listed here, and keep the eight files in a folder named 8-week-sql-challenge inside your downloads folder.",
+        "The prep loads each script into its own schema, under the case study's own name, so public solutions run as written.",
+        "The prep makes small changes for DuckDB: it skips SET search_path and DROP TABLE IF EXISTS, creates FLOAT columns as DOUBLE, and runs the script's own UPDATE statements, which turn blank text, and the word null written as text, into missing values. It refuses any other kind of statement.",
+        "The questions are on each case study's page. The app copies none of them, and none of the data: everything stays on your laptop."
+      ]
+    }
+  ]
+}

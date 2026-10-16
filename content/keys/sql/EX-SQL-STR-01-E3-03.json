@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-STR-01-E3-03",
+  "item_version": 1,
+  "reference_sql": "SELECT p.product_id,\n       CASE WHEN LOWER(TRIM(p.category_raw)) IN ('tv & video', 'tv en video', 'tv/video', 'téléviseurs') THEN 'TV & Video' ELSE c.parent_category END AS parent_category\nFROM products p\nLEFT JOIN categories c ON LOWER(c.category_name) = LOWER(TRIM(p.category_raw))\nWHERE p.category_id IS NULL",
+  "alternatives": [
+    "SELECT p.product_id,\n       CASE WHEN LOWER(TRIM(p.category_raw)) IN ('tv & video', 'tv en video', 'tv/video', 'téléviseurs') THEN 'TV & Video'\n            ELSE (SELECT c.parent_category FROM categories c WHERE LOWER(c.category_name) = LOWER(TRIM(p.category_raw)))\n       END AS parent_category\nFROM products p\nWHERE p.category_id IS NULL",
+    "SELECT p.product_id,\n       COALESCE(CASE WHEN LOWER(TRIM(p.category_raw)) IN ('tv & video', 'tv en video', 'tv/video', 'téléviseurs') THEN 'TV & Video' END, c.parent_category) AS parent_category\nFROM products p\nLEFT JOIN categories c ON LOWER(c.category_name) = LOWER(TRIM(p.category_raw))\nWHERE p.category_id IS NULL"
+  ],
+  "other_way": {
+    "sql": "SELECT p.product_id,\n       CASE WHEN LOWER(TRIM(p.category_raw)) IN ('tv & video', 'tv en video', 'tv/video', 'téléviseurs') THEN 'TV & Video'\n            ELSE (SELECT c.parent_category FROM categories c WHERE LOWER(c.category_name) = LOWER(TRIM(p.category_raw)))\n       END AS parent_category\nFROM products p\nWHERE p.category_id IS NULL",
+    "tradeoff": "A subquery in the CASE looks up the parent only when it is needed, but the LEFT JOIN shows the lookup in the FROM clause."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-32",
+      "sql": "SELECT p.product_id, CASE WHEN LOWER(p.category_raw) IN ('tv & video', 'tv en video', 'tv/video', 'téléviseurs') THEN 'TV & Video' ELSE c.parent_category END AS parent_category FROM products p LEFT JOIN categories c ON LOWER(c.category_name) = LOWER(p.category_raw) WHERE p.category_id IS NULL"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-11",
+      "sql": "SELECT p.product_id, CASE WHEN LOWER(TRIM(p.category_raw)) IN ('tv & video', 'tv en video', 'tv/video', 'téléviseurs') THEN 'TV & Video' ELSE c.parent_category END AS parent_category FROM products p JOIN categories c ON LOWER(c.category_name) = LOWER(TRIM(p.category_raw)) WHERE p.category_id IS NULL"
+    }
+  ],
+  "hint3_partial": "SELECT p.product_id,\n       CASE WHEN ___ IN ('tv & video', 'tv en video', 'tv/video', 'téléviseurs') THEN 'TV & Video' ELSE c.parent_category END AS parent_category\nFROM products p\nLEFT JOIN categories c ON ___\nWHERE p.category_id IS NULL",
+  "solver": {
+    "prompt_hash": "231806b9c5a520b5",
+    "schema_version": "81419b0500f4",
+    "dataset_version": "b2d2b40fb117bb07",
+    "grader_version": "6a.1",
+    "query": "WITH m AS (\n  SELECT p.product_id, p.category_raw,\n         CASE WHEN lower(trim(p.category_raw)) IN ('tv & video','tv en video','tv/video','téléviseurs','tã©lã©viseurs') THEN 'TV & Video'\n              ELSE (SELECT min(c.parent_category) FROM categories c WHERE lower(trim(c.category_name)) = lower(trim(p.category_raw))) END AS parent_category,\n         lower(trim(p.category_raw)) IN ('tv & video','tv en video','tv/video','téléviseurs','tã©lã©viseurs') AS is_parent\n  FROM products p\n)\nSELECT m.product_id, COALESCE(m.parent_category, 'missing') AS parent_category\nFROM m\nJOIN products p ON p.product_id = m.product_id\nWHERE p.category_id IS NULL\n",
+    "at": "2026-10-15T11:06:12.589Z"
+  }
+}

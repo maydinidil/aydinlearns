@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-CLEAN-01-E2-42",
+  "item_version": 1,
+  "correct_oid": "o359193b",
+  "explanation": "Grouping by every column but order_line_id puts each copy with its original, so each set's size minus 1 is its number of copies, and their sum is the answer. COUNT(DISTINCT order_line_id) finds nothing, because every copy has an ID of its own. Grouping by order and product alone also counts two real lines of one product as a copy, and summing the whole size of each copied set counts the originals too.",
+  "solver": {
+    "prompt_hash": "fb45f0c1390b7c8e",
+    "grader_version": "choice.3",
+    "chosen": "o359193b",
+    "typed": null,
+    "at": "2026-10-15T10:40:24.690Z"
+  }
+}

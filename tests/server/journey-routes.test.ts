@@ -49,7 +49,7 @@ async function deps(store: ContentStore = content, log?: JsonlLog): Promise<AppD
   return { port: 5174, checks: [], runner: null, content: store, logger, endHooks, state,
     session: new SessionTracker(logger, async (at) => { for (const h of endHooks) await h(at); }),
     closedInstances: [], schemaNotes: [], manifest: { dataset_version: 'x', library_version: 'v1.5.6' },
-    settings: { backup_folder: null, exam_date: null, goal_dates: {} }, tableCheck: 'parse_tree', distDir: 'tests/fixtures/web-shell' };
+    settings: { backup_folder: null, exam_date: null, goal_dates: {}, portfolio_folder: null }, tableCheck: 'parse_tree', distDir: 'tests/fixtures/web-shell' };
 }
 async function journal(dir: string): Promise<JourneyRecord[]> {
   const out: JourneyRecord[] = [];
@@ -245,4 +245,188 @@ test('a lab is recorded as opened only once it is known', async () => {
   assert.equal((await get(app, '/api/labs/LAB-07')).status, 200);
   await stopJourney();
   assert.deepEqual((await journal(dir)).filter((r) => r.event === 'lab_opened').map((r) => r.lab_id), ['LAB-07']);
+});
+
+// K10 (S6-18, D81): a timed run the app ends itself sends run_finished too, once, with the browser end's fields.
+/** K2 (S6-31): the app built with the runs' clock stubbed, as tests/server/run.test.ts does; `advance` moves only that clock, so no test sleeps. */
+function clocked(d: AppDeps): { app: Hono; advance: (ms: number) => void } {
+  const real = Date.now;
+  let offset = 0;
+  Date.now = () => real() + offset;
+  try { return { app: createApp(d), advance: (ms) => { offset += ms; } }; } finally { Date.now = real; }
+}
+const finished = async (dir: string) => (await journal(dir)).filter((r) => r.event === 'run_finished');
+/**
+ * run_finished lines read mid-test. journey() queues each line on a write chain that nothing but stopJourney() waits for, so reading
+ * the folder straight after a hook or a route can run before the line reaches the file (the K2 M1 flake under a full `npm test`).
+ * This waits for the chain the right way: stop the journey (it awaits the writes), start it again on the same folder, then read.
+ */
+async function finishedSoFar(dir: string) {
+  await stopJourney();
+  startJourney({ dir });
+  return finished(dir);
+}
+
+test('K10: a drill whose timer ends it writes exactly one run_finished with score_pct and run_passed, and a later browser end adds none', async () => {
+  const dir = await tmp();
+  startJourney({ dir });
+  const { app, advance } = clocked(await deps(withDrill));
+  const started = await post(app, '/api/drill/start', { level: 1 });
+  const { block_id } = await started.json() as { block_id: string };
+  advance(11 * 60_000);                                                // past the 10-minute limit on the injected clock
+  assert.equal((await get(app, '/api/drill/current')).status, 200);    // the next request ends the run (the sweep)
+  assert.equal((await post(app, '/api/drill/end', { block_id })).status, 200);
+  await stopJourney();
+  const done = await finished(dir);
+  assert.equal(done.length, 1, 'one, not two');
+  assert.deepEqual([done[0]!.section, done[0]!.run_kind, done[0]!.block_id, done[0]!.score_pct, done[0]!.run_passed, done[0]!.level], ['sql', 'level', block_id, 0, false, 1]);
+});
+
+test('K10: a session end (finishAll) writes run_finished for each open run', async () => {
+  const dir = await tmp();
+  startJourney({ dir });
+  const d = await deps(withDrill);
+  const app = createApp(d);
+  const { block_id } = await (await post(app, '/api/drill/start', { level: 1 })).json() as { block_id: string };
+  for (const h of d.endHooks) await h(new Date());
+  await stopJourney();
+  const done = await finished(dir);
+  assert.deepEqual(done.map((r) => [r.block_id, r.score_pct, r.run_passed]), [[block_id, 0, false]]);
+});
+
+test('K10: a run the browser ends writes one run_finished, not two', async () => {
+  const dir = await tmp();
+  startJourney({ dir });
+  const app = createApp(await deps(withDrill));
+  const { block_id } = await (await post(app, '/api/drill/start', { level: 1 })).json() as { block_id: string };
+  assert.equal((await post(app, '/api/drill/end', { block_id })).status, 200);
+  assert.equal((await post(app, '/api/drill/end', { block_id })).status, 200);
+  await stopJourney();
+  assert.equal((await finished(dir)).length, 1);
+});
+
+// K10 fix round (A2 review I1, I2): a live rep the app ends sends its run_finished; a failed read by the app's end loses nothing.
+test('K10 I1: a live rep the app ends (a session end) writes one live_rep run_finished, and a later browser end adds none', async () => {
+  const dir = await tmp();
+  startJourney({ dir });
+  const d = await deps(withDrill);
+  const app = createApp(d);
+  const { block_id } = await (await post(app, '/api/drill/live/start', {})).json() as { block_id: string };
+  for (const h of d.endHooks) await h(new Date());
+  assert.equal((await post(app, '/api/drill/end', { block_id })).status, 200);
+  await stopJourney();
+  const done = await finished(dir);
+  assert.deepEqual(done.map((r) => [r.section, r.run_kind, r.block_id, r.score_pct]), [['sql', 'live_rep', block_id, 0]]);
+  assert.equal('run_passed' in done[0]!, false, 'the same fields as the browser end: no run_passed for a rep');
+});
+
+test('K10 I2: an app end whose history read fails sends nothing, and the browser end after it sends the one run_finished', async () => {
+  const dir = await tmp();
+  startJourney({ dir });
+  const d = await deps(withDrill);
+  const app = createApp(d);
+  const { block_id } = await (await post(app, '/api/drill/start', { level: 1 })).json() as { block_id: string };
+  const real = d.logger.readAll.bind(d.logger);
+  const closeReal = d.logger.blockClose.bind(d.logger);
+  let broken = false;
+  d.logger.readAll = async (file) => { if (broken) throw new Error('the log could not be read'); return real(file); };
+  d.logger.blockClose = async (r) => { await closeReal(r); broken = true; };   // the read after the block_close fails
+  const log = console.error;
+  console.error = () => {};
+  try { for (const h of d.endHooks) await h(new Date()); } finally { console.error = log; broken = false; }
+  assert.equal((await finishedSoFar(dir)).length, 0, 'nothing was sent yet');
+  assert.equal((await post(app, '/api/drill/end', { block_id })).status, 200);
+  assert.equal((await post(app, '/api/drill/end', { block_id })).status, 200);
+  await stopJourney();
+  assert.deepEqual((await finished(dir)).map((r) => [r.block_id, r.score_pct, r.run_passed]), [[block_id, 0, false]]);
+});
+
+// K2 (S6-32, D80): a case item's theme follows its case's world, in item_viewed as in the attempt (both read itemFunnel).
+test('K2: a case item\'s item_viewed carries its case\'s theme, and a plain level item and a lesson carry pricing', async () => {
+  const dir = await tmp();
+  startJourney({ dir });
+  const f = await makeCaseFixture({ records: (r) => { r.inbox.world = 'DQ'; r.daily.world = 'RETAIL'; r.opener.world = 'MKT'; } });
+  keep(f.root);
+  const app = createApp(await deps(await loadContent(f.root, { truthFile: f.truthFile })));
+  for (const id of ['EX-CASE-PRICE-01', 'EX-CASE-DAILY-L1-01', 'EX-OPENER-L1-01']) assert.equal((await get(app, `/api/items/${id}`)).status, 200, id);
+  await stopJourney();
+  const themes = Object.fromEntries((await journal(dir)).filter((r) => r.event === 'item_viewed').map((r) => [r.item_id, r.case_theme]));
+  assert.deepEqual(themes, { 'EX-CASE-PRICE-01': 'data_quality', 'EX-CASE-DAILY-L1-01': 'retail', 'EX-OPENER-L1-01': 'marketing' });
+});
+
+test('K2: an ordinary level item and a lesson still send pricing', async () => {
+  const dir = await tmp();
+  startJourney({ dir });
+  const app = createApp(await deps());
+  assert.equal((await get(app, `/api/items/${lesson.pool_item_ids[0]}`)).status, 200);
+  assert.equal((await get(app, `/api/lessons/${FIXTURE_CONCEPT}`)).status, 200);
+  await stopJourney();
+  const rows = (await journal(dir)).filter((r) => r.event === 'item_viewed' || r.event === 'lesson_started');
+  assert.deepEqual(rows.map((r) => [r.event, r.case_theme]), [['item_viewed', 'pricing'], ['lesson_started', 'pricing']]);
+});
+
+// K2 (S6-31, backlog M1): run_finished is sent only by the call whose own finish ended the run.
+test('K2 M1: a timed SQL drill the app stops (finishAll), then ended by the end route of a new app over the same logs, sends one run_finished in all', async () => {
+  const dir = await tmp();
+  startJourney({ dir });
+  const log = openJsonlLog(await tmp('al-journey-restart-'));
+  const first = await deps(withDrill, log);
+  const appA = createApp(first);
+  const { block_id } = await (await post(appA, '/api/drill/start', { level: 1 })).json() as { block_id: string };
+  for (const h of first.endHooks) await h(new Date());                // the app stops: the run ends, and sends
+  assert.equal((await finishedSoFar(dir)).length, 1, 'the stop sent it');
+  const appB = createApp(await deps(withDrill, log));                 // a restart over the same logs: its own sets
+  assert.equal((await post(appB, '/api/drill/end', { block_id })).status, 200);
+  assert.equal((await post(appB, '/api/drill/end', { block_id })).status, 200);
+  await stopJourney();
+  assert.deepEqual((await finished(dir)).map((r) => [r.block_id, r.score_pct]), [[block_id, 0]], 'one in all, from the stop');
+});
+
+test('K2 M1: an end route that finds the block already in history sends nothing, even when the earlier process sent none', async () => {
+  const dir = await tmp();
+  startJourney({ dir });
+  const log = openJsonlLog(await tmp('al-journey-restart-'));
+  const first = await deps(withDrill, log);
+  const appA = createApp(first);
+  const { block_id } = await (await post(appA, '/api/drill/start', { level: 1 })).json() as { block_id: string };
+  const real = first.logger.readAll.bind(first.logger);
+  const closeReal = first.logger.blockClose.bind(first.logger);
+  let broken = false;
+  first.logger.readAll = async (file) => { if (broken) throw new Error('the log could not be read'); return real(file); };
+  first.logger.blockClose = async (r) => { await closeReal(r); broken = true; };
+  const quiet = console.error;
+  console.error = () => {};
+  try { for (const h of first.endHooks) await h(new Date()); } finally { console.error = quiet; broken = false; }
+  const appB = createApp(await deps(withDrill, log));
+  assert.equal((await post(appB, '/api/drill/end', { block_id })).status, 200);
+  await stopJourney();
+  assert.equal((await finished(dir)).length, 0, 'the block was in history: the new app did not end it, so it sends nothing');
+});
+
+test('K2 M1: two apps in one process do not share what was sent; each live end sends its own one', async () => {
+  const dir = await tmp();
+  startJourney({ dir });
+  const a = createApp(await deps(withDrill));
+  const b = createApp(await deps(withDrill));
+  const ids: string[] = [];
+  for (const app of [a, b]) {
+    const { block_id } = await (await post(app, '/api/drill/start', { level: 1 })).json() as { block_id: string };
+    ids.push(block_id);
+    assert.equal((await post(app, '/api/drill/end', { block_id })).status, 200);
+  }
+  await stopJourney();
+  assert.deepEqual((await finished(dir)).map((r) => r.block_id).sort(), [...ids].sort());
+});
+
+test('K2 M1: a live rep the browser ends sends exactly one run_finished; ended again by a new app over the same logs, none more', async () => {
+  const dir = await tmp();
+  startJourney({ dir });
+  const log = openJsonlLog(await tmp('al-journey-restart-'));
+  const appA = createApp(await deps(withDrill, log));
+  const { block_id } = await (await post(appA, '/api/drill/live/start', {})).json() as { block_id: string };
+  assert.equal((await post(appA, '/api/drill/end', { block_id })).status, 200);
+  const appB = createApp(await deps(withDrill, log));
+  assert.equal((await post(appB, '/api/drill/end', { block_id })).status, 200);
+  await stopJourney();
+  assert.deepEqual((await finished(dir)).map((r) => [r.run_kind, r.block_id]), [['live_rep', block_id]]);
 });

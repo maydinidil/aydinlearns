@@ -1,0 +1,146 @@
+{
+  "id": "EX-SQL-STR-01-E1-41",
+  "version": 1,
+  "kind": "predict_result",
+  "tags": [
+    "sql",
+    "LVL-04",
+    "predict_result",
+    "text_helper",
+    "string_fn",
+    "sku",
+    "products"
+  ],
+  "level": 4,
+  "source_ids": [
+    "01:SQL-STR-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-15",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pretest",
+  "target_concept_id": "SQL-STR-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-STR-01"
+  ],
+  "template_id": "T-STR-01-predict-sku-functions",
+  "template_params": {
+    "product_id": 22
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt_raw",
+  "edge_schema": "voltmarkt_edge_clean",
+  "uses_raw": true,
+  "prompt": "This table may hold errors. Product 22's sku is stored as 'vm-000022' followed by two spaces. Which result does this query return?",
+  "output_contract": null,
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [],
+  "subgoals": [],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 90000,
+  "why_this_works": "",
+  "shown_sql": "SELECT length(sku) AS n_chars, UPPER(TRIM(sku)) AS clean_sku, substring(TRIM(sku), 4, 6) AS sku_number\nFROM products\nWHERE product_id = 22",
+  "options": [
+    {
+      "oid": "ob984d05",
+      "text": "11 characters, VM-000022 and 000022",
+      "misconception_id": null,
+      "table": {
+        "columns": [
+          "n_chars",
+          "clean_sku",
+          "sku_number"
+        ],
+        "rows": [
+          [
+            11,
+            "VM-000022",
+            "000022"
+          ]
+        ]
+      }
+    },
+    {
+      "oid": "o2c24d26",
+      "text": "9 characters, VM-000022 and 000022",
+      "misconception_id": "ERR-LOG-32",
+      "table": {
+        "columns": [
+          "n_chars",
+          "clean_sku",
+          "sku_number"
+        ],
+        "rows": [
+          [
+            9,
+            "VM-000022",
+            "000022"
+          ]
+        ]
+      }
+    },
+    {
+      "oid": "o5a36616",
+      "text": "11 characters, VM-000022 and 000",
+      "misconception_id": "ERR-LOG-33",
+      "table": {
+        "columns": [
+          "n_chars",
+          "clean_sku",
+          "sku_number"
+        ],
+        "rows": [
+          [
+            11,
+            "VM-000022",
+            "000"
+          ]
+        ]
+      }
+    },
+    {
+      "oid": "of596230",
+      "text": "11 characters, VM-000022 and 00022",
+      "misconception_id": "ERR-LOG-33",
+      "table": {
+        "columns": [
+          "n_chars",
+          "clean_sku",
+          "sku_number"
+        ],
+        "rows": [
+          [
+            11,
+            "VM-000022",
+            "00022"
+          ]
+        ]
+      }
+    }
+  ]
+}

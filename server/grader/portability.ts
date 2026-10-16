@@ -3,7 +3,7 @@
 // a fail, never a check. They read only the gated text and its parse tree, from the runner's parse_tree op (the gate, then
 // the prepared json_serialize_sql), and the integer division re-run is a gated display on the second locked runner; learner
 // text never reaches any other path here. GRADER_VERSION moved to 4b.1 with the new notes and screen mode (D41), and to 4c.1 with
-// the re-run's control run (D52).
+// the re-run's control run (D52). Sprint 6 (S6-10) adds the FROM subquery alias note, a note only.
 import type { RunnerClient } from '../runner/client.ts';
 import type { DisplayOk, ParseTreeOk } from '../runner/protocol.ts';
 import { maskSql } from '../runner/tables.ts';
@@ -36,6 +36,8 @@ export const ILIKE_NOTE = "ILIKE works in DuckDB and PostgreSQL, but not in SQL 
 export const COUNT_NOTE = 'count() with nothing inside works only in DuckDB. PostgreSQL, SQL Server and MySQL need count(*) to count rows.';
 export const EXCLUDE_NOTE = 'SELECT * EXCLUDE works only in DuckDB. PostgreSQL, SQL Server and MySQL need the columns you want listed.';
 export const QUALIFY_NOTE = 'QUALIFY works in DuckDB, but not in PostgreSQL, SQL Server or MySQL. Filter the window result in an outer query instead.';
+/** S6-10 (sprint 6, Task A1): a subquery in FROM with no alias. PostgreSQL 16 dropped the rule; SQL Server keeps it. */
+export const SUBQUERY_ALIAS_NOTE = 'PostgreSQL before version 16 and SQL Server need an alias here: add `AS t`';
 /** S4B-24: after a pass, the integer division re-run gave another result. */
 export const INT_DIVISION_NOTE = 'On PostgreSQL or SQL Server this division cuts off the decimals (7 / 2 = 3). Cast one side to a decimal.';
 
@@ -247,15 +249,20 @@ export function hasFromFirst(sql: string): boolean {
   });
 }
 
-/** The S4B-25 constructs the parse tree shows: GROUP BY ALL, QUALIFY and a star's EXCLUDE list, anywhere in the statement. */
-function treeConstructs(statement: unknown): { groupByAll: boolean; qualify: boolean; exclude: boolean } {
-  const found = { groupByAll: false, qualify: false, exclude: false };
+/**
+ * The S4B-25 constructs the parse tree shows: GROUP BY ALL, QUALIFY and a star's EXCLUDE list, anywhere in the statement; and
+ * from S6-10 a subquery in FROM with no alias. A FROM subquery is a table reference of type SUBQUERY, which has no `class` (a
+ * subquery in an expression has one), and DuckDB 1.5.6 leaves its alias empty when none is written.
+ */
+function treeConstructs(statement: unknown): { groupByAll: boolean; qualify: boolean; exclude: boolean; unaliasedSubquery: boolean } {
+  const found = { groupByAll: false, qualify: false, exclude: false, unaliasedSubquery: false };
   walk(statement, (o) => {
     if (o.type === 'SELECT_NODE') {
       if (o.aggregate_handling === 'FORCE_AGGREGATES') found.groupByAll = true;
       if (o.qualify !== null && o.qualify !== undefined) found.qualify = true;
     }
     if (o.class === 'STAR' && (list(o.exclude_list).length > 0 || list(o.qualified_exclude_list).length > 0)) found.exclude = true;
+    if (o.type === 'SUBQUERY' && o.class === undefined && !text(o.alias)) found.unaliasedSubquery = true;
     return true;
   });
   return found;
@@ -264,7 +271,7 @@ function treeConstructs(statement: unknown): { groupByAll: boolean; qualify: boo
 /** A comma with nothing after it: before a closing bracket, the end, or the next clause. */
 const TRAILING_COMMA = /,\s*(?:\)|;|$|\b(?:from|where|group|having|order|limit|offset|qualify|window|union|intersect|except)\b)/i;
 
-/** S4B-25: the friendly-SQL notes for one statement, in their fixed order. The text constructs are read from the bare text. */
+/** S4B-25: the friendly-SQL notes for one statement, in their fixed order, then S6-10's alias note. The text constructs are read from the bare text. */
 function friendlySqlNotes(statement: unknown, sql: string): string[] {
   const tree = treeConstructs(statement);
   const bare = bareText(sql);
@@ -277,14 +284,15 @@ function friendlySqlNotes(statement: unknown, sql: string): string[] {
     [/\bcount\s*\(\s*\)/i.test(bare), COUNT_NOTE],
     [tree.exclude, EXCLUDE_NOTE],
     [tree.qualify, QUALIFY_NOTE],
+    [tree.unaliasedSubquery, SUBQUERY_ALIAS_NOTE],
   ];
   return found.flatMap(([on, note]) => (on ? [note] : []));
 }
 
 /**
  * The notes for one statement: alias notes grouped by clause (WHERE, GROUP BY, HAVING), one per alias and clause,
- * then the `==` note, then the friendly-SQL notes (S4B-25). `tree` is json_serialize_sql's reply for `sql`, and `sql` must be
- * the text the gate passed.
+ * then the `==` note, then the friendly-SQL notes (S4B-25), then the FROM subquery alias note (S6-10). `tree` is
+ * json_serialize_sql's reply for `sql`, and `sql` must be the text the gate passed.
  */
 export function lintPortability(tree: unknown, sql: string, columnsOf: ColumnsOf): string[] {
   const statements = isObj(tree) && tree.error === false ? list(tree.statements) : [];

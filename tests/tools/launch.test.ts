@@ -1,11 +1,13 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { mkdtemp, mkdir, rm, utimes, writeFile } from 'node:fs/promises';
+import { spawnSync } from 'node:child_process';
 import { createServer } from 'node:http';
 import type { AddressInfo } from 'node:net';
-import { join } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import { tmpdir } from 'node:os';
-import { DATA_OUTPUTS, dataBuildNeeded, isAppStatus, isStale, newestMtime, pinnedVersions, probe } from '../../tools/launch.ts';
+import { fileURLToPath } from 'node:url';
+import { DATA_OUTPUTS, dataBuildNeeded, isAppStatus, isStale, newestMtime, pinnedVersions, probe, run } from '../../tools/launch.ts';
 
 async function folder(): Promise<string> { return mkdtemp(join(tmpdir(), 'aydinlearns-launch-')); }
 const at = (sec: number): Date => new Date(sec * 1000);
@@ -96,7 +98,7 @@ test('the probe tells aydinlearns, another program and nothing apart (aydinlearn
 test('the data step runs when an output the app reads is missing, or pipeline/ is newer (aydinlearns F6, F9)', async () => {
   const d = await folder();
   try {
-    assert.deepEqual([...DATA_OUTPUTS], ['data/course.duckdb', 'data/manifest.json', 'data/schema-notes.json', 'data/truth/voltmarkt.json']);
+    assert.deepEqual([...DATA_OUTPUTS], ['data/course.duckdb', 'data/manifest.json', 'data/schema-notes.json', 'data/truth/voltmarkt.json', 'data/truth/mailvora.json', 'data/truth/checkpoints.json']);
     await mkdir(join(d, 'pipeline'), { recursive: true });
     await mkdir(join(d, 'data/truth'), { recursive: true });
     await writeFile(join(d, 'pipeline', 'build.py'), 'x');
@@ -116,5 +118,47 @@ test('the data step runs when an output the app reads is missing, or pipeline/ i
     await writeFile(join(d, 'content/keys/cases/CASE-X.json'), 'x');
     await utimes(join(d, 'content/keys/cases/CASE-X.json'), at(3000), at(3000));
     assert.equal(dataBuildNeeded(d), true, 'a case truth query changed after the build');
+    await utimes(join(d, 'content/keys/cases/CASE-X.json'), at(1000), at(1000));
+    // F2 (triage "B3: launch.ts rebuild rule ignores content/sql/cases and openers"): a case's schema decides where its truths run
+    // (S6-13), and it lives in the case record, in content/sql/cases/ or content/sql/openers/.
+    for (const folder of ['content/sql/cases', 'content/sql/openers']) {
+      await mkdir(join(d, folder), { recursive: true });
+      await writeFile(join(d, folder, 'CASE-Y.json'), 'x');
+      await utimes(join(d, folder, 'CASE-Y.json'), at(1000), at(1000));
+      assert.equal(dataBuildNeeded(d), false, `${folder} is older than the build`);
+      await utimes(join(d, folder, 'CASE-Y.json'), at(3000), at(3000));
+      assert.equal(dataBuildNeeded(d), true, `a case record in ${folder} changed after the build`);
+      await utimes(join(d, folder, 'CASE-Y.json'), at(1000), at(1000));
+    }
   } finally { await rm(d, { recursive: true, force: true }); }
+});
+
+// K7a (backlog, hygiene PR): run() with a stand-in for spawnSync, so nothing is installed or built. npm gets one command string through
+// a shell (Node 24's DEP0190); every other program gets its argument array and no shell; both run in the project folder with output shown.
+const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
+function recorder(status: number | null): { spawner: typeof spawnSync; calls: unknown[][] } {
+  const calls: unknown[][] = [];
+  return { calls, spawner: ((...args: unknown[]) => { calls.push(args); return { status }; }) as unknown as typeof spawnSync };
+}
+
+test('run: npm is one command string through a shell, in the project folder, with its output shown', () => {
+  const { spawner, calls } = recorder(0);
+  run('npm', ['run', 'build:data'], spawner);
+  assert.deepEqual(calls, [['npm run build:data', { cwd: ROOT, stdio: 'inherit', shell: true }]]);
+});
+
+test('run: any other program gets its argument array and no shell', () => {
+  const { spawner, calls } = recorder(0);
+  run('py', ['-3', '-m', 'venv', 'some folder'], spawner);
+  assert.deepEqual(calls, [['py', ['-3', '-m', 'venv', 'some folder'], { cwd: ROOT, stdio: 'inherit' }]]);
+  assert.equal('shell' in (calls[0]![2] as object), false);
+});
+
+test('run: a program that exits non-zero, or never starts, stops the launch with the command in plain words', () => {
+  for (const status of [1, 127, null]) {
+    const { spawner } = recorder(status);
+    assert.throws(() => run('npm', ['ci'], spawner), { message: '"npm ci" failed. The message above says why.' }, `status ${status}`);
+    assert.throws(() => run('python', ['-m', 'pip', 'install', '-r', 'x.txt'], spawner), { message: '"python -m pip install -r x.txt" failed. The message above says why.' });
+  }
+  assert.doesNotThrow(() => run('npm', ['ci'], recorder(0).spawner));
 });

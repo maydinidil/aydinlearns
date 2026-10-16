@@ -93,7 +93,7 @@ async function deps(over: Partial<AppDeps> = {}, seed: object[] = []): Promise<A
   logger.onWrite((file, r) => state.record(file, r));
   return { port: 5174, checks: [], runner: null, content, logger, session: new SessionTracker(logger, async (at) => { for (const h of endHooks) await h(at); }),
     endHooks, closedInstances: [], schemaNotes: [], manifest: { dataset_version: 'x', library_version: 'v1.5.6' },
-    settings: { backup_folder: null, exam_date: null, goal_dates: {} }, tableCheck: 'parse_tree', state, ...over };
+    settings: { backup_folder: null, exam_date: null, goal_dates: {}, portfolio_folder: null }, tableCheck: 'parse_tree', state, ...over };
 }
 const attempts = async (d: AppDeps) => (await d.logger.readAll('attempts')) as any[];
 /** Every record in every log file, as text. */
@@ -210,7 +210,7 @@ test('an answer logs one attempt with the shown order and closes the instance', 
     ['attempt', SCHEMA_VERSION, 'ga4', 'mcq', 'Q-GA4-901', 1, id]);
   assert.deepEqual([a.target_concept_id, a.concept_ids], [PARENT, [PARENT, CHILD]], 'E-110: the parent is the target, the child in concept_ids');
   assert.deepEqual(a.payload, { kind: 'mcq', shown_order: served.shown_order, chosen: wrong }, 'the order logged is the order sent');
-  assert.deepEqual([a.outcome, a.is_correct, a.error_ids, a.confidence, a.grader_version, a.grading_source], ['fail', false, ['MIS-FAKE-1'], 2, 'choice.2', 'auto']);
+  assert.deepEqual([a.outcome, a.is_correct, a.error_ids, a.confidence, a.grader_version, a.grading_source], ['fail', false, ['MIS-FAKE-1'], 2, 'choice.3', 'auto']);
   assert.deepEqual([a.phase, a.block_id, a.repeat_exposure, a.submission_no, a.hint_level, a.solution_viewed], ['free', null, false, 1, 0, false], 'phase free, not the browser\'s');
   assert.deepEqual([a.active_ms, a.target_ms, a.partial_score, a.template_id, a.fading_stage, a.checks], [4200, null, null, null, null, []]);
   assert.equal(a.session_id, d.session.currentId);

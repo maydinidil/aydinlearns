@@ -1,0 +1,121 @@
+{
+  "id": "EX-SQL-SUBQ-01-E3-04",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-04",
+    "scalar_subquery",
+    "select_list",
+    "count",
+    "price_history",
+    "competitor_prices"
+  ],
+  "level": 4,
+  "source_ids": [
+    "01:SQL-SUBQ-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-15",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-SUBQ-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-SUBQ-01"
+  ],
+  "template_id": "T-SUBQ-01-two-scalars-in-select",
+  "template_params": {
+    "outer": "products",
+    "category_id": 17
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_subq",
+  "prompt": "For each product in category 17, Soundbars, what is its current list price, and how many competitor price checks does it have? A product's current list price is its price version whose valid_to is missing, and a product with no check has 0 checks. Return three columns, in this order: product_id, list_price_eur and n_checks. Return one row for each Soundbars product. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "list_price_eur",
+        "type_class": "numeric"
+      },
+      {
+        "name": "n_checks",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "list_price_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "n_checks",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "product_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the two calculated columns, each a lookup for the product on that row.",
+    "A count over no rows is 0, while a join that keeps unmatched products leaves one row to count; and the price lookup must keep only the current version."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 242,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 243,
+      "to": 258,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 259,
+      "to": 283,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "Each subquery in SELECT returns one value per product: the one current price, and a count that is 0 when no check matches."
+}

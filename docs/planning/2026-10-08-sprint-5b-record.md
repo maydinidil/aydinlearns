@@ -218,3 +218,19 @@ hygiene test gaps). 27 rows remain.
 | `npm run check:content` | 14994 of 14994 (1387 items and lessons; C44 10 of 10 on the stamped records), run after H6; no later task touched content or the checks |
 | `npm run build:web` | builds (the chunk-size warning dates from slice 1) |
 | `npm run test:e2e` | 63 of 63 rows, 0 page errors |
+
+## Release 1.1
+
+PR #44 merged on 2026-10-09 (`dabdabb`). Codex finished its review with no findings (a +1 and no
+comments). Release 1.1 (D63, H-D2), the same day:
+
+| Step | Result |
+|---|---|
+| Public copy | A fresh clone of `maydinidil/aydinlearns` outside the monorepo; `origin/main`'s `tools/export-public.sh <clone> origin/main` exported `dabdabb` as `f193c4e` (127 files changed). The scan found no logs, data, `.env`, scratch folders, session links, emails or private paths (two hits were instruction text naming the patterns). Pushed `6af683a..f193c4e` |
+| Fresh-install test | The clone's tree in a second clean folder, started with the launcher (`node tools/launch.ts --no-browser`, `AYDINLEARNS_PORT=5194`, a temporary `AYDINLEARNS_LOGS_DIR`). Setup ran end to end (`npm ci`, the venv and `pip install` with DuckDB 1.5.6, `build:data` dataset `6de53e5dbeafe2d5`, `build:web`), the server answering after about 40 seconds, with no DEP0190 warning. The status route reported version 1.1.0 with all 9 checks passing; Today answered for SQL, GA4 and Methodology; `GET /api/labs` listed 10 labs; EX-SQL-BASICS-01-E1-01 graded a pass and logged to the temporary folder. The server was stopped, nothing listened on 5194, and both folders were deleted |
+| Tag and release | `v1.1.0` on `f193c4e`, release "aydinlearns 1.1": what 1.1 adds, how to start it, the known issues, what comes next |
+| Local checkout | `C:\zehirlab` fast-forwarded from `fbf6cce` to `dabdabb` (26 commits) with the app closed; untracked folders untouched. The launcher rebuilds the data and the screens at the next start |
+
+Still open after the release: the Skillshop check of the full mock's rules (owner), the first real lab
+re-checks to watch for drift, F27 on the first real full mock followed by a half-mock, and the
+MET-MKT-05 held-out swap (backlog).

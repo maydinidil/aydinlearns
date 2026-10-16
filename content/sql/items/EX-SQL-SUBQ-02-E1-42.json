@@ -1,0 +1,155 @@
+{
+  "id": "EX-SQL-SUBQ-02-E1-42",
+  "version": 1,
+  "kind": "predict_result",
+  "tags": [
+    "sql",
+    "LVL-04",
+    "predict_result",
+    "derived_table",
+    "stores"
+  ],
+  "level": 4,
+  "source_ids": [
+    "01:SQL-SUBQ-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-15",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-SUBQ-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-SUBQ-01",
+    "SQL-SUBQ-02"
+  ],
+  "template_id": "T-SUBQ-02-predict-result-outer-aggregate",
+  "template_params": {
+    "table": "stores",
+    "step": "country"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_subq",
+  "prompt": "Which result does this query return? The stores table holds 25 physical stores, 14 in NL, 9 in BE and 2 in LU, plus the webshop, store_id 99, whose store_type is 'web' and whose country_code is NL.",
+  "output_contract": null,
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [],
+  "subgoals": [],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 90000,
+  "why_this_works": "",
+  "shown_sql": "SELECT MAX(t.n_stores) AS max_stores, MIN(t.n_stores) AS min_stores\nFROM (\n  -- one row per country\n  SELECT country_code, COUNT(*) AS n_stores\n  FROM stores\n  WHERE store_type <> 'web'\n  GROUP BY country_code\n) AS t",
+  "options": [
+    {
+      "oid": "oa000be7",
+      "text": "One row per country: NL 14, BE 9, LU 2",
+      "misconception_id": "ERR-LOG-07",
+      "table": {
+        "columns": [
+          "country_code",
+          "n_stores"
+        ],
+        "rows": [
+          [
+            "NL",
+            14
+          ],
+          [
+            "BE",
+            9
+          ],
+          [
+            "LU",
+            2
+          ]
+        ]
+      }
+    },
+    {
+      "oid": "oaf787a0",
+      "text": "One row: 15 and 2",
+      "misconception_id": "ERR-LOG-03",
+      "table": {
+        "columns": [
+          "max_stores",
+          "min_stores"
+        ],
+        "rows": [
+          [
+            15,
+            2
+          ]
+        ]
+      }
+    },
+    {
+      "oid": "o86e3f51",
+      "text": "One row: 14 and 2",
+      "misconception_id": null,
+      "table": {
+        "columns": [
+          "max_stores",
+          "min_stores"
+        ],
+        "rows": [
+          [
+            14,
+            2
+          ]
+        ]
+      }
+    },
+    {
+      "oid": "o8f67634",
+      "text": "Three rows, one per country",
+      "misconception_id": "ERR-LOG-07",
+      "table": {
+        "columns": [
+          "max_stores",
+          "min_stores"
+        ],
+        "rows": [
+          [
+            14,
+            14
+          ],
+          [
+            9,
+            9
+          ],
+          [
+            2,
+            2
+          ]
+        ]
+      }
+    }
+  ]
+}

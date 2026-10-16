@@ -1,0 +1,150 @@
+{
+  "id": "EX-SQL-CLEAN-01-E2-21",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-04",
+    "duplicates",
+    "count_distinct",
+    "order_lines",
+    "orders",
+    "stores"
+  ],
+  "level": 4,
+  "source_ids": [
+    "01:SQL-CLEAN-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-15",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-CLEAN-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-AGG-03",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-CLEAN-01"
+  ],
+  "template_id": "T-CLEAN-01-copies-per-store",
+  "template_params": {
+    "year": 2024
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt_raw",
+  "edge_schema": "voltmarkt_edge_clean",
+  "uses_raw": true,
+  "prompt": "For each store, how many resent copies were loaded with its 2024 orders, and how many orders hold them? This table may hold errors. Two lines are copies of one order line when order_id, product_id, quantity, unit_price_eur, promo_id and line_discount_eur all match, with a missing promo_id matching a missing one; every line beyond the first of such a set is a resent copy. 2024 means order_ts, as stored, from 1 January 2024 up to but not including 1 January 2025. Return three columns, in this order: store_code, n_copies and n_orders, the orders that hold at least one copy. Return one row for each store with at least one copy. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "store_code",
+        "type_class": "text"
+      },
+      {
+        "name": "n_copies",
+        "type_class": "numeric"
+      },
+      {
+        "name": "n_orders",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "store_code",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "n_copies",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "n_orders",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "store_code"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, add up the copies of each store's copied sets.",
+    "A set of n matching lines holds n - 1 copies, and COUNT(DISTINCT order_id) counts an order once even with several copied sets."
+  ],
+  "subgoals": [
+    {
+      "from": 79,
+      "to": 130,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 133,
+      "to": 196,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 199,
+      "to": 281,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 284,
+      "to": 398,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 401,
+      "to": 420,
+      "subgoal": "group_filter"
+    },
+    {
+      "from": 423,
+      "to": 516,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 517,
+      "to": 578,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 579,
+      "to": 600,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "Each copied set adds its size minus 1 to its store, and the distinct order count shows how many orders the copies touch."
+}

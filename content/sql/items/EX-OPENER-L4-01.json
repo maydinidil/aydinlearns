@@ -1,0 +1,195 @@
+{
+  "id": "EX-OPENER-L4-01",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-04",
+    "opener",
+    "exists",
+    "cte",
+    "grain",
+    "attach_rate",
+    "order_lines",
+    "promotions"
+  ],
+  "level": 4,
+  "source_ids": [
+    "01:SQL-SUBQ-01",
+    "05:FIND-01-07"
+  ],
+  "verified": true,
+  "as_of": "2026-10-15",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "opener",
+  "target_concept_id": "SQL-SUBQ-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CASE-01",
+    "SQL-TYPE-01",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-JOIN-03",
+    "SQL-SUBQ-01"
+  ],
+  "template_id": "T-OPENER-L4-soundbar-attach",
+  "template_params": {
+    "from": "2025-01-01",
+    "to": "2026-01-01",
+    "clock": "UTC",
+    "tv_categories": "TVs up to 43 inch, TVs 50-55 inch, TVs 65 inch and up",
+    "attach_category": "Soundbars"
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_subq",
+  "prompt": "Joost, the pricing lead, is deciding whether to offer a TV and soundbar bundle price in next year's TV promotions, and asks whether orders with a TV on promotion held a soundbar more often in 2025. Take the orders with an order_ts from 2025-01-01 00:00:00 up to but not including 2026-01-01 00:00:00; order_ts holds UTC time. A TV order is one of those orders with at least one line for a product in one of the three TV categories: TVs up to 43 inch, TVs 50-55 inch and TVs 65 inch and up. A TV order is promoted when at least one of its TV lines carried a promotion (its promo_id is not missing), and regular otherwise; a promotion on any other line of the order does not count. A TV order has a soundbar when any line of the same order is for a product in the Soundbars category. Return one row for each kind of TV order, promoted and regular; a kind with no TV orders has no row. Return five columns, in this order: tv_offer, the text 'promoted' or 'regular'; n_tv_orders, the number of TV orders of that kind; n_with_soundbar, how many of them have a soundbar; attach_rate_pct, 100 times n_with_soundbar divided by n_tv_orders, rounded to 2 decimals; and attach_index, 100 times the kind's unrounded attach rate divided by the attach rate of all those TV orders together, rounded to 1 decimal. Count each order once, however many TV or soundbar lines it holds. Sort by tv_offer, alphabetically.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "tv_offer",
+        "type_class": "text"
+      },
+      {
+        "name": "n_tv_orders",
+        "type_class": "numeric"
+      },
+      {
+        "name": "n_with_soundbar",
+        "type_class": "numeric"
+      },
+      {
+        "name": "attach_rate_pct",
+        "type_class": "numeric"
+      },
+      {
+        "name": "attach_index",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": true,
+    "sort_keys": [
+      {
+        "column": "tv_offer",
+        "desc": false
+      }
+    ],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "tv_offer",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "n_tv_orders",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "n_with_soundbar",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "attach_rate_pct",
+        "type_class": "numeric",
+        "precision": "ratio",
+        "require_rounding": 2
+      },
+      {
+        "name": "attach_index",
+        "type_class": "numeric",
+        "precision": "ratio",
+        "require_rounding": 1
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "tv_offer"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, build a step with one row per 2025 TV order and its promotion status, before you look for soundbars.",
+    "For each TV order, ask whether a soundbar line exists in that same order; the index divides each kind's rate by the rate over every row of that step."
+  ],
+  "subgoals": [
+    {
+      "from": 65,
+      "to": 173,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 176,
+      "to": 354,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 357,
+      "to": 550,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 553,
+      "to": 573,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 668,
+      "to": 1047,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 1050,
+      "to": 1069,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 1072,
+      "to": 1389,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 1390,
+      "to": 1402,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 1403,
+      "to": 1420,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 1421,
+      "to": 1438,
+      "subgoal": "sort_limit"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "Each TV order becomes one row with its promotion status first, so EXISTS tests it for a soundbar without counting an order once per line."
+}

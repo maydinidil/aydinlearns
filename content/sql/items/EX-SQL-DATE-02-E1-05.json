@@ -1,0 +1,120 @@
+{
+  "id": "EX-SQL-DATE-02-E1-05",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-04",
+    "date",
+    "date_arithmetic",
+    "price_history",
+    "days-inclusive"
+  ],
+  "level": 4,
+  "source_ids": [
+    "01:SQL-DATE-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-15",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "retest",
+  "target_concept_id": "SQL-DATE-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-DATE-02"
+  ],
+  "template_id": "T-DATE-02-days-inclusive",
+  "template_params": {
+    "table": "price_history",
+    "ended_in": "2024-12"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_interval",
+  "prompt": "For each price version that ended in December 2024, with valid_to from 1 December 2024 to 31 December 2024, on how many days did that price apply? valid_from and valid_to are both days on which the price applied. Return three columns, in this order: product_id, valid_from, and days_valid. Return one row for each of those price versions. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "valid_from",
+        "type_class": "temporal"
+      },
+      {
+        "name": "days_valid",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "valid_from",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "days_valid",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "product_id",
+      "valid_from"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the calculated column days_valid: the days from valid_from to valid_to, with both counted.",
+    "A DATE minus a DATE leaves one end day out. Keep the versions whose valid_to falls on any day of December 2024, 31 December included."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 70,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 71,
+      "to": 89,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 90,
+      "to": 161,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "valid_to - valid_from + 1 counts both the first and the last day of the price, and the range keeps every valid_to in December 2024."
+}

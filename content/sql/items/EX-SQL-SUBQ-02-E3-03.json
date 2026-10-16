@@ -1,0 +1,140 @@
+{
+  "id": "EX-SQL-SUBQ-02-E3-03",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-04",
+    "derived_table",
+    "join",
+    "above_group_average",
+    "sales"
+  ],
+  "level": 4,
+  "source_ids": [
+    "01:SQL-SUBQ-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-15",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-SUBQ-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-JOIN-01",
+    "SQL-SUBQ-01",
+    "SQL-SUBQ-02"
+  ],
+  "template_id": "T-SUBQ-02-above-own-group-average",
+  "template_params": {
+    "fact": "sales",
+    "step": "product",
+    "group": "category"
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_subq",
+  "prompt": "Which products sold more units than the average product of their own category? A product's units are the quantity summed over all its order lines, and a category's average covers the products of that category that sold at least one unit. Return two columns, in this order: product_id and units. Return one row for each such product. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "units",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "units",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "product_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the step that gives each product's units with its category; the category averages are built from the same step.",
+    "Compare each product with the average of the products in its own category, not with the average order line of that category."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 30,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 31,
+      "to": 62,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 63,
+      "to": 118,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 119,
+      "to": 131,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 132,
+      "to": 168,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 169,
+      "to": 176,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 177,
+      "to": 492,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 493,
+      "to": 522,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "Both derived tables start from one row per product, so each product is compared with the average product of its own category."
+}

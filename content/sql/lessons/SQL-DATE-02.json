@@ -1,0 +1,120 @@
+{
+  "concept_id": "SQL-DATE-02",
+  "version": 1,
+  "reading_md": "# Date arithmetic and differences\n\nMany business questions measure time: how long a promotion ran, how many days a product took to sell, or which orders fall in the last 30 days.\n\n## Days between two dates\n\nA DATE minus a DATE gives a whole number of days: `DATE '2025-03-31' - DATE '2025-03-01'` is 30. That counts the days *between* the two dates, so one end day is left out. `date_diff('day', start_date, end_date)` gives the same number.\n\nWhen a question counts the days a period *lasts*, with its first and its last day both in, add 1: a promotion from 1 March to 31 March ran on `end_date - start_date + 1`, which is 31 days. A promotion that starts and ends on the same day ran for 1 day, though its two dates are 0 days apart. Read which count the question wants before you write the minus.\n\n## Moving a date on\n\n`end_date + INTERVAL 14 DAY` moves a date on by 14 days; other units are `MONTH`, `YEAR`, `HOUR` and `MINUTE`, and a minus moves back. Adding an INTERVAL to a DATE gives a TIMESTAMP at midnight, while adding a whole number, as in `end_date + 14`, keeps a DATE. A month is a calendar month, not 30 days: 31 January plus one month is 29 February in 2024 and 28 February in 2025.\n\n## date_diff counts boundaries\n\n`date_diff(unit, start, end)` counts how many times a new unit starts between the two values, not how many whole units passed. `date_diff('month', DATE '2025-01-31', DATE '2025-02-01')` is 1, though one day passed, and from 1 January to 31 January it is 0. On timestamps, `date_diff('day', ...)` from 23:30 to 00:15 the next morning is 1.\n\nWhen the question wants a real length of time, compare the exact values instead: \"within 60 minutes\" is `converted_at <= assigned_at + INTERVAL 60 MINUTE`. For whole years, `EXTRACT(year FROM age(later, earlier))` counts only the anniversaries that have been reached.\n\n## The last 30 days, from a fixed date\n\nVoltmarkt's data runs up to its as-of date, 5 January 2026. \"The last 30 days\" counts back from that date, never from today: `now()` and `current_date` would change the answer every day. With the as-of day included, the 30 days run from 7 December 2025 to 5 January 2026:\n\n```sql\nWHERE order_ts >= DATE '2026-01-05' - INTERVAL 29 DAY\n  AND order_ts <  DATE '2026-01-05' + INTERVAL 1 DAY\n```\n\nWithout the as-of day, they run from 6 December 2025 to 4 January 2026. One day off at either end is the most common slip, so check the first and the last day of the window by hand.\n\n## How to answer a date arithmetic question\n\n1. Find the two dates or times, and the anchor of any \"last N days\".\n2. Decide what to count: the days between, the days with both ends in, the boundaries crossed, or whole periods.\n3. Write the arithmetic, then check it on one pair of dates near a month or year end.",
+  "syntax_md": "```sql\nSELECT promo_code,\n       end_date - start_date + 1 AS days_running    -- metrics: the days it ran, both ends counted\nFROM promotions                                     -- source and grain: one row per promotion\nWHERE end_date >= DATE '2026-01-05' - INTERVAL 89 DAY;  -- row filter: ended on or after 8 October 2025\n```\n\n- Days between two dates: `end_date - start_date`, or `date_diff('day', start_date, end_date)`. Add 1 when both end days count.\n- Move a date: `d + INTERVAL 7 DAY` (a TIMESTAMP), `d + 7` (a DATE), `d + INTERVAL 1 MONTH` (a calendar month), `d - INTERVAL 29 DAY`.\n- Boundaries crossed: `date_diff('month', start_date, end_date)` counts the new months that start in between.\n- Whole years: `EXTRACT(year FROM age(later, earlier))`.\n- An exact gap between two times: `t2 <= t1 + INTERVAL 60 MINUTE`.\n- The anchor of \"the last N days\": the as-of date, `DATE '2026-01-05'`, never `now()` or `current_date`.",
+  "dialect_note": "In DuckDB, date_diff counts the boundaries crossed, not whole periods: date_diff('month', DATE '1992-09-15', DATE '1992-11-14') is 2, though less than two full months passed. A DATE minus a DATE is a whole number of days in DuckDB, and dates subtract the same way in PostgreSQL (end_date - start_date), while SQLite needs julianday(end_date) - julianday(start_date). In DuckDB, a DATE plus an INTERVAL gives a TIMESTAMP and a DATE plus a whole number gives a DATE, and one month after 31 January is the last day of February (all checked on DuckDB 1.5.6).",
+  "worked_examples": [
+    {
+      "title": "Days each Black Week promotion ran",
+      "prompt": "How many days did each Black Week promotion run, with its first and its last day both counted? Return promo_code and days_running, one row for each promotion named 'Black Week'.",
+      "clauses": [
+        {
+          "text": "SELECT promo_code,",
+          "subgoal": "metrics",
+          "why": "Name each promotion in the answer."
+        },
+        {
+          "text": "       end_date - start_date + 1 AS days_running",
+          "subgoal": "metrics",
+          "why": "A DATE minus a DATE gives the days between them; adding 1 puts the first day back in, so 24 to 30 November is 7 days."
+        },
+        {
+          "text": "FROM promotions",
+          "subgoal": "source_grain",
+          "why": "promotions has one row per promotion, with its start_date and end_date."
+        },
+        {
+          "text": "WHERE promo_name = 'Black Week'",
+          "subgoal": "row_filter",
+          "why": "Keep only the two Black Week promotions."
+        }
+      ]
+    },
+    {
+      "title": "Web orders in the last 30 days",
+      "prompt": "How many web orders did Voltmarkt take in the last 30 days up to its as-of date, 5 January 2026, with the as-of day included: from 7 December 2025 to 5 January 2026? order_ts holds the time in UTC. Return one column, web_orders.",
+      "clauses": [
+        {
+          "text": "SELECT COUNT(*) AS web_orders",
+          "subgoal": "metrics",
+          "why": "One count over every order the filter keeps."
+        },
+        {
+          "text": "FROM orders",
+          "subgoal": "source_grain",
+          "why": "orders has one row per order, so each row counted is one order."
+        },
+        {
+          "text": "WHERE channel = 'web'",
+          "subgoal": "row_filter",
+          "why": "Keep only the web orders."
+        },
+        {
+          "text": "  AND order_ts >= DATE '2026-01-05' - INTERVAL 29 DAY",
+          "subgoal": "row_filter",
+          "why": "Count back 29 days from the as-of date: with the as-of day itself that makes 30 days, starting at midnight on 7 December."
+        },
+        {
+          "text": "  AND order_ts < DATE '2026-01-05' + INTERVAL 1 DAY",
+          "subgoal": "row_filter",
+          "why": "Stop before midnight after the as-of day, so every moment of 5 January is in and nothing later."
+        }
+      ]
+    }
+  ],
+  "pretest_item_ids": [
+    "EX-SQL-DATE-02-E1-01",
+    "EX-SQL-DATE-02-E1-02"
+  ],
+  "lesson_item_ids": [
+    "EX-SQL-DATE-02-E1-03",
+    "EX-SQL-DATE-02-E1-04",
+    "EX-SQL-DATE-02-E2-01",
+    "EX-SQL-DATE-02-E2-02"
+  ],
+  "retest_item_id": "EX-SQL-DATE-02-E1-05",
+  "pool_item_ids": [
+    "EX-SQL-DATE-02-E1-06",
+    "EX-SQL-DATE-02-E1-07",
+    "EX-SQL-DATE-02-E1-08",
+    "EX-SQL-DATE-02-E2-03",
+    "EX-SQL-DATE-02-E2-04",
+    "EX-SQL-DATE-02-E2-05",
+    "EX-SQL-DATE-02-E2-06",
+    "EX-SQL-DATE-02-E3-01",
+    "EX-SQL-DATE-02-E3-02",
+    "EX-SQL-DATE-02-E1-31",
+    "EX-SQL-DATE-02-E2-31",
+    "EX-SQL-DATE-02-E1-42",
+    "EX-SQL-DATE-02-E2-41",
+    "EX-SQL-DATE-02-E2-42"
+  ],
+  "source_ids": [
+    "01:SQL-DATE-02"
+  ],
+  "why_clause": {
+    "clause": "end_date - start_date + 1 AS days_running",
+    "stem": "Why does the query add 1 to end_date - start_date?",
+    "options": [
+      {
+        "id": "a",
+        "text": "The minus counts the days between the two dates, which leaves one end day out; adding 1 counts both the first and the last day."
+      },
+      {
+        "id": "b",
+        "text": "DuckDB numbers the days of a month from 0, so every date difference comes out one short."
+      },
+      {
+        "id": "c",
+        "text": "The minus counts month boundaries, like date_diff('month', ...), so it is one short when a promotion crosses a month end."
+      },
+      {
+        "id": "d",
+        "text": "Adding 1 turns the result from an interval into a whole number of days."
+      }
+    ],
+    "correct_id": "a",
+    "explanation": "A promotion from 1 March to 31 March has dates 30 days apart, but it ran on 31 days: the minus leaves out one end day. Adding 1 puts that day back, so a promotion that starts and ends on the same day ran for 1 day, not 0. The minus already gives a whole number of days in DuckDB, and it counts days, not month boundaries."
+  }
+}

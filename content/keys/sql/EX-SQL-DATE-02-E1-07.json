@@ -1,0 +1,39 @@
+{
+  "item_id": "EX-SQL-DATE-02-E1-07",
+  "item_version": 1,
+  "reference_sql": "SELECT COUNT(DISTINCT customer_id) AS customers\nFROM orders\nWHERE order_ts >= DATE '2026-01-05' - INTERVAL 29 DAY\n  AND order_ts < DATE '2026-01-05' + INTERVAL 1 DAY",
+  "alternatives": [
+    "SELECT COUNT(DISTINCT customer_id) AS customers FROM orders WHERE CAST(order_ts AS DATE) BETWEEN DATE '2025-12-07' AND DATE '2026-01-05'",
+    "SELECT COUNT(*) AS customers\nFROM (  -- one row per customer\n  SELECT DISTINCT customer_id\n  FROM orders\n  WHERE customer_id IS NOT NULL\n    AND order_ts >= DATE '2026-01-05' - INTERVAL 29 DAY\n    AND order_ts < DATE '2026-01-05' + INTERVAL 1 DAY\n) AS t"
+  ],
+  "other_way": {
+    "sql": "SELECT COUNT(*) AS customers\nFROM (  -- one row per customer\n  SELECT DISTINCT customer_id\n  FROM orders\n  WHERE customer_id IS NOT NULL\n    AND order_ts >= DATE '2026-01-05' - INTERVAL 29 DAY\n    AND order_ts < DATE '2026-01-05' + INTERVAL 1 DAY\n) AS t",
+    "tradeoff": "Listing each customer once in a derived table shows the step, but COUNT(DISTINCT ...) does the same in one line."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-06",
+      "sql": "SELECT COUNT(DISTINCT customer_id) AS customers FROM orders WHERE order_ts >= DATE '2026-01-05' - INTERVAL 30 DAY AND order_ts < DATE '2026-01-05' + INTERVAL 1 DAY"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-04",
+      "sql": "SELECT COUNT(customer_id) AS customers FROM orders WHERE order_ts >= DATE '2026-01-05' - INTERVAL 29 DAY AND order_ts < DATE '2026-01-05' + INTERVAL 1 DAY"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-06",
+      "sql": "SELECT COUNT(DISTINCT customer_id) AS customers FROM orders WHERE CAST(order_ts AS DATE) > DATE '2025-12-07' AND CAST(order_ts AS DATE) <= DATE '2026-01-05'"
+    }
+  ],
+  "hint3_partial": "SELECT COUNT(DISTINCT customer_id) AS customers\nFROM orders\nWHERE order_ts >= ___\n  AND order_ts < ___",
+  "solver": {
+    "prompt_hash": "a182085295c8e6a3",
+    "schema_version": "7ed366279088",
+    "dataset_version": "b2d2b40fb117bb07",
+    "grader_version": "6a.1",
+    "query": "SELECT COUNT(DISTINCT customer_id) AS customers\nFROM orders\nWHERE CAST(order_ts AS DATE) BETWEEN DATE '2025-12-07' AND DATE '2026-01-05'\n  AND customer_id IS NOT NULL\n",
+    "at": "2026-10-15T11:06:11.245Z"
+  }
+}

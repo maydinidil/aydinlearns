@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-DATE-02-E1-01",
+  "item_version": 1,
+  "reference_sql": "SELECT promo_code, end_date - start_date + 1 AS days_running\nFROM promotions",
+  "alternatives": [
+    "SELECT promo_code, date_diff('day', start_date, end_date) + 1 AS days_running FROM promotions",
+    "SELECT promo_code, CAST(end_date + INTERVAL 1 DAY AS DATE) - start_date AS days_running FROM promotions"
+  ],
+  "other_way": {
+    "sql": "SELECT promo_code, date_diff('day', start_date, end_date) + 1 AS days_running FROM promotions",
+    "tradeoff": "date_diff('day', start, end) + 1 gives the same count, but the plain minus is shorter and also works on dates in PostgreSQL."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-34",
+      "sql": "SELECT promo_code, end_date - start_date AS days_running FROM promotions"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-OUT-02",
+      "sql": "SELECT promo_code, age(end_date, start_date) AS days_running FROM promotions"
+    }
+  ],
+  "hint3_partial": "SELECT promo_code, end_date - start_date ___ AS days_running\nFROM promotions",
+  "solver": {
+    "prompt_hash": "4367152552c60c0f",
+    "schema_version": "f0340f71a1f5",
+    "dataset_version": "b2d2b40fb117bb07",
+    "grader_version": "6a.1",
+    "query": "SELECT promo_code, CAST(end_date AS DATE) - CAST(start_date AS DATE) + 1 AS days_running\nFROM promotions\n",
+    "at": "2026-10-15T11:06:11.137Z"
+  }
+}

@@ -1,0 +1,196 @@
+{
+  "id": "EX-CASE-PRICE-03",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-04",
+    "case",
+    "inbox",
+    "pricing",
+    "promo_uplift",
+    "weekly_units",
+    "promotions",
+    "promotion_products"
+  ],
+  "level": 4,
+  "source_ids": [
+    "04:CASE-PRICE-03"
+  ],
+  "verified": true,
+  "as_of": "2026-10-15",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "case",
+  "target_concept_id": "SQL-DATE-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CASE-01",
+    "SQL-AGG-04",
+    "SQL-TYPE-01",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-DATE-02"
+  ],
+  "template_id": "T-CASE-PRICE-03-promo-uplift",
+  "template_params": {
+    "quarter": "2025-Q3",
+    "baseline_weeks": 4,
+    "grain": "promotion_product"
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_promo",
+  "prompt": "Fleur, in trade marketing, presents the Q3 2025 promotion results to a supplier on Friday and needs the uplift of every product in every promotion that started in Q3 2025, that is with a start date from 2025-07-01 to 2025-09-30, both days included. Every promotion starts on a Monday and ends on a Sunday. Weeks run from Monday to Sunday, and an order counts in the week of its UTC order date. For a promotion and a product in it, the baseline is the product's average weekly units over the 4 weeks just before the promotion's start date, and the promotion average is its average weekly units over the weeks from the start date to the end date. A week in which the product sold nothing counts as 0 units. Return one row for each promotion and product in it, with five columns in this order: promo_id; product_id; baseline_units_wk and promo_units_wk, the two averages, not rounded; and uplift_pct, which is 100 times (promo_units_wk minus baseline_units_wk) divided by baseline_units_wk, rounded to 1 decimal, and missing when the baseline is 0. Sort by uplift_pct from high to low with missing values last, then by promo_id from low to high, then by product_id from low to high.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "promo_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "product_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "baseline_units_wk",
+        "type_class": "numeric"
+      },
+      {
+        "name": "promo_units_wk",
+        "type_class": "numeric"
+      },
+      {
+        "name": "uplift_pct",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": true,
+    "sort_keys": [
+      {
+        "column": "uplift_pct",
+        "desc": true
+      },
+      {
+        "column": "promo_id",
+        "desc": false
+      },
+      {
+        "column": "product_id",
+        "desc": false
+      }
+    ],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "promo_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "product_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "baseline_units_wk",
+        "type_class": "numeric",
+        "precision": "ratio"
+      },
+      {
+        "name": "promo_units_wk",
+        "type_class": "numeric",
+        "precision": "ratio"
+      },
+      {
+        "name": "uplift_pct",
+        "type_class": "numeric",
+        "precision": "ratio",
+        "require_rounding": 1
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "promo_id",
+      "product_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, choose each promotion that started in Q3 2025 with the products in it, then bring in each product's weekly units.",
+    "Average a product's units over the baseline weeks and over the promotion weeks separately, with a condition inside each average on the week's start date."
+  ],
+  "subgoals": [
+    {
+      "from": 96,
+      "to": 154,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 157,
+      "to": 237,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 240,
+      "to": 306,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 372,
+      "to": 673,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 676,
+      "to": 756,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 759,
+      "to": 792,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 795,
+      "to": 965,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 966,
+      "to": 986,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 987,
+      "to": 1044,
+      "subgoal": "sort_limit"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "Counting weeks with no sales as 0 keeps each baseline a true normal week, and two ID tie-breaks give tied uplifts one order."
+}

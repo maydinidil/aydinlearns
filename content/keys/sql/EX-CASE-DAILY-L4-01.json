@@ -1,0 +1,40 @@
+{
+  "item_id": "EX-CASE-DAILY-L4-01",
+  "item_version": 1,
+  "reference_sql": "WITH store_revenue AS (\n  -- one row per physical store with a 2025 order\n  SELECT s.store_code, s.city,\n         SUM(ol.quantity * ol.unit_price_eur - ol.line_discount_eur) AS net_revenue_eur\n  FROM order_lines AS ol\n  JOIN orders AS o ON o.order_id = ol.order_id\n  JOIN stores AS s ON s.store_id = o.store_id\n  WHERE s.store_type <> 'web'\n    AND o.order_ts >= TIMESTAMP '2025-01-01 00:00:00'\n    AND o.order_ts < TIMESTAMP '2026-01-01 00:00:00'\n  GROUP BY s.store_code, s.city\n)\nSELECT store_code, city, net_revenue_eur\nFROM store_revenue\nWHERE net_revenue_eur > (SELECT AVG(net_revenue_eur) FROM store_revenue)\nORDER BY store_code",
+  "alternatives": [
+    "SELECT t.store_code, t.city, t.net_revenue_eur\nFROM (\n  -- one row per physical store with a 2025 order\n  SELECT st.store_code, st.city, SUM(sa.net_revenue_eur) AS net_revenue_eur\n  FROM sales AS sa\n  JOIN stores AS st ON st.store_code = sa.store_code\n  WHERE st.store_type <> 'web'\n    AND sa.order_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\n  GROUP BY st.store_code, st.city\n) AS t\nWHERE t.net_revenue_eur > (\n  SELECT AVG(a.net_revenue_eur)\n  FROM (\n    -- one row per physical store with a 2025 order\n    SELECT sa.store_code, SUM(sa.net_revenue_eur) AS net_revenue_eur\n    FROM sales AS sa\n    JOIN stores AS st ON st.store_code = sa.store_code\n    WHERE st.store_type <> 'web'\n      AND sa.order_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\n    GROUP BY sa.store_code\n  ) AS a\n)\nORDER BY t.store_code",
+    "WITH store_revenue AS (\n  -- one row per physical store with a 2025 order\n  SELECT s.store_code, s.city,\n         SUM(ol.quantity * ol.unit_price_eur - ol.line_discount_eur) AS net_revenue_eur\n  FROM stores AS s\n  JOIN orders AS o ON o.store_id = s.store_id\n  JOIN order_lines AS ol ON ol.order_id = o.order_id\n  WHERE s.store_type IN ('flagship', 'standard', 'outlet')\n    AND o.order_ts >= TIMESTAMP '2025-01-01 00:00:00'\n    AND o.order_ts < TIMESTAMP '2026-01-01 00:00:00'\n  GROUP BY s.store_code, s.city\n),\naverage_store AS (\n  -- one row: the average store's net revenue\n  SELECT AVG(net_revenue_eur) AS avg_revenue_eur\n  FROM store_revenue\n)\nSELECT sr.store_code, sr.city, sr.net_revenue_eur\nFROM store_revenue AS sr\nCROSS JOIN average_store AS a\nWHERE sr.net_revenue_eur > a.avg_revenue_eur\nORDER BY sr.store_code",
+    "SELECT s.store_code, s.city,\n       SUM(ol.quantity * ol.unit_price_eur - ol.line_discount_eur) AS net_revenue_eur\nFROM order_lines AS ol\nJOIN orders AS o ON o.order_id = ol.order_id\nJOIN stores AS s ON s.store_id = o.store_id\nWHERE s.store_type <> 'web'\n  AND o.order_ts >= TIMESTAMP '2025-01-01 00:00:00'\n  AND o.order_ts < TIMESTAMP '2026-01-01 00:00:00'\nGROUP BY s.store_code, s.city\nHAVING SUM(ol.quantity * ol.unit_price_eur - ol.line_discount_eur) > (\n  SELECT SUM(ol2.quantity * ol2.unit_price_eur - ol2.line_discount_eur) / COUNT(DISTINCT o2.store_id)\n  FROM order_lines AS ol2\n  JOIN orders AS o2 ON o2.order_id = ol2.order_id\n  JOIN stores AS s2 ON s2.store_id = o2.store_id\n  WHERE s2.store_type <> 'web'\n    AND o2.order_ts >= TIMESTAMP '2025-01-01 00:00:00'\n    AND o2.order_ts < TIMESTAMP '2026-01-01 00:00:00'\n)\nORDER BY s.store_code"
+  ],
+  "other_way": {
+    "sql": "SELECT t.store_code, t.city, t.net_revenue_eur\nFROM (\n  -- one row per physical store with a 2025 order\n  SELECT st.store_code, st.city, SUM(sa.net_revenue_eur) AS net_revenue_eur\n  FROM sales AS sa\n  JOIN stores AS st ON st.store_code = sa.store_code\n  WHERE st.store_type <> 'web'\n    AND sa.order_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\n  GROUP BY st.store_code, st.city\n) AS t\nWHERE t.net_revenue_eur > (\n  SELECT AVG(a.net_revenue_eur)\n  FROM (\n    -- one row per physical store with a 2025 order\n    SELECT sa.store_code, SUM(sa.net_revenue_eur) AS net_revenue_eur\n    FROM sales AS sa\n    JOIN stores AS st ON st.store_code = sa.store_code\n    WHERE st.store_type <> 'web'\n      AND sa.order_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\n    GROUP BY sa.store_code\n  ) AS a\n)\nORDER BY t.store_code",
+    "tradeoff": "Derived tables need no WITH, but the store totals step is then written twice, and the two copies can drift apart."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-07",
+      "sql": "WITH store_revenue AS (\n  SELECT s.store_code, s.city,\n         SUM(ol.quantity * ol.unit_price_eur - ol.line_discount_eur) AS net_revenue_eur\n  FROM order_lines AS ol\n  JOIN orders AS o ON o.order_id = ol.order_id\n  JOIN stores AS s ON s.store_id = o.store_id\n  WHERE s.store_type <> 'web'\n    AND o.order_ts >= TIMESTAMP '2025-01-01 00:00:00'\n    AND o.order_ts < TIMESTAMP '2026-01-01 00:00:00'\n  GROUP BY s.store_code, s.city\n)\nSELECT store_code, city, net_revenue_eur\nFROM store_revenue\nWHERE net_revenue_eur > (\n  SELECT AVG(ol.quantity * ol.unit_price_eur - ol.line_discount_eur)\n  FROM order_lines AS ol\n  JOIN orders AS o ON o.order_id = ol.order_id\n  JOIN stores AS s ON s.store_id = o.store_id\n  WHERE s.store_type <> 'web'\n    AND o.order_ts >= TIMESTAMP '2025-01-01 00:00:00'\n    AND o.order_ts < TIMESTAMP '2026-01-01 00:00:00'\n)\nORDER BY store_code"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-11",
+      "sql": "WITH store_revenue AS (\n  SELECT s.store_code, s.city,\n         COALESCE(SUM(ol.quantity * ol.unit_price_eur - ol.line_discount_eur), 0) AS net_revenue_eur\n  FROM stores AS s\n  LEFT JOIN orders AS o ON o.store_id = s.store_id\n    AND o.order_ts >= TIMESTAMP '2025-01-01 00:00:00'\n    AND o.order_ts < TIMESTAMP '2026-01-01 00:00:00'\n  LEFT JOIN order_lines AS ol ON ol.order_id = o.order_id\n  WHERE s.store_type <> 'web'\n  GROUP BY s.store_code, s.city\n)\nSELECT store_code, city, net_revenue_eur\nFROM store_revenue\nWHERE net_revenue_eur > (SELECT AVG(net_revenue_eur) FROM store_revenue)\nORDER BY store_code"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-06",
+      "sql": "WITH store_revenue AS (\n  SELECT s.store_code, s.city,\n         SUM(ol.quantity * ol.unit_price_eur - ol.line_discount_eur) AS net_revenue_eur\n  FROM order_lines AS ol\n  JOIN orders AS o ON o.order_id = ol.order_id\n  JOIN stores AS s ON s.store_id = o.store_id\n  WHERE s.store_type <> 'web'\n    AND o.order_ts >= TIMESTAMP '2025-01-01 00:00:00'\n    AND o.order_ts <= TIMESTAMP '2025-12-31 00:00:00'\n  GROUP BY s.store_code, s.city\n)\nSELECT store_code, city, net_revenue_eur\nFROM store_revenue\nWHERE net_revenue_eur > (SELECT AVG(net_revenue_eur) FROM store_revenue)\nORDER BY store_code"
+    }
+  ],
+  "hint3_partial": "WITH store_revenue AS (\n  -- one row per physical store with a 2025 order\n  SELECT s.store_code, s.city,\n         SUM(___) AS net_revenue_eur\n  FROM order_lines AS ol\n  JOIN orders AS o ON o.order_id = ol.order_id\n  JOIN stores AS s ON s.store_id = o.store_id\n  WHERE ___\n  GROUP BY s.store_code, s.city\n)\nSELECT store_code, city, net_revenue_eur\nFROM store_revenue\nWHERE net_revenue_eur > (___)\nORDER BY store_code",
+  "solver": {
+    "prompt_hash": "1ce64bed3f73290b",
+    "schema_version": "6ef9ff4e4ad1",
+    "dataset_version": "b2d2b40fb117bb07",
+    "grader_version": "6a.1",
+    "query": "WITH r AS (\n  SELECT s.store_code, s.city,\n         SUM(ol.quantity * ol.unit_price_eur - ol.line_discount_eur) AS net_revenue_eur\n  FROM orders o\n  JOIN stores s ON s.store_id = o.store_id\n  JOIN order_lines ol ON ol.order_id = o.order_id\n  WHERE s.store_type <> 'web'\n    AND CAST(o.order_ts AS TIMESTAMP) >= TIMESTAMP '2025-01-01 00:00:00' AND CAST(o.order_ts AS TIMESTAMP) < TIMESTAMP '2026-01-01 00:00:00'\n  GROUP BY s.store_code, s.city\n)\nSELECT store_code, city, net_revenue_eur\nFROM r\nWHERE net_revenue_eur > (SELECT AVG(net_revenue_eur) FROM r)\nORDER BY store_code\n",
+    "at": "2026-10-15T19:10:04.305Z"
+  }
+}

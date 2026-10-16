@@ -9,7 +9,7 @@ import { SCHEMA_VERSION, type BlockClose, type CloseReason, type Exposure, type 
 import type { CardEvent, ExternalGa4Exam, ExternalPortfolioPiece, SettingChange } from '../core/events.ts';
 import { amsterdamDate } from '../core/time.ts';
 import type { RunnerClient, RunnerReq, RunnerResult } from './runner/client.ts';
-import type { DisplayOk } from './runner/protocol.ts';
+import { DISPLAY_CAP, type DisplayOk } from './runner/protocol.ts';
 import { targetOf, type ContentStore } from './content.ts';
 import type { AttemptLogger } from './log.ts';
 import type { SessionTracker } from './session.ts';
@@ -35,20 +35,30 @@ import { mountCases } from './routes/cases.ts';
 import { mountSections } from './routes/sections.ts';
 import { mountRun } from './routes/run.ts';
 import { mountMistakes } from './routes/mistakes.ts';
-import { mountPortfolio, uncProblem } from './routes/portfolio.ts';
+import { FLAGSHIP_PATH, mountPortfolio, uncProblem } from './routes/portfolio.ts';
 import { mountProgress } from './routes/progress.ts';
 import { mountLabs } from './routes/labs.ts';
 import { mountExplore, EXPLORE_RUN_PATH } from './routes/explore.ts';
 import { HELP_WAITS, NO_DRILLS, RUN_OVER, type DrillGate, type DrillRuns } from './drill.ts';
-import { answered, funnel, httpRoute, levelName, markFailed, recordError, sqlFunnel } from './observe.ts';
+import { answered, funnel, httpRoute, itemFunnel, levelName, markFailed, recordError, sqlFunnel } from './observe.ts';
 import { journey, journeyScreen } from './journey.ts';
 import { JOURNEY_PATH, SCREENS, SUBJECT_ID, type Screen } from '../schemas/journey.ts';
 
 /**
  * The settings replayed from the events file (server/main.ts). `portfolio_folder` (D35, log version 4) is set by main.ts; it is
- * optional here so a test's settings may leave it out, which reads as not set. The settings route takes it (Task D4).
+ * required (S6-38): null reads as not set. The settings route takes it (Task D4).
  */
-export interface Settings { backup_folder: string | null; exam_date: string | null; goal_dates: Record<string, string>; portfolio_folder?: string | null }
+export interface Settings { backup_folder: string | null; exam_date: string | null; goal_dates: Record<string, string>; portfolio_folder: string | null }
+/** The settings as the events file last set them; a key never set is null (goal_dates: none). server/main.ts reads the log through this. */
+export function settingsFromEvents(events: readonly Partial<SettingChange>[]): Settings {
+  const latest = (key: SettingChange['key']): unknown => events.findLast((e) => e.event === 'setting_change' && e.key === key)?.value;
+  return {
+    backup_folder: (latest('backup_folder') as string | null | undefined) ?? null,
+    exam_date: (latest('exam_date') as string | null | undefined) ?? null,
+    goal_dates: (latest('goal_dates') as Record<string, string> | undefined) ?? {},
+    portfolio_folder: (latest('portfolio_folder') as string | null | undefined) ?? null,   // D35 (log version 4)
+  };
+}
 export type BackupResult = Awaited<ReturnType<typeof backupLogs>>;
 export interface AppDeps {
   port: number;
@@ -146,7 +156,6 @@ const CLOSE_REASONS: CloseReason[] = ['pass', 'left', 'session_end', 'run_end'];
 const EXPOSURE_KINDS: Exposure['kind'][] = ['reading', 'worked_example', 'lesson', 'micro_lesson', 'refresher'];
 const SETTING_KEYS: SettingChange['key'][] = ['backup_folder', 'exam_date', 'goal_dates', 'portfolio_folder'];
 const SLICE_FOR_LEVEL: Record<number, string> = { 1: '1a', 2: '1b', 3: '3', 4: '5', 5: '6', 6: '7', 7: 'after the first applications' };
-const DISPLAY_CAP = 1000;
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
 const LOG_FAILED: Check = { name: 'log writable', ok: false, detail: 'A log write failed, so grading is paused. Check the disk and the logs folder, then restart the app.' };
 const CLOSED = 'This exercise is closed. Leave it and open it again.';
@@ -586,8 +595,9 @@ export function createApp(d: AppDeps): Hono {
     if (!d.logger.writable) {
       // Design §18: grading stops until the log can be written again, so no attempt is lost silently.
       if (c.req.method !== 'GET') return c.json({ error: 'The log cannot be written, so grading is paused. See the setup screen.' }, 503);
-    } else if (!READS.has(c.req.method) && c.req.path !== '/api/session-end' && c.req.path !== EXPLORE_RUN_PATH) {
-      // Only a request that can change something starts a session (Task B13): opening Today or the map writes nothing.
+    } else if (!READS.has(c.req.method) && c.req.path !== '/api/session-end' && c.req.path !== EXPLORE_RUN_PATH && c.req.path !== FLAGSHIP_PATH) {
+      // Only a request that can change something starts a session (Task B13): opening Today or the map writes nothing. The
+      // explorer's run and its flagship draft (S6-25) log nothing, so they start none either.
       await d.session.touch();
       // S2-42: a drill run whose time is up ends before this request does anything (the check on every request; the run's
       // timer is the other half of the hard stop).
@@ -613,7 +623,7 @@ export function createApp(d: AppDeps): Hono {
   app.get('/api/items/:id', (c) => {
     const item = d.content.item(c.req.param('id'));
     if (item) {
-      journey('item_viewed', { item_id: item.id, ...sqlFunnel(item.difficulty) });     // D77: the exercise was sent
+      journey('item_viewed', { item_id: item.id, ...itemFunnel(d.content, item) });     // D77: the exercise was sent
       return c.json({ item: publicItem(item, c.req.query('stage'), d.content.key(item.id)?.other_way != null), schemaNotes: d.schemaNotes.filter((n) => n.schema === item.schema) });
     }
     // A GA4 or Methodology question typed into the SQL item URL (a held-out one, S2-64): named, never served here (Task C8).
@@ -684,7 +694,7 @@ export function createApp(d: AppDeps): Hono {
       await d.logger.attempt(attempt);
       logged = at;
       // D75, D76: a logged attempt with its exercise, time and help; a graded one passed or failed.
-      answered(sqlFunnel(item.difficulty), attempt, r.outcome === 'pass' ? 'passed' : r.graded ? 'failed' : 'not graded');
+      answered(itemFunnel(d.content, item), attempt, r.outcome === 'pass' ? 'passed' : r.graded ? 'failed' : 'not graded');
       if (r.outcome === 'crash') markFailed(r.notes[0] ?? 'grading crashed');   // a fixed note, never the runner's own message
       if (r.graded) i.lastGraded = attempt;
       return c.json({ ...r, attempt_id: attempt.attempt_id });

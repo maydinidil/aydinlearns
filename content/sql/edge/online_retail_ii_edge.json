@@ -1,0 +1,23 @@
+{
+  "schema": "online_retail_ii_edge",
+  "mirrors": "online_retail_ii",
+  "family": "real",
+  "contains": [
+    "a cancelled invoice, C900004: its number starts with C and its quantities are negative",
+    "lines with a missing customer ID",
+    "a line with a negative quantity on an invoice that is not cancelled: a stock adjustment at price 0",
+    "a postage line, stock code POST, beside a product line on the same invoice",
+    "a line that repeats the line before it in every column",
+    "stock codes that look like numbers beside codes that end in a letter"
+  ],
+  "tables": {
+    "invoice_lines": [
+      "a cancelled invoice, C900004: its number starts with C and its quantities are negative",
+      "lines with a missing customer ID",
+      "a line with a negative quantity on an invoice that is not cancelled: a stock adjustment at price 0",
+      "a postage line, stock code POST, beside a product line on the same invoice",
+      "a line that repeats the line before it in every column",
+      "stock codes that look like numbers beside codes that end in a letter"
+    ]
+  }
+}

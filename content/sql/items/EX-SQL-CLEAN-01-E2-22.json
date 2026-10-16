@@ -1,0 +1,114 @@
+{
+  "id": "EX-SQL-CLEAN-01-E2-22",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-04",
+    "self_join",
+    "overlap",
+    "price_history"
+  ],
+  "level": 4,
+  "source_ids": [
+    "01:SQL-CLEAN-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-15",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-CLEAN-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-NULL-01",
+    "SQL-JOIN-01",
+    "SQL-CLEAN-01"
+  ],
+  "template_id": "T-CLEAN-01-overlap-prices",
+  "template_params": {
+    "table": "price_history"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt_raw",
+  "edge_schema": "voltmarkt_edge_clean",
+  "uses_raw": true,
+  "prompt": "For each pair of overlapping price windows, which two list prices apply on the shared days? This table may hold errors. A product's price windows should never overlap. A window runs from valid_from to valid_to, both days included, and a missing valid_to means the window is still open. Two windows of one product overlap when the later one starts on or before the day the earlier one ends. Return three columns, in this order: product_id, earlier_price, the list_price_eur of the window that starts first, and later_price, that of the window that starts later. Return one row for each pair of overlapping windows. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "earlier_price",
+        "type_class": "numeric"
+      },
+      {
+        "name": "later_price",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "earlier_price",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "later_price",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "product_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, pair each window with the later windows of the same product that start too early.",
+    "The later window must start strictly after the earlier one, so a window never pairs with itself, and on or before its end day."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 87,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 88,
+      "to": 251,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "Pairing each window only with later windows of its product that start by its end day finds each overlap once."
+}

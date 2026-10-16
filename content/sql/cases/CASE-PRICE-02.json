@@ -77,7 +77,7 @@
       "credits_concepts": [
         "SQL-AGG-01"
       ],
-      "prompt": "How many different products sold at Voltmarkt in ISO week 11 of 2025, the week from Monday 2025-03-10 to Sunday 2025-03-16, with days in UTC, and also have an average competitor price for that same ISO week? Type a whole number.",
+      "prompt": "How many different products sold at Voltmarkt in ISO week 11 of 2025 and also have an average competitor price for that same ISO week, avg_competitor_price_eur in competitor_price_weekly? A product sold that week when at least one of its order lines has a UTC order date from Monday 2025-03-10 to Sunday 2025-03-16, both days included. Type a whole number.",
       "typed": {
         "precision": "count",
         "scale": "plain",
@@ -107,7 +107,7 @@
         "SQL-JOIN-01",
         "SQL-AGG-01"
       ],
-      "prompt": "Sanne has a follow-up. Across all categories together, what was Voltmarkt's price index in ISO week 11 of 2025, the week from Monday 2025-03-10 to Sunday 2025-03-16, with days in UTC? Use only the products that sold that week and have an average competitor price for that same ISO week. The index is 100 times the net revenue of those products' order lines that week, divided by the sum over the same lines of units times the product's average competitor price for the week. Type the index with 1 decimal, for example 101.3.",
+      "prompt": "Sanne has a follow-up. Across all categories together, what was Voltmarkt's price index in ISO week 11 of 2025? Take the order lines with a UTC order date from Monday 2025-03-10 to Sunday 2025-03-16, both days included, of the products that have an average competitor price for ISO week 11 of 2025, avg_competitor_price_eur in competitor_price_weekly. The index is 100 times the net revenue of those lines, divided by the sum over the same lines of quantity times the product's average competitor price for that week. Type the index with 1 decimal, for example 101.3.",
       "typed": {
         "precision": "ratio",
         "scale": "plain",

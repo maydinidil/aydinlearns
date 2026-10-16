@@ -1,0 +1,67 @@
+{
+  "schema": "mailvora_edge_case",
+  "mirrors": "mailvora",
+  "family": "case",
+  "contains": [
+    "a channel with spend and no clicks, so its cost per click divides by zero",
+    "a campaign that never spent, in a channel with a budget each month and no spend",
+    "a month with a budget of 0 euro for a channel",
+    "a signup with no session, so attribution cannot credit it to a channel",
+    "a user whose first two sessions start at the same moment, from two channels",
+    "a path that starts on YouTube and ends on brand search",
+    "a session after its visitor's signup",
+    "direct sessions, whose utm fields are missing",
+    "a refunded payment",
+    "a user whose plan changed, so they have two subscriptions",
+    "a paying user with no session, so attribution has no channel to credit the revenue to",
+    "a paying user whose first two sessions start at the same moment, from two channels",
+    "a September 2025 signup that activates after its first 7 days but subscribes and pays within 30 days"
+  ],
+  "tables": {
+    "channels": [
+      "a channel with spend and no clicks, so its cost per click divides by zero"
+    ],
+    "campaigns": [
+      "a channel with spend and no clicks, so its cost per click divides by zero",
+      "a campaign that never spent, in a channel with a budget each month and no spend"
+    ],
+    "ad_spend_daily": [
+      "a channel with spend and no clicks, so its cost per click divides by zero",
+      "a campaign that never spent, in a channel with a budget each month and no spend"
+    ],
+    "budget_monthly": [
+      "a campaign that never spent, in a channel with a budget each month and no spend",
+      "a month with a budget of 0 euro for a channel"
+    ],
+    "sessions": [
+      "a signup with no session, so attribution cannot credit it to a channel",
+      "a user whose first two sessions start at the same moment, from two channels",
+      "a path that starts on YouTube and ends on brand search",
+      "a session after its visitor's signup",
+      "direct sessions, whose utm fields are missing",
+      "a paying user whose first two sessions start at the same moment, from two channels"
+    ],
+    "signups": [
+      "a signup with no session, so attribution cannot credit it to a channel",
+      "a user whose first two sessions start at the same moment, from two channels",
+      "a paying user with no session, so attribution has no channel to credit the revenue to",
+      "a paying user whose first two sessions start at the same moment, from two channels",
+      "a September 2025 signup that activates after its first 7 days but subscribes and pays within 30 days"
+    ],
+    "payments": [
+      "a refunded payment",
+      "a paying user with no session, so attribution has no channel to credit the revenue to",
+      "a paying user whose first two sessions start at the same moment, from two channels",
+      "a September 2025 signup that activates after its first 7 days but subscribes and pays within 30 days"
+    ],
+    "subscriptions": [
+      "a user whose plan changed, so they have two subscriptions",
+      "a paying user with no session, so attribution has no channel to credit the revenue to",
+      "a paying user whose first two sessions start at the same moment, from two channels",
+      "a September 2025 signup that activates after its first 7 days but subscribes and pays within 30 days"
+    ],
+    "activation_events": [
+      "a September 2025 signup that activates after its first 7 days but subscribes and pays within 30 days"
+    ]
+  }
+}

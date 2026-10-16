@@ -1,0 +1,44 @@
+{
+  "item_id": "EX-SQL-SUBQ-01-E3-03",
+  "item_version": 1,
+  "reference_sql": "SELECT DISTINCT o.customer_id\nFROM orders o\nWHERE o.customer_id IS NOT NULL\n  AND o.store_id = 25\n  AND year(o.order_ts) = 2024\n  AND NOT EXISTS (\n    SELECT 1\n    FROM orders o2\n    WHERE o2.customer_id = o.customer_id\n      AND year(o2.order_ts) = 2025\n  )",
+  "alternatives": [
+    "SELECT customer_id\nFROM orders\nWHERE customer_id IS NOT NULL\n  AND store_id = 25\n  AND year(order_ts) = 2024\nEXCEPT\nSELECT customer_id\nFROM orders\nWHERE year(order_ts) = 2025",
+    "SELECT DISTINCT customer_id\nFROM orders\nWHERE customer_id IS NOT NULL\n  AND store_id = 25\n  AND year(order_ts) = 2024\n  AND customer_id NOT IN (\n    SELECT customer_id\n    FROM orders\n    WHERE year(order_ts) = 2025\n      AND customer_id IS NOT NULL\n  )"
+  ],
+  "other_way": {
+    "sql": "SELECT customer_id\nFROM orders\nWHERE customer_id IS NOT NULL\n  AND store_id = 25\n  AND year(order_ts) = 2024\nEXCEPT\nSELECT customer_id\nFROM orders\nWHERE year(order_ts) = 2025",
+    "tradeoff": "EXCEPT takes the 2025 customers away from the 2024 ones in fewer lines, but works only when you return the key alone."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-30",
+      "sql": "SELECT DISTINCT customer_id FROM orders WHERE customer_id IS NOT NULL AND store_id = 25 AND year(order_ts) = 2024 AND customer_id NOT IN (SELECT customer_id FROM orders WHERE year(order_ts) = 2025)"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-08",
+      "sql": "SELECT o.customer_id FROM orders o WHERE o.customer_id IS NOT NULL AND o.store_id = 25 AND year(o.order_ts) = 2024 AND NOT EXISTS (SELECT 1 FROM orders o2 WHERE o2.customer_id = o.customer_id AND year(o2.order_ts) = 2025)"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-03",
+      "sql": "SELECT DISTINCT o.customer_id FROM orders o WHERE o.store_id = 25 AND year(o.order_ts) = 2024 AND NOT EXISTS (SELECT 1 FROM orders o2 WHERE o2.customer_id = o.customer_id AND year(o2.order_ts) = 2025)"
+    },
+    {
+      "id": "PW4",
+      "error_id": "ERR-LOG-31",
+      "sql": "SELECT DISTINCT o.customer_id FROM orders o WHERE o.customer_id IS NOT NULL AND o.store_id = 25 AND year(o.order_ts) = 2024 AND NOT EXISTS (SELECT 1 FROM orders o2 WHERE o2.store_id = o.store_id AND o2.customer_id = o.customer_id AND year(o2.order_ts) = 2025)"
+    }
+  ],
+  "hint3_partial": "SELECT DISTINCT o.customer_id\nFROM orders o\nWHERE o.customer_id IS NOT NULL\n  AND o.store_id = 25\n  AND year(o.order_ts) = 2024\n  AND NOT EXISTS (\n    SELECT 1\n    FROM orders o2\n    WHERE o2.customer_id = ___\n      AND year(o2.order_ts) = 2025\n  )",
+  "solver": {
+    "prompt_hash": "3f7bd436f084e6ab",
+    "schema_version": "7ed366279088",
+    "dataset_version": "b2d2b40fb117bb07",
+    "grader_version": "6a.1",
+    "query": "SELECT DISTINCT o.customer_id FROM orders o WHERE o.customer_id IS NOT NULL AND o.store_id = 25 AND EXTRACT(year FROM o.order_ts) = 2024 AND NOT EXISTS (SELECT 1 FROM orders o2 WHERE o2.customer_id = o.customer_id AND EXTRACT(year FROM o2.order_ts) = 2025)\r\n",
+    "at": "2026-10-15T11:06:13.153Z"
+  }
+}

@@ -89,7 +89,7 @@ async function deps(content: ContentStore = memoryContent()): Promise<AppDeps & 
   logger.onWrite((file, r) => state.record(file, r));
   return { port: 5174, checks: [], runner: null, content, logger, session: new SessionTracker(logger, async (at) => { for (const h of endHooks) await h(at); }),
     endHooks, closedInstances: [], schemaNotes: [], manifest: { dataset_version: 'x', library_version: 'v1.5.6' },
-    settings: { backup_folder: null, exam_date: null, goal_dates: {} }, tableCheck: 'parse_tree', state, servings: new Servings() };
+    settings: { backup_folder: null, exam_date: null, goal_dates: {}, portfolio_folder: null }, tableCheck: 'parse_tree', state, servings: new Servings() };
 }
 const records = async (d: AppDeps) => (await d.logger.readAll('attempts')) as any[];
 /** Writes an earlier session's records straight to the attempts file, as the routes would have. */
@@ -379,4 +379,38 @@ test('F26: "Try again" on an unservable due card waits for the next candidate\'s
     assert.equal(r.status, 404, 'the candidate is not served a second time');
     assert.match(await r.text(), /No review is due\./);
   } finally { clean(); }
+});
+
+// ---- K7a (backlog 4c, seams M2): the real way every trap item is out of reach is a live run holding them -------------------------
+
+test('M2: a live drill holding every trap item of the card makes Today\'s review and "Try again" say no exercise is free now, not "No review is due."; the card stays due, and once the run ends it is served', async () => {
+  const d = await deps();
+  await makeMistake(d);
+  const app = createApp(d);
+  await d.logger.exposure({ record: 'exposure', schema_version: 2, ts: iso(2 * DAY), concept_id: X, kind: 'reading' } as any);
+  const content = d.content;
+  const traps = content.sqlItems!().filter((i) => i.target_concept_id === X && (PLANTS.has(i.id) || i.starter_sql !== null)).map((i) => i.id);
+  assert.ok(traps.length >= 3, 'the concept has trap items for the error');
+  const start = await post(app, '/api/drill/start', { concept_ids: [X] });
+  assert.equal(start.status, 200);
+  const run = await start.json();
+  const held = new Set<string>(run.servings.map((s: any) => s.item_id));
+  assert.deepEqual(traps.filter((t) => !held.has(t)), [], 'the run holds every trap item of the card');
+  const before = (await records(d)).length;
+
+  const review = await post(app, '/api/serve', { section: 'sql', purpose: 'review' });
+  assert.equal(review.status, 404);
+  const reviewWords = (await review.json()).error as string;
+  assert.match(reviewWords, /No exercise is free now for the mistake cards due\./);
+  assert.doesNotMatch(reviewWords, /No review is due/);
+  const retry = await post(app, `/api/mistakes/${encodeURIComponent(CARD)}/try`, {});
+  assert.equal(retry.status, 404);
+  assert.equal((await retry.json()).error, 'This mistake has no exercise free now.');
+  assert.equal((await json(get(app, '/api/mistakes'))).cards.find((c: any) => c.card_id === CARD).is_due, true, 'the card stays due');
+  const since = (await records(d)).slice(before).filter((r) => r.record === 'attempt' || r.record === 'item_close');
+  assert.deepEqual(since, [], 'nothing was logged for the refused serves');
+
+  await post(app, '/api/drill/end', { block_id: run.block_id });
+  const served = await json(post(app, '/api/serve', { section: 'sql', purpose: 'review' }));
+  assert.equal(d.servings.get(served.item_instance_id)?.card_id, CARD, 'the run is over: the card is served');
 });

@@ -1,0 +1,121 @@
+{
+  "id": "EX-SQL-CLEAN-01-E1-08",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-04",
+    "duplicates",
+    "missing_values",
+    "order_lines"
+  ],
+  "level": 4,
+  "source_ids": [
+    "01:SQL-CLEAN-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-15",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-CLEAN-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CASE-01",
+    "SQL-CTE-01",
+    "SQL-CLEAN-01"
+  ],
+  "template_id": "T-CLEAN-01-copies-by-promo",
+  "template_params": {
+    "column": "promo_id"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt_raw",
+  "edge_schema": "voltmarkt_edge_clean",
+  "uses_raw": true,
+  "prompt": "Of the resent copies, how many had a promotion and how many had none? This table may hold errors. Two lines are copies of one order line when order_id, product_id, quantity, unit_price_eur, promo_id and line_discount_eur all match, with a missing promo_id matching a missing one; every line beyond the first of such a set is a resent copy. A copy had a promotion when its promo_id is not missing. Return two columns, in this order: n_with_promo and n_without_promo. The result is a single row. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "n_with_promo",
+        "type_class": "numeric"
+      },
+      {
+        "name": "n_without_promo",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "n_with_promo",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "n_without_promo",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, add up the copies of each set, split by whether its promo_id is missing.",
+    "GROUP BY treats two missing promo_id values as one group, so sets with no promotion stay whole; a test with = would not."
+  ],
+  "subgoals": [
+    {
+      "from": 60,
+      "to": 96,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 99,
+      "to": 115,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 118,
+      "to": 202,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 205,
+      "to": 378,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 379,
+      "to": 393,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "GROUP BY puts lines with a missing promo_id in one set, so copies without a promotion are found as surely as the others."
+}

@@ -1,0 +1,147 @@
+{
+  "id": "EX-SQL-CLEAN-01-E1-41",
+  "version": 1,
+  "kind": "predict_result",
+  "tags": [
+    "sql",
+    "LVL-04",
+    "predict_result",
+    "nullif",
+    "coalesce",
+    "ratio",
+    "stores"
+  ],
+  "level": 4,
+  "source_ids": [
+    "01:SQL-CLEAN-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-15",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pretest",
+  "target_concept_id": "SQL-CLEAN-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-NULL-01",
+    "SQL-CLEAN-01"
+  ],
+  "template_id": "T-CLEAN-01-predict-nullif",
+  "template_params": {
+    "values": "10 / 0, 10 / 4"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt_raw",
+  "edge_schema": "voltmarkt_edge_clean",
+  "uses_raw": true,
+  "prompt": "Which result does this query return?",
+  "output_contract": null,
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [],
+  "subgoals": [],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 90000,
+  "why_this_works": "",
+  "shown_sql": "SELECT 10 / NULLIF(0, 0) AS a,\n       COALESCE(10 / NULLIF(0, 0), 0) AS b,\n       10 / NULLIF(4, 0) AS c\nFROM stores\nWHERE store_id = 1",
+  "options": [
+    {
+      "oid": "o01cb3fc",
+      "text": "a missing, b 0, c 2.5",
+      "misconception_id": null,
+      "table": {
+        "columns": [
+          "a",
+          "b",
+          "c"
+        ],
+        "rows": [
+          [
+            null,
+            0,
+            2.5
+          ]
+        ]
+      }
+    },
+    {
+      "oid": "o6058f71",
+      "text": "a 0, b 0, c 2.5",
+      "misconception_id": "ERR-LOG-35",
+      "table": {
+        "columns": [
+          "a",
+          "b",
+          "c"
+        ],
+        "rows": [
+          [
+            0,
+            0,
+            2.5
+          ]
+        ]
+      }
+    },
+    {
+      "oid": "ofe9198e",
+      "text": "a missing, b missing, c 2.5",
+      "misconception_id": "ERR-LOG-17",
+      "table": {
+        "columns": [
+          "a",
+          "b",
+          "c"
+        ],
+        "rows": [
+          [
+            null,
+            null,
+            2.5
+          ]
+        ]
+      }
+    },
+    {
+      "oid": "occd9843",
+      "text": "a missing, b 0, c 2",
+      "misconception_id": "ERR-LOG-05",
+      "table": {
+        "columns": [
+          "a",
+          "b",
+          "c"
+        ],
+        "rows": [
+          [
+            null,
+            0,
+            2
+          ]
+        ]
+      }
+    }
+  ]
+}

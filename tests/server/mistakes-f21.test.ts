@@ -69,7 +69,7 @@ async function dueCard(): Promise<{ app: Hono; servings: Servings; logger: HeldL
   const servings = new Servings();
   const app = createApp({ port: 5174, checks: [], runner, content, logger, session: new SessionTracker(logger, async (at) => { for (const h of endHooks) await h(at); }), endHooks,
     closedInstances: [], schemaNotes: [], manifest: { dataset_version: 'x', library_version: 'v1.5.6' },
-    settings: { backup_folder: null, exam_date: null, goal_dates: {} }, tableCheck: 'parse_tree', state, servings });
+    settings: { backup_folder: null, exam_date: null, goal_dates: {}, portfolio_folder: null }, tableCheck: 'parse_tree', state, servings });
   await post(app, '/api/submit', { item_id: pool[0], item_instance_id: 'U-1', sql: WRONG, phase: 'free', active_ms: 30_000 });
   await post(app, '/api/item-close', { item_id: pool[0], item_instance_id: 'U-1', reason: 'left' });
   return { app, servings, logger, log };

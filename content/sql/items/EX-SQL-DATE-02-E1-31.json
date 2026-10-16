@@ -1,0 +1,122 @@
+{
+  "id": "EX-SQL-DATE-02-E1-31",
+  "version": 1,
+  "kind": "fix",
+  "tags": [
+    "sql",
+    "LVL-04",
+    "date",
+    "date_arithmetic",
+    "cost_history",
+    "days-inclusive",
+    "fix"
+  ],
+  "level": 4,
+  "source_ids": [
+    "01:SQL-DATE-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-15",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-DATE-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-NULL-01",
+    "SQL-DATE-02"
+  ],
+  "template_id": "T-DATE-02-fix-days-inclusive",
+  "template_params": {
+    "table": "cost_history"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_interval",
+  "prompt": "The query in the editor has one mistake. Fix it so that it answers this question: for each cost version that has ended (its valid_to is not missing), on how many days did that cost apply? valid_from and valid_to are both days on which the cost applied. Return three columns, in this order: product_id, valid_from, and days_applied. Return one row for each of those cost versions. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "valid_from",
+        "type_class": "temporal"
+      },
+      {
+        "name": "days_applied",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "valid_from",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "days_applied",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "product_id",
+      "valid_from"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, look at days_applied for a cost that applied on a single day: its two dates would be the same.",
+    "valid_to - valid_from counts the days between the two dates, which leaves one end day out, though the cost applied on both."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 72,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 73,
+      "to": 90,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 91,
+      "to": 117,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": "SELECT product_id, valid_from, valid_to - valid_from AS days_applied\nFROM cost_history\nWHERE valid_to IS NOT NULL",
+  "starter_error_id": "ERR-LOG-34",
+  "time_target_ms": 90000,
+  "why_this_works": "valid_to - valid_from leaves one end day out, so adding 1 counts both the first and the last day on which the cost applied."
+}

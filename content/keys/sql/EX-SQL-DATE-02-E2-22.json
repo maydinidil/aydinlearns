@@ -1,0 +1,39 @@
+{
+  "item_id": "EX-SQL-DATE-02-E2-22",
+  "item_version": 1,
+  "reference_sql": "WITH first_sales AS (  -- one row per product\n  SELECT product_id, MIN(order_date) AS first_day\n  FROM sales\n  GROUP BY product_id\n)\nSELECT c.parent_category, ROUND(AVG(f.first_day - p.launch_date), 1) AS avg_days_to_first_sale\nFROM products p\nJOIN first_sales f ON f.product_id = p.product_id\nJOIN categories c ON c.category_id = p.category_id\nWHERE p.launch_date >= DATE '2024-01-01'\nGROUP BY c.parent_category",
+  "alternatives": [
+    "SELECT c.parent_category, ROUND(AVG(f.days), 1) AS avg_days_to_first_sale\nFROM (  -- one row per product\n  SELECT p.product_id, p.category_id, MIN(s.order_date) - p.launch_date AS days\n  FROM products p\n  JOIN sales s ON s.product_id = p.product_id\n  WHERE p.launch_date >= DATE '2024-01-01'\n  GROUP BY p.product_id, p.category_id, p.launch_date\n) AS f\nJOIN categories c ON c.category_id = f.category_id\nGROUP BY c.parent_category",
+    "WITH first_sales AS (  -- one row per product\n  SELECT product_id, MIN(order_date) AS first_day\n  FROM sales\n  GROUP BY product_id\n)\nSELECT c.parent_category, ROUND(AVG(date_diff('day', p.launch_date, f.first_day)), 1) AS avg_days_to_first_sale\nFROM products p\nJOIN first_sales f ON f.product_id = p.product_id\nJOIN categories c ON c.category_id = p.category_id\nWHERE p.launch_date >= DATE '2024-01-01'\nGROUP BY c.parent_category"
+  ],
+  "other_way": {
+    "sql": "SELECT c.parent_category, ROUND(AVG(f.days), 1) AS avg_days_to_first_sale\nFROM (  -- one row per product\n  SELECT p.product_id, p.category_id, MIN(s.order_date) - p.launch_date AS days\n  FROM products p\n  JOIN sales s ON s.product_id = p.product_id\n  WHERE p.launch_date >= DATE '2024-01-01'\n  GROUP BY p.product_id, p.category_id, p.launch_date\n) AS f\nJOIN categories c ON c.category_id = f.category_id\nGROUP BY c.parent_category",
+    "tradeoff": "A derived table that works out each product's days first does the same, but the CTE keeps the first-sale step on its own."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-34",
+      "sql": "WITH first_sales AS (SELECT product_id, MIN(order_date) AS first_day FROM sales GROUP BY product_id) SELECT c.parent_category, ROUND(AVG(f.first_day - p.launch_date + 1), 1) AS avg_days_to_first_sale FROM products p JOIN first_sales f ON f.product_id = p.product_id JOIN categories c ON c.category_id = p.category_id WHERE p.launch_date >= DATE '2024-01-01' GROUP BY c.parent_category"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-14",
+      "sql": "WITH first_sales AS (SELECT product_id, MAX(order_date) AS first_day FROM sales GROUP BY product_id) SELECT c.parent_category, ROUND(AVG(f.first_day - p.launch_date), 1) AS avg_days_to_first_sale FROM products p JOIN first_sales f ON f.product_id = p.product_id JOIN categories c ON c.category_id = p.category_id WHERE p.launch_date >= DATE '2024-01-01' GROUP BY c.parent_category"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-07",
+      "sql": "SELECT c.parent_category, ROUND(AVG(s.order_date - p.launch_date), 1) AS avg_days_to_first_sale FROM products p JOIN sales s ON s.product_id = p.product_id JOIN categories c ON c.category_id = p.category_id WHERE p.launch_date >= DATE '2024-01-01' GROUP BY c.parent_category"
+    }
+  ],
+  "hint3_partial": "WITH first_sales AS (  -- one row per product\n  SELECT product_id, MIN(order_date) AS first_day\n  FROM sales\n  GROUP BY product_id\n)\nSELECT c.parent_category, ROUND(AVG(___), 1) AS avg_days_to_first_sale\nFROM products p\nJOIN first_sales f ON f.product_id = p.product_id\nJOIN categories c ON c.category_id = p.category_id\nWHERE p.launch_date >= DATE '2024-01-01'\nGROUP BY c.parent_category",
+  "solver": {
+    "prompt_hash": "61bb07043dd99b2f",
+    "schema_version": "c52b95363cc3",
+    "dataset_version": "b2d2b40fb117bb07",
+    "grader_version": "6a.1",
+    "query": "WITH first_sale AS (\n  SELECT product_id, MIN(CAST(order_date AS DATE)) AS first_day\n  FROM sales\n  GROUP BY product_id\n)\nSELECT c.parent_category, ROUND(AVG(f.first_day - CAST(p.launch_date AS DATE)), 1) AS avg_days_to_first_sale\nFROM products p\nJOIN first_sale f ON f.product_id = p.product_id\nJOIN categories c ON c.category_id = p.category_id\nWHERE CAST(p.launch_date AS DATE) >= DATE '2024-01-01'\nGROUP BY c.parent_category\n",
+    "at": "2026-10-15T11:06:11.724Z"
+  }
+}

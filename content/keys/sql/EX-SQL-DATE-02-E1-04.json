@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-DATE-02-E1-04",
+  "item_version": 1,
+  "reference_sql": "SELECT promo_code, end_date, end_date + INTERVAL 14 DAY AS watch_end\nFROM promotions\nWHERE promo_type = 'clearance'",
+  "alternatives": [
+    "SELECT promo_code, end_date, end_date + 14 AS watch_end FROM promotions WHERE promo_type = 'clearance'",
+    "SELECT promo_code, end_date, CAST(date_add(end_date, INTERVAL 14 DAY) AS DATE) AS watch_end FROM promotions WHERE promo_type = 'clearance'"
+  ],
+  "other_way": {
+    "sql": "SELECT promo_code, end_date, end_date + 14 AS watch_end FROM promotions WHERE promo_type = 'clearance'",
+    "tradeoff": "Adding the whole number 14 keeps a DATE, while INTERVAL 14 DAY gives a midnight TIMESTAMP but also works for months and hours."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-34",
+      "sql": "SELECT promo_code, end_date, end_date + INTERVAL 13 DAY AS watch_end FROM promotions WHERE promo_type = 'clearance'"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-34",
+      "sql": "SELECT promo_code, end_date, end_date + INTERVAL 15 DAY AS watch_end FROM promotions WHERE promo_type = 'clearance'"
+    }
+  ],
+  "hint3_partial": "SELECT promo_code, end_date, end_date + INTERVAL ___ AS watch_end\nFROM promotions\nWHERE promo_type = 'clearance'",
+  "solver": {
+    "prompt_hash": "d12379e8d49bbc30",
+    "schema_version": "f0340f71a1f5",
+    "dataset_version": "b2d2b40fb117bb07",
+    "grader_version": "6a.1",
+    "query": "SELECT promo_code, end_date, CAST(end_date AS DATE) + 14 AS watch_end\nFROM promotions\nWHERE promo_type = 'clearance'\n",
+    "at": "2026-10-15T11:06:11.191Z"
+  }
+}

@@ -237,6 +237,14 @@ function targetMs(r: Rec): number | null {
   return typeof t === 'number' && t > 0 ? t : null;
 }
 
+/**
+ * Whether an attempt record counts as an answer: never the copy an "I was right" override logs, a crash or a refused statement. Replay's
+ * mistake counting and the daily case (server/session-composer.ts) both ask this (Task K4).
+ */
+export function countsAsAttempt(r: { grading_source?: unknown; outcome?: unknown }): boolean {
+  return r.grading_source !== 'override' && r.outcome !== 'crash' && r.outcome !== 'rejected';
+}
+
 function attemptFact(r: Rec): AttemptFact | null {
   const submitted_at = str(r.submitted_at);
   if (!submitted_at) return null;
@@ -851,7 +859,7 @@ export function replay(attemptRecords: object[], events: object[], opts: ReplayO
    * statement are never graded; a submission naming a syntax error is graded unless the next submission, within the grace, names none.
    */
   const noteMistakes = (a: Acc, f: AttemptFact): void => {
-    if (f.grading_source === 'override' || f.outcome === 'crash' || f.outcome === 'rejected') return;
+    if (!countsAsAttempt(f)) return;
     const held = a.syntaxHeld;
     a.syntaxHeld = null;
     if (held && !(Date.parse(f.submitted_at) - Date.parse(held.submitted_at) <= rules.syntaxGraceMs && !hasSyntaxError(f))) occurrences(a, held);

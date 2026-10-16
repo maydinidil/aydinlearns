@@ -44,13 +44,13 @@
     {
       "id": "CP1",
       "kind": "CP1",
-      "prompt": "Fleur, in trade marketing, asks: for each promotion that started in 2025, how many products did it cover, and how much net revenue and gross margin did the order lines carrying it make? Before you write any SQL, which plan gives one correct row per promotion?",
+      "prompt": "Fleur, in trade marketing, asks: for each promotion that started in 2025, how many products did it cover, and how much net revenue and gross margin did the order lines carrying it, those whose promo_id is that promotion, make? Before you write any SQL, which plan gives one row per promotion with the right product count and the right totals, each order line counted once?",
       "credits_concepts": [],
       "item_id": "CASE-VOLT-L3:CP1",
       "options": [
         {
           "oid": "o26c39f6",
-          "text": "Join promotions to promotion_products and to order_lines on promo_id in one query, then group by promotion and add up the lines."
+          "text": "Join promotions to promotion_products and to order_lines on promo_id in one query, then group by promotion, count the distinct products and add up the joined rows."
         },
         {
           "oid": "o6d464ba",

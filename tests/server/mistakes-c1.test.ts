@@ -40,7 +40,7 @@ async function deps(log: JsonlLog, servings: Servings): Promise<AppDeps> {
   logger.onWrite((file, r) => state.record(file, r));
   return { port: 5174, checks: [], runner, content, logger, session: new SessionTracker(logger, async (at) => { for (const h of endHooks) await h(at); }), endHooks,
     closedInstances: [], schemaNotes: [], manifest: { dataset_version: 'x', library_version: 'v1.5.6' },
-    settings: { backup_folder: null, exam_date: null, goal_dates: {} }, tableCheck: 'parse_tree', state, servings };
+    settings: { backup_folder: null, exam_date: null, goal_dates: {}, portfolio_folder: null }, tableCheck: 'parse_tree', state, servings };
 }
 const CARD = mistakeCardId(FIXTURE_CONCEPT, 'ERR-LOG-14');      // the fixture's keys plant ERR-LOG-14 ('SELECT city FROM stores')
 

@@ -1,0 +1,15 @@
+{
+  "case_id": "CASE-DAILY-L4-02",
+  "truths": {
+    "CP4": "SELECT ROUND(AVG(f.first_sale_date - f.launch_date), 1)\nFROM (\n  -- one row per product launched in 2024 or 2025 that sold at least once\n  SELECT p.product_id, p.launch_date, MIN(s.order_date) AS first_sale_date\n  FROM products AS p\n  JOIN sales AS s ON s.product_id = p.product_id\n  WHERE p.launch_date BETWEEN DATE '2024-01-01' AND DATE '2025-12-31'\n  GROUP BY p.product_id, p.launch_date\n) AS f"
+  },
+  "choices": {},
+  "solver": {
+    "CP4": {
+      "pass": true,
+      "prompt_hash": "94c4df86668b8f61",
+      "key_hash": "9869a418c3f1d93f",
+      "at": "2026-10-15T23:01:46.505Z"
+    }
+  }
+}

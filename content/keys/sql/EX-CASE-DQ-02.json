@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-CASE-DQ-02",
+  "item_version": 1,
+  "reference_sql": "SELECT o.order_id,\n       s.store_code,\n       COUNT(*) AS n_lines,\n       SUM(ol.quantity * ol.unit_price_eur - ol.line_discount_eur) AS revenue_stored_eur,\n       SUM(ol.quantity * ol.unit_price_eur / 100 - ol.line_discount_eur) AS revenue_fixed_eur\nFROM order_lines AS ol\nJOIN products AS p ON p.product_id = ol.product_id\nJOIN orders AS o ON o.order_id = ol.order_id\nJOIN stores AS s ON s.store_id = o.store_id\nWHERE ol.unit_price_eur > 10 * p.unit_cost_eur\nGROUP BY o.order_id, s.store_code\nORDER BY o.order_id",
+  "alternatives": [
+    "WITH cent_lines AS (  -- one row per order line priced in cents\n  SELECT ol.order_id,\n         ol.quantity * ol.unit_price_eur - ol.line_discount_eur AS stored_eur,\n         ol.quantity * ol.unit_price_eur / 100 - ol.line_discount_eur AS fixed_eur\n  FROM order_lines AS ol\n  JOIN products AS p ON p.product_id = ol.product_id\n  WHERE ol.unit_price_eur > 10 * p.unit_cost_eur\n)\nSELECT c.order_id,\n       s.store_code,\n       COUNT(*) AS n_lines,\n       SUM(c.stored_eur) AS revenue_stored_eur,\n       SUM(c.fixed_eur) AS revenue_fixed_eur\nFROM cent_lines AS c\nJOIN orders AS o ON o.order_id = c.order_id\nJOIN stores AS s ON s.store_id = o.store_id\nGROUP BY c.order_id, s.store_code\nORDER BY c.order_id",
+    "SELECT o.order_id,\n       s.store_code,\n       COUNT(*) AS n_lines,\n       SUM(ol.quantity * ol.unit_price_eur - ol.line_discount_eur) AS revenue_stored_eur,\n       SUM(ol.quantity * (ol.unit_price_eur / 100) - ol.line_discount_eur) AS revenue_fixed_eur\nFROM order_lines AS ol\nJOIN orders AS o ON o.order_id = ol.order_id\nJOIN stores AS s ON s.store_id = o.store_id\nWHERE ol.unit_price_eur > 10 * (SELECT p.unit_cost_eur FROM products AS p WHERE p.product_id = ol.product_id)\nGROUP BY o.order_id, s.store_code\nORDER BY o.order_id"
+  ],
+  "other_way": {
+    "sql": "WITH cent_lines AS (  -- one row per order line priced in cents\n  SELECT ol.order_id,\n         ol.quantity * ol.unit_price_eur - ol.line_discount_eur AS stored_eur,\n         ol.quantity * ol.unit_price_eur / 100 - ol.line_discount_eur AS fixed_eur\n  FROM order_lines AS ol\n  JOIN products AS p ON p.product_id = ol.product_id\n  WHERE ol.unit_price_eur > 10 * p.unit_cost_eur\n)\nSELECT c.order_id,\n       s.store_code,\n       COUNT(*) AS n_lines,\n       SUM(c.stored_eur) AS revenue_stored_eur,\n       SUM(c.fixed_eur) AS revenue_fixed_eur\nFROM cent_lines AS c\nJOIN orders AS o ON o.order_id = c.order_id\nJOIN stores AS s ON s.store_id = o.store_id\nGROUP BY c.order_id, s.store_code\nORDER BY c.order_id",
+    "tradeoff": "A named step for the lines in cents states the rule once, but it adds a second step to read."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-07",
+      "sql": "SELECT o.order_id, s.store_code, COUNT(*) AS n_lines, SUM(ol.quantity * ol.unit_price_eur - ol.line_discount_eur) AS revenue_stored_eur, SUM(ol.quantity * ol.unit_price_eur / 100 - ol.line_discount_eur) AS revenue_fixed_eur FROM order_lines AS ol JOIN products AS p ON p.product_id = ol.product_id JOIN orders AS o ON o.order_id = ol.order_id JOIN stores AS s ON s.store_id = o.store_id WHERE ol.unit_price_eur > 10 * p.unit_cost_eur GROUP BY o.order_id, s.store_code, ol.order_line_id ORDER BY o.order_id"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-14",
+      "sql": "SELECT o.order_id, s.store_code, SUM(ol.quantity) AS n_lines, SUM(ol.quantity * ol.unit_price_eur - ol.line_discount_eur) AS revenue_stored_eur, SUM(ol.quantity * ol.unit_price_eur / 100 - ol.line_discount_eur) AS revenue_fixed_eur FROM order_lines AS ol JOIN products AS p ON p.product_id = ol.product_id JOIN orders AS o ON o.order_id = ol.order_id JOIN stores AS s ON s.store_id = o.store_id WHERE ol.unit_price_eur > 10 * p.unit_cost_eur GROUP BY o.order_id, s.store_code ORDER BY o.order_id"
+    }
+  ],
+  "hint3_partial": "SELECT o.order_id,\n       s.store_code,\n       COUNT(*) AS n_lines,\n       SUM(ol.quantity * ol.unit_price_eur - ol.line_discount_eur) AS revenue_stored_eur,\n       SUM(___) AS revenue_fixed_eur\nFROM order_lines AS ol\nJOIN products AS p ON p.product_id = ol.product_id\nJOIN orders AS o ON o.order_id = ol.order_id\nJOIN stores AS s ON s.store_id = o.store_id\nWHERE ___\nGROUP BY ___\nORDER BY o.order_id",
+  "solver": {
+    "prompt_hash": "3ec9748d20f30c9f",
+    "schema_version": "018678d60891",
+    "dataset_version": "b2d2b40fb117bb07",
+    "grader_version": "6a.1",
+    "query": "SELECT l.order_id, s.store_code, COUNT(*) AS n_lines,\n       SUM(l.quantity * l.unit_price_eur - l.line_discount_eur) AS revenue_stored_eur,\n       SUM(l.quantity * (l.unit_price_eur / 100) - l.line_discount_eur) AS revenue_fixed_eur\nFROM order_lines l\nJOIN products p ON p.product_id = l.product_id\nJOIN orders o ON o.order_id = l.order_id\nJOIN stores s ON s.store_id = o.store_id\nWHERE l.unit_price_eur > 10 * p.unit_cost_eur\nGROUP BY l.order_id, s.store_code\nORDER BY l.order_id\n",
+    "at": "2026-10-15T19:10:05.174Z"
+  }
+}

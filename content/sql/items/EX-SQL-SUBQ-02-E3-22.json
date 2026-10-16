@@ -1,0 +1,138 @@
+{
+  "id": "EX-SQL-SUBQ-02-E3-22",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-04",
+    "derived_table",
+    "average_of_averages",
+    "share",
+    "orders",
+    "stores",
+    "drill"
+  ],
+  "level": 4,
+  "source_ids": [
+    "01:SQL-SUBQ-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-15",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-SUBQ-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-JOIN-01",
+    "SQL-SUBQ-01",
+    "SQL-SUBQ-02"
+  ],
+  "template_id": "T-SUBQ-02-weighted-share",
+  "template_params": {
+    "table": "orders",
+    "step": "store",
+    "group": "country_code"
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_subq",
+  "prompt": "For each country of the stores, what share of the orders came from registered customers? The share is the number of orders with a customer_id divided by the number of all orders of the stores in that country, so a big store weighs more than a small one. A store's country is its country_code, and the webshop, store_id 99, is a store in NL. Give it as a fraction between 0 and 1, rounded to 4 decimals. Return two columns, in this order: country_code and share_registered. Return one row for each country with orders. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "country_code",
+        "type_class": "text"
+      },
+      {
+        "name": "share_registered",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "country_code",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "share_registered",
+        "type_class": "numeric",
+        "precision": "ratio",
+        "require_rounding": 4
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "country_code"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the derived table: each store with its number of orders and its number of orders from registered customers.",
+    "Add up both counts over the stores of a country and divide once; averaging each store's own share would give a small store the weight of a big one."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 96,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 97,
+      "to": 138,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 139,
+      "to": 234,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 235,
+      "to": 293,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 294,
+      "to": 331,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 332,
+      "to": 338,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 339,
+      "to": 362,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "Summing the counts over the stores before dividing weighs every order once, so a big store counts for more than a small one."
+}

@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-DATE-02-E2-21",
+  "item_version": 1,
+  "reference_sql": "SELECT a.variant, COUNT(*) AS quick_conversions\nFROM ab_assignments a\nJOIN ab_conversions c\n  ON c.test_id = a.test_id\n AND c.customer_id = a.customer_id\nWHERE c.converted_at >= a.assigned_at\n  AND c.converted_at <= a.assigned_at + INTERVAL 60 MINUTE\nGROUP BY a.variant",
+  "alternatives": [
+    "SELECT a.variant, COUNT(*) AS quick_conversions FROM ab_assignments a JOIN ab_conversions c ON c.test_id = a.test_id AND c.customer_id = a.customer_id WHERE c.converted_at BETWEEN a.assigned_at AND a.assigned_at + INTERVAL 1 HOUR GROUP BY a.variant",
+    "SELECT a.variant, COUNT(*) AS quick_conversions FROM ab_assignments a JOIN ab_conversions c ON c.test_id = a.test_id AND c.customer_id = a.customer_id WHERE date_diff('second', a.assigned_at, c.converted_at) BETWEEN 0 AND 3600 GROUP BY a.variant"
+  ],
+  "other_way": {
+    "sql": "SELECT a.variant, COUNT(*) AS quick_conversions FROM ab_assignments a JOIN ab_conversions c ON c.test_id = a.test_id AND c.customer_id = a.customer_id WHERE date_diff('second', a.assigned_at, c.converted_at) BETWEEN 0 AND 3600 GROUP BY a.variant",
+    "tradeoff": "Counting seconds with date_diff('second', ...) is exact here, while date_diff('hour', ...) would count clock hours, not 60 minutes."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-34",
+      "sql": "SELECT a.variant, COUNT(*) AS quick_conversions FROM ab_assignments a JOIN ab_conversions c ON c.test_id = a.test_id AND c.customer_id = a.customer_id WHERE c.converted_at >= a.assigned_at AND date_diff('hour', a.assigned_at, c.converted_at) < 1 GROUP BY a.variant"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-34",
+      "sql": "SELECT a.variant, COUNT(*) AS quick_conversions FROM ab_assignments a JOIN ab_conversions c ON c.test_id = a.test_id AND c.customer_id = a.customer_id WHERE c.converted_at >= a.assigned_at AND date_diff('day', a.assigned_at, c.converted_at) = 0 GROUP BY a.variant"
+    }
+  ],
+  "hint3_partial": "SELECT a.variant, COUNT(*) AS quick_conversions\nFROM ab_assignments a\nJOIN ab_conversions c\n  ON c.test_id = a.test_id\n AND c.customer_id = a.customer_id\nWHERE c.converted_at >= a.assigned_at\n  AND c.converted_at <= ___\nGROUP BY a.variant",
+  "solver": {
+    "prompt_hash": "6ad23dd5d9d61696",
+    "schema_version": "1284b2a2a3a2",
+    "dataset_version": "b2d2b40fb117bb07",
+    "grader_version": "6a.1",
+    "query": "SELECT a.variant, COUNT(*) AS quick_conversions\nFROM ab_conversions c\nJOIN ab_assignments a ON a.test_id = c.test_id AND a.customer_id = c.customer_id\nWHERE CAST(c.converted_at AS TIMESTAMP) >= CAST(a.assigned_at AS TIMESTAMP)\n  AND CAST(c.converted_at AS TIMESTAMP) <= CAST(a.assigned_at AS TIMESTAMP) + INTERVAL 60 MINUTE\nGROUP BY a.variant\n",
+    "at": "2026-10-15T11:06:11.597Z"
+  }
+}

@@ -86,3 +86,9 @@ INSERT INTO voltmarkt_edge_case.order_lines VALUES
   (15, 10, 3, 1, 50.00, NULL, 0.00),
   (16, 4, 6, 2, 12.50, NULL, 0.00),
   (17, 7, 7, 1, 25.00, NULL, 0.00);
+-- M5 (D90, S6-36): added after the sprint 6 build, so every row above stays as it was. The calendar gains voltmarkt's row for
+-- each day of each promotion above that it lacked, so promotion days counted through the calendar match date arithmetic.
+INSERT INTO voltmarkt_edge_case.calendar SELECT c.* FROM voltmarkt.calendar AS c
+WHERE EXISTS (SELECT 1 FROM voltmarkt_edge_case.promotions AS p WHERE c.cal_date BETWEEN p.start_date AND p.end_date)
+  AND NOT EXISTS (SELECT 1 FROM voltmarkt_edge_case.calendar AS e WHERE e.cal_date = c.cal_date)
+ORDER BY c.cal_date;

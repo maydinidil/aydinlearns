@@ -1,0 +1,162 @@
+{
+  "id": "EX-CASE-DQ-02",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-04",
+    "case",
+    "inbox",
+    "data_quality",
+    "prices_in_cents",
+    "order_lines",
+    "products",
+    "orders",
+    "stores"
+  ],
+  "level": 4,
+  "source_ids": [
+    "05:Q-01-02",
+    "05:FIND-01-14"
+  ],
+  "verified": true,
+  "as_of": "2026-10-15",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "case",
+  "target_concept_id": "SQL-CLEAN-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-JOIN-01",
+    "SQL-CLEAN-01"
+  ],
+  "template_id": "T-CASE-DQ-02-orders-in-cents",
+  "template_params": {
+    "quirk": "Q-01-02",
+    "store": "BE-07"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt_raw",
+  "edge_schema": "voltmarkt_edge_clean",
+  "uses_raw": true,
+  "prompt": "Marieke, the CFO, asks which orders were rung up with prices in cents, so that finance can restate each receipt. These tables may hold errors. A line is priced in cents when its unit_price_eur is more than 10 times its product's unit_cost_eur; its unit price in euros is then unit_price_eur divided by 100, while line_discount_eur is in euros already. A line's revenue is quantity times its unit price minus line_discount_eur. Return one row for each order with at least one line priced in cents, in any store and any month, with five columns in this order: order_id; store_code; n_lines, the order's lines priced in cents; revenue_stored_eur, the revenue of those lines as stored; and revenue_fixed_eur, the revenue of those lines with the unit price in euros. Do not round. Sort by order_id from low to high.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "order_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "store_code",
+        "type_class": "text"
+      },
+      {
+        "name": "n_lines",
+        "type_class": "numeric"
+      },
+      {
+        "name": "revenue_stored_eur",
+        "type_class": "numeric"
+      },
+      {
+        "name": "revenue_fixed_eur",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": true,
+    "sort_keys": [
+      {
+        "column": "order_id",
+        "desc": false
+      }
+    ],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "order_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "store_code",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "n_lines",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "revenue_stored_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "revenue_fixed_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "order_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, choose the tables: the order lines, their products for the unit cost, and their orders and stores.",
+    "Keep only the lines the cents rule catches, then add up both revenues for each order; only the unit price is divided, never the discount."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 251,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 252,
+      "to": 414,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 415,
+      "to": 461,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 462,
+      "to": 495,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 496,
+      "to": 515,
+      "subgoal": "sort_limit"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "Comparing each price with its product's cost catches every line in cents, whatever the month, and dividing only the unit price leaves the discount in euros."
+}

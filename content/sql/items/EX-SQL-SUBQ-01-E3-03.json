@@ -1,0 +1,106 @@
+{
+  "id": "EX-SQL-SUBQ-01-E3-03",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-04",
+    "not_exists",
+    "not_in_missing",
+    "orders",
+    "customers",
+    "utc_year"
+  ],
+  "level": 4,
+  "source_ids": [
+    "01:SQL-SUBQ-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-15",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-SUBQ-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-SORT-01",
+    "SQL-NULL-01",
+    "SQL-DATE-01",
+    "SQL-SUBQ-01"
+  ],
+  "template_id": "T-SUBQ-01-lapsed-customers",
+  "template_params": {
+    "table": "orders",
+    "store_id": 25,
+    "kept_year": 2024,
+    "missing_year": 2025
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_subq",
+  "prompt": "Which registered customers ordered at least once at store LU-02, store_id 25, in 2024, but placed no order at all in 2025, at any store or on the web? order_ts holds the order time in UTC; use the UTC year. Guest orders have a missing customer_id and do not count. Return one column, customer_id, with one row for each such customer. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "customer_id",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "customer_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "customer_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the row filter: a 2024 order at LU-02 by a registered customer, and no 2025 order of that same customer anywhere.",
+    "The 2025 orders include guest orders with a missing customer_id, so look for a matching 2025 order rather than comparing with a list of 2025 customers."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 29,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 30,
+      "to": 43,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 44,
+      "to": 258,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "NOT EXISTS checks each 2024 LU-02 customer for any 2025 order of the same customer, so the guest orders' missing IDs never wipe out every row."
+}

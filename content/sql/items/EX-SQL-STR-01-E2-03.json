@@ -1,0 +1,121 @@
+{
+  "id": "EX-SQL-STR-01-E2-03",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-04",
+    "string_fn",
+    "replace",
+    "lookup",
+    "sku",
+    "products"
+  ],
+  "level": 4,
+  "source_ids": [
+    "01:SQL-STR-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-15",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-STR-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-STR-01"
+  ],
+  "template_id": "T-STR-01-supplier-lookup",
+  "template_params": {
+    "skus": 5
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt_raw",
+  "edge_schema": "voltmarkt_edge_clean",
+  "uses_raw": true,
+  "prompt": "A supplier file lists five skus in standard form: 'VM-000002', 'VM-000005', 'VM-000006', 'VM-000022' and 'VM-000087'. Which products do they match, and how is each sku stored? This table may hold errors. A stored sku matches when it equals the supplier sku once it is in upper case with every space removed. Return three columns, in this order: supplier_sku, product_id and stored_sku, the sku exactly as stored. Return one row for each supplier sku that matches a product. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "supplier_sku",
+        "type_class": "text"
+      },
+      {
+        "name": "product_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "stored_sku",
+        "type_class": "text"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "supplier_sku",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "product_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "stored_sku",
+        "type_class": "text",
+        "precision": "exact"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "supplier_sku"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the row filter that compares each cleaned sku with the supplier's list.",
+    "Clean the stored sku the way the supplier wrote theirs, with every space removed and in upper case, on the side you compare."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 82,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 83,
+      "to": 96,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 97,
+      "to": 200,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "The stored sku is cleaned the same way the supplier wrote theirs, so a lower-case or spaced sku still finds its match."
+}

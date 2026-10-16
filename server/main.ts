@@ -10,13 +10,13 @@ import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
 import { startRunner, type RunnerClient } from './runner/client.ts';
 import { runSelfChecks, type Check } from './selfcheck.ts';
-import { loadContent, type ContentStore } from './content.ts';
+import { loadContent, type ContentStore, type LoadOptions } from './content.ts';
 import { openJsonlLog } from '../core/jsonl.ts';
 import type { SettingChange } from '../core/events.ts';
 import type { TableNote } from '../schemas/schema-notes.ts';
 import { AttemptLogger } from './log.ts';
 import { SessionTracker } from './session.ts';
-import { blockClosesDue, createApp, recoveredCloses, resetEvent, type AppDeps, type Settings } from './app.ts';
+import { blockClosesDue, createApp, recoveredCloses, resetEvent, settingsFromEvents, type AppDeps, type Settings } from './app.ts';
 import { portFromEnv } from './port.ts';
 import { LearnerState } from './state.ts';
 import { journeyDirFrom, journeySettingNote, startJourney, stopJourney } from './journey.ts';
@@ -79,9 +79,9 @@ const NO_CONTENT: ContentStore = {
  * The content, or an empty store and a failing check that names the file. Never the error's own text: a JSON
  * parse error quotes the file around the fault, and a key file holds answers.
  */
-export async function loadContentOrSetup(root: string, truthFile?: string): Promise<{ content: ContentStore; check: Check | null }> {
+export async function loadContentOrSetup(root: string, truths: LoadOptions = {}): Promise<{ content: ContentStore; check: Check | null }> {
   try {
-    return { content: await loadContent(root, { truthFile }), check: null };
+    return { content: await loadContent(root, truths), check: null };
   } catch (e) {
     // A file system error carries its path; loadContent's own errors start with the file ("keys/sql/EX-1.json: ...").
     const path = (e as NodeJS.ErrnoException).path;
@@ -192,14 +192,9 @@ async function start(): Promise<void> {
   // Logs that cannot be read, or content that cannot load (below), start setup mode with a check that says why.
   const logs = await readLogs(logger);
   const events = logs.events as Partial<SettingChange>[];
-  const latest = (key: SettingChange['key']): unknown => events.findLast((e) => e.event === 'setting_change' && e.key === key)?.value;
-  const settings: Settings = {
-    backup_folder: (latest('backup_folder') as string | null | undefined) ?? null,
-    exam_date: (latest('exam_date') as string | null | undefined) ?? null,
-    goal_dates: (latest('goal_dates') as Record<string, string> | undefined) ?? {},
-    portfolio_folder: (latest('portfolio_folder') as string | null | undefined) ?? null,   // D35 (log version 4)
-  };
-  const { content, check: contentCheck } = await loadContentOrSetup(at('content'), at('data/truth/voltmarkt.json'));
+  const settings: Settings = settingsFromEvents(events);
+  // S6-13: the case truths from data/truth/checkpoints.json, or an older build's voltmarkt.json.
+  const { content, check: contentCheck } = await loadContentOrSetup(at('content'), { checkpointsFile: at('data/truth/checkpoints.json'), truthFile: at('data/truth/voltmarkt.json') });
   const endHooks: AppDeps['endHooks'] = [];
   // The hooks run inside the tracker's queue and write through the logger only.
   const session = new SessionTracker(logger, async (at) => { for (const h of endHooks) await h(at); });

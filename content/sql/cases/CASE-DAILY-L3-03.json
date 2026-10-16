@@ -79,7 +79,7 @@
       "kind": "CP5",
       "item_id": "CASE-DAILY-L3-03:CP5",
       "credits_concepts": [],
-      "prompt": "In Fleur's checkout test AB-2025-01, web shop customers were split 50/50 between the old checkout (control) and the new one (treatment) for two full weeks. The split shows no sample ratio mismatch, and the customers assigned to both variants are left out. Treatment converted a slightly larger share of its customers than control, and the 95% confidence interval of the difference in conversion rate, treatment minus control, runs from -0.18 to +1.11 percentage points. Can Fleur conclude that the new checkout raised conversion?",
+      "prompt": "In Fleur's checkout test AB-2025-01, webshop customers were split 50/50 between the old checkout (control) and the new one (treatment) for two full weeks. The split shows no sample ratio mismatch, and the customers assigned to both variants are left out. Treatment converted a slightly larger share of its customers than control, and the 95% confidence interval of the difference in conversion rate, treatment minus control, runs from -0.18 to +1.11 percentage points. Can Fleur conclude that the new checkout raised conversion?",
       "options": [
         {
           "oid": "o474f1ee",
@@ -103,7 +103,7 @@
       "id": "CP6",
       "kind": "CP6",
       "credits_concepts": [],
-      "prompt": "Write 2 to 4 sentences for Fleur: how the two checkouts compared on conversion and on revenue per customer, whether the new checkout can be called a win yet, one caveat, and one next step before Monday's web shop meeting."
+      "prompt": "Write 2 to 4 sentences for Fleur: how the two checkouts compared on conversion and on revenue per customer, whether the new checkout can be called a win yet, one caveat, and one next step before Monday's webshop meeting."
     }
   ],
   "model_plan": "Metric formula: conversion_rate_pct is 100 times the customers with a conversion at or after their assigned_at, divided by the customers assigned, rounded to 2 decimals; revenue_per_customer_eur is the revenue_eur of those conversions, added up and divided by the customers assigned, rounded to 2 decimals.\nOutput grain: one row per variant.\nTables and keys: ab_assignments (one row per customer and variant) joined to ab_conversions on test_id and customer_id, keeping every assigned customer.\nFilters: test AB-2025-01, customers assigned to one variant only, and conversions at or after the customer's assigned_at.\nEdge cases: a customer who converted twice counts once, a conversion before assigned_at does not count but one at exactly assigned_at does, a missing revenue_eur adds nothing, and a variant with no conversions still shows, with 0.\nExpected row count: 2",

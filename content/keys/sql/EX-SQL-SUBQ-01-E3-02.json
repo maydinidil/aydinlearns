@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-SUBQ-01-E3-02",
+  "item_version": 1,
+  "reference_sql": "SELECT p.product_id, ph.list_price_eur\nFROM products p\nJOIN price_history ph ON ph.product_id = p.product_id AND ph.valid_to IS NULL\nWHERE EXISTS (SELECT 1 FROM competitor_prices cp WHERE cp.product_id = p.product_id)\n  AND NOT EXISTS (\n    SELECT 1\n    FROM competitor_prices cp\n    WHERE cp.product_id = p.product_id\n      AND cp.price_eur <= ph.list_price_eur\n  )",
+  "alternatives": [
+    "SELECT p.product_id, ph.list_price_eur\nFROM products p\nJOIN price_history ph ON ph.product_id = p.product_id AND ph.valid_to IS NULL\nWHERE ph.list_price_eur < (\n  SELECT MIN(cp.price_eur)\n  FROM competitor_prices cp\n  WHERE cp.product_id = p.product_id\n)",
+    "WITH lowest_check AS (\n  -- one row per checked product\n  SELECT product_id, MIN(price_eur) AS min_price_eur\n  FROM competitor_prices\n  GROUP BY product_id\n)\nSELECT ph.product_id, ph.list_price_eur\nFROM price_history ph\nJOIN lowest_check l ON l.product_id = ph.product_id\nWHERE ph.valid_to IS NULL\n  AND ph.list_price_eur < l.min_price_eur"
+  ],
+  "other_way": {
+    "sql": "SELECT p.product_id, ph.list_price_eur\nFROM products p\nJOIN price_history ph ON ph.product_id = p.product_id AND ph.valid_to IS NULL\nWHERE ph.list_price_eur < (\n  SELECT MIN(cp.price_eur)\n  FROM competitor_prices cp\n  WHERE cp.product_id = p.product_id\n)",
+    "tradeoff": "Comparing with the lowest check in one subquery is shorter, but hides that a product with no checks drops out."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-14",
+      "sql": "SELECT p.product_id, ph.list_price_eur FROM products p JOIN price_history ph ON ph.product_id = p.product_id AND ph.valid_to IS NULL WHERE ph.list_price_eur < (SELECT AVG(cp.price_eur) FROM competitor_prices cp WHERE cp.product_id = p.product_id)"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-11",
+      "sql": "SELECT p.product_id, ph.list_price_eur\nFROM products p\nJOIN price_history ph ON ph.product_id = p.product_id AND ph.valid_to IS NULL\nLEFT JOIN competitor_prices cp ON cp.product_id = p.product_id\nGROUP BY p.product_id, ph.list_price_eur\nHAVING COUNT(CASE WHEN cp.price_eur <= ph.list_price_eur THEN 1 END) = 0"
+    }
+  ],
+  "hint3_partial": "SELECT p.product_id, ph.list_price_eur\nFROM products p\nJOIN price_history ph ON ph.product_id = p.product_id AND ph.valid_to IS NULL\nWHERE EXISTS (SELECT 1 FROM competitor_prices cp WHERE cp.product_id = p.product_id)\n  AND NOT EXISTS (\n    SELECT 1\n    FROM competitor_prices cp\n    WHERE cp.product_id = p.product_id\n      AND ___\n  )",
+  "solver": {
+    "prompt_hash": "b152698069deb67c",
+    "schema_version": "f9ece455102d",
+    "dataset_version": "b2d2b40fb117bb07",
+    "grader_version": "6a.1",
+    "query": "SELECT h.product_id, h.list_price_eur FROM price_history h WHERE h.valid_to IS NULL AND h.list_price_eur < (SELECT MIN(c.price_eur) FROM competitor_prices c WHERE c.product_id = h.product_id)\r\n",
+    "at": "2026-10-15T11:06:13.114Z"
+  }
+}

@@ -1,6 +1,6 @@
 {
   "item_id": "EX-SQL-JOIN-02-E2-07",
-  "item_version": 1,
+  "item_version": 2,
   "reference_sql": "SELECT a.variant, COUNT(DISTINCT a.customer_id) AS n_customers, COUNT(DISTINCT c.customer_id) AS n_converted,\n  ROUND(100.0 * COUNT(DISTINCT c.customer_id) / COUNT(DISTINCT a.customer_id), 2) AS conversion_rate_pct\nFROM ab_assignments a\nLEFT JOIN ab_conversions c ON c.test_id = a.test_id AND c.customer_id = a.customer_id AND c.converted_at >= a.assigned_at\nWHERE a.test_id = 'AB-2025-01'\nGROUP BY a.variant\nORDER BY a.variant",
   "alternatives": [
     "SELECT a.variant, COUNT(DISTINCT a.customer_id) AS n_customers, COUNT(DISTINCT CASE WHEN c.converted_at >= a.assigned_at THEN c.customer_id END) AS n_converted, ROUND(100.0 * COUNT(DISTINCT CASE WHEN c.converted_at >= a.assigned_at THEN c.customer_id END) / COUNT(DISTINCT a.customer_id), 2) AS conversion_rate_pct FROM ab_assignments a LEFT JOIN ab_conversions c ON c.test_id = a.test_id AND c.customer_id = a.customer_id WHERE a.test_id = 'AB-2025-01' GROUP BY a.variant ORDER BY a.variant",
@@ -34,11 +34,11 @@
   ],
   "hint3_partial": "SELECT a.variant, COUNT(DISTINCT a.customer_id) AS n_customers, ___ AS n_converted,\n  ___ AS conversion_rate_pct\nFROM ab_assignments a\nLEFT JOIN ab_conversions c ON ___\nWHERE a.test_id = 'AB-2025-01'\nGROUP BY a.variant\nORDER BY a.variant",
   "solver": {
-    "prompt_hash": "f97d9d046768c77e",
+    "prompt_hash": "615813ea660e4557",
     "schema_version": "1284b2a2a3a2",
-    "dataset_version": "6de53e5dbeafe2d5",
-    "grader_version": "4c.1",
-    "query": "SELECT\n  a.variant,\n  COUNT(DISTINCT a.customer_id) AS n_customers,\n  COUNT(DISTINCT CASE WHEN c.customer_id IS NOT NULL THEN a.customer_id END) AS n_converted,\n  ROUND(100.0 * COUNT(DISTINCT CASE WHEN c.customer_id IS NOT NULL THEN a.customer_id END) / COUNT(DISTINCT a.customer_id), 2) AS conversion_rate_pct\nFROM ab_assignments a\nLEFT JOIN ab_conversions c\n  ON c.test_id = a.test_id\n AND c.customer_id = a.customer_id\n AND c.converted_at >= a.assigned_at\nWHERE a.test_id = 'AB-2025-01'\nGROUP BY a.variant\nORDER BY a.variant\n",
-    "at": "2026-10-08T19:03:04.518Z"
+    "dataset_version": "b2d2b40fb117bb07",
+    "grader_version": "6a.1",
+    "query": "WITH f AS (\n  SELECT a.variant, a.customer_id,\n         CASE WHEN EXISTS (SELECT 1 FROM ab_conversions c\n                           WHERE c.test_id = a.test_id AND c.customer_id = a.customer_id\n                             AND c.converted_at >= a.assigned_at) THEN 1 ELSE 0 END AS conv\n  FROM ab_assignments a\n  WHERE a.test_id = 'AB-2025-01'\n)\nSELECT variant,\n       COUNT(*) AS n_customers,\n       SUM(conv) AS n_converted,\n       ROUND(100.0 * SUM(conv) / COUNT(*), 2) AS conversion_rate_pct\nFROM f\nGROUP BY variant\nORDER BY variant\n",
+    "at": "2026-10-14T22:51:47.857Z"
   }
 }

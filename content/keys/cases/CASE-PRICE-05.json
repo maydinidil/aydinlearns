@@ -1,0 +1,43 @@
+{
+  "case_id": "CASE-PRICE-05",
+  "truths": {
+    "CP2": "SELECT COUNT(*)\nFROM (\n  -- one row per product sold in both quarters\n  SELECT product_id\n  FROM sales\n  WHERE order_date BETWEEN DATE '2025-04-01' AND DATE '2025-09-30'\n  GROUP BY product_id\n  HAVING SUM(CASE WHEN order_date < DATE '2025-07-01' THEN units ELSE 0 END) > 0\n     AND SUM(CASE WHEN order_date >= DATE '2025-07-01' THEN units ELSE 0 END) > 0\n) AS t",
+    "CP4": "WITH line_costs AS (\n  -- one row per order line in Q2 or Q3 2025, with its cost on its order date\n  SELECT s.product_id,\n         CASE WHEN s.order_date < DATE '2025-07-01' THEN 'Q2' ELSE 'Q3' END AS qtr,\n         s.units, s.net_revenue_eur,\n         s.units * ch.unit_cost_eur AS cost_eur\n  FROM sales AS s\n  JOIN cost_history AS ch\n    ON ch.product_id = s.product_id\n   AND s.order_date >= ch.valid_from\n   AND (ch.valid_to IS NULL OR s.order_date <= ch.valid_to)\n  WHERE s.order_date BETWEEN DATE '2025-04-01' AND DATE '2025-09-30'\n),\nproduct_quarter AS (\n  -- one row per product and quarter\n  SELECT product_id, qtr, SUM(units) AS v, SUM(net_revenue_eur) AS revenue, SUM(cost_eur) AS cost\n  FROM line_costs\n  GROUP BY product_id, qtr\n),\nin_both_quarters AS (\n  -- one row per product sold in both quarters\n  SELECT q2.product_id,\n         q2.v AS v2, q2.revenue / q2.v AS p2, q2.cost / q2.v AS c2,\n         q3.v AS v3, q3.revenue / q3.v AS p3, q3.cost / q3.v AS c3\n  FROM product_quarter AS q2\n  JOIN product_quarter AS q3 ON q3.product_id = q2.product_id\n  WHERE q2.qtr = 'Q2' AND q3.qtr = 'Q3'\n)\nSELECT ROUND(SUM((c3 - c2) * v3), 2) FROM in_both_quarters"
+  },
+  "choices": {
+    "CP1": {
+      "correct_oid": "o788b122",
+      "explanation": "Price, cost and mix compare a product's own per-unit values in the two quarters, which exist only for products sold in both; the others need their own line so the bridge still adds up."
+    },
+    "CP5": {
+      "correct_oid": "o014cb04",
+      "explanation": "A negative cost line means unit costs rose and took margin, and since the margin still rose the other lines outweighed it; net price per unit also moves with promotions, and mix here is measured, not a leftover."
+    }
+  },
+  "solver": {
+    "CP1": {
+      "pass": true,
+      "prompt_hash": "aec0a7ecc0c53f96",
+      "key_hash": "c0ff792b9354eb29",
+      "at": "2026-10-15T23:01:46.505Z"
+    },
+    "CP2": {
+      "pass": true,
+      "prompt_hash": "e496555418fb6ee0",
+      "key_hash": "4ad8a01d22ff6e9f",
+      "at": "2026-10-15T23:01:46.505Z"
+    },
+    "CP4": {
+      "pass": true,
+      "prompt_hash": "6d21a953247e65a0",
+      "key_hash": "e42936f4d70de418",
+      "at": "2026-10-15T23:03:04.232Z"
+    },
+    "CP5": {
+      "pass": true,
+      "prompt_hash": "cb58a06e7e536f36",
+      "key_hash": "7325902098740141",
+      "at": "2026-10-15T23:01:46.505Z"
+    }
+  }
+}

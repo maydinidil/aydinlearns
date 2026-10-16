@@ -3,5 +3,13 @@
   "truths": {
     "CP4": "SELECT COUNT(*)\nFROM price_history ph\nJOIN products p ON p.product_id = ph.product_id\nJOIN categories c ON c.category_id = p.category_id\nWHERE c.parent_category = 'TV & Video'\n  AND ph.valid_from BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'"
   },
-  "choices": {}
+  "choices": {},
+  "solver": {
+    "CP4": {
+      "pass": true,
+      "prompt_hash": "7e6cb4adc09c9a93",
+      "key_hash": "e1a7051e1d350d01",
+      "at": "2026-10-15T23:01:46.505Z"
+    }
+  }
 }

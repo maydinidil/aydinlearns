@@ -7,6 +7,9 @@
 // query (S4-13); and Today never serves an item a live timed run holds (S4-15). mountToday hands its serving to the mistakes routes.
 // Sprint 4b (Task D3): the SQL plan's daily case (S4B-15) and the opener's sketch and mid-level question (S4B-13, S4B-14); the next
 // goal and GET /api/goals/progress read the one goal view (server/goal-view.ts), on the Amsterdam date of the request.
+// Sprint 6 (Task B3): Today never offers a case whose schema the database does not hold (S6-13), and serving its CP3 answers 409 with
+// its line. The attempt file is read at most once a request, and only where a step needs it: the lesson window (GA4, Methodology,
+// whose practice step reuses that read for D59), and for SQL the daily case and the re-test (sprint 4b D3-m1, sprint 5a B1 M2).
 import type { Context, Hono } from 'hono';
 import { HTTPException } from 'hono/http-exception';
 import { randomUUID } from 'node:crypto';
@@ -18,7 +21,7 @@ import { amsterdamDate } from '../../core/time.ts';
 import type { CaseRecord } from '../../schemas/case.ts';
 import type { SqlItem } from '../../schemas/item.ts';
 import type { RouteDeps } from '../app.ts';
-import type { ContentStore } from '../content.ts';
+import { caseUnavailable, type ContentStore } from '../content.ts';
 import { goalProgress, goalSummary, readGoalView } from '../goal-view.ts';
 import { pendingRetests } from '../progress.ts';
 import {
@@ -69,7 +72,7 @@ export type { CorrectedQueryView } from './mistakes.ts';
 /** GET /api/today's plan for SQL carries the wheel-spinning step (Task C2). */
 export type { TodayPlanView, WheelSpinningStep };
 
-const refuse = (status: 400 | 404, message: string): HTTPException => new HTTPException(status, { message });
+const refuse = (status: 400 | 404 | 409, message: string): HTTPException => new HTTPException(status, { message });
 /** S4-15: every item Today could serve here is in the timed run that is on. */
 const HELD_BY_RUN = 'These exercises are in the timed run that is on. They come back here when it ends.';
 async function readBody(c: Context): Promise<Record<string, unknown>> {
@@ -85,6 +88,10 @@ const optionalText = (v: unknown): string | null => (typeof v === 'string' && v.
 
 /** Task B12 adds the openers to the content store (S2-49); until then there are none. */
 const openersOf = (content: ContentStore): CaseRecord[] => (content as ContentStore & { openers?: () => CaseRecord[] }).openers?.() ?? [];
+/** S6-13: the cases Today may offer: none whose schema the database does not hold. */
+const availableOnly = (content: ContentStore, cases: readonly CaseRecord[]): CaseRecord[] => cases.filter((c) => caseUnavailable(content, c) === null);
+/** The attempt file, read on the first call and kept for the request: one read at most, and none when no step asks. */
+type Records = () => Promise<object[]>;
 
 /**
  * Mounts Today's routes and returns its serving (TodayServing). `liveRuns` (S4-15, sprint 3 record D2 S3): the open servings of the
@@ -108,26 +115,34 @@ export function mountToday(app: Hono, d: RouteDeps, liveRuns: () => readonly See
   /** The items of `items` no live timed run holds (S4-15). */
   const free = <T extends { id: string }>(items: readonly T[], h: ReadonlySet<string> = held()): T[] => items.filter((i) => !h.has(i.id));
 
+  /** A request's attempt file: read on the first call only (sprint 4b D3-m1). */
+  const attemptsOnce = (): Records => {
+    let read: Promise<object[]> | null = null;
+    return () => (read ??= d.logger.readAll('attempts'));
+  };
+
   /**
-   * The composer's input for the section now. The attempt file is read once: the lesson windows (GA4, Methodology), the re-test
-   * (server/progress.ts, only for Today's own plan) and the day's daily case (S4B-15, SQL) need it.
+   * The composer's input for the section now. The attempt file is read only for the steps that need it, once through `records`:
+   * the lesson windows (GA4, Methodology), the re-test (server/progress.ts, only for Today's own plan) and the day's daily case
+   * (S4B-15, SQL, when a daily case can be offered).
    */
-  async function compose(section: Section, now: Date, withRetest: boolean): Promise<{ input: ComposerInput; plan: TodayPlanView; waiting: number }> {
+  async function compose(section: Section, now: Date, withRetest: boolean, records: Records = attemptsOnce()): Promise<{ input: ComposerInput; plan: TodayPlanView; waiting: number }> {
     const r = d.state.current();
-    const records = await d.logger.readAll('attempts');
     const sql = section === 'sql';
     // Fix round 1, I-1: a GA4 or Methodology card still inside its lesson window (S2-62, S2-02) waits out of Today's reviews.
     const windows = isChoiceSection(section)
-      ? lessonWindowEnds(section, { replay: r, records, cardOf: (c) => d.state.catalog().cardOf(c), now, windowMs: LESSON_WINDOW_MS })
+      ? lessonWindowEnds(section, { replay: r, records: await records(), cardOf: (c) => d.state.catalog().cardOf(c), now, windowMs: LESSON_WINDOW_MS })
       : undefined;
+    // S6-13: an unavailable case is never offered, as the day's daily case or as an opener step.
+    const daily = sql ? availableOnly(d.content, (d.content.cases?.() ?? []).filter((c) => c.kind === 'daily')) : [];
     const base = composerInput({ content: d.content, replay: r, section, now, examDate: d.settings.exam_date, sessionId: d.session.currentId,
-      pairs: await registry(), retest: null, openers: sql ? openerInputs(openersOf(d.content), d.content.curriculum, r) : [], lessonWindows: windows,
-      dailyCase: sql ? dailyCase({ cases: d.content.cases?.() ?? [], replay: r, records, now }) : null });
+      pairs: await registry(), retest: null, openers: sql ? openerInputs(availableOnly(d.content, openersOf(d.content)), d.content.curriculum, r) : [], lessonWindows: windows,
+      dailyCase: daily.length ? dailyCase({ cases: daily, replay: r, records: await records(), now }) : null });
     const waiting = windows ? [...r.cards.values()].filter((c) => windows.has(c.card_id) && Date.parse(c.snapshot.due) <= now.getTime()).length : 0;
     let retest: ComposerInput['retest'] = null;
     if (withRetest && sql) {
       const lessons = [...d.content.conceptsWithContent()].map((id) => d.content.lesson(id)).filter((l) => l !== undefined);
-      retest = pickRetest(pendingRetests(records, lessons, now), base.concepts);
+      retest = pickRetest(pendingRetests(await records(), lessons, now), base.concepts);
     }
     const input = { ...base, retest };
     const plan = planToday(input);
@@ -164,7 +179,8 @@ export function mountToday(app: Hono, d: RouteDeps, liveRuns: () => readonly See
     const h = held();
     /** S4-15: a card's pool without the items the live timed run holds. */
     const poolFor = (c: string) => free(choicePool(d.content, section, c), h);
-    const { input, plan, waiting } = await compose(section, now, false);
+    const records = attemptsOnce();
+    const { input, plan, waiting } = await compose(section, now, false, records);
     let concept = optionalText(b.concept_id);
     if (concept !== null) {
       const known = d.content.choiceConcept?.(concept);
@@ -193,7 +209,7 @@ export function mountToday(app: Hono, d: RouteDeps, liveRuns: () => readonly See
       const ids = step?.concept_ids ?? [];
       const open = ids.filter((c) => poolFor(c).length > 0);
       // D59: a concept still inside its lesson window goes after every other candidate.
-      const inWindow = lessonWindowOpen(section, { replay: d.state.current(), records: await d.logger.readAll('attempts'), cardOf: (c) => d.state.catalog().cardOf(c), now, windowMs: LESSON_WINDOW_MS });
+      const inWindow = lessonWindowOpen(section, { replay: d.state.current(), records: await records(), cardOf: (c) => d.state.catalog().cardOf(c), now, windowMs: LESSON_WINDOW_MS });
       concept = nextPracticeConcept(open.length ? open : ids, poolFor, seen(), now, inWindow);
       if (concept === null) throw refuse(404, 'Practice starts once you have begun a concept. Pick one on the map.');
     }
@@ -208,7 +224,8 @@ export function mountToday(app: Hono, d: RouteDeps, liveRuns: () => readonly See
     const section = sectionOf(c.req.query('section') ?? 'sql');
     const now = new Date();
     const today = amsterdamDate(now);
-    const { plan } = await compose(section, now, true);
+    const records = attemptsOnce();
+    const { plan } = await compose(section, now, true, records);
     // The next goal (S2-38) on the one goal view (server/goal-view.ts), evaluated on today's Amsterdam date, as Progress evaluates it.
     const view = await readGoalView(d);
     const evaluated = new Map(d.content.goals.map((g) => [g.id, evaluateGoal(g, view, today)]));
@@ -220,7 +237,7 @@ export function mountToday(app: Hono, d: RouteDeps, liveRuns: () => readonly See
     const next = own ?? nextGoal(d.content.goals, d.settings.goal_dates, today, met);
     const all_sections = section !== 'sql' && own === null;
     // S4-13 (design §4 wrap-up): one corrected query from the mistake log, SQL only. The learner's own text, never a key's.
-    const corrected_query = section === 'sql' ? correctedQuery(await d.logger.readAll('attempts'), await names(), held()) : null;
+    const corrected_query = section === 'sql' ? correctedQuery(await records(), await names(), held()) : null;
     return c.json({ plan, goal: next ? { goal: goalSummary(next), effective_date: effectiveDate(next, d.settings.goal_dates), criteria: evaluated.get(next.id)!.criteria,
       all_sections } : null, corrected_query });
   });
@@ -336,6 +353,9 @@ export function mountToday(app: Hono, d: RouteDeps, liveRuns: () => readonly See
       const caseId = optionalText(b.case_id);
       if (caseId === null) throw refuse(400, 'case_id is missing.');
       const record = d.content.case?.(caseId) ?? openersOf(d.content).find((x) => x.case_id === caseId);
+      // S6-13: a case whose schema the database does not hold has nothing to query.
+      const unavailable = record ? caseUnavailable(d.content, record) : null;
+      if (unavailable !== null) throw refuse(409, unavailable);
       const id = record ? openerItem(record) : null;
       item = id === null ? undefined : d.content.item(id);
       if (!item) throw refuse(404, 'Unknown case, or it has no query to write.');
@@ -346,6 +366,8 @@ export function mountToday(app: Hono, d: RouteDeps, liveRuns: () => readonly See
       const step = plan.steps.find((s) => s.kind === 'opener' && s.mode === 'solve') as { case_id: string } | undefined;
       const caseId = optionalText(b.case_id) ?? step?.case_id ?? null;
       const record = openersOf(d.content).find((x) => x.case_id === caseId);
+      const unavailable = record ? caseUnavailable(d.content, record) : null;
+      if (unavailable !== null) throw refuse(409, unavailable);
       const id = record ? openerItem(record) : null;
       item = id === null ? undefined : d.content.item(id);
       if (!item) throw refuse(404, 'No opener to solve now.');

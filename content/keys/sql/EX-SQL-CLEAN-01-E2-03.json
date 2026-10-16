@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-CLEAN-01-E2-03",
+  "item_version": 1,
+  "reference_sql": "WITH lines_2024 AS (  -- one row per 2024 order line\n  SELECT o.store_id,\n         ol.quantity * ol.unit_price_eur - ol.line_discount_eur AS revenue,\n         ol.unit_price_eur > 10 * p.unit_cost_eur AS in_cents\n  FROM order_lines ol\n  JOIN orders o ON o.order_id = ol.order_id\n  JOIN products p ON p.product_id = ol.product_id\n  WHERE o.order_ts >= TIMESTAMP '2024-01-01' AND o.order_ts < TIMESTAMP '2025-01-01'\n)\nSELECT s.store_code,\n       ROUND(100.0 * SUM(CASE WHEN l.in_cents THEN l.revenue ELSE 0 END) / NULLIF(SUM(l.revenue), 0), 2) AS cents_pct\nFROM stores s\nLEFT JOIN lines_2024 l ON l.store_id = s.store_id\nGROUP BY s.store_code",
+  "alternatives": [
+    "WITH per_store AS (  -- one row per store with 2024 lines\n  SELECT o.store_id,\n         SUM(ol.quantity * ol.unit_price_eur - ol.line_discount_eur) AS revenue,\n         SUM(CASE WHEN ol.unit_price_eur > 10 * p.unit_cost_eur THEN ol.quantity * ol.unit_price_eur - ol.line_discount_eur ELSE 0 END) AS cents_revenue\n  FROM order_lines ol\n  JOIN orders o ON o.order_id = ol.order_id\n  JOIN products p ON p.product_id = ol.product_id\n  WHERE o.order_ts >= TIMESTAMP '2024-01-01' AND o.order_ts < TIMESTAMP '2025-01-01'\n  GROUP BY o.store_id\n)\nSELECT s.store_code, ROUND(100.0 * ps.cents_revenue / NULLIF(ps.revenue, 0), 2) AS cents_pct\nFROM stores s\nLEFT JOIN per_store ps ON ps.store_id = s.store_id",
+    "WITH lines_2024 AS (  -- one row per 2024 order line\n  SELECT o.store_id,\n         ol.quantity * ol.unit_price_eur - ol.line_discount_eur AS revenue,\n         ol.unit_price_eur > 10 * p.unit_cost_eur AS in_cents\n  FROM order_lines ol\n  JOIN orders o ON o.order_id = ol.order_id\n  JOIN products p ON p.product_id = ol.product_id\n  WHERE o.order_ts >= TIMESTAMP '2024-01-01' AND o.order_ts < TIMESTAMP '2025-01-01'\n)\nSELECT s.store_code,\n       ROUND(100.0 * COALESCE(SUM(l.revenue) FILTER (WHERE l.in_cents), 0) / NULLIF(SUM(l.revenue), 0), 2) AS cents_pct\nFROM stores s\nLEFT JOIN lines_2024 l ON l.store_id = s.store_id\nGROUP BY s.store_code"
+  ],
+  "other_way": {
+    "sql": "WITH per_store AS (  -- one row per store with 2024 lines\n  SELECT o.store_id,\n         SUM(ol.quantity * ol.unit_price_eur - ol.line_discount_eur) AS revenue,\n         SUM(CASE WHEN ol.unit_price_eur > 10 * p.unit_cost_eur THEN ol.quantity * ol.unit_price_eur - ol.line_discount_eur ELSE 0 END) AS cents_revenue\n  FROM order_lines ol\n  JOIN orders o ON o.order_id = ol.order_id\n  JOIN products p ON p.product_id = ol.product_id\n  WHERE o.order_ts >= TIMESTAMP '2024-01-01' AND o.order_ts < TIMESTAMP '2025-01-01'\n  GROUP BY o.store_id\n)\nSELECT s.store_code, ROUND(100.0 * ps.cents_revenue / NULLIF(ps.revenue, 0), 2) AS cents_pct\nFROM stores s\nLEFT JOIN per_store ps ON ps.store_id = s.store_id",
+    "tradeoff": "Adding up per store before the join gives one row per store to divide, but the single grouped join keeps the line rule in one place."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-35",
+      "sql": "WITH lines_2024 AS (  -- one row per 2024 order line\n  SELECT o.store_id,\n         ol.quantity * ol.unit_price_eur - ol.line_discount_eur AS revenue,\n         ol.unit_price_eur > 10 * p.unit_cost_eur AS in_cents\n  FROM order_lines ol\n  JOIN orders o ON o.order_id = ol.order_id\n  JOIN products p ON p.product_id = ol.product_id\n  WHERE o.order_ts >= TIMESTAMP '2024-01-01' AND o.order_ts < TIMESTAMP '2025-01-01'\n)\nSELECT s.store_code, COALESCE(ROUND(100.0 * SUM(CASE WHEN l.in_cents THEN l.revenue ELSE 0 END) / NULLIF(SUM(l.revenue), 0), 2), 0) AS cents_pct FROM stores s LEFT JOIN lines_2024 l ON l.store_id = s.store_id GROUP BY s.store_code"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-05",
+      "sql": "WITH lines_2024 AS (  -- one row per 2024 order line\n  SELECT o.store_id,\n         ol.quantity * ol.unit_price_eur - ol.line_discount_eur AS revenue,\n         ol.unit_price_eur > 10 * p.unit_cost_eur AS in_cents\n  FROM order_lines ol\n  JOIN orders o ON o.order_id = ol.order_id\n  JOIN products p ON p.product_id = ol.product_id\n  WHERE o.order_ts >= TIMESTAMP '2024-01-01' AND o.order_ts < TIMESTAMP '2025-01-01'\n)\nSELECT s.store_code, ROUND(100 * (CAST(SUM(CASE WHEN l.in_cents THEN l.revenue ELSE 0 END) AS BIGINT) // CAST(NULLIF(SUM(l.revenue), 0) AS BIGINT)), 2) AS cents_pct FROM stores s LEFT JOIN lines_2024 l ON l.store_id = s.store_id GROUP BY s.store_code"
+    }
+  ],
+  "hint3_partial": "WITH lines_2024 AS (  -- one row per 2024 order line\n  SELECT o.store_id,\n         ol.quantity * ol.unit_price_eur - ol.line_discount_eur AS revenue,\n         ol.unit_price_eur > 10 * p.unit_cost_eur AS in_cents\n  FROM order_lines ol\n  JOIN orders o ON o.order_id = ol.order_id\n  JOIN products p ON p.product_id = ol.product_id\n  WHERE o.order_ts >= TIMESTAMP '2024-01-01' AND o.order_ts < TIMESTAMP '2025-01-01'\n)\nSELECT s.store_code,\n       ROUND(100.0 * SUM(CASE WHEN l.in_cents THEN l.revenue ELSE 0 END) / ___, 2) AS cents_pct\nFROM stores s\nLEFT JOIN lines_2024 l ON l.store_id = s.store_id\nGROUP BY s.store_code",
+  "solver": {
+    "prompt_hash": "369f80f411a284d2",
+    "schema_version": "018678d60891",
+    "dataset_version": "b2d2b40fb117bb07",
+    "grader_version": "6a.1",
+    "query": "WITH j AS (\n  SELECT o.store_id, ol.quantity * ol.unit_price_eur - ol.line_discount_eur AS rev,\n         ol.unit_price_eur > 10 * p.unit_cost_eur AS cents\n  FROM order_lines ol\n  JOIN orders o ON o.order_id = ol.order_id\n  LEFT JOIN products p ON p.product_id = ol.product_id\n  WHERE o.order_ts >= TIMESTAMP '2024-01-01' AND o.order_ts < TIMESTAMP '2025-01-01'\n)\nSELECT s.store_code, ROUND(100.0 * SUM(CASE WHEN j.cents THEN j.rev ELSE 0 END) / NULLIF(SUM(j.rev), 0), 2) AS cents_pct\nFROM stores s\nLEFT JOIN j ON j.store_id = s.store_id\nGROUP BY s.store_code\n",
+    "at": "2026-10-15T11:06:09.932Z"
+  }
+}

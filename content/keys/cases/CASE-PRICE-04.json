@@ -1,0 +1,43 @@
+{
+  "case_id": "CASE-PRICE-04",
+  "truths": {
+    "CP2": "SELECT COUNT(*)\nFROM products AS pr\nWHERE pr.category_id IN (\n    SELECT pr2.category_id\n    FROM promotion_products AS pp2\n    JOIN promotions AS p2 ON p2.promo_id = pp2.promo_id\n    JOIN products AS pr2 ON pr2.product_id = pp2.product_id\n    WHERE p2.promo_code = 'P-2025-03'\n  )\n  AND pr.product_id NOT IN (\n    SELECT pp.product_id\n    FROM promotion_products AS pp\n    JOIN promotions AS p ON p.promo_id = pp.promo_id\n    WHERE p.promo_code = 'P-2025-03'\n  )",
+    "CP4": "WITH promo AS (\n  -- one row: promotion P-2025-03 with its dates and its number of weeks\n  SELECT promo_id, start_date, end_date,\n         date_diff('week', date_trunc('week', start_date), date_trunc('week', end_date)) + 1 AS n_weeks\n  FROM promotions\n  WHERE promo_code = 'P-2025-03'\n),\ncategory_products AS (\n  -- one row per product in a category that holds a product of the promotion\n  SELECT pr.product_id, pr.category_id,\n         CASE WHEN EXISTS (\n           SELECT 1\n           FROM promotion_products AS pp\n           JOIN promo AS p ON p.promo_id = pp.promo_id\n           WHERE pp.product_id = pr.product_id\n         ) THEN 1 ELSE 0 END AS is_promoted\n  FROM products AS pr\n  WHERE pr.category_id IN (\n    SELECT pr2.category_id\n    FROM promotion_products AS pp2\n    JOIN promo AS p2 ON p2.promo_id = pp2.promo_id\n    JOIN products AS pr2 ON pr2.product_id = pp2.product_id\n  )\n),\nproduct_changes AS (\n  -- one row per product of those categories, with its change in units\n  SELECT cp.category_id, cp.product_id, cp.is_promoted,\n         (AVG(CASE WHEN w.week_start BETWEEN p.start_date AND p.end_date THEN w.units END)\n          - AVG(CASE WHEN w.week_start >= p.start_date - INTERVAL 28 DAY\n                      AND w.week_start < p.start_date THEN w.units END)) * p.n_weeks AS change_units\n  FROM category_products AS cp\n  JOIN weekly_units AS w ON w.product_id = cp.product_id\n  CROSS JOIN promo AS p\n  GROUP BY cp.category_id, cp.product_id, cp.is_promoted, p.n_weeks\n)\nSELECT ROUND(100.0 * SUM(CASE WHEN pc.is_promoted = 0 THEN -pc.change_units ELSE 0 END)\n             / NULLIF(SUM(CASE WHEN pc.is_promoted = 1 THEN pc.change_units ELSE 0 END), 0), 1)\nFROM product_changes AS pc\nJOIN categories AS c ON c.category_id = pc.category_id\nWHERE c.category_name = 'Earbuds'"
+  },
+  "choices": {
+    "CP1": {
+      "correct_oid": "o1531650",
+      "explanation": "Cannibalisation is what the other products of the category lost, so every promoted product leaves the set; a sister-only set misses switching from the rest of the range, and other categories are not substitutes."
+    },
+    "CP5": {
+      "correct_oid": "oc7e8460",
+      "explanation": "Netting out Earbuds Lite is only one step; the dip after the promotion, other events and the margin after the discount decide whether it paid, and a category that still grew did gain some demand."
+    }
+  },
+  "solver": {
+    "CP1": {
+      "pass": true,
+      "prompt_hash": "5e9ec4cd98de5687",
+      "key_hash": "225e43d7c968760b",
+      "at": "2026-10-15T23:01:46.505Z"
+    },
+    "CP2": {
+      "pass": true,
+      "prompt_hash": "8e60b101f20074a7",
+      "key_hash": "6c2284e3ed3d87ea",
+      "at": "2026-10-15T23:01:46.505Z"
+    },
+    "CP4": {
+      "pass": true,
+      "prompt_hash": "3ac8c118567e1f9f",
+      "key_hash": "bd0a66d9c69d397f",
+      "at": "2026-10-15T23:01:46.505Z"
+    },
+    "CP5": {
+      "pass": true,
+      "prompt_hash": "bd69bca6d0b5a4fb",
+      "key_hash": "50838cec49b01013",
+      "at": "2026-10-15T23:03:04.232Z"
+    }
+  }
+}

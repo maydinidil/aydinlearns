@@ -1,0 +1,152 @@
+{
+  "id": "EX-SQL-CLEAN-01-E3-21",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-04",
+    "check_report",
+    "union_all",
+    "nullif",
+    "duplicates",
+    "prices_in_cents",
+    "order_lines",
+    "orders",
+    "products"
+  ],
+  "level": 4,
+  "source_ids": [
+    "01:SQL-CLEAN-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-15",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-CLEAN-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CASE-01",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-SET-01",
+    "SQL-SUBQ-01",
+    "SQL-CLEAN-01"
+  ],
+  "template_id": "T-CLEAN-01-june-check-report",
+  "template_params": {
+    "month": "2024-06",
+    "checks": 3
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "voltmarkt",
+  "schema": "voltmarkt_raw",
+  "edge_schema": "voltmarkt_edge_clean",
+  "uses_raw": true,
+  "prompt": "Build a check report on the June 2024 order lines. These tables may hold errors. June 2024 means order_ts, as stored, from 1 June 2024 up to but not including 1 July 2024. Return one row for each of three checks, with four columns, in this order: check_name; n_bad; bad_share, n_bad divided by the number of June 2024 lines as stored, a fraction from 0 to 1, not rounded; and result, 'pass' when n_bad is 0, otherwise 'fail'. The checks are 'resent_copies', the lines that are resent copies (two lines are copies of one order line when order_id, product_id, quantity, unit_price_eur, promo_id and line_discount_eur all match, with a missing promo_id matching a missing one; every line beyond the first of such a set is a resent copy); 'price_in_cents', the lines whose unit_price_eur is more than 10 times the product's unit_cost_eur; and 'unknown_product', the lines whose product_id is not in products. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "check_name",
+        "type_class": "text"
+      },
+      {
+        "name": "n_bad",
+        "type_class": "numeric"
+      },
+      {
+        "name": "bad_share",
+        "type_class": "numeric"
+      },
+      {
+        "name": "result",
+        "type_class": "text"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "check_name",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "n_bad",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "bad_share",
+        "type_class": "numeric",
+        "precision": "ratio"
+      },
+      {
+        "name": "result",
+        "type_class": "text",
+        "precision": "exact"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "check_name"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, divide each check's count by the number of June 2024 lines.",
+    "The denominator is one number for every check, so a scalar subquery on the June lines works, wrapped in NULLIF(..., 0) and divided with /."
+  ],
+  "subgoals": [
+    {
+      "from": 71,
+      "to": 219,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 222,
+      "to": 340,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 343,
+      "to": 425,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 945,
+      "to": 1102,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 1103,
+      "to": 1114,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "Each check counts its own rule over the same June lines, and dividing by their number puts the checks on one scale."
+}

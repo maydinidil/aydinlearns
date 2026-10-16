@@ -2,6 +2,7 @@
 import { fork, type ChildProcess } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import type { RunnerError, RunnerRequest, RunnerResponse } from './protocol.ts';
+import { MAX_NESTING_DEPTH, TOO_DEEP_MESSAGE, maxNestingDepth } from './tables.ts';
 
 type DistributiveOmit<T, K extends PropertyKey> = T extends unknown ? Omit<T, K> : never;
 export type RunnerReq = DistributiveOmit<RunnerRequest, 'id'>;
@@ -32,6 +33,15 @@ const SHUTDOWN_WAIT_MS = 500;
  * background. Design §18: the runner restarts and the server stays up.
  */
 const RETRY_START_MS = 2000;
+
+/**
+ * S6-08 (sprint 6, Task A1): the ops whose text the gate reads as it was written: the learner's query, a key or a planted query.
+ * Text nested deeper than MAX_NESTING_DEPTH is refused for these here, before any parse and before the child receives it. 'one_row'
+ * and 'rows' carry statements the grader composed around text that already passed one of these, so the few brackets the grader
+ * adds never refuse a query the gate took. S6-33 (Task K3): the depth counts `(`, `[`, `{` and CASE ... END (maxNestingDepth).
+ */
+const DEPTH_CHECKED: ReadonlySet<RunnerRequest['op']> = new Set(['gate', 'parse_tree', 'display']);
+const tooDeep = (): RunnerResult => ({ ok: false, error: { kind: 'gate', reason: 'too_deep', message: TOO_DEEP_MESSAGE } });
 
 const msg = (e: unknown): string => (e instanceof Error ? e.message : String(e));
 const crash = (message: string): RunnerResult => ({ ok: false, error: { kind: 'crash', message } });
@@ -154,6 +164,8 @@ export async function startRunner(dbPath: string, opts: { graceMs?: number; useP
   let queue: Promise<unknown> = Promise.resolve();
   return {
     request<T>(req: RunnerReq): Promise<RunnerResult<T>> {
+      // S6-08: refused at once, with no child involved, so it neither waits for nor reaches one.
+      if (DEPTH_CHECKED.has(req.op) && 'sql' in req && maxNestingDepth(req.sql) > MAX_NESTING_DEPTH) return Promise.resolve(tooDeep() as RunnerResult<T>);
       const p = queue.then(() => run(req)).catch((e: unknown) => crash(msg(e))) as Promise<RunnerResult<T>>;
       queue = p;
       return p;

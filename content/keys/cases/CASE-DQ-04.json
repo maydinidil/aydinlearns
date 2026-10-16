@@ -1,0 +1,22 @@
+{
+  "case_id": "CASE-DQ-04",
+  "truths": {
+    "CP2": "SELECT COUNT(*)\nFROM orders AS o\nJOIN stores AS s ON s.store_id = o.store_id\nWHERE CAST(timezone('Europe/Amsterdam', timezone(s.timezone, o.order_ts)) AS DATE)\n   <> CAST(timezone('Europe/Amsterdam', timezone('UTC', o.order_ts)) AS DATE)",
+    "CP4": "WITH moved AS (  -- one row per order the report books in another month\n  SELECT o.order_id\n  FROM orders AS o\n  JOIN stores AS s ON s.store_id = o.store_id\n  WHERE date_trunc('month', CAST(timezone('Europe/Amsterdam', timezone(s.timezone, o.order_ts)) AS DATE))\n     <> date_trunc('month', CAST(timezone('Europe/Amsterdam', timezone('UTC', o.order_ts)) AS DATE))\n)\nSELECT ROUND(COALESCE(SUM(ol.quantity * ol.unit_price_eur - ol.line_discount_eur), 0), 2)\nFROM order_lines AS ol\nJOIN moved AS m ON m.order_id = ol.order_id"
+  },
+  "choices": {},
+  "solver": {
+    "CP2": {
+      "pass": true,
+      "prompt_hash": "64a3697fbf26cf03",
+      "key_hash": "74cc37443226206d",
+      "at": "2026-10-15T23:01:46.505Z"
+    },
+    "CP4": {
+      "pass": true,
+      "prompt_hash": "c5d034d03063889a",
+      "key_hash": "910012519d5bdb5a",
+      "at": "2026-10-15T23:01:46.505Z"
+    }
+  }
+}

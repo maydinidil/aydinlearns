@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-DATE-02-E2-31",
+  "item_version": 1,
+  "reference_sql": "SELECT CAST(order_ts AS DATE) AS order_day, COUNT(*) AS web_orders\nFROM orders\nWHERE channel = 'web'\n  AND CAST(order_ts AS DATE) >= DATE '2026-01-05' - INTERVAL 30 DAY\n  AND CAST(order_ts AS DATE) < DATE '2026-01-05'\nGROUP BY 1",
+  "alternatives": [
+    "SELECT CAST(order_ts AS DATE) AS order_day, COUNT(*) AS web_orders FROM orders WHERE channel = 'web' AND CAST(order_ts AS DATE) BETWEEN DATE '2025-12-06' AND DATE '2026-01-04' GROUP BY 1",
+    "SELECT CAST(order_ts AS DATE) AS order_day, COUNT(*) AS web_orders FROM orders WHERE channel = 'web' AND order_ts >= DATE '2026-01-05' - INTERVAL 30 DAY AND order_ts < DATE '2026-01-05' GROUP BY CAST(order_ts AS DATE)"
+  ],
+  "other_way": {
+    "sql": "SELECT CAST(order_ts AS DATE) AS order_day, COUNT(*) AS web_orders FROM orders WHERE channel = 'web' AND CAST(order_ts AS DATE) BETWEEN DATE '2025-12-06' AND DATE '2026-01-04' GROUP BY 1",
+    "tradeoff": "Typing both end dates with BETWEEN reads clearly, but counting back from the as-of date shows where the 30 days come from."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-06",
+      "sql": "SELECT CAST(order_ts AS DATE) AS order_day, COUNT(*) AS web_orders\nFROM orders\nWHERE channel = 'web'\n  AND CAST(order_ts AS DATE) > DATE '2026-01-05' - INTERVAL 30 DAY\n  AND CAST(order_ts AS DATE) < DATE '2026-01-05'\nGROUP BY 1"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-06",
+      "sql": "SELECT CAST(order_ts AS DATE) AS order_day, COUNT(*) AS web_orders FROM orders WHERE channel = 'web' AND CAST(order_ts AS DATE) >= DATE '2026-01-05' - INTERVAL 31 DAY AND CAST(order_ts AS DATE) < DATE '2026-01-05' GROUP BY 1"
+    }
+  ],
+  "hint3_partial": "SELECT CAST(order_ts AS DATE) AS order_day, COUNT(*) AS web_orders\nFROM orders\nWHERE channel = 'web'\n  AND CAST(order_ts AS DATE) ___ DATE '2026-01-05' - INTERVAL 30 DAY\n  AND CAST(order_ts AS DATE) < DATE '2026-01-05'\nGROUP BY 1",
+  "solver": {
+    "prompt_hash": "29051d8c63872f4f",
+    "schema_version": "7ed366279088",
+    "dataset_version": "b2d2b40fb117bb07",
+    "grader_version": "6a.1",
+    "query": "SELECT CAST(order_ts AS DATE) AS order_day, COUNT(*) AS web_orders\nFROM orders\nWHERE channel = 'web'\n  AND CAST(order_ts AS DATE) >= DATE '2026-01-05' - INTERVAL 30 DAY\n  AND CAST(order_ts AS DATE) < DATE '2026-01-05'\nGROUP BY 1\n",
+    "at": "2026-10-15T11:06:11.747Z"
+  }
+}

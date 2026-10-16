@@ -44,6 +44,29 @@ so the prompt itself says what one row of the answer stands for. Every `*_ts` co
 time; a prompt that asks for an Amsterdam day says so, and the solver converts the time as the
 prompt asks.
 
+**Level 4 prompts** (sprint 6, S6-12) work the same way and drop the grouping cue: they name no
+GROUP BY column, join key, subquery form or table to read. A date question says how to count
+("days between", "the first and the last day included", "calendar months crossed"), and "the last
+30 days" counts back from the as-of date the prompt gives (5 January 2026 for Voltmarkt), never
+from today, so the solver writes date literals and never `now()` or `current_date`. A data-quality
+item returns a check's result (a count, a list of failing keys, a pass or fail column), not a
+cleaned table. No level 4 item needs a window function.
+
+**Raw schema notes** (sprint 6, S6-01 and S6-02). A raw-data item's view says `"schema":
+"voltmarkt_raw"`. Its tables have the same names as the clean ones, and `data/schema-notes.json`
+holds a note for each with `"schema": "voltmarkt_raw"` and the line "This table may hold errors."
+For such an item the solver reads those notes, not the `voltmarkt` ones:
+- the keys and links a raw note shows are what the data should hold; the planted errors break them
+  (an order line resent under a new ID, prices in cents, messy spellings, overlapping price
+  windows, store times in local time);
+- the prompt says what "correct" means (which rows count as copies, which spelling is right,
+  which rule finds the bad rows). The solver follows that rule exactly, and cleans nothing the
+  prompt does not ask about;
+- table names stay unqualified: the grader runs the query on `voltmarkt_raw`, then swaps in the
+  hidden edge tables, and a `voltmarkt_raw.` prefix is refused;
+- a raw `orders.order_ts` is UTC for web orders and the store's local time for store orders, so
+  the solver reads each time as the prompt says.
+
 A learner sees a fix item's starter in the editor, so its solver sees it too. The export writes
 `starter_sql` whenever it is a string, exactly as the prompt hash covers it (R37); every other item's
 view keeps the same five fields. The starter's error ID stays out: finding the mistake is the task.
@@ -109,7 +132,9 @@ Work in <root>. You may read ONLY:
   output_contract, rules and schema, plus starter_sql for a "fix this query" item;
 - data/schema-notes.json (the visible tables, their grain, keys, foreign keys and sample rows).
   Use only the tables whose from_level is at or below your level: a learner at that level sees
-  no other table.
+  no other table. Use only the notes whose schema is the item's own schema (the "schema" field of
+  its view): "voltmarkt" for most items, "voltmarkt_raw" for a raw-data item, whose tables may
+  hold errors.
 
 Never open anything else: not content/ (items, keys, lessons), pipeline/, knowledge/, server/,
 tests/, docs/, other files under tools/, or another concept's solver-view files. Do not query the
@@ -126,7 +151,11 @@ file:
 - One row per what the prompt says one row stands for. When the output contract has no grain
   line, the prompt's wording is the grain.
 - Times in *_ts columns are UTC. When the prompt asks for a day, week or month in Amsterdam time,
-  convert the time first.
+  convert the time first. On "voltmarkt_raw", read each time as the prompt says.
+- Dates relative to "now", such as "the last 30 days", count from the as-of date the prompt gives.
+  Write it as a date literal; never use now(), current_date or today().
+- On "voltmarkt_raw", the tables may hold errors. Apply exactly the rule the prompt gives for what
+  is correct (which rows are copies, which spelling is right), and clean nothing else.
 
 When a view holds starter_sql, the prompt asks you to fix that query. Write the whole corrected
 query to the .sql file, not a description of the change.
@@ -511,3 +540,28 @@ For each answer file:
 Reply in under 10 lines: one line per checkpoint ID with PASS or FAIL, and the counts. Never quote
 a query, an oid, a number, an explanation or a value.
 ```
+
+## Case checkpoint solves, recorded (sprint 6, Task B3)
+
+CP1, CP2, CP4 and CP5 of every case are solved blind and the result is recorded in the case key. A
+case's CP3 is an SQL item and goes through the SQL steps above. CP6 is self-scored. The two scripts
+replace the grader agent for these four checkpoints: the app's own grading rules decide.
+
+| Step | What to do | Result |
+|---|---|---|
+| 1 | `npm run export:case-view` | One file for each case, `tools/.solver-view/cases/<case_id>.json` (git-ignored): the case's title, level, schema and brief, each checkpoint's prompt with its options (seeded shuffled order, opaque oids) or its typed spec, and the schema notes. Never the key, the truth values, the credits, the model plan or the model answer |
+| 2 | Dispatch one fresh solver (Sonnet, never a generator) that reads only those files | For each checkpoint, `tools/.solver-out/cases/<case_id>-<CP>.txt` or `.sql` (git-ignored; no colon in a file name). CP1 and CP5: the oid of the option, in a `.txt`. CP2 and CP4: the number it would type (`.txt`), or one SELECT that returns that one number (`.sql`), run on the case's own schema |
+| 3 | `npm run record:case-solver` | Each answer is graded as the case routes grade it, and `solver: { <CP>: { pass, prompt_hash, at } }` is written into the case key, passed or not. It prints checkpoint IDs and PASS, FAIL or SKIP only |
+| 4 | `npm run check:content` | C50 passes for each case |
+
+An answer is recorded only against the prompt the solver saw. If the view's prompt hash is not the
+checkpoint's current one, the answer is skipped. Never open the answer files or the key; only case
+IDs, checkpoint IDs, counts and PASS or FAIL reach the conversation.
+
+### What C50 checks
+
+For each CP1, CP2, CP4 and CP5 a case lists, the case key holds a solver record that passed and
+whose `prompt_hash` is the checkpoint's current one (its prompt, options or typed spec, and the
+case's title, brief and schema). Changing any of these makes the record stale: solve the checkpoint
+again. A failed record means the prompt was read another way; treat that as an ambiguity finding
+first, then use the fix rounds above. The detail names checkpoints, never an answer.

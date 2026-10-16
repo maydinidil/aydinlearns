@@ -1,0 +1,118 @@
+{
+  "id": "EX-SQL-CLEAN-01-E2-04",
+  "version": 2,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-04",
+    "self_join",
+    "overlap",
+    "date_arithmetic",
+    "price_history"
+  ],
+  "level": 4,
+  "source_ids": [
+    "01:SQL-CLEAN-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-15",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-CLEAN-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-NULL-01",
+    "SQL-CASE-01",
+    "SQL-JOIN-01",
+    "SQL-DATE-02",
+    "SQL-CLEAN-01"
+  ],
+  "template_id": "T-CLEAN-01-overlap-days",
+  "template_params": {
+    "table": "price_history"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt_raw",
+  "edge_schema": "voltmarkt_edge_clean",
+  "uses_raw": true,
+  "prompt": "For each pair of overlapping price windows, how many days do they share? This table may hold errors. A product's price windows should never overlap. A window runs from valid_from to valid_to, both days included, and a missing valid_to means the window is still open: an open window never ends. Two windows of one product overlap when the later one starts on or before the day the earlier one ends. The shared days run from the later window's valid_from to the earlier of the two valid_to dates, both days included, and shared_days is missing when both windows are still open. Return three columns, in this order: product_id, valid_from, the later window's start, and shared_days. Return one row for each pair of overlapping windows. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "valid_from",
+        "type_class": "temporal"
+      },
+      {
+        "name": "shared_days",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "valid_from",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "shared_days",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "product_id",
+      "valid_from"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, work out the last shared day of each pair: the earlier of the two valid_to dates.",
+    "A later window with a missing valid_to is still open, so the earlier window's end is the last shared day; both end days count, so add 1."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 167,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 168,
+      "to": 307,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "A date minus a date leaves one end day out, so adding 1 counts both the first and the last shared day."
+}

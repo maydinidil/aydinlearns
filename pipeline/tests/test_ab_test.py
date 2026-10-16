@@ -20,7 +20,9 @@ import duckdb
 import pyarrow as pa
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 import build_course_db  # noqa: E402
+from test_build import M5_MOVES  # noqa: E402  backlog M5 (D90): the one list of objects it may move
 from voltmarkt import ab_test as ab  # noqa: E402
 from voltmarkt import generate as vm  # noqa: E402
 from voltmarkt import notes as vm_notes  # noqa: E402
@@ -45,6 +47,9 @@ Z95 = 1.96                     # E-182: the stem gives 1.96 for 95%
 SRM_CRITICAL = 10.83           # E-182, KB-11 EXP-08: chi-square, 1 degree of freedom, p = 0.001
 # R37: every table and view as built before the A/B test (a rebuild of commit 6caa834, equal to data/manifest.json then).
 BEFORE = json.loads((pathlib.Path(__file__).resolve().parent / "manifest_before_ab_test.json").read_text(encoding="utf-8"))["tables"]
+# Sprint 6 adds objects of its own (pipeline/tests/test_build.py checks them), so "new" here means new among the objects built
+# before sprint 6.
+BEFORE_SPRINT6 = json.loads((pathlib.Path(__file__).resolve().parent / "manifest_before_sprint6.json").read_text(encoding="utf-8"))["tables"]
 
 # The analyst's readout, written here on its own (not the module's): per variant, the customers assigned and those with a
 # conversion at or after their assigned_at. A customer in both variants is left out, unless keep_both.
@@ -289,11 +294,13 @@ class ABTestBuild(unittest.TestCase):
                                 "WHERE table_schema = ? AND table_name = ? ORDER BY ordinal_position", [schema, table]).fetchall()
 
     def test_r37_every_existing_table_and_view_is_unchanged(self):
-        # Rows and a checksum of each table (a view: its rows and its SQL text's hash), against the build before Task B2.
+        # Rows and a checksum of each table (a view: its rows and its SQL text's hash), against the build before Task B2. Backlog
+        # M5 (D90) moved the objects in M5_MOVES once; pipeline/tests/test_build.py holds them to that list.
         self.assertEqual(len(BEFORE), 98)
         for name, entry in BEFORE.items():
-            self.assertEqual(self.manifest["tables"].get(name), entry, name)
-        added = sorted(set(self.manifest["tables"]) - set(BEFORE))
+            if name not in M5_MOVES:
+                self.assertEqual(self.manifest["tables"].get(name), entry, name)
+        added = sorted((set(self.manifest["tables"]) & set(BEFORE_SPRINT6)) - set(BEFORE))
         self.assertEqual(added, sorted(f"{s}.{t}" for s in ("voltmarkt", JOIN) for t in ab.TABLES), "only the A/B tables are new")
 
     def test_built_tables(self):
@@ -304,9 +311,14 @@ class ABTestBuild(unittest.TestCase):
             self.assertEqual(self.manifest["tables"][f"voltmarkt.{name}"]["rows"], tables[name].num_rows, name)
             rows = self.one(f"SELECT count(*) FROM {JOIN}.{name}")[0]
             self.assertTrue(1 <= rows <= 40, f"{JOIN}.{name} has {rows} rows")
-        for other in ("voltmarkt_edge_date", "voltmarkt_edge_set", "voltmarkt_edge_agg", "voltmarkt_edge_basics"):
+        for other in ("voltmarkt_edge_agg", "voltmarkt_edge_basics"):
             names = {r[0] for r in self.con.execute("SELECT table_name FROM duckdb_tables() WHERE schema_name = ?", [other]).fetchall()}
             self.assertFalse(names & set(ab.TABLES), f"{other} gets no A/B table")
+        # Backlog M5 (S6-36): the other level 3 edge schemas, whose items the schema panel shows the A/B tables to, hold empty copies.
+        for other in ("voltmarkt_edge_date", "voltmarkt_edge_set"):
+            for name, cols in COLUMNS.items():
+                self.assertEqual(self.columns(other, name), cols, f"{other}.{name} mirrors voltmarkt.{name}")
+                self.assertEqual(self.one(f"SELECT count(*) FROM {other}.{name}")[0], 0, f"{other}.{name} holds no rows")
         self.assertEqual(self.one("SELECT count(*) FROM duckdb_views() WHERE NOT internal AND (view_name LIKE 'ab%')")[0], 0)
 
     def test_the_plants_hold_in_the_built_database(self):

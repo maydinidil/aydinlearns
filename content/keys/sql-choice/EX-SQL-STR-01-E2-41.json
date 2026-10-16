@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-STR-01-E2-41",
+  "item_version": 1,
+  "correct_oid": "ofebf5c8",
+  "explanation": "Only REPLACE removes a space inside the sku, as in 'VM-000 005', and UPPER fixes the letter case, so comparing with UPPER(REPLACE(sku, ' ', '')) finds every sku off the standard. TRIM removes only the spaces at the ends, so the query with UPPER(TRIM(sku)) misses an inner space, and the two queries without UPPER miss the skus that are only in lower case.",
+  "solver": {
+    "prompt_hash": "44bb02e6fdd8f54e",
+    "grader_version": "choice.3",
+    "chosen": "ofebf5c8",
+    "typed": null,
+    "at": "2026-10-15T10:40:24.704Z"
+  }
+}

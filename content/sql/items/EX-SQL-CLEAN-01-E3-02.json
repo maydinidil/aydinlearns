@@ -1,0 +1,189 @@
+{
+  "id": "EX-SQL-CLEAN-01-E3-02",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-04",
+    "check_report",
+    "nullif",
+    "duplicates",
+    "missing_values",
+    "left_join",
+    "order_lines",
+    "orders",
+    "stores"
+  ],
+  "level": 4,
+  "source_ids": [
+    "01:SQL-CLEAN-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-15",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-CLEAN-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CASE-01",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-CLEAN-01"
+  ],
+  "template_id": "T-CLEAN-01-store-copy-check",
+  "template_params": {
+    "year": 2024,
+    "threshold": 0.001
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "voltmarkt",
+  "schema": "voltmarkt_raw",
+  "edge_schema": "voltmarkt_edge_clean",
+  "uses_raw": true,
+  "prompt": "For each store, check its 2024 order lines for resent copies. This table may hold errors. Two lines are copies of one order line when order_id, product_id, quantity, unit_price_eur, promo_id and line_discount_eur all match, with a missing promo_id matching a missing one; every line beyond the first of such a set is a resent copy. 2024 means order_ts, as stored, from 1 January 2024 up to but not including 1 January 2025. Return five columns, in this order: store_code; n_lines, the store's 2024 lines as stored; n_copies; copy_share, n_copies divided by n_lines as a fraction from 0 to 1, not rounded, missing for a store with no 2024 lines; and result: 'no data' when copy_share is missing, 'pass' when it is below 0.001, otherwise 'fail'. Return one row for each store, with 0 lines and 0 copies for a store with no 2024 lines. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "store_code",
+        "type_class": "text"
+      },
+      {
+        "name": "n_lines",
+        "type_class": "numeric"
+      },
+      {
+        "name": "n_copies",
+        "type_class": "numeric"
+      },
+      {
+        "name": "copy_share",
+        "type_class": "numeric"
+      },
+      {
+        "name": "result",
+        "type_class": "text"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "store_code",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "n_lines",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "n_copies",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "copy_share",
+        "type_class": "numeric",
+        "precision": "ratio"
+      },
+      {
+        "name": "result",
+        "type_class": "text",
+        "precision": "exact"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "store_code"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the result column, with a branch for a share that is missing.",
+    "A comparison with a missing share is not true, so test IS NULL first; NULLIF keeps the share itself missing for a store with no lines."
+  ],
+  "subgoals": [
+    {
+      "from": 55,
+      "to": 167,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 170,
+      "to": 233,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 236,
+      "to": 318,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 377,
+      "to": 413,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 416,
+      "to": 431,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 434,
+      "to": 528,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 587,
+      "to": 657,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 660,
+      "to": 674,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 677,
+      "to": 694,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 959,
+      "to": 1121,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 1122,
+      "to": 1133,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "NULLIF keeps the share missing for a store with no lines, and the CASE tests for that before it compares the share with 0.001."
+}

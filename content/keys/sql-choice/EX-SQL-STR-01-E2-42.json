@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-STR-01-E2-42",
+  "item_version": 1,
+  "correct_oid": "o4b0b7cf",
+  "explanation": "split_part cuts at the hyphen and returns part 1, the text before it: BE and WEB. substring(store_code, 1, 2) keeps 2 characters from the first one, whatever they are, so the webshop's code gives WE. Parts and positions both count from 1, so part 1 is not the text after the hyphen, and position 1 is the first character.",
+  "solver": {
+    "prompt_hash": "9dba56e68ff68135",
+    "grader_version": "choice.3",
+    "chosen": "o4b0b7cf",
+    "typed": null,
+    "at": "2026-10-15T10:40:24.707Z"
+  }
+}

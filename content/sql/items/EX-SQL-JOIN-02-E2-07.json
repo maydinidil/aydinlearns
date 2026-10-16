@@ -1,6 +1,6 @@
 {
   "id": "EX-SQL-JOIN-02-E2-07",
-  "version": 1,
+  "version": 2,
   "kind": "write",
   "tags": [
     "sql",
@@ -47,7 +47,7 @@
   "company": "voltmarkt",
   "schema": "voltmarkt",
   "edge_schema": "voltmarkt_edge_join",
-  "prompt": "Voltmarkt's checkout test AB-2025-01 assigned web shop customers to two variants, control and treatment. Show how each variant converted. A customer converted in a variant when the customer has a conversion in the test at or after the customer's assigned_at for that variant: a conversion before it does not count, and a customer who converted more than once counts once. A customer assigned to both variants counts in each of them. Return one row for each variant, including a variant with no conversions. Return four columns, in this order: variant; n_customers, the customers assigned to the variant; n_converted, those of them who converted; and conversion_rate_pct, 100 times n_converted divided by n_customers, rounded to 2 decimals. Sort by variant, alphabetically.",
+  "prompt": "Voltmarkt's checkout test AB-2025-01 assigned webshop customers to two variants, control and treatment. Show how each variant converted. A customer converted in a variant when the customer has a conversion in the test at or after the customer's assigned_at for that variant: a conversion before it does not count, and a customer who converted more than once counts once. A customer assigned to both variants counts in each of them. Return one row for each variant, including a variant with no conversions. Return four columns, in this order: variant; n_customers, the customers assigned to the variant; n_converted, those of them who converted; and conversion_rate_pct, 100 times n_converted divided by n_customers, rounded to 2 decimals. Sort by variant, alphabetically.",
   "output_contract": {
     "columns": [
       {

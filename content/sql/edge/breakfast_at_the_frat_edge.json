@@ -1,0 +1,22 @@
+{
+  "schema": "breakfast_at_the_frat_edge",
+  "mirrors": "breakfast_at_the_frat",
+  "family": "real",
+  "contains": [
+    "no sales at all in the week ending 28 January 2009, between weeks that have sales",
+    "sales of store 299, which the store lookup does not hold",
+    "a row marked as a price reduction only (tpr_only 1) that is also featured (feature 1)",
+    "a store with a missing parking space count"
+  ],
+  "tables": {
+    "transactions": [
+      "no sales at all in the week ending 28 January 2009, between weeks that have sales",
+      "sales of store 299, which the store lookup does not hold",
+      "a row marked as a price reduction only (tpr_only 1) that is also featured (feature 1)"
+    ],
+    "stores": [
+      "sales of store 299, which the store lookup does not hold",
+      "a store with a missing parking space count"
+    ]
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-SUBQ-02-E1-41",
+  "item_version": 1,
+  "value": 1,
+  "explanation": "The inner query has one row per registered customer, but the outer query has no GROUP BY, so COUNT(*) folds all those rows into one: a single row that holds the number of registered customers. The grain of the result is set by the outer query, not by the derived table.",
+  "solver": {
+    "prompt_hash": "4e85f483c196441b",
+    "grader_version": "choice.3",
+    "chosen": null,
+    "typed": "1",
+    "at": "2026-10-15T10:40:24.718Z"
+  }
+}

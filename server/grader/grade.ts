@@ -1,5 +1,5 @@
 // server/grader/grade.ts: the grading pipeline (design §6). Expected rows reach the browser only through `diff`.
-import type { ColumnMeta, DisplayOk, GateOk, RowsOk, RunnerError } from '../runner/protocol.ts';
+import { DISPLAY_CAP, type ColumnMeta, type DisplayOk, type GateOk, type RowsOk, type RunnerError } from '../runner/protocol.ts';
 import type { RunnerClient, RunnerResult } from '../runner/client.ts';
 import type { SqlItem } from '../../schemas/item.ts';
 import type { SqlKey } from '../../schemas/keys.ts';
@@ -27,8 +27,10 @@ export { INT_DIVISION_NOTE } from './portability.ts';
 // 4c.1 (sprint 4c, Task B2, D52): the integer division re-run first runs the query again with integer division off, as a control;
 // a control that differs from the shown result, or cannot be compared, gives not_compared and no note. Both runs share the item's
 // deadline. Outcomes are graded exactly as 4b.1 did.
-export const GRADER_VERSION = '4c.1';
-const DISPLAY_CAP = 1000;
+// 6a.1 (sprint 6, Task A1): two changes. S6-08: a query whose brackets nest deeper than 40 is refused before the runner child
+// receives it, and is not graded. S6-11 (E-189): DuckDB's message for a window function in WHERE diagnoses ERR-SYN-08, not
+// ERR-SYN-02. The per-table hidden-data lines (S6-05) and the FROM subquery alias note (S6-10) change what is shown, not the grade.
+export const GRADER_VERSION = '6a.1';
 const DIFF_LIMIT = 10;
 const KEY_FAILED = 'This exercise could not be checked. Please report it.';
 /** `schemaNotes` give the columns of the item's tables to the portability lint; without them it gives only the `==` note. */
@@ -62,6 +64,31 @@ function fromRunnerError(e: RunnerError, sql: string, deps: Deps, composed: bool
   const c = classifyEngineError(e.message, sql);
   return result({ outcome: 'engine_error', notes: [composed ? e.message.split('\n')[0]! : e.message],
     diagnosis: { errorId: c.errorId, source: 'engine', feedback: fill(deps.feedback, c.errorId, { column: c.column ?? '', table: c.table ?? '' }) } });
+}
+
+/**
+ * S6-05 (sprint 6, Task A1): the lines of the hidden dataset's description about the tables a query read. `tablesRead` are
+ * unqualified table names, matched without regard to case. Each line comes once, in the order of `contains`; a `tables` line that
+ * is not in `contains` follows, in the file's order. With no `tables`, or no table read listed there, it is `contains`.
+ */
+export function edgeLines(desc: EdgeDescription, tablesRead: readonly string[]): string[] {
+  const read = new Set(tablesRead.map((t) => t.toLowerCase()));
+  const lines = new Set<string>();
+  for (const [table, ls] of Object.entries(desc.tables ?? {})) if (read.has(table.toLowerCase())) for (const l of ls) lines.add(l);
+  if (!lines.size) return desc.contains;
+  return [...desc.contains.filter((l) => lines.has(l)), ...[...lines].filter((l) => !desc.contains.includes(l))];
+}
+
+/**
+ * The hidden dataset's description after a failed hidden run (S6-05): only the lines about the tables the learner's query read,
+ * from the gate's table list for its text. The text already passed the gate on the item's schema; when the list still cannot be
+ * had, or the description has no `tables`, the whole description is shown, as before.
+ */
+async function edgeDescriptionFor(deps: Deps, schema: string, sql: string): Promise<string[] | null> {
+  if (!deps.edge) return null;
+  if (!deps.edge.tables) return deps.edge.contains;
+  const g = await deps.runner.request<GateOk>({ op: 'gate', schema, allowedSchemas: [], sql });
+  return edgeLines(deps.edge, g.ok ? g.data.tables.map((t) => t.table) : []);
 }
 
 /** One dataset's comparison counts. A runner failure ends grading, so a returned result never timed out. */
@@ -187,7 +214,7 @@ async function compare(input: { item: SqlItem; key: SqlKey; sql: string; screenM
           wrongOrder ??= result({ display: shown, datasets: results, keyIndexUsed: ki,
             diagnosis: { errorId: 'ERR-LOG-18', source: 'order', feedback: fill(deps.feedback, 'ERR-LOG-18', {}) },
             partial: partialScore({ shapeOk: true, rowsEqual: true, keysUnique: true, matched: visible.data.matched, learnerRows: visible.data.learnerRows, keyRows: visible.data.keyRows, edgePassed: true, orderWrong: true }),
-            edgeDescription: !edgeInOrder && deps.edge ? deps.edge.contains : null });
+            edgeDescription: edgeInOrder ? null : await edgeDescriptionFor(deps, item.schema, sql) });
           break;
         }
       }
@@ -230,7 +257,7 @@ async function compare(input: { item: SqlItem; key: SqlKey; sql: string; screenM
     display: shown, datasets: results, matchedMutantId: mutant?.id ?? null, diff, notes: truncated ? [INT_TRUNC_NOTE] : [],
     diagnosis: { errorId, source, feedback: fill(deps.feedback, errorId, { missing: failing.missing, extra: failing.extra }) },
     partial: partialScore({ shapeOk: true, rowsEqual: visible.learnerRows === visible.keyRows, keysUnique, matched: visible.matched, learnerRows: visible.learnerRows, keyRows: visible.keyRows, edgePassed: edge.passed }),
-    edgeDescription: !edge.passed && deps.edge ? deps.edge.contains : null,
+    edgeDescription: edge.passed ? null : await edgeDescriptionFor(deps, item.schema, sql),
   });
 }
 

@@ -16,7 +16,7 @@ function view(states: Record<string, ConceptStateName> = {}, over: Partial<GoalV
   return {
     conceptsOf: (section: Section, maxLevel: number) => (section !== 'sql' ? [] : [...SQL_L1, ...(maxLevel >= 2 ? SQL_L2 : [])]),
     stateOf: (id) => states[id] ?? 'new',
-    externals: [], mocksPassed: new Set(), casesSolved: [], liveReps: [], ...over,
+    externals: [], mocksPassed: new Set(), casesSolved: [], realCasesAvailable: 0, liveReps: [], ...over,
   };
 }
 const goal = (id: string, target_date: string, criteria: Goal['criteria'] = []): Goal => ({ id, title: `Goal ${id}`, target_date, stage: null, criteria });
@@ -87,9 +87,9 @@ test('S2-38: the next goal is the unmet goal with the earliest effective date on
 
 // ---- Sprint 4b (Task B1): case_solved, real_data_analysis (S4B-20) and live_rep counted from the view (S4B-26) -------------
 const SOLVED: GoalView['casesSolved'] = [
-  { case_id: 'CASE-VOLT-L1', level: 1, exported: false },
-  { case_id: 'CASE-PRICE-01', level: 3, exported: true },
-  { case_id: 'CASE-DAILY-L2-01', level: 2, exported: true },
+  { case_id: 'CASE-VOLT-L1', level: 1, exported: false, real: false },
+  { case_id: 'CASE-PRICE-01', level: 3, exported: true, real: false },
+  { case_id: 'CASE-DAILY-L2-01', level: 2, exported: true, real: false },
 ];
 
 test('S4B-20 case_solved: met and missed on the solved cases; `exported` counts only exported ones', () => {
@@ -111,11 +111,15 @@ test('S4B-20 case_solved: `level_min` counts only cases of that level or above',
   assert.deepEqual(evaluateGoal(three, view({}, { casesSolved: SOLVED })).criteria[0], { label: '2 cases of level 3 or above solved and exported', met: false, available: true, done: 1, total: 2 });
 });
 
-test('S4B-20 real_data_analysis: "not yet available" until the dataset registry (sprint 6), whatever else is logged; it counts as unmet', () => {
+test('S6-26 real_data_analysis: counts solved cases whose data_source.real is true; a Voltmarkt case and a portfolio piece do not', () => {
   const g = goal('G-SQL-LEVEL-4', '2026-11-27', [{ kind: 'real_data_analysis', count: 1 }]);
+  const REAL = { case_id: 'CASE-REAL-01', level: 4, exported: false, real: true };
   const busy = view({}, { casesSolved: SOLVED, externals: [{ kind: 'portfolio_piece', data: { title: 'C', data_source: 'UCI Online Retail', real_data: true } }] });
-  assert.deepEqual(evaluateGoal(g, busy), { goal_id: 'G-SQL-LEVEL-4', met: false, criteria: [{ label: '1 analysis on a real dataset', met: false, available: false, done: null, total: null }] });
-  assert.equal(evaluateGoal(goal('G-2', '2026-12-07', [{ kind: 'real_data_analysis', count: 2 }]), view()).criteria[0]!.label, '2 analyses on a real dataset');
+  assert.deepEqual(evaluateGoal(g, busy), { goal_id: 'G-SQL-LEVEL-4', met: false, criteria: [{ label: 'First real-data analysis', met: false, available: true, done: 0, total: 1 }] },
+    'Voltmarkt cases and a portfolio piece do not count');
+  assert.deepEqual(evaluateGoal(g, view({}, { casesSolved: [...SOLVED, REAL] })), { goal_id: 'G-SQL-LEVEL-4', met: true, criteria: [{ label: 'First real-data analysis', met: true, available: true, done: 1, total: 1 }] });
+  assert.deepEqual(evaluateGoal(goal('G-2', '2026-12-07', [{ kind: 'real_data_analysis', count: 2 }]), view({}, { casesSolved: [REAL] })).criteria[0],
+    { label: '2 real-data analyses', met: false, available: true, done: 1, total: 2 });
 });
 
 // The live_rep window (S4B-26): the last `window_weeks` weeks of Amsterdam dates ending today, today included. With 4 weeks and

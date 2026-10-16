@@ -38,8 +38,18 @@
 // Rows 5a-1 to 5a-5 (sprint 5a, Task F1) run last, on a server of their own over an empty logs folder: the Methodology map's new topics and EXP-AB-01's
 // reading, a typed item on a new concept, an A/B SQL item, G-GA4-CERT's new line on Progress, and the version in Settings.
 //
+// Task K7b (sprint 6) closed the test gaps those sprints left: rows 4b-2, 4b-3 and 4c-3 set up their own state (a solved case, an export in a folder of
+// their own) and read their counts from the API; 4b-2 types an alternative answer so a leak of the reference itself would show; 5a-2 picks its typed
+// item by ID; 5a-1 waits for the exposure count to settle; rows hy-1 and hy-2 (after 5a) open a SQL drill's review and watch focus in a half-mock.
+//
 // Rows 5b-1 to 5b-5 (sprint 5b, Task F1) run last: the GA4 labs list and a lab, a lab's first answers and its re-check date, a lab re-check
 // that is due (a seeded LAB-08 answer 8 days back), a full mock ended at once, and the readiness check on an empty log.
+//
+// Rows 6b-1 to 6b-4 (sprint 6 Part 2, Task F3) run after the 6a rows: the Mailvora cases in the inbox and a CP3 graded on Mailvora (on this app);
+// then, on a temporary copy of the app (as row 13's), CASE-REAL-01 unavailable while Online Retail II is not prepared, the explorer's picker and a
+// registry card with its prep command, and a flagship draft on Online Retail II written into a temporary portfolio folder. The copy's own
+// data/truth/checkpoints.json and, when its database lacks Online Retail II, a small fixture in its own database give each row its state, so the rows
+// pass whether this tree has the real datasets prepared or not. The tree's data/ is only read.
 //
 // Row JN (release 1.3, D77) runs after them all, beside row G: every server writes its study journey to one temporary folder
 // (AYDINLEARNS_JOURNEY_DIR), never the real journey/, and the row checks that the rows' screens, exercises, help, runs, case, lab and
@@ -49,13 +59,14 @@
 // Key text is never printed. The one reference answer it submits is read from content/keys/ here and
 // only typed into the editor, and every line it prints is withheld if it holds key text.
 import { execFile, spawn, type ChildProcess } from 'node:child_process';
-import { createHash } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { chmod, cp, mkdir, mkdtemp, readFile, readdir, rm, stat, symlink, unlink, writeFile } from 'node:fs/promises';
 import { createServer } from 'node:net';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
+import { DuckDBInstance } from '@duckdb/node-api';
 import { chromium, type Browser, type Page } from 'playwright';
 import type { Curriculum } from '../../schemas/concepts.ts';
 import type { SqlItem } from '../../schemas/item.ts';
@@ -70,6 +81,7 @@ import { addDays, fixedMonth, RECHECK_AFTER_DAYS } from '../../server/labs.ts';
 import { AttemptLogger } from '../../server/log.ts';
 import { loadContent, type ContentStore } from '../../server/content.ts';
 import { portFromEnv } from '../../server/port.ts';
+import type { ExploreView } from '../../server/routes/explore.ts';
 import { buildCsv } from '../../server/routes/portfolio.ts';
 import { LearnerState } from '../../server/state.ts';
 import type { DrillHistoryRow, DrillStarted, MixedBlock, RunStarted, Served, TodayView } from '../../web/src/api.ts';
@@ -175,7 +187,9 @@ const casePublic = async (id: string): Promise<CasePublic> => {
   }
   throw new Error(`there is no case ${id}`);
 };
-const truthFile = await readJson<{ checkpoints: Record<string, number> }>(join(ROOT, 'data/truth/voltmarkt.json'));
+// Sprint 6 (S6-13): the build writes the case values to data/truth/checkpoints.json; an older build kept them in voltmarkt.json.
+const truthFile = await readJson<{ checkpoints: Record<string, number> }>(join(ROOT, 'data/truth/checkpoints.json'))
+  .catch(() => readJson<{ checkpoints: Record<string, number> }>(join(ROOT, 'data/truth/voltmarkt.json')));
 /** The text a learner types for a case's CP2 or CP4: the true value, to the decimals the question asks for. */
 async function caseTyped(caseId: string, cp: 'CP2' | 'CP4'): Promise<string> {
   const value = truthFile.checkpoints[`${caseId}:${cp}`];
@@ -237,6 +251,18 @@ async function waitFor<T>(what: string, probe: () => Promise<T | null | undefine
     if (v) return v;
     if (Date.now() > until) throw new Error(`timed out waiting for ${what}`);
     await sleep(100);
+  }
+}
+/** K7b: a count that has settled: read again until two reads 400 ms apart agree, so a late duplicate record is counted too. */
+async function settledCount(count: () => Promise<number>, ms = 10_000): Promise<number> {
+  const until = Date.now() + ms;
+  let last = await count();
+  for (;;) {
+    await sleep(400);
+    const now = await count();
+    if (now === last) return now;
+    if (Date.now() > until) throw new Error('the count did not settle');
+    last = now;
   }
 }
 /** Every string in a record, except the learner's own query (the learner typed it, so it was seen). */
@@ -423,6 +449,7 @@ async function main(): Promise<number> {
   const dialogs: string[] = [];
   let pageErrors = 0;
   let appCopy: string | null = null;
+  let appCopy6b: string | null = null;                   // rows 6b-2 to 6b-4's copy of the app, removed at the end as row 13's is
   /** Closes what an earlier failed row left open, so the next row can start its own server. */
   const release = async (): Promise<void> => {
     await browser?.close().catch(() => {});
@@ -1943,9 +1970,7 @@ async function main(): Promise<number> {
 
     {
       const dir = join(tmp, 'logs-4b-1');
-      const portfolioDir = join(tmp, 'portfolio-4b');
       await mkdir(dir);
-      await mkdir(portfolioDir);
       server = await startServer(ROOT, dir);
       browser = await chromium.launch();
       const p = await newPage(browser, dialogs);
@@ -1954,6 +1979,49 @@ async function main(): Promise<number> {
       const cp3Item = price.checkpoints.find((c) => c.kind === 'CP3')!.item_id!;
       const cp3Key = keys.get(cp3Item);
       if (!cp3Key) throw new Error(`there is no answer key for ${cp3Item}`);
+      // K7b: the learner types one of the item's alternative answers, not its reference, so a leak of the reference itself would show in the export
+      // scan below (the learner's own query is taken out of the files before they are scanned, which would hide the reference if it were the one typed).
+      const refSquashed = squash(cp3Key.reference_sql);
+      const altSql = cp3Key.alternatives.find((a) => { const s = squash(a); return s.length > 0 && s !== refSquashed && !s.includes(refSquashed) && !refSquashed.includes(s); });
+      const cp3Typed = altSql ?? cp3Key.reference_sql;
+      const typedIsReference = altSql === undefined;
+
+      // K7b: every row below sets up the state it needs, so a failed 4b-1 does not make the rows after it fail with unrelated messages.
+      const caseStatus = async (): Promise<string> => (await getJson<{ status: string }>(`/api/cases/${CASE_PRICE}`)).body.status;
+      /** Solves the case on its screens (CP1 to CP5) unless it is solved already. */
+      const isSolved = (status: string): boolean => status === 'solved' || status === 'exported';   // an export moves a solved case on to 'exported'
+      async function ensureSolved(p: Page): Promise<void> {
+        if (isSolved(await caseStatus())) return;
+        await p.goto(`${BASE}/#/inbox`);
+        await p.locator(`.inbox-list li[data-case="${CASE_PRICE}"]`).getByRole('link', { name: price.title }).click();
+        await p.locator('.case-status').waitFor();
+        await caseChoice(p, 'CP1');
+        await caseValue(p, 'CP2');
+        await stripBtn(p, 'CP3').click();
+        const served = p.waitForResponse(isServeCase);
+        await caseAs(p, 'CP3').locator('[data-serve="CP3"]').click();
+        await served;
+        await caseAs(p, 'CP3').locator('.cm-content').waitFor();
+        await replaceSql(p, cp3Typed);
+        await submit(p);
+        await outcome(p, 'Correct');
+        await caseAs(p, 'CP3').locator('[data-row-count]').waitFor();
+        await p.getByRole('button', { name: 'Next', exact: true }).click();
+        await caseValue(p, 'CP4');
+        await caseChoice(p, 'CP5');
+        const now = await caseStatus();
+        expect(isSolved(now), `${CASE_PRICE} set-up: the case is ${now}, not solved`);
+      }
+      const portfolioView = async () => (await getJson<{ folder: string | null; cases: { case_id: string; export_count: number; last_export: { files: string[] } | null }[] }>('/api/portfolio')).body;
+      const exportCount = async (): Promise<number> => (await portfolioView()).cases.find((c) => c.case_id === CASE_PRICE)?.export_count ?? 0;
+      /** One export of the solved case into `folder`, through the routes (the file names are the route's own reply). */
+      async function exportInto(folder: string): Promise<string[]> {
+        const set = await postJson<unknown>('/api/settings', { key: 'portfolio_folder', value: folder });
+        expect(set.status === 200, `${CASE_PRICE} set-up: the portfolio folder setting answered ${set.status}`);
+        const r = await postJson<{ files: string[] }>(`/api/cases/${CASE_PRICE}/export`, {});
+        expect(r.status === 200 && Array.isArray(r.body.files), `${CASE_PRICE} set-up: the export answered ${r.status}`);
+        return r.body.files;
+      }
 
       await row('4b-1', `the inbox lists ${CASE_PRICE}; its case screen runs the plan, CP1 to CP6, the rubric and the 60-second card; the case shows solved with its score`, async () => {
         await p.goto(`${BASE}/#/map`);
@@ -1982,7 +2050,8 @@ async function main(): Promise<number> {
         const plan = caseAs(p, 'plan');
         const boxes = plan.locator('textarea');
         const nBoxes = await boxes.count();
-        expect(nBoxes === 6, `the plan has ${nBoxes} fields, not 6`);
+        const planFields = (view0.body as { plan_fields: unknown[] }).plan_fields.length;   // K7b: the count the API says, not a hard-coded 6
+        expect(planFields > 0 && nBoxes === planFields, `the plan has ${nBoxes} fields, the API lists ${planFields}`);
         for (let i = 0; i < nBoxes; i++) await boxes.nth(i).fill(i === nBoxes - 1 ? '5' : `plan part ${i + 1}`);
         await plan.getByRole('button', { name: 'Save the plan' }).click();
         await plan.locator('p.notice[role="status"]').first().waitFor();
@@ -2003,7 +2072,7 @@ async function main(): Promise<number> {
         const sv = (await (await served).json()) as Served;
         expect(sv.phase === 'case' && sv.hide_labels && sv.item_id === cp3Item, `${CASE_PRICE}: CP3 was served in phase ${sv.phase} as ${sv.item_id}`);
         await caseAs(p, 'CP3').locator('.cm-content').waitFor();
-        await replaceSql(p, cp3Key.reference_sql);
+        await replaceSql(p, cp3Typed);
         await submit(p);
         await outcome(p, 'Correct');
         await caseAs(p, 'CP3').locator('[data-row-count]').waitFor();
@@ -2050,72 +2119,96 @@ async function main(): Promise<number> {
       });
 
       await row('4b-2', 'Settings takes a temporary portfolio folder; export writes the two files; a second export on the same day writes -2; the files hold no key SQL', async () => {
+        await ensureSolved(p);
+        const folder = await mkdtemp(join(tmp, 'portfolio-4b2-'));         // this row's own empty folder
+        const before = await exportCount();
         await p.goto(`${BASE}/#/setup`);
-        await p.getByLabel(/^Portfolio folder [(]/).fill(portfolioDir);
-        await p.getByRole('button', { name: 'Save portfolio folder' }).click();
+        // K7b: the text field by its role and name; the label text alone (getByLabel) can match the Save button's own label too.
+        await p.getByRole('textbox', { name: /^Portfolio folder [(]/ }).fill(folder);
+        await p.getByRole('button', { name: 'Save portfolio folder', exact: true }).click();
         await p.getByText('Portfolio folder saved.').waitFor();
         await p.goto(`${BASE}/#/portfolio`);
         await p.locator('p[data-folder="ready"]').waitFor();
         const entry = p.locator(`li[data-case="${CASE_PRICE}"]`);
         await entry.waitFor();
         const exportBtn = entry.getByRole('button', { name: /^Export/ });
+        const isExport = (r: { url(): string; request(): { method(): string } }) => r.url().endsWith(`/api/cases/${CASE_PRICE}/export`) && r.request().method() === 'POST';
+        const firstReply = p.waitForResponse(isExport);
         await exportBtn.click();
+        const files1 = ((await (await firstReply).json()) as { files: string[] }).files;
         const first = p.getByRole('status').filter({ hasText: /^Saved / });
         await first.waitFor();
         const m = /^Saved (CASE-PRICE-01-\d{4}-\d{2}-\d{2})\.md and (CASE-PRICE-01-\d{4}-\d{2}-\d{2})\.csv in /.exec((await first.innerText()).trim());
         expect(m !== null && m[1] === m[2], `${CASE_PRICE}: the first export's status line is not "Saved <name>.md and <name>.csv"`);
         const stem = m![1]!;
-        expect((await exists(join(portfolioDir, `${stem}.md`))) && (await exists(join(portfolioDir, `${stem}.csv`))), `${CASE_PRICE}: the two files are not in the folder`);
+        expect((await exists(join(folder, `${stem}.md`))) && (await exists(join(folder, `${stem}.csv`))), `${CASE_PRICE}: the two files are not in the folder`);
         await p.locator('[data-export-date]').getByText(/^Last exported /).waitFor();
 
+        const secondReply = p.waitForResponse(isExport);
         await exportBtn.click();
+        const files2 = ((await (await secondReply).json()) as { files: string[] }).files;
         // If Amsterdam midnight passed between the two exports the second name has the new date and no suffix, so either name is accepted.
         const second = p.getByRole('status').filter({ hasText: /^Saved CASE-PRICE-01-\d{4}-\d{2}-\d{2}(-2)?\.md and / }).filter({ hasNotText: new RegExp(`^Saved ${stem}\\.md `) });
         await second.waitFor();
         const m2 = /^Saved (CASE-PRICE-01-\d{4}-\d{2}-\d{2}(?:-2)?)\.md and /.exec((await second.innerText()).trim());
         const stem2 = m2![1]!;
         expect(stem2 === `${stem}-2` || (/^CASE-PRICE-01-\d{4}-\d{2}-\d{2}$/.test(stem2) && stem2 !== stem), `${CASE_PRICE}: the second export's file name is neither the -2 name nor a new-date name`);
-        expect((await exists(join(portfolioDir, `${stem2}.md`))) && (await exists(join(portfolioDir, `${stem2}.csv`))), `${CASE_PRICE}: the second export's files are not in the folder`);
-        await p.locator('[data-export-date]').getByText(/\(2 exports\)/).waitFor();
-        const names = (await readdir(portfolioDir)).sort();
-        expect(names.length === 4, `${CASE_PRICE}: the folder holds ${names.length} files, not 4`);
+        expect((await exists(join(folder, `${stem2}.md`))) && (await exists(join(folder, `${stem2}.csv`))), `${CASE_PRICE}: the second export's files are not in the folder`);
+        // K7b: the counts come from the API: the exports the routes counted, and the file names they replied with.
+        const exports = before + 2;
+        await p.locator('[data-export-date]').getByText(new RegExp(`\\(${exports} exports\\)`)).waitFor();
+        expect((await exportCount()) === exports, `${CASE_PRICE}: the API counts ${await exportCount()} exports, not ${exports}`);
+        const names = (await readdir(folder)).sort();
+        const wanted = [...files1, ...files2].sort();
+        expect(wanted.length > 0 && names.length === wanted.length && names.every((n, i) => n === wanted[i]), `${CASE_PRICE}: the folder holds ${names.length} files, the two replies named ${wanted.length}`);
 
         // No key SQL in the files. The learner's own passing query is allowed (the page shows it), so it is taken out first; what is left must hold
-        // no other key text (alternatives, a partial hint, planted wrong answers, another way, the CP2 and CP4 truth queries, an explanation).
+        // no other key text (the reference answer, alternatives, a partial hint, planted wrong answers, another way, the CP2 and CP4 truth queries, an explanation).
+        // K7b: the learner typed an alternative, so the reference answer is not the query that is taken out, and a leak of it would show.
         const caseKey = await readJson<{ truths: Record<string, string>; choices: Record<string, { explanation: string }> }>(join(ROOT, 'content/keys/cases', `${CASE_PRICE}.json`));
         const material = [cp3Key.reference_sql, ...cp3Key.alternatives, cp3Key.hint3_partial, ...cp3Key.planted_wrong.map((x) => x.sql), ...(cp3Key.other_way ? [cp3Key.other_way.sql] : []),
           ...Object.values(caseKey.truths), ...Object.values(caseKey.choices).map((c) => c.explanation)].map(squash).filter((t) => t.length >= 12);
-        const own = squash(cp3Key.reference_sql);
+        const own = squash(cp3Typed);
+        // Positive control: the scan flags a file that holds the reference answer.
+        expect(typedIsReference || material.some((t) => `${own} ${refSquashed}`.split(own).join(' ').includes(t)), `${CASE_PRICE}: the scan does not flag a file that holds the reference answer`);
         let sawOwn = 0;
         for (const [k, n] of names.entries()) {
-          const text = squash(await readFile(join(portfolioDir, n), 'utf8'));
+          const text = squash(await readFile(join(folder, n), 'utf8'));
           if (text.includes(own)) sawOwn++;
           const rest = text.split(own).join(' ');
           expect(!material.some((t) => rest.includes(t)), `${CASE_PRICE}: exported file ${k + 1} of ${names.length} holds key text beyond the learner's own query`);
         }
         expect(sawOwn > 0, `${CASE_PRICE}: no exported file holds the learner's passing query, so the scan proves nothing`);
         const ev = (await events(dir)).filter((e) => e.event === 'case_export');
-        expect(ev.length === 2, `${CASE_PRICE}: ${ev.length} case_export events, not 2`);
-        return `${CASE_PRICE}: the temporary folder was saved in Settings; the first export wrote ${stem}.md and .csv, the second wrote ${stem}-2.md and .csv (4 files, "(2 exports)" shown, 2 case_export events); none of the 4 files holds key text beyond the learner's own passing query (${sawOwn} of them show it, so the scan can see key text)`;
+        expect(ev.length === exports, `${CASE_PRICE}: ${ev.length} case_export events, not ${exports}`);
+        return `${CASE_PRICE}: the temporary folder was saved in Settings (found by its role and name); the first export wrote ${stem}.md and .csv, the second wrote ${stem2}.md and .csv (${names.length} files, as the replies named them; "(${exports} exports)" shown, ${ev.length} case_export events); none of the files holds key text beyond the learner's own passing query (${sawOwn} of them show it, so the scan can see key text)${typedIsReference ? '; the item has no alternative, so the typed query was the reference and a leak of it was not visible' : '; the typed query was an alternative, so the reference answer was scanned for too'}`;
       });
 
       await row('4b-3', 'Progress shows G-SQL-LEVEL-3\'s case criterion met after the export, the readiness board and the job-ready list', async () => {
+        // K7b: its own set-up: a solved case with an export (the rows before it may have failed, or this row may run alone).
+        await ensureSolved(p);
+        if ((await exportCount()) === 0) await exportInto(await mkdtemp(join(tmp, 'portfolio-4b3-')));
+        const exported = (await portfolioView()).cases.filter((c) => c.export_count > 0).length;     // K7b: the criterion's count, from the API
+        const apiProgress = (await getJson<{ board: { stages: unknown[] }; job_ready: { id?: string }[] }>('/api/progress')).body;
+        expect(exported > 0 && apiProgress.board.stages.length > 0 && apiProgress.job_ready.length > 0, 'the API reports no exported case, no stage or no job-ready row');
         await p.goto(`${BASE}/#/progress`);
         await p.locator('section.progress').waitFor();
         expect((await p.locator('nav.tabs a[href="#/progress"]').getAttribute('aria-current')) === 'page', 'the Progress tab is not current on #/progress');
         const goal = p.locator('[data-progress="goals"] li[data-goal="G-SQL-LEVEL-3"]');
         await goal.waitFor();
-        await goal.locator('[data-criterion-met="true"]').filter({ hasText: '1 case solved and exported: done' }).waitFor();
+        await goal.locator('[data-criterion-met="true"]').filter({ hasText: new RegExp(`${exported} cases? solved and exported: done`) }).waitFor();
         const board = p.locator('[data-progress="board"]');
         await board.waitFor();
         const ready = (await board.locator('p[data-ready]').innerText()).trim();
-        expect(/^Recruitment-ready when every stage test is passed: \d of 6 so far\.$/.test(ready), `the board's readiness line reads "${ready}"`);
-        for (let n = 1; n <= 6; n++) expect((await board.locator(`li[data-goal="G-STAGE-${n}"]`).count()) === 1, `the board has no row for G-STAGE-${n}`);
+        const stageCount = apiProgress.board.stages.length;
+        expect(new RegExp(`^Recruitment-ready when every stage test is passed: \\d of ${stageCount} so far\\.$`).test(ready), `the board's readiness line reads "${ready}" (the API lists ${stageCount} stages)`);
+        for (let n = 1; n <= stageCount; n++) expect((await board.locator(`li[data-goal="G-STAGE-${n}"]`).count()) === 1, `the board has no row for G-STAGE-${n}`);
         for (const n of [2, 3, 4, 5]) expect((await board.locator(`li[data-goal="G-STAGE-${n}"]`).getByText('Not yet available').count()) > 0, `G-STAGE-${n} is not marked "Not yet available"`);
         const jr = p.locator('[data-progress="job-ready"] li[data-jr]');
         const n = await jr.count();
-        expect(n === 17, `the job-ready list has ${n} rows, not 17`);
-        for (let i = 1; i <= 17; i++) {
+        const jrCount = apiProgress.job_ready.length;
+        expect(n === jrCount, `the job-ready list has ${n} rows, the API lists ${jrCount}`);
+        for (let i = 1; i <= jrCount; i++) {
           const id = `JR-${String(i).padStart(2, '0')}`;
           const st = await p.locator(`[data-progress="job-ready"] li[data-jr="${id}"]`).getAttribute('data-jr-status');
           expect(st !== null && st !== '', `${id} has no status`);
@@ -2123,12 +2216,17 @@ async function main(): Promise<number> {
         const statuses = await jr.evaluateAll((els) => els.map((e) => e.getAttribute('data-jr-status')));
         const links = await p.locator('p.progress-links a').allInnerTexts();
         expect(['Case inbox', 'Portfolio', 'Dataset explorer'].every((l) => links.includes(l)), `the Progress links are ${links.join(', ')}`);
-        return `G-SQL-LEVEL-3's case criterion reads "1 case solved and exported: done"; the board: "${ready}", stages 2 to 5 not yet available; the job-ready list has 17 rows (${[...new Set(statuses)].join(', ')}); links to the inbox, portfolio and explorer`;
+        return `G-SQL-LEVEL-3's case criterion reads "${exported} case${exported === 1 ? '' : 's'} solved and exported: done" (the API's count); the board: "${ready}", stages 2 to 5 not yet available; the job-ready list has ${jrCount} rows, as many as the API lists (${[...new Set(statuses)].join(', ')}); links to the inbox, portfolio and explorer`;
       });
 
       await row('4c-3', 'an export\'s CSV starts with the UTF-8 BOM once and holds no raw formula cell', async () => {
-        const csvs = (await readdir(portfolioDir)).filter((n) => n.endsWith('.csv')).sort();
-        expect(csvs.length === 2, `the portfolio folder holds ${csvs.length} CSV files, not 2`);
+        // K7b: its own set-up: two exports into a folder of its own, and the CSV names are the ones the routes replied with.
+        await ensureSolved(p);
+        const csvDir = await mkdtemp(join(tmp, 'portfolio-4c3-'));
+        const replied = [...await exportInto(csvDir), ...await exportInto(csvDir)];
+        const csvs = (await readdir(csvDir)).filter((n) => n.endsWith('.csv')).sort();
+        const repliedCsvs = replied.filter((n) => n.endsWith('.csv')).sort();
+        expect(csvs.length > 0 && csvs.length === repliedCsvs.length && csvs.every((n, i) => n === repliedCsvs[i]), `the folder holds ${csvs.length} CSV files, the routes named ${repliedCsvs.length}`);
         /** RFC 4180 fields: quoted fields may hold commas, quotes (doubled) and line breaks. */
         const fieldsOf = (text: string): string[] => {
           const out: string[] = [];
@@ -2155,7 +2253,7 @@ async function main(): Promise<number> {
         expect(['=1+1', '-x', '@y', '+z', '-5x'].every(isRaw) && !isRaw('-5') && !isRaw('-12.5'), 'the scan does not flag every raw formula cell, or flags a number');
         let cells = 0;
         for (const [k, n] of csvs.entries()) {
-          const bytes = await readFile(join(portfolioDir, n));
+          const bytes = await readFile(join(csvDir, n));
           expect(bytes.length > 3 && bytes[0] === 0xef && bytes[1] === 0xbb && bytes[2] === 0xbf, `CSV ${k + 1} of ${csvs.length} does not start with the bytes EF BB BF`);
           expect(!(bytes[3] === 0xef && bytes[4] === 0xbb && bytes[5] === 0xbf), `CSV ${k + 1} of ${csvs.length} starts with the BOM twice`);
           const text = bytes.toString('utf8').slice(1);
@@ -2166,7 +2264,7 @@ async function main(): Promise<number> {
           }
         }
         expect(cells > 0, 'the CSV scan read no cell, so it proves nothing');
-        return `both CSV files of the 4b-2 export start with EF BB BF once and hold no other BOM; ${cells} cells read, none starts with =, +, @, a tab or a carriage return, and none starts with a minus sign unless it is a whole number; a control CSV from the app's writer shows the guard on its three formula-like text cells, and the scan flags the raw forms`;
+        return `the ${csvs.length} CSV files of two exports made for this row start with EF BB BF once and hold no other BOM; ${cells} cells read, none starts with =, +, @, a tab or a carriage return, and none starts with a minus sign unless it is a whole number; a control CSV from the app's writer shows the guard on its three formula-like text cells, and the scan flags the raw forms`;
       });
 
       await browser.close();
@@ -2434,7 +2532,8 @@ async function main(): Promise<number> {
         await p.getByRole('link', { name: `Reading: ${title}`, exact: true }).click();
         await p.getByRole('heading', { name: title, level: 1, exact: true }).waitFor();
         await waitFor(`the ${EXP} reading exposure`, async () => (await attempts(dir)).find((r) => r.record === 'exposure' && r.concept_id === EXP && r.kind === 'reading'));
-        const n = (await attempts(dir)).filter((r) => r.record === 'exposure' && r.concept_id === EXP && r.kind === 'reading').length;
+        await p.waitForLoadState('networkidle');             // K7b: the screen's own requests are done, then the count is read until it holds still
+        const n = await settledCount(async () => (await attempts(dir)).filter((r) => r.record === 'exposure' && r.concept_id === EXP && r.kind === 'reading').length);
         expect(n === 1, `${n} reading exposures were logged for ${EXP}`);
         return `the map lists the topics Experiments, Statistics and Pricing economics; ${EXP}'s reading opened from its Reading link and logged exactly one reading exposure`;
       });
@@ -2451,11 +2550,11 @@ async function main(): Promise<number> {
         return 'G-GA4-CERT shows its named-concepts line at "0 of 12" with nothing practised';
       });
 
-      await row('5a-5', 'Settings shows version 1.3.0', async () => {
+      await row('5a-5', 'Settings shows version 1.5.0', async () => {
         await p.goto(`${BASE}/#/setup`);
         await p.getByRole('heading', { name: 'Settings and setup', level: 1 }).waitFor();
-        await p.getByText('Version 1.3.0', { exact: true }).waitFor();
-        return 'Settings and setup shows "Version 1.3.0"';
+        await p.getByText('Version 1.5.0', { exact: true }).waitFor();
+        return 'Settings and setup shows "Version 1.5.0"';
       });
 
       await row('5a-3', 'an A/B SQL item passes with its reference query', async () => {
@@ -2471,34 +2570,143 @@ async function main(): Promise<number> {
       });
 
       await row('5a-2', `a typed practice item on a new concept (${NEW_TYPED}) accepts its correct answer in the stated rounding`, async () => {
+        // K7b: the typed item is chosen by ID from the content (the first typed, answerable, not held out item of the concept), not found by serving
+        // up to twelve questions. The practice screen is asked for it: its serve request is answered with that item, and the item's own routes do the rest.
+        const names = (await readdir(join(ROOT, 'content/methodology/items'))).filter((n) => n.endsWith('.json')).sort();
         let typedItem = '';
-        for (let n = 0; n < 12 && typedItem === ''; n++) {
-          const serveP = p.waitForResponse(isServeCase);
-          if (n === 0) await p.goto(`${BASE}/#/practice/methodology/${NEW_TYPED}`);
-          else await p.getByRole('button', { name: 'Next', exact: true }).click();
-          const served = (await (await serveP).json()) as Served;
-          const it = await readJson<{ kind: string; typed?: { decimals: number } }>(join(ROOT, 'content/methodology/items', `${served.item_id}.json`));
-          const key = await readJson<{ value?: number }>(join(ROOT, 'content/keys/methodology', `${served.item_id}.json`));
-          expect(!heldOut5a.has(served.item_id), `${NEW_TYPED} practice served a held-out item`);
+        let decimals = 0;
+        let value = 0;
+        for (const n of names) {
+          const it = await readJson<{ item_id?: string; id?: string; kind: string; concept_id?: string; target_concept_id?: string; typed?: { decimals: number } }>(join(ROOT, 'content/methodology/items', n));
+          const id = it.item_id ?? it.id ?? n.slice(0, -'.json'.length);
+          if ((it.concept_id ?? it.target_concept_id) !== NEW_TYPED || it.kind !== 'typed' || !it.typed || heldOut5a.has(id)) continue;
+          const key = await readJson<{ value?: number }>(join(ROOT, 'content/keys/methodology', `${id}.json`)).catch(() => ({} as { value?: number }));
+          if (key.value === undefined) continue;
+          typedItem = id; decimals = it.typed.decimals; value = key.value;
+          break;
+        }
+        expect(typedItem !== '', `${NEW_TYPED} has no typed item with a key value that is not held out`);
+        const instance = randomUUID();
+        await p.route('**/api/serve', async (route) => {
+          await route.fulfill({ status: 200, contentType: 'application/json',
+            body: JSON.stringify({ item_id: typedItem, item_instance_id: instance, phase: 'free', block_id: null, repeat_exposure: false, hide_labels: false } satisfies Served) });
+        });
+        try {
+          await p.goto(`${BASE}/#/practice/methodology/${NEW_TYPED}`);
           await p.getByRole('heading', { name: /^Practice: /, level: 1 }).waitFor();
           const box = p.getByLabel('Your answer');
-          const radio = p.locator('fieldset input[type="radio"]').first();
-          await radio.or(box).first().waitFor();
-          if (it.kind === 'typed' && it.typed && key.value !== undefined) {
-            await box.fill(key.value.toFixed(it.typed.decimals));
-            typedItem = served.item_id;
-          } else {
-            await radio.check();
-          }
+          await box.waitFor();
+          await box.fill(value.toFixed(decimals));
           await p.getByRole('button', { name: '3: fairly sure', exact: true }).click();
           await p.locator('.grade h3').filter({ hasText: /^(Right\.|Not quite\.)$/ }).waitFor();
+        } finally {
+          await p.unroute('**/api/serve');
         }
-        expect(typedItem !== '', `no typed question came up in twelve questions of ${NEW_TYPED}`);
         expect((await p.locator('p[role="alert"]').count()) === 0, 'the typed answer drew an alert');
         expect((await p.locator('.grade h3').innerText()).trim() === 'Right.', `${typedItem}'s typed answer in the stated rounding was not graded Right.`);
         const att = await waitFor('the typed attempt', async () => (await attempts(dir)).find((r) => r.record === 'attempt' && r.item_id === typedItem));
         expect(att.outcome === 'pass' && att.item_kind === 'typed', `${typedItem}'s attempt is not logged as a passed typed attempt`);
-        return `${typedItem} (${NEW_TYPED}, typed): the key's value typed to the decimals the question states was graded Right. with no alert, and logged as a passed typed attempt`;
+        return `${typedItem} (${NEW_TYPED}, typed, chosen by ID): the key's value typed to the decimals the question states was graded Right. with no alert, and logged as a passed typed attempt`;
+      });
+
+      await browser.close();
+      browser = null;
+      await stopServer(server);
+      server = null;
+    }
+
+    // ---- hygiene rows (K7b): a SQL drill's review, and where focus goes after a half-mock's last save ----
+    // One server over an empty logs folder. Counts come from the routes' own replies. A right answer is read from content/keys/ and only typed into the page.
+    {
+      const dir = join(tmp, 'logs-hy');
+      await mkdir(dir);
+      server = await startServer(ROOT, dir);
+      browser = await chromium.launch();
+      const p = await newPage(browser, dialogs);
+      p.on('pageerror', () => { pageErrors++; });
+
+      await row('hy-1', 'a SQL drill\'s review: the strip marks each question, an unanswered question shows "Not answered" with no editor and no toolbar, an answered one keeps both', async () => {
+        const startedP = p.waitForResponse((r) => r.url().endsWith('/api/drill/start') && r.request().method() === 'POST');
+        await p.goto(`${BASE}/#/drill`);
+        await p.getByRole('heading', { name: 'Drill', level: 1, exact: true }).waitFor();
+        await p.getByRole('button', { name: 'Start drill: level 1' }).click();
+        const run = (await (await startedP).json()) as DrillStarted;
+        const total = run.servings.length;
+        await p.getByRole('heading', { name: 'Level 1 drill', level: 1, exact: true }).waitFor();
+        const nav = p.getByRole('navigation', { name: 'Questions' });
+        const panelOf = (i: number) => p.locator('.exercise').filter({ has: p.getByRole('heading', { name: `Question ${i + 1} of ${total}`, exact: true }) });
+        const writable = run.servings.flatMap((sv, i) => (keys.has(sv.item_id) && !choiceKeys.has(sv.item_id) ? [i] : []));
+        expect(writable.length >= 2, `the level 1 drill has ${writable.length} questions to write a query for, not 2 or more`);
+        // Answer one query question rightly; every other question stays unanswered.
+        const answeredAt = writable[0]!;
+        await nav.getByRole('button', { name: `Question ${answeredAt + 1}`, exact: true }).click();
+        const q = panelOf(answeredAt);
+        await q.locator('.cm-content').click();
+        await p.keyboard.press('Control+A');
+        await p.keyboard.insertText(keys.get(run.servings[answeredAt]!.item_id)!.reference_sql);
+        await p.keyboard.press('Escape');
+        await q.getByRole('button', { name: /^Submit/ }).click();
+        await q.locator('section.grade h3', { hasText: 'Correct' }).waitFor({ timeout: 30_000 });
+
+        const endedP = p.waitForResponse((r) => r.url().endsWith('/api/drill/end') && r.request().method() === 'POST');
+        await p.getByRole('button', { name: 'End the drill and see the review' }).click();
+        const ended = (await (await endedP).json()) as { items?: { item_instance_id: string; outcome: 'passed' | 'failed' | 'not_answered' }[] };
+        await p.getByRole('heading', { name: 'Level 1 drill: review', level: 1 }).waitFor();
+        expect(ended.items !== undefined && ended.items.length === total, `the end reply lists ${ended.items?.length ?? 'no'} questions for a drill of ${total}`);
+        const outcomeOf = new Map(ended.items!.map((x) => [x.item_instance_id, x.outcome]));
+        const words = { passed: 'Passed', failed: 'Not passed', not_answered: 'Not answered' } as const;
+        // The strip: every square carries its question's outcome, as the end reply gives it (the counts are the reply's, not fixed here).
+        const tally = { passed: 0, failed: 0, not_answered: 0 };
+        for (let i = 0; i < total; i++) {
+          const o = outcomeOf.get(run.servings[i]!.item_instance_id);
+          expect(o !== undefined, `the end reply has no outcome for question ${i + 1}`);
+          tally[o]++;
+          await nav.getByRole('button', { name: `Question ${i + 1}: ${words[o]}`, exact: true }).waitFor();
+        }
+        expect(outcomeOf.get(run.servings[answeredAt]!.item_instance_id) === 'passed' && tally.not_answered === total - 1, `the end reply counts ${tally.passed} passed, ${tally.failed} not passed and ${tally.not_answered} not answered`);
+        // An unanswered query question: the line, no editor, no toolbar.
+        const unansweredAt = writable.find((i) => outcomeOf.get(run.servings[i]!.item_instance_id) === 'not_answered')!;
+        await nav.getByRole('button', { name: `Question ${unansweredAt + 1}: Not answered`, exact: true }).click();
+        const un = panelOf(unansweredAt);
+        await un.getByText('Not answered', { exact: true }).waitFor();
+        expect((await un.locator('.toolbar').count()) === 0, `question ${unansweredAt + 1}: an unanswered question still shows the toolbar`);
+        expect(!(await un.locator('.cm-content').first().isVisible()), `question ${unansweredAt + 1}: an unanswered question still shows an editor`);
+        // The answered one keeps its editor and toolbar.
+        await nav.getByRole('button', { name: `Question ${answeredAt + 1}: Passed`, exact: true }).click();
+        const an = panelOf(answeredAt);
+        await an.locator('.toolbar').waitFor();
+        expect(await an.locator('.cm-content').first().isVisible(), `question ${answeredAt + 1}: the answered question shows no editor`);
+        expect((await an.getByText('Not answered', { exact: true }).count()) === 0, `question ${answeredAt + 1}: the answered question says "Not answered"`);
+        return `a level 1 drill of ${total} questions with one query question answered rightly: the review's strip names ${tally.passed} passed, ${tally.failed} not passed and ${tally.not_answered} not answered, as the end reply gives them; the unanswered question ${unansweredAt + 1} shows "Not answered" with no toolbar and no visible editor; question ${answeredAt + 1} keeps both`;
+      });
+
+      await row('hy-2', 'a half-mock: after each saved answer focus is on "Next question", and after the last one it is on "End now"', async () => {
+        const startedP = p.waitForResponse((r) => r.url().endsWith('/api/run/start') && r.request().method() === 'POST');
+        await p.goto(`${BASE}/#/ga4/run`);
+        await p.getByRole('heading', { name: 'GA4 timed runs', level: 1 }).waitFor();
+        await p.getByRole('button', { name: 'Start a half-mock', exact: true }).click();
+        const run = (await (await startedP).json()) as RunStarted;
+        const total = run.servings.length;
+        expect(run.mode === 'exam' && total > 1, `the half-mock has mode ${run.mode} and ${total} questions`);
+        const focused = () => p.evaluate(() => { const e = document.activeElement; return e ? `${e.tagName}:${(e.textContent ?? '').trim()}:${e.closest('[role="group"]') ? 'group' : 'page'}` : ''; });
+        for (let i = 0; i < total; i++) {
+          await p.getByRole('heading', { name: `Question ${i + 1} of ${total}`, level: 2 }).waitFor();
+          const panel = p.locator('section.choice:visible');
+          const box = panel.getByLabel('Your answer');
+          const radios = panel.locator('input[type="radio"]');
+          await radios.first().or(box).first().waitFor();
+          if ((await box.count()) > 0) await box.fill('10'); else await radios.first().check();
+          await panel.getByRole('button', { name: 'Save answer', exact: true }).click();
+          await panel.getByText('Answer saved. A half-mock takes one answer per question.').waitFor();
+          const wantFocus = i < total - 1 ? 'BUTTON:Next question:page' : 'BUTTON:End now:page';
+          await waitFor(`focus on ${wantFocus} after question ${i + 1}`, async () => ((await focused()) === wantFocus ? true : null), 5_000);
+          if (i < total - 1) await p.getByRole('button', { name: 'Next question', exact: true }).click();
+        }
+        // Leave the run ended, so the server stops with nothing open.
+        await p.getByRole('button', { name: 'End now', exact: true }).click();
+        await p.getByRole('group', { name: 'End the run' }).getByRole('button', { name: 'End now', exact: true }).click();
+        await p.getByRole('heading', { name: 'GA4 half-mock: review', level: 1 }).waitFor();
+        return `a half-mock of ${total} questions, each answer saved: focus moved to "Next question" after each of the first ${total - 1} and to "End now" after the last`;
       });
 
       await browser.close();
@@ -2689,6 +2897,435 @@ async function main(): Promise<number> {
       await stopServer(server);
       server = null;
     }
+
+    // ---- sprint 6 rows (Task F1, Part 1): level 4 lessons and items, a raw-data item, a data-quality case, the cumulative drill, deep nesting ----
+    // One server over an empty logs folder. A row that grades checks that a grade comes back and shows, never that a value is right: the
+    // learner queries and answers typed here are written for this test, and nothing is read from content/keys/ or data/truth/.
+    {
+      const dir = join(tmp, 'logs-6a');
+      await mkdir(dir);
+      server = await startServer(ROOT, dir);
+      browser = await chromium.launch();
+      const p = await newPage(browser, dialogs);
+      p.on('pageerror', () => { pageErrors++; });
+      const feedback6a = await readJson<Record<string, { assumed: string; why: string; model: string }>>(join(ROOT, 'content/sql/error-feedback.json'));
+      const SUBQ = 'SQL-SUBQ-01';
+      const SEM = 'ERR-SEM-05';
+      const CLEAN_ITEM = 'EX-SQL-CLEAN-01-E1-02';
+      const DQ = 'CASE-DQ-01';
+
+      await row('6a-1', `a ${SUBQ} lesson opens; a pretest item grades; a scalar-subquery starter fails with ${SEM}'s feedback`, async () => {
+        const lesson = await readJson<Lesson>(join(ROOT, `content/sql/lessons/${SUBQ}.json`));
+        await p.goto(`${BASE}/#/lesson/${SUBQ}`);
+        await p.getByRole('heading', { name: title(SUBQ), level: 1, exact: true }).waitFor();
+        await p.getByRole('navigation', { name: 'Lesson steps' }).waitFor();
+        await p.getByRole('button', { name: 'Start the pretest' }).click();
+        await p.getByText('Question 1 of 2.').waitFor();
+        await p.locator('.cm-content').waitFor();
+        await replaceSql(p, NOT_IT);
+        await submit(p);
+        await outcome(p, 'Not yet');
+        const first = lesson.pretest_item_ids[0]!;
+        const graded = await waitFor('the pretest attempt', async () => (await attempts(dir)).find((r) => r.record === 'attempt' && r.item_id === first && r.phase === 'pretest'));
+        const fixId = 'EX-SQL-SUBQ-01-E1-31';
+        const fix = await readJson<SqlItem & { starter_sql: string; starter_error_id: string }>(join(ROOT, 'content/sql/items', `${fixId}.json`));
+        expect(fix.kind === 'fix' && fix.starter_error_id === SEM, `${fixId} is not a fix item with the ${SEM} starter`);
+        await openItem(p, fixId);
+        await waitFor('the starter in the editor', async () => squash(await editorText(p)) === squash(fix.starter_sql));
+        await submit(p);
+        await outcome(p, 'The query has an error');       // the starter's subquery returns more than one row, so the run itself fails
+        const grade = p.locator('section.grade');
+        const parts = await grade.locator('.diagnosis p').allInnerTexts();
+        const shownId = (await grade.locator('.diagnosis p.muted').innerText()).trim();
+        const fb = feedback6a[SEM]!;
+        expect(shownId === SEM, `the starter's diagnosis is ${shownId}`);
+        const shownText = (t: string) => squash(t.replace(/`/g, '').replace(/(\d+) (\w+)\(s\)/g, (_m, n: string, w: string) => `${n} ${w}${n === '1' ? '' : 's'}`));
+        expect(squash(parts[0] ?? '') === shownText(fb.assumed) && squash(parts[1] ?? '') === shownText(fb.why) && squash(parts[2] ?? '') === shownText(`Try: ${fb.model}`),
+          `the starter's feedback is not the catalogue text of ${SEM}`);
+        return `${SUBQ} opened with its step bar; pretest item ${first} was graded (Not yet, logged phase ${String(graded.phase)}); the starter of ${fixId} graded "The query has an error" with ${SEM} and its assumed, why and "Try:" text`;
+      });
+
+      await row('6a-2', `a SQL-CLEAN-01 item (${CLEAN_ITEM}) shows the raw schema panel with "This table may hold errors." and passes with an unqualified query (its reference)`, async () => {
+        await openItem(p, CLEAN_ITEM);
+        const panel = p.locator('aside[aria-label="Tables"]');
+        await panel.waitFor();
+        await panel.getByText('This table may hold errors.').first().waitFor();
+        const unqualified = reference(CLEAN_ITEM);   // the item's own reference, read at run time like the other rows; it names no schema
+        expect(!/voltmarkt_raw\s*\./i.test(unqualified), 'the query names a schema');
+        await replaceSql(p, unqualified);
+        await submit(p);
+        await outcome(p, 'Correct');
+        const att = await waitFor('the attempt', async () => (await attempts(dir)).find((r) => r.record === 'attempt' && r.item_id === CLEAN_ITEM));
+        expect(att.outcome === 'pass', `${CLEAN_ITEM}'s attempt is logged as ${String(att.outcome)}, not pass`);
+        return `${CLEAN_ITEM}: the schema panel shows "This table may hold errors."; its unqualified reference query was graded Correct and logged as a pass`;
+      });
+
+      await row('6a-3', `the inbox lists ${DQ}; its CP2 grades; its case screen shows seven rubric ticks after CP6`, async () => {
+        await p.goto(`${BASE}/#/inbox`);
+        const entry = p.locator(`.inbox-list li[data-case="${DQ}"]`);
+        await entry.waitFor();
+        const dq = await casePublic(DQ);
+        await entry.getByRole('link', { name: dq.title }).click();
+        await p.locator('.case-status').waitFor();
+        await stripBtn(p, 'CP2').click();
+        const step = caseAs(p, 'CP2');
+        await step.getByLabel('Your answer').fill('1');
+        await step.getByRole('button', { name: 'Check', exact: true }).click();
+        await step.getByRole('button', { name: '3: fairly sure', exact: true }).click();
+        await step.locator('.grade h3').filter({ hasText: /^(Right\.|Not quite\.)$/ }).waitFor();
+        await stripBtn(p, 'CP6').click();
+        const cp6 = caseAs(p, 'CP6');
+        await cp6.getByLabel('Your insight').fill('The copies inflate the counts, so report them with the copies removed.');
+        await cp6.getByRole('button', { name: 'Save the insight' }).click();
+        await cp6.locator('.case-model h3', { hasText: 'The model answer' }).waitFor();
+        const ticks = await cp6.locator('.case-ticks input[type="checkbox"]').count();
+        expect(ticks === 7, `${DQ}'s CP6 rubric shows ${ticks} ticks, not 7`);
+        const labels = (await cp6.locator('.case-ticks label').allInnerTexts()).map((t) => t.trim());
+        expect(labels.some((t) => /grain comment on every CTE/i.test(t)) && labels.some((t) => /reconciliation check/i.test(t)), `${DQ}'s rubric lacks the two CRAFT-01 habits`);
+        return `${DQ} is in the inbox (level ${dq.level}); its CP2 answer was graded and shown; after CP6's insight the rubric shows 7 ticks, the last two being the grain comment and the reconciliation check`;
+      });
+
+      await row('6a-4', 'the cumulative drill starts with 12 questions in screen mode; ending it lists "Cumulative" in the history, not as a level run', async () => {
+        await p.goto(`${BASE}/#/drill`);
+        await p.getByRole('heading', { name: 'Drill', level: 1, exact: true }).waitFor();
+        const startedP = p.waitForResponse((r) => r.url().endsWith('/api/drill/cumulative/start') && r.request().method() === 'POST');
+        await p.getByTestId('cumulative-start').click();
+        const started = await startedP;
+        expect(started.status() === 200, `the cumulative start answered ${started.status()}`);
+        const run = (await started.json()) as DrillStarted;
+        expect(run.kind === 'cumulative' && run.questions === 12 && run.servings.length === 12 && run.screen_mode === true && run.block_id.startsWith('cum-'),
+          `the run: kind ${run.kind}, ${run.questions} questions, ${run.servings.length} served, screen_mode ${String(run.screen_mode)}`);
+        await p.getByRole('heading', { name: 'Cumulative drill (screen mode)', level: 1 }).waitFor();
+        await p.getByRole('button', { name: 'End the drill and see the review' }).click();
+        await p.getByRole('heading', { name: 'Cumulative drill: review', level: 1 }).waitFor();
+        const hist = (await getJson<{ runs: DrillHistoryRow[] }>('/api/drill/history')).body.runs.filter((r) => r.block_id === run.block_id);
+        expect(hist.length === 1 && hist[0]!.kind === 'cumulative' && hist[0]!.level === null, `the history lists the run as ${JSON.stringify(hist.map((h) => [h.kind, h.level]))}`);
+        const levelRuns = (await getJson<{ runs: DrillHistoryRow[] }>('/api/drill/history?level=1')).body.runs;
+        expect(!levelRuns.some((r) => r.block_id === run.block_id), 'the cumulative run is in a level\'s history');
+        await p.getByRole('button', { name: 'Back to drills' }).click();
+        const rowText = await p.locator('table.history-table tbody tr', { hasText: 'Cumulative' }).first().innerText();
+        expect(/Cumulative drill/.test(rowText) && !/Level \d/.test(rowText), `the history row reads "${squash(rowText).slice(0, 60)}"`);
+        return 'the cumulative drill started with 12 questions in screen mode (block_id starting cum-); ended at once, its review opened and the history lists it as "Cumulative drill", not as a level run';
+      });
+
+      await row('6a-5', 'a query nested 41 deep in the explorer shows S6-08\'s message', async () => {
+        const deep = `SELECT * FROM ${'('.repeat(41)}SELECT 1 AS n${')'.repeat(41)}`;
+        await p.goto(`${BASE}/#/explore`);
+        await p.getByRole('heading', { name: 'Dataset explorer', level: 1 }).waitFor();
+        await p.locator('[data-explore-editor] .cm-content').waitFor();
+        await replaceSql(p, deep);
+        await p.getByRole('button', { name: 'Run', exact: true }).click();
+        await p.locator('[data-explore-error]').waitFor();
+        const msg = (await p.locator('[data-explore-error]').innerText()).trim();
+        expect(msg.includes('Too many nested brackets. Name the steps with WITH instead.'), `the explorer shows "${msg.slice(0, 80)}"`);
+        return 'a query with 41 nested brackets was refused in the explorer with "Too many nested brackets. Name the steps with WITH instead."';
+      });
+
+      await browser.close();
+      browser = null;
+      await stopServer(server);
+      server = null;
+    }
+
+    // ---- sprint 6 Part 2 rows (Task F3): the Mailvora cases, an unavailable real-data case, the explorer's picker and card, a flagship draft ----
+    // 6b-1 runs on this app over an empty logs folder: every build holds Mailvora. 6b-2 to 6b-4 run on a temporary copy of the app (as row 13's), so
+    // they pass whether this tree has the real datasets prepared or not. For 6b-2 and 6b-3 the copy's data/truth/checkpoints.json is the real file
+    // with online_retail_ii taken out of its schemas list (S6-13's builtSchemas), so CASE-REAL-01 is unavailable and Online Retail II waits to be
+    // prepared, the one state in which a registry card shows its prep command. For 6b-4 the list names online_retail_ii, and when the copied
+    // database lacks that schema, the copy's database gets a small fixture and its manifest the file's new hash. As in 6a, a row that grades checks
+    // that a grade comes back and shows, never that a value is right: the queries typed here are written for this test, and nothing is read from
+    // content/keys/ or data/truth/ beyond checkpoints.json's schemas list, which is copied and never printed.
+    const ORII = 'online_retail_ii';
+    const REAL_CASE = 'CASE-REAL-01';
+    const PREP = 'npm run prep:datasets -- --from <your downloads folder>';   // S6-13's command, in the line and in a card's command
+    interface RegistryRecord {
+      id: string; name: string; real: boolean; label: string; source_url: string;
+      licence: { name: string; terms: string; url: string | null }; schemas: { name: string; title: string }[];
+    }
+    const registry = (await readJson<{ datasets: RegistryRecord[] }>(join(ROOT, 'content/datasets/registry.json'))).datasets;
+    const oriiRecord = (): RegistryRecord => {
+      const r = registry.find((d) => d.schemas.some((s) => s.name === ORII));
+      if (!r || !r.real) throw new Error(`content/datasets/registry.json has no real dataset with the schema ${ORII}`);
+      return r;
+    };
+    /** Picks a schema in the explorer's picker and waits until its card shows and the editor holds its starter query (its first table). */
+    async function chooseDataset(q: Page, schema: string, datasetId: string): Promise<void> {
+      const first = (await getJson<ExploreView>('/api/explore')).body.notes.find((n) => n.schema === schema);
+      const starter = first ? `SELECT * FROM ${first.table} LIMIT 10` : 'SELECT 1 AS one';
+      await q.locator('[data-dataset-picker]').selectOption(schema);
+      await q.locator(`.explore-main [data-dataset-card="${datasetId}"]`).waitFor();
+      await waitFor(`the editor to start on ${schema}`, async () => squash(await editorText(q)) === starter);
+    }
+
+    {
+      const dir = join(tmp, 'logs-6b-1');
+      await mkdir(dir);
+      server = await startServer(ROOT, dir);
+      browser = await chromium.launch();
+      const p = await newPage(browser, dialogs);
+      p.on('pageerror', () => { pageErrors++; });
+      const MKT = ['CASE-MKT-01', 'CASE-MKT-02', 'CASE-MKT-03', 'CASE-MKT-04'];
+      // CASE-MKT-01's output columns with made-up values (no spend anywhere): it runs on Mailvora's channels table and grades "Not yet".
+      const MKT_QUERY = 'SELECT channel_id, channel_name, 0.0 AS spend_eur, 0 AS clicks, CAST(NULL AS DOUBLE) AS cpc_eur FROM channels ORDER BY channel_id';
+
+      await row('6b-1', `the inbox lists ${MKT[0]} to -04; ${MKT[0]}'s CP3 grades on Mailvora`, async () => {
+        await p.goto(`${BASE}/#/inbox`);
+        for (const id of MKT) {
+          const entry = p.locator(`.inbox-list li[data-case="${id}"]`);
+          await entry.waitFor();
+          expect((await entry.locator('[data-unavailable]').count()) === 0, `${id} is listed as unavailable`);
+        }
+        const mkt = await casePublic(MKT[0]!);
+        const cp3Item = mkt.checkpoints.find((c) => c.kind === 'CP3')?.item_id;
+        const itemSchema = cp3Item ? (await item(cp3Item)).schema : undefined;
+        expect(cp3Item !== undefined && itemSchema === 'mailvora', `${MKT[0]}'s CP3 item reads ${String(itemSchema)}, not mailvora`);
+        await p.locator(`.inbox-list li[data-case="${MKT[0]}"]`).getByRole('link', { name: mkt.title }).click();
+        await p.locator('.case-status').waitFor();
+        await stripBtn(p, 'CP3').click();
+        const served = p.waitForResponse(isServeCase);
+        await caseAs(p, 'CP3').locator('[data-serve="CP3"]').click();
+        const sv = (await (await served).json()) as Served;
+        expect(sv.phase === 'case' && sv.item_id === cp3Item, `${MKT[0]}: CP3 was served in phase ${sv.phase} as ${sv.item_id}`);
+        await caseAs(p, 'CP3').locator('.cm-content').waitFor();
+        await replaceSql(p, MKT_QUERY);
+        await submit(p);
+        await outcome(p, 'Not yet');
+        const att = await waitFor('the CP3 attempt', async () => (await attempts(dir)).find((r) => r.record === 'attempt' && r.item_id === cp3Item));
+        const ran = (att.payload?.per_dataset ?? []).map((d) => d.schema);
+        expect(att.phase === 'case' && ran[0] === 'mailvora', `${cp3Item}'s attempt: phase ${String(att.phase)}, graded on ${ran.join(', ') || 'no dataset'}`);
+        return `${MKT.join(', ')} are in the inbox, none marked unavailable; ${MKT[0]}'s CP3 (${cp3Item}) was served in phase case, a query on Mailvora's channels table graded "Not yet", and the attempt was graded on ${ran.join(' and ')}`;
+      });
+
+      await browser.close();
+      browser = null;
+      await stopServer(server);
+      server = null;
+    }
+
+    {
+      const copy = join(tmp, 'app-6b');
+      let made = false;
+      let state6b: 'without' | 'with' | null = null;     // the schemas list the running copy server was started on
+      let q6b: Page | null = null;
+      let logs6b = '';
+      let fixtureRows: number | null = null;            // 6b-4: rows of the fixture added to the copy's database, null when it held the schema
+      /** The copy, made once as row 13 makes its own: the app's code and content, web/dist, the data files the server reads, and a junction to node_modules. */
+      async function makeCopy(): Promise<void> {
+        if (made) return;
+        appCopy6b = copy;
+        for (const d of ['server', 'core', 'schemas', 'content']) await cp(join(ROOT, d), join(copy, d), { recursive: true });
+        await cp(join(ROOT, 'web/dist'), join(copy, 'web/dist'), { recursive: true });
+        await mkdir(join(copy, 'data/truth'), { recursive: true });
+        for (const f of ['course.duckdb', 'manifest.json', 'schema-notes.json']) await cp(join(ROOT, 'data', f), join(copy, 'data', f));
+        await cp(join(ROOT, 'package.json'), join(copy, 'package.json'));
+        await unlink(join(copy, 'node_modules')).catch(() => {});      // a junction left by an earlier, failed attempt
+        await symlink(join(ROOT, 'node_modules'), join(copy, 'node_modules'), 'junction');
+        made = true;
+      }
+      /** The copy's data/truth/checkpoints.json: the real file, with its schemas list edited. */
+      async function listInCopy(edit: (names: string[]) => string[]): Promise<void> {
+        const built = JSON.parse(await readFile(join(ROOT, 'data/truth/checkpoints.json'), 'utf8')) as { schemas?: unknown };
+        expect(Array.isArray(built.schemas), 'data/truth/checkpoints.json names no schemas (an older build): run npm run build:data');
+        const names = edit((built.schemas as unknown[]).filter((s): s is string => typeof s === 'string'));
+        await writeFile(join(copy, 'data/truth/checkpoints.json'), JSON.stringify({ ...built, schemas: names }));
+      }
+      /**
+       * 6b-4: online_retail_ii in the copy's database. When the copied database lacks it, a fixture: invoice_lines with the real table's columns and
+       * types (from data/schema-notes.json when the tree's notes have the table; a tree without the dataset has no note, so the same columns are
+       * listed here) and rows written for this test, then the copy's manifest takes the file's new hash ("database matches manifest"). Never the
+       * tree's own database. R17: no extension is installed or loaded, and TimeZone is set after opening.
+       */
+      async function ensureOrii(): Promise<number | null> {
+        const db = join(copy, 'data/course.duckdb');
+        const open = async (readOnly: boolean) => {
+          const inst = await DuckDBInstance.create(db, { autoinstall_known_extensions: 'false', autoload_known_extensions: 'false', ...(readOnly ? { access_mode: 'READ_ONLY' } : {}) });
+          const c = await inst.connect();
+          await c.run("SET TimeZone = 'UTC'");
+          return { inst, c };
+        };
+        const ro = await open(true);
+        const held = Number((await ro.c.runAndReadAll(`SELECT count(*) FROM duckdb_schemas() WHERE schema_name = '${ORII}'`)).getRows()[0]![0]) > 0;
+        ro.c.disconnectSync();
+        ro.inst.closeSync();
+        if (held) return null;
+        const note = (await readJson<{ schema: string; table: string; column_types?: Record<string, string> }[]>(join(ROOT, 'data/schema-notes.json')))
+          .find((n) => n.schema === ORII && n.table === 'invoice_lines');
+        const types = note?.column_types ?? { invoice: 'VARCHAR', stock_code: 'VARCHAR', description: 'VARCHAR', quantity: 'INTEGER', invoice_date: 'TIMESTAMP',
+          price: 'DOUBLE', customer_id: 'INTEGER', country: 'VARCHAR' };
+        const rows = [
+          "('900001', 'TST-01', 'TEST MUG', 6, TIMESTAMP '2010-03-01 10:00:00', 2.5, 90001, 'Netherlands')",
+          "('900001', 'TST-02', 'TEST PLATE', 2, TIMESTAMP '2010-03-01 10:00:00', 4.0, 90001, 'Netherlands')",
+          "('900002', 'TST-01', 'TEST MUG', 12, TIMESTAMP '2010-03-02 11:30:00', 2.5, 90002, 'Belgium')",
+          "('C900003', 'TST-01', 'TEST MUG', -1, TIMESTAMP '2010-03-03 09:15:00', 2.5, 90002, 'Belgium')",
+          "('900004', 'POST', 'POSTAGE', 1, TIMESTAMP '2010-03-04 14:00:00', 18.0, NULL, 'Germany')",
+        ];
+        const rw = await open(false);
+        await rw.c.run(`CREATE SCHEMA ${ORII}`);
+        await rw.c.run(`CREATE TABLE ${ORII}.invoice_lines (${Object.entries(types).map(([name, type]) => `"${name}" ${type}`).join(', ')})`);
+        await rw.c.run(`INSERT INTO ${ORII}.invoice_lines (invoice, stock_code, description, quantity, invoice_date, price, customer_id, country) VALUES ${rows.join(', ')}`);
+        await rw.c.run('CHECKPOINT');
+        rw.c.disconnectSync();
+        rw.inst.closeSync();
+        const manifestPath = join(copy, 'data/manifest.json');
+        const manifest = JSON.parse(await readFile(manifestPath, 'utf8')) as Record<string, unknown>;
+        await writeFile(manifestPath, JSON.stringify({ ...manifest, file_sha256: await sha(db) }, null, 2));
+        return rows.length;
+      }
+      /** The copy's server on the list `state` asks for, with a page; a server already running on that list is used again. */
+      async function copyServer(state: 'without' | 'with'): Promise<{ q: Page; logs: string }> {
+        if (state6b === state && server && browser && q6b) return { q: q6b, logs: logs6b };
+        await release();
+        state6b = null;
+        await makeCopy();
+        await listInCopy((names) => (state === 'with' ? [...new Set([...names, ORII])].sort() : names.filter((n) => n !== ORII)));
+        if (state === 'with') fixtureRows = await ensureOrii();
+        logs6b = await mkdtemp(join(tmp, `logs-6b-${state}-`));
+        const s = await startServer(copy, logs6b);
+        server = s;
+        if (s.banner.includes('setup mode')) throw new Error(`the copy started in setup mode: ${squash(s.output.join(' ')).slice(0, 200)}`);
+        browser = await chromium.launch();
+        q6b = await newPage(browser, dialogs);
+        q6b.on('pageerror', () => { pageErrors++; });
+        state6b = state;
+        return { q: q6b, logs: logs6b };
+      }
+
+      await row('6b-2', `with Online Retail II not prepared (a copy of the app), the inbox lists ${REAL_CASE} with S6-13's line and the prep command; its routes answer 409 with that line; Today does not offer it`, async () => {
+        const { q, logs } = await copyServer('without');
+        const list = (await getJson<{ case_id: string; unavailable: string | null }[]>('/api/cases')).body;
+        const line = list.find((c) => c.case_id === REAL_CASE)?.unavailable ?? null;
+        expect(line !== null, `GET /api/cases lists ${REAL_CASE} as available`);
+        expect(line.startsWith('This case needs ') && line.includes('Online Retail II') && line.endsWith(`Run \`${PREP}\`, then start the app again.`), `${REAL_CASE}'s line reads "${line}"`);
+        const blocked = list.filter((c) => c.unavailable !== null).map((c) => c.case_id);
+
+        await q.goto(`${BASE}/#/inbox`);
+        const notice = q.locator(`.inbox-list li[data-case="${REAL_CASE}"] [data-unavailable]`);
+        await notice.waitFor();
+        const shown = squash(await notice.innerText());
+        const code = (await notice.locator('code').allInnerTexts()).map((t) => t.trim());
+        expect(shown === squash(line.replace(/`/g, '')) && code.includes(PREP), `the inbox shows "${shown}"${code.includes(PREP) ? '' : ', with no command as code'}`);
+
+        // Every route of the case, as the case screen, Today's serve and the portfolio call them: 409 with the same line, before anything is logged.
+        const routes: [string, () => Promise<{ status: number; body: { error?: string } }>][] = [
+          ['GET /api/cases/:id', () => getJson(`/api/cases/${REAL_CASE}`)],
+          ['CP1 serve', () => postJson(`/api/cases/${REAL_CASE}/checkpoints/CP1/serve`, {})],
+          ['CP2 answer', () => postJson(`/api/cases/${REAL_CASE}/checkpoints/CP2/answer`, {})],
+          ['CP3 serve (/api/serve purpose case)', () => postJson('/api/serve', { section: 'sql', purpose: 'case', case_id: REAL_CASE })],
+          ['plan', () => postJson(`/api/cases/${REAL_CASE}/plan`, {})],
+          ['plan-check', () => postJson(`/api/cases/${REAL_CASE}/plan-check`, {})],
+          ['insight', () => postJson(`/api/cases/${REAL_CASE}/insight`, { text: 'An insight written for this test.' })],
+          ['rubric', () => postJson(`/api/cases/${REAL_CASE}/rubric`, {})],
+          ['export', () => postJson(`/api/cases/${REAL_CASE}/export`, {})],
+        ];
+        const otherwise: string[] = [];
+        for (const [name, call] of routes) {
+          const r = await call();
+          if (r.status !== 409 || r.body.error !== line) otherwise.push(`${name} (${r.status})`);
+        }
+        expect(otherwise.length === 0, `these did not answer 409 with the line: ${otherwise.join(', ')}`);
+        await q.goto(`${BASE}/#/case/${REAL_CASE}`);
+        const alert = squash(await q.locator('section.case p[role="alert"]').innerText());
+        expect(alert.startsWith('This case needs ') && alert.includes('Online Retail II'), `the case screen shows "${alert.slice(0, 80)}"`);
+        const named = (await attempts(logs)).filter((r) => r.case_id === REAL_CASE || String(r.item_id ?? '').includes(REAL_CASE));
+        expect(named.length === 0, `${named.length} records name ${REAL_CASE}`);
+
+        // Today: CASE-REAL-01 is an inbox case, so Today offers it in no state; the plan and the screen are checked all the same (S6-13).
+        const plan = (await getJson<TodayView>('/api/today?section=sql')).body.plan;
+        expect(!JSON.stringify(plan).includes(REAL_CASE), 'Today\'s SQL plan names the case');
+        const offered = plan.steps.map((s) => (s as unknown as { case_id?: unknown }).case_id).filter((c): c is string => typeof c === 'string');
+        await q.goto(`${BASE}/#/`);
+        await q.getByRole('heading', { name: 'Today', level: 1 }).waitFor();
+        await q.locator('ol.today-steps > li').first().waitFor();
+        expect((await q.locator(`a[href*="${REAL_CASE}"]`).count()) === 0, 'Today links to the case');
+        return `the copy's list leaves out ${ORII}; GET /api/cases marks ${blocked.join(', ')} unavailable; the inbox shows ${REAL_CASE}'s line naming Online Retail II with "${PREP}" as code; ${routes.length} routes (${routes.map((r) => r[0]).join(', ')}) answered 409 with that line, the case screen shows it and nothing names the case in the log; Today's SQL plan (${plan.steps.length} steps, case steps: ${offered.join(', ') || 'none'}) and screen do not offer it`;
+      });
+
+      await row('6b-3', 'the explorer\'s picker shows Mailvora and its raw schema; a query on mailvora runs; a registry card shows a real dataset\'s label, licence and prep command', async () => {
+        const { q } = await copyServer('without');                 // Online Retail II is not prepared here, so its card carries the prep command
+        const orii = oriiRecord();
+        await q.goto(`${BASE}/#/explore`);
+        await q.getByRole('heading', { name: 'Dataset explorer', level: 1 }).waitFor();
+        await q.locator('[data-explore-editor] .cm-content').waitFor();
+        const options = (group: string) => q.locator(`[data-dataset-picker] optgroup[label="${group}"] option`)
+          .evaluateAll((os) => os.map((o) => ({ value: (o as HTMLOptionElement).value, text: (o.textContent ?? '').trim(), disabled: (o as HTMLOptionElement).disabled })));
+        const companies = await options('Fictional companies');
+        const has = (value: string, text: string) => companies.some((o) => o.value === value && o.text === text && !o.disabled);
+        expect(has('mailvora', 'Mailvora') && has('mailvora_raw', 'Mailvora raw data'), `the picker's companies: ${companies.map((o) => o.text).join(', ')}`);
+        const real = await options('Real datasets');
+        expect(real.some((o) => o.text === `${orii.name} (not prepared)` && o.disabled), `the picker's real datasets: ${real.map((o) => o.text).join(', ')}`);
+
+        await chooseDataset(q, 'mailvora', 'mailvora');
+        const chosen = q.locator('.explore-main [data-dataset-card="mailvora"]');
+        const chosenText = squash(await chosen.innerText());
+        expect(chosenText.includes('Fictional, generated data: Mailvora') && chosenText.includes('write mailvora_raw. before a table name.'), `the Mailvora card reads "${chosenText.slice(0, 120)}"`);
+        await replaceSql(q, 'SELECT channel_group, count(*) AS channels FROM channels GROUP BY channel_group ORDER BY channel_group');
+        const ran = q.waitForResponse((r) => r.url().endsWith('/api/explore/run') && r.request().method() === 'POST');
+        await q.getByRole('button', { name: 'Run', exact: true }).click();
+        const sent = (await ran).request().postDataJSON() as { schema?: unknown };
+        expect(sent.schema === 'mailvora', `the run was sent on ${String(sent.schema)}`);
+        await resultTable(q).waitFor();
+        expect((await q.locator('[data-explore-error]').count()) === 0, 'the run drew an error');
+        const rowsLine = (await resultTable(q).innerText()).trim();
+
+        const card = q.locator(`section[aria-labelledby="explore-to-prepare"] [data-dataset-card="${orii.id}"]`);
+        await card.waitFor();
+        const cardText = squash(await card.innerText());
+        const command = (await card.locator('code').innerText()).trim();
+        expect(cardText.includes(squash(orii.label)), `${orii.name}'s card does not show its label`);
+        expect(cardText.includes(squash(`Licence: ${orii.licence.name}. ${orii.licence.terms}`)), `${orii.name}'s card does not show its licence`);
+        expect(command === `${PREP} --only ${orii.id}`, `${orii.name}'s card shows the command "${command}"`);
+        return `the picker lists Mailvora and Mailvora raw data under Fictional companies and "${orii.name} (not prepared)" under Real datasets; with mailvora chosen its card names the raw schema, and a query on channels ran on mailvora ("${rowsLine}"); under "Datasets to prepare" ${orii.name}'s card shows its label, "Licence: ${orii.licence.name}." and the command "${command}"`;
+      });
+
+      await row('6b-4', 'with Online Retail II prepared in a copy of the app (a fixture when its database lacks it), "Save as a flagship draft" writes the .md and the .csv into a temporary portfolio folder; the page holds the data label and licence', async () => {
+        const { q, logs } = await copyServer('with');
+        const orii = oriiRecord();
+        const folder = await mkdtemp(join(tmp, 'portfolio-6b4-'));
+        const set = await postJson<unknown>('/api/settings', { key: 'portfolio_folder', value: folder });
+        expect(set.status === 200, `the portfolio folder setting answered ${set.status}`);
+        await q.goto(`${BASE}/#/explore`);
+        await q.getByRole('heading', { name: 'Dataset explorer', level: 1 }).waitFor();
+        await q.locator('[data-explore-editor] .cm-content').waitFor();
+        await chooseDataset(q, ORII, orii.id);
+        const cardText = squash(await q.locator(`.explore-main [data-dataset-card="${orii.id}"]`).innerText());
+        expect(cardText.includes(squash(orii.label)) && cardText.includes(`Licence: ${orii.licence.name}.`), `${orii.name}'s card reads "${cardText.slice(0, 120)}"`);
+        const query = 'SELECT country, count(*) AS n_lines FROM invoice_lines GROUP BY country ORDER BY n_lines DESC, country';
+        await replaceSql(q, query);
+        await q.getByRole('button', { name: 'Run', exact: true }).click();
+        await resultTable(q).waitFor();
+
+        const before = { attempts: (await attempts(logs)).length, events: (await events(logs)).length };
+        const day = amsterdamDate(new Date());
+        const replied = q.waitForResponse((r) => r.url().endsWith('/api/explore/flagship') && r.request().method() === 'POST');
+        await q.getByRole('button', { name: 'Save as a flagship draft', exact: true }).click();
+        const res = await replied;
+        const reply = (await res.json()) as { files?: string[]; rows?: number; error?: string };
+        expect(res.status() === 200 && Array.isArray(reply.files), `the flagship draft answered ${res.status()}: ${reply.error ?? ''}`);
+        const notice = (await q.locator('[data-flagship-notice]').innerText()).trim();
+        const m = /^Saved (online_retail_ii-flagship-(\d{4}-\d{2}-\d{2}))\.md and \1\.csv in /.exec(notice);
+        expect(m !== null && (m[2] === day || m[2] === amsterdamDate(new Date())), `the notice reads "${notice.slice(0, 120)}"`);
+        const stem = m[1]!;
+        const names = (await readdir(folder)).sort();
+        expect(names.join() === `${stem}.csv,${stem}.md` && [...reply.files!].sort().join() === names.join(), `the folder holds ${names.join(', ')}; the reply named ${reply.files!.join(', ')}`);
+
+        const page = await readFile(join(folder, `${stem}.md`), 'utf8');
+        const flat = squash(page);
+        expect(flat.includes(squash(orii.label)), 'the page does not hold the data label');
+        expect(flat.includes(squash(`${orii.licence.name}. ${orii.licence.terms}`)), 'the page does not hold the licence');
+        const headings = ['The question I chose', 'Summary', 'Chart', 'The SQL', 'Caveats', 'What I would do next'];
+        const lines = page.split(/\r?\n/);
+        const missing = headings.filter((h) => !lines.includes(`## ${h}`));
+        expect(missing.length === 0, `the page has no heading ${missing.join(', ')}`);
+        expect(/do not publish the raw data/i.test(page) && flat.includes(squash(query)), 'the page lacks the raw-data line or the query');
+        const csv = (await readFile(join(folder, `${stem}.csv`), 'utf8')).replace(/^﻿/, '').split('\r\n').filter((l) => l !== '');
+        expect(csv[0] === 'country,n_lines' && csv.length - 1 === reply.rows && reply.rows > 0, `the CSV has the header "${csv[0]}" and ${csv.length - 1} rows; the reply says ${String(reply.rows)}`);
+        const after = { attempts: await settledCount(async () => (await attempts(logs)).length), events: await settledCount(async () => (await events(logs)).length) };
+        expect(after.attempts === before.attempts && after.events === before.events, `the flagship draft logged ${after.attempts - before.attempts} attempt records and ${after.events - before.events} events`);
+        return `${ORII} ${fixtureRows === null ? 'was in the copied database (real data)' : `was a fixture of ${fixtureRows} rows in the copy's database`}; picked in the explorer, its card shows the label and licence; a query ran, and "Save as a flagship draft" wrote ${stem}.md and ${stem}.csv into the temporary folder: the page holds the label, the licence, the six headings, the raw-data line and the query, the CSV the header and ${reply.rows} rows; nothing was logged`;
+      });
+
+      await release();
+    }
   } catch (e) {
     results.push({ row: '!', ok: false, detail: (e instanceof Error ? e.message : String(e)).split('\n')[0]! });
     say(`STOPPED: ${results.at(-1)!.detail}`);
@@ -2726,6 +3363,10 @@ async function main(): Promise<number> {
     // The junction first, so removing the copy can never reach the real node_modules.
     await unlink(join(appCopy, 'node_modules')).catch(() => {});
     await chmod(join(appCopy, 'data/runtime/course.duckdb'), 0o666).catch(() => {});
+  }
+  if (appCopy6b) {
+    await unlink(join(appCopy6b, 'node_modules')).catch(() => {});
+    await chmod(join(appCopy6b, 'data/runtime/course.duckdb'), 0o666).catch(() => {});
   }
   if (KEEP) say(`Kept: ${tmp} and ${JOURNEY_DIR}`);
   else { await rm(tmp, { recursive: true, force: true }); await rm(JOURNEY_DIR, { recursive: true, force: true }); }

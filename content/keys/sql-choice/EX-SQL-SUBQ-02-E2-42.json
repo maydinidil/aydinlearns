@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-SUBQ-02-E2-42",
+  "item_version": 1,
+  "correct_oid": "o0bfb753",
+  "explanation": "The right CTE has one row per registered customer and store, so MAX finds the most orders one customer placed at one store. Without the customer_id filter, the guest orders form groups with a missing customer_id, each store's guests counted as one huge \"customer\". Grouping by customer alone counts orders across all stores, and COUNT(*) in step 2 counts the customer and store pairs instead of taking the highest count.",
+  "solver": {
+    "prompt_hash": "07acfddd69ae4cbf",
+    "grader_version": "choice.3",
+    "chosen": "o0bfb753",
+    "typed": null,
+    "at": "2026-10-15T10:40:24.725Z"
+  }
+}

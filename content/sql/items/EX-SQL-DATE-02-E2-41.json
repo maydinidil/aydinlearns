@@ -1,0 +1,90 @@
+{
+  "id": "EX-SQL-DATE-02-E2-41",
+  "version": 1,
+  "kind": "choose_query",
+  "tags": [
+    "sql",
+    "LVL-04",
+    "date",
+    "date_arithmetic",
+    "choose_query",
+    "interval",
+    "as-of",
+    "products"
+  ],
+  "level": 4,
+  "source_ids": [
+    "01:SQL-DATE-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-15",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-DATE-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-DATE-02"
+  ],
+  "template_id": "T-DATE-02-choose-last-n-days",
+  "template_params": {
+    "table": "products",
+    "days": 120,
+    "as_of": "2026-01-05"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_interval",
+  "prompt": "Which query lists the products launched in the 120 days up to Voltmarkt's as-of date, 5 January 2026, with the as-of day included: from 8 September 2025 to 5 January 2026? The answer has one column, product_id, with one row for each such product.",
+  "output_contract": null,
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [],
+  "subgoals": [],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 90000,
+  "why_this_works": "",
+  "options": [
+    {
+      "oid": "o5677277",
+      "text": "SELECT product_id\nFROM products\nWHERE launch_date >= DATE '2026-01-05' - INTERVAL 120 DAY\n  AND launch_date <= DATE '2026-01-05'",
+      "misconception_id": "ERR-LOG-06"
+    },
+    {
+      "oid": "oa869d5d",
+      "text": "SELECT product_id\nFROM products\nWHERE date_diff('month', launch_date, DATE '2026-01-05') <= 4",
+      "misconception_id": "ERR-LOG-34"
+    },
+    {
+      "oid": "o9b13823",
+      "text": "SELECT product_id\nFROM products\nWHERE launch_date >= DATE '2026-01-05' - INTERVAL 119 DAY\n  AND launch_date <= DATE '2026-01-05'",
+      "misconception_id": null
+    },
+    {
+      "oid": "o52c316d",
+      "text": "SELECT product_id\nFROM products\nWHERE launch_date >= DATE '2026-01-05' - INTERVAL 4 MONTH\n  AND launch_date <= DATE '2026-01-05'",
+      "misconception_id": "ERR-LOG-34"
+    }
+  ]
+}

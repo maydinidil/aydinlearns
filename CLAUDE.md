@@ -26,9 +26,9 @@ holds the evidence behind those changes.
 
 ## The state you will find it in
 
-**Slices 0, 1a, 1b, 2a and 2b and sprints 4a, 4b, 4c, 5a and 5b are built: SQL levels 1 to 3,
+**Slices 0, 1a, 1b, 2a and 2b, sprints 4a, 4b, 4c, 5a, 5b and 6 are built: SQL levels 1 to 4,
 all of GA4 (with full mocks, the readiness check and the interview labs) and all of Methodology can be studied, with the scheduler, Today, drills, the
-level openers, mistake cards, cases, the portfolio export and the Progress screen.** Slice 2b (GA4 lessons, timed
+level openers, mistake cards, cases on Voltmarkt, Mailvora and real data, the portfolio export and the Progress screen.** Slice 2b (GA4 lessons, timed
 GA4 mini drills and half-mocks, SQL choice items) reached `main` through PR #34. Sprint 3b gave
 every screen the direction C look (tokens, a top bar with section tabs, cards, a two-column
 Today), merged in PR #36; the spec is
@@ -42,9 +42,10 @@ dataset explorer, screen mode and live reps, merged in PR #40 (2026-10-08). Spri
 the SQL learner-facing backlog, merged in PR #41 (2026-10-08). Open deferred work lives in
 [`docs/planning/backlog.md`](docs/planning/backlog.md). Sprint 5 is split: 5a (Methodology
 complete, polish, release 1.0) merged in PR #42 and was released as 1.0 (tag `v1.0.0` on the
-public repo, 2026-10-08), and 5b (GA4 complete, release 1.1) merged in PR #43, followed by a hygiene PR (plan
+public repo, 2026-10-08), and 5b (GA4 complete) merged in PR #43, followed by a hygiene PR (PR #44, plan
 [`docs/superpowers/plans/2026-10-09-aydinlearns-hygiene-1-1.md`](docs/superpowers/plans/2026-10-09-aydinlearns-hygiene-1-1.md):
-Codex F27 and ten backlog rows) before the 1.1 release; read the roadmap first. Release 1.2 (2026-10-12) added the optional OpenTelemetry (D75, D76; PRs #45 and #46). Release 1.3 (2026-10-13) added the study journey (D77). The app's version is in `package.json` (1.3.0); later sprints ship as 1.x releases (D63).
+Codex F27 and ten backlog rows), and was released as 1.1 (tag `v1.1.0` on the public repo,
+2026-10-09); read the roadmap first. Release 1.2 (2026-10-12, tag `v1.2.0`) added the optional OpenTelemetry (D75, D76; PRs #45 to #47). Release 1.3 (2026-10-13, tag `v1.3.0`) added the study journey (D77; PR #48; its rulings, reviews and deferred findings are in [`docs/planning/2026-10-13-release-1-3-record.md`](docs/planning/2026-10-13-release-1-3-record.md)). Sprint 6 Part 1 (2026-10-15, 1.4.0, no public release) added SQL level 4, `voltmarkt_raw` and the incident tickets; Part 2 (2026-10-16, 1.5.0, the public `v1.5.0`) added Mailvora, the dataset registry and the first real-data cases. The app's version is in `package.json` (1.5.0); later sprints ship as 1.x releases (D63).
 - Slice 0: the domain-free types in `core/`, the app schemas in `schemas/`, the curriculum and
   error catalogue extracted into `content/sql/`, and the adjudicated fixes in
   `knowledge/ERRATA.md`. `knowledge/` itself still holds the research bank: 12 files (00 to 11), plus an index and a
@@ -112,6 +113,24 @@ Codex F27 and ten backlog rows) before the 1.1 release; read the roadmap first. 
   `server/progress.ts`), log format version 5 (`lab_answer`, `run_kind`), and version 1.1.0. Its
   rulings and deferred findings are in
   [`docs/planning/2026-10-08-sprint-5b-record.md`](docs/planning/2026-10-08-sprint-5b-record.md).
+- Sprint 6 Part 1 (plan
+  [`docs/superpowers/plans/2026-10-14-aydinlearns-sprint-6.md`](docs/superpowers/plans/2026-10-14-aydinlearns-sprint-6.md),
+  decisions D78 to D87): SQL level 4 (5 concepts, their drill, error IDs `ERR-LOG-30` to `-39` and `ERR-SYN-08`);
+  `voltmarkt_raw` (the quirk tables; graded items read it by unqualified name with edge schema
+  `voltmarkt_edge_clean`), `cost_history`, `weekly_units` and four edge schemas; cases on any schema
+  (`CaseRecord.schema`, truths in `data/truth/checkpoints.json`, unavailable cases), twelve cases including the
+  incident tickets CASE-DQ-01 to -05; the cumulative drill over levels 1 to 4; the nesting refusal (S6-08), GRADER_VERSION
+  `6a.1`, `choice.3`; checks C47 to C50 and the case blind solve (`npm run export:case-view`, `record:case-solver`).
+  Its rulings and deferred findings are in
+  [`docs/planning/2026-10-15-sprint-6-record.md`](docs/planning/2026-10-15-sprint-6-record.md).
+- Sprint 6 Part 2 (same plan, decisions D88 to D90): block K (Codex F32: case solver records carry `key_hash`;
+  thirteen backlog rows); Mailvora (`pipeline/mailvora/`: `mailvora`, `mailvora_raw`, `mailvora_edge_case`) and
+  CASE-MKT-01 to -04; the dataset registry (`content/datasets/registry.json`, `schemas/dataset.ts`, check C51) and
+  `npm run prep:datasets` (`tools/prep-datasets.ts`, `pipeline/datasets/`) for Online Retail II, Breakfast at the
+  Frat and the 8 Week SQL Challenge (D87: none of the challenge's text or data is ever committed); the real edge
+  schemas; CASE-REAL-01 and -02; the explorer's dataset picker and flagship drafts; the `real_data_analysis` goal
+  criterion (D85). Which schemas are built comes from `data/truth/checkpoints.json` (`builtSchemas`), read at
+  start. Its rulings and deferred findings are in the same record.
 - Every check in the README's "Run and ship" passes, and so does the browser smoke test,
   `npm run test:e2e`. It runs its own server on `AYDINLEARNS_PORT` (default 5174) against an
   empty temporary logs folder, set through `AYDINLEARNS_LOGS_DIR`, and a temporary journey folder,

@@ -18,6 +18,10 @@ Agents that write a case (a level opener, an inbox case or a daily case) also fo
   is in `tools/check-content.ts`.
 - Level 3 content (sprint 4a) also follows [Level 3](#level-3-joins-grain-ctes-dates-and-sets-sprint-4a)
   below. Where that section differs from the rest, it wins for level 3.
+- Level 4 content (sprint 6) follows the Level 3 section too, then
+  [Level 4](#level-4-subqueries-text-date-arithmetic-and-data-quality-sprint-6), and an item on raw
+  data also follows [Raw data](#raw-data-voltmarkt_raw-sprint-6). Where they differ from the rest,
+  they win for level 4.
 - Paths are relative to `aydinlearns/`. Work in the folder the controller names in the `Root`
   dispatch field, and write files directly. A sprint is built in a git worktree, so the root is
   that worktree's `aydinlearns` folder: in sprint 2,
@@ -56,7 +60,7 @@ How the controller runs it:
 | Never edit `knowledge/`. Report a wrong research fact instead; the controller adds an ERRATA entry | Non-negotiable 3 |
 | No git commands. No installs | The controller owns the branch; installs need the owner |
 | Any DuckDB you open sets `autoinstall_known_extensions` and `autoload_known_extensions` to false (R17). The project's tools already do | Default settings reach the network |
-| You may query `data/course.duckdb` read-only, on the visible schema `voltmarkt` and your edge schema, to check your answers | So you never guess what a key returns |
+| You may query `data/course.duckdb` read-only, on your item's schema (`voltmarkt`, or `voltmarkt_raw` for a raw-data item) and your edge schema, to check your answers | So you never guess what a key returns |
 
 ## Read first
 
@@ -118,7 +122,7 @@ Nothing from the key may appear in the item file (C12).
 | Field | What goes in |
 |---|---|
 | Envelope | `id`, `version` 1, `kind` `"write"` (or `"fix"`: see [Fix items](#fix-items-s2-48)), `tags`, `level`, `source_ids` (`"01:<concept>"`), `verified` true, `as_of` today, `review_after` null, `status` `"active"`, `supersedes` [], `enemy_group` null |
-| `section`, `company`, `schema` | `"sql"`, `"voltmarkt"`, `"voltmarkt"` |
+| `section`, `company`, `schema` | `"sql"`, `"voltmarkt"`, `"voltmarkt"` (`"voltmarkt_raw"` for a raw-data item: see [Raw data](#raw-data-voltmarkt_raw-sprint-6)) |
 | `edge_schema` | As given in the dispatch |
 | `use`, `difficulty` | From the budget above |
 | `target_concept_id` | Your concept: the one card the item rates |
@@ -485,6 +489,151 @@ on both datasets; check that, or move the item to `SQL-JOIN-02`.
 Compare with other engines only through 01's dialect table (DIALECT-05, -08 and -09), and leave
 out any cell 01 marks [UNVERIFIED].
 
+## Level 4: subqueries, text, date arithmetic and data quality (sprint 6)
+
+For the five level 4 concepts, in curriculum order: `SQL-SUBQ-01`, `SQL-SUBQ-02`, `SQL-STR-01`,
+`SQL-DATE-02` and `SQL-CLEAN-01`. Everything above still applies, the Level 3 section included
+(the grain line fades, keys run on the edge schema, every key has an `other_way`); where this
+section differs, it wins. The rulings are in the sprint 6 plan
+(`docs/superpowers/plans/2026-10-14-aydinlearns-sprint-6.md`): S6-01 to S6-04, S6-09 to S6-12 and
+S6-28.
+
+### What to write per concept
+
+| Concept | Schema, edge schema | Pool (write) | Must-have traps | Also |
+|---|---|---|---|---|
+| `SQL-SUBQ-01` | `voltmarkt`, `voltmarkt_edge_subq` | 10 to 12 | `ERR-SEM-05` a subquery used as one value returns two rows; `ERR-LOG-30` NOT IN over a list with a missing value; `ERR-LOG-31` correlated subquery on the wrong column | IN, EXISTS, NOT EXISTS and scalar forms; an "is this unique?" item before a scalar subquery |
+| `SQL-SUBQ-02` | `voltmarkt`, `voltmarkt_edge_subq` | 8 to 10 | `ERR-LOG-07` wrong grain; `ERR-LOG-20` averaging per-group averages | The alias note (S6-10, below); "rewrite as a CTE" choice items |
+| `SQL-STR-01` | `voltmarkt_raw`, `voltmarkt_edge_clean` | 10 to 12 | `ERR-LOG-32` text key without trimming or matching case; `ERR-LOG-33` substring position or length off by one | `LOWER`, `TRIM`, `REPLACE`, `split_part`, `substring`, `length`, `concat`; category spellings mapped to the parent (S6-03); the dialect line (below) |
+| `SQL-DATE-02` | `voltmarkt`, `voltmarkt_edge_interval` | 8 to 10 | `ERR-LOG-34` date difference counted as boundaries, or inclusive and exclusive days mixed up; `ERR-LOG-06` a range end off by a day | `date_diff` counts boundaries (01 DIALECT-07); "the last 30 days" from the as-of date; no `now()` |
+| `SQL-CLEAN-01` | `voltmarkt_raw`, `voltmarkt_edge_clean` | 10 to 12 | `ERR-LOG-35` a missing ratio replaced by 0; `ERR-LOG-36` duplicate rows counted twice; `ERR-LOG-05` integer division | `NULLIF` safe ratios; duplicate-key checks; a five-check report with a pass or fail column; reconciling to a stated total |
+
+For each concept, as at level 3:
+- the lesson: the reading, 2 worked examples with subgoals and fading, the pretest (2 write items,
+  then 1 predict item), the lesson block, the re-test, and a `why_clause`;
+- the write pool, sized as above;
+- one fix item per trap ID the grader raises for that concept (`kind: "fix"`, `use: "pool"`);
+- 3 pool choice items, at least one a predict kind and one a `choose_query`;
+- 6 drill items, `use: "drill"`, E1 to E3: 30 across the level. Task C1 writes the level 4 entry
+  of `content/sql/drills.json` with them (10 questions, 25 minutes, 90% to pass, normal mode, the
+  5 level 4 concepts). The cumulative drill (S6-19) draws from the level 1 to 4 pools, so it needs
+  no item of its own;
+- every key with an `other_way`.
+
+Item numbers follow level 3: `01` upward for the pretest, lesson, re-test and write pool items,
+`21` upward for drill items, `31` upward for fix items and `41` upward for choice items, each
+counted within its difficulty.
+
+### Prompts at level 4 (S6-12)
+
+| Rule | Why | Checked by |
+|---|---|---|
+| Drop the grouping cue: do not name the GROUP BY columns, the join keys, the form of the subquery or the tables to read | Prompt style guide, levels 3 and 4 (design §12) | Review |
+| The prompt states the grain of the final answer in its own words, as at level 3 | `output_contract.grain` is null outside the lesson phases (C38) | Blind solver |
+| Every derived table and CTE step in a key, a worked example and hint 3 names its grain in a comment on its first line, as in `-- one row per product`. Comments never count as constructs (C09) | The reference is what "show answer" shows, so it models the habit the level 4 rubric ticks ask for (CRAFT-01, S6-15) | Review |
+| A prompt that asks for a date difference says how to count it: "days between", "days the promotion ran, the first and the last day included", or "calendar months crossed" | `date_diff` counts boundaries, and a date minus a date leaves one end day out (`ERR-LOG-34`): an unstated rule has two right answers | Blind solver |
+| `SQL-DATE-02`: "the last 30 days" and every other relative period count back from the dataset's as-of date, 5 January 2026 (2026-01-05), never from today. The prompt gives the as-of date and both ends of the window in words, and says whether the as-of day itself counts | Results must not change between runs, and the solver cannot guess an anchor | C07, C08, blind solver |
+| `SQL-CLEAN-01`: an item returns a check's result, such as a count of offending rows, the list of keys that fail a check, or one row per check with a pass or fail column. It never returns a cleaned copy of a table | A data-quality check reports what it found; a copied table is a large result that tests nothing new | Review |
+| A typed money or ratio answer may be 1,000 or more since `choice.3` (S6-28): see the typed row under [Rules for choice items](#rules-for-choice-items-each-with-its-reason) | The rule that kept them below 1,000 is lifted | Grader |
+
+### Trap IDs at level 4
+
+Use only IDs the grader raises on DuckDB (R9). The trap list for a concept may also use any earlier
+concept's IDs. Every fact below was checked on DuckDB 1.5.6.
+
+| ID | Concept | How DuckDB raises it | A planted query that works |
+|---|---|---|---|
+| `ERR-SEM-05` | `SQL-SUBQ-01` | Engine error: "More than one row returned by a subquery used as an expression", on the visible or the edge run | A subquery used as one value whose filter or link matches two rows: a product with two price versions, or two products tied at a category's top price (`voltmarkt_edge_subq` plants the tie) |
+| `ERR-LOG-30` | `SQL-SUBQ-01` | Planted match | `NOT IN (SELECT ...)` over a column that holds a missing value, such as `order_lines.promo_id`, where the question wants the rows with no match: it returns no rows at all. The subquery edge data plants a missing value in such a column |
+| `ERR-LOG-31` | `SQL-SUBQ-01` | Planted match | A correlated subquery linked on the wrong column, such as the brand where the question compares by category |
+| `ERR-LOG-07` | `SQL-AGG-02` | Shape or planted match | `SQL-SUBQ-02`: a derived table grouped at another grain than the question's. `SQL-SUBQ-01`: a scalar subquery at the wrong grain, such as the overall average where the category's was asked, stays `ERR-LOG-07` (S6-11). A correlated subquery whose link compares a column with itself (no outer alias) returns the same rows as one with no link at all, so plant only one of the two per key (C05) |
+| `ERR-LOG-20` | `SQL-AGG-01` | Planted match | `SQL-SUBQ-02`: the average of per-group averages from a derived table, where the question wants the overall ratio (a sum divided by a sum) |
+| `ERR-LOG-32` | `SQL-STR-01` | Planted match | A GROUP BY, join or filter on a raw text key (`sku`, `category_raw`) with no `TRIM` or case match |
+| `ERR-LOG-33` | `SQL-STR-01` | Planted match | A substring that starts one place off or at 0 (DuckDB reads position 0 as the place before the first character, so `substr(x, 0, 3)` keeps 2 characters), or keeps one character too many or too few |
+| `ERR-LOG-34` | `SQL-DATE-02` | Planted match | `date_diff('month', ...)` where whole months were asked (31 January to 1 February is 1); a day count without `+ 1` where both end days count, or with it where they do not. `voltmarkt_edge_interval` plants a one-day promotion, 31 January plus one month, 29 February 2024 and a difference across a year end |
+| `ERR-LOG-06` | `SQL-FILTER-02` | Planted match | "The last 30 days" with one end a day off: `>` for `>=`, or the as-of day kept where the prompt leaves it out |
+| `ERR-LOG-35` | `SQL-CLEAN-01` | Planted match | `COALESCE(x / NULLIF(y, 0), 0)` where the prompt keeps the ratio missing |
+| `ERR-LOG-36` | `SQL-CLEAN-01` | Planted match | A count or total over raw `order_lines` that keeps the resent lines. `COUNT(DISTINCT order_line_id)` keeps them too: each copy has an ID of its own |
+| `ERR-LOG-05` | `SQL-TYPE-01` | Planted match, or the integer division signature | Integer division in a ratio or a check: `//`, or a CAST to INTEGER |
+
+`ERR-LOG-37` to `ERR-LOG-39` and `ERR-SYN-08` belong to levels 5 and 6 (window functions and date
+spines). No level 4 key or plant uses a window function.
+
+The diagnosis order (engine error, shape, planted match, then the fallback) holds as at level 3:
+a planted query returns the reference's number of columns, each in the same type class, unless it
+is an engine-error trap such as `ERR-SEM-05`.
+
+### Constructs at level 4 (C09)
+
+| Rule | Why | Checked by |
+|---|---|---|
+| The level 4 constructs are `subquery` (`SQL-SUBQ-01`: any SELECT in brackets, in WHERE, in the SELECT list or in FROM; a CTE body is not one), `text_helper` and `string_fn` (`SQL-STR-01`; `\|\|` counts as `string_fn`) and `date_arithmetic` (`SQL-DATE-02`: `date_diff`, `datediff`, `date_add`, `date_sub`, `age`, `INTERVAL`, and a `-` between two DATE values, S6-09; a DATE column inside `min`, `max`, `any_value`, `least`, `greatest`, `date_trunc` or a cast to DATE is a DATE value, and a bare name counts only when every table of the schema types it DATE, S6-34). `SQL-SUBQ-02` and `SQL-CLEAN-01` have none of their own | `content/sql/constructs.json` | C09, C16 |
+| Curriculum order: a `SQL-SUBQ-01` or `SQL-SUBQ-02` key uses no string function and no date arithmetic, and a `SQL-STR-01` key no date arithmetic. LOWER, UPPER and TRIM still need naming before `SQL-STR-01` | The learner has not met them yet | C09 |
+| No window function (`SQL-WIN-01`, level 5): no OVER, ROW_NUMBER or QUALIFY. Find duplicates with GROUP BY and HAVING, and the latest row per key with a subquery on MAX | E-099: the ROW_NUMBER fix of the duplicates waits for level 5 | C09 |
+| Every derived table has an alias, as in `FROM (SELECT ...) AS t` | PostgreSQL before version 16 and SQL Server need one; the grader shows the alias note without it (S6-10) | Review |
+
+Other ways at level 4 (S4-11) are structural: a derived table and the same steps as a CTE; EXISTS
+and a join that keeps each row once; NOT EXISTS and a LEFT JOIN with `IS NULL`; `split_part` and a
+`substring` from a found position.
+
+### Lessons with extra content (level 4)
+
+- **`SQL-SUBQ-01`:** IN, EXISTS and NOT EXISTS against a scalar subquery, and why NOT IN returns no
+  rows at all when its list holds a missing value (`ERR-LOG-30`).
+- **`SQL-SUBQ-02`:** the alias a derived table needs on other engines (S6-10), and when a CTE reads
+  better.
+- **`SQL-STR-01`:** the dialect line that `split_part` and the `regexp_` functions differ by engine;
+  text positions count from 1.
+- **`SQL-DATE-02`:** `date_diff` counts the boundaries crossed, not whole periods (01 DIALECT-06
+  and -07); a DATE minus a DATE is a whole number of days, and adding an INTERVAL to a DATE gives a
+  TIMESTAMP (both checked on DuckDB 1.5.6). Leave out any cell 01 marks [UNVERIFIED].
+- **`SQL-CLEAN-01`:** `NULLIF(denominator, 0)` for a safe ratio, and why a missing ratio is not 0
+  (`ERR-LOG-35`); duplicate checks with GROUP BY and HAVING; reconciling a total to a stated one.
+
+### Checks added for level 4 (Task B3)
+
+| Check | Fails when |
+|---|---|
+| C47 | A raw-data item does not have `schema` `voltmarkt_raw` and edge schema `voltmarkt_edge_clean`, its key names a schema, or its key gives the same result on the clean `voltmarkt` as on `voltmarkt_raw`; or a clean item's key reads a raw table (`voltmarkt_raw.`) |
+| C48 | A must-have trap in the table above is planted in no pool or fix item of its concept |
+| C49 | The level 4 drill pool holds fewer than 30 drill items or misses a level 4 concept, or a cumulative drill entry asks for more than its levels' pools can serve unseen |
+| C50 | A case checkpoint (CP1, CP2, CP4 or CP5) has no passing blind-solve record for its current prompt, options or typed spec, or its record's answer fingerprint (`key_hash`, F32) is missing or no longer matches the answer key or the built value A case whose dataset is not prepared waits for its CP2 and CP4 values with a warning |
+| C51 | A dataset registry record fails its shape (licence, label, `real`, or a question with a relative date), its prep script is missing, its ID, an alias or a schema is claimed twice, or a real dataset has 1 to 4 questions; or a case on a registry schema disagrees with its record on `real` or the licence. An item whose dataset is not prepared is skipped by name with a warning (sprint 6 Part 2, S6-21, P35) |
+| C52 | A table the schema panel shows an item at its level is missing from the item's edge schema, or an edge calendar misses a day of one of its promotions: a FAIL on every edge schema (sprint 6 block K, S6-36) |
+
+C47 to C52 are built; `npm run check:content` prints a line for each.
+
+## Raw data: `voltmarkt_raw` (sprint 6)
+
+`SQL-STR-01` and `SQL-CLEAN-01` items, and the incident tickets, read Voltmarkt's raw tables: the
+same table names as the clean schema, with planted errors (design §10, S6-02). The learner's
+schema panel shows each raw table with the line "This table may hold errors." The keys and links a
+raw table's note shows are what the data should hold; the quirks break them on purpose.
+
+| Table in `voltmarkt_raw` | What it holds (05's quirk rows) |
+|---|---|
+| `products` | Q-01-04: `category_raw` spells the **parent** category in messy ways ("TV & Video", "tv en video", "TV/Video " with a trailing space, "Téléviseurs"), so mapping a spelling gives the parent, never a child category (S6-03, E-190); 3% of products have a missing `category_id`. Q-01-07: 2% of `sku` values have trailing spaces or lower case |
+| `order_lines` | Q-01-01: 0.8% of store BE-14's lines resent with a new `order_line_id`. Q-01-02: store BE-07's `unit_price_eur` in cents (times 100) in June 2024 |
+| `orders` | Q-01-05: a store order's `order_ts` is the store's local time, a web order's is UTC, in the same column |
+| `price_history` | Q-01-06: 1% of products have two overlapping validity windows |
+| `stores`, `categories`, `promotions`, `promotion_products`, `calendar` | Unchanged copies of the clean tables, for the joins a check needs |
+
+A guest order's missing `customer_id` (Q-01-03) is a business state, in the clean and the raw
+tables alike, not an error to fix (E-155).
+
+A raw case's model-plan expected row count is counted on its own schema, `voltmarkt_raw`, not on the clean `voltmarkt` (ruling P27).
+
+| Rule | Why | Checked by |
+|---|---|---|
+| A raw-data item has `schema: "voltmarkt_raw"` and `edge_schema: "voltmarkt_edge_clean"` | The hidden run swaps the raw tables for the edge schema's, like any other item (S6-01) | C47 |
+| Keys and prompts use unqualified table names, never `voltmarkt_raw.` or `voltmarkt.` | Graded runs allow no schema prefix: the gate refuses a qualified name (S6-01) | C47, the gate |
+| The key gives a different result on the clean `voltmarkt` than on `voltmarkt_raw`: the quirk is what the item finds | An item whose answer does not change on clean data teaches nothing about the quirk (Review Focus 2) | C47 |
+| The prompt says the data may hold errors, in its own sentence, as the panel does: "This table may hold errors." (or "These tables may hold errors.") | The learner should expect the quirk and look for it | Review |
+| The prompt then says what "correct" means for its quirk: which rows to keep or drop ("two lines are the same order line when the order, product, quantity and unit price all match"), which spelling or form is canonical ("upper case with no spaces", "the parent category TV & Video"), or which rule finds the bad rows ("BE-07's prices in June 2024 are in cents") | Without the rule a check has two right answers, and the blind solver sees only the prompt | Blind solver |
+| Clean only what the question asks about, and say whether rows with a missing value count | Every extra cleaning step changes the answer | Blind solver |
+| Raw `orders.order_ts` is not UTC throughout (Q-01-05). A prompt that turns on a day of it says how to read each kind of order, for example "store orders are in the store's local time (`stores.timezone`), web orders in UTC" | P-10's rule that every `*_ts` column is UTC holds in `voltmarkt` only | Blind solver |
+| Check the edge cases on `voltmarkt_edge_clean` (`content/sql/edge/voltmarkt_edge_clean.json`): an exact and a near duplicate, a BE-07 line in cents outside June, every category spelling, a sku with a space inside, two windows that touch but do not overlap, and a store order at 23:30 local time | The key must stay right on every planted case (S6-04) | C03, C04, blind solver |
+
 ## Before you hand back
 
 | Step | Command (from the Root folder) | Pass when |
@@ -611,6 +760,7 @@ explanation": your reply and report hold item IDs and counts only.
 | A URL may point only at official Google documentation (`URL_ALLOWLIST` in `tools/check-choice.ts`), and a made-up site only at `example.com`, `example.org` or `example.net`. Never a Skillshop credential page or a personal page. A host written without `http://` or `www.` (for example `name.net/page`) counts as a URL; a file name such as `gtag.js` does not | The credential-wallet URL never appears in the app (E-122) | C28 |
 | When the stem, an option, the typed spec or the answer changes, raise `version` in the item and `item_version` in the key | The key must match its item; a changed question needs a new blind solve | C20, C26 |
 | A typed stem names the unit and the decimals wanted, and the spec matches: a percentage is `ratio` precision, euros `money`, a count `plain` with 0 decimals | The grader accepts an answer within half a unit of the last decimal asked (D15) | C20, blind solver |
+| A typed money or ratio answer may be 1,000 or more: the rule that kept it below 1,000 (E-161, E-167, S5A-11) is lifted (S6-28, D82). Ask for at least 1 decimal on such an answer, 2 for euros ("in euros, rounded to 2 decimals") | Since `choice.3` the grader reads thousands separators on money and ratios where they cannot be read two ways: `12,345.50`, `1,234,567`, `1.234.567`. A single comma group with no decimal point is still a decimal mark, so `1,234` asked as a whole number of euros would be read as 1.234; asking for decimals leads the learner to type `1,234.00` or `1234.00` | Grader (`server/choice/grade.ts`), blind solver |
 | Plain English, no em dashes, no gendered pronouns. NULL is "missing" | Style guide | Review |
 
 ### Fix rounds (choice)
@@ -832,7 +982,7 @@ inside it.
 | A CP1 or CP5 option holds only `oid` and `text`, and `oid` is `optionId("<case_id>:CP1", position)` (or `:CP5`) from `schemas/choice.ts`, position counting from 0 in file order (S2-60). No `correct` flag, no misconception ID: the correct option lives in the case key | Options are prompt content, like predict options; the oid hides the position | `validateCaseRecord`, C41 |
 | Never reorder options and never edit an oid by hand. To change a distractor, change its text in place | Every oid follows its option's position, and the key names an oid | C41 |
 | Every checkpoint prompt stands on its own: the blind solver sees only that checkpoint's prompt and its options or typed spec, never the brief, the other checkpoints or the CP3 item. Restate the scope a number needs (the period, the filter, what counts), as the level 1 opener's CP4 does | A prompt that leans on the screen around it can be read two ways | Blind solver |
-| A CP2 or CP4 prompt states the unit, the scale and the decimals it grades to ("in euros, rounded to 2 decimals", "as a percentage, 1 decimal"), and its `typed` spec matches. A count is `{ "precision": "count", "scale": "plain", "decimals": 0, ... }` | The typed-answer rule (design §5, D15) | `validateTypedSpec`, `tests/content/openers-cp4.test.ts` |
+| A CP2 or CP4 prompt states the unit, the scale and the decimals it grades to ("in euros, rounded to 2 decimals", "as a percentage, 1 decimal"), and its `typed` spec matches. A count is `{ "precision": "count", "scale": "plain", "decimals": 0, ... }`. A money or ratio answer may be 1,000 or more (S6-28): see the typed rows under [Rules for choice items](#rules-for-choice-items-each-with-its-reason) | The typed-answer rule (design §5, D15) | `validateTypedSpec`, `tests/content/openers-cp4.test.ts` |
 | Every credited concept is an SQL curriculum concept at or below the case's `level`. A CP2, CP4 or CP5 credits only a concept no accepted answer can avoid (S2-102, S2-106), and a CP4 only what its CP3 credits | A checkpoint rates exactly the cards it lists (design §5) | C41, review |
 | CP6 credits nothing this sprint and never decides the pass | No CRAFT concept exists yet (S4B-03) | `validateCaseRecord` |
 
@@ -853,8 +1003,8 @@ inside it.
 
 | Rule | Why | Checked by |
 |---|---|---|
-| Exactly `case_id`, `truths` and `choices`, with an entry for each CP2, CP4, CP1 and CP5 the case lists and none for any other. An opener with only a CP4 has `"choices": {}` | The build and the routes read these entries only | `validateCaseKey`, C41 |
-| A truth query is one SELECT (it may start with WITH) that returns exactly one number on the visible schema `voltmarkt`. Table names without a schema prefix: the build sets the search path. Round it to the decimals the prompt asks, with ROUND | The build runs it and writes the value to `data/truth/voltmarkt.json` as `<case_id>:CP2` or `<case_id>:CP4`; a query that returns anything else stops the build | The build, C41 |
+| `case_id`, `truths` and `choices`, plus `solver`, the blind-solve records `npm run record:case-solver` writes (never write it yourself; C50 reads it). `truths` and `choices` hold an entry for each CP2, CP4, CP1 and CP5 the case lists and none for any other. An opener with only a CP4 has `"choices": {}` | The build and the routes read these entries only | `validateCaseKey`, C41 |
+| A truth query is one SELECT (it may start with WITH) that returns exactly one number on the case's own `schema` (absent means `voltmarkt`) and on its CP3 item's edge schema. Table names without a schema prefix: the build sets the search path. Round it to the decimals the prompt asks, with ROUND. A new case's every truth must return one number on its edge schema too (P16: only the three shipped cases, CASE-DAILY-L2-02, CASE-PRICE-01 and CASE-VOLT-L3, may warn there with a missing value) | The build runs it and writes the value to `data/truth/checkpoints.json` as `<case_id>:CP2` or `<case_id>:CP4`; a query that returns anything else stops the build | The build, C41 |
 | `correct_oid` is one of that checkpoint's oids. `explanation` is one plain line on why the right option is right and the most tempting wrong one is wrong, never naming an option by its letter or position | It is shown after the learner's answer (S4B-10) | `validateCaseKey`, C41 |
 | Never run `npm run build:data` yourself. Until the controller runs it, C41 reports `<case_id>:CP2 has no value in the truth file` for a new case: that is expected | One build at a time (Global Constraints, the data build) | |
 

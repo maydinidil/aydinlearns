@@ -1,0 +1,35 @@
+{
+  "item_id": "EX-SQL-DATE-02-E1-06",
+  "item_version": 1,
+  "reference_sql": "SELECT promo_type, SUM(end_date - start_date + 1) AS promo_days\nFROM promotions\nGROUP BY promo_type",
+  "alternatives": [
+    "SELECT promo_type, SUM(date_diff('day', start_date, end_date) + 1) AS promo_days FROM promotions GROUP BY promo_type",
+    "WITH runs AS (  -- one row per promotion\n  SELECT promo_type, end_date - start_date + 1 AS days_running\n  FROM promotions\n)\nSELECT promo_type, SUM(days_running) AS promo_days\nFROM runs\nGROUP BY promo_type",
+    "SELECT promo_type, SUM(end_date - start_date) + COUNT(*) AS promo_days FROM promotions GROUP BY promo_type"
+  ],
+  "other_way": {
+    "sql": "WITH runs AS (  -- one row per promotion\n  SELECT promo_type, end_date - start_date + 1 AS days_running\n  FROM promotions\n)\nSELECT promo_type, SUM(days_running) AS promo_days\nFROM runs\nGROUP BY promo_type",
+    "tradeoff": "Working out each promotion's days in a step first makes the grain plain, but one SUM over the expression is shorter."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-34",
+      "sql": "SELECT promo_type, SUM(end_date - start_date) AS promo_days FROM promotions GROUP BY promo_type"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-14",
+      "sql": "SELECT promo_type, AVG(end_date - start_date + 1) AS promo_days FROM promotions GROUP BY promo_type"
+    }
+  ],
+  "hint3_partial": "SELECT promo_type, ___(end_date - start_date ___) AS promo_days\nFROM promotions\nGROUP BY promo_type",
+  "solver": {
+    "prompt_hash": "85d7ecf1a107319a",
+    "schema_version": "f0340f71a1f5",
+    "dataset_version": "b2d2b40fb117bb07",
+    "grader_version": "6a.1",
+    "query": "SELECT promo_type, SUM(CAST(end_date AS DATE) - CAST(start_date AS DATE) + 1) AS promo_days\nFROM promotions\nGROUP BY promo_type\n",
+    "at": "2026-10-15T11:06:11.224Z"
+  }
+}

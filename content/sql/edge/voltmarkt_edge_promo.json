@@ -1,0 +1,84 @@
+{
+  "schema": "voltmarkt_edge_promo",
+  "mirrors": "voltmarkt",
+  "family": "promo",
+  "contains": [
+    "a promoted product with weeks of no sales before and during its promotion (weekly_units shows them as 0)",
+    "a promoted product whose sister product is not in the promotion",
+    "a product in two promotions, in May and in August 2025",
+    "a store opened on 1 September 2024 that sells in September 2024 and September 2025",
+    "a store closed on 30 June 2025",
+    "a store open since 2011 with sales in September 2024 and none in September 2025",
+    "a unit cost that changes on 15 August 2025, inside a quarter, with sales before and after it, beside the Audio cost rise of 1 July 2025",
+    "products sold in both Q2 and Q3 2025, one sold only in Q2 and one launched in Q3",
+    "promotion P-2025-03 (10 to 23 March 2025) on two Earbuds products, while the sister of one of them is not in it",
+    "Earbuds sales in each of the 4 weeks before P-2025-03 and in its 2 weeks, with weeks where a product sold nothing (weekly_units shows them as 0)",
+    "a calendar of whole ISO weeks: each week with an order, and the 4 weeks before P-2025-03 and its 2 weeks"
+  ],
+  "tables": {
+    "calendar": [
+      "a calendar of whole ISO weeks: each week with an order, and the 4 weeks before P-2025-03 and its 2 weeks"
+    ],
+    "stores": [
+      "a store opened on 1 September 2024 that sells in September 2024 and September 2025",
+      "a store closed on 30 June 2025",
+      "a store open since 2011 with sales in September 2024 and none in September 2025"
+    ],
+    "categories": [
+      "promotion P-2025-03 (10 to 23 March 2025) on two Earbuds products, while the sister of one of them is not in it"
+    ],
+    "products": [
+      "a promoted product whose sister product is not in the promotion",
+      "products sold in both Q2 and Q3 2025, one sold only in Q2 and one launched in Q3",
+      "promotion P-2025-03 (10 to 23 March 2025) on two Earbuds products, while the sister of one of them is not in it"
+    ],
+    "promotions": [
+      "a promoted product with weeks of no sales before and during its promotion (weekly_units shows them as 0)",
+      "a promoted product whose sister product is not in the promotion",
+      "a product in two promotions, in May and in August 2025",
+      "promotion P-2025-03 (10 to 23 March 2025) on two Earbuds products, while the sister of one of them is not in it"
+    ],
+    "promotion_products": [
+      "a promoted product with weeks of no sales before and during its promotion (weekly_units shows them as 0)",
+      "a promoted product whose sister product is not in the promotion",
+      "a product in two promotions, in May and in August 2025",
+      "promotion P-2025-03 (10 to 23 March 2025) on two Earbuds products, while the sister of one of them is not in it"
+    ],
+    "orders": [
+      "a store opened on 1 September 2024 that sells in September 2024 and September 2025",
+      "a store closed on 30 June 2025",
+      "a store open since 2011 with sales in September 2024 and none in September 2025",
+      "a unit cost that changes on 15 August 2025, inside a quarter, with sales before and after it, beside the Audio cost rise of 1 July 2025",
+      "products sold in both Q2 and Q3 2025, one sold only in Q2 and one launched in Q3",
+      "Earbuds sales in each of the 4 weeks before P-2025-03 and in its 2 weeks, with weeks where a product sold nothing (weekly_units shows them as 0)"
+    ],
+    "order_lines": [
+      "a promoted product with weeks of no sales before and during its promotion (weekly_units shows them as 0)",
+      "a product in two promotions, in May and in August 2025",
+      "a store opened on 1 September 2024 that sells in September 2024 and September 2025",
+      "a store closed on 30 June 2025",
+      "a store open since 2011 with sales in September 2024 and none in September 2025",
+      "a unit cost that changes on 15 August 2025, inside a quarter, with sales before and after it, beside the Audio cost rise of 1 July 2025",
+      "products sold in both Q2 and Q3 2025, one sold only in Q2 and one launched in Q3",
+      "promotion P-2025-03 (10 to 23 March 2025) on two Earbuds products, while the sister of one of them is not in it",
+      "Earbuds sales in each of the 4 weeks before P-2025-03 and in its 2 weeks, with weeks where a product sold nothing (weekly_units shows them as 0)"
+    ],
+    "cost_history": [
+      "a unit cost that changes on 15 August 2025, inside a quarter, with sales before and after it, beside the Audio cost rise of 1 July 2025"
+    ],
+    "sales": [
+      "a promoted product with weeks of no sales before and during its promotion (weekly_units shows them as 0)",
+      "a store opened on 1 September 2024 that sells in September 2024 and September 2025",
+      "a store closed on 30 June 2025",
+      "a store open since 2011 with sales in September 2024 and none in September 2025",
+      "a unit cost that changes on 15 August 2025, inside a quarter, with sales before and after it, beside the Audio cost rise of 1 July 2025",
+      "products sold in both Q2 and Q3 2025, one sold only in Q2 and one launched in Q3",
+      "Earbuds sales in each of the 4 weeks before P-2025-03 and in its 2 weeks, with weeks where a product sold nothing (weekly_units shows them as 0)"
+    ],
+    "weekly_units": [
+      "a promoted product with weeks of no sales before and during its promotion (weekly_units shows them as 0)",
+      "Earbuds sales in each of the 4 weeks before P-2025-03 and in its 2 weeks, with weeks where a product sold nothing (weekly_units shows them as 0)",
+      "a calendar of whole ISO weeks: each week with an order, and the 4 weeks before P-2025-03 and its 2 weeks"
+    ]
+  }
+}

@@ -1,0 +1,137 @@
+{
+  "id": "EX-SQL-SUBQ-02-E2-03",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-04",
+    "derived_table",
+    "average_of_averages",
+    "sales",
+    "stores",
+    "order_value"
+  ],
+  "level": 4,
+  "source_ids": [
+    "01:SQL-SUBQ-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-15",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-SUBQ-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-JOIN-01",
+    "SQL-SUBQ-01",
+    "SQL-SUBQ-02"
+  ],
+  "template_id": "T-SUBQ-02-weighted-average",
+  "template_params": {
+    "fact": "sales",
+    "step": "order",
+    "group": "store_type"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_subq",
+  "prompt": "For each store type, what is the average order value: the net revenue of all its orders divided by the number of those orders? An order's value is the sum of net_revenue_eur over its lines, and only orders with at least one line count. Round to 2 decimals. Return two columns, in this order: store_type and avg_order_eur. Return one row for each store type with orders. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "store_type",
+        "type_class": "text"
+      },
+      {
+        "name": "avg_order_eur",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "store_type",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "avg_order_eur",
+        "type_class": "numeric",
+        "precision": "money",
+        "require_rounding": 2
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "store_type"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the derived table: one row per order with its value and its store.",
+    "Averaging each store's own average order value gives a small store the weight of a big one; average over the orders themselves."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 64,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 65,
+      "to": 94,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 95,
+      "to": 159,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 160,
+      "to": 172,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 173,
+      "to": 204,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 205,
+      "to": 256,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 257,
+      "to": 278,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "The derived table has one row per order with its value, so the average weighs every order once, whatever the size of its store."
+}

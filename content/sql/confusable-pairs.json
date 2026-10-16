@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "source": "design §5, Days and look-alikes: the confusable-pairs registry, slice 1 (levels 1-2) and sprint 4a (level 3)",
+  "source": "design §5, Days and look-alikes: the confusable-pairs registry, slice 1 (levels 1-2), sprint 4a (level 3) and sprint 6 (level 4)",
   "pairs": [
     { "concepts": ["SQL-FILTER-01", "SQL-AGG-03"], "from_level": 2, "note": "WHERE vs HAVING" },
     { "concepts": ["SQL-SORT-01", "SQL-AGG-02"], "from_level": 2, "note": "DISTINCT vs GROUP BY" },
@@ -9,6 +9,10 @@
     { "concepts": ["SQL-JOIN-01", "SQL-JOIN-02"], "from_level": 3, "note": "INNER vs LEFT: which rows survive a missing match" },
     { "concepts": ["SQL-SET-01", "SQL-JOIN-02"], "from_level": 3, "note": "EXCEPT vs an anti-join" },
     { "concepts": ["SQL-JOIN-01", "SQL-JOIN-03"], "from_level": 3, "note": "a join that works vs one that repeats rows: check the grain after the join" },
-    { "concepts": ["SQL-AGG-02", "SQL-CTE-01"], "from_level": 3, "note": "one GROUP BY vs a step grouped again: which level you average over" }
+    { "concepts": ["SQL-AGG-02", "SQL-CTE-01"], "from_level": 3, "note": "one GROUP BY vs a step grouped again: which level you average over" },
+    { "concepts": ["SQL-JOIN-01", "SQL-SUBQ-01"], "from_level": 4, "note": "IN or EXISTS vs a join: a join repeats a row for each match, IN and EXISTS keep it once" },
+    { "concepts": ["SQL-SUBQ-01", "SQL-SUBQ-02"], "from_level": 4, "note": "a subquery in WHERE vs a derived table: filter by a list or one value, or read from a table built in FROM" },
+    { "concepts": ["SQL-DATE-01", "SQL-DATE-02"], "from_level": 4, "note": "date_trunc and date parts vs date_diff and -: the period a date falls in, or the time between two dates" },
+    { "concepts": ["SQL-NULL-01", "SQL-CLEAN-01"], "from_level": 4, "note": "COALESCE vs NULLIF: fill in a missing value, or make a 0 missing so a division is safe" }
   ]
 }

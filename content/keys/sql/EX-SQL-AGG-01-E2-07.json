@@ -18,7 +18,7 @@
     },
     {
       "id": "EX-SQL-AGG-01-E2-07-PW2",
-      "error_id": "ERR-LOG-06",
+      "error_id": "ERR-LOG-23",
       "sql": "SELECT COUNT(*) AS n_lines FROM sales WHERE order_date >= DATE '2025-02-01' AND order_date < DATE '2025-02-28' AND units >= 2"
     },
     {

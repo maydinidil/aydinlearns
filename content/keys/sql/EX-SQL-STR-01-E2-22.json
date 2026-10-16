@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-STR-01-E2-22",
+  "item_version": 1,
+  "reference_sql": "SELECT split_part(s.store_code, '-', 1) AS store_prefix, SUM(ol.quantity) AS units\nFROM order_lines ol\nJOIN orders o ON o.order_id = ol.order_id\nJOIN stores s ON s.store_id = o.store_id\nJOIN products p ON p.product_id = ol.product_id\nWHERE p.sku <> UPPER(TRIM(p.sku))\nGROUP BY split_part(s.store_code, '-', 1)",
+  "alternatives": [
+    "WITH bad_lines AS (  -- one row per order line of a product with a sku off the standard\n  SELECT ol.order_id, ol.quantity\n  FROM order_lines ol\n  JOIN products p ON p.product_id = ol.product_id\n  WHERE p.sku <> UPPER(TRIM(p.sku))\n)\nSELECT split_part(s.store_code, '-', 1) AS store_prefix, SUM(b.quantity) AS units\nFROM bad_lines b\nJOIN orders o ON o.order_id = b.order_id\nJOIN stores s ON s.store_id = o.store_id\nGROUP BY 1",
+    "SELECT substring(s.store_code, 1, strpos(s.store_code, '-') - 1) AS store_prefix, SUM(ol.quantity) AS units FROM order_lines ol JOIN orders o ON o.order_id = ol.order_id JOIN stores s ON s.store_id = o.store_id JOIN products p ON p.product_id = ol.product_id WHERE p.sku <> UPPER(TRIM(p.sku)) GROUP BY 1"
+  ],
+  "other_way": {
+    "sql": "WITH bad_lines AS (  -- one row per order line of a product with a sku off the standard\n  SELECT ol.order_id, ol.quantity\n  FROM order_lines ol\n  JOIN products p ON p.product_id = ol.product_id\n  WHERE p.sku <> UPPER(TRIM(p.sku))\n)\nSELECT split_part(s.store_code, '-', 1) AS store_prefix, SUM(b.quantity) AS units\nFROM bad_lines b\nJOIN orders o ON o.order_id = b.order_id\nJOIN stores s ON s.store_id = o.store_id\nGROUP BY 1",
+    "tradeoff": "A named step keeps the off-standard lines first and joins the stores after, but one joined query is shorter."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-33",
+      "sql": "SELECT substring(s.store_code, 1, 2) AS store_prefix, SUM(ol.quantity) AS units FROM order_lines ol JOIN orders o ON o.order_id = ol.order_id JOIN stores s ON s.store_id = o.store_id JOIN products p ON p.product_id = ol.product_id WHERE p.sku <> UPPER(TRIM(p.sku)) GROUP BY 1"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-32",
+      "sql": "SELECT split_part(s.store_code, '-', 1) AS store_prefix, SUM(ol.quantity) AS units FROM order_lines ol JOIN orders o ON o.order_id = ol.order_id JOIN stores s ON s.store_id = o.store_id JOIN products p ON p.product_id = ol.product_id WHERE p.sku <> TRIM(p.sku) GROUP BY 1"
+    }
+  ],
+  "hint3_partial": "SELECT ___ AS store_prefix, SUM(ol.quantity) AS units\nFROM order_lines ol\nJOIN orders o ON o.order_id = ol.order_id\nJOIN stores s ON s.store_id = o.store_id\nJOIN products p ON p.product_id = ol.product_id\nWHERE p.sku <> UPPER(TRIM(p.sku))\nGROUP BY ___",
+  "solver": {
+    "prompt_hash": "1f0ef83166444c7a",
+    "schema_version": "018678d60891",
+    "dataset_version": "b2d2b40fb117bb07",
+    "grader_version": "6a.1",
+    "query": "SELECT split_part(s.store_code, '-', 1) AS store_prefix, sum(ol.quantity) AS units\nFROM order_lines ol\nJOIN orders o ON o.order_id = ol.order_id\nJOIN stores s ON s.store_id = o.store_id\nJOIN products p ON p.product_id = ol.product_id\nWHERE p.sku <> upper(trim(sku))\nGROUP BY split_part(s.store_code, '-', 1)\n",
+    "at": "2026-10-15T11:06:12.498Z"
+  }
+}

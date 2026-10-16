@@ -3,6 +3,61 @@
 Append-only log of findings raised by the Codex PR reviewer, each with an independent verdict.
 Newest review first.
 
+## PR #49: sprint 6 Part 1, SQL level 4, release 1.4.0 (reviewed 2026-10-15, merged 2026-10-15)
+
+Codex left one line comment (P2) on commit `a4e3b11`, plus its summary comment. The `claude-review`
+check passed. The finding is confirmed. At the owner's word (D88) it is fixed in Part 2's first block
+(block K), not on PR #49's branch, which merged as reviewed.
+
+### F32: A case's blind solve stays green after its answer changes
+
+**P2 · `tools/check-content.ts:1075` · Verdict: CONFIRMED · Status: FIXED 2026-10-16**
+
+The claim: C50 accepts a case checkpoint's solver record when its `pass` is true and its
+`prompt_hash` matches the prompt. A changed correct option (CP1, CP5) or a rebuilt truth value (CP2,
+CP4) leaves the old passing record standing, so the gate stays green on a solve made against a
+different answer.
+
+What I found: correct. `CaseSolverRecord` holds `pass`, `prompt_hash` and `at` only
+(`schemas/case.ts:32`), and `checkCaseSolvers` compares the prompt hash and the pass flag. The SQL
+items' records do not have this gap: C14 replays each stored query against the current key, and a
+choice item's record keeps the option picked. No case record is known to be stale; the gap is that
+nothing would notice one.
+
+**Fix direction:** block K, rulings S6-29 and S6-30. Each case solve record gains `key_hash`, a short
+fingerprint of the checkpoint's answer (CP1 and CP5: the correct option; CP2 and CP4: the built truth
+value), and C50 fails a record without one or with one that differs. Every case checkpoint is then
+solved again by fresh blind solvers, which is the fix's proof.
+
+**Fix:** block K, Tasks K1 and K8 (commits `d583851` and `ade9158`). `tools/case-key-hash.ts` gives each
+checkpoint's answer a short fingerprint; `CaseSolverRecord` carries it as `key_hash`;
+`tools/record-case-solver.ts` writes it; and `checkCaseSolvers` (C50) fails a record that has none
+("recorded before answer fingerprints") or one that differs from the current answer's. The tests in
+`tests/schemas/case-s6.test.ts` and `tests/tools/` pin both failures. On K1's commit, C50 failed on all
+24 cases, as it should. K8 then had fresh blind solvers answer every case checkpoint again: all 55
+checkpoints of the 24 cases pass, each record with `key_hash`. One checkpoint, CASE-DQ-05 CP4, needed a
+prompt fix first (two solvers' natural queries ran out of the runner's memory) and a third solve.
+`npm run check:content` then passed 18564 of 18564, C50 included.
+
+## PR #48: the study journey, D77, release 1.3 (reviewed 2026-10-13, merged 2026-10-13)
+
+Codex completed its review of commit `7d46c8a` with no line comments and a +1 reaction on the PR
+(checked through the API: 0 review comments, 0 reviews). The `claude-review` check passed. No
+findings; nothing to log. The branch had its own reviews: one per task, a whole-branch review (30
+findings, 29 upheld and fixed or documented, 1 refuted) and a review of the owner-go changes; see
+[`docs/planning/2026-10-13-release-1-3-record.md`](../planning/2026-10-13-release-1-3-record.md).
+
+## PR #47: release 1.2 (merged 2026-10-12)
+
+Codex completed its review with no line comments and a +1 reaction on the PR (checked through the
+API on 2026-10-13: 0 review comments). No findings; nothing to log.
+
+## PR #46: each answer's details in the telemetry, D76 (merged 2026-10-12)
+
+Merged without waiting for Codex, at the owner's word. Codex finished afterwards with no line
+comments and a +1 reaction on the PR (checked through the API on 2026-10-13: 0 review comments).
+No findings; nothing to log.
+
 ## PR #45: optional OpenTelemetry to Dash0, D75 (reviewed 2026-10-12)
 
 Codex left three line comments on commit `a4714ef`: two P1, one P2. All three are confirmed and fixed
@@ -62,6 +117,12 @@ their parent concept's. No item's topic differs from its own concept's.
 (`d.content.choiceItem(...).concept_id`); the target stays for scheduling only. A new test in
 `tests/server/choice-routes.test.ts` answers the fixture's child-concept question and expects the
 child's topic; passing the target again turns it red.
+
+## PR #44: hygiene after sprint 5b (reviewed 2026-10-09, merged 2026-10-09)
+
+Codex completed its review of commit `f09bf6d` with no line comments and a +1 reaction on the PR
+(checked through the API: 0 review comments, 0 reviews). No findings; nothing to log. Each task had
+its own review (0 Critical, 0 Important); see the sprint 5b record, "Hygiene after the merge".
 
 ## PR #43: sprint 5b, GA4 complete, release 1.1 (reviewed 2026-10-09, merged 2026-10-09)
 

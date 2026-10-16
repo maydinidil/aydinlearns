@@ -2,19 +2,21 @@
 // §7 Portfolio; Review Focus 4). The page and the CSV are pure functions, tested here without a folder; the routes write them into a
 // folder that is always under os.tmpdir(). Every case, key and value is invented (tests/helpers/case-fixture.ts); the learner's
 // queries run on a fixture database through the real runner and its gate. No assertion message quotes a key or a model text.
-import { after, test } from 'node:test';
+import { after, mock, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { existsSync } from 'node:fs';
-import { mkdir, mkdtemp, open, readdir, readFile, stat, writeFile } from 'node:fs/promises';
+import fsp, { type FileHandle } from 'node:fs/promises';
+import { syncBuiltinESMExports } from 'node:module';
+import { mkdir, mkdtemp, open, readdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join, resolve, sep } from 'node:path';
+import { dirname, join, resolve, sep } from 'node:path';
 import type { Hono } from 'hono';
 import { SCHEMA_VERSION } from '../../core/envelope.ts';
 import { openJsonlLog } from '../../core/jsonl.ts';
 import { amsterdamDate } from '../../core/time.ts';
 import type { CaseRecord } from '../../schemas/case.ts';
 import { createApp, type AppDeps, type Settings } from '../../server/app.ts';
-import { loadContent, type ContentStore } from '../../server/content.ts';
+import { loadContent, unavailableLine, type ContentStore } from '../../server/content.ts';
 import { AttemptLogger } from '../../server/log.ts';
 import { startRunner, type RunnerClient } from '../../server/runner/client.ts';
 import type { RunnerError } from '../../server/runner/protocol.ts';
@@ -59,7 +61,12 @@ const db = await makeFixtureDb([
   'CREATE TABLE voltmarkt.big AS SELECT range::INTEGER AS id FROM range(10005)',
 ]);
 const runner = await startRunner(db);
-after(() => runner.close());
+/** K7a (backlog 4b, D4-m12): every temporary folder a test makes is listed here and removed once the file's tests end. */
+const made: string[] = [fixture.root, dirname(db)];
+after(async () => {
+  await runner.close();
+  for (const d of made) await rm(d, { recursive: true, force: true });
+});
 
 /** The learner's own queries. None holds a key's SQL as a substring. */
 const Q_MAIN = 'SELECT s.store_id, s.city, s.note FROM stores AS s ORDER BY s.store_id';
@@ -124,6 +131,7 @@ const json = async (r: Response | Promise<Response>): Promise<any> => (await r).
 /** A fresh folder for one test, always under os.tmpdir(): the portfolio folder sits inside it, so a write beside it is seen too. */
 async function tempRoot(): Promise<{ root: string; folder: string }> {
   const root = await mkdtemp(join(tmpdir(), 'al-portfolio-'));
+  made.push(root);
   assert.ok(resolve(root).startsWith(resolve(tmpdir()) + sep), 'every test folder is under os.tmpdir()');
   const folder = join(root, 'portfolio');
   await mkdir(folder);
@@ -141,6 +149,7 @@ async function tree(dir: string): Promise<string[]> {
 
 async function deps(seed: { attempts?: object[]; events?: object[] } = {}, settings: Partial<Settings> = {}, store: ContentStore = content): Promise<AppDeps> {
   const logsDir = await mkdtemp(join(tmpdir(), 'al-portfolio-logs-'));
+  made.push(logsDir);
   const log = openJsonlLog(logsDir);
   for (const r of seed.attempts ?? []) await log.append('attempts', r);
   for (const r of seed.events ?? []) await log.append('events', r);
@@ -393,6 +402,22 @@ test('S4B-16: an unsolved case is refused with 409 and writes and logs nothing',
     assert.equal(r.status, 409, id);
     assert.match((await r.json()).error, /solved/);
   }
+  assert.deepEqual(await tree(root), ['portfolio']);
+  assert.deepEqual(await exportsLogged(d), []);
+});
+
+test('S6-13: an unavailable case answers the export with 409 and its line, and writes and logs nothing', async () => {
+  const f = await makeCaseFixture({
+    ...patch,
+    records: (r) => { patch.records?.(r); r.inbox.schema = 'mailvora'; r.inbox.data_source = { label: 'Fictional, generated data: Mailvora', real: false, licence: null }; },
+    file: (x) => { x.schemas = ['voltmarkt', 'voltmarkt_edge_basics']; },
+  });
+  const store = await loadContent(f.root, { truthFile: f.truthFile });
+  const { root, folder } = await tempRoot();
+  const d = await deps({ attempts: solved(INBOX_ID, Q_MAIN) }, { portfolio_folder: folder }, store);
+  const r = await exportCase(createApp(d), INBOX_ID);
+  assert.equal(r.status, 409);
+  assert.equal((await r.json()).error, unavailableLine('Mailvora'));
   assert.deepEqual(await tree(root), ['portfolio']);
   assert.deepEqual(await exportsLogged(d), []);
 });
@@ -759,4 +784,53 @@ test('D51: a UNC folder is refused with a plain message, by folderProblem and at
   assert.equal(r.status, 400);
   assert.match((await r.json()).error, /network path/);
   assert.match((await json(get(app, '/api/portfolio'))).folder_problem, /network path/, 'Settings reads the same message');
+});
+
+// K7a (backlog 4c, A3): header cells are written as they are, by the brief: only data cells are guarded. This pins both halves, so a
+// change to either is a decision and not a slip.
+test('A3: a header cell is never guarded or altered (only quoted when it needs it), and the data cell under it is guarded, through the route too', async () => {
+  const text = buildCsv(['=SUM(A1)', '+x', 'a,b', '"q"'], [['=1+1', '+x', 'a,b', '-5']], ['VARCHAR', 'VARCHAR', 'VARCHAR', 'VARCHAR']);
+  assert.deepEqual(parseCsv(text), [['=SUM(A1)', '+x', 'a,b', '"q"'], ["'=1+1", "'+x", 'a,b', "'-5"]], 'header as given, data guarded');
+  assert.equal(text.split('\r\n')[0], CSV_BOM + '=SUM(A1),+x,"a,b","""q"""', 'the header line: quoted only for a comma or a quote');
+  const { folder } = await tempRoot();
+  const q = `SELECT s.store_id AS "=hdr", '=cell' AS "+hdr2" FROM stores AS s WHERE s.store_id = 1`;
+  const d = await deps({ attempts: solved(DAILY_ID, q) }, { portfolio_folder: folder });
+  const reply = await json(exportCase(createApp(d), DAILY_ID));
+  assert.deepEqual(parseCsv(await readFile(join(folder, reply.files[1]), 'utf8')), [['=hdr', '+hdr2'], ['1', "'=cell"]]);
+});
+
+// K7a (backlog 4c, A3): the write-failure status through the route, not only by writeFailure(). The file calls are replaced for the
+// test (the way real ones fail on a full disk or a locked folder); the reply's status and words are the route's own.
+test('A3: a failed file write through POST /api/cases/:id/export gives the plain reason and the status by error code, writes and logs nothing', async () => {
+  const { folder } = await tempRoot();
+  const d = await deps({ attempts: solved(DAILY_ID, Q_MAIN) }, { portfolio_folder: folder });
+  const app = createApp(d);
+  const realOpen = fsp.open;
+  let code = 'ENOSPC';
+  const failing = mock.method(fsp, 'open', async (...args: Parameters<typeof realOpen>): Promise<FileHandle> => {
+    const h = await realOpen(...args);
+    if (!String(args[0]).startsWith(folder)) return h;
+    return new Proxy(h, { get: (t, k) => (k === 'writeFile'
+      ? async () => { throw Object.assign(new Error(`${code} injected`), { code }); }
+      : (() => { const v = Reflect.get(t, k); return typeof v === 'function' ? v.bind(t) : v; })()) });
+  });
+  syncBuiltinESMExports();
+  try {
+    for (const [c, status, words] of [['ENOSPC', 503, /disk is full/], ['EACCES', 400, /not allowed/], ['EROFS', 400, /read-only/], ['EIO', 503, /could not be saved/]] as const) {
+      code = c;
+      const res = await exportCase(app, DAILY_ID);
+      assert.equal(res.status, status, c);
+      const body = await res.json();
+      assert.match(body.error, words, c);
+      assert.ok(!/\bE[A-Z]{3,}\b/.test(body.error), `${c}: no raw error code in the reply`);
+    }
+  } finally {
+    failing.mock.restore();
+    syncBuiltinESMExports();
+  }
+  assert.ok(failing.mock.callCount() >= 4, 'the injected file call was used');
+  assert.deepEqual(await readdir(folder), [], 'every half-written file was removed');
+  assert.equal((await exportsLogged(d)).length, 0, 'nothing was logged');
+  assert.equal((await exportCase(app, DAILY_ID)).status, 200, 'with the real file calls back, the same export goes through');
+  assert.equal((await exportsLogged(d)).length, 1);
 });

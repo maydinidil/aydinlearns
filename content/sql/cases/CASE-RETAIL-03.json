@@ -1,0 +1,166 @@
+{
+  "case_id": "CASE-RETAIL-03",
+  "kind": "inbox",
+  "level": 4,
+  "world": "RETAIL",
+  "company_id": "voltmarkt",
+  "title": "Like-for-like store sales, September 2025",
+  "persona": {
+    "name": "Yara",
+    "role": "Retail operations"
+  },
+  "brief": {
+    "decision": "Which stores to name in the trading statement, based on September 2025 sales against September 2024 at the stores trading in both periods",
+    "deadline": "Wednesday's trading statement draft"
+  },
+  "data_needed": [
+    "stores",
+    "sales"
+  ],
+  "expected_output": {
+    "columns": [
+      "store_id",
+      "store_code",
+      "sales_sep_2024_eur",
+      "sales_sep_2025_eur",
+      "lfl_pct"
+    ],
+    "grain": "one row per like-for-like store for September 2025 against September 2024",
+    "sort": [
+      {
+        "column": "store_id",
+        "desc": false
+      }
+    ]
+  },
+  "checkpoints": [
+    {
+      "id": "CP1",
+      "kind": "CP1",
+      "item_id": "CASE-RETAIL-03:CP1",
+      "credits_concepts": [],
+      "prompt": "Yara's like-for-like stores are the physical stores opened on or before 2023-09-01 that are still open after 2025-09-30. Suppose one of them were closed for a refit for all of September 2025 and sold nothing that month. Which stores should the like-for-like total for September 2025 against September 2024 add up?",
+      "options": [
+        {
+          "oid": "o23a35cd",
+          "text": "Every like-for-like store, with the refit store counted at 0 sales for September 2025"
+        },
+        {
+          "oid": "o67e19ea",
+          "text": "The like-for-like stores with sales above 0 in both Septembers; the refit store would be listed without a growth figure"
+        },
+        {
+          "oid": "o94a7fa2",
+          "text": "Every physical store with sales in both Septembers, including stores opened in the last two years"
+        },
+        {
+          "oid": "oa97b30f",
+          "text": "Every like-for-like store, with the refit store's September 2024 sales used again for September 2025"
+        }
+      ]
+    },
+    {
+      "id": "CP2",
+      "kind": "CP2",
+      "item_id": "CASE-RETAIL-03:CP2",
+      "credits_concepts": [
+        "SQL-AGG-01"
+      ],
+      "prompt": "Yara's like-for-like stores are the physical stores, not the webshop, opened on or before 2023-09-01 and either with no close date or closing after 2025-09-30. Count the physical stores that had at least one order line with a UTC order date from 2025-09-01 to 2025-09-30, both days included, but are not like-for-like. Type a whole number.",
+      "typed": {
+        "precision": "count",
+        "scale": "plain",
+        "decimals": 0,
+        "unit_label": "stores"
+      },
+      "truth_key": "CASE-RETAIL-03:CP2"
+    },
+    {
+      "id": "CP3",
+      "kind": "CP3",
+      "item_id": "EX-CASE-RETAIL-03",
+      "credits_concepts": [
+        "SQL-CLEAN-01",
+        "SQL-JOIN-02",
+        "SQL-CTE-01",
+        "SQL-AGG-04"
+      ],
+      "prompt": "Write the query that answers Yara's question."
+    },
+    {
+      "id": "CP4",
+      "kind": "CP4",
+      "item_id": "CASE-RETAIL-03:CP4",
+      "credits_concepts": [],
+      "prompt": "Yara's headline is the like-for-like total for September 2025 against September 2024. The like-for-like stores are the physical stores, not the webshop, opened on or before 2023-09-01 and either with no close date or closing after 2025-09-30. A store's sales in a month are the net revenue (quantity times unit price, less the line discount) of its order lines whose UTC order date falls in that month: 2024-09-01 to 2024-09-30, and 2025-09-01 to 2025-09-30. Add up the sales of the like-for-like stores that had sales above 0 in both months, leaving out any that did not. What is the growth, 100 times (the September 2025 total minus the September 2024 total) divided by the September 2024 total? Type the percentage rounded to 1 decimal, with a minus sign if the total fell, for example 4.2 or -4.2.",
+      "typed": {
+        "precision": "ratio",
+        "scale": "percent",
+        "decimals": 1,
+        "unit_label": "%"
+      },
+      "truth_key": "CASE-RETAIL-03:CP4"
+    },
+    {
+      "id": "CP5",
+      "kind": "CP5",
+      "item_id": "CASE-RETAIL-03:CP5",
+      "credits_concepts": [],
+      "prompt": "Between September 2024 and September 2025, Yara's like-for-like store sales fell, while the total sales of all physical stores fell by less. In that time one store opened on 1 September 2024, one opened in March 2025 and one closed at the end of June 2025. What does the gap between the two figures show?",
+      "options": [
+        {
+          "oid": "o754c823",
+          "text": "Like-for-like understates how the business traded, so the total of all physical stores is the growth figure to report."
+        },
+        {
+          "oid": "o9e59e1f",
+          "text": "Opening and closing stores changed the total through the number of stores; like-for-like shows how the stores trading in both periods did."
+        },
+        {
+          "oid": "o3dbddcd",
+          "text": "The existing stores raised their prices, because like-for-like counts units while the total of all stores counts euros."
+        },
+        {
+          "oid": "o22d7c55",
+          "text": "September 2025 has a different mix of weekdays than September 2024, and that difference alone explains the gap."
+        }
+      ]
+    },
+    {
+      "id": "CP6",
+      "kind": "CP6",
+      "credits_concepts": [],
+      "prompt": "Write 2 to 4 sentences for Yara's trading statement draft: how like-for-like sales moved from September 2024 to September 2025, which stores stand out, one caveat about what like-for-like leaves out, and one next step before Wednesday."
+    }
+  ],
+  "model_plan": "Metric formula: lfl_pct = 100 times (September 2025 sales minus September 2024 sales) divided by September 2024 sales, rounded to 1 decimal, and missing unless the store had sales above 0 in both months.\nOutput grain: one row per like-for-like store.\nTables and keys: stores (one row per store) left joined to its September sales, added up from sales on store_code.\nFilters: physical stores only (not the webshop), opened on or before 2023-09-01, with no close date or one after 2025-09-30; order dates in September 2024 or September 2025.\nEdge cases: a store opened inside the comparison window or closed before its end is not like-for-like; a like-for-like store with no sales in a month shows 0 and no growth figure; the webshop is not a store.\nExpected row count: 22",
+  "model_answer_template": "Like-for-like store sales changed by {CP4} percent from September 2024 to September 2025, across the stores trading in both months. Total store sales fell by less, because the stores outside like-for-like, the {CP2} that sold in September 2025 without being like-for-like and the store that closed in June, together sold more in September 2025 than in September 2024, so the total looks better than the existing stores did. A different mix of weekdays in the two Septembers can also move the figure a little. Next, I would look at the stores with the biggest falls and check whether the new stores took customers from nearby like-for-like stores.",
+  "follow_up_question": "Why did total store sales fall by less than like-for-like sales?",
+  "data_source": {
+    "label": "Fictional, generated data: Voltmarkt",
+    "real": false,
+    "licence": null
+  },
+  "difficulty": 3,
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CASE-01",
+    "SQL-AGG-04",
+    "SQL-TYPE-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-CLEAN-01"
+  ],
+  "metric_ids": [
+    "MET-RETAIL-01"
+  ],
+  "find_ids": [],
+  "uses_raw": false
+}

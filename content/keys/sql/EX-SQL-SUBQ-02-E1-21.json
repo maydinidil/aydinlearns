@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-SUBQ-02-E1-21",
+  "item_version": 1,
+  "reference_sql": "SELECT ROUND(AVG(t.n_products), 2) AS avg_products\nFROM (\n  -- one row per category with products\n  SELECT category_id, COUNT(*) AS n_products\n  FROM products\n  GROUP BY category_id\n) AS t",
+  "alternatives": [
+    "SELECT ROUND(COUNT(*) * 1.0 / COUNT(DISTINCT category_id), 2) AS avg_products\nFROM products",
+    "WITH category_sizes AS (\n  -- one row per category with products\n  SELECT category_id, COUNT(*) AS n_products\n  FROM products\n  GROUP BY category_id\n)\nSELECT ROUND(AVG(n_products), 2) AS avg_products\nFROM category_sizes"
+  ],
+  "other_way": {
+    "sql": "SELECT ROUND(COUNT(*) * 1.0 / COUNT(DISTINCT category_id), 2) AS avg_products\nFROM products",
+    "tradeoff": "Dividing the products by their distinct categories needs no inner step, but only works while no category_id is missing."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-11",
+      "sql": "SELECT ROUND(AVG(t.n_products), 2) AS avg_products FROM (SELECT c.category_id, COUNT(*) AS n_products FROM categories c LEFT JOIN products p ON p.category_id = c.category_id GROUP BY c.category_id) AS t"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-14",
+      "sql": "SELECT ROUND(MAX(t.n_products), 2) AS avg_products FROM (SELECT category_id, COUNT(*) AS n_products FROM products GROUP BY category_id) AS t"
+    }
+  ],
+  "hint3_partial": "SELECT ROUND(AVG(t.n_products), 2) AS avg_products\nFROM (\n  -- one row per category with products\n  SELECT category_id, COUNT(*) AS n_products\n  FROM products\n  GROUP BY ___\n) AS t",
+  "solver": {
+    "prompt_hash": "5bcd62cb0e0cbde5",
+    "schema_version": "d77fe1c31a0e",
+    "dataset_version": "b2d2b40fb117bb07",
+    "grader_version": "6a.1",
+    "query": "SELECT ROUND(AVG(n_products), 2) AS avg_products FROM (SELECT category_id, COUNT(*) AS n_products FROM products GROUP BY category_id) AS t\r\n",
+    "at": "2026-10-15T11:06:13.607Z"
+  }
+}

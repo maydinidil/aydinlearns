@@ -1,0 +1,43 @@
+{
+  "case_id": "CASE-REAL-02",
+  "truths": {
+    "CP2": "SELECT COUNT(*)\nFROM transactions\nWHERE feature + display + tpr_only >= 2",
+    "CP4": "SELECT ROUND(100.0 * (AVG(CASE WHEN s.tpr_only = 1 AND s.feature = 0 AND s.display = 0 THEN s.units END)\n                      - AVG(CASE WHEN s.feature = 0 AND s.display = 0 AND s.tpr_only = 0 THEN s.units END))\n             / NULLIF(AVG(CASE WHEN s.feature = 0 AND s.display = 0 AND s.tpr_only = 0 THEN s.units END), 0), 1)\nFROM transactions AS s\nJOIN products AS p ON p.upc = s.upc\nWHERE p.category = 'COLD CEREAL'"
+  },
+  "choices": {
+    "CP1": {
+      "correct_oid": "od82047d",
+      "explanation": "A week of no promotion has no flag set; a full price still allows a feature or a display, and a price reduction alone is a promotion too."
+    },
+    "CP5": {
+      "correct_oid": "o9b6890c",
+      "explanation": "Tactics go to products and stores that differ anyway, so a gap in averages is a difference, not an effect, however many rows it rests on; units are the right measure for this question."
+    }
+  },
+  "solver": {
+    "CP1": {
+      "pass": true,
+      "prompt_hash": "bd558d38f3ff09e7",
+      "key_hash": "7eb943e632be9577",
+      "at": "2026-10-16T16:20:19.767Z"
+    },
+    "CP2": {
+      "pass": true,
+      "prompt_hash": "2e244f0513870121",
+      "key_hash": "3dc2c6ccff49eeee",
+      "at": "2026-10-16T16:20:19.767Z"
+    },
+    "CP4": {
+      "pass": true,
+      "prompt_hash": "08beac9f1e48b667",
+      "key_hash": "573a7b63dcd52e4a",
+      "at": "2026-10-16T16:20:19.767Z"
+    },
+    "CP5": {
+      "pass": true,
+      "prompt_hash": "1abd82614f48b74b",
+      "key_hash": "86a283c3a34229bd",
+      "at": "2026-10-16T16:20:19.767Z"
+    }
+  }
+}

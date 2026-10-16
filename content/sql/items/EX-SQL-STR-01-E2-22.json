@@ -1,0 +1,121 @@
+{
+  "id": "EX-SQL-STR-01-E2-22",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-04",
+    "split_part",
+    "text_helper",
+    "store_code",
+    "order_lines",
+    "orders",
+    "stores",
+    "products"
+  ],
+  "level": 4,
+  "source_ids": [
+    "01:SQL-STR-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-15",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-STR-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-JOIN-01",
+    "SQL-STR-01"
+  ],
+  "template_id": "T-STR-01-units-by-store-prefix",
+  "template_params": {
+    "separator": "-"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt_raw",
+  "edge_schema": "voltmarkt_edge_clean",
+  "uses_raw": true,
+  "prompt": "How many units of products with a sku off the standard form did each kind of store sell? These tables may hold errors. The standard form of a sku is upper case with no spaces at its start or end. The kind of store is the text before the hyphen in store_code, such as 'NL', 'BE', 'LU' or 'WEB'. Return two columns, in this order: store_prefix and units. Return one row for each store prefix with at least one such unit. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "store_prefix",
+        "type_class": "text"
+      },
+      {
+        "name": "units",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "store_prefix",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "units",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "store_prefix"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, decide what one row stands for: one store prefix, cut from store_code.",
+    "The webshop's code has three letters before its hyphen, so cut at the hyphen rather than at a fixed length."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 82,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 83,
+      "to": 233,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 234,
+      "to": 267,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 268,
+      "to": 309,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "split_part cuts at the hyphen, so 'WEB-01' gives WEB while 'BE-07' gives BE."
+}

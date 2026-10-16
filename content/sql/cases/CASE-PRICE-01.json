@@ -68,7 +68,7 @@
       "credits_concepts": [
         "SQL-AGG-01"
       ],
-      "prompt": "How many units did Voltmarkt sell in March 2025? An order counts for March 2025 when it was placed from 2025-03-01 to 2025-03-31, both days included, in Amsterdam time; order_ts holds the moment in UTC. Add up the units on every order line of those orders, in every category and channel. Type a whole number.",
+      "prompt": "How many units did Voltmarkt sell in March 2025? An order counts for March 2025 when it was placed from 2025-03-01 to 2025-03-31, both days included, in Amsterdam time; the order's order_ts holds the moment in UTC. Add up the quantity on every order line of those orders, in every category and channel. Type a whole number.",
       "typed": {
         "precision": "count",
         "scale": "plain",
@@ -97,7 +97,7 @@
         "SQL-JOIN-01",
         "SQL-AGG-01"
       ],
-      "prompt": "Joost has a follow-up about Headphones. What percentage of the Headphones units Voltmarkt sold in March 2025 were sold with a promotion? An order counts for March 2025 when it was placed from 2025-03-01 to 2025-03-31, both days included, in Amsterdam time; order_ts holds the moment in UTC. An order line was sold with a promotion when its promo_id is not missing. Divide the units on those lines by all Headphones units sold that month and multiply by 100. Type the percentage with 1 decimal, for example 12.5.",
+      "prompt": "Joost has a follow-up about Headphones, the category whose category_name is 'Headphones'. What percentage of the Headphones units Voltmarkt sold in March 2025 were sold with a promotion? An order counts for March 2025 when it was placed from 2025-03-01 to 2025-03-31, both days included, in Amsterdam time; the order's order_ts holds the moment in UTC. A line's units are its quantity, and a line was sold with a promotion when its promo_id is not missing. Divide the quantity on those lines by the quantity on all Headphones lines of that month, and multiply by 100. Type the percentage with 1 decimal, for example 12.5.",
       "typed": {
         "precision": "ratio",
         "scale": "percent",

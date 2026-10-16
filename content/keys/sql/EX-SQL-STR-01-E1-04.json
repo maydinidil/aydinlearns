@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-STR-01-E1-04",
+  "item_version": 1,
+  "reference_sql": "SELECT product_id, UPPER(TRIM(sku)) AS clean_sku\nFROM products\nWHERE sku LIKE 'vm%'",
+  "alternatives": [
+    "SELECT product_id, UPPER(REPLACE(sku, ' ', '')) AS clean_sku FROM products WHERE sku LIKE 'vm%'",
+    "SELECT product_id, TRIM(UPPER(sku)) AS clean_sku FROM products WHERE sku LIKE 'vm%'"
+  ],
+  "other_way": {
+    "sql": "SELECT product_id, UPPER(REPLACE(sku, ' ', '')) AS clean_sku FROM products WHERE sku LIKE 'vm%'",
+    "tradeoff": "REPLACE drops every space, inside the sku too, while TRIM keeps inner spaces, so pick the one the standard form asks for."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-32",
+      "sql": "SELECT product_id, UPPER(sku) AS clean_sku FROM products WHERE sku LIKE 'vm%'"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-32",
+      "sql": "SELECT product_id, TRIM(sku) AS clean_sku FROM products WHERE sku LIKE 'vm%'"
+    }
+  ],
+  "hint3_partial": "SELECT product_id, UPPER(___) AS clean_sku\nFROM products\nWHERE sku LIKE 'vm%'",
+  "solver": {
+    "prompt_hash": "856ff8fa5d946875",
+    "schema_version": "d77fe1c31a0e",
+    "dataset_version": "b2d2b40fb117bb07",
+    "grader_version": "6a.1",
+    "query": "SELECT product_id, upper(trim(sku)) AS clean_sku FROM products WHERE sku LIKE 'vm%'\n",
+    "at": "2026-10-15T11:06:12.187Z"
+  }
+}

@@ -53,7 +53,8 @@ export function buildCurriculum(j: { concepts: any[]; levels: any[] }): Curricul
   return { version: 1, source: '01', errata_applied: CURRICULUM_ERRATA, levels, concepts };
 }
 
-// New error IDs for levels 1-3 (design §12), recorded in ERRATA (E-142, E-143, E-152, E-153, E-162, E-163, E-164, E-168, E-171, E-172; templates E-173).
+// New error IDs for levels 1-3 (design §12), recorded in ERRATA (E-142, E-143, E-152, E-153, E-162, E-163, E-164, E-168, E-171, E-172; templates E-173),
+// and from sprint 6 (E-189).
 export const NEW_ERRORS: Omit<ErrorType, 'concept_id'>[] = [
   { id: 'ERR-LOG-20', category: 'LOG', name: 'Averaging ratios instead of dividing sums', detection_checks: ['CHK-MUTANT-MATCH'], feedback_template: '' },
   { id: 'ERR-LOG-21', category: 'LOG', name: 'Percent scale (0.15 vs 15)', detection_checks: ['CHK-MUTANT-MATCH'], feedback_template: '' },
@@ -72,6 +73,31 @@ export const NEW_ERRORS: Omit<ErrorType, 'concept_id'>[] = [
   // Sprint 4c Task C1 (ERRATA E-172, owner decision D45): SQL-CASE-01's WHEN-order trap, which fell back to ERR-LOG-00.
   { id: 'ERR-LOG-29', category: 'LOG', name: 'CASE branch order: an earlier WHEN catches rows meant for a later one', detection_checks: ['CHK-MUTANT-MATCH'],
     feedback_template: 'CASE takes the first WHEN that is true. Put the narrower or more important test first.' },
+  // Sprint 6 Task A1 (ERRATA E-189, S6-11): DuckDB's binder message for a window function in WHERE, which fell to ERR-SYN-02.
+  { id: 'ERR-SYN-08', category: 'SYN', name: 'A window function in WHERE', detection_checks: ['CHK-ENGINE-ERROR'],
+    feedback_template: 'WHERE picks rows before any window function is worked out, so it cannot use one. Work it out in a CTE or subquery, then filter that result in the outer query.' },
+  // Sprint 6 Task B2 (ERRATA E-188, S6-11): level 4's common mistakes, detected by a planted match. Names as E-188 gives them.
+  { id: 'ERR-LOG-30', category: 'LOG', name: 'NOT IN over a list with a missing value returns no rows', detection_checks: ['CHK-MUTANT-MATCH'],
+    feedback_template: 'NOT IN returns no rows at all when the list it checks holds a missing value. Use NOT EXISTS, or leave the missing values out of the list with IS NOT NULL.' },
+  { id: 'ERR-LOG-31', category: 'LOG', name: 'Correlated subquery on the wrong column', detection_checks: ['CHK-MUTANT-MATCH'],
+    feedback_template: 'The subquery is linked to the outer row on the wrong column, so each row is compared with the wrong group. Link the inner table to the outer row on the column the question compares by, with a different alias for each.' },
+  { id: 'ERR-LOG-32', category: 'LOG', name: 'Text key compared or grouped without trimming or matching case', detection_checks: ['CHK-MUTANT-MATCH'],
+    feedback_template: 'Text that differs only in spaces or letter case counts as different values, so one key splits apart or misses its match. Clean it the same way on both sides, with LOWER(TRIM(...)), before you compare or group it.' },
+  { id: 'ERR-LOG-33', category: 'LOG', name: 'Substring position or length off by one', detection_checks: ['CHK-MUTANT-MATCH'],
+    feedback_template: 'Text positions count from 1, and the length is how many characters to keep, so a start or length one off cuts the wrong part. Count the positions by hand on one value before you write the cut.' },
+  { id: 'ERR-LOG-34', category: 'LOG', name: 'Date difference counted as boundaries, or inclusive and exclusive days mixed up', detection_checks: ['CHK-MUTANT-MATCH'],
+    feedback_template: 'date_diff counts the period boundaries crossed, not whole periods, and one date minus another leaves one end day out. Read whether the question counts both end days, and add 1 only when it does.' },
+  { id: 'ERR-LOG-35', category: 'LOG', name: 'A missing ratio replaced by 0', detection_checks: ['CHK-MUTANT-MATCH'],
+    feedback_template: 'A ratio with nothing to divide by is unknown, not 0, so a 0 in its place looks like a real result and pulls averages down. Keep it missing with NULLIF(denominator, 0), and use 0 only when the question says so.' },
+  { id: 'ERR-LOG-36', category: 'LOG', name: 'Duplicate rows counted twice', detection_checks: ['CHK-MUTANT-MATCH'],
+    feedback_template: 'A record loaded twice is counted twice, so counts and totals come out too high. Find the copies with GROUP BY on the columns that make a record and HAVING COUNT(*) > 1, then count each record once.' },
+  // Sprint 6 Task B2 (ERRATA E-189, S6-11; design §12): the window and spine mistakes, added ahead of levels 5 and 6.
+  { id: 'ERR-LOG-37', category: 'LOG', name: 'Missing PARTITION BY', detection_checks: ['CHK-MUTANT-MATCH'],
+    feedback_template: 'Without PARTITION BY, a window function runs over the whole result instead of within each group. Add PARTITION BY with the column that defines the group, then the ORDER BY inside it.' },
+  { id: 'ERR-LOG-38', category: 'LOG', name: 'ROWS versus RANGE', detection_checks: ['CHK-MUTANT-MATCH'],
+    feedback_template: 'ROWS counts rows and RANGE counts values of the sort column, so ties and days with no row change what the frame holds. Write the frame you mean, such as ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW for a running total.' },
+  { id: 'ERR-LOG-39', category: 'LOG', name: 'No date spine: periods with no rows vanish', detection_checks: ['CHK-MUTANT-MATCH'],
+    feedback_template: 'Grouping only the rows that exist leaves out every period with no rows, so it does not appear instead of showing 0. Start from a full list of periods, such as the calendar table, and LEFT JOIN the data to it.' },
 ];
 
 /**

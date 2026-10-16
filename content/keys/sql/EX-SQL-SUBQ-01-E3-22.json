@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-SUBQ-01-E3-22",
+  "item_version": 1,
+  "reference_sql": "SELECT o.customer_id\nFROM orders o\nWHERE o.customer_id IS NOT NULL\n  AND o.channel = 'web'\n  AND o.order_ts >= TIMESTAMP '2025-05-01 00:00:00'\n  AND o.order_ts < TIMESTAMP '2025-06-01 00:00:00'\n  AND o.order_ts = (\n    SELECT MIN(o2.order_ts)\n    FROM orders o2\n    WHERE o2.customer_id = o.customer_id\n  )",
+  "alternatives": [
+    "WITH first_orders AS (\n  -- one row per registered customer\n  SELECT customer_id, MIN(order_ts) AS first_ts\n  FROM orders\n  WHERE customer_id IS NOT NULL\n  GROUP BY customer_id\n)\nSELECT o.customer_id\nFROM orders o\nJOIN first_orders f ON f.customer_id = o.customer_id AND f.first_ts = o.order_ts\nWHERE o.channel = 'web'\n  AND f.first_ts >= TIMESTAMP '2025-05-01 00:00:00'\n  AND f.first_ts < TIMESTAMP '2025-06-01 00:00:00'",
+    "SELECT o.customer_id\nFROM orders o\nJOIN (\n  -- one row per registered customer\n  SELECT customer_id, MIN(order_ts) AS first_ts\n  FROM orders\n  WHERE customer_id IS NOT NULL\n  GROUP BY customer_id\n) AS f ON f.customer_id = o.customer_id AND f.first_ts = o.order_ts\nWHERE o.channel = 'web'\n  AND o.order_ts >= TIMESTAMP '2025-05-01 00:00:00'\n  AND o.order_ts < TIMESTAMP '2025-06-01 00:00:00'"
+  ],
+  "other_way": {
+    "sql": "WITH first_orders AS (\n  -- one row per registered customer\n  SELECT customer_id, MIN(order_ts) AS first_ts\n  FROM orders\n  WHERE customer_id IS NOT NULL\n  GROUP BY customer_id\n)\nSELECT o.customer_id\nFROM orders o\nJOIN first_orders f ON f.customer_id = o.customer_id AND f.first_ts = o.order_ts\nWHERE o.channel = 'web'\n  AND f.first_ts >= TIMESTAMP '2025-05-01 00:00:00'\n  AND f.first_ts < TIMESTAMP '2025-06-01 00:00:00'",
+    "tradeoff": "A step with each customer's first order time, joined on customer and time, shows that time but takes more lines."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-31",
+      "sql": "SELECT o.customer_id FROM orders o WHERE o.customer_id IS NOT NULL AND o.channel = 'web' AND o.order_ts >= TIMESTAMP '2025-05-01 00:00:00' AND o.order_ts < TIMESTAMP '2025-06-01 00:00:00' AND o.order_ts = (SELECT MIN(o2.order_ts) FROM orders o2 WHERE o2.store_id = o.store_id AND o2.order_ts >= TIMESTAMP '2025-05-01 00:00:00')"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-14",
+      "sql": "SELECT o.customer_id FROM orders o WHERE o.customer_id IS NOT NULL AND o.channel = 'web' AND o.order_ts >= TIMESTAMP '2025-05-01 00:00:00' AND o.order_ts < TIMESTAMP '2025-06-01 00:00:00' AND o.order_ts = (SELECT MAX(o2.order_ts) FROM orders o2 WHERE o2.customer_id = o.customer_id)"
+    }
+  ],
+  "hint3_partial": "SELECT o.customer_id\nFROM orders o\nWHERE o.customer_id IS NOT NULL\n  AND o.channel = 'web'\n  AND o.order_ts >= TIMESTAMP '2025-05-01 00:00:00'\n  AND o.order_ts < TIMESTAMP '2025-06-01 00:00:00'\n  AND o.order_ts = (\n    SELECT MIN(o2.order_ts)\n    FROM orders o2\n    WHERE ___\n  )",
+  "solver": {
+    "prompt_hash": "402105e87808927f",
+    "schema_version": "7ed366279088",
+    "dataset_version": "b2d2b40fb117bb07",
+    "grader_version": "6a.1",
+    "query": "WITH first_o AS (SELECT customer_id, MIN(order_ts) AS first_ts FROM orders WHERE customer_id IS NOT NULL GROUP BY customer_id)\r\nSELECT DISTINCT f.customer_id FROM first_o f JOIN orders o ON o.customer_id = f.customer_id AND o.order_ts = f.first_ts WHERE o.channel = 'web' AND f.first_ts >= TIMESTAMP '2025-05-01 00:00:00' AND f.first_ts < TIMESTAMP '2025-06-01 00:00:00'\r\n",
+    "at": "2026-10-15T11:06:13.250Z"
+  }
+}

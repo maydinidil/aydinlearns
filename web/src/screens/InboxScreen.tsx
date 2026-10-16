@@ -1,8 +1,10 @@
 // web/src/screens/InboxScreen.tsx: the case inbox at #/inbox (sprint 4b, Task D2; design §14; S4B-12, D39). Every case as a
 // manager's message: who asks, the kind and level, the decision and deadline, and a status word with the score. Reading it serves
-// and logs nothing (GET /api/cases). Every case opens at any time; the SQL tab is the current tab (lib/nav.ts).
+// and logs nothing (GET /api/cases). Every case opens at any time; the SQL tab is the current tab (lib/nav.ts). Sprint 6 (S6-13): a
+// case whose dataset is not prepared shows the line that names it and the prep command.
 import { useEffect, useState } from 'react';
 import { PageHead } from '../components/PageHead.tsx';
+import { codeSpans } from '../lib/code-spans.ts';
 import { crumbParts } from '../lib/crumb.ts';
 import { INBOX_TITLE, inboxRow } from '../lib/case-flow.ts';
 import { casesApi, type CaseListEntry } from '../lib/cases-api.ts';
@@ -31,6 +33,7 @@ export function InboxScreen() {
                   <p className="muted">{r.meta}</p>
                   <p>{r.decision}</p>
                   <p className="muted">{r.deadline}</p>
+                  {r.unavailable && <p className="notice" data-unavailable>{codeSpans(r.unavailable).map((part, i) => (part.code ? <code key={i}>{part.text}</code> : part.text))}</p>}
                 </div>
                 <span className="chip-col">
                   <span className={`chip ${r.chip.tone}`.trim()}>{r.chip.label}</span>

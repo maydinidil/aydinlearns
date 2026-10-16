@@ -1,0 +1,22 @@
+{
+  "case_id": "CASE-DQ-02",
+  "truths": {
+    "CP2": "SELECT COUNT(*)\nFROM order_lines AS ol\nJOIN products AS p ON p.product_id = ol.product_id\nWHERE ol.unit_price_eur > 10 * p.unit_cost_eur",
+    "CP4": "SELECT ROUND(COALESCE(SUM((ol.quantity * ol.unit_price_eur - ol.line_discount_eur)\n                           - (ol.quantity * ol.unit_price_eur / 100 - ol.line_discount_eur)), 0), 2)\nFROM order_lines AS ol\nJOIN products AS p ON p.product_id = ol.product_id\nWHERE ol.unit_price_eur > 10 * p.unit_cost_eur"
+  },
+  "choices": {},
+  "solver": {
+    "CP2": {
+      "pass": true,
+      "prompt_hash": "fde06deeb3924ec7",
+      "key_hash": "7c0e66e2f0a387a3",
+      "at": "2026-10-15T23:01:46.505Z"
+    },
+    "CP4": {
+      "pass": true,
+      "prompt_hash": "efc7bcc338aa9d63",
+      "key_hash": "b2b31ddcd31e57c2",
+      "at": "2026-10-15T23:01:46.505Z"
+    }
+  }
+}

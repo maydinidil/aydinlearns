@@ -1,0 +1,43 @@
+{
+  "case_id": "CASE-MKT-03",
+  "truths": {
+    "CP2": "SELECT COUNT(*)\nFROM signups AS g\nWHERE g.signup_ts >= TIMESTAMPTZ '2025-09-01 00:00:00+00'\n  AND g.signup_ts < TIMESTAMPTZ '2025-10-01 00:00:00+00'\n  AND EXISTS (\n    SELECT 1\n    FROM activation_events AS a\n    WHERE a.user_id = g.user_id\n      AND a.event_name = 'first_campaign_sent'\n      AND a.event_ts <= g.signup_ts + INTERVAL '7 days'\n  )\n  AND EXISTS (\n    SELECT 1\n    FROM subscriptions AS sb\n    WHERE sb.user_id = g.user_id\n      AND sb.start_date <= CAST(g.signup_ts AS DATE) + INTERVAL '30 days'\n  )",
+    "CP4": "WITH cohort AS (\n  -- one row per user who signed up in September 2025, UTC\n  SELECT user_id, visitor_id, signup_ts\n  FROM signups\n  WHERE signup_ts >= TIMESTAMPTZ '2025-09-01 00:00:00+00'\n    AND signup_ts < TIMESTAMPTZ '2025-10-01 00:00:00+00'\n),\nlast_touch AS (\n  -- one row per signup with a session at or before it: when the last such session started\n  SELECT c.user_id, MAX(s.session_start) AS last_start\n  FROM cohort AS c\n  JOIN sessions AS s ON s.visitor_id = c.visitor_id AND s.session_start <= c.signup_ts\n  GROUP BY c.user_id\n),\nsignup_channel AS (\n  -- one row per signup, with the channel of its last session, or unattributed\n  SELECT c.user_id, c.signup_ts,\n         CASE WHEN s.session_id IS NULL THEN 'unattributed'\n              WHEN s.utm_campaign IS NOT NULL THEN ch.channel_name\n              WHEN s.utm_medium = 'organic' THEN 'organic'\n              WHEN s.utm_medium = 'referral' THEN 'referral'\n              ELSE 'direct' END AS channel\n  FROM cohort AS c\n  LEFT JOIN last_touch AS lt ON lt.user_id = c.user_id\n  LEFT JOIN sessions AS s ON s.visitor_id = c.visitor_id AND s.session_start = lt.last_start\n  LEFT JOIN campaigns AS cp ON cp.utm_campaign = s.utm_campaign\n  LEFT JOIN channels AS ch ON ch.channel_id = cp.channel_id\n),\nactivation AS (\n  -- one row per signup, with 1 when it sent its first campaign within 7 days of signing up\n  SELECT sc.user_id, sc.signup_ts, sc.channel,\n         CASE WHEN EXISTS (\n           SELECT 1\n           FROM activation_events AS a\n           WHERE a.user_id = sc.user_id\n             AND a.event_name = 'first_campaign_sent'\n             AND a.event_ts <= sc.signup_ts + INTERVAL '7 days'\n         ) THEN 1 ELSE 0 END AS activated\n  FROM signup_channel AS sc\n)\nSELECT ROUND(100.0 * SUM(activated) / NULLIF(COUNT(*), 0), 1)\nFROM activation\nWHERE channel = 'affiliates'"
+  },
+  "choices": {
+    "CP1": {
+      "correct_oid": "o5d42e5d",
+      "explanation": "A cohort fixed by signup date and followed for the same window gives every channel the same chance to convert; stopping the count at 30 September gives late September signups almost no time to activate or pay."
+    },
+    "CP5": {
+      "correct_oid": "o5276b00",
+      "explanation": "Affiliates lose most users before activation and upgrade at about the usual rate after it; the lowest overall rate alone does not say which step loses the users."
+    }
+  },
+  "solver": {
+    "CP1": {
+      "pass": true,
+      "prompt_hash": "c76e16246b0ad0ca",
+      "key_hash": "15e9f21d0b196f71",
+      "at": "2026-10-16T18:47:47.287Z"
+    },
+    "CP2": {
+      "pass": true,
+      "prompt_hash": "52f15c8ff3681f57",
+      "key_hash": "e629a12621f75434",
+      "at": "2026-10-16T18:47:47.287Z"
+    },
+    "CP4": {
+      "pass": true,
+      "prompt_hash": "aa8c453df3a0ffbb",
+      "key_hash": "57be10ea81a2043e",
+      "at": "2026-10-16T18:47:47.287Z"
+    },
+    "CP5": {
+      "pass": true,
+      "prompt_hash": "e8e68d10823c8897",
+      "key_hash": "3f83d00772baf2ed",
+      "at": "2026-10-16T18:47:47.287Z"
+    }
+  }
+}

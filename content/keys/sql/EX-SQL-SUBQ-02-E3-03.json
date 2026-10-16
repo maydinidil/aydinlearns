@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-SUBQ-02-E3-03",
+  "item_version": 1,
+  "reference_sql": "SELECT pu.product_id, pu.units\nFROM (\n  -- one row per product\n  SELECT product_id, category_name, SUM(units) AS units\n  FROM sales\n  GROUP BY product_id, category_name\n) AS pu\nJOIN (\n  -- one row per category\n  SELECT x.category_name, AVG(x.units) AS avg_units\n  FROM (\n    -- one row per product\n    SELECT product_id, category_name, SUM(units) AS units\n    FROM sales\n    GROUP BY product_id, category_name\n  ) AS x\n  GROUP BY x.category_name\n) AS ca ON ca.category_name = pu.category_name\nWHERE pu.units > ca.avg_units",
+  "alternatives": [
+    "WITH product_units AS (\n  -- one row per product\n  SELECT product_id, category_name, SUM(units) AS units\n  FROM sales\n  GROUP BY product_id, category_name\n)\nSELECT pu.product_id, pu.units\nFROM product_units pu\nWHERE pu.units > (\n  SELECT AVG(pu2.units)\n  FROM product_units pu2\n  WHERE pu2.category_name = pu.category_name\n)",
+    "WITH product_units AS (\n  -- one row per product\n  SELECT product_id, category_name, SUM(units) AS units\n  FROM sales\n  GROUP BY product_id, category_name\n),\ncategory_avg AS (\n  -- one row per category\n  SELECT category_name, AVG(units) AS avg_units\n  FROM product_units\n  GROUP BY category_name\n)\nSELECT pu.product_id, pu.units\nFROM product_units pu\nJOIN category_avg ca ON ca.category_name = pu.category_name\nWHERE pu.units > ca.avg_units"
+  ],
+  "other_way": {
+    "sql": "WITH product_units AS (\n  -- one row per product\n  SELECT product_id, category_name, SUM(units) AS units\n  FROM sales\n  GROUP BY product_id, category_name\n)\nSELECT pu.product_id, pu.units\nFROM product_units pu\nWHERE pu.units > (\n  SELECT AVG(pu2.units)\n  FROM product_units pu2\n  WHERE pu2.category_name = pu.category_name\n)",
+    "tradeoff": "One WITH step read twice replaces two copies of the same derived table, so the product totals are written only once."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-07",
+      "sql": "SELECT pu.product_id, pu.units FROM (SELECT product_id, category_name, SUM(units) AS units FROM sales GROUP BY product_id, category_name) AS pu JOIN (SELECT category_name, AVG(units) AS avg_units FROM sales GROUP BY category_name) AS ca ON ca.category_name = pu.category_name WHERE pu.units > ca.avg_units"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-14",
+      "sql": "SELECT pu.product_id, pu.units FROM (SELECT product_id, category_name, SUM(units) AS units FROM sales GROUP BY product_id, category_name) AS pu JOIN (SELECT x.category_name, MAX(x.units) AS avg_units FROM (SELECT product_id, category_name, SUM(units) AS units FROM sales GROUP BY product_id, category_name) AS x GROUP BY x.category_name) AS ca ON ca.category_name = pu.category_name WHERE pu.units > ca.avg_units"
+    }
+  ],
+  "hint3_partial": "SELECT pu.product_id, pu.units\nFROM (\n  -- one row per product\n  SELECT product_id, category_name, SUM(units) AS units\n  FROM sales\n  GROUP BY product_id, category_name\n) AS pu\nJOIN (\n  -- one row per category\n  SELECT x.category_name, AVG(x.units) AS avg_units\n  FROM (\n    -- one row per product\n    SELECT product_id, category_name, SUM(units) AS units\n    FROM sales\n    GROUP BY product_id, category_name\n  ) AS x\n  GROUP BY ___\n) AS ca ON ca.category_name = pu.category_name\nWHERE ___",
+  "solver": {
+    "prompt_hash": "0028111a6c949794",
+    "schema_version": "cebf75df442f",
+    "dataset_version": "b2d2b40fb117bb07",
+    "grader_version": "6a.1",
+    "query": "WITH pu AS (SELECT ol.product_id, p.category_id, SUM(ol.quantity) AS units FROM order_lines ol JOIN products p ON p.product_id = ol.product_id GROUP BY ol.product_id, p.category_id)\r\nSELECT product_id, units FROM pu WHERE units > (SELECT AVG(x.units) FROM pu x WHERE x.category_id = pu.category_id)\r\n",
+    "at": "2026-10-15T11:06:15.466Z"
+  }
+}

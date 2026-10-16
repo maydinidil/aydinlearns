@@ -1,0 +1,39 @@
+{
+  "item_id": "EX-SQL-SUBQ-02-E3-22",
+  "item_version": 1,
+  "reference_sql": "SELECT t.country_code, ROUND(SUM(t.n_registered) * 1.0 / SUM(t.n_orders), 4) AS share_registered\nFROM (\n  -- one row per store with orders\n  SELECT s.store_id, s.country_code, COUNT(*) AS n_orders, COUNT(o.customer_id) AS n_registered\n  FROM orders o\n  JOIN stores s ON s.store_id = o.store_id\n  GROUP BY s.store_id, s.country_code\n) AS t\nGROUP BY t.country_code",
+  "alternatives": [
+    "SELECT s.country_code, ROUND(COUNT(o.customer_id) * 1.0 / COUNT(*), 4) AS share_registered\nFROM orders o\nJOIN stores s ON s.store_id = o.store_id\nGROUP BY s.country_code",
+    "WITH store_counts AS (\n  -- one row per store with orders\n  SELECT s.store_id, s.country_code, COUNT(*) AS n_orders, COUNT(o.customer_id) AS n_registered\n  FROM orders o\n  JOIN stores s ON s.store_id = o.store_id\n  GROUP BY s.store_id, s.country_code\n)\nSELECT country_code, ROUND(SUM(n_registered) * 1.0 / SUM(n_orders), 4) AS share_registered\nFROM store_counts\nGROUP BY country_code"
+  ],
+  "other_way": {
+    "sql": "SELECT s.country_code, ROUND(COUNT(o.customer_id) * 1.0 / COUNT(*), 4) AS share_registered\nFROM orders o\nJOIN stores s ON s.store_id = o.store_id\nGROUP BY s.country_code",
+    "tradeoff": "Counting the registered orders over all orders per country needs no inner step, since the store totals only add up."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-20",
+      "sql": "SELECT t.country_code, ROUND(AVG(t.n_registered * 1.0 / t.n_orders), 4) AS share_registered FROM (SELECT s.store_id, s.country_code, COUNT(*) AS n_orders, COUNT(o.customer_id) AS n_registered FROM orders o JOIN stores s ON s.store_id = o.store_id GROUP BY s.store_id, s.country_code) AS t GROUP BY t.country_code"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-05",
+      "sql": "SELECT t.country_code, ROUND(SUM(t.n_registered) // SUM(t.n_orders), 4) AS share_registered FROM (SELECT s.store_id, s.country_code, COUNT(*) AS n_orders, COUNT(o.customer_id) AS n_registered FROM orders o JOIN stores s ON s.store_id = o.store_id GROUP BY s.store_id, s.country_code) AS t GROUP BY t.country_code"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-04",
+      "sql": "SELECT t.country_code, ROUND(SUM(t.n_registered) * 1.0 / SUM(t.n_orders), 4) AS share_registered FROM (SELECT s.store_id, s.country_code, COUNT(*) AS n_orders, COUNT(*) AS n_registered FROM orders o JOIN stores s ON s.store_id = o.store_id GROUP BY s.store_id, s.country_code) AS t GROUP BY t.country_code"
+    }
+  ],
+  "hint3_partial": "SELECT t.country_code, ROUND(SUM(___) * 1.0 / SUM(___), 4) AS share_registered\nFROM (\n  -- one row per store with orders\n  SELECT s.store_id, s.country_code, COUNT(*) AS n_orders, COUNT(o.customer_id) AS n_registered\n  FROM orders o\n  JOIN stores s ON s.store_id = o.store_id\n  GROUP BY s.store_id, s.country_code\n) AS t\nGROUP BY t.country_code",
+  "solver": {
+    "prompt_hash": "e53969c4bc405152",
+    "schema_version": "b1c1a5d57d7d",
+    "dataset_version": "b2d2b40fb117bb07",
+    "grader_version": "6a.1",
+    "query": "SELECT s.country_code, ROUND(SUM(CASE WHEN o.customer_id IS NOT NULL THEN 1 ELSE 0 END) * 1.0 / COUNT(*), 4) AS share_registered FROM orders o JOIN stores s ON s.store_id = o.store_id GROUP BY s.country_code\r\n",
+    "at": "2026-10-15T11:06:15.559Z"
+  }
+}

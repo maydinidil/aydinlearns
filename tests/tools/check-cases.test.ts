@@ -62,7 +62,7 @@ test('C41: the case key validates, names the case, and holds a truth for each CP
   assert.match(await failing(DAILY_ID, key(DAILY_ID, (k) => { k.truths.CP2 = 'SELECT 1'; })), /the key has a truth query for CP2, but the case has no CP2/);
   assert.match(await failing(OPENER_ID, key(OPENER_ID, (k) => { k.choices.CP1 = { correct_oid: 'o1234567', explanation: 'x' }; })), /the key has a correct option for CP1, but the case has no CP1/);
 });
-test('C41: CP1 and CP5 options have unique oids and the key names one of them, without printing it', async () => {
+test("C41: the key names one of CP1's and CP5's options, without printing it; a repeated oid fails the record (the validator's S2-60 rule)", async () => {
   const key = (edit: (k: Record<string, any>) => void): CasePatch => ({ keys: (ks) => edit(ks.find((k) => k.case_id === INBOX_ID)!) });
   assert.match(await failing(INBOX_ID, key((k) => { delete k.choices.CP5; })), /the key has no correct option for CP5/);
   const detail = await failing(INBOX_ID, key((k) => { k.choices.CP1.correct_oid = 'o0000000'; }));
@@ -82,22 +82,23 @@ test('C41: an opener\'s level is the level its concepts open (openerLevel)', asy
 test('C41: an opener lives in content/sql/openers/, an inbox or daily case in content/sql/cases/; case IDs and checkpoint items are not shared', async () => {
   const f = await makeCaseFixture();
   await rename(join(f.root, 'sql/cases', `${INBOX_ID}.json`), join(f.root, 'sql/openers', `${INBOX_ID}.json`));
-  let r = checkCases(await loadContent(f.root, { truthFile: f.truthFile })).find((x) => x.id === INBOX_ID)!;
+  let r = (await checkCases(await loadContent(f.root, { truthFile: f.truthFile }))).find((x) => x.id === INBOX_ID)!;
   assert.deepEqual([r.ok, /content\/sql\/openers\/ holds the level openers only/.test(r.detail)], [false, true]);
   const g = await makeCaseFixture();
   const daily = JSON.parse(await readFile(join(g.root, 'sql/cases', `${DAILY_ID}.json`), 'utf8'));
   await writeFile(join(g.root, 'sql/cases', 'CASE-DAILY-L1-01-copy.json'), JSON.stringify(daily));
-  const results = checkCases(await loadContent(g.root, { truthFile: g.truthFile })).filter((x) => x.id === DAILY_ID);
+  const results = (await checkCases(await loadContent(g.root, { truthFile: g.truthFile }))).filter((x) => x.id === DAILY_ID);
   assert.deepEqual(results.map((x) => x.ok), [false, false]);
   r = results[0]!;
   assert.match(r.detail, /the case ID CASE-DAILY-L1-01 is used by 2 case files/);
   assert.match(r.detail, /EX-CASE-DAILY-L1-01 is also a checkpoint item of another case/);
 });
 
-// The real content: the level 1 and 2 openers pass C41 against the truth file the build wrote (when it is there: build:data writes it).
-const REAL_TRUTH = 'data/truth/voltmarkt.json';
-test('C41: the real cases pass against the built truth file', { skip: !existsSync(REAL_TRUTH) && 'no data/truth/voltmarkt.json: run npm run build:data' }, async () => {
-  const results = checkCases(await loadContent('content', { truthFile: REAL_TRUTH }));
+// The real content: every case passes C41's lines that need no database against the truth file the build wrote (when it is there:
+// build:data writes it; sprint 6 moved the values to data/truth/checkpoints.json).
+const REAL_TRUTH = 'data/truth/checkpoints.json';
+test('C41: the real cases pass against the built truth file', { skip: !existsSync(REAL_TRUTH) && 'no data/truth/checkpoints.json: run npm run build:data' }, async () => {
+  const results = await checkCases(await loadContent('content', { checkpointsFile: REAL_TRUTH }));
   assert.ok(results.length >= 2);
   assert.deepEqual(results.filter((r) => !r.ok).map((r) => r.id), []);
 });

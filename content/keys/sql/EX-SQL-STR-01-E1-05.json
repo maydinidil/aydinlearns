@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-STR-01-E1-05",
+  "item_version": 1,
+  "reference_sql": "SELECT COUNT(*) AS n_products\nFROM products\nWHERE category_raw <> TRIM(category_raw)",
+  "alternatives": [
+    "SELECT COUNT(*) AS n_products FROM products WHERE length(category_raw) <> length(TRIM(category_raw))",
+    "SELECT COUNT(*) FILTER (WHERE category_raw <> TRIM(category_raw)) AS n_products FROM products"
+  ],
+  "other_way": {
+    "sql": "SELECT COUNT(*) AS n_products FROM products WHERE length(category_raw) <> length(TRIM(category_raw))",
+    "tradeoff": "Comparing lengths shows that something was cut, but comparing the text with its trimmed form is the plainer test."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-22",
+      "sql": "SELECT COUNT(*) AS n_products FROM products WHERE category_raw LIKE '% %'"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-15",
+      "sql": "SELECT COUNT(*) AS n_products FROM products WHERE category_raw = TRIM(category_raw)"
+    }
+  ],
+  "hint3_partial": "SELECT COUNT(*) AS n_products\nFROM products\nWHERE category_raw <> ___",
+  "solver": {
+    "prompt_hash": "fb66b09e8608c579",
+    "schema_version": "d77fe1c31a0e",
+    "dataset_version": "b2d2b40fb117bb07",
+    "grader_version": "6a.1",
+    "query": "SELECT count(*) AS n_products FROM products WHERE category_raw <> trim(category_raw)\n",
+    "at": "2026-10-15T11:06:12.201Z"
+  }
+}

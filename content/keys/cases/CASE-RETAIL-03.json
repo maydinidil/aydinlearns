@@ -1,0 +1,43 @@
+{
+  "case_id": "CASE-RETAIL-03",
+  "truths": {
+    "CP2": "SELECT COUNT(*)\nFROM stores AS st\nWHERE st.store_type <> 'web'\n  AND NOT (st.opened_on <= DATE '2023-09-01'\n           AND (st.close_date IS NULL OR st.close_date > DATE '2025-09-30'))\n  AND st.store_code IN (\n    SELECT s.store_code\n    FROM sales AS s\n    WHERE s.order_date BETWEEN DATE '2025-09-01' AND DATE '2025-09-30'\n  )",
+    "CP4": "WITH lfl_stores AS (\n  -- one row per like-for-like store\n  SELECT store_id, store_code\n  FROM stores\n  WHERE store_type <> 'web'\n    AND opened_on <= DATE '2023-09-01'\n    AND (close_date IS NULL OR close_date > DATE '2025-09-30')\n),\nseptember_sales AS (\n  -- one row per store with sales in either September\n  SELECT store_code,\n         SUM(CASE WHEN order_date BETWEEN DATE '2024-09-01' AND DATE '2024-09-30' THEN net_revenue_eur ELSE 0 END) AS sales_2024,\n         SUM(CASE WHEN order_date BETWEEN DATE '2025-09-01' AND DATE '2025-09-30' THEN net_revenue_eur ELSE 0 END) AS sales_2025\n  FROM sales\n  WHERE order_date BETWEEN DATE '2024-09-01' AND DATE '2024-09-30'\n     OR order_date BETWEEN DATE '2025-09-01' AND DATE '2025-09-30'\n  GROUP BY store_code\n)\nSELECT ROUND(100.0 * (SUM(s.sales_2025) - SUM(s.sales_2024)) / SUM(s.sales_2024), 1)\nFROM lfl_stores AS l\nJOIN september_sales AS s ON s.store_code = l.store_code\nWHERE s.sales_2024 > 0 AND s.sales_2025 > 0"
+  },
+  "choices": {
+    "CP1": {
+      "correct_oid": "o67e19ea",
+      "explanation": "A store counts toward the total only when it traded in both periods; at 0 a refit store would drag the total down, and recently opened stores are not like-for-like."
+    },
+    "CP5": {
+      "correct_oid": "o9e59e1f",
+      "explanation": "Openings and closures move total sales with the store count, which is why like-for-like leaves them out; both figures are in euros, and a weekday mix cannot explain a gap made by store changes."
+    }
+  },
+  "solver": {
+    "CP2": {
+      "pass": true,
+      "prompt_hash": "4e3a0b94090dcb7d",
+      "key_hash": "1d71fb892ba5ccc2",
+      "at": "2026-10-15T23:01:46.505Z"
+    },
+    "CP4": {
+      "pass": true,
+      "prompt_hash": "ebdf849da4c5e5b0",
+      "key_hash": "e1afb82b643993af",
+      "at": "2026-10-15T23:01:46.505Z"
+    },
+    "CP5": {
+      "pass": true,
+      "prompt_hash": "18c75ebd7f4a0431",
+      "key_hash": "986dec9ba4b52a0c",
+      "at": "2026-10-15T23:01:46.505Z"
+    },
+    "CP1": {
+      "pass": true,
+      "prompt_hash": "9b7a15384fdc4f88",
+      "key_hash": "95e146ca55fdbe25",
+      "at": "2026-10-15T23:01:46.505Z"
+    }
+  }
+}

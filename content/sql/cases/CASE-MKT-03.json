@@ -1,0 +1,181 @@
+{
+  "case_id": "CASE-MKT-03",
+  "kind": "inbox",
+  "level": 4,
+  "world": "MKT",
+  "company_id": "mailvora",
+  "schema": "mailvora",
+  "title": "Signup to paid funnel by channel",
+  "persona": {
+    "name": "Siobhán",
+    "role": "Lifecycle marketing manager"
+  },
+  "brief": {
+    "decision": "Whether to rewrite the upgrade emails that activated affiliate users get, or to work on signup quality with the affiliate partners first",
+    "deadline": "Thursday's lifecycle email review"
+  },
+  "data_needed": [
+    "signups",
+    "sessions",
+    "campaigns",
+    "channels",
+    "activation_events",
+    "subscriptions"
+  ],
+  "expected_output": {
+    "columns": [
+      "channel",
+      "signups",
+      "activated",
+      "paid",
+      "activation_rate_pct",
+      "paid_rate_pct",
+      "overall_rate_pct"
+    ],
+    "grain": "one row per channel that at least one September 2025 signup belongs to, with the signups that had no session before signing up in a row named unattributed",
+    "sort": [
+      {
+        "column": "overall_rate_pct",
+        "desc": true
+      },
+      {
+        "column": "channel",
+        "desc": false
+      }
+    ]
+  },
+  "checkpoints": [
+    {
+      "id": "CP1",
+      "kind": "CP1",
+      "item_id": "CASE-MKT-03:CP1",
+      "credits_concepts": [],
+      "prompt": "Siobhán wants to compare channels on how their signups move from signing up to activating to paying, for the users who signed up in September 2025. Every channel must be compared on equal terms, so no channel should get more time to convert than another. Which users and events should the funnel count?",
+      "options": [
+        {
+          "oid": "o72355ea",
+          "text": "Every user who activated or started paying during September 2025, whenever that user signed up"
+        },
+        {
+          "oid": "o2e6aaa8",
+          "text": "Every visitor with a session in September 2025, whether or not that visitor ever signed up"
+        },
+        {
+          "oid": "o5d42e5d",
+          "text": "Every user who signed up in September 2025, each followed for the same number of days after their own signup"
+        },
+        {
+          "oid": "o8930fae",
+          "text": "Every user who signed up in September 2025, counting only the activations and payments made by 30 September"
+        }
+      ]
+    },
+    {
+      "id": "CP2",
+      "kind": "CP2",
+      "item_id": "CASE-MKT-03:CP2",
+      "credits_concepts": [
+        "SQL-AGG-01"
+      ],
+      "prompt": "Count the users who signed up in September 2025: their signup_ts is from 1 September 2025 00:00 up to but not including 1 October 2025 00:00, UTC. Count a user only when both of these hold: the user's first_campaign_sent event came no later than 7 days, that is 7 times 24 hours, after signup_ts; and the user has a subscription whose start_date is on or before the 30th day after the UTC date of signup_ts. Check each user's activation within 7 days, and the subscription, with EXISTS or with a join to one row per user from activation_events and subscriptions, so the query stays fast. A user with two such subscriptions counts once. Type a whole number.",
+      "typed": {
+        "precision": "count",
+        "scale": "plain",
+        "decimals": 0,
+        "unit_label": "users"
+      },
+      "truth_key": "CASE-MKT-03:CP2"
+    },
+    {
+      "id": "CP3",
+      "kind": "CP3",
+      "item_id": "EX-CASE-MKT-03",
+      "credits_concepts": [
+        "SQL-DATE-02",
+        "SQL-SUBQ-01",
+        "SQL-CLEAN-01",
+        "SQL-JOIN-02"
+      ],
+      "prompt": "Write the query that answers Siobhán's question."
+    },
+    {
+      "id": "CP4",
+      "kind": "CP4",
+      "item_id": "CASE-MKT-03:CP4",
+      "credits_concepts": [],
+      "prompt": "Take the users who signed up in September 2025: their signup_ts is from 1 September 2025 00:00 up to but not including 1 October 2025 00:00, UTC. A user's channel is the channel of the last session of the same visitor_id that started at or before signup_ts: a session with a utm_campaign takes the channel_name of the campaign with that utm_campaign, and a session without one is organic when utm_medium is 'organic', referral when utm_medium is 'referral', and direct when utm_source, utm_medium and utm_campaign are all missing. Among the users whose channel is affiliates, what percentage sent their first campaign, their first_campaign_sent event, no later than 7 days, that is 7 times 24 hours, after signup_ts? Check each user's activation within 7 days with EXISTS or with a join to one row per user from activation_events, so the query stays fast. Type the percentage rounded to 1 decimal, for example 25.5.",
+      "typed": {
+        "precision": "ratio",
+        "scale": "percent",
+        "decimals": 1,
+        "unit_label": "%"
+      },
+      "truth_key": "CASE-MKT-03:CP4"
+    },
+    {
+      "id": "CP5",
+      "kind": "CP5",
+      "item_id": "CASE-MKT-03:CP5",
+      "credits_concepts": [],
+      "prompt": "In Mailvora's funnel of September 2025 signups, affiliates have by far the lowest share of signups who send a first campaign within 7 days. Of the affiliate signups who do, the share who start a paid subscription within 30 days is close to that of the search channels. Siobhán had expected affiliate users to activate as often as other users and then fail to upgrade. What does the funnel show?",
+      "options": [
+        {
+          "oid": "o90c1373",
+          "text": "Siobhán is right: affiliates have the lowest conversion from signup to paid of any channel, so their activated users must be the ones who fail to upgrade."
+        },
+        {
+          "oid": "o5276b00",
+          "text": "Not where Siobhán expected: most affiliate signups never activate, and those who do upgrade at about the usual rate, so the upgrade emails are not the main problem."
+        },
+        {
+          "oid": "o56a9565",
+          "text": "The funnel cannot tell: the share of activated affiliate users who upgrade says nothing about how they compare with the search channels, so only the overall rate from signup to paid separates them."
+        },
+        {
+          "oid": "o1812b4d",
+          "text": "Both steps lose about the same share of affiliate users, so rewriting the upgrade emails would close about half of the gap with the other channels."
+        }
+      ]
+    },
+    {
+      "id": "CP6",
+      "kind": "CP6",
+      "credits_concepts": [],
+      "prompt": "Write 2 to 4 sentences for Siobhán: where affiliate signups drop out and how that compares with the other channels, one caveat, and one next step before Thursday's lifecycle email review."
+    }
+  ],
+  "model_plan": "Metric formula: per channel, signups; activated, the signups whose first_campaign_sent came within 7 days (7 times 24 hours) of signup_ts; paid, the activated signups with a subscription starting by the 30th day after the signup date; activation_rate_pct = 100 times activated divided by signups, paid_rate_pct = 100 times paid divided by activated (missing when activated is 0), overall_rate_pct = 100 times paid divided by signups, each rounded to 1 decimal.\nOutput grain: one row per channel with at least one September 2025 signup, and an unattributed row when a signup has no session before it.\nTables and keys: signups to sessions on visitor_id, keeping the last session at or before signup_ts; sessions to campaigns on utm_campaign and campaigns to channels on channel_id for the channel rule; activation_events and subscriptions on user_id.\nFilters: signup_ts from 1 September 2025 up to but not including 1 October 2025, UTC; only the first_campaign_sent event counts as activation; sessions after the signup do not count.\nEdge cases: a signup with no session goes to unattributed; a user with several events or subscriptions counts once per step; a subscription without activation in time is not paid; a channel with no activation keeps its paid rate missing, not 0.\nExpected row count: 10",
+  "model_answer_template": "Affiliate signups drop out before they start: only {CP4} percent of them send a first campaign in their first week, far below every other channel, while those who do activate go on to pay at about the rate of the search channels. So the gap sits in signup quality and the first steps, not in the upgrade emails Siobhán planned to rewrite. The table cannot show which affiliate partner sends the signups that never activate, and the fixed windows miss users who upgrade later. Before Thursday, I would split affiliate signups by campaign and email domain, and raise signup quality with the weakest partner before touching the upgrade emails.",
+  "follow_up_question": "Is Siobhán right that affiliate users fail at the upgrade step?",
+  "data_source": {
+    "label": "Fictional, generated data: Mailvora",
+    "real": false,
+    "licence": null
+  },
+  "difficulty": 3,
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-SORT-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CASE-01",
+    "SQL-TYPE-01",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-SUBQ-01",
+    "SQL-DATE-02",
+    "SQL-CLEAN-01"
+  ],
+  "metric_ids": [
+    "MET-MKT-07"
+  ],
+  "find_ids": [
+    "FIND-03-03",
+    "FIND-03-08"
+  ],
+  "uses_raw": false
+}

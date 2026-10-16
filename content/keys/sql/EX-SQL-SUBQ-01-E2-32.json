@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-SUBQ-01-E2-32",
+  "item_version": 1,
+  "reference_sql": "SELECT p.product_id, p.brand, p.unit_cost_eur\nFROM products p\nWHERE p.unit_cost_eur > (\n  SELECT AVG(p2.unit_cost_eur)\n  FROM products p2\n  WHERE p2.brand = p.brand\n)",
+  "alternatives": [
+    "WITH brand_avg AS (\n  -- one row per brand\n  SELECT brand, AVG(unit_cost_eur) AS avg_cost_eur\n  FROM products\n  GROUP BY brand\n)\nSELECT p.product_id, p.brand, p.unit_cost_eur\nFROM products p\nJOIN brand_avg b ON b.brand = p.brand\nWHERE p.unit_cost_eur > b.avg_cost_eur",
+    "SELECT p.product_id, p.brand, p.unit_cost_eur\nFROM products p\nJOIN (\n  -- one row per brand\n  SELECT brand, AVG(unit_cost_eur) AS avg_cost_eur\n  FROM products\n  GROUP BY brand\n) AS b ON b.brand = p.brand\nWHERE p.unit_cost_eur > b.avg_cost_eur"
+  ],
+  "other_way": {
+    "sql": "WITH brand_avg AS (\n  -- one row per brand\n  SELECT brand, AVG(unit_cost_eur) AS avg_cost_eur\n  FROM products\n  GROUP BY brand\n)\nSELECT p.product_id, p.brand, p.unit_cost_eur\nFROM products p\nJOIN brand_avg b ON b.brand = p.brand\nWHERE p.unit_cost_eur > b.avg_cost_eur",
+    "tradeoff": "A step with one average per brand, joined on the brand, makes the group plain to see but adds a GROUP BY."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-31",
+      "sql": "SELECT p.product_id, p.brand, p.unit_cost_eur\nFROM products p\nWHERE p.unit_cost_eur > (\n  SELECT AVG(p2.unit_cost_eur)\n  FROM products p2\n  WHERE p2.category_id = p.category_id\n)"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-07",
+      "sql": "SELECT p.product_id, p.brand, p.unit_cost_eur FROM products p WHERE p.unit_cost_eur > (SELECT AVG(p2.unit_cost_eur) FROM products p2)"
+    }
+  ],
+  "hint3_partial": "SELECT p.product_id, p.brand, p.unit_cost_eur\nFROM products p\nWHERE p.unit_cost_eur > (\n  SELECT AVG(p2.unit_cost_eur)\n  FROM products p2\n  WHERE ___ = p.brand\n)",
+  "solver": {
+    "prompt_hash": "836501bb43c69f70",
+    "schema_version": "d77fe1c31a0e",
+    "dataset_version": "b2d2b40fb117bb07",
+    "grader_version": "6a.1",
+    "query": "SELECT p.product_id, p.brand, p.unit_cost_eur\r\nFROM products p\r\nWHERE p.unit_cost_eur > (\r\n  SELECT AVG(p2.unit_cost_eur)\r\n  FROM products p2\r\n  WHERE p2.brand = p.brand\r\n)\r\n",
+    "at": "2026-10-15T11:06:13.063Z"
+  }
+}

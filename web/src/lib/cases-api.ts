@@ -18,11 +18,15 @@ export interface Point { id: string; label: string }
 export interface CheckpointOption { oid: string; text: string }
 export interface DataSource { label: string; real: boolean; licence: string | null }
 
-/** One inbox row: the manager's message, the level, the status and the score (the share of CP1 to CP5 passed). */
+/**
+ * One inbox row: the manager's message, the level, the status and the score (the share of CP1 to CP5 passed). `unavailable` (S6-13):
+ * the line of a case whose dataset is not prepared ("This case needs ..."), or null; its routes then answer 409 with that line.
+ */
 export interface CaseListEntry {
   case_id: string; kind: CaseKind; level: number | null; title: string;
   persona: { name: string; role: string }; brief: { decision: string; deadline: string };
   status: CaseStatusName; score: number; checkpoints_passed: number; checkpoints_total: number;
+  unavailable: string | null;
 }
 /** A checkpoint's latest answer: whether it passed and when. Never the option, the number or the query. */
 export interface CheckpointLastResult { passed: boolean; submitted_at: string }

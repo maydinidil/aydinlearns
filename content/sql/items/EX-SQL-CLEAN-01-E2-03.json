@@ -1,0 +1,137 @@
+{
+  "id": "EX-SQL-CLEAN-01-E2-03",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-04",
+    "nullif",
+    "percentage",
+    "prices_in_cents",
+    "left_join",
+    "order_lines",
+    "orders",
+    "products",
+    "stores"
+  ],
+  "level": 4,
+  "source_ids": [
+    "01:SQL-CLEAN-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-15",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-CLEAN-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CASE-01",
+    "SQL-TYPE-01",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-CLEAN-01"
+  ],
+  "template_id": "T-CLEAN-01-cents-revenue-pct",
+  "template_params": {
+    "year": 2024
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt_raw",
+  "edge_schema": "voltmarkt_edge_clean",
+  "uses_raw": true,
+  "prompt": "For each store, what percentage of its 2024 revenue comes from lines priced in cents? These tables may hold errors. A line is priced in cents when its unit_price_eur is more than 10 times the product's unit_cost_eur. A line's revenue is quantity times unit_price_eur minus line_discount_eur, as stored. 2024 means order_ts, as stored, from 1 January 2024 up to but not including 1 January 2025. Return two columns, in this order: store_code and cents_pct, a percentage from 0 to 100 rounded to 2 decimals, missing for a store with no 2024 revenue. Return one row for each store. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "store_code",
+        "type_class": "text"
+      },
+      {
+        "name": "cents_pct",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "store_code",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "cents_pct",
+        "type_class": "numeric",
+        "precision": "ratio",
+        "require_rounding": 2
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "store_code"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the calculated column: the cents revenue over all revenue, as a percentage.",
+    "Add up the revenue of the cents lines with a CASE, divide by all revenue inside NULLIF(..., 0), and multiply by 100.0 before you round."
+  ],
+  "subgoals": [
+    {
+      "from": 55,
+      "to": 73,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 214,
+      "to": 327,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 330,
+      "to": 412,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 415,
+      "to": 553,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 554,
+      "to": 617,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 618,
+      "to": 639,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "NULLIF leaves the percentage missing for a store with no 2024 revenue, and 100.0 keeps the decimals before rounding."
+}

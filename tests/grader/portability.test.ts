@@ -7,7 +7,8 @@ import { startRunner, type RunnerClient, type RunnerReq, type RunnerResult } fro
 import type { ParseTreeOk } from '../../server/runner/protocol.ts';
 import { grade } from '../../server/grader/grade.ts';
 import {
-  CAST_NOTE, COUNT_NOTE, EXCLUDE_NOTE, FROM_FIRST_NOTE, GROUP_BY_ALL_NOTE, ILIKE_NOTE, QUALIFY_NOTE, TRAILING_COMMA_NOTE, integerDivisionCheck, portabilityNotes,
+  CAST_NOTE, COUNT_NOTE, EXCLUDE_NOTE, FROM_FIRST_NOTE, GROUP_BY_ALL_NOTE, ILIKE_NOTE, QUALIFY_NOTE, SUBQUERY_ALIAS_NOTE, TRAILING_COMMA_NOTE, integerDivisionCheck,
+  portabilityNotes,
 } from '../../server/grader/portability.ts';
 import type { DisplayOk, RunnerError } from '../../server/runner/protocol.ts';
 import { DEFAULT_RULES, type SqlItem } from '../../schemas/item.ts';
@@ -395,4 +396,34 @@ test('D52: the two runs share the one deadline: the integer division run gets wh
   const spent = controlClient(async (req) => { await sleep(250); return runner.request(req); });
   assert.equal(await integerDivisionCheck(spent.client, 'vis', HALVES, await shownOf(HALVES), 1000, 200), 'not_compared', 'the control used the whole deadline');
   assert.equal(spent.reruns().length, 0);
+});
+
+// ---- Sprint 6 Task A1, S6-10: a subquery in FROM with no alias. A note only --------------------------------------------
+
+const ALIAS_HERE = 'PostgreSQL before version 16 and SQL Server need an alias here: add `AS t`';
+test('S6-10: a FROM subquery with no alias gets the alias note, once however often, at any depth; one with an alias gets none', async () => {
+  assert.equal(SUBQUERY_ALIAS_NOTE, ALIAS_HERE);
+  for (const sql of [
+    'SELECT count(*) AS n FROM (SELECT city FROM stores)',
+    'SELECT * FROM (SELECT city FROM stores) JOIN (SELECT city FROM stores) USING (city)',
+    'WITH s AS (SELECT city FROM (SELECT city FROM stores)) SELECT city FROM s',
+    'SELECT city FROM stores WHERE city IN (SELECT city FROM (SELECT city FROM stores))',
+    'SELECT * FROM (VALUES (1), (2))',
+    'SELECT * FROM stores, LATERAL (SELECT stores.city)',
+  ]) assert.deepEqual(await lint(sql), [ALIAS_HERE], sql);
+  for (const sql of [
+    'SELECT count(*) AS n FROM (SELECT city FROM stores) AS t',
+    'SELECT count(*) AS n FROM (SELECT city FROM stores) t',
+    'SELECT n FROM (SELECT city FROM stores) AS t(n)',
+    'SELECT city FROM stores WHERE city IN (SELECT city FROM stores)',
+    'SELECT (SELECT max(city) FROM stores) AS m',
+    'SELECT city FROM stores WHERE EXISTS (SELECT 1)',
+    '(SELECT city FROM stores) UNION ALL (SELECT city FROM stores)',
+  ]) await noNotes(sql);
+});
+test('S6-10: the alias note comes last, with a pass, and never stops it', async () => {
+  assert.deepEqual(await lint("SELECT town, count(*) AS n FROM (SELECT city AS town FROM stores) WHERE town == 'Gent' GROUP BY ALL"), [EQ, GROUP_BY_ALL_NOTE, ALIAS_HERE]);
+  const r = await grade({ item, key, sql: 'SELECT city FROM (SELECT city FROM stores) WHERE city IS NOT NULL' }, deps);
+  assert.deepEqual([r.outcome, r.graded, r.portabilityNotes, r.notes], ['pass', true, [ALIAS_HERE], ['It keeps the stores with a city.']]);
+  assert.ok(!/—/.test(SUBQUERY_ALIAS_NOTE));
 });
