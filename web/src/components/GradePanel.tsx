@@ -6,6 +6,8 @@ import { feedbackText } from '../lib/polish-p2b.ts';
 import { ResultTable } from './ResultTable.tsx';
 import { cell } from '../lib/cell.ts';
 import { parseInline } from '../lib/markdown.ts';
+import { gradeQuickPrompts } from '../lib/tutor-parts.ts';
+import { useTutor } from '../tutor/TutorContext.tsx';
 
 /** CHK-INT-TRUNC's note is logged as a check; the learner reads its text without the check ID (Task B10). */
 const INT_TRUNC = 'CHK-INT-TRUNC:';
@@ -20,6 +22,9 @@ const inline = (s: string) => parseInline(s).map((x, i) => (x.kind === 'code' ? 
 export function GradePanel({ grade, onDispute, disputing = false, otherWay = null }: { grade: PublicGrade; onDispute: ((row: unknown[] | null) => void) | null; disputing?: boolean; otherWay?: ReactNode }) {
   const pass = grade.outcome === 'pass';
   const totals = grade.diff ? diffTotals(grade.datasets, grade.diff) : null;
+  // Sprint T: the quick prompts beside a failed grade, while the tutor is on and no run's clock closes it (D94). Each fills the question.
+  const tutor = useTutor();
+  const quick = gradeQuickPrompts(tutor, grade);
   return (
     <section aria-live="polite" className="grade card">
       <h3 className={pass ? 'ok' : 'bad'}>{gradeHeading(grade)}</h3>
@@ -34,6 +39,7 @@ export function GradePanel({ grade, onDispute, disputing = false, otherWay = nul
           <p className="muted">{grade.diagnosis.errorId}</p>
         </div>
       )}
+      {quick.length > 0 && <p className="toolbar tutor-quick">{quick.map((q) => <button key={q.label} type="button" onClick={() => tutor?.ask(q.question)}>{q.label}</button>)}</p>}
       {!pass && grade.notes.filter((n) => n.startsWith(INT_TRUNC)).map((n) => <p key={n}>{n.slice(INT_TRUNC.length).trim()}</p>)}
       {grade.outcome === 'engine_error' && grade.notes[0] && <pre>{grade.notes[0]}</pre>}
       {grade.edgeDescription && <p>Your query did not work on the hidden test data, which contains: {grade.edgeDescription.join('; ')}.</p>}

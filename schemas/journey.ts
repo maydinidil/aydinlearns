@@ -17,6 +17,6 @@ export type JourneyEventName =
   | 'item_viewed' | 'hint_opened' | 'answer_shown' | 'other_way_opened' | 'item_closed' | 'material_studied'
   | 'run_started' | 'run_finished'
   | 'case_opened' | 'case_self_check' | 'case_exported'
-  | 'lab_opened' | 'lab_answered'
+  | 'lab_opened' | 'lab_answered' | 'tutor_asked'
   | 'review_card_changed' | 'concept_state_changed'
   | 'study_session_started' | 'study_session_ended';

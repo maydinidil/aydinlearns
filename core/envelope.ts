@@ -5,9 +5,12 @@
  * new record. 4 since sprint 4b (owner decisions D35 and D38, 2026-10-07): the events file gains a `portfolio_folder` setting and a
  * case_export event (D35), and self_check is a new record in the attempt files (D38, S4B-09); external_result is typed as a union on
  * `kind`, with no change to its data. 5 since sprint 5b (owner decision D68, 2026-10-08): `lab_answer` is a new record in the attempt files, and a GA4 run answer's mcq
- * payload may carry `run_kind`. Replay reads versions 1 to 5; no reader checks the version.
+ * payload may carry `run_kind`. 6 since sprint T (owner decision D95, 2026-10-16): `tutor_asked` is a new record in the attempt files, and
+ * the events file gains a `tutor_daily_cap_usd` setting. Block P (T-22, 2026-10-17, additive, before 1.6.0 was released): `tutor_asked`
+ * carries `effort`, the events file gains `tutor_enabled`, `tutor_model` and `tutor_effort`, and `tutor_daily_cap_usd` also takes "none".
+ * Replay reads versions 1 to 6; no reader checks the version.
  */
-export const SCHEMA_VERSION = 5;
+export const SCHEMA_VERSION = 6;
 
 export type Section = 'sql' | 'ga4' | 'methodology';
 export type Phase =
@@ -135,4 +138,21 @@ export interface SelfCheck {
   text: string | null; fields: Record<string, string> | null; ticked: string[];
 }
 
-export type AttemptFileRecord = AttemptBase | ItemClose | BlockClose | HintOpened | SolutionOpened | Exposure | OtherWayOpened | SelfCheck;
+/** D95 (version 6): how a tutor question ended. `capped`: refused before any call, as the day's cap was reached. */
+export type TutorOutcome = 'answered' | 'refused' | 'error' | 'capped';
+/**
+ * D95 (version 6, AI tutor design §7): one question to the tutor, whatever its outcome. Never the question, the reply or the snapshot.
+ * The instance fields are set when the question named an open item instance (T-03), and null otherwise. Replay turns an answered one into
+ * help at level 1 on its instance (core/rating.ts). `effort` (block P, T-21) is the effort Settings named for the call.
+ */
+export interface TutorAsked {
+  record: 'tutor_asked'; schema_version: number; ts: string; session_id: string;
+  screen: string;
+  item_instance_id: string | null; item_id: string | null; target_concept_id: string | null; phase: Phase | null;
+  card_id?: string;
+  provider: string; model: string; effort: 'low' | 'medium' | 'high'; prompt_version: number;
+  input_tokens: number; cached_input_tokens: number; output_tokens: number; cost_usd: number;
+  outcome: TutorOutcome;
+}
+
+export type AttemptFileRecord = AttemptBase | ItemClose | BlockClose | HintOpened | SolutionOpened | Exposure | OtherWayOpened | SelfCheck | TutorAsked;

@@ -13,6 +13,9 @@ import { ExercisePanel } from '../components/ExercisePanel.tsx';
 import { Crumb } from '../components/PageHead.tsx';
 import { crumbParts } from '../lib/crumb.ts';
 import { NO_DRILL_LINE } from '../lib/polish-p2b.ts';
+import { drillMarkPart } from '../lib/tutor-parts.ts';
+import { TUTOR_WAITS } from '../tutor/snapshot.ts';
+import { useTutorClosed, useTutorPart } from '../tutor/TutorContext.tsx';
 import {
   CUMULATIVE_LABEL, cumulativeHeading, cumulativeRule, fillLines, overallLine, runTitle,
   EXPLAINED_ALOUD_LABEL, EndGuard, outcomeClass, questionLabel, reviewOutcomes, showsEditor, HELP_LINE, HISTORY_COLUMNS, LIVE_REP_HINT, LIVE_REP_LABEL, SCREEN_MODE_HINT, SCREEN_MODE_LABEL, TIME_UP, countdownText, endWithRetry, hiddenFlags, historyRows, levelRule, recallIndex,
@@ -47,6 +50,8 @@ export function DrillScreen() {
   const heading = useRef<HTMLHeadingElement>(null);
   const lastFocusKey = useRef<string | null>(null);       // what the screen showed when focus was last considered
   const loaded = useRef(false);                           // the first load (a run that is already on) has settled
+  // D94: the tutor is closed while the clock runs, as help is, and open again in the review.
+  useTutorClosed(state.kind === 'running' ? TUTOR_WAITS : null);
 
   async function loadChoices(): Promise<void> {
     try {
@@ -177,6 +182,8 @@ export function DrillScreen() {
   const toggle = (id: string) => setChosen((c) => (c.includes(id) ? c.filter((x) => x !== id) : [...c, id]));
   // H3: in the review each square carries its outcome in its name and a border; while running there is none to show.
   const outcomes = run && state.kind === 'review' ? reviewOutcomes(run.servings, result?.items) : null;
+  // Sprint T (spec §5): in the review, the mark of the question in view, which only its square shows. Its exercise panel gives the rest.
+  useTutorPart(() => (outcomes && run ? drillMarkPart(index, run.servings.length, outcomes[index] ?? null) : null));
   const questionNav = run && (
     <nav aria-label="Questions" className="qstrip">{run.servings.map((s, i) => (
       <button key={s.item_instance_id} type="button" className={outcomes ? outcomeClass(outcomes[i] ?? null) || undefined : undefined} aria-pressed={i === index} aria-label={questionLabel(i, outcomes?.[i] ?? null)} onClick={() => goTo(i)}>{i === index ? <strong>{i + 1}</strong> : i + 1}</button>
@@ -204,7 +211,7 @@ export function DrillScreen() {
         {/* Every question's panel stays mounted (hidden when not current), so a half-written answer is kept when moving between questions. */}
         {run.servings.map((sv, i) => (
           <div key={sv.item_instance_id} data-question={i} hidden={hiddenFlags(run.servings.length, index)[i]}>
-            <ExercisePanel itemId={sv.item_id} phase="drill" instanceId={sv.item_instance_id} hideLabels
+            <ExercisePanel itemId={sv.item_id} phase="drill" instanceId={sv.item_instance_id} hideLabels inView={i === index}
               heading={`Question ${i + 1} of ${run.servings.length}`} run={{ onStopped: () => void endRun(run.block_id, true) }} onClosed={next} screenMode={run.screen_mode === true}
               onPassed={() => setPassedIds((s) => new Set(s).add(sv.item_instance_id))} />
           </div>
@@ -238,7 +245,7 @@ export function DrillScreen() {
         {run.servings.map((sv, i) => (
           <div key={sv.item_instance_id} data-question={i} hidden={hiddenFlags(run.servings.length, index)[i]}>
             <ExercisePanel itemId={sv.item_id} phase="drill" instanceId={sv.item_instance_id} heading={`Question ${i + 1} of ${run.servings.length}`}
-              labels reviewOnly unanswered={!showsEditor(outcomes?.[i] ?? null)} onClosed={next} passedBefore={passedIds.has(sv.item_instance_id)} />
+              labels reviewOnly inView={i === index} unanswered={!showsEditor(outcomes?.[i] ?? null)} onClosed={next} passedBefore={passedIds.has(sv.item_instance_id)} />
           </div>
         ))}
         <p><button type="button" onClick={backToChoices}>Back to drills</button></p>

@@ -15,6 +15,9 @@ import { GradePanel } from './GradePanel.tsx';
 import { SqlCode } from './SqlCode.tsx';
 import { OtherWay } from './OtherWay.tsx';
 import { otherWayOffered } from '../lib/other-way.ts';
+import { exercisePanelPart } from '../lib/tutor-parts.ts';
+import { marksHelped } from '../lib/tutor-help.ts';
+import { useTutorHelp, useTutorPart } from '../tutor/TutorContext.tsx';
 
 export interface ClosedResult { passed: boolean; failedGraded: number; helped: boolean }
 
@@ -48,6 +51,11 @@ type Props = {
   screenMode?: boolean;
   /** Sprint 4b, Task D2: each grade as it comes back, so the case screen can set CP3's row count beside the plan's prediction (S4B-10). */
   onGraded?: (g: PublicGrade) => void;
+  /**
+   * Sprint T (N3): this panel is the one in view, so its tutor part names its item. A screen that keeps hidden panels mounted (the
+   * drill's questions, a case's steps) sets it false on the hidden ones, so the tutor's question is about the item on the screen.
+   */
+  inView?: boolean;
 };
 
 const REOPENED = 'Your session ended, so this exercise was reopened. Your query is kept.';
@@ -59,7 +67,7 @@ export function ExercisePanel(props: Props) {
   return <ExercisePanelInner key={`${props.itemId}:${props.stage ?? ''}:${props.phase}:${props.instanceId ?? ''}`} {...props} />;
 }
 
-function ExercisePanelInner({ itemId, phase, stage = 3, onClosed, instanceId, hideLabels = false, heading, labels = false, run, reviewOnly = false, unanswered = false, onPassed, passedBefore = false, screenMode = false, onGraded }: Props) {
+function ExercisePanelInner({ itemId, phase, stage = 3, onClosed, instanceId, hideLabels = false, heading, labels = false, run, reviewOnly = false, unanswered = false, onPassed, passedBefore = false, screenMode = false, onGraded, inView = true }: Props) {
   const [data, setData] = useState<{ item: ItemView; schemaNotes: TableNote[] } | null>(null);
   // A fix item's own query, run when the item opens (S2-48), so the learner sees the wrong result it gives.
   const [starter, setStarter] = useState<{ result: DisplayOk | null; error: string | null } | null>(null);
@@ -86,6 +94,16 @@ function ExercisePanelInner({ itemId, phase, stage = 3, onClosed, instanceId, hi
   // The editor keeps the callbacks it was created with, so it calls through a ref that always holds the latest ones.
   const keys = useRef({ run: () => {}, submit: () => {} });
   keys.current = { run: () => void doRun(), submit: () => void doSubmit() };
+  // Sprint T (T-02): the exercise's IDs, status, hints opened and the editor's full text, read when a question is sent. Hint texts and a
+  // shown answer are on the screen, so the visible text holds them.
+  useTutorPart(() => exercisePanelPart({ loaded: data !== null, inView, unanswered, reviewOnly, startText: data ? editorStart(data.item, stage).text : '', itemId, instanceId: instance.current.id, phase,
+    passed: instance.current.passed || passedBefore, answerShown: answer !== null, query: editor.current?.getText() ?? '', hintsShown: hints.length }));
+  // Codex F34 (D95): a tutor answer the server counted as help, on this panel's instance while it is open and not passed, is help as a hint
+  // is, so the lesson's pretest sees it.
+  useTutorHelp((id) => {
+    const i = instance.current;
+    if (marksHelped(id, { id: i.id, passed: i.passed || passedBefore, closed: i.closed })) i.helped = true;
+  });
 
   useEffect(() => {
     // React's development mode unmounts and remounts once on mount; the remount cancels the close the cleanup scheduled.

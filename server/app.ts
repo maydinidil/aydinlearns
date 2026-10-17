@@ -15,7 +15,8 @@ import type { AttemptLogger } from './log.ts';
 import type { SessionTracker } from './session.ts';
 import type { Check } from './selfcheck.ts';
 import type { TableNote } from '../schemas/schema-notes.ts';
-import type { SqlItem } from '../schemas/item.ts';
+import { isSqlChoiceKind, type SqlItem } from '../schemas/item.ts';
+import { choiceTarget } from '../schemas/choice.ts';
 import type { SqlKey } from '../schemas/keys.ts';
 import type { AydinAttempt } from '../schemas/log-ext.ts';
 import { securityMiddleware } from './security.ts';
@@ -25,7 +26,7 @@ import { curriculumStates, pendingRetests } from './progress.ts';
 import { backupLogs } from './backup.ts';
 import type { ReplayResult } from '../core/replay.ts';
 import type { LearnerState } from './state.ts';
-import { Servings, type Serving } from './servings.ts';
+import { hidesLabels, Servings, type Serving } from './servings.ts';
 import { mountToday } from './routes/today.ts';
 import { mountDrill } from './routes/drill.ts';
 import { mountChoice } from './routes/choice.ts';
@@ -39,16 +40,29 @@ import { FLAGSHIP_PATH, mountPortfolio, uncProblem } from './routes/portfolio.ts
 import { mountProgress } from './routes/progress.ts';
 import { mountLabs } from './routes/labs.ts';
 import { mountExplore, EXPLORE_RUN_PATH } from './routes/explore.ts';
+import { mountTutor, type TutorRuntime, type TutorTarget } from './routes/tutor.ts';
+import { tutorSource } from './tutor-source.ts';
+import { isEffort, modelInfo } from './tutor/models.ts';
+import { isCap, NO_LIMIT } from './tutor/spend.ts';
 import { HELP_WAITS, NO_DRILLS, RUN_OVER, type DrillGate, type DrillRuns } from './drill.ts';
 import { answered, funnel, httpRoute, itemFunnel, levelName, markFailed, recordError, sqlFunnel } from './observe.ts';
 import { journey, journeyScreen } from './journey.ts';
 import { JOURNEY_PATH, SCREENS, SUBJECT_ID, type Screen } from '../schemas/journey.ts';
+import { TUTOR_KEY_PATH, type TutorEffort } from '../schemas/tutor.ts';
 
 /**
  * The settings replayed from the events file (server/main.ts). `portfolio_folder` (D35, log version 4) is set by main.ts; it is
  * required (S6-38): null reads as not set. The settings route takes it (Task D4).
  */
-export interface Settings { backup_folder: string | null; exam_date: string | null; goal_dates: Record<string, string>; portfolio_folder: string | null }
+export interface Settings {
+  backup_folder: string | null; exam_date: string | null; goal_dates: Record<string, string>; portfolio_folder: string | null;
+  /** T-06 (log version 6): the tutor's daily cap in US dollars; absent or null is $1; "none" is no daily limit (block P, T-22). */
+  tutor_daily_cap_usd?: number | typeof NO_LIMIT | null;
+  /** Block P (T-22, log version 6): the tutor's switch (absent or null: on), its model (absent or null: Claude Haiku 5.5) and effort (medium). */
+  tutor_enabled?: boolean | null;
+  tutor_model?: string | null;
+  tutor_effort?: TutorEffort | null;
+}
 /** The settings as the events file last set them; a key never set is null (goal_dates: none). server/main.ts reads the log through this. */
 export function settingsFromEvents(events: readonly Partial<SettingChange>[]): Settings {
   const latest = (key: SettingChange['key']): unknown => events.findLast((e) => e.event === 'setting_change' && e.key === key)?.value;
@@ -57,6 +71,10 @@ export function settingsFromEvents(events: readonly Partial<SettingChange>[]): S
     exam_date: (latest('exam_date') as string | null | undefined) ?? null,
     goal_dates: (latest('goal_dates') as Record<string, string> | undefined) ?? {},
     portfolio_folder: (latest('portfolio_folder') as string | null | undefined) ?? null,   // D35 (log version 4)
+    tutor_daily_cap_usd: (latest('tutor_daily_cap_usd') as Settings['tutor_daily_cap_usd']) ?? null,   // T-06 (log version 6)
+    tutor_enabled: (latest('tutor_enabled') as boolean | null | undefined) ?? null,                     // block P (T-22)
+    tutor_model: (latest('tutor_model') as string | null | undefined) ?? null,
+    tutor_effort: (latest('tutor_effort') as TutorEffort | null | undefined) ?? null,
   };
 }
 export type BackupResult = Awaited<ReturnType<typeof backupLogs>>;
@@ -94,6 +112,8 @@ export interface AppDeps {
   state: LearnerState;
   /** What the server served. main.ts leaves it out and the app makes one; a test passes its own to serve items. */
   servings?: Servings;
+  /** Sprint T (D91, block P): the tutor's key store, test hook, model maker and spend ledger, made by server/main.ts. Absent: the tutor is off. */
+  tutor?: TutorRuntime;
 }
 
 /**
@@ -154,7 +174,7 @@ interface Instance {
 const PHASES: Phase[] = ['pretest', 'faded_1', 'faded_2', 'faded_3', 'lesson_block', 'retest', 'review', 'mixed', 'drill', 'case', 'free', 'mock', 'opener_preview'];
 const CLOSE_REASONS: CloseReason[] = ['pass', 'left', 'session_end', 'run_end'];
 const EXPOSURE_KINDS: Exposure['kind'][] = ['reading', 'worked_example', 'lesson', 'micro_lesson', 'refresher'];
-const SETTING_KEYS: SettingChange['key'][] = ['backup_folder', 'exam_date', 'goal_dates', 'portfolio_folder'];
+const SETTING_KEYS: SettingChange['key'][] = ['backup_folder', 'exam_date', 'goal_dates', 'portfolio_folder', 'tutor_daily_cap_usd', 'tutor_enabled', 'tutor_model', 'tutor_effort'];
 const SLICE_FOR_LEVEL: Record<number, string> = { 1: '1a', 2: '1b', 3: '3', 4: '5', 5: '6', 6: '7', 7: 'after the first applications' };
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
 const LOG_FAILED: Check = { name: 'log writable', ok: false, detail: 'A log write failed, so grading is paused. Check the disk and the logs folder, then restart the app.' };
@@ -208,6 +228,12 @@ function settingProblem(key: SettingChange['key'], value: unknown): string | nul
   // S4B-19: validated like the backup folder. Whether it exists is checked when an export runs (routes/portfolio.ts).
   if (key === 'portfolio_folder') return uncProblem(value) ?? (value === null || (typeof value === 'string' && isAbsolute(value)) ? null : 'Use a full folder path, such as D:\\Portfolio.');
   if (key === 'exam_date') return value === null || isDate(value) ? null : 'Use a date like 2026-11-20.';
+  // T-22: "none" is no daily limit; Settings sends it from its own choice, so the line (which web/src/lib/tutor-budget.ts repeats) is as before.
+  if (key === 'tutor_daily_cap_usd') return value === null || value === NO_LIMIT || isCap(value) ? null : 'Use a daily budget from 0.05 to 20 US dollars.';
+  // Block P (T-22): each refusal names the rule, never the value sent (a key pasted into the wrong field, say).
+  if (key === 'tutor_enabled') return value === null || typeof value === 'boolean' ? null : 'Switch the tutor on or off: true or false.';
+  if (key === 'tutor_model') return value === null || modelInfo(value) ? null : 'Pick one of the models Settings lists.';
+  if (key === 'tutor_effort') return value === null || isEffort(value) ? null : 'Pick low, medium or high.';
   return isRecord(value) && Object.values(value).every((v) => v === '' || isDate(v)) ? null : 'Goal dates must be dates like 2026-11-20.';
 }
 
@@ -292,7 +318,8 @@ interface LoggedRecord {
   started_at?: string; submitted_at?: string; ts?: string; outcome?: string; grading_source?: string; level?: unknown;
   block_id?: unknown; repeat_exposure?: unknown;
 }
-const isHelp = (r: LoggedRecord): boolean => r.record === 'hint_opened' || r.record === 'solution_opened';
+/** A help record for recovery: a hint, a shown answer, or (T-05) an answered tutor question, which names its instance's item and concept. */
+const isHelp = (r: LoggedRecord): boolean => r.record === 'hint_opened' || r.record === 'solution_opened' || (r.record === 'tutor_asked' && r.outcome === 'answered');
 
 /**
  * Startup recovery (design §13): the item_close a session end would have written for every instance that has no close.
@@ -396,6 +423,8 @@ export function createApp(d: AppDeps): Hono {
   const app = new Hono();
   const instances = new Map<string, Instance>();
   const closed = new Set<string>(d.closedInstances);      // item_close is written once per instance (design §13)
+  /** I1 (T-16): the instances closed since start whose phase hides labels, so a tutor question on one still leaves them out. */
+  const closedHidden = new Set<string>();
   const servings = d.servings ?? new Servings();
   // Instances whose override attempt is being written, each with a promise that settles (never rejects) once the
   // write has landed or the claim has been given back. A submission or a close on the instance waits for it (aydinlearns F4).
@@ -459,6 +488,7 @@ export function createApp(d: AppDeps): Hono {
   const writeClose = async (id: string, i: Instance, reason: CloseReason, at = new Date()): Promise<void> => {
     instances.delete(id);
     closed.add(id);
+    if (i.phase !== null && hidesLabels(i.phase)) closedHidden.add(id);
     if (i.blockId === null) servings.forget(id);             // a block's servings stay listed until the block closes
     const write = d.logger.itemClose(d.state.rateClose(closeRecord(id, i, reason, at), at));
     // Codex F21: a mistake card's review stays reserved until its close is in the log and the state, so it is not served twice.
@@ -537,7 +567,12 @@ export function createApp(d: AppDeps): Hono {
   const closeOpenBlocks = async (at: Date): Promise<void> => {
     for (const draft of blockClosesDue(d.state.current(), at)) {
       await d.logger.blockClose(d.state.rateBlockClose(draft, at));
-      for (const id of servings.blockMembers(draft.block_id)) { closed.add(id); servings.forget(id); }   // the block is over
+      for (const id of servings.blockMembers(draft.block_id)) {                                       // the block is over
+        const s = servings.get(id);
+        if (s && hidesLabels(s.phase)) closedHidden.add(id);
+        closed.add(id);
+        servings.forget(id);
+      }
     }
   };
   /** S2-28: each leech card due a reset (its micro-lesson done, or its next session ended without it). */
@@ -556,6 +591,54 @@ export function createApp(d: AppDeps): Hono {
     if (done?.phase !== 'drill' || done.block_id === null) return null;     // any other closed item: the usual 409 follows
     if (done.item_id !== item.id) throw refuse(400, 'This item instance belongs to another item.');
     return { item_id: done.item_id, target_concept_id: done.concept_id, phase: 'drill' };
+  };
+  /**
+   * T-03 (D95): the instance a tutor question names. An SQL write or fix item's instance is opened as a hint opens it, so the session end
+   * closes it. A choice question's or a served case checkpoint's is named without opening it: its answer route opens and closes it, and
+   * startup recovery closes one that was only asked about. Null: no instance, a closed one, an unknown or held-out item, or the
+   * instance of another item. A running timed run's items never get here (the guard refuses them first).
+   */
+  const tutorTarget = (b: Record<string, unknown>): TutorTarget | null => {
+    const id = typeof b.item_instance_id === 'string' && SUBJECT_ID.test(b.item_instance_id) ? b.item_instance_id : null;
+    const itemId = typeof b.item_id === 'string' && SUBJECT_ID.test(b.item_id) ? b.item_id : null;
+    if (id === null || itemId === null || closed.has(id)) return null;
+    const live = instances.get(id);
+    if (live) return live.itemId === itemId ? { item_instance_id: id, ...helpFields(live), ...cardField(live) } : null;
+    const served = servings.get(id);
+    if (served && served.item_id !== itemId) return null;
+    const sql = d.content.item(itemId);
+    if (sql && !isSqlChoiceKind(sql.kind)) {
+      const i = open(id, sql, { phase: b.phase });
+      return { item_instance_id: id, ...helpFields(i), ...cardField(i) };
+    }
+    const phase: Phase = served?.phase ?? browserPhase(b.phase) ?? 'free';
+    if (sql) return { item_instance_id: id, item_id: itemId, target_concept_id: sql.target_concept_id, phase };
+    const q = d.content.heldOut?.(itemId) ? undefined : d.content.choiceItem?.(itemId);
+    if (q) return { item_instance_id: id, item_id: itemId, target_concept_id: choiceTarget(q).target_concept_id, phase };
+    const cp = /^(.+):(CP[1245])$/.exec(itemId);
+    const record = cp && served ? d.content.case?.(cp[1]!) : undefined;
+    if (!record) return null;
+    // S2-50's fallback: the checkpoint's first credited concept, else the CP3's, else the case's first concept.
+    const concept = record.checkpoints.find((c) => c.kind === cp![2])?.credits_concepts[0]
+      ?? record.checkpoints.find((c) => c.kind === 'CP3')?.credits_concepts[0] ?? record.concept_ids[0];
+    return concept ? { item_instance_id: id, item_id: itemId, target_concept_id: concept, phase } : null;
+  };
+  /**
+   * I1 (T-16): whether the course text leaves out the labels (S2-39), whatever state the named instance is in, server truth first: the
+   * live instance's phase, else its serving's, else its phase as it closed (closedHidden since start, the replayed close before it).
+   * A closed instance is still named by no record (T-03); only the labels follow it. The browser's own phase can also hide them: a
+   * browser's claim only ever removes context.
+   */
+  const tutorHides = (b: Record<string, unknown>): boolean => {
+    const browser = phaseOf(b.phase);
+    if (browser !== null && hidesLabels(browser)) return true;
+    const id = typeof b.item_instance_id === 'string' ? b.item_instance_id : null;
+    if (id === null) return false;
+    const phase = instances.get(id)?.phase ?? servings.get(id)?.phase ?? null;
+    if (phase !== null) return hidesLabels(phase);
+    if (closedHidden.has(id)) return true;
+    const done = closed.has(id) ? phaseOf(d.state.current().instances.get(id)?.phase) : null;
+    return done !== null && hidesLabels(done);
   };
 
   // A refusal may carry a `code` a screen can match on, where the message text is only for the learner (Task B3 M1).
@@ -592,6 +675,8 @@ export function createApp(d: AppDeps): Hono {
     if (degraded) return c.json({ error: 'The app is in setup mode. See the setup screen.', setup_required: true, checks: d.checks }, 503);
     // A screen view (D77) never touches the log, so it is recorded whether or not the log can be written, and starts no session.
     if (c.req.path === JOURNEY_PATH) return next();
+    // T-20: saving or removing a tutor key writes nothing to the logs either, and starts no session.
+    if (c.req.path === TUTOR_KEY_PATH) return next();
     if (!d.logger.writable) {
       // Design §18: grading stops until the log can be written again, so no attempt is lost silently.
       if (c.req.method !== 'GET') return c.json({ error: 'The log cannot be written, so grading is paused. See the setup screen.' }, 503);
@@ -859,6 +944,9 @@ export function createApp(d: AppDeps): Hono {
     if (problem) throw refuse(400, problem);
     await d.logger.event({ event: 'setting_change', schema_version: SCHEMA_VERSION, ts: now(), key, value });
     if (key === 'goal_dates') d.settings.goal_dates = value as Record<string, string>;
+    else if (key === 'tutor_daily_cap_usd') d.settings.tutor_daily_cap_usd = value as Settings['tutor_daily_cap_usd'];
+    else if (key === 'tutor_enabled') d.settings.tutor_enabled = value as boolean | null;
+    else if (key === 'tutor_effort') d.settings.tutor_effort = value as TutorEffort | null;
     else d.settings[key] = value as string | null;
     return c.json({ ok: true });
   });
@@ -904,6 +992,7 @@ export function createApp(d: AppDeps): Hono {
   mountExplore(app, routeDeps);                            // sprint 4b (Task E2): the dataset explorer; its run logs nothing and starts no session (S4B-28)
   mountProgress(app, routeDeps);                           // sprint 4b (Task E1): GET /api/progress, read only (S4B-27)
   mountLabs(app, routeDeps);                               // sprint 5b (Task B2): the GA4 labs, graded and stated by server/labs.ts (D69)
+  mountTutor(app, routeDeps, { runtime: d.tutor ?? null, runs, target: tutorTarget, hides: tutorHides, course: tutorSource(d.content, d.schemaNotes) });   // sprint T (D91)
   // Writes through the logger only: this runs inside the session tracker's queue.
   d.endHooks.push(async (at) => {
     for (const [id, i] of [...instances]) await writeClose(id, i, 'session_end', at);

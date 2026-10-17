@@ -6,6 +6,7 @@ import assert from 'node:assert/strict';
 import { mkdtemp, readdir, readFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { SCHEMA_VERSION } from '../../core/envelope.ts';
 import { openJsonlLog } from '../../core/jsonl.ts';
 import { createApp, type AppDeps } from '../../server/app.ts';
 import { loadContent, type ContentStore } from '../../server/content.ts';
@@ -120,7 +121,7 @@ test('a first answer is graded, logs exactly one lab_answer line, and only a str
   assert.equal(typeof rec.session_id, 'string');
   assert.ok(rec.session_id.length > 0);
   assert.deepEqual({ ...rec, session_id: 'S' }, {
-    record: 'lab_answer', schema_version: 5, ts: '2026-10-08T10:00:00.000Z', session_id: 'S', lab_id: 'LAB-12', lab_version: 1, kind: 'first',
+    record: 'lab_answer', schema_version: SCHEMA_VERSION, ts: '2026-10-08T10:00:00.000Z', session_id: 'S', lab_id: 'LAB-12', lab_version: 1, kind: 'first',
     month: '2026-09', range: null,
     parts: [
       { part_id: 'P1', value: 12345, result: 'pending' }, { part_id: 'P2', value: 7407, result: 'pending' },

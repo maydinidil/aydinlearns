@@ -6,6 +6,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createApp, type AppDeps } from '../../server/app.ts';
 import { loadContent } from '../../server/content.ts';
+import { SCHEMA_VERSION } from '../../core/envelope.ts';
 import { openJsonlLog } from '../../core/jsonl.ts';
 import { AttemptLogger } from '../../server/log.ts';
 import { SessionTracker } from '../../server/session.ts';
@@ -86,5 +87,5 @@ test('Codex F24: a pass logs its integer division re-run outcome in payload.divi
   assert.equal(payloadOf('D-2').division_check, 'same');
   assert.equal(payloadOf('D-3').division_check, 'no_division');
   assert.equal('division_check' in payloadOf('D-4'), false, 'a fail has no division check');
-  assert.equal(logged.find((r) => r.item_instance_id === 'D-1').schema_version, 5, 'an additive field inside the current log format version');
+  assert.equal(logged.find((r) => r.item_instance_id === 'D-1').schema_version, SCHEMA_VERSION, 'an additive field inside the current log format version');
 });

@@ -3,6 +3,84 @@
 Append-only log of findings raised by the Codex PR reviewer, each with an independent verdict.
 Newest review first.
 
+## PR #51: sprint T, the AI tutor, release 1.6.0 (reviewed 2026-10-17)
+
+Codex left one line comment (P2) on commit `21a3a93`, plus its summary comment. It is confirmed, and fixed on the
+branch before the merge at the owner's go.
+
+### F34: A tutor answer on a pretest item does not count as help for the pretest skip
+
+**P2 · `web/src/tutor/TutorPanel.tsx:109` · Verdict: CONFIRMED · Status: FIXED 2026-10-17**
+
+The claim: when a learner asks the tutor on a lesson pretest item before passing it, the answered
+reply only updates the spend line; the open `ExercisePanel` or `ChoicePanel` never learns it was
+helped. Both pretest items then close with `helped: false`, so passing both after the tutor's help
+sends the learner straight to practice, while the server logs the question as help.
+
+What I found: the mechanism is as described. `send()` reads the summary only for
+`spent_today_usd` and `cap_usd` (`web/src/tutor/TutorPanel.tsx:105-108`). `ExercisePanel` sets
+`helped` on its instance only for a hint, a shown answer or an override (`web/src/components/ExercisePanel.tsx:198`,
+`:209`, `:221`), and `ChoicePanel` derives it from a shown answer alone (`web/src/components/ChoicePanel.tsx:158`).
+`LessonScreen.pretestClosed` keeps that flag (`web/src/screens/LessonScreen.tsx:66-69`) and
+`pretestSkipsLesson` skips the reading when both items are passed and neither is helped
+(`web/src/lib/lesson-flow.ts:18-19`). The server is right: D95 makes an answered question on an
+open, unpassed instance help at level 1 (`counted` in the summary, `server/routes/tutor.ts:206`), so
+ratings and replay count it. Only the browser's lesson flow disagrees, and the saved lesson position
+keeps the wrong flag over a reload. `pretestSkipsLesson` is the only reader of the browser's help
+flag, so nothing else is affected.
+
+**Fix direction:** a help channel in the tutor context: the item panel with the open instance
+registers a handler, and the tutor panel calls it with the asked instance's ID when the summary says
+`answered` and `counted`. `ExercisePanel` marks its instance helped only while it is open and not
+passed (as the server judges D95); `ChoicePanel` keeps a helped flag that its `next()` adds to the
+shown-answer one. Tests: a unit test on the handler, and a smoke check that a pretest passed after a
+tutor answer goes to the reading.
+
+> **Update 2026-10-17: fixed on the branch.** The owner chose to fix it on PR #51. Red first: a new smoke row, tu-9,
+> on the unmodified app failed with "SQL-BASICS-01: both pretest items passed after the tutor answered on
+> EX-SQL-BASICS-01-E1-01 (the write item), and the lesson went to practice instead of the reading" (83 of 84 rows).
+> The fix follows the fix direction: `web/src/lib/tutor-help.ts` decides which instance a reply's end counts as help on
+> (`helpedInstance`: a summary saying `answered` and `counted`) and whether a panel takes it (`marksHelped`: its own
+> current instance, open and not passed); the tutor context carries a help channel (`useTutorHelp`, `helped`); the
+> tutor panel calls it after a reply; `ExercisePanel` marks its instance helped, and `ChoicePanel` keeps the helped
+> instance's ID, which `next()` adds to a shown answer. tu-9 walks two pretests: SQL-BASICS-01 asked on its write
+> item, SQL-BASICS-02 on its predict item (a choice question), each checked in the logs to have no hint or shown
+> answer, so only the tutor's answer can send it to the reading. After the fix: 84 of 84 rows on two runs, 0 page
+> errors; `npm test` 2,453 of 2,453. Mutation: removing the panel's call, the exercise handler or the choice flag each
+> turns tu-9 red; ignoring `counted`, `passed` or the instance ID each turns one unit test red. The smoke runs the built
+> app in a browser on this laptop with the fake model; a real model changes only the reply's text, not the summary the
+> fix reads.
+>
+> **Adjacent, not fixed:** the summary's `counted` (`server/routes/tutor.ts:206`) is also true after a pass on an
+> instance still open, which replay does not count (dropped in the sprint T triage when nothing read it); the browser
+> now reads it, but checks the pass itself, so the lesson flow follows replay. A lesson position saved before the fix
+> could hold the wrong flag, but no released version had the tutor, so none exists.
+
+## PR #50: sprint 6 Part 2, Mailvora and real data, release 1.5.0 (reviewed 2026-10-16, merged 2026-10-17)
+
+Codex left one line comment (P2) on commit `2b0c13b`, plus its summary comment. The `claude-review`
+check passed. The finding is refuted: the real content store already does what it asks for.
+
+### F33: An opener item's funnel theme ignores its opener's world
+
+**P2 · `server/observe.ts:45` · Verdict: REFUTED · Status: REFUTED 2026-10-16**
+
+The claim: `itemFunnel` looks for an item's owning case in `content.cases()` only, while `loadContent`
+keeps the level openers apart in `content.openers()`. So `EX-OPENER-L2-01`, whose opener `CASE-VOLT-L2`
+is in the RETAIL world, would fall back to its Voltmarkt company and send `pricing` on `item_viewed`
+and on its submissions.
+
+What I found: `content.cases()` holds the openers too. `loadContent` builds its case list as
+`[...openers, ...(await readDir<CaseRecord>('sql/cases'))]` (`server/content.ts:266`) and `cases`
+returns a copy of that list (`server/content.ts:357`); `openers()` is a separate view of the same
+records, not a separate store. On the real content, all 4 openers are in `cases()`, and
+`itemFunnel` gives `EX-OPENER-L2-01` the theme `retail`. A test already pins this through the real
+`loadContent`: "K2: a case item's item_viewed carries its case's theme" (`tests/server/journey-routes.test.ts:345`)
+sets its fixture opener's world to MKT, and `EX-OPENER-L1-01`'s `item_viewed` must carry `marketing`.
+With openers missing from `cases()`, that test would read `pricing` and fail.
+
+**Fix direction:** none; nothing is wrong. No CHANGELOG entry.
+
 ## PR #49: sprint 6 Part 1, SQL level 4, release 1.4.0 (reviewed 2026-10-15, merged 2026-10-15)
 
 Codex left one line comment (P2) on commit `a4e3b11`, plus its summary comment. The `claude-review`

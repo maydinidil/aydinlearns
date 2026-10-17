@@ -9,6 +9,7 @@
 // change they make falls on an Amsterdam midnight, so the result depends on the records and that date only.
 // Sprint 4b (Task B2): each case's status (S4B-08: solved, score, solve time; S4B-13: the day-1 sketch), from its checkpoint
 // attempts and its `self_check` and `case_export` records (log version 4), which rate nothing.
+// Sprint T (D95): log version 6; an answered tutor question is help at level 1.
 import type { CardReview, CloseReason, Outcome, Phase, Rating, Section } from './envelope.ts';
 import type { DeckPreset } from './presets.ts';
 import { configFor, emptyCard, reviewCard, type CardSnapshot, type SchedulerConfig } from './scheduler.ts';
@@ -779,7 +780,9 @@ export function replay(attemptRecords: object[], events: object[], opts: ReplayO
     let origin: CardState['origin'] = 'review';
     if (phase === 'pretest' && family !== 'choice' && mistakeId === null && catalog.pretestCount > 0) {
       const list = pretests.get(target) ?? [];
-      list.push({ item_id, clean: s.passedBy === 'auto' && help.length === 0 && override === 'none' });
+      // D95 (T5 review I1): a tutor question after the pass is no help, as spec §7 says; hints and reveals still spoil a clean start.
+      const helpFree = help.every((h) => h.kind === 'tutor' && passT !== null && Date.parse(h.ts) > passT);
+      list.push({ item_id, clean: s.passedBy === 'auto' && helpFree && override === 'none' });
       pretests.set(target, list);
       const latest = latestDistinct(list, catalog.pretestCount);
       if (!cardRated && latest.length > 0 && latest.every((x) => x.clean)) {
@@ -900,6 +903,16 @@ export function replay(attemptRecords: object[], events: object[], opts: ReplayO
     if (hint && level === null) return;
     a.help_card_id ??= str(r.card_id);                  // D33: version 3 and later, optional
     a.help.push({ ts: iso(t), kind: hint ? 'hint' : 'solution', level: hint ? level : null });
+  };
+  // D95 (log version 6, T-04): an answered tutor question on an open instance is help at level 1. It names the instance's item, concept and
+  // phase, but only the instance's own records teach them; a refused, failed or capped question, or one that names no instance, is no help.
+  const onTutor = (r: Rec, t: number): void => {
+    const id = str(r.item_instance_id);
+    if (!id || r.outcome !== 'answered') return;
+    const a = accFor(id);
+    if (a.closed) return;                               // S2-44: help after the close is free and is not replayed
+    a.help_card_id ??= str(r.card_id);
+    a.help.push({ ts: iso(t), kind: 'tutor', level: 1 });
   };
   const onClose = (r: Rec, t: number): void => {
     const id = str(r.item_instance_id);
@@ -1029,6 +1042,7 @@ export function replay(attemptRecords: object[], events: object[], opts: ReplayO
     const t = timeOf(r);
     if (r.record === 'attempt') onAttempt(r, t);
     else if (r.record === 'hint_opened' || r.record === 'solution_opened') onHelp(r, t);
+    else if (r.record === 'tutor_asked') onTutor(r, t);
     else if (r.record === 'item_close') onClose(r, t);
     else if (r.record === 'block_close') onBlockClose(r, t);
     else if (r.record === 'exposure') onExposure(r, t);

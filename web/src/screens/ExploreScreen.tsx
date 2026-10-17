@@ -17,6 +17,8 @@ import {
   FLAGSHIP_BUTTON, FLAGSHIP_HINT, TO_PREPARE_HEADING, chosenOf, flagshipNotice, flagshipOffered, notesOf, pickerGroups, starterQuery, toPrepare,
 } from '../lib/explore-flow.ts';
 import type { DisplayOk } from '../../../server/runner/protocol.ts';
+import { explorerPart } from '../lib/tutor-parts.ts';
+import { useTutorPart } from '../tutor/TutorContext.tsx';
 
 export function ExploreScreen() {
   const [view, setView] = useState<ExploreView | null>(null);
@@ -32,6 +34,8 @@ export function ExploreScreen() {
   const starter = useRef<string | null>(null);
   const kept = useRef<string | null>(null);
   const run = useRef<() => void>(() => {});
+  // Sprint T (spec §5): the dataset chosen (a picker's value is not in the screen's text) and the editor's full text.
+  useTutorPart(() => explorerPart(schema, editor.current?.getText() ?? ''));
   useEffect(() => { exploreApi.view().then((v) => { setView(v); setSchema(v.schema); }, (e: Error) => setError(e.message)); }, []);
 
   useEffect(() => {

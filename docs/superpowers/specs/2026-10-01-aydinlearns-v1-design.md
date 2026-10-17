@@ -35,7 +35,8 @@ A personal learning app on Aydin's Windows laptop. It has **three sections**:
 | **Methodology** | Metric definitions, experiments and A/B testing, statistics, and pricing economics |
 
 The UI runs in the browser and talks to a small server on `127.0.0.1`. English UI, one user, no
-runtime AI in v1.
+runtime AI in v1 apart from the opt-in tutor (see the [AI tutor design](2026-10-16-aydinlearns-ai-tutor-design.md),
+2026-10-16).
 
 **The goal:** get hired as a pricing, marketing or commercial analyst, or as a junior data or
 business analyst, in the Netherlands, with applications going out in **late 2026**. Every goal
@@ -464,6 +465,8 @@ level completion. They never lock anything.
 **Hints** follow a 3-step ladder: concept nudge, clause pointer, partial solution. They are
 available at any time; their cost shows in the rating. Inside a timed drill or a mock, hints and
 "show answer" wait for the end-of-run review.
+
+**(amended 2026-10-17, sprint T)** A tutor question on an item not yet passed is help, like hint 1 (D95).
 
 **"I was right"** (LE-05):
 - It schedules as Hard at once (rating map above) and counts toward Practised.
@@ -1525,6 +1528,10 @@ a GA4 run answer's multiple-choice payload, so a full mock cut short by a restar
 a half-mock. Both changes are additive: a version 4 log reads as before, and a run answer with no
 `run_kind` is read by its question count, as it was.
 
+**(amended 2026-10-17, sprint T) Log format version 6** (`SCHEMA_VERSION` 6, D95): the `tutor_asked` record and the
+`tutor_daily_cap_usd` setting. Both are additive; replay reads versions 1 to 6. See the
+[AI tutor design](2026-10-16-aydinlearns-ai-tutor-design.md) §7.
+
 **The aydinlearns extension:**
 - `world`, `difficulty`, `sub_skill`, `dataset_version`, `duckdb_version`;
 - the SQL payload: the submitted query, per-dataset results, the matched planted wrong query, a
@@ -1723,7 +1730,8 @@ manually until one is.
 
 ## 19. Out of scope for v1
 
-- **Runtime AI tutor.** Planned later with the OpenAI API; costs are in 00.
+- **Runtime AI tutor: in**, as the [AI tutor design](2026-10-16-aydinlearns-ai-tutor-design.md) describes (D91,
+  2026-10-16). Screenshots, voice and tool use stay out.
 - **PL-300 / Power BI.** A planned future update to this app (owner, 2026-10-02).
 - **Excel training.** Not needed (owner, 2026-10-02).
 - **The BigQuery / GA4-export bridge**, deferred by choice, and the real datasets after the core

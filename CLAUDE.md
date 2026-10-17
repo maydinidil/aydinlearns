@@ -10,7 +10,8 @@ It has three sections:
 - **Methodology**: metrics, A/B testing, statistics and pricing economics.
 
 It is a local web app on a Windows laptop: a React UI in the browser, plus a small Node server on
-`127.0.0.1` that runs the learner's SQL in native DuckDB. There is no runtime AI. This file is
+`127.0.0.1` that runs the learner's SQL in native DuckDB. The one runtime AI is the opt-in tutor (D91): with no key in
+Settings or `.env` it is off and the app makes no outside call. This file is
 for coding agents.
 
 This project sits inside the `zehirlab` monorepo. Paths here are relative to `aydinlearns/`. The
@@ -26,9 +27,9 @@ holds the evidence behind those changes.
 
 ## The state you will find it in
 
-**Slices 0, 1a, 1b, 2a and 2b, sprints 4a, 4b, 4c, 5a, 5b and 6 are built: SQL levels 1 to 4,
+**Slices 0, 1a, 1b, 2a and 2b, sprints 4a, 4b, 4c, 5a, 5b, 6 and T are built: SQL levels 1 to 4,
 all of GA4 (with full mocks, the readiness check and the interview labs) and all of Methodology can be studied, with the scheduler, Today, drills, the
-level openers, mistake cards, cases on Voltmarkt, Mailvora and real data, the portfolio export and the Progress screen.** Slice 2b (GA4 lessons, timed
+level openers, mistake cards, cases on Voltmarkt, Mailvora and real data, the portfolio export, the Progress screen and the opt-in AI tutor.** Slice 2b (GA4 lessons, timed
 GA4 mini drills and half-mocks, SQL choice items) reached `main` through PR #34. Sprint 3b gave
 every screen the direction C look (tokens, a top bar with section tabs, cards, a two-column
 Today), merged in PR #36; the spec is
@@ -45,7 +46,7 @@ complete, polish, release 1.0) merged in PR #42 and was released as 1.0 (tag `v1
 public repo, 2026-10-08), and 5b (GA4 complete) merged in PR #43, followed by a hygiene PR (PR #44, plan
 [`docs/superpowers/plans/2026-10-09-aydinlearns-hygiene-1-1.md`](docs/superpowers/plans/2026-10-09-aydinlearns-hygiene-1-1.md):
 Codex F27 and ten backlog rows), and was released as 1.1 (tag `v1.1.0` on the public repo,
-2026-10-09); read the roadmap first. Release 1.2 (2026-10-12, tag `v1.2.0`) added the optional OpenTelemetry (D75, D76; PRs #45 to #47). Release 1.3 (2026-10-13, tag `v1.3.0`) added the study journey (D77; PR #48; its rulings, reviews and deferred findings are in [`docs/planning/2026-10-13-release-1-3-record.md`](docs/planning/2026-10-13-release-1-3-record.md)). Sprint 6 Part 1 (2026-10-15, 1.4.0, no public release) added SQL level 4, `voltmarkt_raw` and the incident tickets; Part 2 (2026-10-16, 1.5.0, the public `v1.5.0`) added Mailvora, the dataset registry and the first real-data cases. The app's version is in `package.json` (1.5.0); later sprints ship as 1.x releases (D63).
+2026-10-09); read the roadmap first. Release 1.2 (2026-10-12, tag `v1.2.0`) added the optional OpenTelemetry (D75, D76; PRs #45 to #47). Release 1.3 (2026-10-13, tag `v1.3.0`) added the study journey (D77; PR #48; its rulings, reviews and deferred findings are in [`docs/planning/2026-10-13-release-1-3-record.md`](docs/planning/2026-10-13-release-1-3-record.md)). Sprint 6 Part 1 (2026-10-15, 1.4.0, no public release) added SQL level 4, `voltmarkt_raw` and the incident tickets; Part 2 (2026-10-16, 1.5.0, the public `v1.5.0`) added Mailvora, the dataset registry and the first real-data cases. Sprint T (2026-10-17, 1.6.0) added the opt-in AI tutor (D91 to D99). The app's version is in `package.json` (1.6.0); later sprints ship as 1.x releases (D63).
 - Slice 0: the domain-free types in `core/`, the app schemas in `schemas/`, the curriculum and
   error catalogue extracted into `content/sql/`, and the adjudicated fixes in
   `knowledge/ERRATA.md`. `knowledge/` itself still holds the research bank: 12 files (00 to 11), plus an index and a
@@ -131,6 +132,21 @@ Codex F27 and ten backlog rows), and was released as 1.1 (tag `v1.1.0` on the pu
   schemas; CASE-REAL-01 and -02; the explorer's dataset picker and flagship drafts; the `real_data_analysis` goal
   criterion (D85). Which schemas are built comes from `data/truth/checkpoints.json` (`builtSchemas`), read at
   start. Its rulings and deferred findings are in the same record.
+- Sprint T (plan
+  [`docs/superpowers/plans/2026-10-16-aydinlearns-sprint-t.md`](docs/superpowers/plans/2026-10-16-aydinlearns-sprint-t.md),
+  spec [`docs/superpowers/specs/2026-10-16-aydinlearns-ai-tutor-design.md`](docs/superpowers/specs/2026-10-16-aydinlearns-ai-tutor-design.md),
+  decisions D91 to D99): the opt-in AI tutor. The server side is `server/tutor/` (config, prices, the Claude and OpenAI
+  providers, startup, the spend ledger and guard, the prompt, redaction, course content and the model input),
+  `server/tutor-source.ts` (the only key-free view of the content store the tutor reads) and `server/routes/tutor.ts`
+  (`GET /api/tutor/status`, `POST /api/tutor/ask`, `POST /api/tutor/keys`); block P added the model catalog
+  (`server/tutor/models.ts`) and the key store (`server/tutor/keys.ts`, `tutor-keys.json`, git-ignored; every test
+  server sets `AYDINLEARNS_KEYS_FILE` to a temporary file); the wire shapes are `schemas/tutor.ts`; the browser side is
+  `web/src/tutor/` and each screen's parts (`web/src/lib/tutor-parts.ts`). Log format version 6 (`tutor_asked`,
+  `tutor_daily_cap_usd`); an answered question on an unpassed item is help at level 1 (`core/replay.ts`). `npm run
+  check:imports` keeps `server/tutor/` on an import allow-list away from the keys; `npm run eval:tutor` is the live eval
+  (it spends the owner's key: run it only with the owner's go). Tests never call a provider: the fake model
+  (`AYDINLEARNS_TUTOR_PROVIDER=fake`) or the SDKs' injectable fetch. Its rulings (T-01 to T-23) and deferred findings
+  are in [`docs/planning/2026-10-16-sprint-t-record.md`](docs/planning/2026-10-16-sprint-t-record.md).
 - Every check in the README's "Run and ship" passes, and so does the browser smoke test,
   `npm run test:e2e`. It runs its own server on `AYDINLEARNS_PORT` (default 5174) against an
   empty temporary logs folder, set through `AYDINLEARNS_LOGS_DIR`, and a temporary journey folder,
@@ -263,13 +279,15 @@ Derived from design §3. The "why" is the part worth keeping.
 | IDs | `SQL-*` (01) and the GA4 IDs (06) are the masters; Methodology IDs are minted in slice 0 | Review #4 |
 | Telemetry (D75, 2026-10-12) | Optional OpenTelemetry over OTLP/HTTP (`server/telemetry.ts`, `server/observe.ts`), on only when `.env` sets `DASH0_OTLP_ENDPOINT` and `DASH0_AUTH_TOKEN`. Funnel attributes `topic`, `case_theme`, `difficulty`; never a query, an answer or personal data; no host or process resource detectors. The runner never starts it. D76 (2026-10-12): each answer also sends its exercise ID, time spent and target, try, hints, answer shown, confidence and mode; the exercise ID goes on spans, logs and the `aydinlearns.answer.time` histogram, never on the step counter | A portfolio piece for observability roles. A clone without `.env` stays fully offline |
 | Study journey (D77, 2026-10-13) | `server/journey.ts` writes each event, `server/journey-tap.ts` turns the app's own log writes (and concept state changes) into events, `POST /api/journey` takes screen views only and never starts a study session, and `tools/journey.ts` (`npm run journey`) loads the files into DuckDB with twelve starter views. A visit starts at its first event and ends after 30 idle minutes or at app stop, apart from the study session (`server/session.ts`), which the journey never touches. `journey/` is on by default and gitignored; `AYDINLEARNS_JOURNEY=off` (or `false`, `0`, `no`) stops the file, `AYDINLEARNS_JOURNEY_DIR` moves it. Events carry IDs, counts, times and outcomes only, never text, a query, an answer, a note or a path. With telemetry on, each event is also a log record with `session.id`, and the request's span carries it; `session.id` goes on no metric, and neither journey metric (`aydinlearns.journey.events`, `aydinlearns.session.duration`) carries an item ID | Aydin analyses the study path in SQL without Dash0, and after the trial. Browsing leaves the replayed study history as it was. Outside `logs/`, an agent may read `journey/` (IDs only); `logs/` stays closed |
+| AI tutor (D91 to D99, 2026-10-16; block P, 2026-10-17) | Opt-in: on only with a key, saved in Settings (`tutor-keys.json`, which wins) or in `.env`. Settings switches it on or off and picks the model (Claude Haiku 5.5 by default, Claude Sonnet 5.5, Claude Opus 5.5, GPT-6 Luna, GPT-6.1 Sol) and the effort (low, medium by default, or high); a key is never sent to the browser, logged or exported. Each screen sends a text snapshot of what it shows; the server adds public content by ID and never a key, a held-out item, a path or the logs. Teaches before a pass, explains after. Closed while a timed run's clock runs. A question on an unpassed item is help like hint 1 (log version 6, `tutor_asked`). One thread per item, kept for the session. A daily cap, $1 by default, or none. The journey and Dash0 get counts only, never text | The owner asked for a tutor that sees the screen; answers and keys stay where they are |
 
 ## Ask before
 
 - Changing a locked decision, the grading semantics or the log schema. The log schema carries a
   `schema_version`. Grading changes run the grader test suite.
-- Adding runtime AI, or any network call from the app. The opt-in telemetry of D75 is the one exception;
-  widening what it sends (a new attribute, signal or detector) is a change to ask about too.
+- Adding runtime AI, or any network call from the app. The opt-in telemetry of D75 and the tutor of D91 are the two
+  exceptions; widening what either sends (for telemetry a new attribute, signal or detector; for the tutor a new kind of
+  content in its context) is a change to ask about too.
 - Installing packages, downloading datasets or contacting any external service. Every download
   is triggered by Aydin.
 - Upgrading DuckDB (including to 2.0), ts-fsrs or the FSRS model, or switching on fitted weights.

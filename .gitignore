@@ -14,6 +14,13 @@ logs/
 # The study journey (D77): local events, and the database `npm run journey` builds from them
 journey/
 
+# The tutor's live eval (sprint T, T11): the replies `npm run eval:tutor` saves for the owner to read
+tutor-eval/
+
+# The tutor's keys saved in Settings (block P, T-20), and the temporary file a save writes before it renames it over
+tutor-keys.json
+tutor-keys.json.*.tmp
+
 # DuckDB databases and their write-ahead logs, wherever they end up
 *.duckdb
 *.duckdb.wal

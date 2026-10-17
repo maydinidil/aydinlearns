@@ -255,3 +255,46 @@ The providers keep API inputs under their own retention terms, on the owner's ow
 
 Screenshots or vision; voice; letting the tutor run SQL or use any tool; saving conversations (D96's alternative); the
 tutor writing new items or cases; any other model provider; Dutch.
+
+## 15. As built (sprint T, 2026-10-17)
+
+Built by the plan [`../plans/2026-10-16-aydinlearns-sprint-t.md`](../plans/2026-10-16-aydinlearns-sprint-t.md) as release
+1.6.0. The record is [`../../planning/2026-10-16-sprint-t-record.md`](../../planning/2026-10-16-sprint-t-record.md). Where
+the build differs from the sections above, this section wins.
+
+| Ruling | What was decided |
+|---|---|
+| T-01 | Hints reach the tutor only as the screen shows them; the server adds none |
+| T-02 | The snapshot is the visible text of `<main>` plus parts registered by the components that hold what the text does not |
+| T-03 | A question on an SQL write or fix item opens its instance as a hint does; choice questions and case checkpoints are named, not opened; a closed, held-out, unknown or other item's instance is never named |
+| T-04 | Replay's tutor handler adds the help fact only |
+| T-05 | Startup recovery and Progress count an answered question that names an instance as help at level 1 |
+| T-06 | `tutor_daily_cap_usd` is optional (absent or null: $1); Settings takes 0.05 to 20 US dollars |
+| T-07 | The thread goes as plain text: the last 6 exchanges, earlier replies cut at 4,000 characters |
+| T-08 | The reply streams as text, then U+001E and one JSON summary line |
+| T-09 | Price rows for Claude Haiku, Sonnet and Opus 5.5 and `fake`; an OpenAI model gets its row when one is named |
+| T-10 | The reservation estimates input at one token per 3 characters |
+| T-11 | `AYDINLEARNS_TUTOR_PROVIDER=fake` is a local model that calls nothing |
+| T-12 | Asking a question touches the study session; the status route does not |
+| T-13 | Labs and the explorer get nothing added by ID |
+| T-14 | The Mistakes screen gets the feedback of up to three error IDs it shows |
+| T-15 | A whole-reply deadline of 2 minutes: the SDKs' 60 second timeout covers only the wait for the first bytes |
+| T-16 | Narrows §5: the course text never names a question's concept when its title matches an option, and where the screen hides labels (S2-39: review, mixed and case phases, also after the instance closed) it leaves out the concept, the lesson summary, the level and the item ID |
+| T-17 | Tests may use invented home folders under `C:\Users`; the release scans list every such name |
+| T-18 | A screen part's label carries no item ID: an ID names its concept |
+| T-19 | `AYDINLEARNS_TUTOR_FAKE_DELAY_MS` slows the fake model, so a smoke row can close the panel mid-reply |
+| T-20 | Block P (owner, 2026-10-17): keys are entered in Settings and kept by the server in `tutor-keys.json` (git-ignored, never exported), one per provider; a saved key wins over `.env`; the browser learns only where a key came from. `AYDINLEARNS_KEYS_FILE` moves the file; every test server sets it |
+| T-21 | Five models, each with an official price row: Claude Haiku 5.5 (the default), Claude Sonnet 5.5, Claude Opus 5.5, GPT-6 Luna, GPT-6.1 Sol. Effort low, medium (the default) or high, with a reply limit of 4,096, 8,192 or 16,384 tokens. Supersedes T-09's "an OpenAI model gets its row when one is named" and §8's low effort |
+| T-22 | Settings `tutor_enabled`, `tutor_model`, `tutor_effort`; `tutor_daily_cap_usd` also takes `"none"`, no daily limit. `tutor_asked`, the journey event and the metrics carry the effort |
+| T-23 | `.env` keeps only the two keys; `AYDINLEARNS_TUTOR_MODEL` is gone, and `AYDINLEARNS_TUTOR_PROVIDER` is only the test hook `fake` |
+
+Also as built: both providers' clients are pinned to the public API hosts and take no organisation, project, extra
+header or second credential from the environment; an aborted call (the learner leaving, or the deadline) is logged as
+`error` whatever the model returns; closing the panel stops a reply and gives the question back. A choice question's
+part lists its options from the top of the screen down, and the prompt is at version 4: on an unanswered
+multiple-choice question the tutor names an option only by its place on the screen, never quotes it, never calls one
+right, never rules out all the others, and does not go through the options saying what each is about (version 4, the
+live eval's Sonnet 5.5 reply). The live eval builds its snapshots through the app's own parts and runs on any model;
+its checks catch an answer given by singling out, picking or ruling out, and a walk-through of the options, and
+`--recheck` re-scores saved replies offline. A tutor answer that counts as help on an unpassed item also counts in the
+lesson's pretest skip (Codex F34).

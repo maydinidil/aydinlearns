@@ -1,0 +1,214 @@
+// server/routes/tutor.ts: the AI tutor's three routes (AI tutor design §4, §7, §10, §11; D91 to D99; block P, T-20 to T-23).
+// GET /api/tutor/status: on or off and why, the Settings switch, model and effort, every model with its price and whether its provider has
+//   a key, where each key came from (never the key), today's spend and the limit (null: none), and whether a timed run is on. Starts no session.
+// POST /api/tutor/ask: { screen, subject_id?, snapshot, item, thread, question }. The guard's refusals come first, as JSON, and call no model.
+//   The model is built per question from Settings and the key store (server/tutor/config.ts, startup.ts), with the token limit of the
+//   effort. Then the daily limit: a question that could pass it is refused (429) and logged as `capped`; with no limit (T-22) nothing is
+//   held. Otherwise the reply streams as plain text, then U+001E and one JSON summary line (T-08). Every question past the guard writes one
+//   tutor_asked record (log version 6) with counts and the effort only. A reply that runs past the whole-reply deadline (T-15) is cut like
+//   any failure, with the busy line before any text and the cut-off line after it: the SDKs' own timeout covers only the wait for headers.
+//   A question admitted while the tutor was on runs to its end even if Settings turns the tutor off meanwhile; the next one is refused.
+// POST /api/tutor/keys (T-20): { provider, key } saves a key (a string) to tutor-keys.json, or removes the one saved there (null), and answers
+//   with the status. The key is never in an answer, a log line, the journey, a span or an error; the route writes nothing to the logs and
+//   starts no study session (server/app.ts lets it past the session middleware).
+import type { Hono } from 'hono';
+import { streamText } from 'hono/streaming';
+import { trace } from '@opentelemetry/api';
+import { SCHEMA_VERSION, type Phase, type TutorAsked, type TutorOutcome } from '../../core/envelope.ts';
+import { SCREENS, SUBJECT_ID } from '../../schemas/journey.ts';
+import { SUMMARY_MARK, TUTOR_KEY_PATH, type TutorStatusView, type TutorSummary } from '../../schemas/tutor.ts';
+import type { RouteDeps, Settings } from '../app.ts';
+import type { DrillGate } from '../drill.ts';
+import { tutorObserved } from '../observe.ts';
+import { hidesLabels } from '../servings.ts';
+import { tutorState, type TutorState } from '../tutor/config.ts';
+import { buildInput, type Exchange } from '../tutor/context.ts';
+import { courseFor, type CourseSource } from '../tutor/course.ts';
+import { guard } from '../tutor/guard.ts';
+import { KEY_PROVIDERS, keyProblem, type KeyStore } from '../tutor/keys.ts';
+import { MODELS, tokenLimit } from '../tutor/models.ts';
+import { costOf, priceOf, worstCost } from '../tutor/prices.ts';
+import { TUTOR_PROMPT_VERSION } from '../tutor/prompt.ts';
+import { TUTOR_LINES } from '../tutor/providers/errors.ts';
+import { localNames } from '../tutor/redact.ts';
+import { capOf, type SpendLedger } from '../tutor/spend.ts';
+import { TutorFailure, type KeyProvider, type ModelChoice, type TutorModel, type TutorUsage } from '../tutor/types.ts';
+
+/** T-15: the most a whole reply may take, from the call to its last piece. */
+export const REPLY_DEADLINE_MS = 120_000;
+/**
+ * What server/main.ts gives the tutor. `fake`: T-23's test hook. `modelFor`: the model for one question (startup.ts's makeTutorModel over
+ * the key store; a test passes its own). `replyDeadlineMs`: T-15's deadline, REPLY_DEADLINE_MS unless a test sets a shorter one.
+ */
+export interface TutorRuntime {
+  keys: KeyStore;
+  fake: boolean;
+  modelFor(c: ModelChoice): Promise<TutorModel>;
+  ledger: SpendLedger;
+  replyDeadlineMs?: number;
+}
+/** T-03: the instance a question names, with what its record carries. */
+export interface TutorTarget { item_instance_id: string; item_id: string; target_concept_id: string; phase: Phase; card_id?: string }
+export interface TutorRoutes {
+  /** Null: no tutor (an app built without one); every route answers that it is off. */
+  runtime: TutorRuntime | null;
+  runs: Pick<DrillGate, 'running'> & { current(): unknown };
+  target(b: Record<string, unknown>): TutorTarget | null;
+  /** I1 (T-16): the named instance's phase hides labels whatever its state (live, served, closed), or the browser's own phase does. */
+  hides(b: Record<string, unknown>): boolean;
+  course: CourseSource;
+}
+
+const OFF_LINE = 'The tutor is off.';
+const NOT_STARTED = 'The tutor could not start. Try again, or check its key in Settings.';
+const NO_PRICE = 'The chosen model has no price, so the daily limit could not work. Pick another model in Settings.';
+const NOT_SAVED = 'The key could not be saved. Check that the app folder can be written, then try again.';
+const ZERO: TutorUsage = { input_tokens: 0, cache_write_tokens: 0, cached_input_tokens: 0, output_tokens: 0 };
+const isRecord = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object' && !Array.isArray(v);
+const exchangesOf = (v: unknown): Exchange[] => (Array.isArray(v) ? v : [])
+  .filter((x): x is Exchange => isRecord(x) && typeof x.question === 'string' && typeof x.reply === 'string');
+const foldersOf = (s: Settings): string[] => [s.backup_folder, s.portfolio_folder].filter((f): f is string => typeof f === 'string' && f !== '');
+
+export function mountTutor(app: Hono, d: RouteDeps, t: TutorRoutes): void {
+  const rt = t.runtime;
+  /** On or off, and with what, as Settings and the keys say now. */
+  const stateNow = (): TutorState => (rt
+    ? tutorState(d.settings, (p) => rt.keys.sourceOf(p), rt.fake)
+    : { ...tutorState(d.settings, () => null, false), enabled: false, reason: OFF_LINE });
+  const cap = (): number | null => capOf(d.settings.tutor_daily_cap_usd);
+  const statusView = (): TutorStatusView => {
+    const s = stateNow();
+    const has = (p: KeyProvider): boolean => rt !== null && (rt.fake || rt.keys.sourceOf(p) !== null);
+    return {
+      enabled: s.enabled, switched_on: s.switched_on, provider: s.provider, model: s.model, effort: s.effort, reason: s.reason,
+      models: MODELS.map((m) => {
+        const p = priceOf(m.id)!;                                       // every catalog model has a row (tests/server/tutor-config.test.ts)
+        return { id: m.id, label: m.label, provider: m.provider, input_usd: p.input, output_usd: p.output, available: has(m.provider) };
+      }),
+      keys: KEY_PROVIDERS.map((p) => ({ provider: p, source: rt?.keys.sourceOf(p) ?? null })),
+      spent_today_usd: rt?.ledger.spentOn(new Date()) ?? 0, cap_usd: cap(), run_on: t.runs.current() != null,
+    };
+  };
+
+  app.get('/api/tutor/status', (c) => c.json(statusView()));
+
+  // T-20. Nothing here logs, observes or throws with the body: a refusal names the rule, never the value sent.
+  app.post(TUTOR_KEY_PATH, async (c) => {
+    if (!rt) return c.json({ error: OFF_LINE, code: 'tutor_off' }, 404);
+    const b: unknown = await c.req.json().catch(() => null);
+    if (!isRecord(b)) return c.json({ error: 'The request body must be a JSON object.', code: 'bad_request' }, 400);
+    const provider = (KEY_PROVIDERS as readonly unknown[]).includes(b.provider) ? b.provider as KeyProvider : null;
+    if (provider === null) return c.json({ error: 'Unknown provider: use claude or openai.', code: 'bad_request' }, 400);
+    const sent = b.key;
+    if (sent !== null && typeof sent !== 'string') return c.json({ error: 'Send a key to save, or null to remove the one saved in Settings.', code: 'bad_request' }, 400);
+    if (typeof sent === 'string') {
+      const problem = keyProblem(provider, sent.trim());
+      if (problem) return c.json({ error: problem, code: 'bad_key' }, 400);
+    }
+    try {
+      if (sent === null) await rt.keys.remove(provider); else await rt.keys.save(provider, sent);
+    } catch {
+      return c.json({ error: NOT_SAVED, code: 'not_saved' }, 500);
+    }
+    return c.json(statusView());
+  });
+
+  app.post('/api/tutor/ask', async (c) => {
+    const b: unknown = await c.req.json().catch(() => null);
+    if (!isRecord(b)) return c.json({ error: 'The request body must be a JSON object.', code: 'bad_request' }, 400);
+    const screen = typeof b.screen === 'string' && (SCREENS as readonly string[]).includes(b.screen) ? b.screen : null;
+    if (screen === null) return c.json({ error: 'Unknown screen.', code: 'bad_request' }, 400);
+    const question = typeof b.question === 'string' ? b.question.trim() : '';
+    const snapshot = typeof b.snapshot === 'string' ? b.snapshot : '';
+    const item = isRecord(b.item) ? b.item : null;
+    const instanceId = typeof item?.item_instance_id === 'string' ? item.item_instance_id : null;
+    const state = stateNow();
+    const refusal = guard({ enabled: state.enabled, offReason: state.reason, screen, runOn: t.runs.current() != null,
+      itemInRun: instanceId !== null && (await t.runs.running(instanceId)), questionChars: question.length, snapshotChars: snapshot.length });
+    if (refusal) return c.json({ error: refusal.message, code: refusal.code }, refusal.status);
+
+    // Block P: the model Settings names, built for this question; nothing is opened or logged when it cannot be.
+    const model = await rt!.modelFor({ provider: state.provider, model: state.model, effort: state.effort }).catch(() => null);   // state.enabled: rt is set
+    if (!model) return c.json({ error: NOT_STARTED, code: 'tutor_off' }, 503);
+    const price = priceOf(model.model);
+    if (!price) return c.json({ error: NO_PRICE, code: 'tutor_off' }, 404);
+    const ledger = rt!.ledger;
+    const target = item ? t.target(item) : null;                        // T-03: an SQL item's instance opens here, as a hint opens it
+    const subject = typeof b.subject_id === 'string' && SUBJECT_ID.test(b.subject_id) ? b.subject_id : null;
+    const errorIds = [...new Set(snapshot.match(/\bERR-[A-Z]+-\d{2}\b/g) ?? [])];      // T-14: the Mistakes screen's error IDs
+    // T-16: an instance in a phase that hides labels (review, mixed, drill, case) gets course text without them, as the screen shows it.
+    // I1: so does one the question no longer names (a session end closed it), and any item whose browser phase hides them.
+    const hide = (target !== null && hidesLabels(target.phase)) || (item !== null && t.hides(item));
+    const course = courseFor(t.course, { item_id: target?.item_id ?? null, screen, subject_id: subject, error_ids: errorIds, hide_labels: hide });
+    // T-21: the effort's token limit, for the call and for the reservation alike.
+    const input = { ...buildInput({ screen, course, snapshot, thread: exchangesOf(b.thread), question, redaction: { ...localNames(), folders: foldersOf(d.settings) } }),
+      maxTokens: tokenLimit(state.effort) };
+    const sessionId = d.session.currentId ?? '';                        // Review Focus 5: the session the question started in
+    const record = (outcome: TutorOutcome, u: TutorUsage, cost: number): TutorAsked => ({
+      record: 'tutor_asked', schema_version: SCHEMA_VERSION, ts: new Date().toISOString(), session_id: sessionId, screen,
+      item_instance_id: target?.item_instance_id ?? null, item_id: target?.item_id ?? null, target_concept_id: target?.target_concept_id ?? null,
+      phase: target?.phase ?? null, ...(target?.card_id ? { card_id: target.card_id } : {}),
+      provider: model.provider, model: model.model, effort: state.effort, prompt_version: TUTOR_PROMPT_VERSION,
+      input_tokens: u.input_tokens + u.cache_write_tokens, cached_input_tokens: u.cached_input_tokens, output_tokens: u.output_tokens, cost_usd: cost, outcome,
+    });
+    const span = trace.getActiveSpan();
+    const observe = (outcome: TutorOutcome, u: TutorUsage): void =>
+      tutorObserved(span, { screen, provider: model.provider, model: model.model, effort: state.effort, outcome }, target?.item_id ?? null,
+        u.input_tokens + u.cache_write_tokens + u.cached_input_tokens + u.output_tokens);
+
+    const chars = input.system.length + input.question.length + input.turns.reduce((n, x) => n + x.text.length, 0);
+    const limit = cap();
+    // T-22: with no daily limit nothing is held; the record still notes the spend, which the status shows.
+    const release = limit === null ? () => {} : ledger.reserve(worstCost(price, chars, input.maxTokens), limit, new Date());
+    if (!release) {
+      await d.logger.tutorAsked(record('capped', ZERO, 0));
+      observe('capped', ZERO);
+      return c.json({ error: TUTOR_LINES.capped, code: 'capped' }, 429);
+    }
+
+    return streamText(c, async (out) => {
+      const abort = new AbortController();
+      out.onAbort(() => abort.abort());                                 // Review Focus 2: the learner left, so the call is cancelled
+      const deadline = AbortSignal.timeout(rt!.replyDeadlineMs ?? REPLY_DEADLINE_MS);
+      const signal = AbortSignal.any([abort.signal, deadline]);
+      let outcome: TutorSummary['outcome'] = 'error';                  // a streamed question is never `capped`: that refusal came first
+      let usage = ZERO;
+      let message: string | null = null;
+      let started = false;                                              // text has come
+      // Review T3 M4: when T-15's deadline (not the learner) ended the call, the provider answered and was slow, whatever the model then
+      // threw: busy before any text, cut off after it, never the provider's "can't reach".
+      const deadlineLine = (): string | null => (deadline.aborted && !abort.signal.aborted ? (started ? TUTOR_LINES.cut_off : TUTOR_LINES.busy) : null);
+      try {
+        const reply = model.ask({ ...input, signal });
+        let n = await reply.next();
+        while (!n.done) {
+          const piece = n.value.replaceAll(SUMMARY_MARK, '');
+          if (piece !== '') started = true;
+          if (!out.aborted) await out.write(piece);
+          n = await reply.next();
+        }
+        usage = n.value.usage;
+        // Review Focus 2 and T-15 (found by smoke row tu-4): a model that stops on the signal and returns normally (the fake does) was
+        // cut, not answered. Whatever the model does, an aborted call is an error: never counted as help, its tokens still counted.
+        if (signal.aborted) message = deadlineLine() ?? TUTOR_LINES.cut_off;
+        // Review P M5: thinking that used the whole token limit leaves no text: nothing was taught, so it is no answer and no help.
+        else if (n.value.end === 'max_tokens' && !started) message = TUTOR_LINES.cut_off;
+        else {
+          outcome = n.value.end === 'refused' ? 'refused' : 'answered';
+          if (outcome === 'refused') message = TUTOR_LINES.declined;
+        }
+      } catch (e) {
+        message = deadlineLine() ?? (e instanceof TutorFailure ? e.message : TUTOR_LINES.cut_off);
+      } finally {
+        const cost = costOf(price, usage);
+        try { await d.logger.tutorAsked(record(outcome, usage, cost)); } finally { release(); }
+        observe(outcome, usage);
+        if (!out.aborted) {
+          const summary: TutorSummary = { outcome, message, cost_usd: cost,
+            spent_today_usd: ledger.spentOn(new Date()), cap_usd: cap(), counted: outcome === 'answered' && target !== null };
+          await out.write(SUMMARY_MARK + JSON.stringify(summary));
+        }
+      }
+    });
+  });
+}

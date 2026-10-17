@@ -10,6 +10,83 @@ come from git.
 1.0.0 is the first release. Slices 0 and 1a are the first application code; the entries before
 them are research and planning.
 
+## 1.6.0 (2026-10-17)
+
+The AI tutor (sprint T, owner decisions D91 to D99): an opt-in tutor on every screen that sees what the learner sees,
+teaches before a pass and explains after, and counts as help like hint 1 on an item not yet passed. Off until a key is
+added in Settings (or `.env`).
+
+| What 1.6 adds | In short |
+|---|---|
+| The tutor | "Ask the tutor" (or Alt+T) on every screen: a panel that streams its reply, one thread per item or screen for the session, quick prompts after a failed grade or a wrong answer |
+| What it sees | The screen's text plus what each screen holds that its text does not (the editor's query, the option picked, the case step in view, a lab's answers), and the item's public course content; never a key, a held-out question, the logs, the journey, a path or the key |
+| Settings | An on/off switch; the model (Claude Haiku 5.5 by default, Claude Sonnet 5.5, Claude Opus 5.5, GPT-6 Luna, GPT-6.1 Sol, each with its price); the effort (low, medium by default, or high); a Claude key and an OpenAI key, kept in `tutor-keys.json` and never shown again (`.env` still works) |
+| A daily budget | $1 a day unless changed in Settings, or no daily limit; checked before every call |
+| The live eval | `npm run eval:tutor`: 20 fixed questions on any model (`--model`, `--effort`); at medium effort on prompt version 4, 20 of 20 on each of Claude Haiku 5.5, Claude Sonnet 5.5, GPT-6 Luna and GPT-6.1 Sol |
+
+### Added
+
+- The tutor's server side (`server/tutor/`): config (on only when switched on and the chosen model's provider has a
+  key), the model catalog (`models.ts`: five models, each with an official price row), the fake model (T-11), the
+  Claude provider (`@anthropic-ai/sdk` 0.131.0: a cached system prompt, one retry) and the OpenAI provider (`openai`
+  7.27.0: the Responses API, streamed, not stored), both sent the chosen effort with a reply limit of 4,096, 8,192 or
+  16,384 tokens (low, medium, high), the failure lines of spec §10, startup (the `.env` keys read once and removed from
+  the environment before the SQL runner starts; both clients pinned to their public API hosts), the spend ledger with
+  reservations and the guard.
+- The key store (`server/tutor/keys.ts`, T-20): keys saved in Settings go to `tutor-keys.json` (git ignores it;
+  `AYDINLEARNS_KEYS_FILE` moves it), written whole, and win over `.env`; `POST /api/tutor/keys` saves or removes one
+  and answers with the status, which says only where each key came from. A key is never sent back, logged or
+  exported.
+- The prompt (teach, do not tell, before a pass; explain after; never contradict the grader), redaction of local
+  paths and the username on every text that leaves, the course content by ID from a key-free view of the content
+  store (`server/tutor-source.ts`), and the model input (the last six exchanges, earlier replies cut at 4,000
+  characters).
+- `GET /api/tutor/status` and `POST /api/tutor/ask` (`server/routes/tutor.ts`, wire shapes in `schemas/tutor.ts`):
+  the guard, a reservation against the day's budget, the streamed reply with a summary, and one `tutor_asked` record per
+  question whatever its outcome; a whole-reply deadline of 2 minutes (T-15).
+- The panel, the button and Alt+T, the thread, the help note on an unpassed item, the model and spend lines, and "The
+  AI tutor" in Settings: the switch, the model, the effort, the daily budget (0.05 to 20 US dollars, empty for $1, or
+  no daily limit) and the two keys.
+- Every screen's tutor parts and quick prompts; the drill and GA4 run screens close the tutor while their clock runs
+  and open it in the review (D94).
+- Telemetry: the counter `aydinlearns.tutor.questions` and the histogram `aydinlearns.tutor.tokens` (screen, provider,
+  model, outcome; the item ID on the span only), and the journey event `tutor_asked` (counts only).
+- `npm run check:imports` keeps `server/tutor/` on an import allow-list, away from the answer keys.
+- Smoke rows tu-1 to tu-9 (tu-8 on a server without the fake model, saving and removing an invented key; tu-9 for
+  F34), and row JN's `tutor_asked` check.
+- `npm run eval:tutor`, the live eval (`tools/tutor-eval.ts`, its checks in `tools/tutor-eval-checks.ts`): an answer given
+  away by a passing query, or by singling out, picking or ruling out a choice option, fails it; `--recheck <folder>`
+  re-scores saved replies offline. Its replies go to `tutor-eval/`, which git ignores.
+
+### Changed
+
+- Log format version 6: the `tutor_asked` record (with its model and effort) and the settings `tutor_enabled`,
+  `tutor_model`, `tutor_effort` and `tutor_daily_cap_usd` (a number or `"none"`). Replay reads versions 1 to 6.
+- Claude Sonnet 5.5's cached-input price is $0.10 per million tokens (it was $0.20).
+- An answered tutor question on an item not yet passed is help at level 1: an SQL pass after it is at most Hard, a
+  correct choice answer after it is Hard (D95). After the pass or the close, and when the question was refused, failed
+  or capped, it counts for nothing; it never spoils a pretest's clean start when asked after the pass.
+- Where a screen hides which concept a question is on (mixed sets, reviews, case steps; S2-39), the tutor is not told
+  the concept, its lesson summary, the level or the item ID either (T-16, T-18).
+
+### Fixed
+
+- F34 (Codex, PR #51): a tutor answer on a lesson pretest item, logged as help, did not count in the lesson's own
+  decision, so passing both pretest items after asking the tutor skipped the reading. It now goes to the reading, as
+  after a hint (smoke row tu-9).
+
+### Known issues
+
+- The 13 rows sprint T added to `docs/planning/backlog.md` (test gaps, provider details for the OpenAI path, two help
+  edges in ratings and Progress, the drill review's missing course text, panel layout left at middle widths, the
+  journey's tutor numbers loading as text, the eval's coverage, and a browser offering to save a key). None blocks a
+  learner.
+- A tutor reply cut off before its end (Close, Alt+T, moving on, or the 2-minute deadline) is logged at $0, though the
+  provider bills what it produced, so the daily limit counts less than the bill; on Sonnet or Opus at high effort a cut
+  call can cost up to about $0.33. The owner chose to ship with it; it is in the backlog.
+- A Practice or reading heading can name its question's answer where a concept's title is the correct option; the
+  tutor is not told the concept, but the screen shows it (content-side, in the backlog).
+
 ## 1.5.0 (2026-10-16)
 
 A second company and the first real data (sprint 6, Part 2): Mailvora, a marketing world with four

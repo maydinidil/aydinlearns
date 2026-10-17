@@ -10,7 +10,8 @@ export interface AttemptFact {
   error_ids: string[]; grading_source: GradingSource; active_ms: number; target_ms: number | null;
   confidence: 1 | 2 | 3 | 4 | null;
 }
-export interface HelpFact { ts: string; kind: 'hint' | 'solution'; level: 1 | 2 | 3 | null }
+/** A help record. `tutor` (D95, log version 6): an answered tutor question, always level 1, so it rates as hint 1 and is never a reveal. */
+export interface HelpFact { ts: string; kind: 'hint' | 'solution' | 'tutor'; level: 1 | 2 | 3 | null }
 export type ItemFamily = 'write' | 'fix' | 'other_sql' | 'choice' | 'checkpoint';
 export type OverrideStatus = 'none' | 'pending' | 'confirmed' | 'reverted';
 export interface InstanceFacts {
@@ -145,7 +146,11 @@ export function rateChoiceInstance(s: InstanceSummary, f: InstanceFacts, ctx: Ra
   if (s.revealBeforeFirstGraded) return ctx.cardRated ? r(AGAIN, 'answer shown before answering') : r(null, 'answer shown on an unrated card');
   if (answer === null) return r(null, f.close_reason === 'run_end' ? 'not reached before the run ended' : 'no answer');
   if (!correct) return r(AGAIN, 'wrong answer');
-  return answer.confidence === 1 || answer.confidence === 2 ? r(HARD, 'correct at confidence 1 or 2') : r(GOOD, 'correct');
+  if (answer.confidence === 1 || answer.confidence === 2) return r(HARD, 'correct at confidence 1 or 2');
+  // D95 (sprint T): a tutor question before the scored answer makes a correct answer Hard, as low confidence does. A question after the
+  // answer is no help on it; help after the close never gets here (replay drops it).
+  if (f.help.some((h) => h.kind === 'tutor' && ms(h.ts) < ms(answer.submitted_at))) return r(HARD, 'correct after a tutor question');
+  return r(GOOD, 'correct');
 }
 
 export function rateCheckpoint(s: InstanceSummary, f: InstanceFacts, ctx: RatingContext & { credits: string[]; diagnosedConcept: string | null }):

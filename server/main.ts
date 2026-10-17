@@ -1,6 +1,7 @@
 // server/main.ts: starts the local app. A working copy of the course database, the locked runner,
 // the self-checks, then HTTP on 127.0.0.1 only (design §11).
 import { stopTelemetry } from './telemetry.ts';                 // D75; the launcher and npm start preload it with --import
+import { makeTutorModel, openTutorKeys, TUTOR_FAKE } from './tutor/startup.ts';  // D91: reads the tutor's keys and removes them before the runner forks
 import { serve } from '@hono/node-server';
 import { execFile } from 'node:child_process';
 import { chmod, copyFile, mkdir, readFile, stat } from 'node:fs/promises';
@@ -21,6 +22,8 @@ import { portFromEnv } from './port.ts';
 import { LearnerState } from './state.ts';
 import { journeyDirFrom, journeySettingNote, startJourney, stopJourney } from './journey.ts';
 import { conceptStates, journeyTap, topicFinder } from './journey-tap.ts';
+import { SpendLedger } from './tutor/spend.ts';
+import { tutorState } from './tutor/config.ts';
 
 const dev = process.argv.includes('--dev');
 const at = (p: string) => fileURLToPath(new URL(`../${p}`, import.meta.url));
@@ -229,8 +232,19 @@ async function start(): Promise<void> {
   const schemaNotes = await readJson<TableNote[]>(at('data/schema-notes.json'), []);
   for (const c of [logs.check, contentCheck, stateProblem]) if (c) checks.push(c);
 
+  // Sprint T (D91, D98) and block P (T-20 to T-23): the tutor. Settings turns it on and picks the model and effort; the key store holds the
+  // keys saved there over the start ones. Each question builds its model from both. The spend ledger starts from the attempt files and
+  // follows every write. The start line names the catalog model and a reason in plain words only, never a key.
+  const ledger = new SpendLedger(logs.records);
+  logger.onWrite((file, r) => { if (file === 'attempts') ledger.note(r); });
+  const tutorKeys = await openTutorKeys();
+  if (tutorKeys.problem) console.log(`aydinlearns: ${tutorKeys.problem}`);
+  const tutorNow = tutorState(settings, (p) => tutorKeys.sourceOf(p), TUTOR_FAKE);
+  console.log(tutorNow.enabled ? `aydinlearns: tutor on: ${tutorNow.provider}, ${tutorNow.model}, ${tutorNow.effort} effort.` : `aydinlearns: tutor off. ${tutorNow.reason ?? ''}`.trim());
+
   const app = createApp({ port, devOrigin: dev ? 'http://localhost:5173' : undefined, checks, runner, content, logger, session, endHooks, state,
-    closedInstances: loggedInstanceIds(logs.records), schemaNotes, manifest, settings, tableCheck: useParseTree ? 'parse_tree' : 'text', distDir: at('web/dist') });
+    closedInstances: loggedInstanceIds(logs.records), schemaNotes, manifest, settings, tableCheck: useParseTree ? 'parse_tree' : 'text', distDir: at('web/dist'),
+    tutor: { keys: tutorKeys, fake: TUTOR_FAKE, modelFor: (c) => makeTutorModel(c, tutorKeys), ledger } });
   const failing = checks.filter((c) => !c.ok);
   const server = serve({ fetch: app.fetch, port, hostname: '127.0.0.1' }, () => {
     // localhost works only through the browser's fallback to IPv4, so print the address that always works (spike A, item 16).

@@ -4,7 +4,7 @@
 // difficulty. A logged answer adds which exercise it was, its time, try, help used, confidence and mode (D76). It never sends an
 // item's text, a query, an answer or personal data.
 // Since D77 each step is also a study journey event.
-import { context, metrics, SpanStatusCode, trace, type Attributes } from '@opentelemetry/api';
+import { context, metrics, SpanStatusCode, trace, type Attributes, type Span } from '@opentelemetry/api';
 import { getRPCMetadata, RPCType } from '@opentelemetry/core';
 import type { MiddlewareHandler } from 'hono';
 import { routePath } from 'hono/route';
@@ -108,6 +108,19 @@ export function answered(a: FunnelAttributes, r: AnswerRecord, outcome: AnswerOu
   metrics.getMeter('aydinlearns').createHistogram('aydinlearns.answer.time', { description: 'Time from opening an exercise to submitting an answer',
     unit: 's', advice: { explicitBucketBoundaries: ANSWER_TIME_BUCKETS } })
     .record(r.active_ms / 1000, { ...a, item_id: r.item_id, outcome, mode, confidence: r.confidence === null ? 'none' : String(r.confidence) });
+}
+
+/**
+ * D99: one tutor question. The counter and the token histogram carry screen, provider, model, effort (block P) and outcome; the item ID goes
+ * on the span only (D76).
+ */
+export interface TutorAttributes { screen: string; provider: string; model: string; effort: string; outcome: string }
+export function tutorObserved(span: Span | undefined, a: TutorAttributes, itemId: string | null, tokens: number): void {
+  span?.setAttributes({ 'tutor.screen': a.screen, 'tutor.provider': a.provider, 'tutor.model': a.model, 'tutor.effort': a.effort, 'tutor.outcome': a.outcome,
+    ...(itemId ? { item_id: itemId } : {}) });
+  const meter = metrics.getMeter('aydinlearns');
+  meter.createCounter('aydinlearns.tutor.questions', { description: 'Tutor questions', unit: '{question}' }).add(1, { ...a });
+  meter.createHistogram('aydinlearns.tutor.tokens', { description: 'Tokens per tutor question', unit: '{token}' }).record(tokens, { ...a });
 }
 
 /**

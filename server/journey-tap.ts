@@ -84,6 +84,10 @@ export function journeyTap(d: TapDeps): (file: LogFile, r: object) => void {
         else if (r.record === 'exposure') journey('material_studied', { ...concept(r), ...field(r, 'kind') }, at);
         else if (r.record === 'self_check') journey('case_self_check', { ...field(r, 'kind'), ...field(r, 'phase'), ...field(r, 'case_id') }, at);
         else if (r.record === 'lab_answer') journey('lab_answered', { ...field(r, 'lab_id'), ...field(r, 'kind') }, at);
+        // D99: what was asked where, with which model and effort (block P), its tokens, cost and outcome; never the question, the reply or
+        // the snapshot.
+        else if (r.record === 'tutor_asked') journey('tutor_asked', { ...field(r, 'screen'), ...field(r, 'item_id'), ...field(r, 'provider'), ...field(r, 'model'),
+          ...field(r, 'effort'), ...field(r, 'input_tokens'), ...field(r, 'cached_input_tokens'), ...field(r, 'output_tokens'), ...field(r, 'cost_usd'), ...field(r, 'outcome') }, at);
         else if (r.record === 'item_close') {
           const o = (r.raw_outcome ?? {}) as Rec;
           journey('item_closed', { ...field(r, 'item_id'), ...concept(r), ...field(r, 'phase'), ...field(r, 'reason'),

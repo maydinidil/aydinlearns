@@ -1,6 +1,6 @@
 // server/log.ts
 import type { JsonlLog, LogFile } from '../core/jsonl.ts';
-import type { BlockClose, Exposure, HintOpened, ItemClose, OtherWayOpened, SelfCheck, SolutionOpened } from '../core/envelope.ts';
+import type { BlockClose, Exposure, HintOpened, ItemClose, OtherWayOpened, SelfCheck, SolutionOpened, TutorAsked } from '../core/envelope.ts';
 import type { AppEvent } from '../core/events.ts';
 import type { AydinAttempt, LabAnswer } from '../schemas/log-ext.ts';
 
@@ -30,6 +30,8 @@ export class AttemptLogger {
   selfCheck(s: SelfCheck): Promise<void> { return this.#write('attempts', s); }
   /** D68 (log version 5): one answer to a GA4 lab, first or re-check. Replay reads it and rates nothing from it. */
   labAnswer(r: LabAnswer): Promise<void> { return this.#write('attempts', r); }
+  /** D95 (log version 6): one tutor question, whatever its outcome; never its text. Replay reads an answered one as help at level 1. */
+  tutorAsked(r: TutorAsked): Promise<void> { return this.#write('attempts', r); }
   event(e: AppEvent): Promise<void> { return this.#write(e.event === 'content_report' ? 'reports' : 'events', e); }
   readAll(file: LogFile): Promise<object[]> { return this.#log.readAll(file); }
 }

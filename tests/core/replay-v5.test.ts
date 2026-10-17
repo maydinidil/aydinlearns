@@ -32,7 +32,7 @@ function attemptsOnly(): Log {
 }
 const withLab = (log: Log): Log => ({ ...log, attempts: [log.attempts[0], labAnswer(at('09:02:30')), ...log.attempts.slice(1, 4), labAnswer(at('09:07:00'), { kind: 'recheck', range: { from: '2026-10-01', to: '2026-10-31' }, month: null, note: 'again' }), ...log.attempts.slice(4)] });
 
-test('the log version is 5', () => assert.equal(SCHEMA_VERSION, 5));
+test('the log version is 6 (5 added lab_answer)', () => assert.equal(SCHEMA_VERSION, 6));
 
 test('replay over a log with lab_answer records gives the same result and no warnings', () => {
   const plain = attemptsOnly();
@@ -71,6 +71,6 @@ test('Logger.labAnswer appends one line to the attempt file of the record month'
   const lines = (await readFile(join(dir, 'attempts-2026-11.jsonl'), 'utf8')).trim().split('\n');
   assert.equal(lines.length, 1);
   assert.deepEqual(JSON.parse(lines[0]), a);
-  assert.match(lines[0], /"schema_version":5/);
+  assert.match(lines[0], new RegExp(`"schema_version":${SCHEMA_VERSION}`));
   assert.deepEqual(seen, ['attempts:lab_answer']);
 });

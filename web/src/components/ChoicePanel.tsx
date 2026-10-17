@@ -12,6 +12,10 @@ import { createBusyGate } from '../lib/busy-gate.ts';
 import { canSaveAnswer, classifyRunRefusal, modeRules, runMayBeGone, savedLine, shownAtAfter, type RunKind, type RunMode } from '../lib/run-flow.ts';
 import { itemBadges } from '../lib/choice-flow.ts';
 import { choicePhaseFor, optionTableView, sqlChoiceLayout } from '../lib/sql-choice.ts';
+import { choiceQuickPrompts, optionText } from '../lib/tutor-parts.ts';
+import { marksHelped } from '../lib/tutor-help.ts';
+import { choicePart } from '../tutor/snapshot.ts';
+import { useTutor, useTutorHelp, useTutorPart } from '../tutor/TutorContext.tsx';
 import { SchemaPanel } from './SchemaPanel.tsx';
 import { SqlCode } from './SqlCode.tsx';
 import { ConfidenceRow, type Confidence } from './ConfidenceRow.tsx';
@@ -79,6 +83,19 @@ function ChoicePanelInner({ itemId, section, phase: asked, schemaNotes, instance
   const nextGate = useRef(createBusyGate());
   const sendGate = useRef(createBusyGate());       // one answer request per click burst, in a run
   const [saved, setSaved] = useState<string | null>(run?.answeredBefore ? EARLIER : null);   // what a run has saved for this question
+  const tutor = useTutor();
+  // Sprint T (T-02): the question's IDs and status, its options in the order drawn below (top down, so the tutor can name one by its
+  // place: seams review I1), the option picked and a typed value (an input's value is not in the screen's text). A run keeps hidden
+  // questions mounted: only the one in view names its item (N3).
+  useTutorPart(() => (data && visible ? choicePart({ label: 'Question', itemId, instanceId: instance.current, phase: data.phase,
+    answered: result !== null || saved !== null, correct: result?.correct ?? null, answerShown: revealed !== null, chosen: optionText(data.options, chosen), typed,
+    options: data.item.kind === 'mcq' ? data.options : null }) : null));
+  // Codex F34 (D95): the instance a tutor answer the server counted as help was on, while this question was unanswered; next() adds it to
+  // a shown answer. Kept by instance ID, so a reopened instance starts unhelped.
+  const tutorHelpedOn = useRef<string | null>(null);
+  useTutorHelp((id) => {
+    if (marksHelped(id, { id: instance.current, passed: result !== null || saved !== null, closed: false })) tutorHelpedOn.current = id;
+  });
 
   function load(note: string | null) {
     api.choice(itemId, section, instance.current, section === 'sql' && asked ? choicePhaseFor(asked) : undefined).then((d) => { shownAt.current = shownAtAfter(shownAt.current, 'loaded', visibleNow.current, Date.now()); setData(d); setMessage(note); }, (e: Error) => setMessage(e.message));
@@ -145,7 +162,8 @@ function ChoicePanelInner({ itemId, section, phase: asked, schemaNotes, instance
   /** "Next": disabled while the caller fetches and serves the next question, which replaces this panel. */
   // `advancing` disables the button; `nextGate` drops a second call that gets in before the disabled state renders.
   async function next(correct: boolean) {
-    const helped = revealed !== null;      // a show-answer is a reveal (S2-11)
+    // A show-answer is a reveal (S2-11); a counted tutor answer on this instance before the answer is help too (Codex F34).
+    const helped = revealed !== null || tutorHelpedOn.current === instance.current;
     setAdvancing(true);
     try { await nextGate.current.run(() => onDone?.({ correct, helped })); }
     finally { setAdvancing(false); }
@@ -160,6 +178,7 @@ function ChoicePanelInner({ itemId, section, phase: asked, schemaNotes, instance
   const current = item.kind === 'mcq' ? chosen : typed;
   const sendable = run ? ready && !locked && saved !== current : !answered && ready;
   const right = result?.correct_oid ?? revealed?.correct_oid;
+  const quick = choiceQuickPrompts(tutor, result);       // sprint T: beside a wrong answer, while the tutor is on and open
   const badges = itemBadges(item);
   const sql = item.section === 'sql' ? sqlChoiceLayout(item) : null;
   const optionBody = (o: { text: string; table?: OptionTable }) => {
@@ -220,6 +239,7 @@ function ChoicePanelInner({ itemId, section, phase: asked, schemaNotes, instance
           {item.kind === 'typed' && !result.correct && <p>The answer is {withUnit(result.value, item.typed)}.</p>}
           {result.error_ids.includes(PERCENT_SCALE) && <p>Your answer is 100 times off. Check whether the question asks for a percentage or a share.</p>}
           <p>{result.explanation}</p>
+          {quick.length > 0 && <p className="toolbar tutor-quick">{quick.map((q) => <button key={q.label} type="button" onClick={() => tutor?.ask(q.question)}>{q.label}</button>)}</p>}
           {onDone && <button type="button" disabled={advancing} onClick={() => void next(result.correct)}>Next</button>}
         </div>
       )}

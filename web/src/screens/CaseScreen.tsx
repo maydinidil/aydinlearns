@@ -26,6 +26,9 @@ import {
 import {
   casesApi, type AnswerableKind, type CaseCheckpointResult, type CaseCheckpointServed, type CaseCheckpointView, type CaseView, type InsightReply, type PlanReply, type Point,
 } from '../lib/cases-api.ts';
+import { labelledFieldsPart, optionText, textPart } from '../lib/tutor-parts.ts';
+import { choicePart } from '../tutor/snapshot.ts';
+import { useTutorPart } from '../tutor/TutorContext.tsx';
 
 const BACK = 'Back to the case inbox';
 const REOPENED = 'Your session ended, so this question was opened again. Check your answer, then send it again.';
@@ -93,7 +96,7 @@ export function CaseScreen({ caseId }: { caseId: string }) {
       case 'plan': return <PlanStep caseId={caseId} view={view!} onSaved={() => void load()} />;
       case 'say': return <SayStep insight={view!.insight?.text ?? null} onStarted={() => setSaid(true)} />;
       case 'score': return <ScoreStep view={view!} rowLine={rowLine} />;
-      case 'CP3': return cp ? <QueryStep caseId={caseId} cp={cp} rowLine={rowLine} onGraded={graded} onClosed={() => void load()} /> : null;
+      case 'CP3': return cp ? <QueryStep caseId={caseId} cp={cp} active={shown === id} rowLine={rowLine} onGraded={graded} onClosed={() => void load()} /> : null;
       case 'CP6': return cp ? <InsightStep caseId={caseId} cp={cp} view={view!} onSaved={() => void load()} /> : null;
       default: return cp ? <CheckpointStep caseId={caseId} cp={cp} active={shown === id} onAnswered={() => void load()} /> : null;
     }
@@ -148,6 +151,9 @@ function SketchStep({ caseId, view, onSaved }: { caseId: string; view: CaseView;
   const [fields, setFields] = useState(() => fieldsFrom(view.sketch_fields, null));
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  // Sprint T (spec §5, "the learner's answers so far"): the sketch as typed, or the day-1 sketch once kept, while the case is open.
+  useTutorPart(() => (view.sketch?.fields ? labelledFieldsPart('Your day-1 sketch', view.sketch_fields, view.sketch.fields)
+    : labelledFieldsPart('Your sketch, as typed', view.sketch_fields, fields)));
   async function save(): Promise<void> {
     if (busy || allBlank(fields)) return;
     setBusy(true); setMessage(null);
@@ -188,6 +194,8 @@ function PlanStep({ caseId, view, onSaved }: { caseId: string; view: CaseView; o
   const [ticksSaved, setTicksSaved] = useState(false);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  // Sprint T (spec §5): the plan's fields as typed (a textarea's value is not in the screen's text), while the case is open.
+  useTutorPart(() => labelledFieldsPart('Your plan, as typed', view.plan_fields, fields));
   async function send(): Promise<void> {
     if (busy || allBlank(fields)) return;
     setBusy(true); setMessage(null);
@@ -254,6 +262,12 @@ function CheckpointStep({ caseId, cp, active, onAnswered }: { caseId: string; cp
   const [busy, setBusy] = useState(false);
   const shownAt = useRef(0);
   const autoServed = useRef(false);
+  // Sprint T (T-02, T-03): the checkpoint in view, its status, its options in the order drawn below (top down, so the tutor can name one
+  // by its place: seams review I1), the option picked or the number typed. Every step stays mounted, so a checkpoint names its item only
+  // while its step is shown (N3). A checkpoint has no "Show answer".
+  useTutorPart(() => (active && served ? choicePart({ label: `Checkpoint: ${checkpointLabel(served.checkpoint)}`, itemId: served.item_id,
+    instanceId: served.item_instance_id, phase: served.phase, answered: result !== null, correct: result?.correct ?? null, answerShown: false,
+    chosen: optionText(served.options, chosen), typed, options: served.options }) : null));
 
   /** A fresh instance. `keep`: after a session end, the learner's answer stays to send again. */
   async function serve(note: string | null = null, keep = false): Promise<void> {
@@ -345,9 +359,12 @@ function CheckpointStep({ caseId, cp, active, onAnswered }: { caseId: string; cp
   );
 }
 
-/** CP3: the case's SQL item, served in phase case with labels hidden until a submission (S2-39), run by the exercise panel. */
-function QueryStep({ caseId, cp, rowLine, onGraded, onClosed }: {
-  caseId: string; cp: CaseCheckpointView; rowLine: string | null; onGraded: (g: Parameters<typeof actualRowCount>[0]) => void; onClosed: () => void;
+/**
+ * CP3: the case's SQL item, served in phase case with labels hidden until a submission (S2-39), run by the exercise panel. `active`: its
+ * step is the one shown, so the panel's tutor part names its item (N3).
+ */
+function QueryStep({ caseId, cp, active, rowLine, onGraded, onClosed }: {
+  caseId: string; cp: CaseCheckpointView; active: boolean; rowLine: string | null; onGraded: (g: Parameters<typeof actualRowCount>[0]) => void; onClosed: () => void;
 }) {
   const [served, setServed] = useState<Served | null>(null);
   const [busy, setBusy] = useState(false);
@@ -366,7 +383,7 @@ function QueryStep({ caseId, cp, rowLine, onGraded, onClosed }: {
       {rowLine && <p className="callout" data-row-count>{rowLine}</p>}
       {served ? (
         <ExercisePanel key={served.item_instance_id} itemId={served.item_id} phase={served.phase} instanceId={served.item_instance_id} hideLabels={served.hide_labels} labels
-          onGraded={onGraded} onClosed={() => { setServed(null); onClosed(); }} />
+          inView={active} onGraded={onGraded} onClosed={() => { setServed(null); onClosed(); }} />
       ) : (
         <div className="card">
           <p className="prompt">{cp.prompt}</p>
@@ -388,6 +405,8 @@ function InsightStep({ caseId, cp, view, onSaved }: { caseId: string; cp: CaseCh
   const [ticksSaved, setTicksSaved] = useState(false);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  // Sprint T (spec §5): the insight as typed (a textarea's value is not in the screen's text), while the case is open.
+  useTutorPart(() => textPart('Your insight, as typed', text));
   async function send(): Promise<void> {
     if (busy || text.trim() === '') return;
     setBusy(true); setMessage(null);

@@ -10,10 +10,14 @@ import {
   ALL_LABS, ANALYTICS_URL, answerBody, CHECK_LABEL, dateLine, firstMonth, NOTE_LABEL, NOTE_MAX, outcomeLine, partLabel, PATH_UNCONFIRMED, RANGE_PART,
   LABS_HREF, recheckHint, refusedPart, SELF_MATCH, SELF_NO_MATCH, shownParts, showStartOverNote, START_OVER, START_OVER_NOTE, STATUS_LABEL, stateChip, type LabForm,
 } from '../lib/lab-flow.ts';
-import type { LabPart } from '../../../schemas/lab.ts';
+import type { Lab, LabPart } from '../../../schemas/lab.ts';
+import { labAnswersPart } from '../lib/tutor-parts.ts';
+import { useTutorPart } from '../tutor/TutorContext.tsx';
 
 const PROPERTY_NAME: Record<string, string> = { MS: 'Google Merchandise Store', FI: 'Flood-It!' };
 const EMPTY: LabForm = { values: {}, self: {}, from: '', to: '', note: '' };
+/** A first answer to a lab on the last 28 days asks for the dates the learner read. */
+const asksDates = (lab: Pick<Lab, 'date'>, mode: 'first' | 'recheck'): boolean => mode === 'first' && lab.date === 'last_28_days';
 
 function Field({ part, form, set, disabled }: { part: LabPart; form: LabForm; set: (f: LabForm) => void; disabled: boolean }) {
   const value = form.values[part.id];
@@ -79,6 +83,12 @@ export function LabScreen({ id }: { id: string }) {
   const [startMonth, setStartMonth] = useState<string | null>(null);
   const answersHead = useRef<HTMLHeadingElement>(null);
   const [refusal, setRefusal] = useState<{ message: string; part: string | null } | null>(null);
+  // Sprint T (spec §5): the learner's answers as typed, picked and ticked (an input's value is not in the screen's text).
+  useTutorPart(() => {
+    if (!view) return null;
+    const m = fromStart ? 'first' : view.mode;
+    return labAnswersPart(view.lab.id, shownParts(view.lab, m), form, asksDates(view.lab, m));
+  });
   useEffect(() => {
     setView(null); setLoadError(null); setForm(EMPTY); setReply(null); setRefusal(null); setFromStart(false); setStartMonth(null);
     labApi.get(id).then(setView, (e: Error) => setLoadError(e.message));
@@ -93,7 +103,7 @@ export function LabScreen({ id }: { id: string }) {
   const shownMonth = fromStart ? startMonth : view.month;
   const date = dateLine(lab, mode, shownMonth, fromStart ? null : view.range);
   const parts = shownParts(lab, mode);
-  const needsDates = mode === 'first' && lab.date === 'last_28_days';
+  const needsDates = asksDates(lab, mode);
 
   async function submit(e: FormEvent) {
     e.preventDefault();

@@ -134,7 +134,7 @@ The backlog rows this sprint added are in `docs/planning/backlog.md`. In short:
 | Step | Status |
 |---|---|
 | Merge | Done, `235c53a` (2026-10-15, at the owner's word) |
-| The owner's checkout | `C:zehirlab` fast-forwarded from `7c77330` to `235c53a` with the app closed. The uncommitted `CLAUDE.md` trims of the 2026-10-12 cleanup were set aside and put back; `aydinlearns/CLAUDE.md`'s trim met the merge's new state lines, so the trim was kept with its version facts brought to 1.4.0. The launcher rebuilds the data and the screens at the next start (the manifest is older than `pipeline/`) |
+| The owner's checkout | `C:\zehirlab` fast-forwarded from `7c77330` to `235c53a` with the app closed. The uncommitted `CLAUDE.md` trims of the 2026-10-12 cleanup were set aside and put back; `aydinlearns/CLAUDE.md`'s trim met the merge's new state lines, so the trim was kept with its version facts brought to 1.4.0. The launcher rebuilds the data and the screens at the next start (the manifest is older than `pipeline/`) |
 | Public copy | None: 1.4.0 is local; Part 2 is published as 1.5.0 |
 | Codex | One P2 line comment on `a4e3b11`, confirmed: aydinlearns F32, fixed in Part 2's block K (D88) |
 
@@ -263,3 +263,14 @@ redundant guard and its missing red step, K4's status assertion and redundant `?
 days (the 6b snapshot locks every calendar), K6's PRICE-03 "No" option (kept on purpose), K7's smoke 5a-2
 assertion (route tests cover it), K3's missing space, G4's hint wording (unreachable), G3's message order,
 and H1's MKT-02 "no spend rows" wording (both readings agree on the data).
+
+## Part 2: after the merge
+
+| Step | Status |
+|---|---|
+| Merge | Done, `d36a0c1` (PR #50, 2026-10-17, at the owner's word) |
+| Codex | One P2 line comment on `2b0c13b`: aydinlearns F33, refuted (the content store's case list holds the openers); logged in sprint T's first commit |
+| The owner's checkout | `C:\zehirlab` fast-forwarded from `235c53a` to `d36a0c1` with the app closed. The `CLAUDE.md` trims were set aside and put back; `aydinlearns/CLAUDE.md`'s trim met the merge's state lines again, so the trim was kept with its version facts brought to 1.5.0. The launcher rebuilds the data and the screens at the next start. The owner runs `npm run prep:datasets -- --from <your downloads folder>` once for the real-data cases |
+| Public copy | `tools/export-public.sh <clone> origin/main` exported `d36a0c1` as `8eafb70` (654 files changed). The clone's path must be written the POSIX way (`/c/...`): `tar` reads `C:` as a remote host. The scan found no token, no `.env`, `journey/`, `logs/`, `data/` or database files, no email address, session link or personal path, and none of the 8 Week SQL Challenge's questions, rows or scripts (only schema names, titles and page links in the registry; the test fixtures are invented). Pushed `9609eb6..8eafb70` |
+| Fresh-install test | The public tree in a clean folder, started with the launcher (`node tools/launch.ts --no-browser`, `AYDINLEARNS_PORT=5194`, temporary logs and journey folders, telemetry off, no real data). Setup ran end to end (packages, Python, the course database, the screens). Version 1.5.0 with 9 of 9 checks; Today answered for SQL, GA4 and Methodology; 10 labs; EX-SQL-BASICS-01-E1-01 graded a pass and was logged to the temporary folder; the inbox listed CASE-REAL-01 and -02 as needing Online Retail II and Breakfast at the Frat, with the prep command; the explorer listed `mailvora` and ran a query on it. The journey file held session_started, study_session_started, exercise_submitted, exercise_passed and concept_state_changed, and no `journey/` or `logs/` appeared in the tree. The server was stopped, nothing listened on 5194, and the folder was deleted |
+| Tag and release | `v1.5.0` on `8eafb70`, release "aydinlearns 1.5": what 1.4 and 1.5 add, how to prepare the real datasets, what is never written or sent |

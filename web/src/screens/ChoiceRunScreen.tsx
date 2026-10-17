@@ -18,6 +18,8 @@ import {
   modeRules, overConfirmed, reachedEnd, questionsShown, questionView, readinessNote, recallIndex, recallSet, rememberIndex, rememberSet, resumeIndex, recoveredLine, reviewNote, reviewRows,
   runHeading, runLine, saveFocusTarget, scoreLine, startLabel, timeLeft, topicRows, unansweredNumbers, unlistedLine, unseenComesBack, unseenLine, verdictClass, type ReviewRow, type TopicNames,
 } from '../lib/run-flow.ts';
+import { TUTOR_WAITS } from '../tutor/snapshot.ts';
+import { useTutorClosed } from '../tutor/TutorContext.tsx';
 
 type State = 'choose' | 'running' | 'review';
 
@@ -44,6 +46,8 @@ export function ChoiceRunScreen({ block = null }: { block?: string | null }) {
   const nextButton = useRef<HTMLButtonElement>(null);
   const endButton = useRef<HTMLButtonElement>(null);
   const focusNext = useRef<'next' | 'end' | null>(null);   // S5-25: set by a saved exam answer; the effect below moves focus once the screen has updated
+  // D94: the tutor is closed while the clock runs, as help is, and open again in the review. The review's text holds what it shows.
+  useTutorClosed(state === 'running' ? TUTOR_WAITS : null);
 
   async function loadChoices(): Promise<void> {
     try { const h = await api.runHistory(); setBlueprints(h.blueprints); setHistory(h.runs); setNames(h.topic_names ?? {}); } catch (e) { setMessage((e as Error).message); }

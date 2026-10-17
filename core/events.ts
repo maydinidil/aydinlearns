@@ -10,8 +10,16 @@ export interface SessionEvent extends EventBase {
   active_minutes?: number;
   reason?: 'explicit' | 'idle' | 'recovered';
 }
-/** `portfolio_folder` since log version 4 (D35): the folder a case's portfolio page and CSV are exported to. */
-export interface SettingChange extends EventBase { event: 'setting_change'; key: 'exam_date' | 'goal_dates' | 'backup_folder' | 'portfolio_folder'; value: unknown }
+/**
+ * `portfolio_folder` since log version 4 (D35): the folder a case's portfolio page and CSV are exported to. `tutor_daily_cap_usd` since
+ * log version 6 (D95): the tutor's daily cap, in US dollars, or "none" for no daily limit (block P, T-22). Also in version 6 (block P):
+ * `tutor_enabled` (true or false), `tutor_model` (a model Settings offers) and `tutor_effort` (low, medium or high). Null is the default.
+ */
+export interface SettingChange extends EventBase {
+  event: 'setting_change';
+  key: 'exam_date' | 'goal_dates' | 'backup_folder' | 'portfolio_folder' | 'tutor_daily_cap_usd' | 'tutor_enabled' | 'tutor_model' | 'tutor_effort';
+  value: unknown;
+}
 export interface ConfigChange extends EventBase { event: 'config_change'; config_id: string; preset: unknown; effective_ts: string }
 export interface CardEvent extends EventBase {
   event: 'card_event';

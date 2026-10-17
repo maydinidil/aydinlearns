@@ -18,8 +18,14 @@ export interface Check { name: string; ok: boolean; detail: string }
 export interface StatusView {
   ok: boolean; degraded: boolean; checks: Check[]; version?: string;
   versions?: { dataset: string; duckdb: string; content: string; grader: string };
-  settings?: { backup_folder: string | null; exam_date: string | null; goal_dates: Record<string, string> };
+  /**
+   * `tutor_daily_cap_usd` (log version 6, D98): absent from an older server; null means the $1 default, "none" no daily limit (T-22).
+   * Settings reads the tutor's switch, model, effort and limit from GET /api/tutor/status, never from here.
+   */
+  settings?: { backup_folder: string | null; exam_date: string | null; goal_dates: Record<string, string>; tutor_daily_cap_usd?: number | 'none' | null };
 }
+/** What POST /api/settings takes. Keys never become a setting (T-22): they go to /api/tutor/keys (web/src/tutor/tutor-api.ts). */
+export type SettingKey = 'backup_folder' | 'exam_date' | 'goal_dates' | 'tutor_daily_cap_usd' | 'tutor_enabled' | 'tutor_model' | 'tutor_effort';
 export interface RetestView { conceptId: string; itemId: string; readyAt: string; ready: boolean; remaining: number }
 /**
  * An item as /api/items sends it (Task B13): no hints, subgoals, why_this_works or starter_error_id. The faded shape and
@@ -253,7 +259,7 @@ export const api = {
     call<{ ok: true }>('POST', '/api/item-close', { item_id, item_instance_id, reason, phase, started_at }, true),
   exposure: (concept_id: string, kind: Exposure['kind']) => call<{ ok: true }>('POST', '/api/exposure', { concept_id, kind }),
   sessionEnd: () => call<{ ok: true; backup: { ok: boolean; path?: string; error?: string } }>('POST', '/api/session-end', {}),
-  settings: (key: 'backup_folder' | 'exam_date' | 'goal_dates', value: unknown) => call<{ ok: true }>('POST', '/api/settings', { key, value }),
+  settings: (key: SettingKey, value: unknown) => call<{ ok: true }>('POST', '/api/settings', { key, value }),
   outsidePractice: (b: { source: string; description: string; score?: string }) => call<{ ok: true }>('POST', '/api/outside-practice', b),
   externalResult: (b: { kind: 'ga4_exam' | 'portfolio_piece'; data: unknown }) => call<{ ok: true }>('POST', '/api/external-result', b),
   drillStart: (b: DrillStartBody) => call<DrillStarted>('POST', '/api/drill/start', b),

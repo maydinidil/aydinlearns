@@ -13,7 +13,7 @@ import { logs, metrics as sdkMetrics, node, tracing } from '@opentelemetry/sdk-n
 import { Hono } from 'hono';
 import type { ChoiceConcept } from '../../schemas/choice.ts';
 import { startJourney, stopJourney } from '../../server/journey.ts';
-import { answered, caseFunnel, choiceFunnel, companyOf, funnel, httpRoute, itemFunnel, levelName, recordError, sqlFunnel } from '../../server/observe.ts';
+import { answered, caseFunnel, choiceFunnel, companyOf, funnel, httpRoute, itemFunnel, levelName, recordError, sqlFunnel, tutorObserved } from '../../server/observe.ts';
 import { telemetryConfig } from '../../server/telemetry.ts';
 import { runnerExecArgv } from '../../server/runner/client.ts';
 
@@ -177,4 +177,19 @@ test('K2 (S6-32, D80): an SQL item follows its case when it is a case or opener 
   assert.equal(theme(item('EX-CASE-NOWHERE', 'case')), 'pricing', 'a case item no case names keeps pricing');
   assert.deepEqual(itemFunnel(content as never, item('EX-CASE-DQ-01', 'case') as never), { topic: 'SQL', case_theme: 'data_quality', difficulty: 'E2' }, 'the item\'s own difficulty');
   assert.equal(sqlFunnel('L2').case_theme, 'pricing', 'a lesson passes no company');
+});
+
+test('a tutor question (D99, block P): the span, the question counter and the token histogram carry the effort; the item ID is on the span only', async () => {
+  spans.reset();
+  const a = { screen: 'item', provider: 'claude', model: 'claude-sonnet-5-5', effort: 'high', outcome: 'answered' };
+  trace.getTracer('test').startActiveSpan('POST /api/tutor/ask', (span) => { tutorObserved(span, a, 'EX-INV-02', 1234); span.end(); });
+  const [s] = spans.getFinishedSpans();
+  const { 'session.id': _id, ...onSpan } = s!.attributes;
+  assert.deepEqual(onSpan, { 'tutor.screen': 'item', 'tutor.provider': 'claude', 'tutor.model': 'claude-sonnet-5-5', 'tutor.effort': 'high', 'tutor.outcome': 'answered', item_id: 'EX-INV-02' });
+  await reader.forceFlush();
+  const all = points.getMetrics().at(-1)!.scopeMetrics.flatMap((m) => m.metrics);
+  const questions = all.find((m) => m.descriptor.name === 'aydinlearns.tutor.questions')!;
+  assert.deepEqual(questions.dataPoints.map((p) => [p.value, p.attributes]), [[1, a]]);
+  const tokens = all.find((m) => m.descriptor.name === 'aydinlearns.tutor.tokens')!;
+  assert.deepEqual(tokens.dataPoints.map((p) => [(p.value as { sum: number }).sum, p.attributes]), [[1234, a]]);
 });

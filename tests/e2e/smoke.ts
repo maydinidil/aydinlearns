@@ -51,6 +51,16 @@
 // data/truth/checkpoints.json and, when its database lacks Online Retail II, a small fixture in its own database give each row its state, so the rows
 // pass whether this tree has the real datasets prepared or not. The tree's data/ is only read.
 //
+// Rows tu-1 to tu-8 (sprint T) check the AI tutor: off by default on every server here (the keys are set blank, and each server keeps
+// the keys saved in Settings in a file of its own in the temporary folder, AYDINLEARNS_KEYS_FILE, T-20), then on a server of its own with
+// the fake model (AYDINLEARNS_TUTOR_PROVIDER=fake, T-23), which calls nothing and answers for every model. That server spaces the fake
+// reply's pieces (AYDINLEARNS_TUTOR_FAKE_DELAY_MS, T-19), so a row can see the wait before the first words and close the panel while a
+// reply streams. Every question typed there holds "(smoke tu-", so rows tu-3 and JN can show that no log or journey line holds a
+// question's text. Rows tu-6 and tu-7 work the Settings card there (the daily limit, the switch, the model, the effort); row tu-8 saves
+// and removes an invented OpenAI key on a server without the fake model, where a model whose provider has no key cannot be picked. No
+// real key is ever used, and the invented one is never printed. Row tu-9 (Codex F34) runs on the fake model's server after tu-7: a lesson
+// pretest passed after a tutor answer on one of its items goes to the reading, not to practice.
+//
 // Row JN (release 1.3, D77) runs after them all, beside row G: every server writes its study journey to one temporary folder
 // (AYDINLEARNS_JOURNEY_DIR), never the real journey/, and the row checks that the rows' screens, exercises, help, runs, case, lab and
 // concept state changes are in it, and that a server's stop ended its visit (session_ended, reason app_stop). Row G also checks that
@@ -63,7 +73,7 @@ import { createHash, randomUUID } from 'node:crypto';
 import { chmod, cp, mkdir, mkdtemp, readFile, readdir, rm, stat, symlink, unlink, writeFile } from 'node:fs/promises';
 import { createServer } from 'node:net';
 import { tmpdir } from 'node:os';
-import { join, resolve } from 'node:path';
+import { basename, dirname, join, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
 import { DuckDBInstance } from '@duckdb/node-api';
@@ -77,6 +87,7 @@ import type { Goal } from '../../core/goals.ts';
 import { openJsonlLog } from '../../core/jsonl.ts';
 import { amsterdamDate } from '../../core/time.ts';
 import type { LabAnswer } from '../../schemas/log-ext.ts';
+import type { TutorAskBody, TutorStatusView } from '../../schemas/tutor.ts';
 import { addDays, fixedMonth, RECHECK_AFTER_DAYS } from '../../server/labs.ts';
 import { AttemptLogger } from '../../server/log.ts';
 import { loadContent, type ContentStore } from '../../server/content.ts';
@@ -117,6 +128,18 @@ const SUBGOAL_LABELS = ['Source and grain', 'Row filter', 'Output grain', 'Metri
 const GA4_CONCEPT = 'GA4-SETUP-01';                    // rows 2a-1: a level 1 concept with a reading
 const MET_CONCEPT = 'MET-PRICE-07';                    // rows 2a-2: a pool with typed percentage questions
 const LOCKED_GREY = 'rgb(82, 82, 91)';                    // --ink-2 in web/src/styles/tokens.css (ruling P-4: the locked prefix reads --ink-2 on --fill)
+// Block P (T-21 to T-23): why the tutor is off for the default model with no key (server/tutor/config.ts), and the five models Settings
+// lists, each named with its price per million tokens (server/tutor/prices.ts), and the provider whose key it needs.
+const TUTOR_NEEDS_CLAUDE_KEY = 'Claude Haiku 5.5 needs a Claude key. Add one in Settings to turn the tutor on.';
+const TUTOR_MODELS: readonly { id: string; name: string; provider: 'claude' | 'openai' }[] = [
+  { id: 'claude-haiku-5-5', name: 'Claude Haiku 5.5, $0.10 in and $0.50 out per million tokens', provider: 'claude' },
+  { id: 'claude-sonnet-5-5', name: 'Claude Sonnet 5.5, $2.00 in and $10.00 out per million tokens', provider: 'claude' },
+  { id: 'claude-opus-5-5', name: 'Claude Opus 5.5, $4.00 in and $20.00 out per million tokens', provider: 'claude' },
+  { id: 'gpt-6-luna', name: 'GPT-6 Luna, $0.10 in and $0.50 out per million tokens', provider: 'openai' },
+  { id: 'gpt-6.1-sol', name: 'GPT-6.1 Sol, $2.00 in and $10.00 out per million tokens', provider: 'openai' },
+];
+/** The line under a model whose provider has no key (web/src/lib/tutor-settings.ts). */
+const KEY_NEEDED = { claude: 'Add a Claude API key below to use this model.', openai: 'Add an OpenAI API key below to use this model.' } as const;
 
 // Turns a line on the server's stdin into the SIGINT handler server/main.ts registers, which runs
 // shutdown(). Windows has no POSIX signals: child.kill() there ends a process without running any of
@@ -295,14 +318,28 @@ function portFree(): Promise<boolean> {
   });
 }
 
-/** `clock`: load the CLOCK preload, so moveClock can move the server's time on (row D). */
-async function startServer(appDir: string, logsDir: string, o: { clock?: boolean } = {}): Promise<Server> {
+/**
+ * Block P (T-20): the file a server over `logsDir` keeps the keys saved in Settings in: a folder beside its logs folder, in the test's
+ * temporary folder. Never inside the logs folder, which a backup copies, and never the app folder's tutor-keys.json.
+ */
+const keysFileOf = (logsDir: string) => join(dirname(logsDir), `${basename(logsDir)}-keys`, 'tutor-keys.json');
+
+/**
+ * `clock`: load the CLOCK preload, so moveClock can move the server's time on (row D). `env`: variables for this server only (the tutor
+ * rows' fake model). Sprint T (Review Focus 1): every server gets the tutor's variables from here, blank unless `env` sets them, so a key
+ * the shell exports never reaches a test server (none of them loads .env). Block P: every server keeps its saved keys in its own
+ * temporary file (keysFileOf); AYDINLEARNS_TUTOR_PROVIDER is only the fake test hook (T-23).
+ */
+async function startServer(appDir: string, logsDir: string, o: { clock?: boolean; env?: Record<string, string> } = {}): Promise<Server> {
   if (!(await portFree())) {
     throw new Error(`port ${PORT} on 127.0.0.1 is busy. Stop whatever uses it (another aydinlearns, npm start or npm run dev:server) and run the test again.`);
   }
+  const keysFile = resolve(keysFileOf(logsDir));
+  if (!keysFile.toLowerCase().startsWith(`${resolve(tmpdir()).toLowerCase()}${sep}`)) throw new Error('a test server\'s keys file is not in the temporary folder');
   const child = spawn(process.execPath, ['--import', PRELOAD, ...(o.clock ? ['--import', CLOCK] : []), 'server/main.ts'], {
     cwd: appDir, env: { ...process.env, AYDINLEARNS_LOGS_DIR: logsDir, AYDINLEARNS_PORT: String(PORT), AYDINLEARNS_JOURNEY_DIR: JOURNEY_DIR,
-      AYDINLEARNS_JOURNEY: '' }, stdio: ['pipe', 'pipe', 'pipe'],
+      AYDINLEARNS_JOURNEY: '', ANTHROPIC_API_KEY: '', OPENAI_API_KEY: '', AYDINLEARNS_KEYS_FILE: keysFile, AYDINLEARNS_TUTOR_PROVIDER: '',
+      AYDINLEARNS_TUTOR_FAKE_DELAY_MS: '', ...o.env }, stdio: ['pipe', 'pipe', 'pipe'],
   });
   child.stdin!.on('error', () => {});                    // a write after the server has gone
   const output: string[] = [];
@@ -417,6 +454,25 @@ async function answerChoice(p: Page, typed: string): Promise<'mcq' | 'typed'> {
   return isTyped ? 'typed' : 'mcq';
 }
 
+/**
+ * Block P: the Settings card's model radios, found by the names TUTOR_MODELS gives them (the model and its price): whether each can be
+ * picked, whether it is the one chosen, and the line that describes it (null when none does). `count` is every radio in the group.
+ */
+async function tutorModelRadios(p: Page): Promise<{ count: number; rows: { id: string; found: number; disabled: boolean; checked: boolean; note: string | null }[] }> {
+  const group = p.getByRole('group', { name: 'Model', exact: true });
+  await group.getByRole('radio').first().waitFor();
+  const rows = [];
+  for (const m of TUTOR_MODELS) {
+    const r = group.getByRole('radio', { name: m.name, exact: true });
+    const found = await r.count();
+    if (found !== 1) { rows.push({ id: m.id, found, disabled: false, checked: false, note: null }); continue; }
+    const described = await r.getAttribute('aria-describedby');
+    const note = described ? (await p.locator(`[id="${described}"]`).innerText()).trim() : null;
+    rows.push({ id: m.id, found, disabled: await r.isDisabled(), checked: await r.isChecked(), note });
+  }
+  return { count: await group.getByRole('radio').count(), rows };
+}
+
 async function newPage(browser: Browser, dialogs: string[]): Promise<Page> {
   const page = await (await browser.newContext()).newPage();
   page.setDefaultTimeout(15_000);
@@ -497,6 +553,27 @@ async function main(): Promise<number> {
         await page.getByRole('navigation', { name: 'Lesson steps' }).waitFor();
       }
       return `7 levels; ${links.length} lesson links, each opening its lesson; ${coming} later concepts say "coming in a later version"; no lock and no disabled control`;
+    });
+
+    // Sprint T: this server got the keys blank and a keys file of its own (startServer), so the tutor is off, whatever the shell exports.
+    await row('tu-1', 'the tutor is off without a key: no "Ask the tutor" button and Alt+T opens nothing, and Settings says which key the default model needs', async () => {
+      for (const hash of ['#/', `#/item/${NULL_ITEM}`, '#/setup']) {
+        await page.goto(`${BASE}/${hash}`);
+        await page.locator('main h1, main h2').first().waitFor();
+        expect(await page.getByRole('button', { name: 'Ask the tutor' }).count() === 0, `${hash} shows the tutor button with the tutor off`);
+      }
+      await page.getByText(`Off. ${TUTOR_NEEDS_CLAUDE_KEY}`, { exact: true }).waitFor();
+      // Settings has its own answer from the tutor's status by now, so the top bar has had the same answer: still no button, and no panel.
+      await page.keyboard.press('Alt+t');
+      expect(await page.getByRole('button', { name: 'Ask the tutor' }).count() === 0, 'Settings shows the tutor button with the tutor off');
+      expect(await page.getByRole('complementary', { name: 'Tutor' }).count() === 0, 'Alt+T opened a tutor panel with the tutor off');
+      const s = (await getJson<TutorStatusView>('/api/tutor/status')).body;
+      // Block P: switched on (the default), the default model (Claude Haiku 5.5) at medium effort, and no key from anywhere.
+      expect(s.enabled === false && s.switched_on === true && s.provider === 'claude' && s.model === 'claude-haiku-5-5' && s.effort === 'medium'
+        && s.reason === TUTOR_NEEDS_CLAUDE_KEY, `the status says enabled ${s.enabled}, switched on ${s.switched_on}, provider ${s.provider}, model ${s.model}, effort ${s.effort}`);
+      expect(s.keys.length === 2 && s.keys.every((k) => k.source === null) && s.models.length === 5 && s.models.every((m) => !m.available),
+        `the status lists keys from ${s.keys.map((k) => `${k.provider} ${String(k.source)}`).join(', ')}, and ${s.models.filter((m) => m.available).length} of ${s.models.length} models usable`);
+      return 'no button on Today, an item and Settings, and Alt+T opened no panel; Settings and the status say off because Claude Haiku 5.5 (the default, medium effort) needs a Claude key; no key set, no model usable';
     });
 
     await row('14', `netstat -ano: listening on 127.0.0.1:${PORT} only`, async () => {
@@ -2550,11 +2627,11 @@ async function main(): Promise<number> {
         return 'G-GA4-CERT shows its named-concepts line at "0 of 12" with nothing practised';
       });
 
-      await row('5a-5', 'Settings shows version 1.5.0', async () => {
+      await row('5a-5', 'Settings shows version 1.6.0', async () => {
         await p.goto(`${BASE}/#/setup`);
         await p.getByRole('heading', { name: 'Settings and setup', level: 1 }).waitFor();
-        await p.getByText('Version 1.5.0', { exact: true }).waitFor();
-        return 'Settings and setup shows "Version 1.5.0"';
+        await p.getByText('Version 1.6.0', { exact: true }).waitFor();
+        return 'Settings and setup shows "Version 1.6.0"';
       });
 
       await row('5a-3', 'an A/B SQL item passes with its reference query', async () => {
@@ -3326,6 +3403,604 @@ async function main(): Promise<number> {
 
       await release();
     }
+
+    // ---- sprint T rows (Task T10): the AI tutor, on the fake model ----
+    // Rows tu-2 to tu-7, then tu-9, run in order on one server over an empty logs folder, with the fake model (T-11): it calls nothing, costs nothing,
+    // and its reply names the screen and the question. Its pieces come FAKE_DELAY_MS apart (T-19), so a reply streams for a second or two.
+    // Messages name rows, IDs, fields and counts; never a question's text, and nothing from content/keys/ (tu-4 only types a reference).
+    // Row tu-8 runs after them on a server of its own without the fake model, since the fake makes every model usable (T-23).
+    {
+      const FAKE_DELAY_MS = 300;
+      const FAKE_END = 'What do you think the first step is?';                  // the fake reply's last words
+      const HELP_NOTE = 'Asking here counts as help on this item, like a hint.';
+      /**
+       * The card's line with the tutor on (statusLine in web/src/lib/tutor-settings.ts): the chosen model's label, with the fake named after
+       * it (T-23: the fake answers for every model), the effort, and today's spend, which the fake keeps at $0 (its price row is all zeros).
+       */
+      const ON_LINE = (cap: string | null, model = 'Claude Haiku 5.5', effort = 'medium') =>
+        `On: ${model} (fake), ${effort} effort. Today's tutor spend: $0.0000${cap === null ? ', no daily limit' : ` of $${cap}`}.`;
+      /** What a tutor_asked record may hold (core/envelope.ts): IDs, the model and effort, counts and the outcome, never text. */
+      const RECORD_FIELDS = new Set(['record', 'schema_version', 'ts', 'session_id', 'screen', 'item_instance_id', 'item_id', 'target_concept_id', 'phase',
+        'card_id', 'provider', 'model', 'effort', 'prompt_version', 'input_tokens', 'cached_input_tokens', 'output_tokens', 'cost_usd', 'outcome']);
+      const logsTutor = join(tmp, 'logs-tutor');
+      await mkdir(logsTutor);
+      server = await startServer(ROOT, logsTutor, { env: { AYDINLEARNS_TUTOR_PROVIDER: 'fake', AYDINLEARNS_TUTOR_FAKE_DELAY_MS: String(FAKE_DELAY_MS) } });
+      // T-23: under the fake hook the status names the provider fake, with the chosen catalog model (the default) at medium effort.
+      const tutorOn = (await getJson<TutorStatusView>('/api/tutor/status')).body;
+      if (!tutorOn.enabled || tutorOn.provider !== 'fake' || tutorOn.model !== 'claude-haiku-5-5' || tutorOn.effort !== 'medium') {
+        throw new Error(`the tutor rows' server is not on the fake model (enabled ${tutorOn.enabled}, provider ${tutorOn.provider}, model ${tutorOn.model}, effort ${tutorOn.effort})`);
+      }
+      browser = await chromium.launch();
+      const pt = await newPage(browser, dialogs);
+      pt.on('pageerror', () => { pageErrors++; });
+      let asksSent = 0;                                  // questions the page sent, held or not
+      const isAsk = (r: { url(): string; method(): string }) => r.method() === 'POST' && r.url().endsWith('/api/tutor/ask');
+      pt.on('request', (r) => { if (isAsk(r)) asksSent++; });
+
+      const panel = pt.getByRole('complementary', { name: 'Tutor' });
+      const askButton = pt.getByRole('button', { name: 'Ask the tutor' });
+      const closeButton = panel.getByRole('button', { name: 'Close the tutor' });
+      const box = panel.getByLabel('Your question');
+      const sendButton = panel.getByRole('button', { name: 'Send', exact: true });
+      const exchanges = panel.locator('ol.tutor-thread > li');
+      const thinking = panel.getByText('Thinking...', { exact: true });
+      const helpNote = panel.getByText(HELP_NOTE, { exact: true });
+      const tutorRecords = async () => (await attempts(logsTutor)).filter((r) => r.record === 'tutor_asked');
+      /** Waits until `n` tutor_asked records are written and no more come, and gives them. */
+      async function tutorRecordsNow(n: number): Promise<LogRec[]> {
+        await waitFor(`${n} tutor_asked records`, async () => (await tutorRecords()).length >= n);
+        await settledCount(async () => (await tutorRecords()).length);
+        return tutorRecords();
+      }
+      /** The reply has ended: its last words are in the thread and nothing is on its way. */
+      async function replyEnded(): Promise<void> {
+        await exchanges.filter({ hasText: FAKE_END }).first().waitFor();
+        await panel.locator('ol.tutor-thread[aria-busy="false"]').waitFor();
+      }
+      /** Where focus is: the panel, the screen or the top bar, and the element's tag and name. */
+      const focusIs = () => pt.evaluate(() => {
+        const a = document.activeElement as HTMLElement | null;
+        if (!a || a === document.body) return 'body';
+        const where = a.closest('aside') ? 'panel' : a.closest('main') ? 'main' : a.closest('header') ? 'header' : 'page';
+        return `${where}:${a.tagName}:${(a.getAttribute('aria-label') ?? a.innerText ?? '').trim().slice(0, 40)}`;
+      });
+
+      await row('tu-2', 'the "Ask the tutor" button on every screen; Alt+T opens the panel with focus in the question box, and closes it with focus back where it was', async () => {
+        const screens = ['#/', '#/map', '#/drill', '#/mistakes', '#/ga4', '#/ga4/labs', '#/ga4/lab/LAB-12', '#/ga4/run', '#/methodology',
+          `#/reading/ga4/${GA4_CONCEPT}`, `#/practice/ga4/${GA4_CONCEPT}`, `#/practice/methodology/${MET_CONCEPT}`, '#/lesson/SQL-BASICS-01',
+          `#/item/${NULL_ITEM}`, '#/inbox', `#/case/${CASE_PRICE}`, `#/opener/${OPENER_L1}`, '#/portfolio', '#/progress', '#/explore', '#/setup'];
+        for (const hash of screens) {
+          await pt.goto(`${BASE}/${hash}`);
+          await pt.locator('main h1, main h2').first().waitFor();
+          await askButton.waitFor();
+        }
+        // On Settings: a control of the screen has focus (after the route's own move to the heading, a few frames at most).
+        await sleep(300);
+        await pt.getByRole('button', { name: 'Save', exact: true }).first().focus();
+        const before = await focusIs();
+        expect(before === 'main:BUTTON:Save', `focus is on ${before} before Alt+T`);
+        await pt.keyboard.press('Alt+t');
+        await panel.waitFor();
+        await waitFor('focus in the question box', async () => (await focusIs()).startsWith('panel:TEXTAREA'), 5_000);
+        expect((await askButton.getAttribute('aria-expanded')) === 'true', 'the tutor button does not say the panel is open');
+        await pt.keyboard.press('Alt+t');
+        await panel.waitFor({ state: 'detached' });
+        const after = await waitFor('focus back where it was', async () => { const f = await focusIs(); return f === before ? f : null; }, 5_000)
+          .catch(async () => focusIs());
+        expect(after === before, `after Alt+T closed the panel focus is on ${after}, not ${before}`);
+        return `the button on ${screens.length} screens; on Settings, Alt+T opened the panel with focus in the question box and closed it with focus back on the screen's Save button`;
+      });
+
+      await row('tu-3', `a question on ${NULL_ITEM} before a pass: the help note until the first reply, "Thinking..." and a closed Send while it is on its way, a streamed reply naming the screen, the item and its phase sent, one record with counts only; the panel covers no control`, async () => {
+        await openItem(pt, NULL_ITEM);
+        await askButton.click();
+        await helpNote.waitFor();
+        await waitFor('focus in the question box', async () => (await focusIs()).startsWith('panel:TEXTAREA'), 5_000);
+        // N3: at the default viewport (1280 x 720) the screen narrows beside the panel. The screen scrolls under the fixed panel, so a control
+        // of main counts as covered when it reaches under the panel's width at all; a top-bar control when it meets the panel's box.
+        const covered = await pt.evaluate(() => {
+          const side = document.querySelector('aside.tutor-panel')!.getBoundingClientRect();
+          return [...document.querySelectorAll<HTMLElement>('header.shell a, header.shell button, main a, main button, main input, main select, main textarea, main .cm-content')]
+            .filter((el) => {
+              const r = el.getBoundingClientRect();
+              if (r.width === 0 || r.height === 0) return false;
+              const across = r.right > side.left && r.left < side.right;
+              return across && (el.closest('main') !== null || (r.bottom > side.top && r.top < side.bottom));
+            })
+            .map((el) => `${el.tagName.toLowerCase()} "${(el.getAttribute('aria-label') ?? el.innerText ?? '').trim().slice(0, 30)}"`);
+        });
+        expect(covered.length === 0, `the panel covers ${covered.join(', ')}`);
+
+        // The question is held at the browser until the wait before the first words has been seen, then let through.
+        let letGo = (): void => {};
+        const held = new Promise<void>((done) => { letGo = done; });
+        await pt.route('**/api/tutor/ask', async (route) => { await held; await route.continue().catch(() => {}); });
+        let body: TutorAskBody;
+        const sentBefore = asksSent;
+        try {
+          const sent = pt.waitForRequest(isAsk);
+          await box.fill('Why does my query miss some rows? (smoke tu-3)');
+          await sendButton.click();
+          body = (await sent).postDataJSON() as TutorAskBody;
+          await thinking.waitFor();
+          expect(await sendButton.isDisabled(), 'Send is open while the question is on its way');
+          // One question at a time: a second one typed and sent with Enter while the first is on its way goes nowhere.
+          await box.fill('And a second one while I wait? (smoke tu-3)');
+          await box.press('Enter');
+          expect(await sendButton.isDisabled(), 'Send is open while the first question is on its way');
+          letGo();
+          await panel.getByText(/^Fake tutor: you are on the item screen/).waitFor();
+          expect(await thinking.count() === 0, '"Thinking..." still shows beside the reply\'s first words');
+          await replyEnded();
+        } finally {
+          letGo();
+          await pt.unroute('**/api/tutor/ask');
+        }
+        // The question typed while waiting stays in the box, and Send opens for it now: it was closed by the reply on its way.
+        await waitFor('Send to open once the reply has ended', async () => sendButton.isEnabled(), 5_000);
+        expect(asksSent - sentBefore === 1, `${asksSent - sentBefore} questions were sent`);
+        expect(await exchanges.count() === 1 && await thinking.count() === 0, `the thread holds ${await exchanges.count()} exchanges, or "Thinking..." still shows`);
+        expect(await helpNote.count() === 0, 'the help note shows again after the first question');
+        await box.fill('');                                // the second question is never sent
+        // N4: what the page sent: the screen, the item on it and its phase, the question, no thread yet, and a snapshot with no key text.
+        expect(body.screen === 'item' && body.item?.item_id === NULL_ITEM && body.item.phase === 'free' && body.thread.length === 0,
+          `the question was sent as screen ${body.screen}, item ${body.item?.item_id ?? 'none'}, phase ${body.item?.phase ?? 'none'}, ${body.thread.length} earlier exchanges`);
+        expect(body.question.endsWith('(smoke tu-3)') && body.snapshot.includes('Status: not passed') && !holdsKeyText(body.snapshot),
+          'the question sent is not the one typed, or the snapshot does not say "not passed", or it holds key text');
+        const recs = await tutorRecordsNow(1);
+        const r = recs[0]!;
+        expect(recs.length === 1 && r.item_id === NULL_ITEM && r.screen === 'item' && r.phase === 'free' && r.outcome === 'answered' && r.provider === 'fake' && r.model === 'fake'
+          && r.effort === 'medium' && r.cost_usd === 0,
+          `tutor_asked records: ${recs.length}; the first: ${JSON.stringify({ item_id: r.item_id, screen: r.screen, phase: r.phase, outcome: r.outcome, provider: r.provider, effort: r.effort, cost_usd: r.cost_usd })}`);
+        const extra = Object.keys(r).filter((k) => !RECORD_FIELDS.has(k));
+        expect(extra.length === 0 && typeof r.input_tokens === 'number' && typeof r.output_tokens === 'number', `the record holds ${extra.join(', ') || 'no token counts'}`);
+        expect(!JSON.stringify([...(await attempts(logsTutor)), ...(await events(logsTutor))]).includes('smoke tu-'), 'a question\'s text is in the log');
+        await closeButton.click();
+        await panel.waitFor({ state: 'detached' });
+        const back = await waitFor('focus back on the tutor button', async () => { const f = await focusIs(); return f === 'header:BUTTON:Ask the tutor' ? f : null; }, 5_000)
+          .catch(async () => focusIs());
+        expect(back === 'header:BUTTON:Ask the tutor', `after Close focus is on ${back}`);
+        return `no control under the panel; the note showed before the first question only; "Thinking..." and a closed Send while the question was held, Enter sent no second one; the fake reply streamed into one exchange; sent as screen item, ${NULL_ITEM}, phase free; one tutor_asked record (answered, medium effort, ${String(r.input_tokens)} in, ${String(r.output_tokens)} out, $0), no question text in the log; Close gave focus back to the tutor button`;
+      });
+
+      await row('tu-4', 'a wrong answer offers "Why is this wrong?", which fills the question; Close and Alt+T while the reply streams each cancel it (an error record), give the question back and add nothing to the thread; after a pass the help note is gone', async () => {
+        await openItem(pt, NULL_ITEM);
+        await replaceSql(pt, NOT_IT);                                  // fails every item: no item asks for this column
+        await submit(pt);
+        await outcome(pt, 'Not yet');
+        await pt.getByRole('button', { name: 'Why is this wrong?' }).click({ timeout: 30_000 });
+        await panel.waitFor();
+        await waitFor('the quick prompt to fill the question', async () => (await box.inputValue()) === 'Why is this wrong?', 5_000);
+        await helpNote.waitFor();                                       // a new instance of the item, not passed
+        const start = (await tutorRecords()).length;
+        const outcomes: string[] = [];
+        const timings: string[] = [];                                   // when each record was written: shows whether the call stopped
+        for (const how of ['Close', 'Alt+T'] as const) {
+          const sentAt = Date.now();
+          await sendButton.click();
+          const words = exchanges.last().getByText(/^Fake tutor:/);
+          await words.waitFor();
+          expect(!(await words.innerText()).includes(FAKE_END), `the reply had ended before ${how}`);
+          const closedAt = Date.now();
+          if (how === 'Close') await closeButton.click(); else await pt.keyboard.press('Alt+t');
+          await panel.waitFor({ state: 'detached' });
+          if (how === 'Close') await askButton.click(); else await pt.keyboard.press('Alt+t');
+          await panel.waitFor();
+          expect((await box.inputValue()) === 'Why is this wrong?', `after ${how} the question is not back in the box`);
+          expect(await exchanges.count() === 0 && await thinking.count() === 0, `after ${how} the thread holds ${await exchanges.count()} exchanges, or "Thinking..." shows`);
+          expect(await helpNote.isVisible(), `after ${how} the help note is gone, though no reply came`);
+          const recs = await tutorRecordsNow(start + outcomes.length + 1);
+          expect(recs.length === start + outcomes.length + 1, `${recs.length - start} tutor_asked records after ${outcomes.length + 1} cancelled questions`);
+          const last = recs.at(-1)!;
+          outcomes.push(String(last.outcome));
+          const at = Date.parse(String(last.ts));
+          timings.push(`${how}: logged ${at - closedAt} ms after it, ${at - sentAt} ms after the send, ${String(last.output_tokens)} output tokens`);
+        }
+        await replaceSql(pt, reference(NULL_ITEM));                    // typed only, never printed
+        await submit(pt);
+        await outcome(pt, 'Correct');
+        await helpNote.waitFor({ state: 'detached' });
+        expect(await pt.locator('.cm-content').isVisible(), 'the item left the screen after its pass');
+        await closeButton.click();
+        await panel.waitFor({ state: 'detached' });
+        // Last, so every drawn check above has run: Review Focus 2 logs a cancelled call as an error.
+        expect(outcomes.every((o) => o === 'error'), `the cancelled questions were logged with the outcomes ${outcomes.join(', ')}, not error (${timings.join('; ')})`);
+        return `"Why is this wrong?" opened the panel with the question filled in; Close and then Alt+T while the reply streamed each gave the question back, kept the thread empty and the note, and logged one error record; after the pass the note went away (${timings.join('; ')})`;
+      });
+
+      await row('tu-5', 'a level 1 drill: the tutor waits while its clock runs (the button, the panel, the route) and answers in its review, sent with the drill phase; a case checkpoint closed by a session end the page did not see still sends its case phase', async () => {
+        await pt.goto(`${BASE}/#/drill`);
+        await pt.getByRole('heading', { name: 'Drill', level: 1, exact: true }).waitFor();
+        const startedP = pt.waitForResponse((r) => r.url().endsWith('/api/drill/start'));
+        await pt.getByRole('button', { name: 'Start drill: level 1' }).click();
+        const run = (await (await startedP).json()) as DrillStarted;
+        const first = run.servings[0]!;
+        const wait = pt.getByRole('button', { name: 'The tutor waits for the review' });
+        await wait.waitFor();
+        expect(await wait.isDisabled(), 'the tutor button is enabled during the run');
+        // Alt+T opens the panel on its closed line, with no question box (D94).
+        await sleep(300);                                               // the run's move of focus to its heading has happened
+        await pt.locator('main h1').focus();
+        await pt.keyboard.press('Alt+t');
+        await panel.getByText('The tutor waits for the review.', { exact: true }).waitFor();
+        expect(await box.count() === 0, 'the panel takes a question during the run');
+        await pt.keyboard.press('Alt+t');
+        await panel.waitFor({ state: 'detached' });
+        // The route refuses a question from the drill screen, and one naming the run's item from another screen, and logs neither.
+        const recsBefore = (await tutorRecords()).length;
+        const ask = (b: object) => pt.evaluate(async (x) => (await fetch('/api/tutor/ask', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(x) })).status, b);
+        const fromDrill = await ask({ screen: 'drill', snapshot: '', item: null, thread: [], question: 'Help? (smoke tu-5)' });
+        const fromItem = await ask({ screen: 'item', snapshot: '', item: { item_id: first.item_id, item_instance_id: first.item_instance_id, phase: 'drill' }, thread: [], question: 'Help? (smoke tu-5)' });
+        expect(fromDrill === 409 && fromItem === 409, `during the run a question from the drill screen got ${fromDrill}, one naming the run's first item from the item screen ${fromItem}`);
+        await pt.getByRole('button', { name: 'End the drill and see the review' }).click();
+        await pt.getByRole('heading', { name: 'Level 1 drill: review', level: 1 }).waitFor();
+        await pt.locator('[data-question="0"]').getByText('Loading the exercise...').waitFor({ state: 'detached' });
+        await askButton.click();
+        await box.fill('What did I miss here? (smoke tu-5)');
+        const sentDrill = pt.waitForRequest(isAsk);
+        await sendButton.click();
+        const drillBody = (await sentDrill).postDataJSON() as TutorAskBody;
+        await panel.getByText(/^Fake tutor: you are on the drill screen/).waitFor();
+        await replyEnded();
+        expect(drillBody.screen === 'drill' && drillBody.item?.item_instance_id === first.item_instance_id && drillBody.item.phase === 'drill',
+          `the review's question was sent as screen ${drillBody.screen}, phase ${drillBody.item?.phase ?? 'none'}${drillBody.item?.item_instance_id === first.item_instance_id ? '' : ', not naming question 1'}`);
+        const afterDrill = await tutorRecordsNow(recsBefore + 1);
+        expect(afterDrill.length === recsBefore + 1 && afterDrill.at(-1)!.outcome === 'answered' && afterDrill.at(-1)!.screen === 'drill',
+          `${afterDrill.length - recsBefore} records after the two refusals and the review's question (last: ${String(afterDrill.at(-1)!.outcome)})`);
+        await closeButton.click();
+        await panel.waitFor({ state: 'detached' });
+
+        // N4 (T-16, I1): a checkpoint served in the case phase, then a session end the page does not see (as an idle end): the page still
+        // names the checkpoint's item with its served phase, which tells the server to keep the labels hidden.
+        await pt.goto(`${BASE}/#/case/${CASE_PRICE}`);
+        await pt.locator('.case-status').waitFor();
+        await stripBtn(pt, 'CP3').click();
+        const servedP = pt.waitForResponse(isServeCase);
+        await caseAs(pt, 'CP3').locator('[data-serve="CP3"]').click();
+        const sv = (await (await servedP).json()) as Served;
+        await caseAs(pt, 'CP3').locator('.cm-content').waitFor();
+        const ended = await postJson<{ ok?: boolean }>('/api/session-end', {});
+        expect(ended.status === 200 && sv.phase === 'case', `the session end answered ${ended.status}; CP3 was served in phase ${sv.phase}`);
+        await askButton.click();
+        await box.fill('What does this checkpoint want? (smoke tu-5)');
+        const sentCase = pt.waitForRequest(isAsk);
+        await sendButton.click();
+        const caseBody = (await sentCase).postDataJSON() as TutorAskBody;
+        await panel.getByText(/^Fake tutor: you are on the case screen/).waitFor();
+        await replyEnded();
+        expect(caseBody.screen === 'case' && caseBody.item?.item_instance_id === sv.item_instance_id && caseBody.item.phase === 'case',
+          `after the session end the checkpoint's question was sent as screen ${caseBody.screen}, phase ${caseBody.item?.phase ?? 'none'}${caseBody.item?.item_instance_id === sv.item_instance_id ? '' : ', not naming the served instance'}`);
+        await closeButton.click();
+        await panel.waitFor({ state: 'detached' });
+        return `during the run: the button disabled as "The tutor waits for the review", Alt+T showed the closed line with no box, and both questions got 409 and no record; in the review the fake reply named the drill screen, sent with question 1's instance and phase drill (answered); ${CASE_PRICE}'s CP3 after a session end by the route: sent with its served instance and phase case`;
+      });
+
+      await row('tu-6', "Settings: the tutor's line with today's spend; the budget field and its Save wait for the status; 25 is refused with the range; 0.5 is saved as a setting; an empty field saves the $1 default; \"No daily limit\" closes the field and saves \"none\", and a number brings the limit back", async () => {
+        const field = pt.getByLabel('Daily budget in US dollars');
+        const save = pt.getByRole('button', { name: 'Save tutor budget' });
+        const noLimit = pt.getByRole('checkbox', { name: 'No daily limit', exact: true });
+        const problem = pt.getByText('Use a daily budget from 0.05 to 20 US dollars.', { exact: true });
+        const capEvents = async () => (await events(logsTutor)).filter((e) => e.event === 'setting_change' && e.key === 'tutor_daily_cap_usd');
+        // The tutor's status is held at the browser until the field has been seen waiting for it.
+        let letGo = (): void => {};
+        const held = new Promise<void>((done) => { letGo = done; });
+        // A late continue (the route removed first, on a failure) must not throw out of the handler.
+        await pt.route('**/api/tutor/status', async (route) => { await held; await route.continue().catch(() => {}); });
+        try {
+          await pt.goto(`${BASE}/#/setup`);
+          await field.waitFor();
+          expect(await field.isDisabled() && await save.isDisabled(), 'the budget field or its Save is open before the tutor\'s status has loaded');
+        } finally {
+          letGo();
+        }
+        await pt.getByText(ON_LINE('1.00'), { exact: true }).waitFor();       // the held status has gone through, so the route can go
+        await pt.unroute('**/api/tutor/status');
+        expect(await field.isEnabled() && (await field.inputValue()) === '1', `the field reads "${await field.inputValue()}" once the status has loaded`);
+        await field.fill('25');
+        await problem.waitFor();
+        expect(await save.isDisabled(), 'Save is open with 25 in the field');
+        await field.fill('0.5');
+        await problem.waitFor({ state: 'detached' });
+        await save.click();
+        await pt.getByText('Tutor budget saved.', { exact: true }).waitFor();
+        await pt.getByText(ON_LINE('0.50'), { exact: true }).waitFor();
+        const one = await waitFor('the budget setting', async () => { const e = await capEvents(); return e.length >= 1 ? e : null; });
+        const s1 = (await getJson<TutorStatusView>('/api/tutor/status')).body;
+        expect(one.length === 1 && one[0]!.value === 0.5 && s1.cap_usd === 0.5, `${one.length} budget settings (${JSON.stringify(one.map((e) => e.value))}); the status says ${s1.cap_usd}`);
+        await field.fill('');
+        await save.click();
+        const two = await waitFor('the second budget setting', async () => { const e = await capEvents(); return e.length >= 2 ? e : null; });
+        await pt.getByText(ON_LINE('1.00'), { exact: true }).waitFor();
+        const s2 = (await getJson<TutorStatusView>('/api/tutor/status')).body;
+        expect(two.length === 2 && two[1]!.value === null && s2.cap_usd === 1 && (await field.inputValue()) === '1',
+          `${two.length} budget settings (${JSON.stringify(two.map((e) => e.value))}); the status says ${s2.cap_usd}; the field reads "${await field.inputValue()}"`);
+
+        // T-22: "No daily limit" closes the field and Save sends "none"; the line then says there is no limit. Unticked, the field opens
+        // empty, and a number saved brings the limit back.
+        expect(!(await noLimit.isChecked()), '"No daily limit" is ticked with the $1 default saved');
+        await noLimit.check();
+        expect(await field.isDisabled(), 'the budget field is open with "No daily limit" ticked');
+        const sentNone = pt.waitForRequest((r) => r.method() === 'POST' && r.url().endsWith('/api/settings'));
+        await save.click();
+        const noneSent = (await sentNone).postDataJSON() as { key?: unknown; value?: unknown };
+        await pt.getByText(ON_LINE(null), { exact: true }).waitFor();
+        const three = await waitFor('the no-limit setting', async () => { const e = await capEvents(); return e.length >= 3 ? e : null; });
+        const s3 = (await getJson<TutorStatusView>('/api/tutor/status')).body;
+        expect(noneSent.key === 'tutor_daily_cap_usd' && noneSent.value === 'none' && three.length === 3 && three[2]!.value === 'none' && s3.cap_usd === null,
+          `Save sent ${String(noneSent.key)} ${JSON.stringify(noneSent.value)}; ${three.length} budget settings (the last ${JSON.stringify(three.at(-1)!.value)}); the status says ${s3.cap_usd}`);
+        expect(await noLimit.isChecked() && await field.isDisabled() && (await field.inputValue()) === '',
+          `with no limit saved, "No daily limit" is ${await noLimit.isChecked() ? '' : 'not '}ticked and the field is ${await field.isDisabled() ? 'closed' : 'open'}, reading "${await field.inputValue()}"`);
+        await noLimit.uncheck();
+        expect(await field.isEnabled() && (await field.inputValue()) === '', `unticked, the budget field is ${await field.isEnabled() ? 'open' : 'closed'}, reading "${await field.inputValue()}"`);
+        await field.fill('2');
+        await save.click();
+        await pt.getByText(ON_LINE('2.00'), { exact: true }).waitFor();
+        const four = await waitFor('the limit saved again', async () => { const e = await capEvents(); return e.length >= 4 ? e : null; });
+        const s4 = (await getJson<TutorStatusView>('/api/tutor/status')).body;
+        expect(four.length === 4 && four[3]!.value === 2 && s4.cap_usd === 2 && !(await noLimit.isChecked()) && (await field.inputValue()) === '2',
+          `${four.length} budget settings (the last ${JSON.stringify(four.at(-1)!.value)}); the status says ${s4.cap_usd}; the field reads "${await field.inputValue()}"`);
+        return 'field and Save disabled while the status was held; the line names Claude Haiku 5.5 (fake), medium effort and $0.0000 of $1.00; 25 showed the range and closed Save; 0.5 saved as tutor_daily_cap_usd (line and status 0.50); an empty field saved null, the $1 default; "No daily limit" closed the field, Save sent "none", the line ended ", no daily limit." and the status said null, the field empty; unticked, 2 saved the limit back (line and status 2.00)';
+      });
+
+      await row('tu-7', 'Settings: "Use the AI tutor" off hides "Ask the tutor" without a reload and the line says off, on brings it back; the five models with their prices (all usable on the fake); a saved model changes the line and the panel\'s model line; Low, Medium (the default) and High, High saved and kept after a reload', async () => {
+        const status = async () => (await getJson<TutorStatusView>('/api/tutor/status')).body;
+        const saved = async (key: string) => (await events(logsTutor)).filter((e) => e.event === 'setting_change' && e.key === key).map((e) => e.value);
+        const capNow = (await status()).cap_usd;
+        const cap = capNow === null ? null : capNow.toFixed(2);                // the daily limit as tu-6 left it
+        await pt.goto(`${BASE}/#/setup`);
+        await pt.getByText(ON_LINE(cap), { exact: true }).waitFor();
+
+        // T-22: the switch saves as it is clicked, and the top bar follows. A mark set on the page now would be gone after a reload.
+        const sw = pt.getByRole('switch', { name: 'Use the AI tutor', exact: true });
+        expect(await sw.isChecked() && await askButton.isVisible(), 'with the tutor on, the switch is off or the top bar has no "Ask the tutor"');
+        await pt.evaluate(() => { (window as unknown as { smokeTu7?: boolean }).smokeTu7 = true; });
+        await sw.click();
+        await pt.getByText('Tutor switched off.', { exact: true }).waitFor();
+        await pt.getByText('Off. The tutor is switched off in Settings.', { exact: true }).waitFor();
+        await askButton.waitFor({ state: 'detached' });
+        const off = await status();
+        expect(!off.enabled && !off.switched_on && off.reason === 'The tutor is switched off in Settings.' && !(await sw.isChecked()),
+          `switched off, the status says enabled ${off.enabled}, switched on ${off.switched_on}`);
+        await sw.click();
+        await pt.getByText('Tutor switched on.', { exact: true }).waitFor();
+        await pt.getByText(ON_LINE(cap), { exact: true }).waitFor();
+        await askButton.waitFor();
+        const on = await status();
+        const switches = await waitFor('two switch settings', async () => { const v = await saved('tutor_enabled'); return v.length >= 2 ? v : null; });
+        expect(on.enabled && on.switched_on && await sw.isChecked() && JSON.stringify(switches) === '[false,true]',
+          `switched on again, the status says enabled ${on.enabled}, switched on ${on.switched_on}; the switch settings were ${JSON.stringify(switches)}`);
+        expect(await pt.evaluate(() => (window as unknown as { smokeTu7?: boolean }).smokeTu7 === true), 'the page reloaded when the switch was used');
+
+        // T-21: the five models, each with its price; the fake answers for every model (T-23), so each can be picked and none names a key.
+        const listed = await tutorModelRadios(pt);
+        const odd = listed.rows.filter((m) => m.found !== 1 || m.disabled || m.note !== null).map((m) => m.id);
+        const chosen = listed.rows.filter((m) => m.checked).map((m) => m.id);
+        expect(listed.count === 5 && odd.length === 0 && JSON.stringify(chosen) === '["claude-haiku-5-5"]',
+          `${listed.count} model radios; missing, closed or described: ${odd.join(', ') || 'none'}; chosen: ${chosen.join(', ') || 'none'}`);
+        const sonnet = TUTOR_MODELS.find((m) => m.id === 'claude-sonnet-5-5')!;
+        await pt.getByRole('group', { name: 'Model', exact: true }).getByRole('radio', { name: sonnet.name, exact: true }).check();
+        await pt.getByRole('button', { name: 'Save tutor model', exact: true }).click();
+        await pt.getByText('Tutor model saved.', { exact: true }).waitFor();
+        await pt.getByText(ON_LINE(cap, 'Claude Sonnet 5.5'), { exact: true }).waitFor();
+        const m1 = await status();
+        const models = await waitFor('the model setting', async () => { const v = await saved('tutor_model'); return v.length >= 1 ? v : null; });
+        expect(m1.model === sonnet.id && m1.provider === 'fake' && m1.effort === 'medium' && JSON.stringify(models) === JSON.stringify([sonnet.id]),
+          `the status says model ${m1.model}, provider ${m1.provider}, effort ${m1.effort}; the model settings were ${JSON.stringify(models)}`);
+        // The panel's quiet line names the model and the effort in use.
+        await askButton.click();
+        await panel.getByText('Claude Sonnet 5.5 (fake), medium effort', { exact: true }).waitFor();
+        await closeButton.click();
+        await panel.waitFor({ state: 'detached' });
+
+        // T-21: the effort, Medium unless Settings says otherwise; High saved shows in the line and stays after a reload.
+        const effort = pt.getByRole('group', { name: 'Effort', exact: true });
+        const level = (name: string) => effort.getByRole('radio', { name, exact: true });
+        const levels = await effort.getByRole('radio').count();
+        expect(levels === 3 && await level('Low').count() === 1 && await level('High').count() === 1 && await level('Medium (the default)').isChecked(),
+          `${levels} effort radios, or Low, High or a chosen "Medium (the default)" missing`);
+        await pt.getByText('Higher effort thinks longer: slower replies that cost more.', { exact: true }).waitFor();
+        await level('High').check();
+        await pt.getByRole('button', { name: 'Save tutor effort', exact: true }).click();
+        await pt.getByText('Tutor effort saved.', { exact: true }).waitFor();
+        await pt.getByText(ON_LINE(cap, 'Claude Sonnet 5.5', 'high'), { exact: true }).waitFor();
+        const efforts = await waitFor('the effort setting', async () => { const v = await saved('tutor_effort'); return v.length >= 1 ? v : null; });
+        await pt.reload();
+        await pt.getByText(ON_LINE(cap, 'Claude Sonnet 5.5', 'high'), { exact: true }).waitFor();
+        const e1 = await status();
+        const kept = (await tutorModelRadios(pt)).rows.filter((m) => m.checked).map((m) => m.id);
+        expect(e1.effort === 'high' && JSON.stringify(efforts) === '["high"]' && await level('High').isChecked() && !(await level('Medium (the default)').isChecked())
+          && JSON.stringify(kept) === JSON.stringify([sonnet.id]),
+          `after a reload the status says effort ${e1.effort}, the effort settings were ${JSON.stringify(efforts)}, High is ${await level('High').isChecked() ? '' : 'not '}chosen, the model chosen is ${kept.join(', ') || 'none'}`);
+        return `the switch off: "Tutor switched off.", the line "Off. The tutor is switched off in Settings.", "Ask the tutor" gone with no reload; on: the button and the line back; settings false, then true; five models with their prices, all usable on the fake, Claude Haiku 5.5 chosen; Claude Sonnet 5.5 saved: the line and the panel read "Claude Sonnet 5.5 (fake), medium effort"; Low, Medium (the default) and High with the note; High saved: "high effort" in the line and the status, still chosen after a reload`;
+      });
+
+      // Codex F34 (D95): the server counts an answered question on an open, unpassed pretest item as help, so the lesson must too. Walk A
+      // asks on SQL-BASICS-01's first pretest item (a write item: the exercise panel), walk B on SQL-BASICS-02's second (a predict item: the
+      // choice panel); no other row starts either pretest on this server. Both items of each walk pass with no hint and no shown answer,
+      // so only the tutor's answer can send the lesson to the reading instead of practice.
+      await row('tu-9', 'Codex F34: a tutor answer on an unpassed pretest item is help: a pretest passed after one goes to the reading, not to practice (SQL-BASICS-01 asked on its write item, SQL-BASICS-02 on its predict item)', async () => {
+        const stepNow = pt.locator('nav.steps button[aria-current="step"]');
+        /** Asks one question on the item on screen, waits for the whole reply, and closes the panel; gives what the page sent. */
+        async function askOnScreen(question: string): Promise<TutorAskBody> {
+          await askButton.click();
+          await panel.waitFor();
+          await helpNote.waitFor();                                       // the panel names the item, and it is not passed
+          const sent = pt.waitForRequest(isAsk);
+          await box.fill(question);
+          await sendButton.click();
+          const body = (await sent).postDataJSON() as TutorAskBody;
+          await replyEnded();
+          await closeButton.click();
+          await panel.waitFor({ state: 'detached' });
+          return body;
+        }
+        /** One pretest walk: the tutor asked on item `askOn` while it is unpassed, then both items passed with their keys (typed only). */
+        async function walk(conceptId: string, askOn: 0 | 1): Promise<string> {
+          const served = (await getJson<{ pretest_item_ids: string[] }>(`/api/lessons/${conceptId}`)).body.pretest_item_ids;
+          const [write, predict] = served;
+          const choice = predict === undefined ? undefined : choiceKeys.get(predict);
+          expect(served.length === 2 && write !== undefined && keys.has(write) && choice !== undefined, `${conceptId}'s pretest is not a write item, then a predict item`);
+          await pt.goto(`${BASE}/#/lesson/${conceptId}`);
+          await pt.getByRole('button', { name: 'Start the pretest' }).click();
+          await pt.getByText('Question 1 of 2.').waitFor();
+          await pt.locator('.cm-content').waitFor();
+          let body: TutorAskBody | null = askOn === 0 ? await askOnScreen(`What does this question ask for? (smoke tu-9, ${conceptId})`) : null;
+          await typeSql(pt, keys.get(write)!.reference_sql);
+          await submit(pt);
+          await outcome(pt, 'Correct');
+          await pt.getByRole('button', { name: 'Next', exact: true }).click();
+          await pt.getByText('Question 2 of 2.').waitFor();
+          await pt.locator('section.choice').waitFor();
+          if (askOn === 1) body = await askOnScreen(`What does this question ask for? (smoke tu-9, ${conceptId})`);
+          if (choice.correct_oid !== undefined) {
+            try { await pt.locator(`section.choice input[type="radio"][value="${choice.correct_oid}"]`).check(); }
+            catch { throw new Error(`${conceptId}: could not pick the predict item's option`); }     // Playwright's own error would print the option id
+          } else await pt.getByLabel('Your answer').fill(String(choice.value));
+          await pt.getByRole('button', { name: '3: fairly sure', exact: true }).click();
+          await pt.locator('.grade h3', { hasText: 'Right.' }).waitFor();
+          await pt.getByRole('button', { name: 'Next', exact: true }).click();
+          await stepNow.filter({ hasText: /^(Reading|Practice)$/ }).waitFor();
+          const step = (await stepNow.innerText()).trim();
+          // What the server logged: the question named the asked item's open instance in the pretest phase and was answered; both items
+          // passed on the instances the walk opened, and neither got a hint or a shown answer.
+          const asked = body!.item;
+          const askedId = served[askOn]!;
+          expect(asked?.item_id === askedId && asked.phase === 'pretest', `${conceptId}: the question was sent naming ${asked?.item_id ?? 'no item'} in phase ${asked?.phase ?? 'none'}, not ${askedId} in the pretest`);
+          const recs = await waitFor(`${conceptId}'s two pretest attempts`, async () => {
+            const all = await attempts(logsTutor);
+            return all.filter((r) => r.record === 'attempt' && r.phase === 'pretest' && served.includes(String(r.item_id))).length >= 2 ? all : null;
+          });
+          const pre = recs.filter((r) => r.record === 'attempt' && r.phase === 'pretest' && served.includes(String(r.item_id)));
+          const ids = new Set(pre.map((r) => String(r.item_instance_id)));
+          const tutorRec = recs.find((r) => r.record === 'tutor_asked' && r.item_instance_id === asked.item_instance_id);
+          expect(pre.length === 2 && pre.every((r) => r.outcome === 'pass') && ids.has(asked.item_instance_id),
+            `${conceptId}: ${pre.length} pretest attempts (${pre.map((r) => `${String(r.item_id)} ${String(r.outcome)}`).join(', ')})${ids.has(asked.item_instance_id) ? '' : ', none on the instance asked about'}`);
+          expect(tutorRec?.outcome === 'answered' && tutorRec.phase === 'pretest' && tutorRec.item_id === askedId,
+            `${conceptId}: the tutor_asked record on the instance asked about is ${tutorRec ? `${String(tutorRec.outcome)}, phase ${String(tutorRec.phase)}` : 'missing'}`);
+          const otherHelp = recs.filter((r) => (r.record === 'hint_opened' || r.record === 'solution_opened') && ids.has(String(r.item_instance_id)));
+          expect(otherHelp.length === 0, `${conceptId}: ${otherHelp.length} hint or shown-answer records on the pretest's instances`);
+          expect(step === 'Reading', `${conceptId}: both pretest items passed after the tutor answered on ${askedId} (${askOn === 0 ? 'the write item' : 'the predict item'}), and the lesson went to ${step.toLowerCase()} instead of the reading`);
+          return `${conceptId}: asked on ${askOn === 0 ? `the write item ${askedId}` : `the predict item ${askedId}`} (answered, phase pretest, the instance later passed), both items passed, no hint or shown answer, and the lesson went to the reading`;
+        }
+        const a = await walk('SQL-BASICS-01', 0);
+        const b = await walk('SQL-BASICS-02', 1);
+        return `${a}; ${b}`;
+      });
+
+      await browser.close();
+      browser = null;
+      await stopServer(server);
+      server = null;
+    }
+
+    // ---- row tu-8 (block P, T-20): the keys, on a server of its own without the fake model ----
+    // The fake makes every model usable (T-23), so only a server without it shows a model closed for want of its key. This server has no
+    // key from anywhere (startServer), keeps what Settings saves in its own temporary file, and stays off throughout: its chosen model is
+    // Claude Haiku 5.5, which needs a Claude key, and only an OpenAI key is ever saved here, so no question could reach a provider.
+    {
+      const logsKeys = join(tmp, 'logs-tutor-keys');
+      await mkdir(logsKeys);
+      const keysFile = keysFileOf(logsKeys);
+      server = await startServer(ROOT, logsKeys);
+      const keysServer = server;
+      browser = await chromium.launch();
+      const pk = await newPage(browser, dialogs);
+      pk.on('pageerror', () => { pageErrors++; });
+
+      await row('tu-8', 'Settings without the fake model: each model closed and described by the key it needs; a malformed OpenAI key refused (400 bad_key, the server\'s line in the alert, nothing written); an invented key saved ("Saved in the app.", the field empty, the OpenAI models usable, the temporary keys file written, no key in the status) and removed ("Not set.", no OpenAI entry in the file)', async () => {
+        // An invented key of the OpenAI shape (T-20: sk- and 17 or more letters, digits, _ or -), never a real one. No message prints it.
+        const INVENTED = `sk-smoketest${'0'.repeat(16)}`;
+        const MARK = 'smoketest';                                              // a part of it no line the app writes would hold
+        const BAD = 'not-a-key';
+        const OPENAI_SHAPE = 'An OpenAI key starts with sk- and has 20 to 400 letters, digits, _ or -, with no spaces.';   // server/tutor/keys.ts
+        const field = pk.getByLabel('OpenAI API key', { exact: true });
+        const save = pk.getByRole('button', { name: 'Save OpenAI API key', exact: true });
+        const remove = pk.getByRole('button', { name: 'Remove OpenAI API key', exact: true });
+        const openaiSource = pk.locator('#tutor-key-source-openai');
+        const claudeSource = pk.locator('#tutor-key-source-claude');
+        const isKeys = (r: { url(): string; request(): { method(): string } }) => r.request().method() === 'POST' && r.url().endsWith('/api/tutor/keys');
+        const status = async () => (await getJson<TutorStatusView>('/api/tutor/status')).body;
+        const sourceOf = (s: TutorStatusView, p: 'claude' | 'openai') => s.keys.find((k) => k.provider === p)?.source;
+        /** The keys file, read only to check what it holds; never printed. Null while there is none. */
+        const keysOnDisk = async (): Promise<Record<string, unknown> | null> => ((await exists(keysFile)) ? JSON.parse(await readFile(keysFile, 'utf8')) as Record<string, unknown> : null);
+        /** The models that are not as they should be when only `withKey`'s providers have a key: usable with one, closed and described without. */
+        const misfits = async (withKey: readonly ('claude' | 'openai')[]) => {
+          const listed = await tutorModelRadios(pk);
+          const bad = listed.rows.filter((m) => {
+            const p = TUTOR_MODELS.find((x) => x.id === m.id)!.provider;
+            return m.found !== 1 || (withKey.includes(p) ? m.disabled || m.note !== null : !m.disabled || m.note !== KEY_NEEDED[p]);
+          }).map((m) => m.id);
+          return listed.count === 5 ? bad : [...bad, `${listed.count} radios`];
+        };
+
+        await pk.goto(`${BASE}/#/setup`);
+        await pk.getByText(`Off. ${TUTOR_NEEDS_CLAUDE_KEY}`, { exact: true }).waitFor();
+        const none = await misfits([]);
+        expect(none.length === 0, `with no key, not closed with the line naming their key: ${none.join(', ')}`);
+        expect((await openaiSource.innerText()) === 'Not set.' && (await claudeSource.innerText()) === 'Not set.' && await remove.count() === 0
+          && await pk.getByRole('button', { name: 'Remove Claude API key', exact: true }).count() === 0 && !(await exists(keysFile)),
+          'with no key, a source line is not "Not set.", a Remove button shows, or the keys file exists');
+
+        // A malformed key: the server refuses it with its own line, which the page shows in its alert; nothing is written.
+        await field.fill(BAD);
+        const refusedP = pk.waitForResponse(isKeys);
+        await save.click();
+        const refused = await refusedP;
+        const refusedBody = (await refused.json()) as { error?: unknown; code?: unknown };
+        const alert = pk.getByRole('alert').filter({ hasText: OPENAI_SHAPE });
+        await alert.waitFor();
+        const alertText = (await alert.innerText()).trim();
+        expect(refused.status() === 400 && refusedBody.code === 'bad_key' && refusedBody.error === OPENAI_SHAPE,
+          `a malformed key got ${refused.status()} with the code ${String(refusedBody.code)}${refusedBody.error === OPENAI_SHAPE ? '' : ', not the key shape line'}`);
+        expect(alertText === OPENAI_SHAPE && !alertText.includes(BAD), 'the page\'s alert is not the server\'s line alone');
+        expect((await openaiSource.innerText()) === 'Not set.' && !(await exists(keysFile)) && sourceOf(await status(), 'openai') === null,
+          'a refused key changed the source line or the status, or wrote the keys file');
+
+        // The invented key: kept in the server's temporary keys file, the field emptied, the OpenAI models usable, and the key nowhere else.
+        await field.fill(INVENTED);
+        const savedP = pk.waitForResponse(isKeys);
+        await save.click();
+        const saved = await savedP;
+        const savedAnswer = await saved.text();
+        await pk.getByText('OpenAI API key saved.', { exact: true }).waitFor();
+        expect(saved.status() === 200 && !savedAnswer.includes(MARK), `the save answered ${saved.status()}${savedAnswer.includes(MARK) ? ', holding the key' : ''}`);
+        expect((await openaiSource.innerText()) === 'Saved in the app.' && (await field.inputValue()) === '' && await remove.count() === 1,
+          `after Save the source line reads "${await openaiSource.innerText()}", the field is ${(await field.inputValue()) === '' ? '' : 'not '}empty, ${await remove.count()} Remove buttons`);
+        const one = await misfits(['openai']);
+        expect(one.length === 0, `with an OpenAI key only, not as they should be: ${one.join(', ')}`);
+        const file1 = await keysOnDisk();
+        expect(file1 !== null && file1.openai === INVENTED && Object.keys(file1).length === 1, 'the temporary keys file does not hold the OpenAI key alone');
+        const s1 = await status();
+        expect(!JSON.stringify(s1).includes(MARK) && sourceOf(s1, 'openai') === 'settings' && sourceOf(s1, 'claude') === null,
+          `the status ${JSON.stringify(s1).includes(MARK) ? 'holds the key' : `says openai ${String(sourceOf(s1, 'openai'))}, claude ${String(sourceOf(s1, 'claude'))}`}`);
+        expect(!s1.enabled && s1.reason === TUTOR_NEEDS_CLAUDE_KEY && await pk.getByRole('button', { name: 'Ask the tutor' }).count() === 0,
+          `with only an OpenAI key the tutor is ${s1.enabled ? 'on' : 'off, but not for want of a Claude key'}`);
+        expect(!(await pk.content()).includes(MARK), 'the page holds the key after Save');
+
+        // Remove: the key saved in the app goes; with none from .env either, the source is "Not set." and the OpenAI models close again.
+        await remove.click();
+        await pk.getByText('OpenAI API key removed.', { exact: true }).waitFor();
+        expect((await openaiSource.innerText()) === 'Not set.' && await remove.count() === 0, `after Remove the source line reads "${await openaiSource.innerText()}", ${await remove.count()} Remove buttons`);
+        const two = await misfits([]);
+        expect(two.length === 0, `after Remove, not closed with the line naming their key: ${two.join(', ')}`);
+        const file2 = await keysOnDisk();
+        expect(file2 !== null && !Object.hasOwn(file2, 'openai'), 'the temporary keys file still holds an OpenAI entry after Remove, or is gone');
+        const s2 = await status();
+        expect(s2.keys.every((k) => k.source === null) && !s2.enabled, `after Remove the status says ${s2.keys.map((k) => `${k.provider} ${String(k.source)}`).join(', ')}`);
+
+        // Keys never become a setting (T-22), and the key reached no log, journey line or server output.
+        const logs8 = [...(await attempts(logsKeys)), ...(await events(logsKeys))];
+        const journeyText = (await Promise.all((await readdir(JOURNEY_DIR).catch(() => [] as string[])).map((f) => readFile(join(JOURNEY_DIR, f), 'utf8')))).join('\n');
+        expect(!JSON.stringify(logs8).includes(MARK) && !journeyText.includes(MARK) && !keysServer.output.join('').includes(MARK), 'the key is in a log, the journey or the server\'s output');
+        expect(logs8.every((r) => r.event !== 'setting_change' || !/key/i.test(String(r.key))), 'a key was logged as a setting');
+        return 'with no key all five models closed, each described by the line naming its key; "not-a-key" got 400 bad_key and the server\'s line in the alert, nothing written; an invented OpenAI key saved: "Saved in the app.", the field empty, the two OpenAI models usable and the Claude ones still closed, the temporary keys file holds it alone, neither the answer nor the status holds it, the tutor still off (Claude Haiku 5.5 needs a Claude key); Remove: "Not set.", the OpenAI models closed again, no OpenAI entry in the file; the key in no log, journey line or server output';
+      });
+
+      await browser.close();
+      browser = null;
+      await stopServer(server);
+      server = null;
+    }
   } catch (e) {
     results.push({ row: '!', ok: false, detail: (e instanceof Error ? e.message : String(e)).split('\n')[0]! });
     say(`STOPPED: ${results.at(-1)!.detail}`);
@@ -3334,22 +4009,36 @@ async function main(): Promise<number> {
     if (results.some((r) => !r.ok)) say(`Server output:\n${servers.flatMap((x) => x.output).join('').trim()}`);
   }
 
-  await row('JN', 'the study journey recorded the test\'s visits in its own folder (D77)', async () => {
+  await row('JN', 'the study journey recorded the test\'s visits in its own folder (D77), and each tutor question with IDs, the model, counts and the outcome only (D99)', async () => {
     const names = new Set<string>();
     const ends: string[] = [];
+    const tutor: Record<string, unknown>[] = [];
+    let textLines = 0;                                   // lines holding a tutor question's text (every question typed holds "(smoke tu-")
     for (const f of await readdir(JOURNEY_DIR).catch(() => [] as string[])) {
       for (const l of (await readFile(join(JOURNEY_DIR, f), 'utf8')).split('\n').filter(Boolean)) {
         const r = JSON.parse(l) as { event: string; reason?: string };
         names.add(r.event);
         if (r.event === 'session_ended') ends.push(String(r.reason));
+        if (r.event === 'tutor_asked') tutor.push(r as unknown as Record<string, unknown>);
+        if (l.includes('smoke tu-')) textLines++;
       }
     }
     const want = ['session_started', 'screen_viewed', 'item_viewed', 'exercise_submitted', 'hint_opened', 'run_started', 'run_finished', 'case_opened', 'lab_opened',
-      'concept_state_changed', 'session_ended'];
+      'tutor_asked', 'concept_state_changed', 'session_ended'];
     const missing = want.filter((n) => !names.has(n));
     expect(missing.length === 0, `the journey has no ${missing.join(', ')}`);
     expect(ends.includes('app_stop'), `no visit ended at a server's stop (session_ended reasons: ${[...new Set(ends)].join(', ') || 'none'})`);
-    return `${names.size} kinds of event, including ${want.join(', ')}; ${ends.filter((x) => x === 'app_stop').length} visits ended at a stop`;
+    // tutor_asked: the journey's own fields, then screen, item_id, provider, model, effort (block P), the token counts, cost_usd and outcome,
+    // nothing else.
+    const allowed = new Set(['v', 'ts', 'session_id', 'seq', 'event', 'app_version', 'screen', 'item_id', 'provider', 'model', 'effort', 'input_tokens',
+      'cached_input_tokens', 'output_tokens', 'cost_usd', 'outcome']);
+    const extra = [...new Set(tutor.flatMap((t) => Object.keys(t).filter((k) => !allowed.has(k))))];
+    expect(extra.length === 0, `a tutor_asked event holds ${extra.join(', ')}`);
+    expect(tutor.every((t) => t.provider === 'fake' && ['low', 'medium', 'high'].includes(String(t.effort)) && typeof t.output_tokens === 'number' && typeof t.outcome === 'string'),
+      'a tutor_asked event lacks its provider, effort, counts or outcome');
+    expect(textLines === 0, `${textLines} journey lines hold a tutor question's text`);
+    const byOutcome = [...new Set(tutor.map((t) => String(t.outcome)))].map((o) => `${tutor.filter((t) => t.outcome === o).length} ${o}`).join(', ');
+    return `${names.size} kinds of event, including ${want.join(', ')}; ${ends.filter((x) => x === 'app_stop').length} visits ended at a stop; ${tutor.length} tutor_asked events (${byOutcome}) with only the allowed fields, none holding a question's text`;
   });
 
   await row('G', 'the real logs/, journey/ and data/manifest.json are unchanged', async () => {

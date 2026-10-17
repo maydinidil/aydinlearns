@@ -89,7 +89,7 @@ export interface InstanceFact {
   close_date: string;
   /** summarise (core/rating.ts) on the instance's attempts and the help before its close: its graded attempts (S2-07), its first one, its pass. */
   summary: InstanceSummary;
-  /** A hint or "show answer" was opened before the close (help after it is free, S2-44). */
+  /** A hint, "show answer" or an answered tutor question came before the close (help after it is free, S2-44). */
   helped: boolean;
   /** The instance was served as a repeat exposure (replay's reading: any of its records says so). */
   repeat_exposure: boolean;
@@ -154,12 +154,13 @@ export function instanceFacts(replay: ReplayResult, attempts: readonly object[],
       const notes = payload?.portability_notes;
       g.attempts.push({ fact, grader_version: text(r.grader_version) ?? '', notes: Array.isArray(notes) ? notes.filter((n): n is string => typeof n === 'string') : [],
         division_check: divisionCheckOf(payload?.division_check) });
-    } else if (r.record === 'hint_opened' || r.record === 'solution_opened') {
+    } else if (r.record === 'hint_opened' || r.record === 'solution_opened' || (r.record === 'tutor_asked' && r.outcome === 'answered')) {
+      // T-05: an answered tutor question is help at level 1, as replay reads it.
       const ts = text(r.ts);
-      const hint = r.record === 'hint_opened';
-      const level = r.level === 1 || r.level === 2 || r.level === 3 ? r.level : null;
-      if (ts === null || Number.isNaN(Date.parse(ts)) || (hint && level === null)) continue;
-      of(id).help.push({ ts, kind: hint ? 'hint' : 'solution', level: hint ? level : null });
+      const kind: HelpFact['kind'] = r.record === 'hint_opened' ? 'hint' : r.record === 'tutor_asked' ? 'tutor' : 'solution';
+      const level = kind === 'tutor' ? 1 : r.level === 1 || r.level === 2 || r.level === 3 ? r.level : null;
+      if (ts === null || Number.isNaN(Date.parse(ts)) || (kind === 'hint' && level === null)) continue;
+      of(id).help.push({ ts, kind, level: kind === 'solution' ? null : level });
     }
   }
   const out: InstanceFact[] = [];
@@ -362,10 +363,10 @@ export function topicReadiness(a: TopicReadinessInput): SectionReadiness {
  * scored answer (core/rating.ts scoredAnswer: the last graded one before the close, S3-02) of its first instance with a graded attempt
  * (the earliest first graded attempt over its closed instances), as S3-07 reads it (Ruling 18). Outside a run an instance has one
  * answer, so that is its first answer. It is cold when its instance was not a repeat exposure, its first graded attempt was not in a
- * lesson window of its card (lessonWindow), and every hint or "show answer" opened on the item came after it, in any instance: one
- * that closed with no graded attempt and a mini drill's review included (Ruling 17). An item whose answer is not cold has none: a
- * later answer never stands in. Right means correct. `topicOf` gives a fact's GA4 topic; a fact with none is left out. Unlike
- * topicReadiness, no 30-day window.
+ * lesson window of its card (lessonWindow), and every hint, "show answer" or answered tutor question (T-05) on the item came after
+ * it, in any instance: one that closed with no graded attempt and a mini drill's review included (Ruling 17). An item whose answer
+ * is not cold has none: a later answer never stands in. Right means correct. `topicOf` gives a fact's GA4 topic; a fact with none is
+ * left out. Unlike topicReadiness, no 30-day window.
  */
 export function coldAnswers(facts: readonly InstanceFact[], records: readonly object[], cardOf: (conceptId: string) => string, windowMs: number,
   topicOf: (fact: InstanceFact) => string | null): Map<string, ColdAnswer> {
@@ -376,7 +377,7 @@ export function coldAnswers(facts: readonly InstanceFact[], records: readonly ob
   const itemOfInstance = new Map(facts.map((f) => [f.instance_id, f.item_id] as const));
   const firstHelp = new Map<string, number>();
   for (const r of records as Rec[]) {
-    if (r.record !== 'hint_opened' && r.record !== 'solution_opened') continue;
+    if (r.record !== 'hint_opened' && r.record !== 'solution_opened' && !(r.record === 'tutor_asked' && r.outcome === 'answered')) continue;
     const id = text(r.item_instance_id);
     const item = (id === null ? undefined : itemOfInstance.get(id)) ?? text(r.item_id);
     const at = Date.parse(text(r.ts) ?? '');

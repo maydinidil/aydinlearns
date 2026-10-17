@@ -29,6 +29,9 @@ import { tabOf } from './lib/nav.ts';
 import { focusHeading, shouldFocusRoute } from './lib/focus-flow.ts';
 import { choiceSectionOf } from './lib/choice-flow.ts';
 import { screenOf } from './lib/journey.ts';
+import { TutorProvider } from './tutor/TutorContext.tsx';
+import { TutorPanel } from './tutor/TutorPanel.tsx';
+import { tutorStatus } from './tutor/tutor-api.ts';
 
 function useHash(): string {
   const [hash, setHash] = useState(location.hash || '#/');
@@ -43,6 +46,9 @@ export function App() {
   const [ending, setEnding] = useState(false);
   // Each session end that worked: Today drops what was served in the ended session and fetches a fresh plan (Task B15).
   const [sessionEnds, setSessionEnds] = useState(0);
+  // D91, block P: the tutor's button, panel and Alt+T exist only while the server says the tutor is on (switched on, and a key for the
+  // chosen model's provider, saved in Settings or read from .env).
+  const [tutorOn, setTutorOn] = useState(false);
   useEffect(() => { api.status().then(setStatus, () => setNotice(NOT_RUNNING)); }, []);
   // After a route change focus moves to the new screen's heading (Task A2). Not on the first load. A screen whose heading
   // draws a moment later is tried again for a few frames.
@@ -67,6 +73,7 @@ export function App() {
     const { screen, subject_id } = screenOf(hash);
     api.journey(screen, subject_id).catch(() => {});
   }, [hash, journeyOn]);
+  useEffect(() => { if (journeyOn) tutorStatus().then((s) => setTutorOn(s.enabled), () => setTutorOn(false)); }, [journeyOn]);
 
   async function endSession() {
     if (ending) return;
@@ -90,8 +97,9 @@ export function App() {
   // Today is the start (design §14); the map moved to #/map (Task B15).
   const todayScreen = <TodayScreen sessionEnds={sessionEnds} />;
   let screen = todayScreen;
-  // Setup mode: the setup screen is the only screen (design §11).
-  if (status.degraded || parts[0] === 'setup') screen = <SetupScreen />;
+  // Setup mode: the setup screen is the only screen (design §11). Each tutor status Settings reads (after the switch, a key, a model)
+  // decides the tutor's button and panel too (block P).
+  if (status.degraded || parts[0] === 'setup') screen = <SetupScreen onTutorStatus={(s) => setTutorOn(s.enabled)} />;
   else if (parts[0] === 'map') screen = <MapScreen />;
   else if (parts[0] === 'drill') screen = <DrillScreen />;
   // Mistakes and review (S4-13, D32): reached by a link on Today (SQL) and the SQL map, not a top-bar tab; the SQL tab is current.
@@ -131,13 +139,16 @@ export function App() {
   }
   // The tab and the section colour follow the screen picked above: none in setup mode, Today when the route fell through.
   const tab = status.degraded ? null : screen === todayScreen ? 'today' : tabOf(hash);
+  const where = screenOf(hash);
   return (
-    <>
+    <TutorProvider enabled={tutorOn}>
       <AppShell tab={tab} degraded={status.degraded} ending={ending} onEndSession={() => void endSession()}>
         {notice && <p role="status" className="notice">{notice}</p>}
         {/* Keyed by the URL: a screen that failed to draw starts fresh as soon as the learner goes anywhere else. */}
         <main data-section={tab === 'sql' || tab === 'ga4' || tab === 'methodology' ? tab : undefined}><ErrorBoundary key={hash}>{screen}</ErrorBoundary></main>
       </AppShell>
-    </>
+      {/* The tutor's side panel (sprint T), outside <main>, so the screen's text it sends never holds the panel itself. */}
+      {tutorOn && !status.degraded && <TutorPanel screen={where.screen} subject={where.subject_id} />}
+    </TutorProvider>
   );
 }

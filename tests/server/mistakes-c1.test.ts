@@ -44,8 +44,8 @@ async function deps(log: JsonlLog, servings: Servings): Promise<AppDeps> {
 }
 const CARD = mistakeCardId(FIXTURE_CONCEPT, 'ERR-LOG-14');      // the fixture's keys plant ERR-LOG-14 ('SELECT city FROM stores')
 
-test('D28: card_id arrived with log version 3; the version is 5 since D68 (sprint 5b)', () => {
-  assert.equal(SCHEMA_VERSION, 5);
+test('D28: card_id arrived with log version 3; the version is 6 since D95 (sprint T)', () => {
+  assert.equal(SCHEMA_VERSION, 6);
 });
 
 test('D28: a serving keeps its card_id, and get hands out a copy', () => {

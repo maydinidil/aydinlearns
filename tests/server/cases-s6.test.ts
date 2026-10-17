@@ -8,6 +8,7 @@ import { mkdtemp } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { Hono } from 'hono';
+import { SCHEMA_VERSION } from '../../core/envelope.ts';
 import { openJsonlLog } from '../../core/jsonl.ts';
 import { createApp, type AppDeps } from '../../server/app.ts';
 import { loadContent, unavailableLine, type ContentStore } from '../../server/content.ts';
@@ -127,7 +128,7 @@ test('S6-15: the CRAFT ticks are logged in the rubric self-check\'s ticked list 
   await post(app4, `/api/cases/${DAILY_ID}/insight`, { text: 'An insight.' });
   assert.deepEqual(await json(post(app4, `/api/cases/${DAILY_ID}/rubric`, { ticked: ['number', 'grain_comment', 'reconciliation'] })), { ok: true });
   const rubric = (await attempts(d4)).find((x) => x.record === 'self_check' && x.kind === 'rubric');
-  assert.deepEqual([rubric.ticked, rubric.schema_version], [['number', 'grain_comment', 'reconciliation'], 5], 'no log change: the same record, version 5');
+  assert.deepEqual([rubric.ticked, rubric.schema_version], [['number', 'grain_comment', 'reconciliation'], SCHEMA_VERSION], 'no log change: the same record, at the current version');
   const app3 = createApp(await deps(await storeOf({ records: (r) => { r.daily.level = 3; } })));
   await post(app3, `/api/cases/${DAILY_ID}/insight`, { text: 'An insight.' });
   assert.equal((await post(app3, `/api/cases/${DAILY_ID}/rubric`, { ticked: ['grain_comment'] })).status, 400, 'a level 3 case has no CRAFT tick');

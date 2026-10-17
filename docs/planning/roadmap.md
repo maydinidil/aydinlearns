@@ -52,6 +52,7 @@ learner's effort is never the lever. Every slice goes live before the goal it se
 | 5a (done) | 4 (Methodology) | 2026-11-02 | G-GA4-CERT (2026-11-13); Methodology for the knowledge interview | Done, merged in PR #42 and released as 1.0 (tag `v1.0.0`, 2026-10-08): all Methodology areas can be practised (78 concepts, 478 questions), an A/B test with a daily case, a polish pass, version 1.0.0. See [the sprint 5a record](2026-10-08-sprint-5a-record.md) |
 | 5b | 4 (GA4) | 2026-11-02 | G-GA4-CERT (2026-11-13) | The GA4 readiness check can be taken; released as 1.1 |
 | 6 | 5 | 2026-11-09 | G-SQL-LEVEL-4 (2026-11-27): level 4 and a first real-data analysis | Level 4 is completable; a first real-data analysis can be done |
+| T (done) | AI tutor | 2026-10-17 | All goals: help that teaches on every screen | Done: the tutor's "done when" is met (smoke rows on the fake model; the live eval 20 of 20 on `claude-haiku-5-5`); release 1.6.0. See [the sprint T record](2026-10-16-sprint-t-record.md) |
 | 7 | 6 | 2026-11-20 | G-STAGE-2 to 5 and G-RECRUITMENT-READY (2026-12-11): the recruiter mocks; applications go out | Every recruiter mock runs end to end, and the readiness board shows all six stages |
 | 8 | 7 | 2026-12-07 | G-SQL-LEVEL-6 (2026-12-23): business patterns and SaaS cases | Level 6 is completable; SaaS cases pass on LedgerLoop |
 | 9+ | rest of v1 | January onward | G-SQL-LEVEL-7 (2027-01-29) | Not set in the design yet; set it when planning |
@@ -349,9 +350,36 @@ E-073 to E-076, E-078, E-081, E-086, E-098, E-102, E-107). Deferred findings tha
 DATE minus DATE detection; deep nested subqueries; raw TV category variants.
 **Done when:** level 4 is completable, and a first real-data analysis can be done.
 
+## Sprint T: the AI tutor (release 1.6.0)
+
+Between sprints 6 and 7, asked for by the owner on 2026-10-16. Spec
+[`docs/superpowers/specs/2026-10-16-aydinlearns-ai-tutor-design.md`](../superpowers/specs/2026-10-16-aydinlearns-ai-tutor-design.md)
+(decisions D91 to D99); plan
+[`docs/superpowers/plans/2026-10-16-aydinlearns-sprint-t.md`](../superpowers/plans/2026-10-16-aydinlearns-sprint-t.md).
+An opt-in tutor on every screen: it sees what the learner sees, teaches before a pass and explains after, and counts as
+help like hint 1 on an unpassed item. Five Claude and OpenAI models (Claude Haiku 5.5 by default), the keys and the
+effort picked in Settings, and a daily cap that can be turned off (block P, added on 2026-10-17).
+
+**Status: done, merging as 1.6.0 (2026-10-17), the public release `v1.6.0` after the merge.** Tasks T0 to T12 with a
+review each, then block P (P1 to P3) and Codex F34; rulings T-01 to T-23; the live eval at medium effort on prompt
+version 4 passed 20 of 20 on each of Claude Haiku 5.5, Claude Sonnet 5.5, GPT-6 Luna and GPT-6.1 Sol. Its rulings,
+reviews and deferred findings are in [the sprint T record](2026-10-16-sprint-t-record.md).
+
+**Done when:**
+
+| Check | How it is shown |
+|---|---|
+| On every screen, a question gets a reply that streams in and refers to what is on that screen | Smoke rows with a fake model; one live run with the owner's key |
+| Before a pass, the tutor teaches and does not hand over the answer | The live eval |
+| The tutor never receives an answer key the learner has not been shown | A test that the tutor's server code imports nothing from `content/keys/`, and context tests |
+| Asking about an item before passing it lowers that item's rating honestly | Replay and rating tests |
+| With no key in `.env`, the app makes no outside call and shows no tutor button | Tests and a smoke row |
+| Switching between Claude and OpenAI is one setting in `.env` | Provider tests |
+| A day's spend stops at the cap | Spend tests |
+
 ## Sprint 7: slice 6, SQL level 5 and the recruiter mocks
 
-Live by 2026-11-20. Applications go out after this slice.
+Live by 2026-11-20. Applications go out after this slice. Ships as 1.7.0.
 
 **Contents and jobs:**
 1. Level 5, window functions (7 concepts, SQL-WIN-01 to -07), on Voltmarkt and Mailvora; solved
@@ -404,7 +432,7 @@ ERRATA with Slice = after-apps: E-008, E-065 to E-067, E-083, E-085, E-095, E-09
 
 The BigQuery and GA4-export bridge, with TheLook and the GA4 sample; the remaining datasets
 (Dominick's, Carbo-Loading, Criteo, Robyn, Meridian); copying `core/` into aydindutch; PL-300 and
-Power BI; a runtime AI tutor. ERRATA with Slice = post-v1: 10 entries.
+Power BI. ERRATA with Slice = post-v1: 10 entries. (The runtime AI tutor moved into sprint T.)
 
 Out of scope for v1 (design §19): Excel, executing SQL on PostgreSQL or BigQuery, phone access,
 more than one user, audio, Dutch.

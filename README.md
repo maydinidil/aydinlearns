@@ -146,6 +146,52 @@ edit it; for anything more, open it in any DuckDB 1.5 client. The twelve starter
 **Never kept:** an exercise's text, a query, an answer, a note, a self-check's or lab's own words, a portfolio export's
 file paths, or personal data. The events carry IDs, counts, times, outcomes and screen names only.
 
+## The AI tutor
+
+Optional, and off until you add a key. A tutor panel on every screen ("Ask the tutor", or Alt+T) answers questions
+about what is on that screen. It sees the screen's text and your work on it (the query in the editor, the option you
+picked, the case step in view) and the item's public course content, never an answer key.
+
+- **It teaches before you pass.** Until an exercise is passed or its answer shown, or a question is answered, it
+  explains the idea and points at what is off, but never writes the full query, names the correct option or gives the
+  final number. After a pass it explains fully.
+- **It counts as help.** A question about an exercise you have not passed lowers that item's rating like hint 1. After
+  a pass, or once the item is closed, a question costs nothing.
+- **It waits during timed runs.** In a timed drill or mock, the tutor opens in the review at the end, like the hints.
+- **One thread per item or screen**, kept while the app is open. "New question" starts again.
+
+To turn it on, open Settings and find "The AI tutor". Paste a Claude key, an OpenAI key or both under "Keys" and
+save: the tutor is on at once, with no restart. The app keeps saved keys in `tutor-keys.json` in the app folder (git
+ignores it) and never shows one again; "Remove" deletes it. A key in `.env` (`ANTHROPIC_API_KEY`, `OPENAI_API_KEY`)
+also works, and a key saved in Settings wins over it. The same card holds the rest:
+
+| Setting | Choices | Default |
+|---|---|---|
+| Use the AI tutor | On or off | On (it still needs a key) |
+| Model | Claude Haiku 5.5, Claude Sonnet 5.5, Claude Opus 5.5, GPT-6 Luna, GPT-6.1 Sol, each shown with its price | Claude Haiku 5.5 |
+| Effort | Low, Medium or High: higher effort thinks longer, so replies are slower and cost more | Medium |
+| Daily budget | 0.05 to 20 US dollars, or "No daily limit" | $1 |
+
+A model needs its provider's key: without one it is listed but cannot be picked.
+
+**What it sends:** the screen's text and the parts each screen adds, your question, the last six exchanges of the
+thread, and the item's public course content, with your local folder paths and username removed first. In a mixed
+set or a review, where the screen hides which concept a question is on, the tutor is not told either. **Never:** an
+answer key, a held-out mock question, the logs, the journey, a file path or the key itself. A key from `.env` is read
+once when the app starts; a key saved in Settings stays in `tutor-keys.json`. Neither is ever sent to the browser,
+logged or exported.
+
+**Cost and the budget:** at medium effort a question costs under a tenth of a cent on Haiku or Luna, about half a cent
+on Sol and about a cent on Sonnet (the 20-question test below cost about $0.01, $0.006, $0.11 and $0.17). A daily
+budget, $1 unless you change it in Settings, is checked before every call; with "No daily limit" nothing is checked,
+and the day's spend is still shown.
+Each question writes one `tutor_asked` record with its model, effort, token counts, cost and outcome, never its text;
+with telemetry on, the counts go to your backend too.
+
+`npm run eval:tutor -- --model <id> --effort <level>` asks a model 20 fixed questions and checks that it never gives
+the answer before a pass (Claude Haiku 5.5 at medium effort when no option is given). It calls the provider with your
+key.
+
 ## How it teaches
 
 - **Graded on results, not on text.** The learner's SQL runs in DuckDB on a fictional
@@ -164,6 +210,7 @@ file paths, or personal data. The events carry IDs, counts, times, outcomes and 
 - **Interview labs.** Ten GA4 tasks done in Google's demo account. The app stores no reference
   numbers, because the demo data changes daily: it checks the values against each other, and
   asks for the same screen again a week later.
+- **An optional AI tutor** that teaches rather than tells, on every screen (see [The AI tutor](#the-ai-tutor)).
 
 | An SQL exercise | A GA4 mini drill |
 |---|---|
@@ -193,16 +240,16 @@ checked before they ship: 18,674 automated content checks (18,716 with the real 
 that solves every exercise without seeing its answer key). The design, the plans, every ruling
 and the review logs are in `docs/`.
 
-Today: 2,271 automated tests, 248 data pipeline tests, 18,674 content checks (18,716 with the real datasets) and a 75-row browser smoke test, all passing.
+Today: 2,457 automated tests, 248 data pipeline tests, 18,674 content checks (18,716 with the real datasets) and an 84-row browser smoke test, all passing.
 
 ## Status
 
-Version 1.5 (2026-10-16). Built: SQL levels 1 to 4 with the scheduler, Today, drills, level
+Version 1.6 (2026-10-17). Built: SQL levels 1 to 4 with the scheduler, Today, drills, level
 openers, cases and the inbox, mistake cards, the portfolio export, the Progress screen, the
 dataset explorer and screen mode; GA4 complete (lessons, mini drills, half-mocks, full mocks,
 the readiness check and the interview labs); Methodology complete; optional telemetry (1.2) and
 the study journey (1.3); SQL level 4, raw data and the incident tickets (1.4); Mailvora, the marketing cases and the first
-real datasets (1.5). Later 1.x releases add SQL levels 5 to 7, more companies and real datasets, and the recruiter mocks. See
+real datasets (1.5); the opt-in AI tutor (1.6). Later 1.x releases add SQL levels 5 to 7, more companies and real datasets, and the recruiter mocks. See
 `docs/planning/roadmap.md` and `CHANGELOG.md`.
 
 It runs on Windows 11; other systems are untested.
@@ -245,14 +292,15 @@ The app itself:
 |---|---|
 | `core/` | Domain-free engine code: the log records, events and goals. aydindutch copies it later |
 | `schemas/` | The app's types (exercises, keys, lessons, curriculum, the log extension) and the grading test cases |
-| `server/` | The local server: the SQL runner (`server/runner/`), the grader (`server/grader/`), the logs and the routes |
-| `web/` | The screens: Today, the maps, lessons, exercises, timed runs, and settings and setup |
+| `server/` | The local server: the SQL runner (`server/runner/`), the grader (`server/grader/`), the logs, the routes and the AI tutor (`server/tutor/`) |
+| `web/` | The screens: Today, the maps, lessons, exercises, timed runs, settings and setup, and the tutor panel (`web/src/tutor/`) |
 | `content/` | The SQL, GA4 and Methodology curricula, lessons and exercises, their answer keys (`content/keys/`), and the dataset registry (`content/datasets/registry.json`) |
 | `pipeline/` | The Python build for the course database (Voltmarkt and Mailvora), and the real-data prep in `pipeline/datasets/` |
-| `tools/` | The content checks, the ERRATA check, the import check, the curriculum extractor, the blind-solver tools, the launcher (`tools/launch.ts`) and `npm run journey` (`tools/journey.ts`, with its views in `tools/journey-views.sql`) |
+| `tools/` | The content checks, the ERRATA check, the import check, the curriculum extractor, the blind-solver tools, the launcher (`tools/launch.ts`), `npm run journey` (`tools/journey.ts`, with its views in `tools/journey-views.sql`) and the tutor's live eval (`tools/tutor-eval.ts`) |
 | `tests/` | The test suite, plus the browser smoke test in `tests/e2e/` |
 | `data/`, `logs/` | The built course database (with any real data you prepared, in `data/real/`) and the attempt log. Git ignores both; the log is backed up to the folder chosen in Settings after each session |
 | `journey/` | The [study journey](#your-study-journey) (D77) and the database `npm run journey` builds from it. Git ignores it |
+| `tutor-eval/` | The replies `npm run eval:tutor` saves for reading. Git ignores it |
 
 Design §11 has the full layout.
 
@@ -289,6 +337,7 @@ To check and build from clean, run these in order:
 | `npm run check:errata` | Checks `knowledge/ERRATA.md` |
 | `npm run check:content` | Runs the content checks on every lesson and exercise, including the blind solver records |
 | `npm run build:web` | Builds the screens into `web/dist`, which `npm start` serves |
+| `npm run eval:tutor` | Optional, and it spends a few cents of your key: asks a model (`-- --model <id> --effort <level>`; Haiku 5.5 at medium by default) 20 fixed questions and checks it never gives the answer before a pass. It prints PASS or FAIL per question; the replies go to `tutor-eval/<date>-<model>-<effort>-prompt-v<n>/`. `node tools/tutor-eval.ts --recheck <folder>` re-scores saved replies with no call |
 | `npm run test:e2e` | The browser smoke test. It starts its own server on port 5174, or on `AYDINLEARNS_PORT` when that is set, so stop `npm start` first or use another port. It starts from an empty temporary log and a temporary journey folder, and never writes to the real `logs/` or `journey/` |
 
 For generating content (see `docs/content/`):
