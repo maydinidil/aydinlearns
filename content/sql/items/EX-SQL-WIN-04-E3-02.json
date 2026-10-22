@@ -1,0 +1,128 @@
+{
+  "id": "EX-SQL-WIN-04-E3-02",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "running_total",
+    "cumulative_share",
+    "ad_spend_daily",
+    "cte"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-04"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-WIN-04",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-WIN-01",
+    "SQL-WIN-04"
+  ],
+  "template_id": "T-WIN-04-first-day-past-share",
+  "template_params": {
+    "table": "ad_spend_daily",
+    "group": "channel",
+    "share": 50
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "mailvora",
+  "schema": "mailvora",
+  "edge_schema": "mailvora_edge_win",
+  "prompt": "For each channel with ad spend from 1 July to 31 October 2025, on which UTC day did its cumulative spend since 1 July first reach half of its total spend over that whole period? Return channel_id and half_spend_date. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "channel_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "half_spend_date",
+        "type_class": "temporal"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "channel_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "half_spend_date",
+        "type_class": "temporal",
+        "precision": "exact"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "channel_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, give each channel and day its cumulative spend and the channel's total for the period.",
+    "Keep the days whose cumulative spend is at least half the total, then take the earliest of them per channel."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 614,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 615,
+      "to": 668,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 669,
+      "to": 681,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 682,
+      "to": 721,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 722,
+      "to": 741,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "The running total per channel in date order crosses half the total once; the earliest day at or past that point is the answer."
+}

@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-WIN-05-E2-41",
+  "item_version": 1,
+  "correct_oid": "oe6bad0b",
+  "explanation": "The right query adds up the clicks and the impressions over the 7 calendar days with a RANGE frame, divides once, and keeps July only after the window has read late June. Averaging the daily rates weights a quiet day like a busy one. A ROWS frame takes the last 7 rows, which reach back further when a day had no spend. Filtering July before the window leaves 1 to 6 July with short windows.",
+  "solver": {
+    "prompt_hash": "0b3d98a81db7e408",
+    "grader_version": "choice.3",
+    "chosen": "oe6bad0b",
+    "typed": null,
+    "at": "2026-10-20T20:50:48.379Z"
+  }
+}

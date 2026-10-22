@@ -5,13 +5,17 @@
 // A run is one block (S2-46): its items are served with phase drill and one block_id, and no record marks its start.
 // Task B2 (S3-08): the clock of the runs in progress (DrillRuns) holds the timed GA4 runs too (server/run.ts), so one timed run is
 // on at a time across sections. A GA4 run is never an SQL drill: drillRuns leaves its blocks out of the SQL history.
+// Sprint 7 Part 2 (Task N2; S7-15, S7-C25): a take-home mock keeps its own wall clock: a session end (finishAll) never ends it, and
+// openTakeHomes reads the ones the log holds open, which the mock routes rebuild in the clock at an app start (routes/mock-cases.ts).
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
+import { countsAsAttempt } from '../core/rating.ts';
 import { isUnreached } from '../core/replay.ts';
 import { interleave } from '../core/session.ts';
 import type { ConceptStateName } from '../core/states.ts';
 import { amsterdamDate } from '../core/time.ts';
 import type { SqlItem } from '../schemas/item.ts';
+import type { MockKind } from '../schemas/mock.ts';
 import type { ChoiceRunPlan } from './run.ts';
 
 const DAY_MS = 86_400_000;
@@ -23,6 +27,15 @@ export const CHOSEN_QUESTIONS = 10;
 export const HELP_WAITS = 'Help opens in the end-of-run review.';
 /** S2-42: an answer to an item of a run that is over. */
 export const RUN_OVER = 'This drill has ended, so it takes no more answers. Its review is open.';
+/** S2-42 and S7-06 in a mock's words: an answer to an item of a mock run that is over. */
+export const MOCK_RUN_OVER = 'This mock has ended, so it takes no more answers. Its review is open.';
+/**
+ * F4-2-1: a question named through an instance its mock run does not hold: one served before an app restart, which the rebuilt take-home
+ * (S7-C25) replaced. Sent with CODE_RUN_CHANGED (server/run.ts), so the screen reads the run again and opens the question on its new instance.
+ */
+export const MOCK_RUN_CHANGED = 'This question was opened before the app restarted, so it opens again.';
+/** S7-03: each question takes one graded answer (ONE_ANSWER's pattern, server/run.ts, in the mock's words). */
+export const MOCK_ONE_ANSWER = 'This question already has its answer. A mock takes one answer per question.';
 
 const message = (e: unknown): string => (e instanceof Error ? e.message : String(e));
 const str = (v: unknown): string | null => (typeof v === 'string' && v !== '' ? v : null);
@@ -536,9 +549,18 @@ export function liveReps(attempts: object[], events: object[] = []): { local_dat
 // ---- the runs in progress (S2-42) ---------------------------------------------------------------------------------
 
 export interface RunServing { item_id: string; item_instance_id: string }
-/** What a run asks: an SQL drill's plan, or a GA4 mini drill's or half-mock's (Task B2, server/run.ts). */
-export type RunPlan = DrillPlan | ChoiceRunPlan;
+/**
+ * Sprint 7 (S7-01, S7-02): a recruiter mock in the run clock, so one timed run is on at a time across every kind (S3-08) and help waits
+ * while it is on (HELP_WAITS). `form_id` and `on_unseen` are what its start decided and its mock_open logged (S7-04); `minutes` is its
+ * limit; `started_at` (ms) is its mock_open's time. The mock routes start and end it (Task M2); server/mocks.ts derives its result.
+ */
+export interface MockPlan { kind: 'mock'; mock: MockKind; form_id: string; minutes: number; on_unseen: boolean; started_at: number }
+/** What a run asks: an SQL drill's plan, a GA4 mini drill's or half-mock's (Task B2, server/run.ts), or a recruiter mock's (sprint 7). */
+export type RunPlan = DrillPlan | ChoiceRunPlan | MockPlan;
 export const isDrillPlan = (p: RunPlan): p is DrillPlan => p.kind === 'level' || p.kind === 'chosen' || p.kind === 'cumulative';
+export const isMockPlan = (p: RunPlan): p is MockPlan => p.kind === 'mock';
+/** S7-15: a take-home run, which keeps its own wall clock: a session end and the idle end never end it. */
+export const isTakeHome = (run: { plan: RunPlan }): boolean => isMockPlan(run.plan) && run.plan.mock === 'take_home';
 export interface RunEntry {
   block_id: string; plan: RunPlan; started_at: number; ends_at: number; servings: RunServing[];
   /** The latest attempt the run logged, ms: its end is never stamped before it. */
@@ -573,6 +595,73 @@ export function drillRunView(run: RunEntry & { plan: DrillPlan }) {
     ...(p.fill ? { fill: p.fill } : {}), ...(p.overall ? { overall: p.overall } : {}) };
 }
 
+/**
+ * S7-09 (Task M2): a screen mock's draw: its form's items from the mock store, in the form's order (levels 1 to 4, then two of level 5),
+ * each one a blank-editor or fix-this-query item. Null when one is missing or of another kind (content check C54 keeps the forms whole).
+ */
+export function screenMockDraw(itemIds: readonly string[], mockItem: (id: string) => SqlItem | undefined): SqlItem[] | null {
+  const items = itemIds.map(mockItem);
+  return items.every((i): i is SqlItem => i !== undefined && (i.kind === 'write' || i.kind === 'fix')) ? items : null;
+}
+
+/**
+ * What a mock's start answers, and a second start of any run while it is on (S7-02): the run, its form, its limit and its items. `deadline_at`
+ * is its minutes after it opened; `ends_at` is when the run clock ends it: the deadline, except for a take-home, which takes late answers
+ * until it is handed in or closes `close_after_hours` after it opened (S7-15).
+ */
+export function mockRunView(run: RunEntry & { plan: MockPlan }) {
+  const p = run.plan;
+  return { block_id: run.block_id, kind: p.kind, mock: p.mock, form_id: p.form_id, phase: 'mock' as const, hide_labels: true, minutes: p.minutes,
+    on_unseen: p.on_unseen, ends_at: new Date(run.ends_at).toISOString(), deadline_at: new Date(p.started_at + Math.round(p.minutes * 60_000)).toISOString(),
+    servings: run.servings };
+}
+
+/**
+ * S7-15 (ruling S7-C25): a take-home run the log holds open: its mock_open with no block_close, the instance of each item it answered, and
+ * (F4-3-2) the instance of each item it tried, a crash included.
+ */
+export interface OpenTakeHome {
+  block_id: string; form_id: string;
+  /** Its mock_open's minutes; null when the record has none (N2 M9: the caller reads the rules' minutes then, as mockRuns does). */
+  minutes: number | null; on_unseen: boolean;
+  /** Its mock_open's time, ms. */
+  started_at: number;
+  /** Each item of the run with an answer that counts (a checkpoint's own ID, or CP3's SQL item), to the instance that answered it first. */
+  answered: Map<string, string>;
+  /**
+   * F4-3-2: each item of the run with any attempt in its block, a crash included, to the instance of its first attempt. A restart leaves
+   * these open too (S7-C25: no close early), and the rebuild serves an item with no answer that counts on this instance.
+   */
+  attempted: Map<string, string>;
+}
+/**
+ * S7-15 (ruling S7-C25): the take-home runs the attempt files hold open, which an app start rebuilds in the run clock with their answered
+ * checkpoints and their own wall clock, however old: the clock closes one 24 hours old or more at the first request (its block_close then,
+ * stamped at its close). Read from the records alone, in log order; an answer that counts is countsAsAttempt's (never a crash, a refused
+ * statement or an "I was right" copy).
+ */
+export function openTakeHomes(records: readonly object[]): OpenTakeHome[] {
+  const opens = new Map<string, OpenTakeHome>();
+  const closed = new Set<string>();
+  for (const r of records as readonly Rec[]) {
+    const block = str(r.block_id);
+    if (block === null) continue;
+    if (r.record === 'block_close') closed.add(block);
+    else if (r.record === 'mock_open' && r.mock === 'take_home' && !opens.has(block)) {
+      const at = Date.parse(str(r.ts) ?? '');
+      if (Number.isNaN(at)) continue;
+      opens.set(block, { block_id: block, form_id: str(r.form_id) ?? '', minutes: typeof r.minutes === 'number' && r.minutes > 0 ? r.minutes : null,
+        on_unseen: r.on_unseen === true, started_at: at, answered: new Map(), attempted: new Map() });
+    } else if (r.record === 'attempt' && r.phase === 'mock') {
+      const item = str(r.item_id), id = str(r.item_instance_id), run = opens.get(block);
+      if (!run || item === null || id === null) continue;
+      if (!run.attempted.has(item)) run.attempted.set(item, id);
+      if (countsAsAttempt(r) && !run.answered.has(item)) run.answered.set(item, id);
+    }
+  }
+  return [...opens.values()].filter((t) => !closed.has(t.block_id));
+}
+
 /** Runs `fn` after `ms`, and returns its cancel. The real timer never keeps the process alive. */
 export type Schedule = (fn: () => void, ms: number) => () => void;
 const realSchedule: Schedule = (fn, ms) => {
@@ -604,12 +693,22 @@ export class DrillRuns implements DrillGate {
    */
   readonly endedHere = new Set<string>();
   readonly finishSent = new Set<string>();
+  /** Sprint 7 (Task M2): what runs after each run's end is written, in the order added (the mock routes' run_finished). */
+  readonly #afterEnd: ((run: RunEntry) => Promise<void>)[] = [];
 
   constructor(o: { end: (run: RunEntry, at: Date) => Promise<void>; now?: () => number; schedule?: Schedule }) {
     this.#end = o.end;
     this.#now = o.now ?? Date.now;
     this.#schedule = o.schedule ?? realSchedule;
   }
+
+  /**
+   * Sprint 7 (Task M2): `fn` runs after every run's end is written (its closes and its block_close), however the run ended, before the
+   * run leaves the registry. It must not throw: it catches its own failures, as an end's run_finished does (routes/drill.ts).
+   */
+  afterEnd(fn: (run: RunEntry) => Promise<void>): void { this.#afterEnd.push(fn); }
+  /** The run clock's time, ms: the injected clock in a test (AppDeps.runClock), else the real one. */
+  now(): number { return this.#now(); }
 
   start(r: Omit<RunEntry, 'last' | 'inFlight'>): RunEntry {
     const run: RunEntry = { ...r, servings: [...r.servings], last: r.started_at, inFlight: new Set() };
@@ -630,9 +729,12 @@ export class DrillRuns implements DrillGate {
     const t = this.#now();
     for (const run of [...this.#active.values()]) if (t >= run.ends_at) await this.finish(run, run.ends_at);
   }
-  /** A session end (S2-16): every run ends, stamped at the session's end or its own limit, whichever came first. */
+  /**
+   * A session end (S2-16): every run ends, stamped at the session's end or its own limit, whichever came first. S7-15: except a take-home,
+   * whose clock is wall time from its mock_open: a session end or an app stop never ends it.
+   */
   async finishAll(at: Date): Promise<void> {
-    for (const run of [...this.#active.values()]) await this.finish(run, at.getTime());
+    for (const run of [...this.#active.values()]) if (!isTakeHome(run)) await this.finish(run, at.getTime());
   }
   /** Ends the run once; a second call gets the first one's promise. `at` defaults to now. */
   finish(run: RunEntry, at?: number): Promise<void> {
@@ -647,6 +749,7 @@ export class DrillRuns implements DrillGate {
         await Promise.allSettled([...run.inFlight]);
         const asked = at ?? this.#now();
         await this.#end(run, new Date(Math.max(Math.min(asked, run.ends_at), run.last)));
+        for (const fn of this.#afterEnd) await fn(run);
       } finally {
         this.#active.delete(run.block_id);
         this.#ending.delete(run.block_id);

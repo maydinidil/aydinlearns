@@ -1,0 +1,44 @@
+{
+  "item_id": "EX-SQL-WIN-06-E2-03",
+  "item_version": 2,
+  "reference_sql": "WITH placed AS (  -- one row per product, placed within its category by unit cost\n  SELECT category_id, product_id, unit_cost_eur,\n         DENSE_RANK() OVER (PARTITION BY category_id ORDER BY unit_cost_eur DESC) AS cost_place\n  FROM products\n)\nSELECT category_id, product_id, unit_cost_eur, cost_place\nFROM placed\nWHERE cost_place <= 2",
+  "alternatives": [
+    "SELECT p.category_id, p.product_id, p.unit_cost_eur, p.cost_place\nFROM (\n  -- one row per product, placed within its category by unit cost\n  SELECT category_id, product_id, unit_cost_eur,\n         DENSE_RANK() OVER (PARTITION BY category_id ORDER BY unit_cost_eur DESC) AS cost_place\n  FROM products\n) AS p\nWHERE p.cost_place <= 2",
+    "SELECT category_id, product_id, unit_cost_eur,\n       DENSE_RANK() OVER (PARTITION BY category_id ORDER BY unit_cost_eur DESC) AS cost_place\nFROM products\nQUALIFY cost_place <= 2"
+  ],
+  "other_way": {
+    "sql": "SELECT category_id, product_id, unit_cost_eur,\n       DENSE_RANK() OVER (PARTITION BY category_id ORDER BY unit_cost_eur DESC) AS cost_place\nFROM products\nQUALIFY cost_place <= 2",
+    "tradeoff": "QUALIFY filters the window result in the same query, which is shorter, but PostgreSQL, MySQL and SQL Server do not accept it."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-40",
+      "sql": "WITH placed AS (SELECT category_id, product_id, unit_cost_eur, ROW_NUMBER() OVER (PARTITION BY category_id ORDER BY unit_cost_eur DESC, product_id) AS cost_place FROM products) SELECT category_id, product_id, unit_cost_eur, cost_place FROM placed WHERE cost_place <= 2"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-37",
+      "sql": "WITH placed AS (SELECT category_id, product_id, unit_cost_eur, DENSE_RANK() OVER (ORDER BY unit_cost_eur DESC) AS cost_place FROM products) SELECT category_id, product_id, unit_cost_eur, cost_place FROM placed WHERE cost_place <= 2"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-18",
+      "sql": "WITH placed AS (SELECT category_id, product_id, unit_cost_eur, DENSE_RANK() OVER (PARTITION BY category_id ORDER BY unit_cost_eur) AS cost_place FROM products) SELECT category_id, product_id, unit_cost_eur, cost_place FROM placed WHERE cost_place <= 2"
+    },
+    {
+      "id": "PW4",
+      "error_id": "ERR-SYN-08",
+      "sql": "SELECT category_id, product_id, unit_cost_eur, DENSE_RANK() OVER (PARTITION BY category_id ORDER BY unit_cost_eur DESC) AS cost_place FROM products WHERE DENSE_RANK() OVER (PARTITION BY category_id ORDER BY unit_cost_eur DESC) <= 2"
+    }
+  ],
+  "hint3_partial": "WITH placed AS (  -- one row per product, placed within its category by unit cost\n  SELECT category_id, product_id, unit_cost_eur,\n         ___() OVER (PARTITION BY category_id ORDER BY unit_cost_eur DESC) AS cost_place\n  FROM products\n)\nSELECT category_id, product_id, unit_cost_eur, cost_place\nFROM placed\nWHERE cost_place <= 2",
+  "solver": {
+    "prompt_hash": "55b0ca0e2d3eb66d",
+    "schema_version": "d77fe1c31a0e",
+    "dataset_version": "e7c58abf7e8f892e",
+    "grader_version": "7a.1",
+    "query": "SELECT category_id, product_id, unit_cost_eur, cost_place\nFROM (\n  SELECT category_id, product_id, unit_cost_eur,\n         DENSE_RANK() OVER (PARTITION BY category_id ORDER BY unit_cost_eur DESC) AS cost_place\n  FROM products\n  WHERE unit_cost_eur IS NOT NULL\n) AS ranked\nWHERE cost_place <= 2\n",
+    "at": "2026-10-21T09:05:10.332Z"
+  }
+}

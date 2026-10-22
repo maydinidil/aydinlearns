@@ -11,9 +11,14 @@ export interface SqlPayload {
   /** Codex F24: the integer division re-run's outcome, on a pass only (DivisionCheck, server/grader/types.ts). */
   division_check?: 'no_division' | 'same' | 'changed' | 'not_compared';
 }
-/** The run kind a GA4 run answer logs (D68). server/run.ts's ChoiceRunKind stays as it is until Task B4 widens it to this. */
+/** The run kind a GA4 run answer logs (D68). server/run.ts's ChoiceRunKind is this. */
 export type LoggedRunKind = 'mini_drill' | 'half_mock' | 'full_mock';
-export interface McqPayload { kind: 'mcq'; shown_order: string[]; chosen: string | null; typed?: string; run_kind?: LoggedRunKind }
+/**
+ * D112 (log version 7, S7-11): the run kind a knowledge mock's answer logs, so no GA4 run path (the run history, the retake rule, the
+ * readiness check) reads its block as a half-mock. A knowledge mock is a mock run (server/mocks.ts), never a GA4 run.
+ */
+export type KnowledgeMockRunKind = 'knowledge_mock';
+export interface McqPayload { kind: 'mcq'; shown_order: string[]; chosen: string | null; typed?: string; run_kind?: LoggedRunKind | KnowledgeMockRunKind }
 export interface FreeTextPayload { kind: 'free_text'; text: string }
 
 export type LabPartResult = 'pass' | 'fail' | 'pending' | 'self_yes' | 'self_no' | 'not_checked';

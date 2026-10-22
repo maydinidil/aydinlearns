@@ -41,7 +41,7 @@
       "credits_concepts": [
         "SQL-AGG-01"
       ],
-      "prompt": "In the checkout test AB-2025-01, leave out every customer assigned to both variants. How many of the remaining control customers converted? A customer converted when the customer has at least one conversion in the test at or after the customer's assigned_at, and a customer who converted more than once counts once. Type a whole number.",
+      "prompt": "In the checkout test AB-2025-01, leave out every customer with more than one assignment in the test, such as one in each variant. How many of the remaining control customers converted? A customer converted when the customer has at least one conversion in the test at or after the customer's assigned_at, and a customer who converted more than once counts once. Type a whole number.",
       "typed": {
         "precision": "count",
         "scale": "plain",
@@ -65,7 +65,7 @@
       "kind": "CP4",
       "item_id": "CASE-DAILY-L3-03:CP4",
       "credits_concepts": [],
-      "prompt": "Fleur's headline: what is the relative lift in conversion rate of treatment over control in the checkout test AB-2025-01? Leave out every customer assigned to both variants. A variant's conversion rate is the share of its customers with at least one conversion in the test at or after the customer's assigned_at. The relative lift is the treatment rate minus the control rate, divided by the control rate. Work it out from the unrounded rates, and type it in percent, rounded to 1 decimal, for example 12.5.",
+      "prompt": "Fleur's headline: what is the relative lift in conversion rate of treatment over control in the checkout test AB-2025-01? Leave out every customer with more than one assignment in the test, such as one in each variant. A variant's conversion rate is the share of its customers with at least one conversion in the test at or after the customer's assigned_at. The relative lift is the treatment rate minus the control rate, divided by the control rate. Work it out from the unrounded rates, and type it in percent, rounded to 1 decimal, for example 12.5.",
       "typed": {
         "precision": "ratio",
         "scale": "percent",

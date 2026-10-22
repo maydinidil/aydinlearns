@@ -1,0 +1,39 @@
+{
+  "item_id": "EX-SQL-WIN-01-E2-03",
+  "item_version": 1,
+  "reference_sql": "WITH costed AS (  -- one row per product\n  SELECT product_id, category_id, unit_cost_eur,\n         AVG(unit_cost_eur) OVER (PARTITION BY category_id) AS avg_cost\n  FROM products\n)\nSELECT product_id, category_id, unit_cost_eur, ROUND(avg_cost, 2) AS category_avg_cost\nFROM costed\nWHERE unit_cost_eur > avg_cost",
+  "alternatives": [
+    "WITH category_avg AS (  -- one row per category\n  SELECT category_id, AVG(unit_cost_eur) AS avg_cost\n  FROM products\n  GROUP BY category_id\n)\nSELECT p.product_id, p.category_id, p.unit_cost_eur, ROUND(ca.avg_cost, 2) AS category_avg_cost\nFROM products p\nJOIN category_avg ca ON ca.category_id = p.category_id\nWHERE p.unit_cost_eur > ca.avg_cost",
+    "SELECT t.product_id, t.category_id, t.unit_cost_eur, ROUND(t.avg_cost, 2) AS category_avg_cost\nFROM (\n  -- one row per product\n  SELECT product_id, category_id, unit_cost_eur,\n         AVG(unit_cost_eur) OVER (PARTITION BY category_id) AS avg_cost\n  FROM products\n) AS t\nWHERE t.unit_cost_eur > t.avg_cost"
+  ],
+  "other_way": {
+    "sql": "WITH category_avg AS (  -- one row per category\n  SELECT category_id, AVG(unit_cost_eur) AS avg_cost\n  FROM products\n  GROUP BY category_id\n)\nSELECT p.product_id, p.category_id, p.unit_cost_eur, ROUND(ca.avg_cost, 2) AS category_avg_cost\nFROM products p\nJOIN category_avg ca ON ca.category_id = p.category_id\nWHERE p.unit_cost_eur > ca.avg_cost",
+    "tradeoff": "Joining a per-category average step needs no window, but it is a second step and a join for one comparison."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-SYN-08",
+      "sql": "SELECT product_id, category_id, unit_cost_eur, ROUND(AVG(unit_cost_eur) OVER (PARTITION BY category_id), 2) AS category_avg_cost FROM products WHERE unit_cost_eur > AVG(unit_cost_eur) OVER (PARTITION BY category_id)"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-37",
+      "sql": "WITH costed AS (SELECT product_id, category_id, unit_cost_eur, AVG(unit_cost_eur) OVER () AS avg_cost FROM products) SELECT product_id, category_id, unit_cost_eur, ROUND(avg_cost, 2) AS category_avg_cost FROM costed WHERE unit_cost_eur > avg_cost"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-15",
+      "sql": "WITH costed AS (SELECT product_id, category_id, unit_cost_eur, AVG(unit_cost_eur) OVER (PARTITION BY category_id) AS avg_cost FROM products) SELECT product_id, category_id, unit_cost_eur, ROUND(avg_cost, 2) AS category_avg_cost FROM costed WHERE unit_cost_eur >= avg_cost"
+    }
+  ],
+  "hint3_partial": "WITH costed AS (  -- one row per product\n  SELECT product_id, category_id, unit_cost_eur,\n         AVG(unit_cost_eur) OVER (PARTITION BY category_id) AS avg_cost\n  FROM products\n)\nSELECT product_id, category_id, unit_cost_eur, ROUND(avg_cost, 2) AS category_avg_cost\nFROM costed\nWHERE ___",
+  "solver": {
+    "prompt_hash": "9477f373d050b98a",
+    "schema_version": "d77fe1c31a0e",
+    "dataset_version": "e7c58abf7e8f892e",
+    "grader_version": "7a.1",
+    "query": "WITH x AS (\n  SELECT product_id, category_id, unit_cost_eur,\n         AVG(unit_cost_eur) OVER (PARTITION BY category_id) AS avg_exact\n  FROM products\n)\nSELECT product_id, category_id, unit_cost_eur, ROUND(avg_exact, 2) AS category_avg_cost\nFROM x\nWHERE unit_cost_eur > avg_exact\n",
+    "at": "2026-10-21T09:05:05.447Z"
+  }
+}

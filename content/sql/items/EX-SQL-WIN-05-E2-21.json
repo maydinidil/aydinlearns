@@ -1,0 +1,141 @@
+{
+  "id": "EX-SQL-WIN-05-E2-21",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "moving_average",
+    "aggregate_first",
+    "weekly_units",
+    "drill"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-05"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-WIN-05",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CASE-01",
+    "SQL-TYPE-01",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-WIN-01",
+    "SQL-WIN-04",
+    "SQL-WIN-05"
+  ],
+  "template_id": "T-WIN-05-moving-average-missing",
+  "template_params": {
+    "table": "weekly_units",
+    "group": "category",
+    "window": "4 weeks"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_win",
+  "prompt": "For each of categories 15, 16 and 17 and each week starting from 6 January to 30 June 2025 (week_start, both days included), show the category's net revenue that week (net_revenue_eur in weekly_units, over its products) and the 4-week moving average of that weekly revenue: the average of that week and the 3 weeks before it, rounded to 2 decimals. weekly_units holds a row for every product and week, with 0 when nothing sold, so every category has a row for every week. Within each category, weeks follow each other by week_start. Only weeks in that range count: each category's first three weeks show avg_revenue_4w as missing. Return category_id, week_start, revenue_eur and avg_revenue_4w. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "category_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "week_start",
+        "type_class": "temporal"
+      },
+      {
+        "name": "revenue_eur",
+        "type_class": "numeric"
+      },
+      {
+        "name": "avg_revenue_4w",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "category_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "week_start",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "revenue_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "avg_revenue_4w",
+        "type_class": "numeric",
+        "precision": "money",
+        "require_rounding": 2
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "category_id",
+      "week_start"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, add up each category's revenue per week in a first step, then average it over the week and the 3 weeks before.",
+    "The window runs over one row per category and week, grouped by category; count the same frame to leave the first three weeks missing."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 346,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 347,
+      "to": 665,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 666,
+      "to": 677,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "The first step makes one row per category and week, and the window over it averages 4 weeks only where all 4 are in the range."
+}

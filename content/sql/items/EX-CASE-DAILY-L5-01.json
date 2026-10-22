@@ -1,0 +1,166 @@
+{
+  "id": "EX-CASE-DAILY-L5-01",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "case",
+    "daily",
+    "retail",
+    "window",
+    "share_of_total",
+    "stores",
+    "order_lines"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "case",
+  "target_concept_id": "SQL-WIN-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-WIN-01"
+  ],
+  "template_id": "T-CASE-DAILY-L5-store-share-of-country",
+  "template_params": {
+    "from": "2025-01-01",
+    "to": "2025-07-01",
+    "clock": "UTC",
+    "partition": "country_code",
+    "leave_out": "web"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_win",
+  "prompt": "Yara, in retail operations, is planning extra weekend staff for the summer sales and asks how each country's revenue from January to June 2025 splits between its physical stores. Leave out the webshop, the store with store_type web. Take the orders with an order_ts from 2025-01-01 00:00:00 up to but not including 2025-07-01 00:00:00; order_ts holds UTC time. A store's net revenue is the sum of quantity times unit_price_eur minus line_discount_eur over the lines of its orders in that period, and its country is its country_code. Return one row for each physical store with at least one such order, with four columns, in this order: store_code; country_code; net_revenue_eur, not rounded; and country_share_pct, 100 times the store's net revenue divided by the net revenue of all the physical stores of its country, rounded to 1 decimal. Sort by store_code, from A to Z.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "store_code",
+        "type_class": "text"
+      },
+      {
+        "name": "country_code",
+        "type_class": "text"
+      },
+      {
+        "name": "net_revenue_eur",
+        "type_class": "numeric"
+      },
+      {
+        "name": "country_share_pct",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": true,
+    "sort_keys": [
+      {
+        "column": "store_code",
+        "desc": false
+      }
+    ],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "store_code",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "country_code",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "net_revenue_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "country_share_pct",
+        "type_class": "numeric",
+        "precision": "ratio",
+        "require_rounding": 1
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "store_code"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, build a step with one row per physical store and its net revenue from January to June 2025.",
+    "Divide each store's total by a window total over the stores of the same country, so every store keeps its own row."
+  ],
+  "subgoals": [
+    {
+      "from": 98,
+      "to": 222,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 225,
+      "to": 340,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 343,
+      "to": 477,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 480,
+      "to": 517,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 520,
+      "to": 687,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 688,
+      "to": 706,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 707,
+      "to": 726,
+      "subgoal": "sort_limit"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "A window total over each country's stores sits beside every store's own total, so the share needs no second step and no row is lost."
+}

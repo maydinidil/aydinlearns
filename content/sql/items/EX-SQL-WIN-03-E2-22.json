@@ -1,0 +1,130 @@
+{
+  "id": "EX-SQL-WIN-03-E2-22",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "lead",
+    "campaigns",
+    "tie_break",
+    "drill"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-03"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-WIN-03",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-SORT-01",
+    "SQL-WIN-01",
+    "SQL-WIN-03"
+  ],
+  "template_id": "T-WIN-03-lead-next-date",
+  "template_params": {
+    "table": "campaigns",
+    "group": "channel",
+    "order": "start_date, campaign_id"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "mailvora",
+  "schema": "mailvora",
+  "edge_schema": "mailvora_edge_win",
+  "prompt": "For each campaign, show the start date of the next campaign of the same channel. Within a channel, campaigns follow each other by start_date; when two campaigns of a channel start on the same day, the lower campaign_id comes first. Return campaign_id, channel_id, start_date and next_start_date. A channel's last campaign shows next_start_date as missing. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "campaign_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "channel_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "start_date",
+        "type_class": "temporal"
+      },
+      {
+        "name": "next_start_date",
+        "type_class": "temporal"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "campaign_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "channel_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "start_date",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "next_start_date",
+        "type_class": "temporal",
+        "precision": "exact"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "campaign_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, add the column that reads start_date from the channel's next campaign.",
+    "Look one row ahead within each channel, ordered by start date and then by campaign ID for campaigns that start on the same day."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 43,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 44,
+      "to": 145,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 146,
+      "to": 160,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "LEAD per channel in start-date order, with campaign_id breaking same-day ties, reads the start of the channel's next campaign."
+}

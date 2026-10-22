@@ -1,0 +1,16 @@
+{
+  "screen": { "questions": 6, "minutes": 45, "pass_correct": 5, "mode": "screen", "forms": [
+    { "id": "SCREEN-A", "item_ids": ["EX-MOCK-SCREEN-A-01", "EX-MOCK-SCREEN-A-02", "EX-MOCK-SCREEN-A-03", "EX-MOCK-SCREEN-A-04", "EX-MOCK-SCREEN-A-05", "EX-MOCK-SCREEN-A-06"] },
+    { "id": "SCREEN-B", "item_ids": ["EX-MOCK-SCREEN-B-01", "EX-MOCK-SCREEN-B-02", "EX-MOCK-SCREEN-B-03", "EX-MOCK-SCREEN-B-04", "EX-MOCK-SCREEN-B-05", "EX-MOCK-SCREEN-B-06"] },
+    { "id": "SCREEN-C", "item_ids": ["EX-MOCK-SCREEN-C-01", "EX-MOCK-SCREEN-C-02", "EX-MOCK-SCREEN-C-03", "EX-MOCK-SCREEN-C-04", "EX-MOCK-SCREEN-C-05", "EX-MOCK-SCREEN-C-06"] }
+  ] },
+  "knowledge": { "questions": 30, "minutes": 40, "pass_pct": 80, "per_section": { "methodology": 20, "ga4": 10 } },
+  "case_round": { "minutes": 45, "auto_min": 4, "core_rubric": ["number", "direction", "caveat", "next_step"], "forms": [
+    { "id": "CASE-ROUND-A", "case_id": "CASE-MOCK-A" },
+    { "id": "CASE-ROUND-B", "case_id": "CASE-MOCK-B" }
+  ] },
+  "take_home": { "minutes": 120, "close_after_hours": 24, "auto_min": 4, "core_rubric": ["number", "direction", "caveat", "next_step", "reconciliation"], "forms": [
+    { "id": "TAKE-HOME-A", "case_id": "CASE-TAKE-A" },
+    { "id": "TAKE-HOME-B", "case_id": "CASE-TAKE-B" }
+  ] }
+}

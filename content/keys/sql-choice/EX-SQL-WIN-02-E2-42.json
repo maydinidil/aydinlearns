@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-WIN-02-E2-42",
+  "item_version": 1,
+  "correct_oid": "od819c7c",
+  "explanation": "RANK gives every campaign tied for a channel's most clicks place 1, so r = 1 keeps them all. ROW_NUMBER keeps only one campaign per channel even when two tie, a ranking without PARTITION BY keeps only the campaigns with the most clicks overall, and sorting without DESC keeps the campaigns with the fewest clicks.",
+  "solver": {
+    "prompt_hash": "7fcf04f860b38a3b",
+    "grader_version": "choice.3",
+    "chosen": "od819c7c",
+    "typed": null,
+    "at": "2026-10-20T20:50:48.339Z"
+  }
+}

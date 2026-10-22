@@ -1,0 +1,111 @@
+{
+  "id": "EX-SQL-WIN-04-E3-01",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "cumulative_share",
+    "pareto",
+    "sales",
+    "cte"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-04"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-WIN-04",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CTE-01",
+    "SQL-WIN-01",
+    "SQL-WIN-04"
+  ],
+  "template_id": "T-WIN-04-pareto",
+  "template_params": {
+    "table": "sales",
+    "store": "WEB-01",
+    "share": 60
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_win",
+  "prompt": "How many products make up the first 60% of the webshop's net revenue (store_code WEB-01) from 1 January to 30 June 2025 (UTC order dates, both days included)? Take the products from the highest revenue down; when two products have the same revenue, the lower product_id comes first. Count the products up to and including the first one at which the running revenue reaches 60% of the webshop's total. Return one column, n_products. The result is a single row. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "n_products",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "n_products",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, give each product its running revenue from the top down and the webshop's total, then count.",
+    "A product counts when the running revenue before it is still below 60% of the total: its own running revenue minus its own revenue."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 557,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 558,
+      "to": 587,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 588,
+      "to": 599,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 600,
+      "to": 649,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "Ranked from the top, a product is needed while the revenue before it is below 60% of the total; counting those rows gives the 60% set."
+}

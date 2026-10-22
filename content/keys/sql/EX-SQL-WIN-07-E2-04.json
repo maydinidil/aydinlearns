@@ -1,0 +1,39 @@
+{
+  "item_id": "EX-SQL-WIN-07-E2-04",
+  "item_version": 1,
+  "reference_sql": "WITH touches AS (  -- one row per session a German July 2025 signup's visitor started at or before signing up\n  SELECT s.user_id, ss.session_id, ss.session_start, ss.utm_source\n  FROM signups s\n  JOIN sessions ss ON ss.visitor_id = s.visitor_id\n  WHERE s.country_code = 'DE' AND s.signup_ts >= TIMESTAMPTZ '2025-07-01 00:00:00+00' AND s.signup_ts < TIMESTAMPTZ '2025-08-01 00:00:00+00'\n    AND ss.session_start <= s.signup_ts\n)\nSELECT DISTINCT user_id,\n       LAST_VALUE(utm_source) OVER (PARTITION BY user_id ORDER BY session_start, session_id\n                                    ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS last_touch_source\nFROM touches",
+  "alternatives": [
+    "WITH touches AS (  -- one row per session a German July 2025 signup's visitor started at or before signing up, numbered from the latest\n  SELECT s.user_id, ss.utm_source,\n         ROW_NUMBER() OVER (PARTITION BY s.user_id ORDER BY ss.session_start DESC, ss.session_id DESC) AS rn\n  FROM signups s\n  JOIN sessions ss ON ss.visitor_id = s.visitor_id\n  WHERE s.country_code = 'DE' AND s.signup_ts >= TIMESTAMPTZ '2025-07-01 00:00:00+00' AND s.signup_ts < TIMESTAMPTZ '2025-08-01 00:00:00+00'\n    AND ss.session_start <= s.signup_ts\n)\nSELECT user_id, utm_source AS last_touch_source\nFROM touches\nWHERE rn = 1",
+    "SELECT DISTINCT s.user_id,\n       FIRST_VALUE(ss.utm_source) OVER (PARTITION BY s.user_id ORDER BY ss.session_start DESC, ss.session_id DESC\n                                        ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS last_touch_source\nFROM signups s\nJOIN sessions ss ON ss.visitor_id = s.visitor_id\nWHERE s.country_code = 'DE' AND s.signup_ts >= TIMESTAMPTZ '2025-07-01 00:00:00+00' AND s.signup_ts < TIMESTAMPTZ '2025-08-01 00:00:00+00'\n  AND ss.session_start <= s.signup_ts"
+  ],
+  "other_way": {
+    "sql": "WITH touches AS (  -- one row per session a German July 2025 signup's visitor started at or before signing up, numbered from the latest\n  SELECT s.user_id, ss.utm_source,\n         ROW_NUMBER() OVER (PARTITION BY s.user_id ORDER BY ss.session_start DESC, ss.session_id DESC) AS rn\n  FROM signups s\n  JOIN sessions ss ON ss.visitor_id = s.visitor_id\n  WHERE s.country_code = 'DE' AND s.signup_ts >= TIMESTAMPTZ '2025-07-01 00:00:00+00' AND s.signup_ts < TIMESTAMPTZ '2025-08-01 00:00:00+00'\n    AND ss.session_start <= s.signup_ts\n)\nSELECT user_id, utm_source AS last_touch_source\nFROM touches\nWHERE rn = 1",
+    "tradeoff": "ROW_NUMBER from the latest session keeps one row per user without DISTINCT, but LAST_VALUE names the value it wants."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-42",
+      "sql": "WITH touches AS (SELECT s.user_id, ss.session_id, ss.session_start, ss.utm_source FROM signups s JOIN sessions ss ON ss.visitor_id = s.visitor_id WHERE s.country_code = 'DE' AND s.signup_ts >= TIMESTAMPTZ '2025-07-01 00:00:00+00' AND s.signup_ts < TIMESTAMPTZ '2025-08-01 00:00:00+00' AND ss.session_start <= s.signup_ts) SELECT DISTINCT user_id, LAST_VALUE(utm_source) OVER (PARTITION BY user_id ORDER BY session_start, session_id) AS last_touch_source FROM touches"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-18",
+      "sql": "WITH touches AS (SELECT s.user_id, ss.session_id, ss.session_start, ss.utm_source FROM signups s JOIN sessions ss ON ss.visitor_id = s.visitor_id WHERE s.country_code = 'DE' AND s.signup_ts >= TIMESTAMPTZ '2025-07-01 00:00:00+00' AND s.signup_ts < TIMESTAMPTZ '2025-08-01 00:00:00+00' AND ss.session_start <= s.signup_ts) SELECT DISTINCT user_id, LAST_VALUE(utm_source) OVER (PARTITION BY user_id ORDER BY session_start DESC, session_id DESC ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS last_touch_source FROM touches"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-37",
+      "sql": "WITH touches AS (SELECT s.user_id, ss.session_id, ss.session_start, ss.utm_source FROM signups s JOIN sessions ss ON ss.visitor_id = s.visitor_id WHERE s.country_code = 'DE' AND s.signup_ts >= TIMESTAMPTZ '2025-07-01 00:00:00+00' AND s.signup_ts < TIMESTAMPTZ '2025-08-01 00:00:00+00' AND ss.session_start <= s.signup_ts) SELECT DISTINCT user_id, LAST_VALUE(utm_source) OVER (ORDER BY session_start, session_id ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS last_touch_source FROM touches"
+    }
+  ],
+  "hint3_partial": "WITH touches AS (  -- one row per session a German July 2025 signup's visitor started at or before signing up\n  SELECT s.user_id, ss.session_id, ss.session_start, ss.utm_source\n  FROM signups s\n  JOIN sessions ss ON ss.visitor_id = s.visitor_id\n  WHERE s.country_code = 'DE' AND s.signup_ts >= TIMESTAMPTZ '2025-07-01 00:00:00+00' AND s.signup_ts < TIMESTAMPTZ '2025-08-01 00:00:00+00'\n    AND ss.session_start <= s.signup_ts\n)\nSELECT DISTINCT user_id,\n       LAST_VALUE(utm_source) OVER (PARTITION BY user_id ORDER BY session_start, session_id\n                                    ROWS BETWEEN ___) AS last_touch_source\nFROM touches",
+  "solver": {
+    "prompt_hash": "d1b54a13aec38e0d",
+    "schema_version": "8a14021f2dee",
+    "dataset_version": "e7c58abf7e8f892e",
+    "grader_version": "7a.1",
+    "query": "SELECT u.user_id, s.utm_source AS last_touch_source\nFROM signups u\nJOIN sessions s ON s.visitor_id = u.visitor_id AND s.session_start <= u.signup_ts\nWHERE u.country_code = 'DE'\n  AND u.signup_ts >= TIMESTAMPTZ '2025-07-01 00:00:00+00' AND u.signup_ts < TIMESTAMPTZ '2025-08-01 00:00:00+00'\nQUALIFY ROW_NUMBER() OVER (PARTITION BY u.user_id ORDER BY s.session_start DESC, s.session_id DESC) = 1\n",
+    "at": "2026-10-21T09:05:11.107Z"
+  }
+}

@@ -1,0 +1,144 @@
+{
+  "id": "EX-SQL-WIN-03-E2-32",
+  "version": 1,
+  "kind": "fix",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "lag",
+    "ad_spend_daily",
+    "missing_partition",
+    "cte",
+    "fix"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-03"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-WIN-03",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-WIN-01",
+    "SQL-WIN-03"
+  ],
+  "template_id": "T-WIN-03-fix-partition",
+  "template_params": {
+    "table": "ad_spend_daily",
+    "group": "channel",
+    "order": "spend_date"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "mailvora",
+  "schema": "mailvora",
+  "edge_schema": "mailvora_edge_win",
+  "prompt": "The query in the editor has one mistake. Fix it so that it answers this question: for each channel and each UTC day of October 2025 on which the channel had ad spend, how did the channel's total spend that day change from its previous day with spend in October? Days with no spend are left out, so the previous day with spend can be more than one day back. Return channel_id, spend_date, spend_eur and change_eur, the day's spend minus the previous day's. A channel's first day with spend in October shows change_eur as missing. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "channel_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "spend_date",
+        "type_class": "temporal"
+      },
+      {
+        "name": "spend_eur",
+        "type_class": "numeric"
+      },
+      {
+        "name": "change_eur",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "channel_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "spend_date",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "spend_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "change_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "channel_id",
+      "spend_date"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, look at each channel's first day in the result: whose spend is it compared with?",
+    "The window runs over all channels as one series, so a channel's first day reads the last day of the channel before it; give each channel its own series."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 307,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 308,
+      "to": 349,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 350,
+      "to": 443,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 444,
+      "to": 454,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": "WITH daily AS (\n  -- one row per channel and day with spend\n  SELECT c.channel_id, a.spend_date, SUM(a.spend) AS spend_eur\n  FROM ad_spend_daily a\n  JOIN campaigns c ON c.campaign_id = a.campaign_id\n  WHERE a.spend_date BETWEEN DATE '2025-10-01' AND DATE '2025-10-31'\n  GROUP BY c.channel_id, a.spend_date\n)\nSELECT channel_id, spend_date, spend_eur,\n  spend_eur - LAG(spend_eur) OVER (ORDER BY channel_id, spend_date) AS change_eur\nFROM daily",
+  "starter_error_id": "ERR-LOG-37",
+  "time_target_ms": 180000,
+  "why_this_works": "With one series per channel, each channel's first October day has no row before it, so its change is missing instead of borrowing another channel's spend."
+}

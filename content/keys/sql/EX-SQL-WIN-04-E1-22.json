@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-WIN-04-E1-22",
+  "item_version": 1,
+  "reference_sql": "WITH monthly AS (\n  -- one row per country and month with signups\n  SELECT country_code, CAST(date_trunc('month', signup_ts) AS DATE) AS month, COUNT(*) AS signups\n  FROM signups\n  WHERE signup_ts >= TIMESTAMPTZ '2025-01-01 00:00:00+00'\n    AND signup_ts < TIMESTAMPTZ '2026-01-01 00:00:00+00'\n  GROUP BY country_code, CAST(date_trunc('month', signup_ts) AS DATE)\n)\nSELECT country_code, month, signups,\n  SUM(signups) OVER (PARTITION BY country_code ORDER BY month ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS cumulative_signups\nFROM monthly",
+  "alternatives": [
+    "WITH monthly AS (\n  -- one row per country and month with signups\n  SELECT country_code, CAST(date_trunc('month', signup_ts) AS DATE) AS month, COUNT(*) AS signups\n  FROM signups\n  WHERE signup_ts >= TIMESTAMPTZ '2025-01-01 00:00:00+00'\n    AND signup_ts < TIMESTAMPTZ '2026-01-01 00:00:00+00'\n  GROUP BY country_code, CAST(date_trunc('month', signup_ts) AS DATE)\n)\nSELECT m.country_code, m.month, m.signups,\n  (SELECT SUM(m2.signups) FROM monthly m2 WHERE m2.country_code = m.country_code AND m2.month <= m.month) AS cumulative_signups\nFROM monthly m",
+    "WITH monthly AS (\n  -- one row per country and month with signups\n  SELECT country_code, CAST(date_trunc('month', signup_ts) AS DATE) AS month, COUNT(*) AS signups\n  FROM signups\n  WHERE signup_ts >= TIMESTAMPTZ '2025-01-01 00:00:00+00'\n    AND signup_ts < TIMESTAMPTZ '2026-01-01 00:00:00+00'\n  GROUP BY country_code, CAST(date_trunc('month', signup_ts) AS DATE)\n)\nSELECT m.country_code, m.month, m.signups, SUM(e.signups) AS cumulative_signups\nFROM monthly m\nJOIN monthly e ON e.country_code = m.country_code AND e.month <= m.month\nGROUP BY m.country_code, m.month, m.signups"
+  ],
+  "other_way": {
+    "sql": "WITH monthly AS (\n  -- one row per country and month with signups\n  SELECT country_code, CAST(date_trunc('month', signup_ts) AS DATE) AS month, COUNT(*) AS signups\n  FROM signups\n  WHERE signup_ts >= TIMESTAMPTZ '2025-01-01 00:00:00+00'\n    AND signup_ts < TIMESTAMPTZ '2026-01-01 00:00:00+00'\n  GROUP BY country_code, CAST(date_trunc('month', signup_ts) AS DATE)\n)\nSELECT m.country_code, m.month, m.signups,\n  (SELECT SUM(m2.signups) FROM monthly m2 WHERE m2.country_code = m.country_code AND m2.month <= m.month) AS cumulative_signups\nFROM monthly m",
+    "tradeoff": "A subquery adding the country's earlier months works without a window, but rereads the months for every row."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-37",
+      "sql": "WITH monthly AS (\n  -- one row per country and month with signups\n  SELECT country_code, CAST(date_trunc('month', signup_ts) AS DATE) AS month, COUNT(*) AS signups\n  FROM signups\n  WHERE signup_ts >= TIMESTAMPTZ '2025-01-01 00:00:00+00'\n    AND signup_ts < TIMESTAMPTZ '2026-01-01 00:00:00+00'\n  GROUP BY country_code, CAST(date_trunc('month', signup_ts) AS DATE)\n) SELECT country_code, month, signups, SUM(signups) OVER (ORDER BY country_code, month ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS cumulative_signups FROM monthly"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-41",
+      "sql": "WITH monthly AS (\n  -- one row per country and month with signups\n  SELECT country_code, CAST(date_trunc('month', signup_ts) AS DATE) AS month, COUNT(*) AS signups\n  FROM signups\n  WHERE signup_ts >= TIMESTAMPTZ '2025-01-01 00:00:00+00'\n    AND signup_ts < TIMESTAMPTZ '2026-01-01 00:00:00+00'\n  GROUP BY country_code, CAST(date_trunc('month', signup_ts) AS DATE)\n) SELECT country_code, month, signups, SUM(signups) OVER (PARTITION BY country_code ORDER BY signups, month ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS cumulative_signups FROM monthly"
+    }
+  ],
+  "hint3_partial": "WITH monthly AS (\n  -- one row per country and month with signups\n  SELECT country_code, CAST(date_trunc('month', signup_ts) AS DATE) AS month, COUNT(*) AS signups\n  FROM signups\n  WHERE signup_ts >= TIMESTAMPTZ '2025-01-01 00:00:00+00'\n    AND signup_ts < TIMESTAMPTZ '2026-01-01 00:00:00+00'\n  GROUP BY country_code, CAST(date_trunc('month', signup_ts) AS DATE)\n)\nSELECT country_code, month, signups,\n  SUM(signups) OVER (PARTITION BY ___ ORDER BY month ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS cumulative_signups\nFROM monthly",
+  "solver": {
+    "prompt_hash": "755707f89fafb50c",
+    "schema_version": "bbce96780a2f",
+    "dataset_version": "e7c58abf7e8f892e",
+    "grader_version": "7a.1",
+    "query": "WITH monthly AS (\n  SELECT country_code, CAST(date_trunc('month', CAST(timezone('UTC', signup_ts) AS DATE)) AS DATE) AS month, COUNT(*) AS signups\n  FROM signups\n  WHERE CAST(timezone('UTC', signup_ts) AS DATE) BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\n  GROUP BY country_code, CAST(date_trunc('month', CAST(timezone('UTC', signup_ts) AS DATE)) AS DATE)\n)\nSELECT country_code, month, signups,\n  SUM(signups) OVER (PARTITION BY country_code ORDER BY month ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS cumulative_signups\nFROM monthly\n",
+    "at": "2026-10-21T09:05:08.344Z"
+  }
+}

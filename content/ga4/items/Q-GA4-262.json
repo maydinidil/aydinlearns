@@ -1,0 +1,52 @@
+{
+  "id": "Q-GA4-262",
+  "version": 1,
+  "kind": "mcq",
+  "section": "ga4",
+  "concept_id": "GA4-PRIVACY-01",
+  "parent_id": null,
+  "topic_id": "T-GA4-05",
+  "legacy_id": null,
+  "stem": "A stakeholder says sessions fell by a third in the week the new cookie banner went live with consent mode. The developer confirms the basic implementation, and the property uses the Observed reporting identity. What explains the drop, and what would let GA4 fill part of the gap with modeled data?",
+  "options": [
+    {
+      "oid": "o7500baa",
+      "text": "Basic mode sends cookieless pings that reports ignore; Device-based would count those pings",
+      "misconception_id": null
+    },
+    {
+      "oid": "od5bc448",
+      "text": "Advanced mode is already on, so data thresholds cause the gap; a longer date range would fill it",
+      "misconception_id": null
+    },
+    {
+      "oid": "o0f9dc63",
+      "text": "Basic mode blocks the tags until a visitor consents; advanced mode plus Blended allows modeling",
+      "misconception_id": null
+    },
+    {
+      "oid": "oe756ae1",
+      "text": "Basic mode deletes data after 2 months; 14-month event data retention would bring it back",
+      "misconception_id": null
+    }
+  ],
+  "typed": null,
+  "exam_relevance": "core",
+  "held_out": true,
+  "enemy_group": null,
+  "status": "active",
+  "verified": true,
+  "level": null,
+  "tags": [
+    "ga4",
+    "T-GA4-05"
+  ],
+  "source_ids": [
+    "06:GA4-PRIVACY-01",
+    "10:§1",
+    "ERRATA:E-205"
+  ],
+  "as_of": "2026-09-30",
+  "review_after": null,
+  "supersedes": []
+}

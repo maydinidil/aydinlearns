@@ -1,0 +1,185 @@
+{
+  "id": "EX-CASE-DAILY-L5-02",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "case",
+    "daily",
+    "marketing",
+    "window",
+    "row_number",
+    "top_n_per_group",
+    "filter_window_result",
+    "ad_spend_daily",
+    "campaigns"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-06",
+    "01:SQL-WIN-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "case",
+  "target_concept_id": "SQL-WIN-06",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-WIN-01",
+    "SQL-WIN-02",
+    "SQL-WIN-06"
+  ],
+  "template_id": "T-CASE-DAILY-L5-channel-leading-campaign",
+  "template_params": {
+    "from": "2025-07-01",
+    "to": "2025-10-31",
+    "clock": "UTC",
+    "partition": "channel_id",
+    "n": 1,
+    "tie_break": "campaign_id"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "mailvora",
+  "schema": "mailvora",
+  "edge_schema": "mailvora_edge_win",
+  "prompt": "Aoife, the performance marketing manager, is preparing the November budget review and asks which campaign led each channel on clicks from July to October 2025. Add up each campaign's clicks over its rows of ad_spend_daily with a spend_date from 2025-07-01 to 2025-10-31, both days included; spend_date is a day in UTC. Within each channel, place its campaigns from the most clicks down. When campaigns tie on clicks, the lower campaign_id comes first. Keep only the first place of each channel, so exactly one campaign for each channel with at least one such row. Return four columns, in this order: channel_id, campaign_id, campaign_name and clicks, the campaign's total clicks over those days. Sort by channel_id from low to high.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "channel_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "campaign_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "campaign_name",
+        "type_class": "text"
+      },
+      {
+        "name": "clicks",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": true,
+    "sort_keys": [
+      {
+        "column": "channel_id",
+        "desc": false
+      }
+    ],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "channel_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "campaign_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "campaign_name",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "clicks",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "channel_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, build a step with one row per campaign and its clicks from July to October 2025.",
+    "Number each channel's campaigns from the most clicks down, with the campaign ID breaking ties, then keep place 1 in an outer query."
+  ],
+  "subgoals": [
+    {
+      "from": 96,
+      "to": 172,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 175,
+      "to": 254,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 257,
+      "to": 323,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 326,
+      "to": 379,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 454,
+      "to": 609,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 612,
+      "to": 632,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 635,
+      "to": 688,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 689,
+      "to": 700,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 701,
+      "to": 721,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 722,
+      "to": 741,
+      "subgoal": "sort_limit"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "Numbering each channel's campaigns with a tie-break gives exactly one first place per channel, even when two campaigns have the same clicks."
+}

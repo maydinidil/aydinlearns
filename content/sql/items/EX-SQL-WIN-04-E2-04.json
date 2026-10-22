@@ -1,0 +1,143 @@
+{
+  "id": "EX-SQL-WIN-04-E2-04",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "cumulative_share",
+    "tie_break",
+    "ad_spend_daily",
+    "cte"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-04"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-WIN-04",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-WIN-01",
+    "SQL-WIN-04"
+  ],
+  "template_id": "T-WIN-04-cumulative-share",
+  "template_params": {
+    "table": "ad_spend_daily",
+    "group": "channel",
+    "order": "spend desc"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "mailvora",
+  "schema": "mailvora",
+  "edge_schema": "mailvora_edge_win",
+  "prompt": "For each channel, take its campaigns that had ad spend in October 2025 from the highest October spend down; when two campaigns of a channel spent the same, the lower campaign_id comes first. Show each campaign's October spend and the cumulative share of the channel's October spend up to and including that campaign, as a percentage rounded to 1 decimal. Return channel_id, campaign_id, spend_eur and cumulative_share_pct. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "channel_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "campaign_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "spend_eur",
+        "type_class": "numeric"
+      },
+      {
+        "name": "cumulative_share_pct",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "channel_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "campaign_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "spend_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "cumulative_share_pct",
+        "type_class": "numeric",
+        "precision": "ratio",
+        "require_rounding": 1
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "campaign_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, total each campaign's October spend, then divide a running total of spend by the channel's total.",
+    "The running total goes per channel from the highest spend down, with the campaign ID last for equal spend, one row at a time; the channel total is a window over the whole channel."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 317,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 318,
+      "to": 360,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 361,
+      "to": 588,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 589,
+      "to": 598,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "The running SUM per channel adds campaigns from the highest spend down one at a time, and dividing by the channel's total gives the share so far."
+}

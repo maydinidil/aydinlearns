@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-WIN-01-E2-42",
+  "item_version": 1,
+  "value": 40,
+  "explanation": "GROUP BY runs before the window: it folds the 1,200 products into 40 rows, one per category. The window then adds up the 40 counts and writes the total, 1,200, on each of those rows, without folding them, so the result has 40 rows.",
+  "solver": {
+    "prompt_hash": "ed71fb56c4259867",
+    "grader_version": "choice.3",
+    "chosen": null,
+    "typed": "40",
+    "at": "2026-10-20T20:50:48.322Z"
+  }
+}

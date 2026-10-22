@@ -1,0 +1,132 @@
+{
+  "id": "EX-SQL-WIN-04-E2-32",
+  "version": 1,
+  "kind": "fix",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "running_total",
+    "wrong_order",
+    "sales",
+    "cte",
+    "fix"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-04"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-WIN-04",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CTE-01",
+    "SQL-WIN-01",
+    "SQL-WIN-04"
+  ],
+  "template_id": "T-WIN-04-fix-order-column",
+  "template_params": {
+    "table": "sales",
+    "store": "WEB-01"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_win",
+  "prompt": "The query in the editor has one mistake. Fix it so that it answers this question: for the webshop (store_code WEB-01), what was the cumulative net revenue from 1 March 2025 up to and including each UTC day of March 2025 on which it had orders? Days with no orders are left out. Return order_date, revenue_eur (that day's revenue) and cumulative_revenue_eur. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "order_date",
+        "type_class": "temporal"
+      },
+      {
+        "name": "revenue_eur",
+        "type_class": "numeric"
+      },
+      {
+        "name": "cumulative_revenue_eur",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "order_date",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "revenue_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "cumulative_revenue_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "order_date"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, check which column sets the sequence the running total follows.",
+    "A cumulative total over March must add the days in date order; adding them from the smallest revenue up gives totals that belong to no day."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 247,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 248,
+      "to": 279,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 280,
+      "to": 400,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 401,
+      "to": 411,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": "WITH daily AS (\n  -- one row per day with webshop orders\n  SELECT order_date, SUM(net_revenue_eur) AS revenue_eur\n  FROM sales\n  WHERE store_code = 'WEB-01'\n    AND order_date BETWEEN DATE '2025-03-01' AND DATE '2025-03-31'\n  GROUP BY order_date\n)\nSELECT order_date, revenue_eur,\n  SUM(revenue_eur) OVER (ORDER BY revenue_eur ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS cumulative_revenue_eur\nFROM daily",
+  "starter_error_id": "ERR-LOG-41",
+  "time_target_ms": 150000,
+  "why_this_works": "Ordered by date, the frame from the first row to this one adds the days of March so far, which is what cumulative means here."
+}

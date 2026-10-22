@@ -1,0 +1,43 @@
+{
+  "case_id": "CASE-TAKE-B",
+  "truths": {
+    "CP2": "WITH row_sets AS (\n  -- one row per set of exported rows that match in every column, spend_date in 2025\n  SELECT COUNT(*) AS n_rows\n  FROM ad_spend_daily\n  WHERE spend_date >= DATE '2025-01-01'\n    AND spend_date < DATE '2026-01-01'\n  GROUP BY spend_date, campaign_id, impressions, clicks, spend, currency, export_timezone\n)\nSELECT COALESCE(SUM(n_rows - 1), 0)\nFROM row_sets",
+    "CP4": "WITH spend_rows AS (\n  -- one row per exported spend row, each set of copies once, on its UTC day\n  SELECT DISTINCT spend_date, campaign_id, impressions, clicks, spend, currency, export_timezone,\n         CASE WHEN export_timezone = 'America/Los_Angeles' THEN spend_date + 1 ELSE spend_date END AS utc_day\n  FROM ad_spend_daily\n),\nspend AS (\n  -- one row: the 2025 spend in euros\n  SELECT SUM(CASE WHEN s.currency = 'EUR' THEN s.spend ELSE s.spend * f.eur_per_unit END) AS spend_eur\n  FROM spend_rows AS s\n  LEFT JOIN fx_rates_monthly AS f\n    ON f.currency = s.currency\n   AND f.month = CAST(date_trunc('month', s.utc_day) AS DATE)\n  WHERE s.utc_day >= DATE '2025-01-01'\n    AND s.utc_day < DATE '2026-01-01'\n),\nrevenue AS (\n  -- one row: the 2025 payments that were not refunded\n  SELECT SUM(amount_eur) AS revenue_eur\n  FROM payments\n  WHERE NOT refunded\n    AND paid_at >= TIMESTAMPTZ '2025-01-01 00:00:00+00'\n    AND paid_at < TIMESTAMPTZ '2026-01-01 00:00:00+00'\n)\nSELECT ROUND(r.revenue_eur / s.spend_eur, 2)\nFROM spend AS s\nCROSS JOIN revenue AS r"
+  },
+  "choices": {
+    "CP1": {
+      "correct_oid": "ocb9c240",
+      "explanation": "A month must hold each row once, on the UTC day it belongs to and in euros at its currency's rate for that month, which is euros per unit and so multiplies the amount; a row dated by the Los Angeles day can belong to the next month in UTC."
+    },
+    "CP5": {
+      "correct_oid": "o190107b",
+      "explanation": "The blended return divides every euro of revenue, from organic subscribers and earlier years' subscribers too, by one period's ad spend, so it cannot show what paid media earns; platform-reported values count one conversion on several platforms, and turning dollars into euros lowers the spend, which raises the return."
+    }
+  },
+  "solver": {
+    "CP1": {
+      "pass": true,
+      "prompt_hash": "84f9ddbbacb4bacb",
+      "key_hash": "bd73efea0f33eba4",
+      "at": "2026-10-22T13:33:47.604Z"
+    },
+    "CP2": {
+      "pass": true,
+      "prompt_hash": "66e713f1386d833a",
+      "key_hash": "39421b673268d507",
+      "at": "2026-10-22T13:00:38.686Z"
+    },
+    "CP4": {
+      "pass": true,
+      "prompt_hash": "c6ac3fd7ec17650e",
+      "key_hash": "3a5e86c56297ceb7",
+      "at": "2026-10-22T13:00:38.686Z"
+    },
+    "CP5": {
+      "pass": true,
+      "prompt_hash": "506862b91b31f1f6",
+      "key_hash": "3299734125e55b34",
+      "at": "2026-10-22T13:33:47.604Z"
+    }
+  }
+}

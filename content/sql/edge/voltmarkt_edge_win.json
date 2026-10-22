@@ -1,0 +1,71 @@
+{
+  "schema": "voltmarkt_edge_win",
+  "mirrors": "voltmarkt",
+  "family": "win",
+  "contains": [
+    "two categories, TVs 50-55 inch and Earbuds, where two products tie for first place and two tie for third, by unit cost and by revenue from January to June 2025",
+    "two categories, TVs up to 43 inch and Cables, where two products tie for second place, by unit cost and by revenue",
+    "two customers whose two latest orders were placed at the same moment",
+    "two customers whose last orders fall on the same day",
+    "two products whose two latest competitor price checks happened at the same moment",
+    "groups with one row: a category with one product (Soundbars), a store with one order and customers with one order",
+    "a product with a missing launch date",
+    "orders from January to June 2025 with none in April, and a calendar that holds every day of those six months",
+    "a customer who ordered in January, then not again until May",
+    "two orders in one store on the same day",
+    "groups of three rows, fewer than NTILE(5) has buckets: a category with three products (Headphones) and a customer with three orders",
+    "a product whose price fell and rose again, so it has three price versions",
+    "guest orders with a missing customer ID"
+  ],
+  "tables": {
+    "categories": [
+      "two categories, TVs 50-55 inch and Earbuds, where two products tie for first place and two tie for third, by unit cost and by revenue from January to June 2025",
+      "two categories, TVs up to 43 inch and Cables, where two products tie for second place, by unit cost and by revenue",
+      "groups with one row: a category with one product (Soundbars), a store with one order and customers with one order",
+      "groups of three rows, fewer than NTILE(5) has buckets: a category with three products (Headphones) and a customer with three orders"
+    ],
+    "products": [
+      "two categories, TVs 50-55 inch and Earbuds, where two products tie for first place and two tie for third, by unit cost and by revenue from January to June 2025",
+      "two categories, TVs up to 43 inch and Cables, where two products tie for second place, by unit cost and by revenue",
+      "groups with one row: a category with one product (Soundbars), a store with one order and customers with one order",
+      "a product with a missing launch date",
+      "groups of three rows, fewer than NTILE(5) has buckets: a category with three products (Headphones) and a customer with three orders"
+    ],
+    "stores": [
+      "groups with one row: a category with one product (Soundbars), a store with one order and customers with one order",
+      "two orders in one store on the same day"
+    ],
+    "orders": [
+      "two customers whose two latest orders were placed at the same moment",
+      "two customers whose last orders fall on the same day",
+      "groups with one row: a category with one product (Soundbars), a store with one order and customers with one order",
+      "orders from January to June 2025 with none in April, and a calendar that holds every day of those six months",
+      "a customer who ordered in January, then not again until May",
+      "two orders in one store on the same day",
+      "groups of three rows, fewer than NTILE(5) has buckets: a category with three products (Headphones) and a customer with three orders",
+      "guest orders with a missing customer ID"
+    ],
+    "order_lines": [
+      "two categories, TVs 50-55 inch and Earbuds, where two products tie for first place and two tie for third, by unit cost and by revenue from January to June 2025",
+      "two categories, TVs up to 43 inch and Cables, where two products tie for second place, by unit cost and by revenue"
+    ],
+    "sales": [
+      "two categories, TVs 50-55 inch and Earbuds, where two products tie for first place and two tie for third, by unit cost and by revenue from January to June 2025",
+      "two categories, TVs up to 43 inch and Cables, where two products tie for second place, by unit cost and by revenue",
+      "orders from January to June 2025 with none in April, and a calendar that holds every day of those six months",
+      "two orders in one store on the same day"
+    ],
+    "calendar": [
+      "orders from January to June 2025 with none in April, and a calendar that holds every day of those six months"
+    ],
+    "weekly_units": [
+      "orders from January to June 2025 with none in April, and a calendar that holds every day of those six months"
+    ],
+    "competitor_prices": [
+      "two products whose two latest competitor price checks happened at the same moment"
+    ],
+    "price_history": [
+      "a product whose price fell and rose again, so it has three price versions"
+    ]
+  }
+}

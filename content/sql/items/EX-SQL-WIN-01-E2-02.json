@@ -1,0 +1,154 @@
+{
+  "id": "EX-SQL-WIN-01-E2-02",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "window",
+    "partition_by",
+    "share_of_total",
+    "ad_spend_daily",
+    "campaigns"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "lesson",
+  "target_concept_id": "SQL-WIN-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-WIN-01"
+  ],
+  "template_id": "T-WIN-01-share-of-group-total",
+  "template_params": {
+    "table": "ad_spend_daily",
+    "step": "campaign",
+    "partition": "channel"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "mailvora",
+  "schema": "mailvora",
+  "edge_schema": "mailvora_edge_win",
+  "prompt": "What share of its channel's spend does each campaign take? Count all the spend in ad_spend_daily. Return four columns, in this order: campaign_id, channel_id, spend (the campaign's total spend) and share_pct, that spend as a percentage of the total spend of all the campaigns of its channel, rounded to 2 decimals. Return one row for each campaign with spend. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "campaign_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "channel_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "spend",
+        "type_class": "numeric"
+      },
+      {
+        "name": "share_pct",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per campaign"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "campaign_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "channel_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "spend",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "share_pct",
+        "type_class": "numeric",
+        "precision": "ratio",
+        "require_rounding": 2
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "campaign_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the calculated column share_pct: the campaign's spend over its channel's total spend.",
+    "The step above has one row per campaign; a window that adds up spend for each channel gives the total to divide by, as a percentage."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 60,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 61,
+      "to": 120,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 121,
+      "to": 196,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 197,
+      "to": 235,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 238,
+      "to": 364,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 365,
+      "to": 384,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": {
+    "stage1": 284,
+    "stage2": 284
+  },
+  "faded_shape": "WITH campaign_spend AS (  -- one row per campaign with spend\n  SELECT c.campaign_id, c.channel_id, SUM(a.spend) AS spend\n  FROM ad_spend_daily a\n  JOIN campaigns c ON c.campaign_id = a.campaign_id\n  GROUP BY c.campaign_id, c.channel_id\n)\nSELECT campaign_id, channel_id, spend,\n       ",
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "The window adds up the spend of every campaign of the same channel, so each campaign is divided by its own channel's total.",
+  "faded_suffix": "\nFROM campaign_spend"
+}

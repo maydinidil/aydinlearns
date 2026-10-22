@@ -1,0 +1,210 @@
+{
+  "id": "EX-SQL-WIN-05-E1-41",
+  "version": 1,
+  "kind": "predict_result",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "moving_average",
+    "predict",
+    "short_window"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-05"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pretest",
+  "target_concept_id": "SQL-WIN-05",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-TYPE-01",
+    "SQL-WIN-01",
+    "SQL-WIN-04",
+    "SQL-WIN-05"
+  ],
+  "template_id": "T-WIN-05-predict-short-window",
+  "template_params": {
+    "table": "ad_spend_daily",
+    "window": "3 days"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "mailvora",
+  "schema": "mailvora",
+  "edge_schema": "mailvora_edge_win",
+  "prompt": "Campaign 25 spent on every day of July 2025. Which result does this query return? Rows may be in any order.",
+  "output_contract": null,
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [],
+  "subgoals": [],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 90000,
+  "why_this_works": "",
+  "shown_sql": "SELECT spend_date, spend,\n  ROUND(AVG(spend) OVER (ORDER BY spend_date ROWS BETWEEN 2 PRECEDING AND CURRENT ROW), 2) AS avg_3d\nFROM ad_spend_daily\nWHERE campaign_id = 25\n  AND spend_date BETWEEN DATE '2025-07-01' AND DATE '2025-07-04'",
+  "options": [
+    {
+      "oid": "oaeb8dde",
+      "text": "The first two days average the days so far",
+      "misconception_id": null,
+      "table": {
+        "columns": [
+          "spend_date",
+          "spend",
+          "avg_3d"
+        ],
+        "rows": [
+          [
+            "2025-07-01",
+            "262.98",
+            "262.98"
+          ],
+          [
+            "2025-07-02",
+            "176.60",
+            "219.79"
+          ],
+          [
+            "2025-07-03",
+            "141.46",
+            "193.68"
+          ],
+          [
+            "2025-07-04",
+            "148.12",
+            "155.39"
+          ]
+        ]
+      }
+    },
+    {
+      "oid": "o914520d",
+      "text": "The first two days are missing",
+      "misconception_id": "ERR-LOG-43",
+      "table": {
+        "columns": [
+          "spend_date",
+          "spend",
+          "avg_3d"
+        ],
+        "rows": [
+          [
+            "2025-07-01",
+            "262.98",
+            null
+          ],
+          [
+            "2025-07-02",
+            "176.60",
+            null
+          ],
+          [
+            "2025-07-03",
+            "141.46",
+            "193.68"
+          ],
+          [
+            "2025-07-04",
+            "148.12",
+            "155.39"
+          ]
+        ]
+      }
+    },
+    {
+      "oid": "o9362150",
+      "text": "The first two days divide by 3",
+      "misconception_id": "ERR-LOG-17",
+      "table": {
+        "columns": [
+          "spend_date",
+          "spend",
+          "avg_3d"
+        ],
+        "rows": [
+          [
+            "2025-07-01",
+            "262.98",
+            "87.66"
+          ],
+          [
+            "2025-07-02",
+            "176.60",
+            "146.53"
+          ],
+          [
+            "2025-07-03",
+            "141.46",
+            "193.68"
+          ],
+          [
+            "2025-07-04",
+            "148.12",
+            "155.39"
+          ]
+        ]
+      }
+    },
+    {
+      "oid": "o74a4eae",
+      "text": "Each day averages every day so far",
+      "misconception_id": "ERR-LOG-38",
+      "table": {
+        "columns": [
+          "spend_date",
+          "spend",
+          "avg_3d"
+        ],
+        "rows": [
+          [
+            "2025-07-01",
+            "262.98",
+            "262.98"
+          ],
+          [
+            "2025-07-02",
+            "176.60",
+            "219.79"
+          ],
+          [
+            "2025-07-03",
+            "141.46",
+            "193.68"
+          ],
+          [
+            "2025-07-04",
+            "148.12",
+            "182.29"
+          ]
+        ]
+      }
+    }
+  ]
+}

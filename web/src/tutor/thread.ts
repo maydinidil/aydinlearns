@@ -7,15 +7,24 @@ export const MAX_EXCHANGES = 6;
 export const HELP_NOTE = 'Asking here counts as help on this item, like a hint.';
 /** Spec §10: a reply whose stream broke before its summary line. The server sends the same line when the break is on its side. */
 export const CUT_OFF = 'The reply was cut off.';
-export interface ThreadState { key: string; exchanges: readonly TutorExchange[]; noted: ReadonlySet<string> }
+/** `dropped`: how many exchanges the six-exchange limit has pushed off the front, so each exchange keeps a number for as long as it is shown. */
+export interface ThreadState { key: string; exchanges: readonly TutorExchange[]; noted: ReadonlySet<string>; dropped: number }
 
-export const emptyThread = (key: string, noted: ReadonlySet<string> = new Set()): ThreadState => ({ key, exchanges: [], noted });
+export const emptyThread = (key: string, noted: ReadonlySet<string> = new Set()): ThreadState => ({ key, exchanges: [], noted, dropped: 0 });
 export const threadKey = (screen: string, subject: string | undefined, item: TutorItemRef | null): string =>
   (item ? `item:${item.item_instance_id}` : `screen:${screen}:${subject ?? ''}`);
 /** The same key keeps its thread; another starts empty and keeps which notes were shown. */
 export const threadFor = (t: ThreadState, key: string): ThreadState => (t.key === key ? t : emptyThread(key, t.noted));
 export const newQuestion = (t: ThreadState): ThreadState => emptyThread(t.key, t.noted);
-export const addExchange = (t: ThreadState, x: TutorExchange): ThreadState => ({ ...t, exchanges: [...t.exchanges, x].slice(-MAX_EXCHANGES) });
+export const addExchange = (t: ThreadState, x: TutorExchange): ThreadState => {
+  const all = [...t.exchanges, x];
+  return { ...t, exchanges: all.slice(-MAX_EXCHANGES), dropped: t.dropped + Math.max(0, all.length - MAX_EXCHANGES) };
+};
+/**
+ * A stable number for the exchange at `index` of the shown ones: it does not change when an older exchange drops off the front, so the panel
+ * keeps each exchange's node and a live region does not read the whole thread again. The reply being read has the number its exchange will get.
+ */
+export const exchangeKey = (t: ThreadState, index: number): number => t.dropped + index;
 /** The item's own `passed` flag decides (passed, answered or answer shown), never the reply summary's `counted` (N2). */
 export const helpNoteDue = (t: ThreadState, item: (TutorItemRef & { passed: boolean }) | null): boolean => item !== null && !item.passed && !t.noted.has(item.item_instance_id);
 export const noteShown = (t: ThreadState, instanceId: string): ThreadState => ({ ...t, noted: new Set([...t.noted, instanceId]) });

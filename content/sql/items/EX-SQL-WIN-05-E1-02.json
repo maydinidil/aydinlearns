@@ -1,0 +1,150 @@
+{
+  "id": "EX-SQL-WIN-05-E1-02",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "moving_average",
+    "short_window_flag",
+    "budget_monthly"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-05"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pretest",
+  "target_concept_id": "SQL-WIN-05",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-TYPE-01",
+    "SQL-WIN-01",
+    "SQL-WIN-04",
+    "SQL-WIN-05"
+  ],
+  "template_id": "T-WIN-05-moving-average-flag",
+  "template_params": {
+    "table": "budget_monthly",
+    "group": "channel",
+    "window": "3 months"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "mailvora",
+  "schema": "mailvora",
+  "edge_schema": "mailvora_edge_win",
+  "prompt": "For each paid channel and each month of 2025 in budget_monthly, show the month's budget and the 3-month moving average of the budget: the average of that month and the 2 months before it, rounded to 2 decimals. Within each channel, months follow each other by month. Only 2025's months count, so a channel's first two months have fewer than 3 months to average: show how many months each average covers in months_in_window. Return channel_id, month, budget_eur, avg_budget_3m and months_in_window. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "channel_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "month",
+        "type_class": "temporal"
+      },
+      {
+        "name": "budget_eur",
+        "type_class": "numeric"
+      },
+      {
+        "name": "avg_budget_3m",
+        "type_class": "numeric"
+      },
+      {
+        "name": "months_in_window",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per paid channel and month"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "channel_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "month",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "budget_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "avg_budget_3m",
+        "type_class": "numeric",
+        "precision": "money",
+        "require_rounding": 2
+      },
+      {
+        "name": "months_in_window",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "channel_id",
+      "month"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the 3-month average of the budget and the number of months it covers, both within each channel.",
+    "Give both windows one group per channel, in month order, with a frame of the current row and the 2 rows before it."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 37,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 38,
+      "to": 288,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 289,
+      "to": 308,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 309,
+      "to": 368,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 150000,
+  "why_this_works": "Each channel is its own series in month order; the frame holds up to 3 months, and the count shows the two short windows at the start."
+}

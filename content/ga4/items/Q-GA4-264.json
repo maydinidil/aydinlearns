@@ -1,0 +1,51 @@
+{
+  "id": "Q-GA4-264",
+  "version": 1,
+  "kind": "mcq",
+  "section": "ga4",
+  "concept_id": "GA4-ADMIN-01",
+  "parent_id": null,
+  "topic_id": "T-GA4-05",
+  "legacy_id": null,
+  "stem": "A week after you activated the Internal traffic data filter, the manager asks you to also take the office's visits out of last quarter's figures in the standard reports. What do you tell them?",
+  "options": [
+    {
+      "oid": "oa82915e",
+      "text": "It cannot be done: data filters are not retroactive, so last quarter's data stays as it was",
+      "misconception_id": null
+    },
+    {
+      "oid": "o964fc3a",
+      "text": "Switch the filter back to Testing, which reprocesses last quarter without the office visits",
+      "misconception_id": null
+    },
+    {
+      "oid": "o0597188",
+      "text": "Set the filter's start date to the first day of the quarter, and GA4 reprocesses the quarter",
+      "misconception_id": null
+    },
+    {
+      "oid": "o3ecdb86",
+      "text": "Lower event data retention to 2 months, which removes the older office visits from reports",
+      "misconception_id": null
+    }
+  ],
+  "typed": null,
+  "exam_relevance": "core",
+  "held_out": true,
+  "enemy_group": null,
+  "status": "active",
+  "verified": true,
+  "level": null,
+  "tags": [
+    "ga4",
+    "T-GA4-05"
+  ],
+  "source_ids": [
+    "06:GA4-ADMIN-01",
+    "ERRATA:E-205"
+  ],
+  "as_of": "2026-09-30",
+  "review_after": null,
+  "supersedes": []
+}

@@ -1,0 +1,136 @@
+{
+  "id": "EX-SQL-WIN-03-E1-07",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "lag",
+    "weekly_units"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-03"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-WIN-03",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-WIN-01",
+    "SQL-WIN-03"
+  ],
+  "template_id": "T-WIN-03-lag-prev-value",
+  "template_params": {
+    "table": "weekly_units",
+    "group": "product",
+    "order": "week_start"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_win",
+  "prompt": "For each of products 1 to 20 (product_id from 1 to 20, both included) and each week starting from 6 January to 23 June 2025 (week_start, both days included), show the units sold that week and the units sold the week before. weekly_units holds a row for every product and week, with 0 when nothing sold. Within each product, weeks follow each other by week_start. Only weeks in that range count: each product's first week in it shows prev_units as missing. Return product_id, week_start, units and prev_units. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "week_start",
+        "type_class": "temporal"
+      },
+      {
+        "name": "units",
+        "type_class": "numeric"
+      },
+      {
+        "name": "prev_units",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "week_start",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "units",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "prev_units",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "product_id",
+      "week_start"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, add the column that reads units from the product's week before.",
+    "Each product is its own series, in week_start order; the date filter runs before the window."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 37,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 38,
+      "to": 115,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 116,
+      "to": 133,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 134,
+      "to": 232,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "LAG within each product in week order reads last week's units; every week has a row, so the row before is the week before."
+}

@@ -26,8 +26,7 @@ import duckdb
 import pyarrow as pa
 import pyarrow.parquet as pq
 
-sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
-import build_course_db  # noqa: E402
+from course_build import build_course_db   # L50: the paths, and Mailvora generated once per process (S7-30)
 from datasets import breakfast_at_the_frat as baf  # noqa: E402
 from datasets import online_retail_ii as orii  # noqa: E402
 from datasets import prep  # noqa: E402
@@ -81,6 +80,12 @@ class StyledEmpty:
     """A cell element with a style and no value, as Excel writes a formatted blank cell."""
 
 
+class Typed:
+    """A cell written with an explicit type attribute, `<c t="...."><v>text</v></c>`: b (boolean), str (a formula's text), e (an error), d (ISO 8601)."""
+    def __init__(self, t, text):
+        self.t, self.text = t, text
+
+
 def letters(index: int) -> str:
     out, n = "", index + 1
     while n:
@@ -115,6 +120,8 @@ class Book:
             return f'<c r="{ref}" s="1"/>'
         if isinstance(v, Raw):
             return f'<c r="{ref}"><v>{v.text}</v></c>'
+        if isinstance(v, Typed):
+            return f'<c r="{ref}" t="{v.t}"><v>{escape(v.text)}</v></c>'
         if isinstance(v, Rich):
             if v.inline:
                 return f'<c r="{ref}" t="inlineStr"><is>{self._runs(v)}</is></c>'
@@ -316,6 +323,90 @@ class Reader(TempDir):
         path.write_bytes(data[:at] + b"A" + data[at + 1:])
         with xlsx.Workbook(path) as wb, self.assertRaisesRegex(xlsx.XlsxError, r"xl/worksheets/sheet1\.xml"):
             list(wb.rows("Cells"))
+
+    def test_leading_zeros_survive_in_strings_and_a_number_cell_is_its_digits(self):
+        # S7-30: a code written as a string keeps its zeros, shared or inline; a number cell is a number, so its zeros were never there.
+        path = Book().sheet("Codes", [["code", "n"], ["007", 1], [Inline("00123"), 2], [Raw("0045"), 3], [Raw("0045.0"), 4]]).write(self.tmp / "z.xlsx")
+        with xlsx.Workbook(path) as wb:
+            self.assertEqual(list(xlsx.read_records(wb, "Codes", ["code", "n"], [xlsx.Column("code", "text"), xlsx.Column("n", "int")])),
+                             [("007", 1), ("00123", 2), ("45", 3), ("45", 4)])
+            self.assertEqual(list(xlsx.read_records(wb, "Codes", ["code", "n"], [xlsx.Column("code", "int"), xlsx.Column("n", "int")]))[:2],
+                             [(7, 1), (123, 2)], "an int column takes the digits of a string")
+
+    def test_boolean_formula_text_error_and_iso_date_cells(self):
+        # S7-30: the t="b", "str", "e" and "d" cell types, read raw and then converted by column.
+        rows = [["flag", "formula", "problem", "moment"],
+                [Typed("b", "1"), Typed("str", "a_x0009_b"), Typed("e", "#N/A"), Typed("d", "2010-12-01T07:45:00")],
+                [Typed("b", "0"), Typed("str", "plain"), Typed("e", "#DIV/0!"), Typed("d", "2010-12-02")]]
+        path = Book().sheet("Kinds", rows).write(self.tmp / "kinds.xlsx")
+        with xlsx.Workbook(path) as wb:
+            raw = [values for _, values in wb.rows("Kinds")][1:]
+            self.assertEqual(raw[0], [True, "a\tb", "#N/A", dt.datetime(2010, 12, 1, 7, 45)])
+            self.assertEqual(raw[1], [False, "plain", "#DIV/0!", dt.datetime(2010, 12, 2)])
+            header = rows[0]
+            text = [xlsx.Column(n, "text") for n in header[:3]] + [xlsx.Column("moment", "datetime")]
+            self.assertEqual(list(xlsx.read_records(wb, "Kinds", header, text)),
+                             [("TRUE", "a\tb", "#N/A", dt.datetime(2010, 12, 1, 7, 45)), ("FALSE", "plain", "#DIV/0!", dt.datetime(2010, 12, 2))])
+            as_date = [xlsx.Column("flag", "text"), xlsx.Column("formula", "text"), xlsx.Column("problem", "text"), xlsx.Column("moment", "date")]
+            with self.assertRaisesRegex(xlsx.XlsxError, r"Kinds.* row 2, column moment: a date with a time of day"):
+                list(xlsx.read_records(wb, "Kinds", header, as_date))
+            with self.assertRaisesRegex(xlsx.XlsxError, r"Kinds.* row 2, column flag: a true or false value, not a whole number"):
+                list(xlsx.read_records(wb, "Kinds", header, [xlsx.Column("flag", "int")] + text[1:]))
+            with self.assertRaisesRegex(xlsx.XlsxError, r"Kinds.* row 2, column problem: text, not a whole number"):
+                list(xlsx.read_records(wb, "Kinds", header, text[:2] + [xlsx.Column("problem", "int"), text[3]]))
+
+    def test_a_cell_the_reader_cannot_read_is_an_xlsx_error_naming_it(self):
+        path = Book().sheet("Bad", [["x"], [Typed("d", "not a date")], [Typed("s", "99")]]).write(self.tmp / "bad.xlsx")
+        with xlsx.Workbook(path) as wb, self.assertRaisesRegex(xlsx.XlsxError, r"Bad.* row 2, column 1: a cell value the reader cannot read"):
+            list(wb.rows("Bad"))
+
+    def _with_sheet_xml(self, change) -> pathlib.Path:
+        """The one-sheet workbook of this test class, with its first sheet's XML passed through `change`."""
+        with zipfile.ZipFile(io.BytesIO(self.book().bytes())) as src:
+            members = {n: src.read(n) for n in src.namelist()}
+        members["xl/worksheets/sheet1.xml"] = change(members["xl/worksheets/sheet1.xml"].decode("utf-8")).encode("utf-8")
+        return zip_with(self.tmp / "changed.xlsx", members)
+
+    def test_a_doctype_is_refused_wherever_the_prolog_puts_it(self):
+        # S7-30: the guard reads the prolog up to the root element, so a comment up to the prolog limit before the DOCTYPE does not hide it.
+        entity = '<!DOCTYPE worksheet [<!ENTITY a "b">]>'
+        for padding in (0, 100, 5000, 60000):
+            path = self._with_sheet_xml(lambda xml: xml.replace("?>\n", f"?>\n<!--{'x' * padding}-->\n{entity}\n", 1))
+            with self.subTest(padding=padding), xlsx.Workbook(path) as wb, self.assertRaisesRegex(xlsx.XlsxError, r"xl/worksheets/sheet1\.xml declares a DOCTYPE"):
+                list(wb.rows("Cells"))
+        path = self._with_sheet_xml(lambda xml: xml.replace("?>\n", f"?>\n<?pi {'y' * 6000}?>\n{entity}\n", 1))
+        with xlsx.Workbook(path) as wb, self.assertRaisesRegex(xlsx.XlsxError, "DOCTYPE"):
+            list(wb.rows("Cells"))
+
+    def test_a_long_prolog_is_refused_quickly_and_read_only_to_a_fixed_limit(self):
+        # Review F2-6-1: the prolog reader took time in proportion to the square of a long comment or instruction and held it all in
+        # memory. It now reads at most 64 KiB and refuses a longer prolog (no workbook part has one), in time proportional to that.
+        import time
+        for opening, closing in (("<!--", "-->"), ("<?pi ", "?>")):
+            for size in (70000, 24_000_000):
+                path = self._with_sheet_xml(lambda xml: xml.replace("?>\n", f"?>\n{opening}{'x' * size}{closing}\n", 1))
+                with self.subTest(opening=opening, size=size), xlsx.Workbook(path) as wb:
+                    started = time.perf_counter()
+                    with self.assertRaisesRegex(xlsx.XlsxError, r"xl/worksheets/sheet1\.xml.*prolog"):
+                        list(wb.rows("Cells"))
+                    self.assertLess(time.perf_counter() - started, 1.0, "the prolog reader is bounded")
+
+    def test_a_doctype_in_another_part_is_refused_when_the_workbook_opens(self):
+        with zipfile.ZipFile(io.BytesIO(self.book().bytes())) as src:
+            members = {n: src.read(n) for n in src.namelist()}
+        members["xl/sharedStrings.xml"] = members["xl/sharedStrings.xml"].replace(b"?>", b"?>\n<!--" + b"x" * 5000 + b'-->\n<!DOCTYPE sst [<!ENTITY a "b">]>', 1)
+        with self.assertRaisesRegex(xlsx.XlsxError, r"xl/sharedStrings\.xml declares a DOCTYPE"):
+            xlsx.Workbook(zip_with(self.tmp / "sst.xlsx", members))
+
+    def test_text_that_looks_like_a_doctype_is_no_prolog(self):
+        # A literal "<!DOCTYPE" inside a CDATA section, in the first 4,096 bytes or after a long comment, is not a declaration.
+        text = "<!DOCTYPE inside a cdata section>"
+        for padding in (0, 5000):
+            path = self._with_sheet_xml(lambda xml: xml.replace("?>\n", f"?>\n<!--{'x' * padding}-->\n", 1).replace(
+                "<sheetData>", f'<sheetData><row r="9"><c r="A9" t="inlineStr"><is><t><![CDATA[{text}]]></t></is></c></row>', 1))
+            with self.subTest(padding=padding), xlsx.Workbook(path) as wb:
+                self.assertEqual([values for r, values in wb.rows("Cells") if r == 9], [[text]])
+                self.assertEqual(len(list(wb.rows("Cells"))), 5)
 
     def test_a_workbook_inside_a_zip_is_read_without_unpacking(self):
         outer = zip_with(self.tmp / "outer.zip", {"folder/inner book.xlsx": self.book().bytes()})

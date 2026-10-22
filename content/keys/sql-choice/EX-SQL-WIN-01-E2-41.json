@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-WIN-01-E2-41",
+  "item_version": 1,
+  "correct_oid": "oc8c0703",
+  "explanation": "The right query divides each campaign's clicks by the clicks of all the campaigns of its own channel, which the window adds up with PARTITION BY channel_id. With nothing in OVER, the window adds up every campaign, so the shares of a channel come to less than 100. Partitioning by campaign_id divides each campaign by itself, so every share is 100, and leaving out the 100.0 gives a fraction, not a percentage.",
+  "solver": {
+    "prompt_hash": "8f2124e82e6ae7a1",
+    "grader_version": "choice.3",
+    "chosen": "oc8c0703",
+    "typed": null,
+    "at": "2026-10-20T20:50:48.318Z"
+  }
+}

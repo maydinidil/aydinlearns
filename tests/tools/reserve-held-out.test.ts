@@ -535,3 +535,122 @@ test('extend --logs: a folder with no attempts file is refused, so a wrong folde
   await writeFile(join(empty, 'events-2026-10-05.jsonl'), '{"type":"event"}\n');
   await refusal([...EXT, '--logs', empty, '--candidates', candidates, root], /no attempts files/, root);
 });
+
+// ---- --release-list (sprint 7 Part 2, K3, S7-38) -----------------------------------------------------------------------------
+
+/** One held item of a topic, found through the fixture's items, and a file listing the IDs one per line. */
+const heldOf = (all: Ga4Item[], pool: string[], topic: string, n = 1) => all.filter((i) => pool.includes(i.id) && i.topic_id === topic).slice(0, n);
+const listFile = async (root: string, name: string, lines: string[]) => { const f = join(root, name); await writeFile(f, lines.join('\n') + '\n'); return f; };
+const ONE = ['ga4', '--extend', '--per-card', '1'];
+
+test('extend --release-list: releases exactly the listed held item, --candidates adds one, the total stays', async () => {
+  const { root, all, fresh, candidates, concepts } = await extendGa4Root();
+  const poolBefore = await readPool(root);
+  const [listed] = heldOf(all, poolBefore, 'T-GA4-02');
+  const release = await listFile(root, 'release.txt', [listed!.id]);
+  const { stdout } = await cmd([...ONE, '--release-list', release, '--candidates', candidates, root]);
+  const pool = await readPool(root);
+  assert.equal(pool.length, 50);
+  assert.deepEqual(poolBefore.filter((id) => !pool.includes(id)), [listed!.id], 'exactly the listed item leaves');
+  const added = pool.filter((id) => !poolBefore.includes(id));
+  assert.equal(added.length, 1);
+  assert.ok(fresh.some((f) => f.id === added[0]), 'the one added is a candidate');
+  assert.equal((await readItem(root, listed!.id)).held_out, false);
+  assert.equal((await readItem(root, added[0]!)).held_out, true);
+  assert.deepEqual(c25Failures('ga4', concepts, await Promise.all(all.map((i) => readItem(root, i.id))), pool), []);
+  assert.match(stdout, /1 added, 1 released; 50 held out \(was 50\)/);
+  assert.doesNotMatch(stdout, /Q-GA4-\d/, 'no item ID is printed');
+});
+
+test('extend --release-list with --topic and --count: the same swap, and the count of the list must match', async () => {
+  const { root, all, candidates } = await extendGa4Root();
+  const poolBefore = await readPool(root);
+  const listed = heldOf(all, poolBefore, 'T-GA4-02', 2);
+  const release = await listFile(root, 'release.txt', listed.map((i) => i.id));
+  const { stdout } = await cmd(['ga4', '--extend', '--topic', 'T-GA4-03', '--count', '2', '--release-list', release, '--candidates', candidates, root]);
+  assert.match(stdout, /2 added, 2 released; 50 held out \(was 50\)/);
+  const pool = await readPool(root);
+  assert.ok(listed.every((i) => !pool.includes(i.id)));
+  // Two listed, one to add: refused with counts only.
+  const second = await extendGa4Root();
+  const two = await listFile(second.root, 'release.txt', heldOf(second.all, await readPool(second.root), 'T-GA4-02', 2).map((i) => i.id));
+  await refusal([...ONE, '--release-list', two, '--candidates', second.candidates, second.root], /2 items are listed for release, 1 to add/, second.root);
+});
+
+test('extend --release-list refusals: a listed item that is not held, not in the bank, or unreadable; nothing is written', async () => {
+  const { root, all, fresh, candidates } = await extendGa4Root();
+  const pool = await readPool(root);
+  const notHeld = all.find((i) => !pool.includes(i.id) && !fresh.some((f) => f.id === i.id))!;
+  await refusal([...ONE, '--release-list', await listFile(root, 'a.txt', [notHeld.id]), '--candidates', candidates, root], /1 listed item is not held out/, root);
+  await refusal([...ONE, '--release-list', await listFile(root, 'b.txt', ['Q-GA4-99999']), '--candidates', candidates, root], /1 listed item is not in the ga4 bank/, root);
+  await refusal([...ONE, '--release-list', join(root, 'missing.txt'), '--candidates', candidates, root], /release list file cannot be read/, root);
+  await refusal([...ONE, '--release-list', await listFile(root, 'c.txt', []), '--candidates', candidates, root], /release list file lists no item/, root);
+  // It cannot be combined with --release-from.
+  const held = heldOf(all, pool, 'T-GA4-02')[0]!;
+  await refusal([...ONE, '--release-list', await listFile(root, 'd.txt', [held.id]), '--release-from', 'T-GA4-02', '--candidates', candidates, root], /--release-list cannot be combined with --release-from/, root);
+});
+
+test('extend --release-list --logs: a candidate or a listed item named by a log record is refused', async () => {
+  const { root, all, fresh, candidates } = await extendGa4Root();
+  const [listed] = heldOf(all, await readPool(root), 'T-GA4-02');
+  const release = await listFile(root, 'release.txt', [listed!.id]);
+  const logs = await mkdtemp(join(tmpdir(), 'al-logs-'));
+  await writeFile(join(logs, 'attempts-2026-10-05.jsonl'), `{"type":"attempt","item_id":"${fresh[0]!.id}"}\n`);
+  await refusal([...ONE, '--release-list', release, '--logs', logs, '--candidates', candidates, root], /1 candidate is named by a log record/, root);
+  const named = await mkdtemp(join(tmpdir(), 'al-logs-'));
+  await writeFile(join(named, 'attempts-2026-10-05.jsonl'), `{"type":"solution_opened","item_id":"${listed!.id}"}\n`);
+  await refusal([...ONE, '--release-list', release, '--logs', named, '--candidates', candidates, root], /1 listed item is named by a log record/, root);
+  // A clean folder lets the swap through.
+  const clean = await mkdtemp(join(tmpdir(), 'al-logs-'));
+  await writeFile(join(clean, 'attempts-2026-10-05.jsonl'), '{"type":"attempt","item_id":"Q-GA4-1"}\n');
+  const { stdout } = await cmd([...ONE, '--release-list', release, '--logs', clean, '--candidates', candidates, root]);
+  assert.match(stdout, /1 added, 1 released; 50 held out \(was 50\)/);
+});
+
+test('extend --release-list: a swap that would break a rule (the candidate\'s enemy group is held) refuses and writes nothing', async () => {
+  const { root, all, fresh } = await extendGa4Root();
+  const pool = await readPool(root);
+  const [a, b] = heldOf(all, pool, 'T-GA4-02', 2);
+  // The candidate shares a group with a held item that is NOT released: the add cannot happen.
+  await writeFile(join(root, 'ga4/items', `${fresh[0]!.id}.json`), JSON.stringify({ ...fresh[0]!, enemy_group: 'EG-GA4-97' }, null, 2) + '\n');
+  await writeFile(join(root, 'ga4/items', `${b!.id}.json`), JSON.stringify({ ...b!, held_out: true, enemy_group: 'EG-GA4-97' }, null, 2) + '\n');
+  await refusal([...ONE, '--release-list', await listFile(root, 'r.txt', [a!.id]), '--candidates', await listFile(root, 'c.txt', [fresh[0]!.id]), root], /can take only 0 of 1/, root);
+});
+
+// ---- F4-1-2: the GA4 knowledge pool (S7-C26) is a second held-out list the extension must not take for its own ----------------
+
+/** The extension bank with a knowledge pool: 4 practice items of T-GA4-04, flagged held out and listed in ga4/knowledge-pool.json. */
+async function knowledgeExtendRoot() {
+  const x = await extendGa4Root();
+  const exam = new Set(await readPool(x.root));
+  const knowledge = x.all.filter((i) => i.topic_id === 'T-GA4-04' && !exam.has(i.id)).slice(0, 4).map((i) => i.id);
+  assert.equal(knowledge.length, 4, 'the fixture needs 4 T-GA4-04 practice items');
+  for (const id of knowledge) await writeFile(join(x.root, 'ga4/items', `${id}.json`), JSON.stringify({ ...(await readItem(x.root, id)), held_out: true }, null, 2) + '\n');
+  await writeFile(join(x.root, 'ga4/knowledge-pool.json'), JSON.stringify({ item_ids: knowledge }, null, 2) + '\n');
+  return { ...x, knowledge, exam: [...exam] };
+}
+
+test('extend GA4 with a knowledge pool: its items stay out of held-out.json, the printed count and the release, and keep their flag', async () => {
+  const { root, candidates, knowledge, exam } = await knowledgeExtendRoot();
+  const { stdout } = await cmd([...EXT, '--candidates', candidates, root]);
+  const pool = await readPool(root);
+  assert.equal(pool.length, 50, 'the exam pool stays 50');
+  assert.match(stdout, /6 added, 6 released; 50 held out \(was 50\)/, 'the knowledge pool is not in the printed count');
+  for (const id of knowledge) {
+    assert.ok(!pool.includes(id), 'a knowledge item is never written into held-out.json');
+    assert.equal((await readItem(root, id)).held_out, true, 'its flag stays');
+  }
+  assert.ok(exam.filter((id) => !pool.includes(id)).length === 6, 'six exam items left, none of them a knowledge item');
+  const listed = (JSON.parse(await readFile(join(root, 'ga4/knowledge-pool.json'), 'utf8')) as { item_ids: string[] }).item_ids;
+  assert.deepEqual(listed, knowledge, 'the knowledge pool file is untouched');
+});
+
+test('extend GA4 with a knowledge pool: --release-list and --candidates refuse a knowledge item, and nothing is written', async () => {
+  const { root, candidates, knowledge } = await knowledgeExtendRoot();
+  const list = join(root, 'release.txt');
+  await writeFile(list, `${knowledge[0]}\n`);
+  await refusal(['ga4', '--extend', '--topic', 'T-GA4-03', '--count', '1', '--release-list', list, '--candidates', candidates, root], /knowledge pool/, root);
+  const asCandidate = join(root, 'as-candidate.txt');
+  await writeFile(asCandidate, `${knowledge[0]}\n`);
+  await refusal(['ga4', '--extend', '--topic', 'T-GA4-04', '--count', '1', '--candidates', asCandidate, root], /already held out/, root);
+});

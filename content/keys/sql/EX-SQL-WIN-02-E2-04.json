@@ -1,0 +1,39 @@
+{
+  "item_id": "EX-SQL-WIN-02-E2-04",
+  "item_version": 1,
+  "reference_sql": "WITH campaign_clicks AS (  -- one row per campaign with spend\n  SELECT c.campaign_id, c.channel_id, SUM(a.clicks) AS clicks\n  FROM ad_spend_daily a\n  JOIN campaigns c ON c.campaign_id = a.campaign_id\n  GROUP BY c.campaign_id, c.channel_id\n),\nranked AS (  -- one row per campaign with spend\n  SELECT channel_id, campaign_id, clicks,\n         RANK() OVER (PARTITION BY channel_id ORDER BY clicks DESC) AS clicks_rank\n  FROM campaign_clicks\n)\nSELECT channel_id, campaign_id, clicks, clicks_rank\nFROM ranked\nWHERE clicks_rank <= 2",
+  "alternatives": [
+    "WITH campaign_clicks AS (  -- one row per campaign with spend\n  SELECT c.campaign_id, c.channel_id, SUM(a.clicks) AS clicks\n  FROM ad_spend_daily a\n  JOIN campaigns c ON c.campaign_id = a.campaign_id\n  GROUP BY c.campaign_id, c.channel_id\n)\nSELECT cc.channel_id, cc.campaign_id, cc.clicks,\n       1 + (SELECT COUNT(*) FROM campaign_clicks cc2 WHERE cc2.channel_id = cc.channel_id AND cc2.clicks > cc.clicks) AS clicks_rank\nFROM campaign_clicks cc\nWHERE (SELECT COUNT(*) FROM campaign_clicks cc2 WHERE cc2.channel_id = cc.channel_id AND cc2.clicks > cc.clicks) < 2",
+    "SELECT t.channel_id, t.campaign_id, t.clicks, t.clicks_rank\nFROM (\n  -- one row per campaign with spend\n  SELECT c.channel_id, c.campaign_id, SUM(a.clicks) AS clicks,\n         RANK() OVER (PARTITION BY c.channel_id ORDER BY SUM(a.clicks) DESC) AS clicks_rank\n  FROM ad_spend_daily a\n  JOIN campaigns c ON c.campaign_id = a.campaign_id\n  GROUP BY c.channel_id, c.campaign_id\n) AS t\nWHERE t.clicks_rank <= 2"
+  ],
+  "other_way": {
+    "sql": "WITH campaign_clicks AS (  -- one row per campaign with spend\n  SELECT c.campaign_id, c.channel_id, SUM(a.clicks) AS clicks\n  FROM ad_spend_daily a\n  JOIN campaigns c ON c.campaign_id = a.campaign_id\n  GROUP BY c.campaign_id, c.channel_id\n)\nSELECT cc.channel_id, cc.campaign_id, cc.clicks,\n       1 + (SELECT COUNT(*) FROM campaign_clicks cc2 WHERE cc2.channel_id = cc.channel_id AND cc2.clicks > cc.clicks) AS clicks_rank\nFROM campaign_clicks cc\nWHERE (SELECT COUNT(*) FROM campaign_clicks cc2 WHERE cc2.channel_id = cc.channel_id AND cc2.clicks > cc.clicks) < 2",
+    "tradeoff": "Counting the campaigns with more clicks keeps the same campaigns without a window, but the count is written twice."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-40",
+      "sql": "WITH campaign_clicks AS (SELECT c.campaign_id, c.channel_id, SUM(a.clicks) AS clicks FROM ad_spend_daily a JOIN campaigns c ON c.campaign_id = a.campaign_id GROUP BY c.campaign_id, c.channel_id), ranked AS (SELECT channel_id, campaign_id, clicks, ROW_NUMBER() OVER (PARTITION BY channel_id ORDER BY clicks DESC, campaign_id) AS clicks_rank FROM campaign_clicks) SELECT channel_id, campaign_id, clicks, clicks_rank FROM ranked WHERE clicks_rank <= 2"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-37",
+      "sql": "WITH campaign_clicks AS (SELECT c.campaign_id, c.channel_id, SUM(a.clicks) AS clicks FROM ad_spend_daily a JOIN campaigns c ON c.campaign_id = a.campaign_id GROUP BY c.campaign_id, c.channel_id), ranked AS (SELECT channel_id, campaign_id, clicks, RANK() OVER (ORDER BY clicks DESC) AS clicks_rank FROM campaign_clicks) SELECT channel_id, campaign_id, clicks, clicks_rank FROM ranked WHERE clicks_rank <= 2"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-18",
+      "sql": "WITH campaign_clicks AS (SELECT c.campaign_id, c.channel_id, SUM(a.clicks) AS clicks FROM ad_spend_daily a JOIN campaigns c ON c.campaign_id = a.campaign_id GROUP BY c.campaign_id, c.channel_id), ranked AS (SELECT channel_id, campaign_id, clicks, RANK() OVER (PARTITION BY channel_id ORDER BY clicks) AS clicks_rank FROM campaign_clicks) SELECT channel_id, campaign_id, clicks, clicks_rank FROM ranked WHERE clicks_rank <= 2"
+    }
+  ],
+  "hint3_partial": "WITH campaign_clicks AS (  -- one row per campaign with spend\n  SELECT c.campaign_id, c.channel_id, SUM(a.clicks) AS clicks\n  FROM ad_spend_daily a\n  JOIN campaigns c ON c.campaign_id = a.campaign_id\n  GROUP BY c.campaign_id, c.channel_id\n),\nranked AS (  -- one row per campaign with spend\n  SELECT channel_id, campaign_id, clicks,\n         RANK() OVER (PARTITION BY channel_id ORDER BY ___) AS clicks_rank\n  FROM campaign_clicks\n)\nSELECT channel_id, campaign_id, clicks, clicks_rank\nFROM ranked\nWHERE ___",
+  "solver": {
+    "prompt_hash": "6bfc175989990723",
+    "schema_version": "09f3a33d3123",
+    "dataset_version": "e7c58abf7e8f892e",
+    "grader_version": "7a.1",
+    "query": "WITH camp AS (\n  SELECT c.channel_id, c.campaign_id, SUM(a.clicks) AS clicks\n  FROM ad_spend_daily a\n  JOIN campaigns c ON c.campaign_id = a.campaign_id\n  GROUP BY c.channel_id, c.campaign_id\n),\nr AS (\n  SELECT channel_id, campaign_id, clicks,\n         RANK() OVER (PARTITION BY channel_id ORDER BY clicks DESC) AS clicks_rank\n  FROM camp\n)\nSELECT channel_id, campaign_id, clicks, clicks_rank\nFROM r\nWHERE clicks_rank <= 2\n",
+    "at": "2026-10-21T09:05:06.389Z"
+  }
+}

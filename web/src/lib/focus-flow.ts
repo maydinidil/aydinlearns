@@ -1,4 +1,4 @@
-// web/src/lib/focus-flow.ts: when keyboard focus moves to a heading (Task A2). Pure decisions, so they can be tested without a DOM.
+// web/src/lib/focus-flow.ts: when keyboard focus moves to a heading (Task A2). The decisions are pure; the last three functions touch the DOM.
 
 const pathOf = (hash: string): string => (hash || '#/').split('?')[0]!;
 
@@ -26,4 +26,27 @@ export function focusHeading(el: HTMLElement | null | undefined): boolean {
   if (!el.hasAttribute('tabindex')) el.setAttribute('tabindex', '-1');
   el.focus();
   return true;
+}
+
+/** The screen's heading: a title is an h1; a screen with only a section heading uses the first h2. */
+export function focusTarget(doc: Document): HTMLElement | null {
+  return doc.querySelector<HTMLElement>('main h1') ?? doc.querySelector<HTMLElement>('main h2');
+}
+
+/** How long route focus waits for a screen's heading to draw (S7-29). */
+export const FOCUS_WAIT_MS = 2000;
+
+/**
+ * After a route change: focuses the screen's heading as soon as there is one, looking again each time the page changes (a screen
+ * draws its heading when its data arrives). When there is still none after `waitMs`, the screen has no heading, and `main` gets focus
+ * so the keyboard starts at the new screen. Returns the function that stops the watch.
+ */
+export function watchForHeading(doc: Document, waitMs = FOCUS_WAIT_MS): () => void {
+  if (focusHeading(focusTarget(doc))) return () => {};
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const observer = new MutationObserver(() => { if (focusHeading(focusTarget(doc))) stop(); });
+  function stop(): void { observer.disconnect(); clearTimeout(timer); }
+  observer.observe(doc.body, { childList: true, subtree: true });
+  timer = setTimeout(() => { focusHeading(doc.querySelector<HTMLElement>('main')); stop(); }, waitMs);
+  return stop;
 }

@@ -1,0 +1,156 @@
+{
+  "id": "EX-SQL-WIN-06-E2-05",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "window",
+    "row_number",
+    "dedup",
+    "raw_data",
+    "FIND-01-13",
+    "order_lines"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-06"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-WIN-06",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-DATE-01",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-CLEAN-01",
+    "SQL-WIN-01",
+    "SQL-WIN-02",
+    "SQL-WIN-06"
+  ],
+  "template_id": "T-WIN-06-dedup-keep-one",
+  "template_params": {
+    "table": "order_lines",
+    "store": "BE-14",
+    "grain": "month"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt_raw",
+  "edge_schema": "voltmarkt_edge_clean",
+  "uses_raw": true,
+  "prompt": "How many of store BE-14's order lines are left in each month of 2024 once resent copies are removed? These tables may hold errors. Some of store BE-14's order lines were resent under a new order_line_id: two lines are copies of one order line when order_id, product_id, quantity and unit_price_eur all match. Keep the copy with the lowest order_line_id. The month is the first day of the month of the order's order_ts as stored, and 2024 means order_ts, as stored, from 1 January 2024 up to but not including 1 January 2025. Return three columns, in this order: order_month, n_stored (the lines as stored) and n_kept (the lines once copies are removed). Return one row for each month with BE-14 lines. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "order_month",
+        "type_class": "temporal"
+      },
+      {
+        "name": "n_stored",
+        "type_class": "numeric"
+      },
+      {
+        "name": "n_kept",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "order_month",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "n_stored",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "n_kept",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "order_month"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, number the copies of each order line, and count how many copies each line has, before keeping copy 1.",
+    "Copies share order_id, product_id, quantity and unit_price_eur, so those four columns make the partition; the lowest order_line_id gets number 1."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 104,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 105,
+      "to": 409,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 410,
+      "to": 518,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 519,
+      "to": 634,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 637,
+      "to": 702,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 703,
+      "to": 716,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 717,
+      "to": 734,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 735,
+      "to": 755,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "Copy 1 of each set stands for the order line once, and it carries the number of stored copies, so COUNT gives the lines left and SUM of the copies gives the lines stored."
+}

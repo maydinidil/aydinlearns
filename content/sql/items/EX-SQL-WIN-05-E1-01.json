@@ -1,0 +1,150 @@
+{
+  "id": "EX-SQL-WIN-05-E1-01",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "moving_average",
+    "short_window_flag",
+    "weekly_units"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-05"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pretest",
+  "target_concept_id": "SQL-WIN-05",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-TYPE-01",
+    "SQL-WIN-01",
+    "SQL-WIN-04",
+    "SQL-WIN-05"
+  ],
+  "template_id": "T-WIN-05-moving-average-flag",
+  "template_params": {
+    "table": "weekly_units",
+    "group": "product",
+    "window": "4 weeks"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_win",
+  "prompt": "For each of products 1 to 20 (product_id from 1 to 20, both included) and each week starting from 6 January to 23 June 2025 (week_start, both days included), show the units sold that week and the 4-week moving average of units: the average of that week and the 3 weeks before it, rounded to 2 decimals. weekly_units holds a row for every product and week, with 0 when nothing sold. Within each product, weeks follow each other by week_start. Only weeks in that range count, so a product's first three weeks have fewer than 4 weeks to average: show how many weeks each average covers in weeks_in_window. Return product_id, week_start, units, avg_units_4w and weeks_in_window. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "week_start",
+        "type_class": "temporal"
+      },
+      {
+        "name": "units",
+        "type_class": "numeric"
+      },
+      {
+        "name": "avg_units_4w",
+        "type_class": "numeric"
+      },
+      {
+        "name": "weeks_in_window",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per product and week"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "week_start",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "units",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "avg_units_4w",
+        "type_class": "numeric",
+        "precision": "ratio",
+        "require_rounding": 2
+      },
+      {
+        "name": "weeks_in_window",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "product_id",
+      "week_start"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write two windows over each product's weeks: one that averages the units and one that counts the weeks it covers.",
+    "Both windows need the same group, the same order by week and a frame that reaches back 3 rows."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 37,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 38,
+      "to": 291,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 292,
+      "to": 309,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 310,
+      "to": 408,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 150000,
+  "why_this_works": "Both windows use the frame of the week and the 3 rows before it, so the count shows where a product's first weeks average fewer than 4 weeks."
+}

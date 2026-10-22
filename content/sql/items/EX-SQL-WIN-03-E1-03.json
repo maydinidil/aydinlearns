@@ -1,0 +1,141 @@
+{
+  "id": "EX-SQL-WIN-03-E1-03",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "lag",
+    "products",
+    "tie_break"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-03"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "lesson",
+  "target_concept_id": "SQL-WIN-03",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-NULL-01",
+    "SQL-WIN-01",
+    "SQL-WIN-03"
+  ],
+  "template_id": "T-WIN-03-lag-prev-date",
+  "template_params": {
+    "table": "products",
+    "group": "category",
+    "order": "launch_date"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_win",
+  "prompt": "For each product in categories 15, 16 and 17 with a known launch date, show the launch date of the product launched just before it in the same category. Within a category, products follow each other by launch_date; when two products of a category launched on the same day, the lower product_id comes first. Leave out products with a missing launch_date. Return product_id, category_id, launch_date and prev_launch_date. A category's first product shows prev_launch_date as missing. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "category_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "launch_date",
+        "type_class": "temporal"
+      },
+      {
+        "name": "prev_launch_date",
+        "type_class": "temporal"
+      }
+    ],
+    "grain": "one row per product with a known launch date"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "category_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "launch_date",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "prev_launch_date",
+        "type_class": "temporal",
+        "precision": "exact"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "product_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the column that reads launch_date from the product before it in the same category.",
+    "Group the window by category and order it by launch date, with the product ID last for products launched on the same day."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 44,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 45,
+      "to": 148,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 149,
+      "to": 162,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 163,
+      "to": 226,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": {
+    "stage1": 45,
+    "stage2": 45
+  },
+  "faded_shape": "SELECT product_id, category_id, launch_date,\n",
+  "faded_suffix": "\nFROM products\nWHERE category_id IN (15, 16, 17)\n  AND launch_date IS NOT NULL",
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "The window runs per category in launch order, with product_id breaking same-day ties, so LAG reads the launch just before each product."
+}

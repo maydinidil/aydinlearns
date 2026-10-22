@@ -1,0 +1,145 @@
+{
+  "id": "EX-SQL-WIN-04-E2-06",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "running_total",
+    "year_to_date",
+    "payments",
+    "subscriptions",
+    "cte"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-04"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-WIN-04",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-DATE-01",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-WIN-01",
+    "SQL-WIN-04"
+  ],
+  "template_id": "T-WIN-04-year-to-date",
+  "template_params": {
+    "table": "payments",
+    "group": "plan",
+    "period": "month"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "mailvora",
+  "schema": "mailvora",
+  "edge_schema": "mailvora_edge_win",
+  "prompt": "For each plan, show each month of 2025 in which its subscriptions brought in revenue (by the UTC month of paid_at; refunded payments do not count), with that month's revenue and the plan's year-to-date revenue up to and including that month. Months with no revenue are left out. Return plan_name, month (the first day of the month), revenue_eur and ytd_revenue_eur. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "plan_name",
+        "type_class": "text"
+      },
+      {
+        "name": "month",
+        "type_class": "temporal"
+      },
+      {
+        "name": "revenue_eur",
+        "type_class": "numeric"
+      },
+      {
+        "name": "ytd_revenue_eur",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "plan_name",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "month",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "revenue_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "ytd_revenue_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "plan_name",
+      "month"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, total each plan's revenue per month in a first step, then add a running total per plan.",
+    "The plan comes from subscriptions; the running total needs one series per plan in month order."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 463,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 464,
+      "to": 501,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 502,
+      "to": 633,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 634,
+      "to": 646,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "Monthly revenue per plan first, then SUM per plan in month order adds the year's months so far."
+}

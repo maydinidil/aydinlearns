@@ -1,4 +1,4 @@
-// tests/web/focus-flow.test.ts: when keyboard focus moves (Task A2). The DOM behaviour itself is pinned by the e2e row 4c-1.
+// tests/web/focus-flow.test.ts: when keyboard focus moves (Task A2). The DOM behaviour is in tests/web/render/focus.test.ts and the e2e row 4c-1.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { drillFocusKey, shouldFocusDrill, shouldFocusRoute } from '../../web/src/lib/focus-flow.ts';

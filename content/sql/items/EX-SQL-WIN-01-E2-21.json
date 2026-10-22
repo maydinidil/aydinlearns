@@ -1,0 +1,135 @@
+{
+  "id": "EX-SQL-WIN-01-E2-21",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "window",
+    "partition_by",
+    "share_of_total",
+    "order_lines",
+    "orders",
+    "drill"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-WIN-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-AGG-01",
+    "SQL-TYPE-01",
+    "SQL-JOIN-01",
+    "SQL-WIN-01"
+  ],
+  "template_id": "T-WIN-01-share-of-group-total",
+  "template_params": {
+    "table": "order_lines",
+    "partition": "order",
+    "day": "10 June 2025"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_win",
+  "prompt": "For every line of the web orders (channel 'web') placed on 10 June 2025, show the line's value and its share of its order's value. 10 June 2025 means order_ts, a UTC moment, from 10 June 2025 up to but not including 11 June 2025. A line's value is quantity times unit_price_eur minus line_discount_eur. Return four columns, in this order: order_id, order_line_id, line_value and order_share_pct, the line's value as a percentage of the total value of all the lines of its order, rounded to 2 decimals. Return one row for each such order line. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "order_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "order_line_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "line_value",
+        "type_class": "numeric"
+      },
+      {
+        "name": "order_share_pct",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "order_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "order_line_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "line_value",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "order_share_pct",
+        "type_class": "numeric",
+        "precision": "ratio",
+        "require_rounding": 2
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "order_line_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the calculated column order_share_pct: the line's value over the value of all the lines of its order.",
+    "A window that adds up line values for each order gives the total to divide by, on every line."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 322,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 323,
+      "to": 384,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 385,
+      "to": 491,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "The window adds up the values of all the lines of the same order, so each line is divided by its own order's total."
+}

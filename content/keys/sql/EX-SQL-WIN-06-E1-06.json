@@ -1,0 +1,45 @@
+{
+  "item_id": "EX-SQL-WIN-06-E1-06",
+  "item_version": 1,
+  "reference_sql": "WITH versions AS (  -- one row per price version, with the price of the version before\n  SELECT product_id, valid_from, list_price_eur,\n         LAG(list_price_eur) OVER (PARTITION BY product_id ORDER BY valid_from) AS prev_price_eur\n  FROM price_history\n  WHERE product_id BETWEEN 1 AND 25\n)\nSELECT product_id, valid_from, prev_price_eur, list_price_eur\nFROM versions\nWHERE list_price_eur < prev_price_eur",
+  "alternatives": [
+    "SELECT v.product_id, v.valid_from, v.prev_price_eur, v.list_price_eur\nFROM (\n  -- one row per price version, with the price of the version before\n  SELECT product_id, valid_from, list_price_eur,\n         LAG(list_price_eur) OVER (PARTITION BY product_id ORDER BY valid_from) AS prev_price_eur\n  FROM price_history\n  WHERE product_id BETWEEN 1 AND 25\n) AS v\nWHERE v.list_price_eur < v.prev_price_eur",
+    "SELECT product_id, valid_from,\n       LAG(list_price_eur) OVER (PARTITION BY product_id ORDER BY valid_from) AS prev_price_eur,\n       list_price_eur\nFROM price_history\nWHERE product_id BETWEEN 1 AND 25\nQUALIFY list_price_eur < LAG(list_price_eur) OVER (PARTITION BY product_id ORDER BY valid_from)",
+    "SELECT cur.product_id, cur.valid_from, prev.list_price_eur AS prev_price_eur, cur.list_price_eur\nFROM price_history cur\nJOIN price_history prev\n  ON prev.product_id = cur.product_id\n AND prev.valid_from = (SELECT MAX(p.valid_from) FROM price_history p WHERE p.product_id = cur.product_id AND p.valid_from < cur.valid_from)\nWHERE cur.product_id BETWEEN 1 AND 25\n  AND cur.list_price_eur < prev.list_price_eur"
+  ],
+  "other_way": {
+    "sql": "SELECT product_id, valid_from,\n       LAG(list_price_eur) OVER (PARTITION BY product_id ORDER BY valid_from) AS prev_price_eur,\n       list_price_eur\nFROM price_history\nWHERE product_id BETWEEN 1 AND 25\nQUALIFY list_price_eur < LAG(list_price_eur) OVER (PARTITION BY product_id ORDER BY valid_from)",
+    "tradeoff": "QUALIFY filters the window result in the same query, which is shorter, but PostgreSQL, MySQL and SQL Server do not accept it."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-37",
+      "sql": "WITH versions AS (SELECT product_id, valid_from, list_price_eur, LAG(list_price_eur) OVER (ORDER BY product_id, valid_from) AS prev_price_eur FROM price_history WHERE product_id BETWEEN 1 AND 25) SELECT product_id, valid_from, prev_price_eur, list_price_eur FROM versions WHERE list_price_eur < prev_price_eur"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-41",
+      "sql": "WITH versions AS (SELECT product_id, valid_from, list_price_eur, LAG(list_price_eur) OVER (PARTITION BY product_id ORDER BY list_price_eur DESC) AS prev_price_eur FROM price_history WHERE product_id BETWEEN 1 AND 25) SELECT product_id, valid_from, prev_price_eur, list_price_eur FROM versions WHERE list_price_eur < prev_price_eur"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-18",
+      "sql": "WITH versions AS (SELECT product_id, valid_from, list_price_eur, LAG(list_price_eur) OVER (PARTITION BY product_id ORDER BY valid_from DESC) AS prev_price_eur FROM price_history WHERE product_id BETWEEN 1 AND 25) SELECT product_id, valid_from, prev_price_eur, list_price_eur FROM versions WHERE list_price_eur < prev_price_eur"
+    },
+    {
+      "id": "PW4",
+      "error_id": "ERR-SYN-08",
+      "sql": "SELECT product_id, valid_from, LAG(list_price_eur) OVER (PARTITION BY product_id ORDER BY valid_from) AS prev_price_eur, list_price_eur FROM price_history WHERE product_id BETWEEN 1 AND 25 AND list_price_eur < LAG(list_price_eur) OVER (PARTITION BY product_id ORDER BY valid_from)"
+    }
+  ],
+  "hint3_partial": "WITH versions AS (  -- one row per price version, with the price of the version before\n  SELECT product_id, valid_from, list_price_eur,\n         LAG(list_price_eur) OVER (PARTITION BY product_id ORDER BY valid_from) AS prev_price_eur\n  FROM price_history\n  WHERE product_id BETWEEN 1 AND 25\n)\nSELECT product_id, valid_from, prev_price_eur, list_price_eur\nFROM versions\nWHERE ___",
+  "solver": {
+    "prompt_hash": "c09ba911e948f194",
+    "schema_version": "e8cea7c4eacc",
+    "dataset_version": "e7c58abf7e8f892e",
+    "grader_version": "7a.1",
+    "query": "WITH v AS (\n  SELECT product_id, valid_from,\n         LAG(list_price_eur) OVER (PARTITION BY product_id ORDER BY valid_from) AS prev_price_eur,\n         list_price_eur\n  FROM price_history\n  WHERE product_id BETWEEN 1 AND 25\n)\nSELECT product_id, valid_from, prev_price_eur, list_price_eur\nFROM v\nWHERE prev_price_eur IS NOT NULL AND list_price_eur < prev_price_eur\n",
+    "at": "2026-10-21T09:05:10.195Z"
+  }
+}

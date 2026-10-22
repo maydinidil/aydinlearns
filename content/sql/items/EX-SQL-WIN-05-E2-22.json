@@ -1,0 +1,157 @@
+{
+  "id": "EX-SQL-WIN-05-E2-22",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "moving_average",
+    "range_interval",
+    "zero_days",
+    "ad_spend_daily",
+    "drill"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-05"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-WIN-05",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-DATE-02",
+    "SQL-WIN-01",
+    "SQL-WIN-04",
+    "SQL-WIN-05"
+  ],
+  "template_id": "T-WIN-05-moving-average-range",
+  "template_params": {
+    "table": "ad_spend_daily",
+    "group": "channel",
+    "window": "7 calendar days"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "mailvora",
+  "schema": "mailvora",
+  "edge_schema": "mailvora_edge_win",
+  "prompt": "For each paid channel, show each UTC day of August 2025 with spend, with the channel's spend that day and its 7-day average daily spend: the channel's spend over the 7 calendar days ending on that day, divided by 7, rounded to 2 decimals. A day with no spend counts as 0, and the 7 days may reach back into July. Return channel_id, spend_date, spend_eur and avg_spend_7d. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "channel_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "spend_date",
+        "type_class": "temporal"
+      },
+      {
+        "name": "spend_eur",
+        "type_class": "numeric"
+      },
+      {
+        "name": "avg_spend_7d",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "channel_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "spend_date",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "spend_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "avg_spend_7d",
+        "type_class": "numeric",
+        "precision": "money",
+        "require_rounding": 2
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "channel_id",
+      "spend_date"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, add up each channel's spend per day, then sum the 7 calendar days ending on each day and divide by 7.",
+    "Some channels skip days, so the frame must count days, not rows, within each channel; keep August only after the window."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 297,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 298,
+      "to": 482,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 483,
+      "to": 497,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 498,
+      "to": 572,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 573,
+      "to": 586,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 587,
+      "to": 651,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "The RANGE frame takes the 7 calendar days ending on each day within the channel, and dividing by 7 counts a day with no spend as 0."
+}

@@ -1,0 +1,146 @@
+{
+  "id": "EX-SQL-WIN-07-E2-21",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "window",
+    "ntile",
+    "halves",
+    "filter_window_result",
+    "products",
+    "drill"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-07"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-WIN-07",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-CTE-01",
+    "SQL-WIN-01",
+    "SQL-WIN-07"
+  ],
+  "template_id": "T-WIN-07-ntile-filter",
+  "template_params": {
+    "table": "products",
+    "group": "category_id",
+    "n": 2,
+    "keep": 1
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_win",
+  "prompt": "Which products are in the cheaper half of their category by unit cost, for the TV & Video categories (category_id from 1 to 6, both included)? Sort each category's products from the lowest unit cost up and split them into two halves; when a category has an odd number of products, the cheaper half holds one more. When products of a category tie on unit cost, the lower product_id comes first. Return three columns, in this order: category_id, product_id and unit_cost_eur. Return one row for each product in a cheaper half. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "category_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "product_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "unit_cost_eur",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "category_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "product_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "unit_cost_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "product_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, split each category's products into two halves from the lowest cost, then keep half 1 in a later step.",
+    "The split counts rows, so a tie on unit cost at the middle needs the tie-break at the end of the window's sort order."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 84,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 85,
+      "to": 231,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 232,
+      "to": 247,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 248,
+      "to": 283,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 286,
+      "to": 331,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 332,
+      "to": 343,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 344,
+      "to": 363,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "NTILE(2) splits each category from the lowest cost with product_id settling a tie, and the outer WHERE keeps half 1."
+}

@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-WIN-04-E1-08",
+  "item_version": 1,
+  "reference_sql": "SELECT product_id, valid_from, list_price_eur,\n  MAX(list_price_eur) OVER (PARTITION BY product_id ORDER BY valid_from ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS max_price_so_far\nFROM price_history\nWHERE product_id BETWEEN 1 AND 25",
+  "alternatives": [
+    "SELECT p.product_id, p.valid_from, p.list_price_eur,\n  (SELECT MAX(p2.list_price_eur) FROM price_history p2 WHERE p2.product_id = p.product_id AND p2.valid_from <= p.valid_from) AS max_price_so_far\nFROM price_history p\nWHERE p.product_id BETWEEN 1 AND 25",
+    "SELECT p.product_id, p.valid_from, p.list_price_eur, MAX(e.list_price_eur) AS max_price_so_far\nFROM price_history p\nJOIN price_history e ON e.product_id = p.product_id AND e.valid_from <= p.valid_from\nWHERE p.product_id BETWEEN 1 AND 25\nGROUP BY p.product_id, p.valid_from, p.list_price_eur"
+  ],
+  "other_way": {
+    "sql": "SELECT p.product_id, p.valid_from, p.list_price_eur,\n  (SELECT MAX(p2.list_price_eur) FROM price_history p2 WHERE p2.product_id = p.product_id AND p2.valid_from <= p.valid_from) AS max_price_so_far\nFROM price_history p\nWHERE p.product_id BETWEEN 1 AND 25",
+    "tradeoff": "A subquery taking the highest earlier price works without a window, but rereads the product's versions for every row."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-37",
+      "sql": "SELECT product_id, valid_from, list_price_eur, MAX(list_price_eur) OVER (ORDER BY product_id, valid_from ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS max_price_so_far FROM price_history WHERE product_id BETWEEN 1 AND 25"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-41",
+      "sql": "SELECT product_id, valid_from, list_price_eur, MAX(list_price_eur) OVER (PARTITION BY product_id ORDER BY list_price_eur, valid_from ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS max_price_so_far FROM price_history WHERE product_id BETWEEN 1 AND 25"
+    }
+  ],
+  "hint3_partial": "SELECT product_id, valid_from, list_price_eur,\n  ___(list_price_eur) OVER (PARTITION BY product_id ORDER BY valid_from ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS max_price_so_far\nFROM price_history\nWHERE product_id BETWEEN 1 AND 25",
+  "solver": {
+    "prompt_hash": "60ad0094983f6c7f",
+    "schema_version": "e8cea7c4eacc",
+    "dataset_version": "e7c58abf7e8f892e",
+    "grader_version": "7a.1",
+    "query": "SELECT product_id, valid_from, list_price_eur,\n  MAX(list_price_eur) OVER (PARTITION BY product_id ORDER BY valid_from ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS max_price_so_far\nFROM price_history\nWHERE product_id BETWEEN 1 AND 25\n",
+    "at": "2026-10-21T09:05:08.234Z"
+  }
+}

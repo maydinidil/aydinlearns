@@ -1,0 +1,13 @@
+{
+  "item_id": "Q-GA4-253",
+  "item_version": 1,
+  "correct_oid": "o275d245",
+  "explanation": "UTM values are case sensitive: utm_source=Google and utm_source=google are different values in reports, so mixed case splits the rows in source and medium reports. Channel definitions are not case sensitive, so both spellings still land in the Email channel. Auto-tagging applies only to clicks from linked Google advertising products, not to newsletter links.",
+  "solver": {
+    "prompt_hash": "1ddce6ba5aa21100",
+    "grader_version": "choice.3",
+    "chosen": "o275d245",
+    "typed": null,
+    "at": "2026-10-22T11:25:43.903Z"
+  }
+}

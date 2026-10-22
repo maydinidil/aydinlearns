@@ -7,15 +7,22 @@
 // each answer is an attempt, whose payload names the run's kind (run_kind, log version 5, D68); its end closes every item run_end and
 // writes one rated block_close. A block with no run_kind (an older log, or a run with no answer) is told by its phase and, for a mock,
 // by how many items it closed. A run is scored with the blueprint in force on the date it started (blueprintOn, F14).
+// Sprint 7 Part 2 (Task N1; S7-10, S7-11): the knowledge mock's draw (20 held-out Methodology and 10 knowledge-pool GA4 questions), the
+// date its unseen questions come back, and its review's score per section and topic. The GA4 history is kept apart from it: every GA4
+// run path here (examHistory, choiceRuns) ignores a knowledge mock's block, and the GA4 half and full mock pool (ga4ExamPool) never holds
+// a knowledge-pool item.
 import { randomInt } from 'node:crypto';
-import { isUnseen, pickForm, scoreRun, spread, type ExamHistory, type RunScore } from '../core/exam.ts';
-import { isUnreached } from '../core/replay.ts';
+import { isUnseen, nextUnseenDate, pickForm, scoreRun, spread, type ExamHistory, type RunScore } from '../core/exam.ts';
+import { countsAsAttempt, isUnreached } from '../core/replay.ts';
 import { amsterdamDate } from '../core/time.ts';
-import { choiceTarget, type ChoiceItem } from '../schemas/choice.ts';
+import { choiceTarget, type ChoiceItem, type ChoiceSection } from '../schemas/choice.ts';
 import type { Ga4Item } from '../schemas/ga4.ts';
 import { blueprintOn, type Ga4ExamConfig, type RunBlueprint, type RunMode } from '../schemas/ga4-exam.ts';
 import type { LoggedRunKind } from '../schemas/log-ext.ts';
-import { drillRunView, isDrillPlan, SEEN_WINDOW_MS, type RunEntry } from './drill.ts';
+import type { KnowledgeMock } from '../schemas/mock.ts';
+import type { ContentStore } from './content.ts';
+import { drillRunView, isDrillPlan, isMockPlan, mockRunView, SEEN_WINDOW_MS, type RunEntry } from './drill.ts';
+import { MOCK_BLOCK_PREFIX } from './mocks.ts';
 import { countsForReadiness } from './readiness.ts';
 
 /** D68: the kinds a GA4 run answer logs as its payload's run_kind. */
@@ -33,6 +40,8 @@ export const CHOICE_RUN_OVER = 'This run has ended, so it takes no more answers.
 /** The codes a screen reads on a 409 to a run's answer, instead of the message text (B3 M1). */
 export const CODE_RUN_OVER = 'RUN_OVER';
 export const CODE_ONE_ANSWER = 'ONE_ANSWER';
+/** F4-2-1: a mock run that is on does not hold the instance named (one served before an app restart): the screen reads the run again. */
+export const CODE_RUN_CHANGED = 'RUN_CHANGED';
 /** S3-04: exam mode takes one answer per question. */
 export const ONE_ANSWER = 'This question already has its answer. A half-mock takes one answer per question.';
 export const ONE_ANSWER_FULL = 'This question already has its answer. A full mock takes one answer per question.';
@@ -47,7 +56,7 @@ export interface ChoiceRunPlan {
   /** A mock not on unseen items: the first Amsterdam date with enough unseen items (core/exam.ts nextUnseenDate). */
   next_unseen_date: string | null;
 }
-export const isChoicePlan = (p: RunEntry['plan']): p is ChoiceRunPlan => !isDrillPlan(p);
+export const isChoicePlan = (p: RunEntry['plan']): p is ChoiceRunPlan => !isDrillPlan(p) && !isMockPlan(p);   // sprint 7: a mock is neither
 
 /** A GA4 run as its start answers it, and /api/run/current: its rules (the time limit is a test rule, shown), end and items. */
 export function choiceRunView(run: RunEntry & { plan: ChoiceRunPlan }) {
@@ -61,6 +70,7 @@ export function choiceRunView(run: RunEntry & { plan: ChoiceRunPlan }) {
 /** Any run in its own shape: a 409 for a second start carries the run that is on, whatever its section (S3-08). */
 export function runView(run: RunEntry) {
   const p = run.plan;
+  if (isMockPlan(p)) return mockRunView({ ...run, plan: p });                     // sprint 7 (S7-02)
   return isDrillPlan(p) ? drillRunView({ ...run, plan: p }) : choiceRunView({ ...run, plan: p });
 }
 
@@ -126,12 +136,12 @@ interface Inst {
   firstSeq: number;
 }
 
-/** Every instance the attempt file names, from its attempts, help records and closes, in log order. */
-function instancesOf(records: readonly object[]): Map<string, Inst> {
+/** Every instance the attempt file names, from its attempts, help records and closes, in log order; `skip`'s instances left out. */
+function instancesOf(records: readonly object[], skip: ReadonlySet<string> = new Set()): Map<string, Inst> {
   const out = new Map<string, Inst>();
   (records as Rec[]).forEach((r, seq) => {
     const id = str(r.item_instance_id);
-    if (!id || !(r.record === 'attempt' || r.record === 'item_close' || r.record === 'hint_opened' || r.record === 'solution_opened')) return;
+    if (!id || skip.has(id) || !(r.record === 'attempt' || r.record === 'item_close' || r.record === 'hint_opened' || r.record === 'solution_opened')) return;
     let x = out.get(id);
     if (!x) {
       x = { id, item_id: null, block: null, phase: null, section: null, runKind: null, start: Infinity, closedAt: null, reason: null, answers: [], helpBefore: 0,
@@ -178,12 +188,12 @@ const scoredOf = (x: Inst): LoggedAnswer | null => {
 const shown = (x: Inst): boolean => x.item_id !== null && Number.isFinite(x.start)
   && !isUnreached({ reason: x.reason, attempts: x.answers.length, help: x.helpBefore });
 
-/** S3-05: the showings and the `solution_opened` openings the retake rule reads, with each showing's block. */
-function historyOf(insts: ReadonlyMap<string, Inst>, records: readonly object[]): { showings: (ExamHistory['showings'][number] & { block: string | null; t: number })[]; openings: (ExamHistory['openings'][number] & { t: number })[] } {
+/** S3-05: the showings and the `solution_opened` openings the retake rule reads, with each showing's block; `skip`'s instances left out. */
+function historyOf(insts: ReadonlyMap<string, Inst>, records: readonly object[], skip: ReadonlySet<string> = new Set()): { showings: (ExamHistory['showings'][number] & { block: string | null; t: number })[]; openings: (ExamHistory['openings'][number] & { t: number })[] } {
   const showings = [...insts.values()].filter(shown).map((x) => ({ item_id: x.item_id!, at: iso(x.start), block: x.block, t: x.start }));
   const openings: (ExamHistory['openings'][number] & { t: number })[] = [];
   for (const r of records as Rec[]) {
-    if (r.record !== 'solution_opened') continue;
+    if (r.record !== 'solution_opened' || skip.has(str(r.item_instance_id) ?? '')) continue;
     const t = Date.parse(str(r.ts) ?? '');
     const item = str(r.item_id) ?? insts.get(str(r.item_instance_id) ?? '')?.item_id ?? null;
     if (item !== null && !Number.isNaN(t)) openings.push({ item_id: item, at: iso(t), t });
@@ -191,9 +201,10 @@ function historyOf(insts: ReadonlyMap<string, Inst>, records: readonly object[])
   return { showings, openings };
 }
 
-/** S3-05: the retake rule's history over the whole attempt file (a mock's start reads it). */
+/** S3-05: the retake rule's history over the whole attempt file (a mock's start reads it), a knowledge mock's blocks left out (S7-11). */
 export function examHistory(records: readonly object[]): ExamHistory {
-  const h = historyOf(instancesOf(records), records);
+  const skip = knowledgeInstances(records);
+  const h = historyOf(instancesOf(records, skip), records, skip);
   return { showings: h.showings.map(({ item_id, at }) => ({ item_id, at })), openings: h.openings.map(({ item_id, at }) => ({ item_id, at })) };
 }
 /** The 0-based positions of a run's servings that have a logged answer, ascending: what the screen needs to resume an exam run (B3 I2). */
@@ -259,6 +270,7 @@ export interface ChoiceRun {
  * - A mini drill's unseen share: items with no instance outside the run, seen (S2-97), in the 30 days before its start (S2-41).
  * - A mock is on unseen items when each of its questions was unseen at its start by the retake rule (S3-05, D27). The readiness check
  *   reads logged_unseen instead (Ruling 7): the same rule over the items it logged, so a crash does not take a run out of the check.
+ * - S7-11: a knowledge mock's block (knowledgeBlocks) is no GA4 run, and its showings are not in the retake rule's history.
  */
 export function choiceRuns(records: readonly object[], o: { cfg: Ga4ExamConfig; itemOf: (id: string) => ChoiceItem | undefined; events?: readonly object[] }): ChoiceRun[] {
   const recoveredEnds = new Map<string, number>();                  // F13: the sessions a start-up recovery ended, and when
@@ -271,8 +283,9 @@ export function choiceRuns(records: readonly object[], o: { cfg: Ga4ExamConfig; 
     const b = str(r.block_id), sid = str(r.session_id);
     if (r.record === 'attempt' && b && sid && !sessionOf.has(b)) sessionOf.set(b, sid);
   }
-  const insts = instancesOf(records);
-  const h = historyOf(insts, records);
+  const skip = knowledgeInstances(records);                          // S7-11: a knowledge mock's block is no GA4 run
+  const insts = instancesOf(records, skip);
+  const h = historyOf(insts, records, skip);
   const ends = new Map<string, string>();
   for (const r of records as Rec[]) {
     const b = str(r.block_id), ts = str(r.ts);
@@ -342,4 +355,154 @@ export function historyRow(r: ChoiceRun) {
 export function reviewOf(r: ChoiceRun) {
   const items = r.kind === 'mini_drill' ? r.items : r.items.map((i) => ({ n: i.n, topic: i.topic, answered: i.answered, correct: i.correct }));
   return { ...historyRow(r), recovered: r.recovered, items };
+}
+
+// ---- the GA4 exam pool and the knowledge mock (sprint 7 Part 2, Task N1; S7-04, S7-07, S7-10, S7-11) ---------------------------------
+
+/**
+ * S3-06, design §8: the GA4 half and full mock pool: the active core GA4 items held out, with a key, and (S7-11) none of the knowledge
+ * pool's. routes/run.ts draws a half or full mock from it, and content check C46 counts it.
+ */
+export function ga4ExamPool(content: Pick<ContentStore, 'choiceItems' | 'heldOut' | 'choiceKey' | 'knowledgePool'>): Ga4Item[] {
+  const knowledge = new Set(content.knowledgePool?.() ?? []);
+  return (content.choiceItems?.('ga4') ?? []).filter(isGa4Item).filter((i) => i.status === 'active' && i.exam_relevance === 'core' && (content.heldOut?.(i.id) ?? false)
+    && content.choiceKey?.(i.id) !== undefined && !knowledge.has(i.id));
+}
+
+/** S7-01: a knowledge mock run's block_id is mock-knowledge-<uuid>. */
+export const KNOWLEDGE_BLOCK_PREFIX = `${MOCK_BLOCK_PREFIX}knowledge-`;
+/**
+ * S7-11: the blocks of knowledge mock runs: a block a knowledge mock_open names, or one whose answers carry run_kind knowledge_mock.
+ * Every GA4 run path ignores them.
+ */
+export function knowledgeBlocks(records: readonly object[]): Set<string> {
+  const out = new Set<string>();
+  for (const r of records as Rec[]) {
+    const block = str(r.block_id);
+    if (block === null) continue;
+    if ((r.record === 'mock_open' && r.mock === 'knowledge') || (r.record === 'attempt' && (r.payload as Rec | null | undefined)?.run_kind === 'knowledge_mock')) out.add(block);
+  }
+  return out;
+}
+/** S7-11: the item instances of the knowledge mock blocks, which every GA4 run path leaves out (the readiness check's cold answers too). */
+export function knowledgeInstances(records: readonly object[]): Set<string> {
+  const blocks = knowledgeBlocks(records);
+  const out = new Set<string>();
+  if (blocks.size === 0) return out;
+  for (const r of records as Rec[]) {
+    const id = str(r.item_instance_id), block = str(r.block_id);
+    if (id !== null && block !== null && blocks.has(block)) out.add(id);
+  }
+  return out;
+}
+
+/** S7-10: where a knowledge question counts: its section, and its topic (a GA4 item's own, a Methodology item's concept's). */
+export interface KnowledgeTopic { section: ChoiceSection; topic: string }
+/** The section and topic of a GA4 or Methodology item, or undefined for any other item (or a Methodology concept with no topic). */
+export function knowledgeTopic(content: Pick<ContentStore, 'choiceItem' | 'choiceConcepts'>): (itemId: string) => KnowledgeTopic | undefined {
+  const metTopic = new Map((content.choiceConcepts?.('methodology') ?? []).map((c) => [c.id, c.topic_id]));
+  return (itemId) => {
+    const item = content.choiceItem?.(itemId);
+    if (isGa4Item(item)) return { section: 'ga4', topic: item.topic_id };
+    const topic = item?.section === 'methodology' ? metTopic.get(item.concept_id) : undefined;
+    return topic === undefined ? undefined : { section: 'methodology', topic };
+  };
+}
+/** S7-10: one question a knowledge mock may draw, and its topic. */
+export interface KnowledgeQuestion { item: ChoiceItem; topic: string }
+/** S7-10: the knowledge mock's pools, in file order: Methodology's held-out items, and the GA4 knowledge pool's; each active, with a key. */
+export interface KnowledgePools { methodology: KnowledgeQuestion[]; ga4: KnowledgeQuestion[] }
+export function knowledgePools(content: Pick<ContentStore, 'choiceItems' | 'choiceItem' | 'choiceConcepts' | 'heldOut' | 'choiceKey' | 'knowledgePool'>): KnowledgePools {
+  const topicOf = knowledgeTopic(content);
+  const usable = (i: ChoiceItem | undefined): i is ChoiceItem => i !== undefined && i.status === 'active' && content.choiceKey?.(i.id) !== undefined;
+  const question = (section: ChoiceSection) => (i: ChoiceItem): KnowledgeQuestion[] => {
+    const t = topicOf(i.id);
+    return t?.section === section ? [{ item: i, topic: t.topic }] : [];
+  };
+  const methodology = (content.choiceItems?.('methodology') ?? []).filter((i) => usable(i) && content.heldOut?.(i.id) === true).flatMap(question('methodology'));
+  const ga4 = [...new Set(content.knowledgePool?.() ?? [])].map((id) => content.choiceItem?.(id)).filter(usable).flatMap(question('ga4'));
+  return { methodology, ga4 };
+}
+/** S7-C21: whether a start can draw the knowledge mock: each pool holds at least its section's share of questions. */
+export const knowledgeReady = (pools: KnowledgePools, rules: KnowledgeMock): boolean =>
+  pools.methodology.length >= rules.per_section.methodology && pools.ga4.length >= rules.per_section.ga4;
+
+/** Fisher-Yates. `random(n)` is a whole number from 0 to n - 1. The input is left alone. */
+function shuffle<T>(xs: readonly T[], random: (n: number) => number): T[] {
+  const out = [...xs];
+  for (let i = out.length - 1; i > 0; i--) {
+    const j = random(i + 1);
+    [out[i], out[j]] = [out[j]!, out[i]!];
+  }
+  return out;
+}
+/**
+ * S7-10: a knowledge mock's questions. Each section by pickForm: its share (`per_section`), each topic weighted by its count in the
+ * section's pool, fresh questions first, topped up by the least recently shown, at most one per enemy group across both sections. Then
+ * shuffled across both sections. `fresh` is S7-04's 30 days (seenWindow). `allFresh`: both sections full, every question fresh (S7-04).
+ */
+export function drawKnowledge(a: {
+  rules: KnowledgeMock; pools: KnowledgePools; fresh: (id: string) => boolean; lastShown: (id: string) => string | null; random?: (n: number) => number;
+}): { picks: { item: ChoiceItem; fresh: boolean }[]; allFresh: boolean } {
+  const random = a.random ?? ((n: number) => randomInt(n));
+  const groups = new Set<string>();
+  const section = (pool: readonly KnowledgeQuestion[], n: number) => {
+    const weights: Record<string, number> = {};
+    for (const q of pool) weights[q.topic] = (weights[q.topic] ?? 0) + 1;
+    const free = pool.filter((q) => q.item.enemy_group === null || !groups.has(q.item.enemy_group));
+    const byId = new Map(free.map((q) => [q.item.id, q.item]));
+    const form = pickForm({ pool: free.map((q) => ({ id: q.item.id, topic: q.topic, group: q.item.enemy_group })), weights, order: Object.keys(weights), n,
+      fresh: a.fresh, lastShown: a.lastShown, random });
+    const picks = form.picks.map((p) => ({ item: byId.get(p.item_id)!, fresh: p.fresh }));
+    for (const p of picks) if (p.item.enemy_group !== null) groups.add(p.item.enemy_group);
+    return { picks, allFresh: form.allFresh };
+  };
+  const methodology = section(a.pools.methodology, a.rules.per_section.methodology);
+  const ga4 = section(a.pools.ga4, a.rules.per_section.ga4);
+  return { picks: shuffle([...methodology.picks, ...ga4.picks], random), allFresh: methodology.allFresh && ga4.allFresh };
+}
+
+/** S7-04's 30 days in whole days, for the date unseen questions come back. */
+const SEEN_WINDOW_DAYS = Math.round(SEEN_WINDOW_MS / 86_400_000);
+/**
+ * S7-04: the first Amsterdam date on which each section's pool holds its share of questions not shown in the last 30 days, by the
+ * showings `seen` lists (core/exam.ts nextUnseenDate, ignoring enemy groups as the GA4 mocks' date does), or null when that never comes.
+ */
+export function knowledgeUnseenDate(pools: KnowledgePools, rules: KnowledgeMock, seen: readonly { item_id: string; started_at: string }[], today: string): string | null {
+  const h: ExamHistory = { showings: seen.map((s) => ({ item_id: s.item_id, at: s.started_at })), openings: [] };
+  const dates = [nextUnseenDate(pools.methodology.map((q) => q.item.id), h, rules.per_section.methodology, today, SEEN_WINDOW_DAYS, amsterdamDate),
+    nextUnseenDate(pools.ga4.map((q) => q.item.id), h, rules.per_section.ga4, today, SEEN_WINDOW_DAYS, amsterdamDate)];
+  return dates.some((d) => d === null) ? null : dates.reduce((x, y) => (x! > y! ? x : y));
+}
+
+/** S7-07: a knowledge mock review's score per section, then per topic (Methodology first, topics in ID order). */
+export interface KnowledgeScore {
+  sections: { section: ChoiceSection; correct: number; of: number }[];
+  topics: { section: ChoiceSection; topic: string; correct: number; of: number }[];
+}
+/**
+ * S7-07, S7-10: a knowledge run's score from the questions its block served (its end closes each one) and each one's first answer that
+ * counts (countsAsAttempt, as server/mocks.ts mockRuns scores the run), logged by `ended` (ms). A section is out of its share of
+ * questions (`per_section`), a topic out of the questions served there; an unanswered question is wrong. Names no item (S3-12).
+ */
+export function knowledgeScore(records: readonly object[], block: string, ended: number, rules: KnowledgeMock,
+  topicOf: (itemId: string) => KnowledgeTopic | undefined): KnowledgeScore {
+  const mine = (records as Rec[]).filter((r) => str(r.block_id) === block);
+  const served = [...new Set(mine.filter((r) => r.record === 'attempt' || r.record === 'item_close').map((r) => str(r.item_id)).filter((x): x is string => x !== null))];
+  const first = new Map<string, boolean>();
+  const answers = mine.filter((r) => r.record === 'attempt' && r.phase === 'mock' && countsAsAttempt(r) && Date.parse(str(r.submitted_at) ?? '') <= ended)
+    .sort((x, y) => Date.parse(str(x.submitted_at)!) - Date.parse(str(y.submitted_at)!));
+  for (const r of answers) if (!first.has(str(r.item_id) ?? '')) first.set(str(r.item_id) ?? '', r.outcome === 'pass');
+  const rows = served.flatMap((id) => { const t = topicOf(id); return t ? [{ ...t, right: first.get(id) === true }] : []; });
+  const order: readonly ChoiceSection[] = ['methodology', 'ga4'];
+  return {
+    sections: order.map((section) => {
+      const all = rows.filter((r) => r.section === section);
+      return { section, correct: all.filter((r) => r.right).length, of: Math.max(rules.per_section[section], all.length) };
+    }),
+    topics: order.flatMap((section) => [...new Set(rows.filter((r) => r.section === section).map((r) => r.topic))].sort().map((topic) => {
+      const all = rows.filter((r) => r.section === section && r.topic === topic);
+      return { section, topic, correct: all.filter((r) => r.right).length, of: all.length };
+    })),
+  };
 }

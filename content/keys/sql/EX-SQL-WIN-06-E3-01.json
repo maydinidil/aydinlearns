@@ -1,0 +1,44 @@
+{
+  "item_id": "EX-SQL-WIN-06-E3-01",
+  "item_version": 1,
+  "reference_sql": "WITH running AS (  -- one row per campaign and day with spend, with the running total\n  SELECT campaign_id, spend_date,\n         SUM(spend) OVER (PARTITION BY campaign_id ORDER BY spend_date\n                          ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS spend_to_date\n  FROM ad_spend_daily\n  WHERE spend_date BETWEEN DATE '2025-07-01' AND DATE '2025-10-31'\n),\nreached AS (  -- one row per campaign and day with a running total of 500 or more\n  SELECT campaign_id, spend_date, spend_to_date\n  FROM running\n  WHERE spend_to_date >= 500\n)\nSELECT r.campaign_id, r.spend_date AS reached_on, r.spend_to_date\nFROM reached r\nWHERE r.spend_date = (SELECT MIN(r2.spend_date) FROM reached r2 WHERE r2.campaign_id = r.campaign_id)",
+  "alternatives": [
+    "WITH running AS (  -- one row per campaign and day with spend, with the running total\n  SELECT campaign_id, spend_date,\n         SUM(spend) OVER (PARTITION BY campaign_id ORDER BY spend_date\n                          ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS spend_to_date\n  FROM ad_spend_daily\n  WHERE spend_date BETWEEN DATE '2025-07-01' AND DATE '2025-10-31'\n)\nSELECT campaign_id, MIN(spend_date) AS reached_on, MIN(spend_to_date) AS spend_to_date\nFROM running\nWHERE spend_to_date >= 500\nGROUP BY campaign_id",
+    "WITH running AS (  -- one row per campaign and day with spend, with the running total\n  SELECT campaign_id, spend_date,\n         SUM(spend) OVER (PARTITION BY campaign_id ORDER BY spend_date\n                          ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS spend_to_date\n  FROM ad_spend_daily\n  WHERE spend_date BETWEEN DATE '2025-07-01' AND DATE '2025-10-31'\n)\nSELECT campaign_id, spend_date AS reached_on, spend_to_date\nFROM running\nWHERE spend_to_date >= 500\nQUALIFY spend_date = MIN(spend_date) OVER (PARTITION BY campaign_id)"
+  ],
+  "other_way": {
+    "sql": "WITH running AS (  -- one row per campaign and day with spend, with the running total\n  SELECT campaign_id, spend_date,\n         SUM(spend) OVER (PARTITION BY campaign_id ORDER BY spend_date\n                          ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS spend_to_date\n  FROM ad_spend_daily\n  WHERE spend_date BETWEEN DATE '2025-07-01' AND DATE '2025-10-31'\n)\nSELECT campaign_id, spend_date AS reached_on, spend_to_date\nFROM running\nWHERE spend_to_date >= 500\nQUALIFY spend_date = MIN(spend_date) OVER (PARTITION BY campaign_id)",
+    "tradeoff": "QUALIFY filters the window result in the same query, which is shorter, but PostgreSQL, MySQL and SQL Server do not accept it."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-37",
+      "sql": "WITH running AS (SELECT campaign_id, spend_date, SUM(spend) OVER (ORDER BY spend_date, campaign_id ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS spend_to_date FROM ad_spend_daily WHERE spend_date BETWEEN DATE '2025-07-01' AND DATE '2025-10-31') SELECT campaign_id, MIN(spend_date) AS reached_on, MIN(spend_to_date) AS spend_to_date FROM running WHERE spend_to_date >= 500 GROUP BY campaign_id"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-41",
+      "sql": "WITH running AS (SELECT campaign_id, spend_date, SUM(spend) OVER (PARTITION BY campaign_id ORDER BY spend DESC, spend_date ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS spend_to_date FROM ad_spend_daily WHERE spend_date BETWEEN DATE '2025-07-01' AND DATE '2025-10-31'), reached AS (SELECT campaign_id, spend_date, spend_to_date FROM running WHERE spend_to_date >= 500) SELECT r.campaign_id, r.spend_date AS reached_on, r.spend_to_date FROM reached r WHERE r.spend_date = (SELECT MIN(r2.spend_date) FROM reached r2 WHERE r2.campaign_id = r.campaign_id)"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-14",
+      "sql": "WITH running AS (SELECT campaign_id, spend_date, SUM(spend) OVER (PARTITION BY campaign_id ORDER BY spend_date ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS spend_to_date FROM ad_spend_daily WHERE spend_date BETWEEN DATE '2025-07-01' AND DATE '2025-10-31') SELECT campaign_id, MAX(spend_date) AS reached_on, MAX(spend_to_date) AS spend_to_date FROM running WHERE spend_to_date >= 500 GROUP BY campaign_id"
+    },
+    {
+      "id": "PW4",
+      "error_id": "ERR-SYN-08",
+      "sql": "SELECT campaign_id, MIN(spend_date) AS reached_on, MIN(spend) AS spend_to_date FROM ad_spend_daily WHERE spend_date BETWEEN DATE '2025-07-01' AND DATE '2025-10-31' AND SUM(spend) OVER (PARTITION BY campaign_id ORDER BY spend_date ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) >= 500 GROUP BY campaign_id"
+    }
+  ],
+  "hint3_partial": "WITH running AS (  -- one row per campaign and day with spend, with the running total\n  SELECT campaign_id, spend_date,\n         SUM(spend) OVER (PARTITION BY campaign_id ORDER BY spend_date\n                          ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS spend_to_date\n  FROM ad_spend_daily\n  WHERE spend_date BETWEEN DATE '2025-07-01' AND DATE '2025-10-31'\n),\nreached AS (  -- one row per campaign and day with a running total of 500 or more\n  SELECT campaign_id, spend_date, spend_to_date\n  FROM running\n  WHERE ___\n)\nSELECT r.campaign_id, r.spend_date AS reached_on, r.spend_to_date\nFROM reached r\nWHERE r.spend_date = (SELECT MIN(r2.spend_date) FROM reached r2 WHERE r2.campaign_id = r.campaign_id)",
+  "solver": {
+    "prompt_hash": "f26a5e3b18a3d0f7",
+    "schema_version": "9292abbb642a",
+    "dataset_version": "e7c58abf7e8f892e",
+    "grader_version": "7a.1",
+    "query": "WITH run AS (\n  SELECT campaign_id, spend_date,\n         SUM(spend) OVER (PARTITION BY campaign_id ORDER BY spend_date\n                          ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS spend_to_date\n  FROM ad_spend_daily\n  WHERE spend_date >= DATE '2025-07-01' AND spend_date <= DATE '2025-10-31'\n)\nSELECT campaign_id, spend_date AS reached_on, spend_to_date\nFROM run\nWHERE spend_to_date >= 500\nQUALIFY ROW_NUMBER() OVER (PARTITION BY campaign_id ORDER BY spend_date) = 1\n",
+    "at": "2026-10-21T09:05:10.596Z"
+  }
+}

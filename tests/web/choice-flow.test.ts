@@ -209,8 +209,3 @@ test('sprint 5a: the Methodology map shows all seven topics with a label, never 
   assert.equal(groups[6]!.rows[1]!.readingHref, null);
 });
 
-test('sprint 5a: the Methodology map intro names the four areas', async () => {
-  const { readFile } = await import('node:fs/promises');
-  const src = await readFile('web/src/screens/MethodMapScreen.tsx', 'utf8');
-  assert.ok(src.includes('Metrics, experiments, statistics and pricing economics, grouped by topic. Everything is open: read a concept, then practise it, in any order.'));
-});

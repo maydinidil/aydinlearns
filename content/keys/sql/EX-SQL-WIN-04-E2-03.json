@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-WIN-04-E2-03",
+  "item_version": 1,
+  "reference_sql": "WITH order_rev AS (\n  -- one row per order\n  SELECT store_code, order_id, order_date, SUM(net_revenue_eur) AS revenue_eur\n  FROM sales\n  WHERE store_code IN ('NL-01', 'NL-02')\n    AND order_date BETWEEN DATE '2025-02-10' AND DATE '2025-02-16'\n  GROUP BY store_code, order_id, order_date\n)\nSELECT store_code, order_id, order_date, revenue_eur,\n  SUM(revenue_eur) OVER (PARTITION BY store_code ORDER BY order_date RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS running_revenue_eur\nFROM order_rev",
+  "alternatives": [
+    "WITH order_rev AS (\n  -- one row per order\n  SELECT store_code, order_id, order_date, SUM(net_revenue_eur) AS revenue_eur\n  FROM sales\n  WHERE store_code IN ('NL-01', 'NL-02')\n    AND order_date BETWEEN DATE '2025-02-10' AND DATE '2025-02-16'\n  GROUP BY store_code, order_id, order_date\n)\nSELECT o.store_code, o.order_id, o.order_date, o.revenue_eur,\n  (SELECT SUM(o2.revenue_eur) FROM order_rev o2 WHERE o2.store_code = o.store_code AND o2.order_date <= o.order_date) AS running_revenue_eur\nFROM order_rev o",
+    "WITH order_rev AS (\n  -- one row per order\n  SELECT store_code, order_id, order_date, SUM(net_revenue_eur) AS revenue_eur\n  FROM sales\n  WHERE store_code IN ('NL-01', 'NL-02')\n    AND order_date BETWEEN DATE '2025-02-10' AND DATE '2025-02-16'\n  GROUP BY store_code, order_id, order_date\n), by_day AS (\n  -- one row per store and day\n  SELECT store_code, order_date,\n    SUM(SUM(revenue_eur)) OVER (PARTITION BY store_code ORDER BY order_date ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS running_revenue_eur\n  FROM order_rev\n  GROUP BY store_code, order_date\n)\nSELECT o.store_code, o.order_id, o.order_date, o.revenue_eur, d.running_revenue_eur\nFROM order_rev o\nJOIN by_day d ON d.store_code = o.store_code AND d.order_date = o.order_date"
+  ],
+  "other_way": {
+    "sql": "WITH order_rev AS (\n  -- one row per order\n  SELECT store_code, order_id, order_date, SUM(net_revenue_eur) AS revenue_eur\n  FROM sales\n  WHERE store_code IN ('NL-01', 'NL-02')\n    AND order_date BETWEEN DATE '2025-02-10' AND DATE '2025-02-16'\n  GROUP BY store_code, order_id, order_date\n)\nSELECT o.store_code, o.order_id, o.order_date, o.revenue_eur,\n  (SELECT SUM(o2.revenue_eur) FROM order_rev o2 WHERE o2.store_code = o.store_code AND o2.order_date <= o.order_date) AS running_revenue_eur\nFROM order_rev o",
+    "tradeoff": "A subquery adding every order of the store up to that date treats one day's orders alike, but rereads the orders for every row."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-38",
+      "sql": "WITH order_rev AS (\n  -- one row per order\n  SELECT store_code, order_id, order_date, SUM(net_revenue_eur) AS revenue_eur\n  FROM sales\n  WHERE store_code IN ('NL-01', 'NL-02')\n    AND order_date BETWEEN DATE '2025-02-10' AND DATE '2025-02-16'\n  GROUP BY store_code, order_id, order_date\n) SELECT store_code, order_id, order_date, revenue_eur, SUM(revenue_eur) OVER (PARTITION BY store_code ORDER BY order_date, order_id ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS running_revenue_eur FROM order_rev"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-37",
+      "sql": "WITH order_rev AS (\n  -- one row per order\n  SELECT store_code, order_id, order_date, SUM(net_revenue_eur) AS revenue_eur\n  FROM sales\n  WHERE store_code IN ('NL-01', 'NL-02')\n    AND order_date BETWEEN DATE '2025-02-10' AND DATE '2025-02-16'\n  GROUP BY store_code, order_id, order_date\n) SELECT store_code, order_id, order_date, revenue_eur, SUM(revenue_eur) OVER (ORDER BY order_date RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS running_revenue_eur FROM order_rev"
+    }
+  ],
+  "hint3_partial": "WITH order_rev AS (\n  -- one row per order\n  SELECT store_code, order_id, order_date, SUM(net_revenue_eur) AS revenue_eur\n  FROM sales\n  WHERE store_code IN ('NL-01', 'NL-02')\n    AND order_date BETWEEN DATE '2025-02-10' AND DATE '2025-02-16'\n  GROUP BY store_code, order_id, order_date\n)\nSELECT store_code, order_id, order_date, revenue_eur,\n  SUM(revenue_eur) OVER (PARTITION BY store_code ORDER BY order_date ___ BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS running_revenue_eur\nFROM order_rev",
+  "solver": {
+    "prompt_hash": "f908c8021a10ffc3",
+    "schema_version": "cebf75df442f",
+    "dataset_version": "e7c58abf7e8f892e",
+    "grader_version": "7a.1",
+    "query": "WITH o AS (\n  SELECT store_code, order_id, order_date, SUM(net_revenue_eur) AS revenue_eur\n  FROM sales\n  WHERE store_code IN ('NL-01', 'NL-02')\n    AND order_date BETWEEN DATE '2025-02-10' AND DATE '2025-02-16'\n  GROUP BY store_code, order_id, order_date\n)\nSELECT store_code, order_id, order_date, revenue_eur,\n  SUM(revenue_eur) OVER (PARTITION BY store_code ORDER BY order_date RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS running_revenue_eur\nFROM o\n",
+    "at": "2026-10-21T09:05:08.444Z"
+  }
+}

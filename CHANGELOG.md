@@ -7,16 +7,230 @@ The project's first commit landed on `main` through PR #28 on 2026-10-03. Dates 
 from the files themselves (frontmatter, review dates and the knowledge-bank index); later dates
 come from git.
 
-1.0.0 is the first release. Slices 0 and 1a are the first application code; the entries before
+0.5.0 is the first release. Slices 0 and 1a are the first application code; the entries before
 them are research and planning.
 
-## 1.6.0 (2026-10-17)
+## 0.7.1 (2026-10-22)
+
+The other three recruiter mocks (sprint 7, Part 2): the knowledge interview, the case round and the take-home, with the
+Recruiter mocks screen complete (stages 3 to 5 live) and the tutor's second opinion in a case mock's review. No public
+release yet (R1 re-creates the public releases).
+
+| What 0.7.1 adds | In short |
+|---|---|
+| The knowledge mock | Stage 3: 30 held-out questions, 20 Methodology and 10 GA4 from a pool of 18 interview questions, in 40 minutes. One answer each; pass at 24 of 30 |
+| The case-round mock | Stage 4: one held-out case (`CASE-MOCK-A` on Voltmarkt or `-B` on Mailvora), 45 minutes, plan first, then the six checkpoints, then "say it in 60 seconds" |
+| The take-home mock | Stage 5: one held-out case on raw data (`CASE-TAKE-A` on `voltmarkt_raw` or `-B` on `mailvora_raw`), 2 hours on a clock that survives restarts, closed after 24 hours |
+| The Recruiter mocks screen | All six stage cards live, with each mock's rules, unseen forms, start, history and review |
+| The tutor's second opinion | In a case mock's review, the tutor can grade the written answer against each rubric line. It is not help and changes no pass |
+| `mailvora_edge_clean` | The hidden data for the Mailvora take-home: the raw data's quirks, cleaned |
+
+### Added
+
+- The knowledge mock (S7-10 to S7-12, S7-C21, S7-C26, S7-C31, S7-C32): 20 Methodology questions from the 93 held out
+  and 10 GA4 questions from `content/ga4/knowledge-pool.json`, shuffled with no section labels, one answer each. Its
+  review gives the score per section and topic, never a question. The pool holds 18 GA4 interview questions (from
+  `Q-GA4-246` to `-265`, two dropped under S7-C32), grounded in knowledge files 06 and 10 and ERRATA `E-205` (S7-C20).
+  A run is unseen when its 30 questions were unseen for 30 days; otherwise it is practice and the start screen shows
+  the date enough come back.
+- The case-round mock (S7-13, S7-14, S7-16, S7-C28): two held-out forms, `CASE-ROUND-A` and `-B`, each with its own
+  hidden data. The plan comes first and the server enforces it (S7-C28). Each checkpoint takes one answer; the model
+  plan, the model answer and the rubric wait for the review. After CP6, "say it in 60 seconds" shows a count and four
+  points to tick (number, so what, caveat, next step); it does not decide the pass. The run passes when CP6's four core
+  rubric lines are ticked and 4 of CP1 to CP5 pass.
+- The take-home mock (S7-15, S7-C25, S7-C29, S7-C30): two held-out forms, `TAKE-HOME-A` and `-B`, on raw data with
+  quirks that change the answer. The clock is wall time from the start, so leaving the screen, a study session ending or
+  an app restart does not stop it. After a restart a take-home under 24 hours old is rebuilt with its answers. A memo
+  (CP6) saved after 120 minutes is late and the run cannot pass; "Give up" ends a run like "Hand in". At 24 hours or
+  more the next start or request closes it.
+- The mock cases' content: `CASE-MOCK-A`, `CASE-MOCK-B`, `CASE-TAKE-A` and `CASE-TAKE-B` in `content/sql/mocks/`, each
+  with a CP3 SQL item (`EX-MOCK-CASE-A`, `-B`, `EX-MOCK-TAKE-A`, `-B`), held out by where they are stored (S7-08). All
+  four CP3 items and 16 checkpoints passed the blind solve on the first round, and the 8 checkpoints the content review
+  changed passed again.
+- `mailvora_edge_clean` (G1), the hidden data for the Mailvora take-home, checked like `voltmarkt_edge_clean`.
+- The Recruiter mocks screen is complete (S7-18): the knowledge, case-round and take-home cards replace "Coming in
+  0.7.1" with their rules, unseen forms, Start and history.
+- The tutor's second opinion (S7-17, S7-C35): in a case mock's review, a quick prompt asks the tutor to grade the
+  written answer against each rubric line. It shows only when CP6 has an answer, is logged as `tutor_asked` with screen
+  `mock_review`, and is not help.
+- `npm run check:content -- --only C25,C56` runs just the listed checks (S7-C27, X1). The mock-case tooling (S7-C33):
+  the course database build and the launcher read `content/sql/mocks/`, and C47 and C54 read the mock cases.
+- C56 (the knowledge pool's shape), and C25 reading the pool as a second held-out list for GA4 (S7-C26).
+- `reserve-held-out --release-list` (K3, S7-38): releases a named held-out item and adds a candidate, the total
+  unchanged, for the MET-MKT-05 swap.
+- Browser smoke rows 7b-1 to 7b-5.
+
+### Changed
+
+- Log format version 7 gains `pass_correct` on `mock_open` (S7-C34), additive: the number of correct answers the run
+  needs (screen 5, knowledge 24, case-round and take-home 4). Every kind scores a run on its own questions and its own
+  pass mark, and a record without it reads as the file's value. Older logs replay as before.
+- The study journey's run events cover every mock kind (`run_started`, `run_finished`); a knowledge or case mock carries
+  no SQL section, and a case mock's `run_finished` has no pass flag (F4-1-4, F4-4-4).
+- A mock run's date is the date its mock opened, for the history row and the stage (S7-C24), which ends 0.7.0's
+  two-dates issue.
+- A knowledge mock spends its 30 questions once opened, answered or not (S7-C36): the next draw treats every question the
+  run showed as seen at that time.
+- A mock answer takes its time from the run's clock when the request arrives, not after grading (F4-3-1).
+- The tutor (K1, S7-36): polish, the journey's tutor columns as numbers, a larger eval and the sprint T test gaps.
+- Methodology wrong options are sharper, 37 questions whose concept title was the correct option now ask for the
+  calculation, and case wording is clearer (K2, S7-37). Every answer stayed.
+- Codex F35 and F36 are fixed (N3): a finished screen mock is scored on the questions it served and the pass mark it
+  started with, and a reload keeps the answered marks on the question strip.
+
+### Fixed
+
+- The case-round and take-home screens could not load their checkpoints or give up: the serve and give-up calls sent no
+  JSON body and the server answered 415. Found by the new smoke rows (F3).
+- A take-home tab left open across an app restart no longer gets stuck on a dead question: the screen reads the rebuilt
+  run and carries on (F4-2-1, code `RUN_CHANGED`).
+- A restart no longer closes a take-home question that has only a crash attempt (F4-3-2).
+- "Give up" on a take-home that has already ended shows the review instead of an error (F4-2-4).
+- A GA4 run screen opened while a mock runs sends you to the mock (F4-1-5).
+- A reload during a knowledge mock no longer lets the run go back to questions it skipped (N1 review).
+- Startup recovery no longer closes an open take-home's answered questions mid-run (N2 review).
+- `reserve-held-out --extend` ignored the knowledge pool and wrote pool items into `held-out.json`; it now treats them as
+  held and never releases them (F4-1-2).
+
+### Known issues
+
+- The owner's MET-MKT-05 swap (K3 Step 5) has not run. Until it does, the knowledge mock can draw `Q-MET-MKT-05-01`,
+  whose answer sits in its reading, and once a run serves it the swap refuses (F4-1-3). Run the swap before the
+  knowledge mock.
+- A crash that leaves no close for an unanswered knowledge question keeps that question's gap in the next draw
+  (S7-C36's cost).
+- The F4 round added 30 rows to `docs/planning/backlog.md`. The ones a learner could meet: a section row of the knowledge
+  score can differ from the history row, the knowledge run drops focus after a save, a crashed screen run's review
+  lists only answered questions, the tutor can open on an earlier review while another mock runs, and a take-home's
+  CP3 query is not kept when the step reopens after a restart. None blocks a run.
+
+## 0.7.0 (2026-10-21)
+
+SQL level 5 and the first recruiter mock (sprint 7, Part 1; owner decisions D100 to D115): window functions on Voltmarkt
+and Mailvora, and the screen mock, stage 2's online SQL test, on a new Recruiter mocks screen. No public release (D100);
+Part 2 ships the other three mocks as 0.7.1.
+
+| What 0.7.0 adds | In short |
+|---|---|
+| SQL level 5 | Window functions in 7 concepts (`SQL-WIN-01` to `-07`: OVER and PARTITION BY; ROW_NUMBER, RANK and DENSE_RANK; LAG and LEAD; running totals and frames; moving averages; QUALIFY and filtering window results; NTILE, percentiles and FIRST_VALUE), each with a lesson, a pool, fix and choice items and drill items: 187 items, every one blind-solved |
+| The level 5 drill | 10 questions in 25 minutes, pass at 90%, from 35 drill items (5 per concept) |
+| Level 5 cases | The opener `CASE-VOLT-L5`, two daily cases (`CASE-DAILY-L5-01` on Voltmarkt, `-02` on Mailvora) and `CASE-RETAIL-05`, customer segments by recency, frequency and money on Voltmarkt (E-007) |
+| The screen mock | Stage 2's test: 6 problems from levels 1 to 5 in 45 minutes, in screen mode, from three held-out forms of six questions each. One answer per question; pass with 5 of 6 exactly right. A pass on a form you have not taken before meets stage 2 |
+| The Recruiter mocks screen | "Mocks" in the top bar: six stage cards with the readiness board's status, the screen mock's start and history, and live reps. The knowledge, case-round and take-home mocks read "Coming in 0.7.1" |
+
+### Added
+
+- SQL level 5 (plan `docs/superpowers/plans/2026-10-20-aydinlearns-sprint-7.md`, S7-19): seven concepts with lessons
+  (reading, worked examples with fading, a pretest), write pools, fix items for their traps and choice items (predict
+  the result, choose the query), at least a third of each concept's items on Mailvora: 159 write and fix items and 28
+  choice items, all passing the blind solver on the first round. `SQL-WIN-06` includes removing `voltmarkt_raw`'s
+  resent order lines with ROW_NUMBER (FIND-01-13, E-099).
+- The level 5 drill entry (S7-19): 10 questions, 25 minutes, pass at 90%, 70% unseen, over the 7 concepts.
+- Two edge schemas for level 5 (S7-25), `voltmarkt_edge_win` and `mailvora_edge_win`: a tie at a rank cutoff in two
+  partitions, a partition with one row, a missing value in a window's ORDER BY column, a month with no rows between two
+  that have rows, two rows on the same date (ROWS against RANGE), and a group of 3 rows under `NTILE(5)`. Every older
+  object's hash is unchanged.
+- Error IDs `ERR-LOG-40` to `ERR-LOG-43` (S7-24, E-200) with feedback: RANK where exactly N rows were asked, or
+  ROW_NUMBER where ties must share a place; a running total or LAG over rows in no stated order; LAST_VALUE or
+  FIRST_VALUE with the default frame; a moving average over a partial early window. Averaging ratios keeps its
+  existing ID, `ERR-LOG-20` (S7-C02).
+- Four level 5 cases (S7-27): `CASE-VOLT-L5` (CP1 to CP6, its CP1 the level's mid question), `CASE-DAILY-L5-01` and
+  `-02` (CP3 and CP4) and `CASE-RETAIL-05` (CP1 to CP6, asked by Fleur): the frequency score uses fixed thresholds on
+  the number of orders, and recency and money are split into five groups with the customer ID as the tie-break
+  (E-007). A daily case on Mailvora is asked by one of Mailvora's managers (S7-C11). MET-RETAIL-09's items were read
+  against E-007; none needed a change.
+- The screen mock (S7-01 to S7-09): three forms, `SCREEN-A`, `-B` and `-C`, each one item from each of levels 1 to 4
+  and two from level 5, at least two on Mailvora, E2 or E3. Its 18 items (`EX-MOCK-SCREEN-<form>-NN`) are held out by
+  where they are stored (D114, S7-08): no other screen serves or names them. Inside the run, Run is free, each question
+  takes one graded answer, and every reply says only "Answer recorded"; hints, "Show answer", "other ways" and the tutor
+  wait for the review (D108). The run ends at 45 minutes, by "Hand in", or when the study session or the app stops.
+  The review shows each question with its result, your answer, the diff and "Show answer", which is free there.
+- Which form a start takes (S7-04): the first one not yet opened. Once all three are taken, the one opened longest ago,
+  and the start screen says the result is practice and does not count toward the stage.
+- The Recruiter mocks screen (S7-18, `#/mocks`): one card per stage, in stage order, each with its board status. Stage 1
+  links to Settings' external results; stage 2 has the screen mock's rules, the forms left unseen, Start and the history
+  (date, score, passed, late, practice, and a review link); stage 6 shows the live reps of the last 4 weeks with a link
+  to Drills. The readiness board's stage rows on Progress open their card.
+- The readiness board's mock evidence (S7-05): the first pass on an unseen form meets its stage, with its date; a met
+  stage stays met.
+- Content checks C53 (a key that filters a ranking result states its tie rule, and its edge schema holds a tie at the
+  cutoff; S7-22, S7-C06), C54 (`content/mocks.json` and its forms) and C55 (the mock cases' shape, for 0.7.1).
+- Render tests (D113, S7-28): `npm test` also draws the screens' React components in happy-dom 20.14.5 (a dev package,
+  pinned exactly), compiled through Vite's own `transformWithOxc`. The web tests that searched the source now render.
+- Browser smoke rows 7a-1 to 7a-6.
+
+### Changed
+
+- Log format version 7 (D112): the `mock_open` record, written once when a mock starts; `run_kind: 'knowledge_mock'`
+  (used from 0.7.1); and `tutor_asked.ts` is now when the question was asked, not when the reply ended. Replay reads
+  versions 1 to 7, and older logs replay exactly as before.
+- The grader (GRADER_VERSION `7a.1`, S7-26): a graded query that uses QUALIFY gets the note "PostgreSQL, MySQL and SQL
+  Server have no QUALIFY: filter the window result in an outer query or a CTE." (S7-20). A note only, never a fail. A
+  `SQL-WIN-06` answer passes with QUALIFY or with the portable CTE.
+- A screen mock answer rates its card as a drill answer does: Good when it passes within the limit, Again otherwise,
+  never Easy; a run that reaches two or more concepts counts as a mixed set (S7-06, S7-C08).
+- The tutor (S7-31 to S7-35): OpenAI cache writes are priced apart; an OpenAI account out of quota gets the refused line,
+  and a policy refusal reads "The tutor could not answer this one."; a reply cut off (Close, Alt+T, leaving, the
+  deadline) is counted, from the usage the provider reported or else from the call's reservation, not logged at $0; the
+  reply deadline is 1, 2 or 4 minutes by effort; a stream that breaks mid-reply reads "The tutor stopped mid-reply.";
+  Progress's help share counts only questions asked before the item's pass; the key fields are masked text fields with
+  autocomplete off (S7-34); in a drill or GA4 run review the tutor gets the question's course content, with the concept
+  labels hidden.
+- Drill reviews (S7-35, S2-44): a passed question still reads passed after a reload, with its "Other ways to write this";
+  the help line reads "The run is over, so hints and answers here are free.", and "Show answer" there says it is free.
+- The Mistakes screen's "Try again" says "That card is not due now, so here is the next one." when it serves another
+  card; on a new screen, focus waits up to 2 seconds for the heading, then goes to the page (S7-29).
+- Constructs (S7-21): a construct's example may also use its concept's prerequisites, so the QUALIFY example using a
+  window is correct.
+- In the screen mock, after the F2 review: Submit asks "Send this as your one answer?" with Send and Keep editing, in the
+  page, and Ctrl+Shift+Enter sends nothing; the run's help line says "Answers and the tutor open in the review."; a
+  wrong mock answer makes its mistake card only after the run (S7-C16); "I was right" is refused for any mock answer
+  (S7-C17); after an app stop or a crash mid-run, the run screen says "This mock has ended, so it takes no more answers."
+  and opens the review, and the app closes a run it finds still open at its next start (S7-C18); 30 idle minutes no
+  longer end the study session while a mock's clock runs (S7-C19).
+- A stage's pass date reads like the other dates ("Screen mock passed on 3 November"), not as a raw date.
+- Tutor help on an exercise is judged by when the question was asked against when the answer was sent, in the SQL panel
+  as in the choice panel, so the panel agrees with replay.
+- One shared attempt filter, an exact company check in the funnel, Mailvora built once per process in the pipeline
+  tests, and the column types declared on the table notes (S7-30): code moves with no change in behaviour.
+
+### Fixed
+
+- ERR-SYN-08's feedback (a window function in WHERE, since 0.6.0) showed a top 3 ranked with no tie-break, the shape
+  C53 refuses in a key; its example now ends the ranking's order with a tie-break, and a test holds every level 5 trap
+  example to it (F2-5-1).
+- The real-data prep's DOCTYPE guard read only a workbook part's first 4,096 bytes: a DOCTYPE after a long comment got
+  through, and text that only looked like a DOCTYPE was refused. It now reads the whole prolog, up to 64 KiB; a part
+  whose prolog is longer is refused as damaged (S7-30, F2-6-1).
+- Block H closed 13 backlog rows (D103). The ones a learner notices are under Changed above (the tutor, drill reviews,
+  the key fields, the Mistakes notice and focus); the rest are test gaps and code details, listed in
+  `docs/planning/2026-10-21-sprint-7-record.md`.
+
+### Known issues
+
+- The 8 rows this release added to `docs/planning/backlog.md`: route focus can take focus from a field you chose, test
+  gaps, the rank-cutoff check's details and four filter shapes it cannot see, a window function outside WHERE diagnosed
+  as a misspelt name, level 5 prompt wording, CASE-RETAIL-05's money tie-break not exercised by the data, and mock cases
+  held out by folder only (none ship in 0.7.0). None blocks a learner.
+- After a reload in the middle of a screen mock, the question strip no longer marks the questions already answered; the
+  app still refuses a second answer (Codex F36; carried to Part 2).
+- A finished screen mock is scored again against the current form whenever the app reads its history, so a later
+  change to a taken form or to the pass mark could change its score or its met stage. No form has changed (Codex F35;
+  carried to Part 2).
+- A screen mock that starts before midnight and ends after it shows its start date in the history and its end date on
+  the stage (carried to Part 2).
+- Saving a tutor key in Settings should no longer offer to store it as a password; this still needs one check in Chrome
+  (S7-34).
+
+## 0.6.2 (2026-10-17)
+
+Version numbers (D115, 2026-10-20): the middle number is now the sprint, and a later release in the same sprint raises the last number. This file and the other docs use the new numbers. The releases were published under the old ones: 0.5.0 was 1.0.0, 0.5.1 was 1.1.0, 0.5.2 was 1.2.0, 0.5.3 was 1.3.0, 0.6.0 was 1.4.0, 0.6.1 was 1.5.0 and 0.6.2 was 1.6.0. Commits, pull request titles and public tags keep the old numbers until the public releases are re-created.
 
 The AI tutor (sprint T, owner decisions D91 to D99): an opt-in tutor on every screen that sees what the learner sees,
 teaches before a pass and explains after, and counts as help like hint 1 on an item not yet passed. Off until a key is
 added in Settings (or `.env`).
 
-| What 1.6 adds | In short |
+| What 0.6.2 adds | In short |
 |---|---|
 | The tutor | "Ask the tutor" (or Alt+T) on every screen: a panel that streams its reply, one thread per item or screen for the session, quick prompts after a failed grade or a wrong answer |
 | What it sees | The screen's text plus what each screen holds that its text does not (the editor's query, the option picked, the case step in view, a lab's answers), and the item's public course content; never a key, a held-out question, the logs, the journey, a path or the key |
@@ -87,12 +301,12 @@ added in Settings (or `.env`).
 - A Practice or reading heading can name its question's answer where a concept's title is the correct option; the
   tutor is not told the concept, but the screen shows it (content-side, in the backlog).
 
-## 1.5.0 (2026-10-16)
+## 0.6.1 (2026-10-16)
 
 A second company and the first real data (sprint 6, Part 2): Mailvora, a marketing world with four
 cases, and two real datasets you prepare from your own downloads, each with a take-home case.
 
-| What 1.5 adds | In short |
+| What 0.6.1 adds | In short |
 |---|---|
 | Mailvora | A Dublin email-marketing software company for small businesses: clean and raw schemas (channels and campaigns, ad spend, sessions, signups, activation, subscriptions, payments, budgets), 15 planted findings, and its own hidden edge data |
 | Four marketing cases | CASE-MKT-01 to -04: spend and CPC, budget against actual, the signup funnel, and attribution under last, first and linear click |
@@ -148,12 +362,12 @@ cases, and two real datasets you prepare from your own downloads, each with a ta
 - Three error types (`ERR-SEM-02`, `ERR-CMP-01`, `ERR-CMP-03`) now have feedback.
 - The inbox command line shows as code.
 
-## 1.4.0 (2026-10-15)
+## 0.6.0 (2026-10-15)
 
 SQL level 4 and the data-quality arc (sprint 6, Part 1): subqueries, text, date arithmetic and data cleaning, on
 Voltmarkt's raw tables as well as the clean ones, with twelve new cases and a cumulative drill over levels 1 to 4.
 
-| What 1.4 adds | In short |
+| What 0.6.0 adds | In short |
 |---|---|
 | SQL level 4 | 5 concepts (`SQL-SUBQ-01`, `SQL-SUBQ-02`, `SQL-STR-01`, `SQL-DATE-02`, `SQL-CLEAN-01`), each with a lesson, a pool, fix and choice items and drill items: 147 items, every one blind-solved |
 | Raw data | `voltmarkt_raw`: the quirk tables a cleaning task needs (resent order lines, prices in cents, messy text keys, mixed time zones, overlapping price windows). An item on it says the table may hold errors and what "correct" means |
@@ -204,7 +418,7 @@ Voltmarkt's raw tables as well as the clean ones, with twelve new cases and a cu
   DATE end moved to `ERR-LOG-23`.
 - ERRATA E-188 to E-196.
 
-## 1.3.0 (2026-10-13)
+## 0.5.3 (2026-10-13)
 
 The study journey (D77): every visit's screens, exercises, help, runs, cases, labs and concept states, kept locally
 and sent with telemetry when it is on; `npm run journey` loads it into DuckDB with twelve starter views.
@@ -229,7 +443,7 @@ and sent with telemetry when it is on; `npm run journey` loads it into DuckDB wi
   request's span carries `session.id`, events are counted on `aydinlearns.journey.events`, and each visit's length
   goes on the histogram `aydinlearns.session.duration`. Neither metric carries `session.id` or an exercise ID.
 
-## 1.2.0 (2026-10-12)
+## 0.5.2 (2026-10-12)
 
 Study tracking with OpenTelemetry, optional and off by default. With a `.env` that names an OTLP endpoint and a
 token, the app sends traces, metrics and logs: the learning funnel, each answer's exercise, time and help, and its
@@ -256,11 +470,11 @@ built on them. Without a `.env` the app makes no network call, as before.
   `api-logs`, `sdk-node`, `instrumentation`, `instrumentation-http` and the three
   `exporter-*-otlp-proto` packages at 0.222.0.
 
-## 1.1.0 (2026-10-09)
+## 0.5.1 (2026-10-09)
 
 GA4 complete. The GA4 section now has everything the certification and a GA4 interview need:
 
-| What 1.1 adds | In short |
+| What 0.5.1 adds | In short |
 |---|---|
 | Interview labs | 10 tasks done in Google's GA4 demo account, with a guide to getting in. Each is re-checked a week later |
 | Full mocks | 50 held-out questions in 75 minutes, no going back, pass at 80% (Google's published rules, not yet checked on Skillshop) |
@@ -283,7 +497,7 @@ GA4 complete. The GA4 section now has everything the certification and a GA4 int
 
 ### Added
 
-- **Sprint 5b: GA4 complete, version 1.1** (2026-10-09; plan
+- **Sprint 5b: GA4 complete, version 0.5.1** (2026-10-09; plan
   `docs/superpowers/plans/2026-10-08-aydinlearns-sprint-5b.md`, record
   `docs/planning/2026-10-08-sprint-5b-record.md`):
   - **Interview labs** (`#/ga4/labs`, D67 and D69): LAB-03, -07, -08, -10, -12, -16, -20, -24,
@@ -308,7 +522,7 @@ GA4 complete. The GA4 section now has everything the certification and a GA4 int
     logs read as before.
   - **Content checks C42 to C46** for the labs (schema, keys, blind-solve records, the guide) and
     the full mock's held-out pool.
-  - **Version 1.1.0** in `package.json`, shown in Settings.
+  - **Version 0.5.1** in `package.json`, shown in Settings.
 
 ### Fixed
 
@@ -336,17 +550,17 @@ GA4 complete. The GA4 section now has everything the certification and a GA4 int
   among them plain lab refusals with no part IDs, keyboard focus kept after an answer, a run
   history that fits a phone, and shorter readiness lines. The GA4 run bar fits at 390 px.
 
-## 1.0.0 (2026-10-08)
+## 0.5.0 (2026-10-08)
 
-The first release. aydinlearns 1.0 can be studied end to end in three sections:
+The first release. aydinlearns 0.5.0 can be studied end to end in three sections:
 
-| Section | What 1.0 has |
+| Section | What 0.5.0 has |
 |---|---|
 | SQL | Levels 1 to 3 (20 concepts, 568 exercises): lessons, spaced reviews, timed drills, 12 cases with an inbox, mistake cards, "other ways to write this", a dataset explorer and a portfolio export |
 | GA4 | The foundations: 16 lessons and 123 questions, with mini drills and half-mocks on held-out questions |
 | Methodology | Complete: 78 concepts (metrics, A/B testing, statistics and pricing economics), each with a reading, and 478 questions |
 
-Today plans each session; Progress shows each goal against its date. Version 1.1 (sprint 5b)
+Today plans each session; Progress shows each goal against its date. Version 0.5.1 (sprint 5b)
 completes GA4: the remaining lessons, full mocks, the readiness check and the interview labs.
 
 ### Known issues
@@ -359,7 +573,7 @@ completes GA4: the remaining lessons, full mocks, the readiness check and the in
   review numbers its questions in the order they were answered, not their order in the run. This
   is known and deliberate: the review says so, and exact numbering would need the run's order in
   the log, a log format change.
-- F14 (Codex, PR #34; fixed in 1.1.0): past GA4 runs are scored with today's blueprint (question count, pass
+- F14 (Codex, PR #34; fixed in 0.5.1): past GA4 runs are scored with today's blueprint (question count, pass
   mark). Nothing is wrong today, and a test stops a silent change, but changing the blueprint
   on purpose would rescore old runs until dated blueprints are kept.
 - Sprint 4b: an exported CP3 query that was copied from an "other ways" answer cannot be told from
@@ -371,7 +585,7 @@ completes GA4: the remaining lessons, full mocks, the readiness check and the in
 
 ### Added
 
-- **Sprint 5a: Methodology complete, an A/B test, version 1.0** (2026-10-08; plan
+- **Sprint 5a: Methodology complete, an A/B test, version 0.5.0** (2026-10-08; plan
   `docs/superpowers/plans/2026-10-08-aydinlearns-sprint-5a.md`, record
   `docs/planning/2026-10-08-sprint-5a-record.md`):
   - **48 Methodology concepts.** The 21 remaining metrics from knowledge file 04 (6 pricing, 3
@@ -389,7 +603,7 @@ completes GA4: the remaining lessons, full mocks, the readiness check and the in
     practised ("0 of 12"). It uses a new goal criterion, `concept_ids`.
   - **Cold answers stay cold.** When Today's practice step picks the next GA4 or Methodology
     concept, one whose reading or lesson was opened in the last 15 minutes comes last.
-  - **Version 1.0.0** in `package.json`. The status route returns it and Settings shows it.
+  - **Version 0.5.0** in `package.json`. The status route returns it and Settings shows it.
 - **Sprint 4b: cases, portfolio, progress and screen mode** (2026-10-08):
   - **Cases and the inbox.** A case screen runs a manager's request: an optional plan first, then
     checkpoints CP1 to CP6 in the order the case lists them, "say it in 60 seconds" (four prompts and
@@ -466,7 +680,7 @@ completes GA4: the remaining lessons, full mocks, the readiness check and the in
     unchanged.
 - **Sprint 4a, carried items** (2026-10-06):
   - A typed whole-number answer (a count) now accepts thousands separators: `1,000`, `1.000` and
-    `12,345,678` are read as whole numbers, while `1,00`, `1,0000` and `1.5,000` are still refused
+    `12,345,678` are read as whole numbers, while `1,00`, `1,0000` and `0.6.1,000` are still refused
     with a plain message. A point that does not start groups of three digits is still a decimal
     point, so `12.00` and `1.0000` are accepted as whole values. Other answer kinds are unchanged. The choice grader version is now
     `choice.2`.
@@ -672,7 +886,7 @@ completes GA4: the remaining lessons, full mocks, the readiness check and the in
 
 ### Fixed
 
-- **Sprint 5a: polish for 1.0 and content fixes** (2026-10-08):
+- **Sprint 5a: polish for 0.5.0 and content fixes** (2026-10-08):
   - F26 (Codex, PR #41). When "Try again" falls back to another due mistake card, it now waits
     for that card's previous review to finish saving, and skips the card if that review made it
     not due. A card is no longer served and rated twice.

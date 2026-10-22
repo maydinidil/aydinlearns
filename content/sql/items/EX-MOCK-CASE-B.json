@@ -1,0 +1,175 @@
+{
+  "id": "EX-MOCK-CASE-B",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "mock",
+    "case_round",
+    "marketing",
+    "row_number",
+    "first_per_group",
+    "mailvora",
+    "sessions",
+    "campaigns",
+    "channels"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-22",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "mock",
+  "target_concept_id": "SQL-WIN-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-SORT-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CASE-01",
+    "SQL-AGG-04",
+    "SQL-TYPE-01",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-WIN-01",
+    "SQL-WIN-02"
+  ],
+  "template_id": "T-MOCK-CASE-first-visit-share-by-channel",
+  "template_params": {
+    "period": "2025-07-01 to 2025-10-31",
+    "fn": "ROW_NUMBER",
+    "grain": "channel"
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "mailvora",
+  "schema": "mailvora",
+  "edge_schema": "mailvora_edge_win",
+  "prompt": "Ciarán, the marketing director, is planning 2026 and asks which channels bring people to Mailvora's site for the first time, and which bring back more visitors who have been before. Take the sessions whose session_start, a moment in UTC, is from 1 July 2025 00:00 up to but not including 1 November 2025 00:00. A session is a first visit when it is its visitor's earliest session in sessions at any date, so a visitor who first came before July has no first visit in the period. When two sessions of a visitor tie on session_start, the one with the lower session_id counts as the earlier. A session's channel follows the channel rule: a session with a utm_campaign takes the channel_name of the campaign with that utm_campaign, and a session without one is organic when utm_medium is 'organic', referral when utm_medium is 'referral', and direct otherwise. Return one row for each channel with at least one session in the period, with four columns in this order: channel; sessions, the channel's number of sessions in the period; first_visits, how many of those sessions were first visits; and first_visit_pct, 100 times first_visits divided by sessions, rounded to 1 decimal. Sort by first_visit_pct from high to low, then by channel from A to Z.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "channel",
+        "type_class": "text"
+      },
+      {
+        "name": "sessions",
+        "type_class": "numeric"
+      },
+      {
+        "name": "first_visits",
+        "type_class": "numeric"
+      },
+      {
+        "name": "first_visit_pct",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": true,
+    "sort_keys": [
+      {
+        "column": "first_visit_pct",
+        "desc": true
+      },
+      {
+        "column": "channel",
+        "desc": false
+      }
+    ],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "channel",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "sessions",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "first_visits",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "first_visit_pct",
+        "type_class": "numeric",
+        "precision": "ratio",
+        "require_rounding": 1
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "channel"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, number each visitor's sessions from the earliest, over every date, and give each session its channel.",
+    "Keep the July to October 2025 sessions only after the numbering, then count per channel the sessions and the ones numbered first."
+  ],
+  "subgoals": [
+    {
+      "from": 107,
+      "to": 467,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 470,
+      "to": 609,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 635,
+      "to": 832,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 833,
+      "to": 846,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 847,
+      "to": 965,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 966,
+      "to": 982,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 983,
+      "to": 1021,
+      "subgoal": "sort_limit"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "Numbering all of a visitor's sessions before the period filter keeps a returning visitor's first session in July from looking like a first visit."
+}

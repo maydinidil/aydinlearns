@@ -1,0 +1,250 @@
+{
+  "id": "EX-MOCK-TAKE-B",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "mock",
+    "take_home",
+    "marketing",
+    "data_quality",
+    "ad_spend_daily",
+    "fx_rates_monthly",
+    "payments"
+  ],
+  "level": 5,
+  "source_ids": [
+    "04:MET-MKT-06",
+    "05:Q-03-02",
+    "05:Q-03-03",
+    "05:Q-03-04",
+    "05:Q-03-07"
+  ],
+  "verified": true,
+  "as_of": "2026-10-22",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "mock",
+  "target_concept_id": "SQL-WIN-04",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-SORT-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CASE-01",
+    "SQL-TYPE-01",
+    "SQL-DATE-01",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-DATE-02",
+    "SQL-CLEAN-01",
+    "SQL-WIN-01",
+    "SQL-WIN-04"
+  ],
+  "template_id": "T-MOCK-TAKE-B-blended-roas",
+  "template_params": {
+    "year": 2025,
+    "quirks": "Q-03-02,Q-03-03,Q-03-04,Q-03-07",
+    "grain": "month"
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "mailvora",
+  "schema": "mailvora_raw",
+  "edge_schema": "mailvora_edge_clean",
+  "uses_raw": true,
+  "prompt": "Ciarán, the marketing director, needs Mailvora's blended return on ad spend for each month of 2025 for the board, built from the ad platforms' raw export and the payments table, next to the spend the export shows. These tables may hold errors. A re-import can load an ad_spend_daily row more than once: rows that match in every column are copies of one row, so count each set of copies once. A row's spend_date is the day in its export_timezone: a row whose export_timezone is America/Los_Angeles carries the Los Angeles date on which its UTC day began, which is the day before, so its UTC day is spend_date plus one day, and a row exported in UTC is on its spend_date. A row's spend is in its currency: turn it into euros with the eur_per_unit of fx_rates_monthly for that currency and the month of the row's UTC day; a row in euros needs no rate. A payment is revenue in the UTC month of paid_at, unless it was refunded: leave refunded payments out. Return one row for each month of 2025 that has spend by UTC day, with six columns in this order: month_start, the first day of the month; spend_as_exported, the spend of every row whose spend_date falls in the month, added up exactly as exported, copies counted each time and amounts in other currencies taken as they stand; spend_eur, the month's spend in euros once each set of copies counts once and each row is moved to its UTC day and turned into euros; revenue_eur, the month's revenue, or 0 when no payment of the month counts; roas, revenue_eur divided by spend_eur, rounded to 2 decimals; and ytd_roas, the year to date: the revenue_eur of this month and every earlier month of the result added up, divided by their spend_eur added up, rounded to 2 decimals. Do not round spend_as_exported, spend_eur or revenue_eur, and work out both ratios from the unrounded sums. Sort by month_start from early to late.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "month_start",
+        "type_class": "temporal"
+      },
+      {
+        "name": "spend_as_exported",
+        "type_class": "numeric"
+      },
+      {
+        "name": "spend_eur",
+        "type_class": "numeric"
+      },
+      {
+        "name": "revenue_eur",
+        "type_class": "numeric"
+      },
+      {
+        "name": "roas",
+        "type_class": "numeric"
+      },
+      {
+        "name": "ytd_roas",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": true,
+    "sort_keys": [
+      {
+        "column": "month_start",
+        "desc": false
+      }
+    ],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "month_start",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "spend_as_exported",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "spend_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "revenue_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "roas",
+        "type_class": "numeric",
+        "precision": "ratio",
+        "require_rounding": 2
+      },
+      {
+        "name": "ytd_roas",
+        "type_class": "numeric",
+        "precision": "ratio",
+        "require_rounding": 2
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "month_start"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, list each exported spend row once, with the UTC day it belongs to.",
+    "Turn each row into euros with the rate for its currency and the month of its UTC day, add up the revenue without the refunded payments, then divide the sums from the first month up to each month for the year to date."
+  ],
+  "subgoals": [
+    {
+      "from": 100,
+      "to": 305,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 308,
+      "to": 327,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 406,
+      "to": 576,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 579,
+      "to": 726,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 729,
+      "to": 803,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 806,
+      "to": 859,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 939,
+      "to": 1048,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 1051,
+      "to": 1070,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 1073,
+      "to": 1127,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 1210,
+      "to": 1315,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 1318,
+      "to": 1331,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 1334,
+      "to": 1352,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 1355,
+      "to": 1406,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 1466,
+      "to": 1563,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 1566,
+      "to": 1705,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 1748,
+      "to": 2111,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 2112,
+      "to": 2123,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 2124,
+      "to": 2144,
+      "subgoal": "sort_limit"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "Each row counts once, on its UTC day and in euros, and the year-to-date return divides summed revenue by summed spend instead of averaging the monthly ratios."
+}

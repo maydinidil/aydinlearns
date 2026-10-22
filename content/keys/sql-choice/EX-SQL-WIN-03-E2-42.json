@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-WIN-03-E2-42",
+  "item_version": 1,
+  "correct_oid": "oefdba8f",
+  "explanation": "LEAD reads the next row in valid_from order, so each version shows the price of the version after it, and the current, last version has no row after it: its next_price_eur is missing. Showing the earlier version's price is what LAG does.",
+  "solver": {
+    "prompt_hash": "6efec7247d4fde05",
+    "grader_version": "choice.3",
+    "chosen": "oefdba8f",
+    "typed": null,
+    "at": "2026-10-20T20:50:48.353Z"
+  }
+}

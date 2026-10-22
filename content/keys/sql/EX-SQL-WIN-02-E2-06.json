@@ -1,0 +1,39 @@
+{
+  "item_id": "EX-SQL-WIN-02-E2-06",
+  "item_version": 1,
+  "reference_sql": "WITH campaign_spend AS (  -- one row per campaign with spend\n  SELECT c.campaign_id, c.channel_id, SUM(a.spend) AS spend\n  FROM ad_spend_daily a\n  JOIN campaigns c ON c.campaign_id = a.campaign_id\n  GROUP BY c.campaign_id, c.channel_id\n),\nranked AS (  -- one row per campaign with spend\n  SELECT channel_id, campaign_id, spend,\n         DENSE_RANK() OVER (PARTITION BY channel_id ORDER BY spend DESC) AS spend_level\n  FROM campaign_spend\n)\nSELECT channel_id, campaign_id, spend, spend_level\nFROM ranked\nWHERE spend_level <= 2",
+  "alternatives": [
+    "WITH campaign_spend AS (  -- one row per campaign with spend\n  SELECT c.campaign_id, c.channel_id, SUM(a.spend) AS spend\n  FROM ad_spend_daily a\n  JOIN campaigns c ON c.campaign_id = a.campaign_id\n  GROUP BY c.campaign_id, c.channel_id\n)\nSELECT cs.channel_id, cs.campaign_id, cs.spend,\n       1 + (SELECT COUNT(DISTINCT cs2.spend) FROM campaign_spend cs2 WHERE cs2.channel_id = cs.channel_id AND cs2.spend > cs.spend) AS spend_level\nFROM campaign_spend cs\nWHERE (SELECT COUNT(DISTINCT cs2.spend) FROM campaign_spend cs2 WHERE cs2.channel_id = cs.channel_id AND cs2.spend > cs.spend) < 2",
+    "SELECT t.channel_id, t.campaign_id, t.spend, t.spend_level\nFROM (\n  -- one row per campaign with spend\n  SELECT c.channel_id, c.campaign_id, SUM(a.spend) AS spend,\n         DENSE_RANK() OVER (PARTITION BY c.channel_id ORDER BY SUM(a.spend) DESC) AS spend_level\n  FROM ad_spend_daily a\n  JOIN campaigns c ON c.campaign_id = a.campaign_id\n  GROUP BY c.channel_id, c.campaign_id\n) AS t\nWHERE t.spend_level <= 2"
+  ],
+  "other_way": {
+    "sql": "WITH campaign_spend AS (  -- one row per campaign with spend\n  SELECT c.campaign_id, c.channel_id, SUM(a.spend) AS spend\n  FROM ad_spend_daily a\n  JOIN campaigns c ON c.campaign_id = a.campaign_id\n  GROUP BY c.campaign_id, c.channel_id\n)\nSELECT cs.channel_id, cs.campaign_id, cs.spend,\n       1 + (SELECT COUNT(DISTINCT cs2.spend) FROM campaign_spend cs2 WHERE cs2.channel_id = cs.channel_id AND cs2.spend > cs.spend) AS spend_level\nFROM campaign_spend cs\nWHERE (SELECT COUNT(DISTINCT cs2.spend) FROM campaign_spend cs2 WHERE cs2.channel_id = cs.channel_id AND cs2.spend > cs.spend) < 2",
+    "tradeoff": "Counting the different higher spends keeps the same campaigns without a window, but the count is written twice."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-40",
+      "sql": "WITH campaign_spend AS (SELECT c.campaign_id, c.channel_id, SUM(a.spend) AS spend FROM ad_spend_daily a JOIN campaigns c ON c.campaign_id = a.campaign_id GROUP BY c.campaign_id, c.channel_id), ranked AS (SELECT channel_id, campaign_id, spend, RANK() OVER (PARTITION BY channel_id ORDER BY spend DESC) AS spend_level FROM campaign_spend) SELECT channel_id, campaign_id, spend, spend_level FROM ranked WHERE spend_level <= 2"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-37",
+      "sql": "WITH campaign_spend AS (SELECT c.campaign_id, c.channel_id, SUM(a.spend) AS spend FROM ad_spend_daily a JOIN campaigns c ON c.campaign_id = a.campaign_id GROUP BY c.campaign_id, c.channel_id), ranked AS (SELECT channel_id, campaign_id, spend, DENSE_RANK() OVER (ORDER BY spend DESC) AS spend_level FROM campaign_spend) SELECT channel_id, campaign_id, spend, spend_level FROM ranked WHERE spend_level <= 2"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-18",
+      "sql": "WITH campaign_spend AS (SELECT c.campaign_id, c.channel_id, SUM(a.spend) AS spend FROM ad_spend_daily a JOIN campaigns c ON c.campaign_id = a.campaign_id GROUP BY c.campaign_id, c.channel_id), ranked AS (SELECT channel_id, campaign_id, spend, DENSE_RANK() OVER (PARTITION BY channel_id ORDER BY spend) AS spend_level FROM campaign_spend) SELECT channel_id, campaign_id, spend, spend_level FROM ranked WHERE spend_level <= 2"
+    }
+  ],
+  "hint3_partial": "WITH campaign_spend AS (  -- one row per campaign with spend\n  SELECT c.campaign_id, c.channel_id, SUM(a.spend) AS spend\n  FROM ad_spend_daily a\n  JOIN campaigns c ON c.campaign_id = a.campaign_id\n  GROUP BY c.campaign_id, c.channel_id\n),\nranked AS (  -- one row per campaign with spend\n  SELECT channel_id, campaign_id, spend,\n         DENSE_RANK() OVER (PARTITION BY channel_id ORDER BY ___) AS spend_level\n  FROM campaign_spend\n)\nSELECT channel_id, campaign_id, spend, spend_level\nFROM ranked\nWHERE ___",
+  "solver": {
+    "prompt_hash": "575a95ccba97bdc8",
+    "schema_version": "09f3a33d3123",
+    "dataset_version": "e7c58abf7e8f892e",
+    "grader_version": "7a.1",
+    "query": "WITH camp AS (\n  SELECT c.channel_id, c.campaign_id, SUM(a.spend) AS spend\n  FROM ad_spend_daily a\n  JOIN campaigns c ON c.campaign_id = a.campaign_id\n  GROUP BY c.channel_id, c.campaign_id\n),\nr AS (\n  SELECT channel_id, campaign_id, spend,\n         DENSE_RANK() OVER (PARTITION BY channel_id ORDER BY spend DESC) AS spend_level\n  FROM camp\n)\nSELECT channel_id, campaign_id, spend, spend_level\nFROM r\nWHERE spend_level <= 2\n",
+    "at": "2026-10-21T09:05:06.535Z"
+  }
+}

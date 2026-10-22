@@ -1,0 +1,39 @@
+{
+  "item_id": "EX-SQL-WIN-07-E3-02",
+  "item_version": 1,
+  "reference_sql": "WITH plans AS (  -- one row per subscription, with its user's first start, first plan and latest plan\n  SELECT user_id,\n         MIN(start_date) OVER (PARTITION BY user_id) AS first_start,\n         FIRST_VALUE(plan_name) OVER (PARTITION BY user_id ORDER BY start_date\n                                      ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS first_plan,\n         LAST_VALUE(plan_name) OVER (PARTITION BY user_id ORDER BY start_date\n                                     ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS latest_plan\n  FROM subscriptions\n),\nusers AS (  -- one row per user\n  SELECT DISTINCT user_id, first_start, first_plan, latest_plan\n  FROM plans\n)\nSELECT first_plan, latest_plan, COUNT(*) AS users\nFROM users\nWHERE first_start BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\nGROUP BY first_plan, latest_plan",
+  "alternatives": [
+    "WITH bounds AS (  -- one row per user: the first and the latest start date\n  SELECT user_id, MIN(start_date) AS first_start, MAX(start_date) AS latest_start\n  FROM subscriptions\n  GROUP BY user_id\n)\nSELECT f.plan_name AS first_plan, l.plan_name AS latest_plan, COUNT(*) AS users\nFROM bounds b\nJOIN subscriptions f ON f.user_id = b.user_id AND f.start_date = b.first_start\nJOIN subscriptions l ON l.user_id = b.user_id AND l.start_date = b.latest_start\nWHERE b.first_start BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\nGROUP BY f.plan_name, l.plan_name",
+    "SELECT u.first_plan, u.latest_plan, COUNT(*) AS users\nFROM (\n  -- one row per user\n  SELECT DISTINCT user_id,\n         MIN(start_date) OVER (PARTITION BY user_id) AS first_start,\n         FIRST_VALUE(plan_name) OVER (PARTITION BY user_id ORDER BY start_date\n                                      ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS first_plan,\n         FIRST_VALUE(plan_name) OVER (PARTITION BY user_id ORDER BY start_date DESC\n                                      ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS latest_plan\n  FROM subscriptions\n) AS u\nWHERE u.first_start BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\nGROUP BY u.first_plan, u.latest_plan"
+  ],
+  "other_way": {
+    "sql": "WITH bounds AS (  -- one row per user: the first and the latest start date\n  SELECT user_id, MIN(start_date) AS first_start, MAX(start_date) AS latest_start\n  FROM subscriptions\n  GROUP BY user_id\n)\nSELECT f.plan_name AS first_plan, l.plan_name AS latest_plan, COUNT(*) AS users\nFROM bounds b\nJOIN subscriptions f ON f.user_id = b.user_id AND f.start_date = b.first_start\nJOIN subscriptions l ON l.user_id = b.user_id AND l.start_date = b.latest_start\nWHERE b.first_start BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\nGROUP BY f.plan_name, l.plan_name",
+    "tradeoff": "Joining the first and latest subscriptions found with MIN and MAX works on any engine, but it reads the table three times."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-42",
+      "sql": "WITH plans AS (SELECT user_id, MIN(start_date) OVER (PARTITION BY user_id) AS first_start, FIRST_VALUE(plan_name) OVER (PARTITION BY user_id ORDER BY start_date ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS first_plan, LAST_VALUE(plan_name) OVER (PARTITION BY user_id ORDER BY start_date) AS latest_plan FROM subscriptions), users AS (SELECT DISTINCT user_id, first_start, first_plan, latest_plan FROM plans) SELECT first_plan, latest_plan, COUNT(*) AS users FROM users WHERE first_start BETWEEN DATE '2025-01-01' AND DATE '2025-12-31' GROUP BY first_plan, latest_plan"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-07",
+      "sql": "WITH plans AS (SELECT user_id, MIN(start_date) OVER (PARTITION BY user_id) AS first_start, FIRST_VALUE(plan_name) OVER (PARTITION BY user_id ORDER BY start_date ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS first_plan, LAST_VALUE(plan_name) OVER (PARTITION BY user_id ORDER BY start_date ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS latest_plan FROM subscriptions WHERE start_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'), users AS (SELECT DISTINCT user_id, first_start, first_plan, latest_plan FROM plans) SELECT first_plan, latest_plan, COUNT(*) AS users FROM users GROUP BY first_plan, latest_plan"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-18",
+      "sql": "WITH plans AS (SELECT user_id, MIN(start_date) OVER (PARTITION BY user_id) AS first_start, FIRST_VALUE(plan_name) OVER (PARTITION BY user_id ORDER BY start_date DESC ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS first_plan, LAST_VALUE(plan_name) OVER (PARTITION BY user_id ORDER BY start_date DESC ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS latest_plan FROM subscriptions), users AS (SELECT DISTINCT user_id, first_start, first_plan, latest_plan FROM plans) SELECT first_plan, latest_plan, COUNT(*) AS users FROM users WHERE first_start BETWEEN DATE '2025-01-01' AND DATE '2025-12-31' GROUP BY first_plan, latest_plan"
+    }
+  ],
+  "hint3_partial": "WITH plans AS (  -- one row per subscription, with its user's first start, first plan and latest plan\n  SELECT user_id,\n         MIN(start_date) OVER (PARTITION BY user_id) AS first_start,\n         FIRST_VALUE(plan_name) OVER (PARTITION BY user_id ORDER BY start_date\n                                      ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS first_plan,\n         LAST_VALUE(plan_name) OVER (PARTITION BY user_id ORDER BY start_date\n                                     ROWS BETWEEN ___) AS latest_plan\n  FROM subscriptions\n),\nusers AS (  -- one row per user\n  SELECT DISTINCT user_id, first_start, first_plan, latest_plan\n  FROM plans\n)\nSELECT first_plan, latest_plan, COUNT(*) AS users\nFROM users\nWHERE ___\nGROUP BY first_plan, latest_plan",
+  "solver": {
+    "prompt_hash": "31a603965218d394",
+    "schema_version": "fc87ec3c39fe",
+    "dataset_version": "e7c58abf7e8f892e",
+    "grader_version": "7a.1",
+    "query": "WITH s AS (\n  SELECT user_id, plan_name, start_date,\n         ROW_NUMBER() OVER (PARTITION BY user_id ORDER BY start_date ASC) AS rn_first,\n         ROW_NUMBER() OVER (PARTITION BY user_id ORDER BY start_date DESC) AS rn_last\n  FROM subscriptions\n), f AS (\n  SELECT f.user_id, f.plan_name AS first_plan, l.plan_name AS latest_plan\n  FROM s f\n  JOIN s l ON l.user_id = f.user_id AND l.rn_last = 1\n  WHERE f.rn_first = 1\n    AND f.start_date >= DATE '2025-01-01' AND f.start_date <= DATE '2025-12-31'\n)\nSELECT first_plan, latest_plan, COUNT(*) AS users\nFROM f\nGROUP BY first_plan, latest_plan\n",
+    "at": "2026-10-21T09:05:11.396Z"
+  }
+}

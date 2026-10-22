@@ -1,0 +1,52 @@
+{
+  "id": "Q-GA4-256",
+  "version": 1,
+  "kind": "mcq",
+  "section": "ga4",
+  "concept_id": "GA4-EVENTS-03",
+  "parent_id": null,
+  "topic_id": "T-GA4-03",
+  "legacy_id": null,
+  "stem": "A manager sees Key events in one GA4 report and Conversions in the Advertising section, with different numbers for the same sign-up, and asks which of the two is right. What is the accurate answer?",
+  "options": [
+    {
+      "oid": "o69dd6cd",
+      "text": "Key events: Conversions is the old name, and the Advertising section still shows the old figures",
+      "misconception_id": null
+    },
+    {
+      "oid": "o3410a1a",
+      "text": "Conversions: a key event is only a draft until an Administrator approves it as a conversion",
+      "misconception_id": null
+    },
+    {
+      "oid": "oc7ff39c",
+      "text": "They are the same metric, and the gap comes from data thresholds in the Advertising section",
+      "misconception_id": null
+    },
+    {
+      "oid": "oee96a23",
+      "text": "Both: key events are what GA4 counts, and conversions are Google Ads conversions made from them",
+      "misconception_id": null
+    }
+  ],
+  "typed": null,
+  "exam_relevance": "core",
+  "held_out": true,
+  "enemy_group": null,
+  "status": "active",
+  "verified": true,
+  "level": null,
+  "tags": [
+    "ga4",
+    "T-GA4-03"
+  ],
+  "source_ids": [
+    "06:GA4-EVENTS-03",
+    "06:GA4-CH-06",
+    "ERRATA:E-205"
+  ],
+  "as_of": "2026-09-30",
+  "review_after": null,
+  "supersedes": []
+}

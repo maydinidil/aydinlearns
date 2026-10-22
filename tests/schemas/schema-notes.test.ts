@@ -53,3 +53,9 @@ test('columnNoteLines: one line per column note in the order given, none when th
   assert.deepEqual(columnNoteLines(n), [{ column: 'order_ts', text: 'A UTC instant.' }, { column: 'status', text: 'Plain text.' }]);
   assert.deepEqual(columnNoteLines(note('stores', 1)), []);
 });
+test('S7-30: a table note declares the column_types and label the build writes for a prepared dataset (checked by the type-check)', () => {
+  const prepared: TableNote = { ...note('invoice_lines'), column_types: { invoice: 'VARCHAR', quantity: 'INTEGER' }, label: 'Real data: an invented label.' };
+  assert.deepEqual(Object.keys(prepared.column_types ?? {}), ['invoice', 'quantity']);
+  assert.equal(prepared.label, 'Real data: an invented label.');
+  assert.equal(note('stores').label, undefined, 'both stay optional: an older note and a fixture have neither');
+});

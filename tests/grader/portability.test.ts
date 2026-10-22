@@ -427,3 +427,23 @@ test('S6-10: the alias note comes last, with a pass, and never stops it', async 
   assert.deepEqual([r.outcome, r.graded, r.portabilityNotes, r.notes], ['pass', true, [ALIAS_HERE], ['It keeps the stores with a city.']]);
   assert.ok(!/—/.test(SUBQUERY_ALIAS_NOTE));
 });
+
+// ---- Sprint 7 Task A1, S7-20: QUALIFY (DIALECT-04). A note only, logged in portability_notes (S7-26) ----------------------
+
+const NO_QUALIFY = 'PostgreSQL, MySQL and SQL Server have no QUALIFY: filter the window result in an outer query or a CTE.';
+test('S7-20: a graded query that uses QUALIFY carries the QUALIFY note, on a pass and on a fail; one without QUALIFY carries none', async () => {
+  assert.equal(QUALIFY_NOTE, NO_QUALIFY);
+  const pass = await grade({ item, key, sql: 'SELECT city FROM stores WHERE city IS NOT NULL QUALIFY row_number() OVER (PARTITION BY city ORDER BY store_id) = 1' }, deps);
+  assert.deepEqual([pass.outcome, pass.graded, pass.portabilityNotes, pass.notes], ['pass', true, [NO_QUALIFY], ['It keeps the stores with a city.']]);
+  const fail = await grade({ item, key, sql: 'SELECT city FROM stores QUALIFY row_number() OVER (ORDER BY store_id) = 1' }, deps);
+  assert.deepEqual([fail.outcome, fail.graded, fail.portabilityNotes], ['fail', true, [NO_QUALIFY]]);
+  // The portable forms of the same filter, in an outer query or a CTE, pass with no note.
+  for (const sql of [
+    'SELECT city FROM (SELECT city, row_number() OVER (PARTITION BY city ORDER BY store_id) AS rn FROM stores WHERE city IS NOT NULL) AS t WHERE rn = 1',
+    'WITH ranked AS (SELECT city, row_number() OVER (PARTITION BY city ORDER BY store_id) AS rn FROM stores WHERE city IS NOT NULL) SELECT city FROM ranked WHERE rn = 1',
+  ]) {
+    const r = await grade({ item, key, sql }, deps);
+    assert.deepEqual([r.outcome, r.portabilityNotes], ['pass', []], sql);
+  }
+  assert.ok(!/—/.test(QUALIFY_NOTE));
+});

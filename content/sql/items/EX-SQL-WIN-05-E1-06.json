@@ -1,0 +1,153 @@
+{
+  "id": "EX-SQL-WIN-05-E1-06",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "moving_average",
+    "filter_after_window",
+    "budget_monthly"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-05"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-WIN-05",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-CASE-01",
+    "SQL-TYPE-01",
+    "SQL-CTE-01",
+    "SQL-WIN-01",
+    "SQL-WIN-04",
+    "SQL-WIN-05"
+  ],
+  "template_id": "T-WIN-05-moving-average-filter-after",
+  "template_params": {
+    "table": "budget_monthly",
+    "group": "channel",
+    "window": "3 months"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "mailvora",
+  "schema": "mailvora",
+  "edge_schema": "mailvora_edge_win",
+  "prompt": "For each paid channel and each month from July to December 2025 in budget_monthly, show the month's budget and the average budget of that month and the 2 months before it, rounded to 2 decimals. Within each channel, months follow each other by month, and the window may reach back before July. A month whose window holds fewer than 3 months shows avg_budget_3m as missing. Return channel_id, month, budget_eur and avg_budget_3m. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "channel_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "month",
+        "type_class": "temporal"
+      },
+      {
+        "name": "budget_eur",
+        "type_class": "numeric"
+      },
+      {
+        "name": "avg_budget_3m",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "channel_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "month",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "budget_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "avg_budget_3m",
+        "type_class": "numeric",
+        "precision": "money",
+        "require_rounding": 2
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "channel_id",
+      "month"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, work out the 3-month average and the number of months it covers over all of budget_monthly, before keeping July to December.",
+    "Filter the months in the outer query: a WHERE beside the window would hide May and June from July's window."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 51,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 52,
+      "to": 329,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 330,
+      "to": 353,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 354,
+      "to": 467,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 468,
+      "to": 474,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 475,
+      "to": 534,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 150000,
+  "why_this_works": "The window runs over every month before the outer query keeps July to December, so July reads May and June, and short windows stay missing."
+}

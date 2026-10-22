@@ -79,7 +79,9 @@ const COULD_NOT_RUN = 'the check could not run; see C20';
 /** One content file, its path relative to the content root. `readable` is false when it is not valid JSON. */
 export interface ChoiceFile { file: string; data: unknown; readable: boolean }
 /** One section's files, as they are on disk. A missing concepts or held-out file is null. */
-export interface ChoiceBank { section: ChoiceSection; concepts: ChoiceFile | null; heldOut: ChoiceFile | null; items: ChoiceFile[]; keys: ChoiceFile[] }
+export interface ChoiceBank { section: ChoiceSection; concepts: ChoiceFile | null; heldOut: ChoiceFile | null; items: ChoiceFile[]; keys: ChoiceFile[];
+  /** GA4 only (S7-C26): ga4/knowledge-pool.json, a second held-out list. Absent or null when the file is missing. */
+  knowledgePool?: ChoiceFile | null }
 
 const sha = (s: string): string => createHash('sha256').update(s).digest('hex');
 const isObj = (x: unknown): x is Record<string, unknown> => !!x && typeof x === 'object' && !Array.isArray(x);
@@ -331,11 +333,31 @@ export function checkChoiceBank(bank: ChoiceBank): CheckResult[] {
     }
     add('C25', bank.heldOut.file, problems);
   }
+  // S7-C26: for GA4, ga4/knowledge-pool.json is a second held-out list (the knowledge mock's questions). A missing file is an empty pool.
+  let pooled: string[] = [];
+  if (section === 'ga4' && bank.knowledgePool) {
+    const problems: string[] = [];
+    const ids = bank.knowledgePool.readable && isObj(bank.knowledgePool.data) ? bank.knowledgePool.data.item_ids : undefined;
+    if (!bank.knowledgePool.readable) problems.push('not valid JSON');
+    else if (!Array.isArray(ids) || !ids.every((x) => typeof x === 'string')) problems.push('"item_ids" must be a list of item IDs');
+    else {
+      pooled = ids as string[];
+      for (const id of new Set(pooled)) {
+        if (!known.has(id)) problems.push(`${id} is not an item of this section`);
+        if (pooled.filter((x) => x === id).length > 1) problems.push(`${id} is listed twice`);
+      }
+    }
+    add('C25', bank.knowledgePool.file, problems);
+  }
   const inList = new Set(listed);
-  const isHeld = (i: ChoiceItem): boolean => i.held_out === true || inList.has(i.id);
+  const inPool = new Set(pooled);
+  const poolFile = bank.knowledgePool?.file ?? `${section}/knowledge-pool.json`;
+  const isHeld = (i: ChoiceItem): boolean => i.held_out === true || inList.has(i.id) || inPool.has(i.id);
   for (const { item } of entries) run('C25', item.id, () => {
     const problems: string[] = [];
-    if (item.held_out && !inList.has(item.id)) problems.push(`held_out is true, but ${heldOutFile} does not list the item`);
+    if (inList.has(item.id) && inPool.has(item.id)) problems.push(`${heldOutFile} and ${poolFile} both list the item; one item serves one pool`);
+    if (item.held_out && !inList.has(item.id) && !inPool.has(item.id)) problems.push(`held_out is true, but ${heldOutFile} does not list the item`);
+    if (!item.held_out && inPool.has(item.id)) problems.push(`${poolFile} lists the item, but its held_out is false`);
     if (!item.held_out && inList.has(item.id)) problems.push(`${heldOutFile} lists the item, but its held_out is false`);
     if (!isHeld(item)) return problems;
     const concept = concepts.get(item.concept_id);
@@ -447,6 +469,7 @@ export async function loadChoiceBank(root: string, section: ChoiceSection): Prom
     section,
     concepts: await readJson(root, `${section}/concepts.json`),
     heldOut: await readJson(root, `${section}/held-out.json`),
+    knowledgePool: section === 'ga4' ? await readJson(root, 'ga4/knowledge-pool.json') : null,
     items: await readJsonDir(root, `${section}/items`),
     keys: await readJsonDir(root, `keys/${section}`),
   };
@@ -458,7 +481,7 @@ export async function checkChoice(root: string): Promise<CheckResult[]> {
   const sectionOf = new Map<string, ChoiceSection>();
   for (const section of SECTIONS) {
     const bank = await loadChoiceBank(root, section);
-    if (!bank.concepts && !bank.heldOut && !bank.items.length && !bank.keys.length) continue;
+    if (!bank.concepts && !bank.heldOut && !bank.knowledgePool && !bank.items.length && !bank.keys.length) continue;
     out.push(...checkChoiceBank(bank));
     // The server keeps every choice item in one map by ID, so an ID used in both sections would hide one of them.
     for (const f of bank.items) {

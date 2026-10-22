@@ -11,23 +11,27 @@ import type { TableNote } from '../../schemas/schema-notes.ts';
 import { makeContentFixture } from './content-fixture.ts';
 
 /**
- * The schemas the fixture build holds: Voltmarkt clean and raw, Mailvora clean only (no mailvora_raw), Online Retail II, one 8 Week SQL
+ * The schemas the fixture build holds: Voltmarkt clean and raw, Mailvora clean only (no mailvora_raw; BUILT_WITH_MAILVORA_RAW adds it), Online Retail II, one 8 Week SQL
  * Challenge case study, and two edge schemas (hidden test data, never offered). Breakfast at the Frat and the other seven case
  * studies are not prepared.
  */
 export const BUILT = ['dannys_diner', 'mailvora', 'online_retail_ii', 'online_retail_ii_edge', 'voltmarkt', 'voltmarkt_edge_basics', 'voltmarkt_raw'];
+
+/** `BUILT` plus Mailvora's raw schema, the mirror of Voltmarkt's raw one (S6-20, S6-01): the build that holds both of the companies' raw schemas. */
+export const BUILT_WITH_MAILVORA_RAW = [...BUILT, 'mailvora_raw'].sort();
 
 /** The rows of online_retail_ii.invoice_lines: more than the CSV's 10,000. */
 export const RETAIL_ROWS = 10_005;
 
 /** The fixture database: each schema's table has its own row count, so a test can tell where a query ran. */
 export const EXPLORE_DB = [
-  ...BUILT.map((s) => `CREATE SCHEMA ${s}`),
+  ...BUILT_WITH_MAILVORA_RAW.map((s) => `CREATE SCHEMA ${s}`),   // mailvora_raw is in the database; only BUILT_WITH_MAILVORA_RAW's truth file names it
   'CREATE TABLE voltmarkt.big AS SELECT range::INTEGER AS id FROM range(1500)',
   "CREATE TABLE voltmarkt.stores AS SELECT * FROM (VALUES (1,'Amsterdam'),(2,'Gent')) v(store_id, city)",
   "CREATE TABLE voltmarkt_edge_basics.stores AS SELECT * FROM (VALUES (1,'Zurich')) v(store_id, city)",
   "CREATE TABLE voltmarkt_raw.orders AS SELECT * FROM (VALUES (10,'NL-01'),(11,'BE-07'),(12,'BE-07')) v(order_id, store_code)",
   "CREATE TABLE mailvora.sessions AS SELECT * FROM (VALUES (1,'email'),(2,'paid'),(3,'email'),(4,'organic')) v(session_id, channel)",
+  "CREATE TABLE mailvora_raw.sessions AS SELECT * FROM (VALUES (1,'Email '),(2,'PAID'),(3,'email'),(4,'organic'),(5,'')) v(session_id, channel)",
   `CREATE TABLE online_retail_ii.invoice_lines AS SELECT range::INTEGER AS line_id, 'INV-' || (range // 3)::VARCHAR AS invoice,
      CASE range WHEN 0 THEN 'WHITE HEART, T-LIGHT' WHEN 1 THEN '=SUM(A1)' WHEN 2 THEN NULL ELSE 'ITEM ' || range::VARCHAR END AS description,
      (range % 7 - 1)::INTEGER AS quantity FROM range(${RETAIL_ROWS})`,
@@ -46,7 +50,7 @@ export function exploreNotes(): TableNote[] {
     note('voltmarkt', 'stores', ['store_id', 'city']), note('voltmarkt', 'big', ['id']),
     note('voltmarkt_edge_basics', 'stores', ['store_id', 'city']),
     note('voltmarkt_raw', 'orders', ['order_id', 'store_code']),
-    note('mailvora', 'sessions', ['session_id', 'channel']),
+    note('mailvora', 'sessions', ['session_id', 'channel']), note('mailvora_raw', 'sessions', ['session_id', 'channel']),
     note('online_retail_ii', 'invoice_lines', ['line_id', 'invoice', 'description', 'quantity']),
     note('online_retail_ii_edge', 'invoice_lines', ['line_id', 'invoice', 'description', 'quantity']),
     note('dannys_diner', 'visits', ['guest_id', 'item_no']),

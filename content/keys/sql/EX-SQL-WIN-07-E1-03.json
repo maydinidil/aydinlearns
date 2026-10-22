@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-WIN-07-E1-03",
+  "item_version": 1,
+  "reference_sql": "SELECT category_id, product_id, launch_date,\n       NTILE(4) OVER (PARTITION BY category_id ORDER BY launch_date NULLS LAST, product_id) AS launch_quartile\nFROM products\nWHERE category_id BETWEEN 1 AND 6",
+  "alternatives": [
+    "WITH numbered AS (  -- one row per product, numbered within its category in the quartile order\n  SELECT category_id, product_id, launch_date,\n         ROW_NUMBER() OVER (PARTITION BY category_id ORDER BY launch_date NULLS LAST, product_id) AS rn,\n         COUNT(*) OVER (PARTITION BY category_id) AS n\n  FROM products\n  WHERE category_id BETWEEN 1 AND 6\n),\nsized AS (  -- one row per product, with its category's base quartile size q and the remainder r\n  SELECT category_id, product_id, launch_date, rn, (n - n % 4) / 4 AS q, n % 4 AS r\n  FROM numbered\n)\nSELECT category_id, product_id, launch_date,\n       CASE WHEN rn <= r * (q + 1) THEN CEIL(rn * 1.0 / (q + 1))\n            ELSE r + CEIL((rn - r * (q + 1)) * 1.0 / q) END AS launch_quartile\nFROM sized",
+    "SELECT p.category_id, p.product_id, p.launch_date,\n       NTILE(4) OVER (PARTITION BY p.category_id ORDER BY p.launch_date ASC NULLS LAST, p.product_id ASC) AS launch_quartile\nFROM products p\nWHERE p.category_id IN (1, 2, 3, 4, 5, 6)"
+  ],
+  "other_way": {
+    "sql": "WITH numbered AS (  -- one row per product, numbered within its category in the quartile order\n  SELECT category_id, product_id, launch_date,\n         ROW_NUMBER() OVER (PARTITION BY category_id ORDER BY launch_date NULLS LAST, product_id) AS rn,\n         COUNT(*) OVER (PARTITION BY category_id) AS n\n  FROM products\n  WHERE category_id BETWEEN 1 AND 6\n),\nsized AS (  -- one row per product, with its category's base quartile size q and the remainder r\n  SELECT category_id, product_id, launch_date, rn, (n - n % 4) / 4 AS q, n % 4 AS r\n  FROM numbered\n)\nSELECT category_id, product_id, launch_date,\n       CASE WHEN rn <= r * (q + 1) THEN CEIL(rn * 1.0 / (q + 1))\n            ELSE r + CEIL((rn - r * (q + 1)) * 1.0 / q) END AS launch_quartile\nFROM sized",
+    "tradeoff": "Working the quartile out from ROW_NUMBER and the count shows how NTILE sizes its groups, but NTILE does it in one call."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-18",
+      "sql": "SELECT category_id, product_id, launch_date, NTILE(4) OVER (PARTITION BY category_id ORDER BY launch_date DESC NULLS LAST, product_id) AS launch_quartile FROM products WHERE category_id BETWEEN 1 AND 6"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-37",
+      "sql": "SELECT category_id, product_id, launch_date, NTILE(4) OVER (ORDER BY launch_date NULLS LAST, product_id) AS launch_quartile FROM products WHERE category_id BETWEEN 1 AND 6"
+    }
+  ],
+  "hint3_partial": "SELECT category_id, product_id, launch_date,\n       NTILE(4) OVER (PARTITION BY category_id ORDER BY ___) AS launch_quartile\nFROM products\nWHERE category_id BETWEEN 1 AND 6",
+  "solver": {
+    "prompt_hash": "2b286ea53e7d724f",
+    "schema_version": "d77fe1c31a0e",
+    "dataset_version": "e7c58abf7e8f892e",
+    "grader_version": "7a.1",
+    "query": "SELECT category_id, product_id, launch_date, launch_quartile\nFROM (\n  SELECT category_id, product_id, launch_date,\n         NTILE(4) OVER (PARTITION BY category_id ORDER BY launch_date ASC NULLS LAST, product_id ASC) AS launch_quartile\n  FROM products\n  WHERE category_id BETWEEN 1 AND 6\n) t\n",
+    "at": "2026-10-21T09:05:10.745Z"
+  }
+}

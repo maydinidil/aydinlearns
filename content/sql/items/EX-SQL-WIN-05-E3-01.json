@@ -1,0 +1,147 @@
+{
+  "id": "EX-SQL-WIN-05-E3-01",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "moving_average",
+    "trailing_window",
+    "date_spine",
+    "anomaly"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-05"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-WIN-05",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-WIN-01",
+    "SQL-WIN-04",
+    "SQL-WIN-05"
+  ],
+  "template_id": "T-WIN-05-below-trailing-average",
+  "template_params": {
+    "table": "sales",
+    "store": "NL-01",
+    "window": "28 days before"
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_win",
+  "prompt": "For store NL-01, find the UTC days from 1 February to 30 June 2025 whose net revenue was less than half of the store's average daily revenue over the 28 days before it (that day not included). Every calendar day counts, a day with no orders has 0 revenue, and the 28 days may reach back into January. Return order_date, revenue_eur and avg_prev_28d, the 28-day average rounded to 2 decimals, for those days only. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "order_date",
+        "type_class": "temporal"
+      },
+      {
+        "name": "revenue_eur",
+        "type_class": "numeric"
+      },
+      {
+        "name": "avg_prev_28d",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "order_date",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "revenue_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "avg_prev_28d",
+        "type_class": "numeric",
+        "precision": "money",
+        "require_rounding": 2
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "order_date"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, give every day a row with its revenue or 0, then work out each day's average over the 28 days before it.",
+    "The frame ends on the row before the day and starts 28 rows back; compare with the unrounded average after the window, and keep February to June only then."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 580,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 581,
+      "to": 720,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 721,
+      "to": 734,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 735,
+      "to": 805,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 806,
+      "to": 819,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 820,
+      "to": 923,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "Every day has a row from 1 January, so the frame of the 28 rows before each day is 28 calendar days, and the filter runs after the window."
+}

@@ -1,0 +1,36 @@
+{
+  "item_id": "EX-MOCK-SCREEN-A-06",
+  "item_version": 1,
+  "reference_sql": "WITH cohort_events AS (  -- one row per activation event of a user who signed up in July to September 2025\n  SELECT e.user_id, e.event_name, e.event_ts,\n         LAG(e.event_ts) OVER (PARTITION BY e.user_id ORDER BY e.event_ts) AS prev_event_ts\n  FROM activation_events e\n  JOIN signups s ON s.user_id = e.user_id\n  WHERE s.signup_ts >= TIMESTAMPTZ '2025-07-01 00:00:00+00'\n    AND s.signup_ts < TIMESTAMPTZ '2025-10-01 00:00:00+00'\n)\nSELECT event_name,\n       COUNT(*) AS n_steps,\n       ROUND(AVG(CAST(event_ts AS DATE) - CAST(prev_event_ts AS DATE)), 2) AS avg_gap_days\nFROM cohort_events\nWHERE prev_event_ts IS NOT NULL\nGROUP BY event_name\nORDER BY event_name",
+  "alternatives": [
+    "SELECT event_name,\n       COUNT(*) AS n_steps,\n       ROUND(AVG(date_diff('day', CAST(prev_event_ts AS DATE), CAST(event_ts AS DATE))), 2) AS avg_gap_days\nFROM (\n  -- one row per activation event of a user who signed up in July to September 2025\n  SELECT e.event_name, e.event_ts,\n         LAG(e.event_ts) OVER (PARTITION BY e.user_id ORDER BY e.event_ts ASC) AS prev_event_ts\n  FROM activation_events AS e\n  WHERE e.user_id IN (SELECT user_id FROM signups WHERE CAST(signup_ts AS DATE) BETWEEN DATE '2025-07-01' AND DATE '2025-09-30')\n) AS t\nWHERE prev_event_ts IS NOT NULL\nGROUP BY event_name\nORDER BY 1",
+    "WITH event_days AS (  -- one row per activation event of a user who signed up in July to September 2025\n  SELECT e.event_name, CAST(e.event_ts AS DATE) AS event_day,\n         LAG(CAST(e.event_ts AS DATE)) OVER (PARTITION BY e.user_id ORDER BY e.event_ts) AS prev_day\n  FROM signups s\n  JOIN activation_events e ON e.user_id = s.user_id\n  WHERE s.signup_ts >= '2025-07-01 00:00:00+00' AND s.signup_ts < '2025-10-01 00:00:00+00'\n)\nSELECT event_name, COUNT(prev_day) AS n_steps, ROUND(AVG(event_day - prev_day), 2) AS avg_gap_days\nFROM event_days\nGROUP BY event_name\nHAVING COUNT(prev_day) > 0\nORDER BY event_name ASC"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-37",
+      "sql": "WITH cohort_events AS (SELECT e.user_id, e.event_name, e.event_ts, LAG(e.event_ts) OVER (ORDER BY e.event_ts, e.user_id) AS prev_event_ts FROM activation_events e JOIN signups s ON s.user_id = e.user_id WHERE s.signup_ts >= TIMESTAMPTZ '2025-07-01 00:00:00+00' AND s.signup_ts < TIMESTAMPTZ '2025-10-01 00:00:00+00') SELECT event_name, COUNT(*) AS n_steps, ROUND(AVG(CAST(event_ts AS DATE) - CAST(prev_event_ts AS DATE)), 2) AS avg_gap_days FROM cohort_events WHERE prev_event_ts IS NOT NULL GROUP BY event_name ORDER BY event_name"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-41",
+      "sql": "WITH cohort_events AS (SELECT e.user_id, e.event_name, e.event_ts, LAG(e.event_ts) OVER (PARTITION BY e.user_id ORDER BY e.event_name, e.event_ts) AS prev_event_ts FROM activation_events e JOIN signups s ON s.user_id = e.user_id WHERE s.signup_ts >= TIMESTAMPTZ '2025-07-01 00:00:00+00' AND s.signup_ts < TIMESTAMPTZ '2025-10-01 00:00:00+00') SELECT event_name, COUNT(*) AS n_steps, ROUND(AVG(CAST(event_ts AS DATE) - CAST(prev_event_ts AS DATE)), 2) AS avg_gap_days FROM cohort_events WHERE prev_event_ts IS NOT NULL GROUP BY event_name ORDER BY event_name"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-34",
+      "sql": "WITH cohort_events AS (SELECT e.user_id, e.event_name, e.event_ts, LAG(e.event_ts) OVER (PARTITION BY e.user_id ORDER BY e.event_ts) AS prev_event_ts FROM activation_events e JOIN signups s ON s.user_id = e.user_id WHERE s.signup_ts >= TIMESTAMPTZ '2025-07-01 00:00:00+00' AND s.signup_ts < TIMESTAMPTZ '2025-10-01 00:00:00+00') SELECT event_name, COUNT(*) AS n_steps, ROUND(AVG(floor((epoch(event_ts) - epoch(prev_event_ts)) / 86400)), 2) AS avg_gap_days FROM cohort_events WHERE prev_event_ts IS NOT NULL GROUP BY event_name ORDER BY event_name"
+    }
+  ],
+  "hint3_partial": "WITH cohort_events AS (  -- one row per activation event of a user who signed up in July to September 2025\n  SELECT e.user_id, e.event_name, e.event_ts,\n         LAG(e.event_ts) OVER (PARTITION BY ___ ORDER BY ___) AS prev_event_ts\n  FROM activation_events e\n  JOIN signups s ON s.user_id = e.user_id\n  WHERE s.signup_ts >= TIMESTAMPTZ '2025-07-01 00:00:00+00'\n    AND s.signup_ts < TIMESTAMPTZ '2025-10-01 00:00:00+00'\n)\nSELECT event_name,\n       COUNT(*) AS n_steps,\n       ROUND(AVG(___), 2) AS avg_gap_days\nFROM cohort_events\nWHERE ___\nGROUP BY event_name\nORDER BY event_name",
+  "solver": {
+    "prompt_hash": "a9f861122f1fd923",
+    "schema_version": "40925758ae44",
+    "dataset_version": "e7c58abf7e8f892e",
+    "grader_version": "7a.1",
+    "query": "WITH u AS (\n  SELECT user_id FROM signups\n  WHERE signup_ts >= TIMESTAMPTZ '2025-07-01 00:00:00+00' AND signup_ts < TIMESTAMPTZ '2025-10-01 00:00:00+00'\n), e AS (\n  SELECT a.user_id, a.event_name,\n         CAST(a.event_ts AT TIME ZONE 'UTC' AS DATE) AS d,\n         LAG(CAST(a.event_ts AT TIME ZONE 'UTC' AS DATE)) OVER (PARTITION BY a.user_id ORDER BY a.event_ts) AS prev_d\n  FROM activation_events a JOIN u ON u.user_id = a.user_id\n)\nSELECT event_name, COUNT(*) AS n_steps, ROUND(AVG(date_diff('day', prev_d, d)::DOUBLE), 2) AS avg_gap_days\nFROM e\nWHERE prev_d IS NOT NULL\nGROUP BY event_name\nORDER BY event_name ASC\n",
+    "at": "2026-10-21T09:53:58.111Z"
+  }
+}

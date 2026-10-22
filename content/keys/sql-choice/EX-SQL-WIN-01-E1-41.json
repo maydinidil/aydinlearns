@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-WIN-01-E1-41",
+  "item_version": 1,
+  "value": 1200,
+  "explanation": "A window function keeps every row it reads: each of the 1,200 products keeps its own row and gets its category's total beside it. GROUP BY category_id would fold them into 40 rows, one per category, and lose the products.",
+  "solver": {
+    "prompt_hash": "31958ae924584a3a",
+    "grader_version": "choice.3",
+    "chosen": null,
+    "typed": "1200",
+    "at": "2026-10-20T20:50:48.309Z"
+  }
+}

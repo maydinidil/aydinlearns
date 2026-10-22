@@ -46,7 +46,7 @@
     {
       "id": "CP4",
       "kind": "CP4",
-      "prompt": "Yara's headline: what was the 2025 net revenue of the average physical store? Take every store except the webshop (store_type web) that has at least one order with an order_ts from 2025-01-01 00:00:00 up to but not including 2026-01-01 00:00:00 (order_ts holds UTC time). A store's net revenue is the sum, over the lines of those orders, of quantity times unit_price_eur minus line_discount_eur. Add up each store's net revenue first, then take the average over those stores. Type the amount in euros, rounded to 2 decimals.",
+      "prompt": "Yara's headline: what was the 2025 net revenue of the average physical store? Take every store except the webshop (store_type web) that has at least one order line on an order with an order_ts from 2025-01-01 00:00:00 up to but not including 2026-01-01 00:00:00 (order_ts holds UTC time). A store's net revenue is the sum, over the lines of those orders, of quantity times unit_price_eur minus line_discount_eur. Add up each store's net revenue first, then take the average over those stores. Type the amount in euros, rounded to 2 decimals.",
       "credits_concepts": [],
       "item_id": "CASE-DAILY-L4-01:CP4",
       "typed": {

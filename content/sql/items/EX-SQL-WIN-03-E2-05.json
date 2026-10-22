@@ -1,0 +1,128 @@
+{
+  "id": "EX-SQL-WIN-03-E2-05",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "lead",
+    "price_history",
+    "date_difference"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-03"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-WIN-03",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-WIN-01",
+    "SQL-WIN-03"
+  ],
+  "template_id": "T-WIN-03-lead-days-to-next",
+  "template_params": {
+    "table": "price_history",
+    "group": "product",
+    "order": "valid_from"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_win",
+  "prompt": "For every price version of products 1 to 25 (product_id from 1 to 25, both included), show how many days passed before the same product's next version started: the next version's valid_from minus this version's valid_from, in days. Within each product, versions follow each other by valid_from. A product's current version has no next one: show its days_to_next as missing. Return product_id, valid_from and days_to_next. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "valid_from",
+        "type_class": "temporal"
+      },
+      {
+        "name": "days_to_next",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "valid_from",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "days_to_next",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "product_id",
+      "valid_from"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, read the next version's valid_from onto each row and subtract this row's valid_from.",
+    "The function that looks one row ahead needs one group per product, in valid_from order; a date minus a date is a number of days."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 30,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 31,
+      "to": 129,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 130,
+      "to": 148,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 149,
+      "to": 182,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "LEAD reads the next version's start within the same product, and subtracting two dates gives the days between; the current version has no next row."
+}

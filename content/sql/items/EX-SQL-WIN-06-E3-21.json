@@ -1,0 +1,182 @@
+{
+  "id": "EX-SQL-WIN-06-E3-21",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "window",
+    "row_number",
+    "sum_over",
+    "share_of_total",
+    "filter_window_result",
+    "ad_spend_daily",
+    "campaigns",
+    "drill"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-06"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-WIN-06",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-WIN-01",
+    "SQL-WIN-02",
+    "SQL-WIN-06"
+  ],
+  "template_id": "T-WIN-06-top-1-share-of-group",
+  "template_params": {
+    "table": "ad_spend_daily",
+    "group": "channel",
+    "measure": "spend"
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "mailvora",
+  "schema": "mailvora",
+  "edge_schema": "mailvora_edge_win",
+  "prompt": "For each channel, what share of its spend from 1 July to 31 October 2025, both days included, went to its top campaign? spend_date is a UTC day, a campaign's spend is the sum of its spend in ad_spend_daily over those days, and a channel's spend is the sum over its campaigns. The top campaign spent the most; when two campaigns of a channel tie on spend, the one with the lower campaign_id is the top campaign. Return four columns, in this order: channel_id, campaign_id (the top campaign), spend (its spend) and share_pct, that spend as a percentage of the channel's spend, rounded to 1 decimal. Return one row for each channel with spend in that period. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "channel_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "campaign_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "spend",
+        "type_class": "numeric"
+      },
+      {
+        "name": "share_pct",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "channel_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "campaign_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "spend",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "share_pct",
+        "type_class": "numeric",
+        "precision": "ratio",
+        "require_rounding": 1
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "channel_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, total each campaign's spend, then put both the channel's total and the campaign's place in its channel on every campaign row.",
+    "Work out the channel total over all its campaigns before keeping the top one: a total worked out after the filter would cover only that one campaign."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 79,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 80,
+      "to": 139,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 140,
+      "to": 215,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 216,
+      "to": 284,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 285,
+      "to": 323,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 327,
+      "to": 412,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 413,
+      "to": 614,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 615,
+      "to": 636,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 639,
+      "to": 730,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 731,
+      "to": 742,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 743,
+      "to": 755,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "Both windows run over all of a channel's campaigns before the outer WHERE keeps the top one, so the share divides by the whole channel's spend."
+}

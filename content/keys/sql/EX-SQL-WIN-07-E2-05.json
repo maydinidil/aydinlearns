@@ -1,0 +1,39 @@
+{
+  "item_id": "EX-SQL-WIN-07-E2-05",
+  "item_version": 1,
+  "reference_sql": "SELECT category_id, product_id, unit_cost_eur,\n       ROUND(CUME_DIST() OVER (PARTITION BY category_id ORDER BY unit_cost_eur), 3) AS cost_share\nFROM products\nWHERE category_id BETWEEN 1 AND 6",
+  "alternatives": [
+    "SELECT p.category_id, p.product_id, p.unit_cost_eur,\n       ROUND((SELECT COUNT(*) FROM products p2 WHERE p2.category_id = p.category_id AND p2.unit_cost_eur <= p.unit_cost_eur) * 1.0\n             / (SELECT COUNT(*) FROM products p3 WHERE p3.category_id = p.category_id), 3) AS cost_share\nFROM products p\nWHERE p.category_id BETWEEN 1 AND 6",
+    "SELECT category_id, product_id, unit_cost_eur,\n       ROUND(COUNT(*) OVER (PARTITION BY category_id ORDER BY unit_cost_eur RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) * 1.0\n             / COUNT(*) OVER (PARTITION BY category_id), 3) AS cost_share\nFROM products\nWHERE category_id BETWEEN 1 AND 6"
+  ],
+  "other_way": {
+    "sql": "SELECT p.category_id, p.product_id, p.unit_cost_eur,\n       ROUND((SELECT COUNT(*) FROM products p2 WHERE p2.category_id = p.category_id AND p2.unit_cost_eur <= p.unit_cost_eur) * 1.0\n             / (SELECT COUNT(*) FROM products p3 WHERE p3.category_id = p.category_id), 3) AS cost_share\nFROM products p\nWHERE p.category_id BETWEEN 1 AND 6",
+    "tradeoff": "Counting the cheaper products with subqueries shows what the share means, but CUME_DIST works it out in one pass."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-40",
+      "sql": "SELECT category_id, product_id, unit_cost_eur, ROUND(ROW_NUMBER() OVER (PARTITION BY category_id ORDER BY unit_cost_eur, product_id) * 1.0 / COUNT(*) OVER (PARTITION BY category_id), 3) AS cost_share FROM products WHERE category_id BETWEEN 1 AND 6"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-18",
+      "sql": "SELECT category_id, product_id, unit_cost_eur, ROUND(CUME_DIST() OVER (PARTITION BY category_id ORDER BY unit_cost_eur DESC), 3) AS cost_share FROM products WHERE category_id BETWEEN 1 AND 6"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-37",
+      "sql": "SELECT category_id, product_id, unit_cost_eur, ROUND(CUME_DIST() OVER (ORDER BY unit_cost_eur), 3) AS cost_share FROM products WHERE category_id BETWEEN 1 AND 6"
+    }
+  ],
+  "hint3_partial": "SELECT category_id, product_id, unit_cost_eur,\n       ROUND(___() OVER (PARTITION BY category_id ORDER BY unit_cost_eur), 3) AS cost_share\nFROM products\nWHERE category_id BETWEEN 1 AND 6",
+  "solver": {
+    "prompt_hash": "141a49c6ed5b888e",
+    "schema_version": "d77fe1c31a0e",
+    "dataset_version": "e7c58abf7e8f892e",
+    "grader_version": "7a.1",
+    "query": "SELECT category_id, product_id, unit_cost_eur, cost_share\nFROM (\n  SELECT category_id, product_id, unit_cost_eur,\n         ROUND(CUME_DIST() OVER (PARTITION BY category_id ORDER BY unit_cost_eur), 3) AS cost_share\n  FROM products\n  WHERE category_id BETWEEN 1 AND 6\n) t\n",
+    "at": "2026-10-21T09:05:11.128Z"
+  }
+}

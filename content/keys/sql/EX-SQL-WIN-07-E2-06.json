@@ -1,0 +1,39 @@
+{
+  "item_id": "EX-SQL-WIN-07-E2-06",
+  "item_version": 1,
+  "reference_sql": "WITH campaign_spend AS (  -- one row per campaign with spend rows in the period\n  SELECT c.channel_id, c.campaign_id, SUM(a.spend) AS spend\n  FROM ad_spend_daily a\n  JOIN campaigns c ON c.campaign_id = a.campaign_id\n  WHERE a.spend_date BETWEEN DATE '2025-07-01' AND DATE '2025-10-31'\n  GROUP BY c.channel_id, c.campaign_id\n),\ncutoffs AS (  -- one row per channel: its 75th percentile of campaign spend\n  SELECT channel_id, percentile_cont(0.75) WITHIN GROUP (ORDER BY spend) AS p75_spend\n  FROM campaign_spend\n  GROUP BY channel_id\n)\nSELECT cs.channel_id, cs.campaign_id, cs.spend\nFROM campaign_spend cs\nJOIN cutoffs ct ON ct.channel_id = cs.channel_id\nWHERE cs.spend >= ct.p75_spend",
+  "alternatives": [
+    "WITH campaign_spend AS (  -- one row per campaign with spend rows in the period\n  SELECT c.channel_id, c.campaign_id, SUM(a.spend) AS spend\n  FROM ad_spend_daily a\n  JOIN campaigns c ON c.campaign_id = a.campaign_id\n  WHERE a.spend_date BETWEEN DATE '2025-07-01' AND DATE '2025-10-31'\n  GROUP BY c.channel_id, c.campaign_id\n)\nSELECT cs.channel_id, cs.campaign_id, cs.spend\nFROM campaign_spend cs\nWHERE cs.spend >= (SELECT percentile_cont(0.75) WITHIN GROUP (ORDER BY c2.spend)\n                   FROM campaign_spend c2\n                   WHERE c2.channel_id = cs.channel_id)",
+    "WITH campaign_spend AS (  -- one row per campaign with spend rows in the period\n  SELECT c.channel_id, c.campaign_id, SUM(a.spend) AS spend\n  FROM ad_spend_daily a\n  JOIN campaigns c ON c.campaign_id = a.campaign_id\n  WHERE a.spend_date BETWEEN DATE '2025-07-01' AND DATE '2025-10-31'\n  GROUP BY c.channel_id, c.campaign_id\n),\nwith_cut AS (  -- one row per campaign, with its channel's 75th percentile\n  SELECT channel_id, campaign_id, spend,\n         quantile_cont(spend, 0.75) OVER (PARTITION BY channel_id) AS p75_spend\n  FROM campaign_spend\n)\nSELECT channel_id, campaign_id, spend\nFROM with_cut\nWHERE spend >= p75_spend"
+  ],
+  "other_way": {
+    "sql": "WITH campaign_spend AS (  -- one row per campaign with spend rows in the period\n  SELECT c.channel_id, c.campaign_id, SUM(a.spend) AS spend\n  FROM ad_spend_daily a\n  JOIN campaigns c ON c.campaign_id = a.campaign_id\n  WHERE a.spend_date BETWEEN DATE '2025-07-01' AND DATE '2025-10-31'\n  GROUP BY c.channel_id, c.campaign_id\n)\nSELECT cs.channel_id, cs.campaign_id, cs.spend\nFROM campaign_spend cs\nWHERE cs.spend >= (SELECT percentile_cont(0.75) WITHIN GROUP (ORDER BY c2.spend)\n                   FROM campaign_spend c2\n                   WHERE c2.channel_id = cs.channel_id)",
+    "tradeoff": "A correlated subquery works the cut out beside each campaign, but the CTE works it out once per channel and is easier to check."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-14",
+      "sql": "WITH campaign_spend AS (SELECT c.channel_id, c.campaign_id, SUM(a.spend) AS spend FROM ad_spend_daily a JOIN campaigns c ON c.campaign_id = a.campaign_id WHERE a.spend_date BETWEEN DATE '2025-07-01' AND DATE '2025-10-31' GROUP BY c.channel_id, c.campaign_id), cutoffs AS (SELECT channel_id, AVG(spend) AS p75_spend FROM campaign_spend GROUP BY channel_id) SELECT cs.channel_id, cs.campaign_id, cs.spend FROM campaign_spend cs JOIN cutoffs ct ON ct.channel_id = cs.channel_id WHERE cs.spend >= ct.p75_spend"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-15",
+      "sql": "WITH campaign_spend AS (SELECT c.channel_id, c.campaign_id, SUM(a.spend) AS spend FROM ad_spend_daily a JOIN campaigns c ON c.campaign_id = a.campaign_id WHERE a.spend_date BETWEEN DATE '2025-07-01' AND DATE '2025-10-31' GROUP BY c.channel_id, c.campaign_id), cutoffs AS (SELECT channel_id, percentile_cont(0.75) WITHIN GROUP (ORDER BY spend) AS p75_spend FROM campaign_spend GROUP BY channel_id) SELECT cs.channel_id, cs.campaign_id, cs.spend FROM campaign_spend cs JOIN cutoffs ct ON ct.channel_id = cs.channel_id WHERE cs.spend > ct.p75_spend"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-07",
+      "sql": "WITH campaign_spend AS (SELECT c.channel_id, c.campaign_id, SUM(a.spend) AS spend FROM ad_spend_daily a JOIN campaigns c ON c.campaign_id = a.campaign_id WHERE a.spend_date BETWEEN DATE '2025-07-01' AND DATE '2025-10-31' GROUP BY c.channel_id, c.campaign_id), cutoff AS (SELECT percentile_cont(0.75) WITHIN GROUP (ORDER BY spend) AS p75_spend FROM campaign_spend) SELECT cs.channel_id, cs.campaign_id, cs.spend FROM campaign_spend cs CROSS JOIN cutoff ct WHERE cs.spend >= ct.p75_spend"
+    }
+  ],
+  "hint3_partial": "WITH campaign_spend AS (  -- one row per campaign with spend rows in the period\n  SELECT c.channel_id, c.campaign_id, SUM(a.spend) AS spend\n  FROM ad_spend_daily a\n  JOIN campaigns c ON c.campaign_id = a.campaign_id\n  WHERE a.spend_date BETWEEN DATE '2025-07-01' AND DATE '2025-10-31'\n  GROUP BY c.channel_id, c.campaign_id\n),\ncutoffs AS (  -- one row per channel: its 75th percentile of campaign spend\n  SELECT channel_id, ___ AS p75_spend\n  FROM campaign_spend\n  GROUP BY channel_id\n)\nSELECT cs.channel_id, cs.campaign_id, cs.spend\nFROM campaign_spend cs\nJOIN cutoffs ct ON ct.channel_id = cs.channel_id\nWHERE ___",
+  "solver": {
+    "prompt_hash": "94990e434a8f2d47",
+    "schema_version": "09f3a33d3123",
+    "dataset_version": "e7c58abf7e8f892e",
+    "grader_version": "7a.1",
+    "query": "WITH camp AS (\n  SELECT c.channel_id, s.campaign_id, SUM(s.spend) AS spend\n  FROM ad_spend_daily s\n  JOIN campaigns c ON c.campaign_id = s.campaign_id\n  WHERE s.spend_date >= DATE '2025-07-01' AND s.spend_date <= DATE '2025-10-31'\n  GROUP BY c.channel_id, s.campaign_id\n), p AS (\n  SELECT channel_id, campaign_id, spend,\n         QUANTILE_CONT(spend, 0.75) OVER (PARTITION BY channel_id) AS p75\n  FROM camp\n)\nSELECT channel_id, campaign_id, spend\nFROM p\nWHERE spend >= p75\n",
+    "at": "2026-10-21T09:05:11.153Z"
+  }
+}

@@ -1,0 +1,36 @@
+{
+  "item_id": "EX-MOCK-SCREEN-B-02",
+  "item_version": 1,
+  "reference_sql": "SELECT parent_category,\n       COUNT(*) AS n_lines,\n       COUNT(*) FILTER (WHERE net_revenue_eur < units * unit_cost_eur) AS below_cost_lines,\n       COALESCE(SUM(units * unit_cost_eur - net_revenue_eur) FILTER (WHERE net_revenue_eur < units * unit_cost_eur), 0) AS below_cost_loss_eur\nFROM sales\nWHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-06-30'\nGROUP BY parent_category\nORDER BY below_cost_lines DESC, parent_category",
+  "alternatives": [
+    "SELECT parent_category,\n       COUNT(*) AS n_lines,\n       SUM(CASE WHEN net_revenue_eur < units * unit_cost_eur THEN 1 ELSE 0 END) AS below_cost_lines,\n       SUM(CASE WHEN net_revenue_eur < units * unit_cost_eur THEN units * unit_cost_eur - net_revenue_eur ELSE 0 END) AS below_cost_loss_eur\nFROM sales\nWHERE order_date >= DATE '2025-01-01' AND order_date <= DATE '2025-06-30'\nGROUP BY parent_category\nORDER BY 3 DESC, 1",
+    "SELECT parent_category,\n       COUNT(*) AS n_lines,\n       COUNT(CASE WHEN net_revenue_eur < units * unit_cost_eur THEN 1 END) AS below_cost_lines,\n       COALESCE(SUM(CASE WHEN net_revenue_eur < units * unit_cost_eur THEN units * unit_cost_eur - net_revenue_eur END), 0) AS below_cost_loss_eur\nFROM sales\nWHERE order_date >= '2025-01-01' AND order_date < '2025-07-01'\nGROUP BY 1\nORDER BY below_cost_lines DESC, parent_category ASC"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-17",
+      "sql": "SELECT parent_category, COUNT(*) AS n_lines, COUNT(*) FILTER (WHERE net_revenue_eur < units * unit_cost_eur) AS below_cost_lines, SUM(units * unit_cost_eur - net_revenue_eur) FILTER (WHERE net_revenue_eur < units * unit_cost_eur) AS below_cost_loss_eur FROM sales WHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-06-30' GROUP BY parent_category ORDER BY below_cost_lines DESC, parent_category"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-04",
+      "sql": "SELECT parent_category, COUNT(net_revenue_eur) AS n_lines, COUNT(*) FILTER (WHERE net_revenue_eur < units * unit_cost_eur) AS below_cost_lines, COALESCE(SUM(units * unit_cost_eur - net_revenue_eur) FILTER (WHERE net_revenue_eur < units * unit_cost_eur), 0) AS below_cost_loss_eur FROM sales WHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-06-30' GROUP BY parent_category ORDER BY below_cost_lines DESC, parent_category"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-18",
+      "sql": "SELECT parent_category, COUNT(*) AS n_lines, COUNT(*) FILTER (WHERE net_revenue_eur < units * unit_cost_eur) AS below_cost_lines, COALESCE(SUM(units * unit_cost_eur - net_revenue_eur) FILTER (WHERE net_revenue_eur < units * unit_cost_eur), 0) AS below_cost_loss_eur FROM sales WHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-06-30' GROUP BY parent_category ORDER BY below_cost_lines, parent_category"
+    }
+  ],
+  "hint3_partial": "SELECT parent_category,\n       COUNT(*) AS n_lines,\n       COUNT(*) FILTER (WHERE ___) AS below_cost_lines,\n       COALESCE(SUM(___) FILTER (WHERE ___), 0) AS below_cost_loss_eur\nFROM sales\nWHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-06-30'\nGROUP BY parent_category\nORDER BY ___",
+  "solver": {
+    "prompt_hash": "cc15d3bf57cee4f8",
+    "schema_version": "cebf75df442f",
+    "dataset_version": "e7c58abf7e8f892e",
+    "grader_version": "7a.1",
+    "query": "SELECT parent_category,\n       COUNT(*) AS n_lines,\n       COUNT(*) FILTER (WHERE net_revenue_eur < units * unit_cost_eur) AS below_cost_lines,\n       COALESCE(SUM(units * unit_cost_eur - net_revenue_eur) FILTER (WHERE net_revenue_eur < units * unit_cost_eur), 0) AS below_cost_loss_eur\nFROM sales\nWHERE order_date >= DATE '2025-01-01' AND order_date <= DATE '2025-06-30'\nGROUP BY parent_category\nORDER BY below_cost_lines DESC, parent_category ASC\n",
+    "at": "2026-10-21T09:53:58.199Z"
+  }
+}

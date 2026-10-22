@@ -1,0 +1,229 @@
+{
+  "id": "EX-SQL-WIN-02-E1-41",
+  "version": 1,
+  "kind": "predict_result",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "predict_result",
+    "ranking",
+    "dense_rank",
+    "categories"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pretest",
+  "target_concept_id": "SQL-WIN-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-JOIN-01",
+    "SQL-WIN-01",
+    "SQL-WIN-02"
+  ],
+  "template_id": "T-WIN-02-predict-result-dense-rank",
+  "template_params": {
+    "table": "products",
+    "parent": "Gaming"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_win",
+  "prompt": "Which result does this query return? In the Gaming parent category, Consoles has 30 products; Console Games, Controllers and Gaming Headsets have 29 each; PC Gaming has 28.",
+  "output_contract": null,
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [],
+  "subgoals": [],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 90000,
+  "why_this_works": "",
+  "shown_sql": "SELECT c.category_name, COUNT(*) AS n_products,\n       DENSE_RANK() OVER (ORDER BY COUNT(*) DESC) AS r\nFROM products p\nJOIN categories c ON c.category_id = p.category_id\nWHERE c.parent_category = 'Gaming'\nGROUP BY c.category_name",
+  "options": [
+    {
+      "oid": "o8559a93",
+      "text": "Ranks 1, 2, 2, 2 and 3",
+      "misconception_id": null,
+      "table": {
+        "columns": [
+          "category_name",
+          "n_products",
+          "r"
+        ],
+        "rows": [
+          [
+            "Consoles",
+            30,
+            1
+          ],
+          [
+            "Console Games",
+            29,
+            2
+          ],
+          [
+            "Controllers",
+            29,
+            2
+          ],
+          [
+            "Gaming Headsets",
+            29,
+            2
+          ],
+          [
+            "PC Gaming",
+            28,
+            3
+          ]
+        ]
+      }
+    },
+    {
+      "oid": "o7fb8844",
+      "text": "Ranks 1, 2, 2, 2 and 5",
+      "misconception_id": "ERR-LOG-40",
+      "table": {
+        "columns": [
+          "category_name",
+          "n_products",
+          "r"
+        ],
+        "rows": [
+          [
+            "Consoles",
+            30,
+            1
+          ],
+          [
+            "Console Games",
+            29,
+            2
+          ],
+          [
+            "Controllers",
+            29,
+            2
+          ],
+          [
+            "Gaming Headsets",
+            29,
+            2
+          ],
+          [
+            "PC Gaming",
+            28,
+            5
+          ]
+        ]
+      }
+    },
+    {
+      "oid": "o38481d0",
+      "text": "Ranks 1, 2, 3, 4 and 5",
+      "misconception_id": "ERR-LOG-40",
+      "table": {
+        "columns": [
+          "category_name",
+          "n_products",
+          "r"
+        ],
+        "rows": [
+          [
+            "Consoles",
+            30,
+            1
+          ],
+          [
+            "Console Games",
+            29,
+            2
+          ],
+          [
+            "Controllers",
+            29,
+            3
+          ],
+          [
+            "Gaming Headsets",
+            29,
+            4
+          ],
+          [
+            "PC Gaming",
+            28,
+            5
+          ]
+        ]
+      }
+    },
+    {
+      "oid": "o8e9a46a",
+      "text": "Ranks 3, 2, 2, 2 and 1",
+      "misconception_id": "ERR-LOG-18",
+      "table": {
+        "columns": [
+          "category_name",
+          "n_products",
+          "r"
+        ],
+        "rows": [
+          [
+            "Consoles",
+            30,
+            3
+          ],
+          [
+            "Console Games",
+            29,
+            2
+          ],
+          [
+            "Controllers",
+            29,
+            2
+          ],
+          [
+            "Gaming Headsets",
+            29,
+            2
+          ],
+          [
+            "PC Gaming",
+            28,
+            1
+          ]
+        ]
+      }
+    }
+  ]
+}

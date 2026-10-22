@@ -1,0 +1,39 @@
+{
+  "item_id": "EX-SQL-WIN-02-E2-07",
+  "item_version": 1,
+  "reference_sql": "WITH product_rev AS (  -- one row per product with 2025 sales\n  SELECT category_name, product_id, SUM(net_revenue_eur) AS revenue\n  FROM sales\n  WHERE order_date >= DATE '2025-01-01' AND order_date < DATE '2026-01-01'\n  GROUP BY category_name, product_id\n),\nranked AS (  -- one row per product with 2025 sales\n  SELECT category_name, product_id, revenue,\n         RANK() OVER (PARTITION BY category_name ORDER BY revenue DESC) AS revenue_rank\n  FROM product_rev\n)\nSELECT category_name, product_id, revenue\nFROM ranked\nWHERE revenue_rank = 1",
+  "alternatives": [
+    "WITH product_rev AS (  -- one row per product with 2025 sales\n  SELECT category_name, product_id, SUM(net_revenue_eur) AS revenue\n  FROM sales\n  WHERE order_date >= DATE '2025-01-01' AND order_date < DATE '2026-01-01'\n  GROUP BY category_name, product_id\n),\ncategory_max AS (  -- one row per category with 2025 sales\n  SELECT category_name, MAX(revenue) AS max_revenue\n  FROM product_rev\n  GROUP BY category_name\n)\nSELECT pr.category_name, pr.product_id, pr.revenue\nFROM product_rev pr\nJOIN category_max cm ON cm.category_name = pr.category_name AND cm.max_revenue = pr.revenue",
+    "WITH product_rev AS (  -- one row per product with 2025 sales\n  SELECT category_name, product_id, SUM(net_revenue_eur) AS revenue\n  FROM sales\n  WHERE order_date >= DATE '2025-01-01' AND order_date < DATE '2026-01-01'\n  GROUP BY category_name, product_id\n)\nSELECT pr.category_name, pr.product_id, pr.revenue\nFROM product_rev pr\nWHERE pr.revenue = (SELECT MAX(pr2.revenue) FROM product_rev pr2 WHERE pr2.category_name = pr.category_name)"
+  ],
+  "other_way": {
+    "sql": "WITH product_rev AS (  -- one row per product with 2025 sales\n  SELECT category_name, product_id, SUM(net_revenue_eur) AS revenue\n  FROM sales\n  WHERE order_date >= DATE '2025-01-01' AND order_date < DATE '2026-01-01'\n  GROUP BY category_name, product_id\n),\ncategory_max AS (  -- one row per category with 2025 sales\n  SELECT category_name, MAX(revenue) AS max_revenue\n  FROM product_rev\n  GROUP BY category_name\n)\nSELECT pr.category_name, pr.product_id, pr.revenue\nFROM product_rev pr\nJOIN category_max cm ON cm.category_name = pr.category_name AND cm.max_revenue = pr.revenue",
+    "tradeoff": "Joining each category's highest revenue keeps tied products too and needs no window, but it only works for first place."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-40",
+      "sql": "WITH product_rev AS (SELECT category_name, product_id, SUM(net_revenue_eur) AS revenue FROM sales WHERE order_date >= DATE '2025-01-01' AND order_date < DATE '2026-01-01' GROUP BY category_name, product_id), ranked AS (SELECT category_name, product_id, revenue, ROW_NUMBER() OVER (PARTITION BY category_name ORDER BY revenue DESC, product_id) AS revenue_rank FROM product_rev) SELECT category_name, product_id, revenue FROM ranked WHERE revenue_rank = 1"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-37",
+      "sql": "WITH product_rev AS (SELECT category_name, product_id, SUM(net_revenue_eur) AS revenue FROM sales WHERE order_date >= DATE '2025-01-01' AND order_date < DATE '2026-01-01' GROUP BY category_name, product_id), ranked AS (SELECT category_name, product_id, revenue, RANK() OVER (ORDER BY revenue DESC) AS revenue_rank FROM product_rev) SELECT category_name, product_id, revenue FROM ranked WHERE revenue_rank = 1"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-18",
+      "sql": "WITH product_rev AS (SELECT category_name, product_id, SUM(net_revenue_eur) AS revenue FROM sales WHERE order_date >= DATE '2025-01-01' AND order_date < DATE '2026-01-01' GROUP BY category_name, product_id), ranked AS (SELECT category_name, product_id, revenue, RANK() OVER (PARTITION BY category_name ORDER BY revenue) AS revenue_rank FROM product_rev) SELECT category_name, product_id, revenue FROM ranked WHERE revenue_rank = 1"
+    }
+  ],
+  "hint3_partial": "WITH product_rev AS (  -- one row per product with 2025 sales\n  SELECT category_name, product_id, SUM(net_revenue_eur) AS revenue\n  FROM sales\n  WHERE order_date >= DATE '2025-01-01' AND order_date < DATE '2026-01-01'\n  GROUP BY category_name, product_id\n),\nranked AS (  -- one row per product with 2025 sales\n  SELECT category_name, product_id, revenue,\n         RANK() OVER (PARTITION BY category_name ORDER BY ___) AS revenue_rank\n  FROM product_rev\n)\nSELECT category_name, product_id, revenue\nFROM ranked\nWHERE ___",
+  "solver": {
+    "prompt_hash": "c6ce9d782d3cc195",
+    "schema_version": "cebf75df442f",
+    "dataset_version": "e7c58abf7e8f892e",
+    "grader_version": "7a.1",
+    "query": "WITH prod AS (\n  SELECT category_name, product_id, SUM(net_revenue_eur) AS revenue\n  FROM sales\n  WHERE order_date >= DATE '2025-01-01' AND order_date < DATE '2026-01-01'\n  GROUP BY category_name, product_id\n),\nr AS (\n  SELECT category_name, product_id, revenue,\n         RANK() OVER (PARTITION BY category_name ORDER BY revenue DESC) AS rk\n  FROM prod\n)\nSELECT category_name, product_id, revenue\nFROM r\nWHERE rk = 1\n",
+    "at": "2026-10-21T09:05:06.623Z"
+  }
+}

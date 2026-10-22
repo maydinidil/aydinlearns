@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-WIN-04-E2-01",
+  "item_version": 1,
+  "reference_sql": "WITH daily AS (\n  -- one row per day with orders\n  SELECT order_month, order_date, SUM(net_revenue_eur) AS revenue_eur\n  FROM sales\n  WHERE store_code = 'NL-01'\n    AND order_date BETWEEN DATE '2025-01-01' AND DATE '2025-06-30'\n  GROUP BY order_month, order_date\n)\nSELECT order_date, revenue_eur,\n  SUM(revenue_eur) OVER (PARTITION BY order_month ORDER BY order_date ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS mtd_revenue_eur\nFROM daily",
+  "alternatives": [
+    "WITH daily AS (\n  -- one row per day with orders\n  SELECT order_month, order_date, SUM(net_revenue_eur) AS revenue_eur\n  FROM sales\n  WHERE store_code = 'NL-01'\n    AND order_date BETWEEN DATE '2025-01-01' AND DATE '2025-06-30'\n  GROUP BY order_month, order_date\n)\nSELECT d.order_date, d.revenue_eur,\n  (SELECT SUM(d2.revenue_eur) FROM daily d2 WHERE d2.order_month = d.order_month AND d2.order_date <= d.order_date) AS mtd_revenue_eur\nFROM daily d",
+    "WITH daily AS (\n  -- one row per day with orders\n  SELECT order_month, order_date, SUM(net_revenue_eur) AS revenue_eur\n  FROM sales\n  WHERE store_code = 'NL-01'\n    AND order_date BETWEEN DATE '2025-01-01' AND DATE '2025-06-30'\n  GROUP BY order_month, order_date\n)\nSELECT d.order_date, d.revenue_eur, SUM(e.revenue_eur) AS mtd_revenue_eur\nFROM daily d\nJOIN daily e ON e.order_month = d.order_month AND e.order_date <= d.order_date\nGROUP BY d.order_date, d.revenue_eur"
+  ],
+  "other_way": {
+    "sql": "WITH daily AS (\n  -- one row per day with orders\n  SELECT order_month, order_date, SUM(net_revenue_eur) AS revenue_eur\n  FROM sales\n  WHERE store_code = 'NL-01'\n    AND order_date BETWEEN DATE '2025-01-01' AND DATE '2025-06-30'\n  GROUP BY order_month, order_date\n)\nSELECT d.order_date, d.revenue_eur,\n  (SELECT SUM(d2.revenue_eur) FROM daily d2 WHERE d2.order_month = d.order_month AND d2.order_date <= d.order_date) AS mtd_revenue_eur\nFROM daily d",
+    "tradeoff": "A subquery adding the month's earlier days works without a window, but rereads the days for every row."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-37",
+      "sql": "WITH daily AS (\n  -- one row per day with orders\n  SELECT order_month, order_date, SUM(net_revenue_eur) AS revenue_eur\n  FROM sales\n  WHERE store_code = 'NL-01'\n    AND order_date BETWEEN DATE '2025-01-01' AND DATE '2025-06-30'\n  GROUP BY order_month, order_date\n) SELECT order_date, revenue_eur, SUM(revenue_eur) OVER (ORDER BY order_date ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS mtd_revenue_eur FROM daily"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-41",
+      "sql": "WITH daily AS (\n  -- one row per day with orders\n  SELECT order_month, order_date, SUM(net_revenue_eur) AS revenue_eur\n  FROM sales\n  WHERE store_code = 'NL-01'\n    AND order_date BETWEEN DATE '2025-01-01' AND DATE '2025-06-30'\n  GROUP BY order_month, order_date\n) SELECT order_date, revenue_eur, SUM(revenue_eur) OVER (PARTITION BY order_month ORDER BY revenue_eur, order_date ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS mtd_revenue_eur FROM daily"
+    }
+  ],
+  "hint3_partial": "WITH daily AS (\n  -- one row per day with orders\n  SELECT order_month, order_date, SUM(net_revenue_eur) AS revenue_eur\n  FROM sales\n  WHERE store_code = 'NL-01'\n    AND order_date BETWEEN DATE '2025-01-01' AND DATE '2025-06-30'\n  GROUP BY order_month, order_date\n)\nSELECT order_date, revenue_eur,\n  SUM(revenue_eur) OVER (PARTITION BY ___ ORDER BY order_date ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS mtd_revenue_eur\nFROM daily",
+  "solver": {
+    "prompt_hash": "4776bd7b048f350f",
+    "schema_version": "cebf75df442f",
+    "dataset_version": "e7c58abf7e8f892e",
+    "grader_version": "7a.1",
+    "query": "WITH daily AS (\n  SELECT order_date, SUM(net_revenue_eur) AS revenue_eur, SUM(units) AS units\n  FROM sales\n  WHERE store_code = 'NL-01' AND order_date BETWEEN DATE '2025-01-01' AND DATE '2025-06-30'\n  GROUP BY order_date\n)\nSELECT order_date, revenue_eur,\n  SUM(revenue_eur) OVER (PARTITION BY CAST(date_trunc('month', order_date) AS DATE) ORDER BY order_date ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS mtd_revenue_eur\nFROM daily\n",
+    "at": "2026-10-21T09:05:08.384Z"
+  }
+}

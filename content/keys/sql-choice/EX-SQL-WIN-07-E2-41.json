@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-WIN-07-E2-41",
+  "item_version": 1,
+  "correct_oid": "o388db7a",
+  "explanation": "The right query gives LAST_VALUE a frame that runs from the subscription's first payment to its last, so every row sees the latest payment. Without a frame, the window with an ORDER BY stops at the current row, so LAST_VALUE returns each payment's own paid_at. FIRST_VALUE in the same order returns the earliest payment, and without PARTITION BY the frame runs over the payments of all twenty subscriptions, so every row gets the latest payment of any of them.",
+  "solver": {
+    "prompt_hash": "b98a608d1d7a0fab",
+    "grader_version": "choice.3",
+    "chosen": "o388db7a",
+    "typed": null,
+    "at": "2026-10-20T20:50:48.411Z"
+  }
+}

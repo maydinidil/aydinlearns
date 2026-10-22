@@ -1,0 +1,52 @@
+{
+  "id": "Q-GA4-260",
+  "version": 1,
+  "kind": "mcq",
+  "section": "ga4",
+  "concept_id": "GA4-INTEG-20",
+  "parent_id": "GA4-INTEG-02",
+  "topic_id": "T-GA4-04",
+  "legacy_id": null,
+  "stem": "The SEO lead opens the Queries report from the Search Console link in GA4 and finds no query data for yesterday, although the link has worked for months and the site had normal traffic. What is the most likely reason?",
+  "options": [
+    {
+      "oid": "oc067aff",
+      "text": "The Search Console collection went back to unpublished, which hides the most recent days",
+      "misconception_id": null
+    },
+    {
+      "oid": "oda0ef76",
+      "text": "The link keeps at most 16 months, so the newest day drops out once that limit is reached",
+      "misconception_id": null
+    },
+    {
+      "oid": "oa061ede",
+      "text": "Queries appear only once a Google Ads link is also in place for the same GA4 property",
+      "misconception_id": null
+    },
+    {
+      "oid": "o75420b8",
+      "text": "Search Console data reaches GA4 with a 48-hour delay, so yesterday is not in yet",
+      "misconception_id": null
+    }
+  ],
+  "typed": null,
+  "exam_relevance": "core",
+  "held_out": true,
+  "enemy_group": null,
+  "status": "active",
+  "verified": true,
+  "level": null,
+  "tags": [
+    "ga4",
+    "T-GA4-04"
+  ],
+  "source_ids": [
+    "10:GA4-INTEG-20",
+    "10:§5",
+    "ERRATA:E-205"
+  ],
+  "as_of": "2026-09-30",
+  "review_after": null,
+  "supersedes": []
+}

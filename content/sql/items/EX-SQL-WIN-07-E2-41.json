@@ -1,0 +1,91 @@
+{
+  "id": "EX-SQL-WIN-07-E2-41",
+  "version": 1,
+  "kind": "choose_query",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "choose_query",
+    "last_value",
+    "frame",
+    "payments"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-07"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-WIN-07",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-WIN-01",
+    "SQL-WIN-04",
+    "SQL-WIN-07"
+  ],
+  "template_id": "T-WIN-07-choose-last-value-frame",
+  "template_params": {
+    "table": "payments",
+    "key": "subscription_id"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "mailvora",
+  "schema": "mailvora",
+  "edge_schema": "mailvora_edge_win",
+  "prompt": "For each payment of subscriptions 1 to 20 (subscription_id from 1 to 20, both included), the report needs the moment of the subscription's latest payment beside the payment's own paid_at. No subscription has two payments at the same moment. Which query returns that, with the columns subscription_id, payment_id, paid_at and last_paid_at?",
+  "output_contract": null,
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [],
+  "subgoals": [],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "",
+  "options": [
+    {
+      "oid": "oa47c51b",
+      "text": "SELECT subscription_id, payment_id, paid_at,\n       LAST_VALUE(paid_at) OVER (PARTITION BY subscription_id ORDER BY paid_at) AS last_paid_at\nFROM payments\nWHERE subscription_id BETWEEN 1 AND 20",
+      "misconception_id": "ERR-LOG-42"
+    },
+    {
+      "oid": "o388db7a",
+      "text": "SELECT subscription_id, payment_id, paid_at,\n       LAST_VALUE(paid_at) OVER (PARTITION BY subscription_id ORDER BY paid_at\n                                 ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS last_paid_at\nFROM payments\nWHERE subscription_id BETWEEN 1 AND 20",
+      "misconception_id": null
+    },
+    {
+      "oid": "o14ddb11",
+      "text": "SELECT subscription_id, payment_id, paid_at,\n       FIRST_VALUE(paid_at) OVER (PARTITION BY subscription_id ORDER BY paid_at\n                                  ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS last_paid_at\nFROM payments\nWHERE subscription_id BETWEEN 1 AND 20",
+      "misconception_id": "ERR-LOG-18"
+    },
+    {
+      "oid": "obbba2ea",
+      "text": "SELECT subscription_id, payment_id, paid_at,\n       LAST_VALUE(paid_at) OVER (ORDER BY paid_at\n                                 ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS last_paid_at\nFROM payments\nWHERE subscription_id BETWEEN 1 AND 20",
+      "misconception_id": "ERR-LOG-37"
+    }
+  ]
+}

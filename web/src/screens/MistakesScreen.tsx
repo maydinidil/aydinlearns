@@ -9,7 +9,7 @@ import { PageHead } from '../components/PageHead.tsx';
 import { SqlCode } from '../components/SqlCode.tsx';
 import { crumbParts } from '../lib/crumb.ts';
 import {
-  ALL_ERRORS, EMPTY_MISTAKES, MISTAKES_TITLE, NO_DIFF, NO_ORIGINAL, NO_QUERY, TODAY_LINK, cardRow, filterCards, filterOptions, mistakesStatus, triedView, tryLabel, type TriedView,
+  ALL_ERRORS, EMPTY_MISTAKES, MISTAKES_TITLE, NO_DIFF, NO_ORIGINAL, NO_QUERY, OTHER_CARD_NOTICE, TODAY_LINK, cardRow, filterCards, filterOptions, mistakesStatus, servedOtherCard, triedView, tryLabel, type TriedView,
 } from '../lib/mistakes-flow.ts';
 
 export function MistakesScreen() {
@@ -18,6 +18,7 @@ export function MistakesScreen() {
   const [filter, setFilter] = useState<string | null>(null);
   const [tried, setTried] = useState<TriedView | null>(null);
   const [note, setNote] = useState<string | null>(null);        // the server's reason when a try finds no exercise (a 404)
+  const [other, setOther] = useState(false);             // S7-29: the server served another card than the one clicked
   const [busy, setBusy] = useState(false);
   const latest = useRef(0);
 
@@ -37,7 +38,9 @@ export function MistakesScreen() {
     setBusy(true);
     setNote(null);
     try {
-      setTried(triedView(await api.mistakeTry(cardId)));
+      const served = await api.mistakeTry(cardId);
+      setOther(servedOtherCard(cardId, served));
+      setTried(triedView(served));
     } catch (e) {
       setNote((e as Error).message);
     } finally {
@@ -47,6 +50,7 @@ export function MistakesScreen() {
   /** The exercise closed (or the learner went back): the cards may have changed, so read them again. */
   function leave(): void {
     setTried(null);
+    setOther(false);
     void load();
   }
 
@@ -56,6 +60,7 @@ export function MistakesScreen() {
       <section className="mistakes">
         {head}
         <p><button type="button" onClick={leave}>Back to Mistakes and review</button></p>
+        {other && <p role="status" className="notice">{OTHER_CARD_NOTICE}</p>}
         <ItemPanel key={tried.key} itemId={tried.item_id} phase={tried.phase} instanceId={tried.instance_id} hideLabels={tried.hide_labels} labels onClosed={leave} />
       </section>
     );

@@ -1,0 +1,121 @@
+{
+  "id": "EX-SQL-WIN-07-E1-05",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "percentile",
+    "median",
+    "group_by",
+    "products"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-07"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "retest",
+  "target_concept_id": "SQL-WIN-07",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-WIN-07"
+  ],
+  "template_id": "T-WIN-07-median-per-group",
+  "template_params": {
+    "table": "products",
+    "group": "category_id",
+    "measure": "unit cost",
+    "rounding": 0
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_win",
+  "prompt": "For each Audio category (category_id from 15 to 20, both included), what is the median unit cost of its products, rounded to whole euros? The median is the middle unit cost once the category's products are sorted by it; with an even number of products, it is the average of the two middle unit costs. Return two columns, in this order: category_id and median_cost_eur. Return one row for each such category with products. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "category_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "median_cost_eur",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "category_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "median_cost_eur",
+        "type_class": "numeric",
+        "precision": "money",
+        "require_rounding": 0
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "category_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the median of the unit costs as an aggregate for each category, then round it.",
+    "An average is pulled up or down by a few extreme costs; the median takes the middle of the sorted costs instead."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 114,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 115,
+      "to": 128,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 129,
+      "to": 164,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 165,
+      "to": 185,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "percentile_cont(0.5) takes the middle of each category's sorted unit costs, and ROUND with 0 decimals gives whole euros."
+}

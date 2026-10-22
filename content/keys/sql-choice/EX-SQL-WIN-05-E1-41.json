@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-WIN-05-E1-41",
+  "item_version": 1,
+  "correct_oid": "oaeb8dde",
+  "explanation": "The frame holds the current row and up to 2 rows before it. On 1 July there is no row before, so the average is of 1 day, and on 2 July of 2 days: SQL does not leave a short window missing or count the absent days as 0. From 3 July the frame holds 3 days and slides, so 4 July leaves 1 July out.",
+  "solver": {
+    "prompt_hash": "4a9866f16217a34a",
+    "grader_version": "choice.3",
+    "chosen": "oaeb8dde",
+    "typed": null,
+    "at": "2026-10-20T20:50:48.372Z"
+  }
+}

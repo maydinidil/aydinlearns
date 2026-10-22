@@ -1,0 +1,43 @@
+{
+  "case_id": "CASE-RETAIL-05",
+  "truths": {
+    "CP2": "SELECT COUNT(DISTINCT customer_id)\nFROM orders\nWHERE customer_id IS NOT NULL\n  AND order_ts >= TIMESTAMP '2025-01-01 00:00:00'\n  AND order_ts < TIMESTAMP '2026-01-01 00:00:00'",
+    "CP4": "WITH customer_orders AS (\n  -- one row per known customer with at least one order in 2025\n  SELECT o.customer_id,\n         DATE '2025-12-31' - MAX(CAST(o.order_ts AS DATE)) AS recency_days,\n         COUNT(DISTINCT o.order_id) AS n_orders,\n         SUM(ol.quantity * ol.unit_price_eur - ol.line_discount_eur) AS revenue_eur\n  FROM orders AS o\n  JOIN order_lines AS ol ON ol.order_id = o.order_id\n  WHERE o.customer_id IS NOT NULL\n    AND o.order_ts >= TIMESTAMP '2025-01-01 00:00:00'\n    AND o.order_ts < TIMESTAMP '2026-01-01 00:00:00'\n  GROUP BY o.customer_id\n),\nscores AS (\n  -- one row per customer, with its R, F and M scores\n  SELECT customer_id, revenue_eur,\n         NTILE(5) OVER (ORDER BY recency_days DESC, customer_id) AS r_score,\n         CASE WHEN n_orders >= 6 THEN 5\n              WHEN n_orders >= 4 THEN 4\n              WHEN n_orders = 3 THEN 3\n              WHEN n_orders = 2 THEN 2\n              ELSE 1 END AS f_score,\n         NTILE(5) OVER (ORDER BY revenue_eur, customer_id) AS m_score\n  FROM customer_orders\n),\nsegments AS (\n  -- one row per customer, with its segment\n  SELECT revenue_eur,\n         CASE WHEN r_score >= 4 AND f_score >= 4 AND m_score >= 4 THEN 'champions'\n              WHEN f_score >= 4 THEN 'loyal'\n              WHEN r_score <= 2 AND f_score >= 3 THEN 'at_risk'\n              WHEN r_score >= 4 AND f_score = 1 THEN 'new'\n              WHEN r_score <= 2 THEN 'hibernating'\n              ELSE 'others' END AS segment\n  FROM scores\n)\nSELECT ROUND(100.0 * SUM(CASE WHEN segment = 'at_risk' THEN revenue_eur ELSE 0 END) / SUM(revenue_eur), 1)\nFROM segments"
+  },
+  "choices": {
+    "CP1": {
+      "correct_oid": "od10eec6",
+      "explanation": "RFM scores the customers active in the chosen window, so every known customer with a 2025 order counts, one-order customers included as F 1; a guest order has no customer_id to link it to a person, and 2024-only buyers fall outside the window."
+    },
+    "CP5": {
+      "correct_oid": "o2e46c75",
+      "explanation": "RFM describes past orders, so it finds who slipped away but not what a voucher would do, which a random hold-out group measures; a low R score does not show that a voucher works, and customers who lapsed have not all left for good."
+    }
+  },
+  "solver": {
+    "CP1": {
+      "pass": true,
+      "prompt_hash": "197186486ff62b1d",
+      "key_hash": "2bc7e6431b77aec7",
+      "at": "2026-10-21T09:54:07.303Z"
+    },
+    "CP2": {
+      "pass": true,
+      "prompt_hash": "10311cdd964df850",
+      "key_hash": "87c9f45d392a91c2",
+      "at": "2026-10-21T09:54:07.303Z"
+    },
+    "CP4": {
+      "pass": true,
+      "prompt_hash": "665e2b203358b7fa",
+      "key_hash": "f20e1ddbad35c3e0",
+      "at": "2026-10-21T09:54:07.303Z"
+    },
+    "CP5": {
+      "pass": true,
+      "prompt_hash": "16285d00bd538440",
+      "key_hash": "b89e07751fd34e60",
+      "at": "2026-10-21T22:38:31.780Z"
+    }
+  }
+}

@@ -1,0 +1,140 @@
+{
+  "id": "EX-MOCK-SCREEN-C-03",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "mock",
+    "screen",
+    "fan_out",
+    "count_distinct",
+    "left_join",
+    "orders",
+    "order_lines"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-JOIN-03"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "mock",
+  "target_concept_id": "SQL-JOIN-03",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-SORT-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CASE-01",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-JOIN-03"
+  ],
+  "template_id": "T-MOCK-SCREEN-orders-with-a-flagged-line-per-store",
+  "template_params": {
+    "from": "2025-03-03",
+    "to": "2025-03-16",
+    "flag": "promo_id present"
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_join",
+  "prompt": "Marketing wants to see how often a basket held a promotion in the two weeks from 3 March 2025 to 16 March 2025. order_ts holds the time of an order in UTC: count the orders placed on those UTC days, both days included. An order is a promotion order when at least one of its order lines was sold with a promotion, that is, has a promo_id; an order with no lines still counts as an order, but not as a promotion order. For each store, the webshop WEB-01 included, return three columns, in this order: store_code; n_orders, the number of orders the store took in those two weeks; and promo_orders, the number of them that were promotion orders. Include every store, with 0 orders for a store that took none. Sort by store_code from A to Z.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "store_code",
+        "type_class": "text"
+      },
+      {
+        "name": "n_orders",
+        "type_class": "numeric"
+      },
+      {
+        "name": "promo_orders",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": true,
+    "sort_keys": [
+      {
+        "column": "store_code",
+        "desc": false
+      }
+    ],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "store_code",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "n_orders",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "promo_orders",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "store_code"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, choose the tables: every store, its orders of those two weeks, and the lines of those orders.",
+    "The lines repeat an order once per line, so count each order once, and keep the date condition where it cannot drop a store."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 160,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 161,
+      "to": 376,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 377,
+      "to": 398,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 399,
+      "to": 420,
+      "subgoal": "sort_limit"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "COUNT(DISTINCT order_id) counts each order once although its lines repeat it, and the LEFT JOINs keep stores with no orders and orders with no lines."
+}

@@ -1,0 +1,39 @@
+{
+  "item_id": "EX-SQL-WIN-01-E3-02",
+  "item_version": 1,
+  "reference_sql": "WITH campaign_spend AS (  -- one row per campaign with spend\n  SELECT c.campaign_id, c.channel_id, SUM(a.spend) AS spend\n  FROM ad_spend_daily a\n  JOIN campaigns c ON c.campaign_id = a.campaign_id\n  GROUP BY c.campaign_id, c.channel_id\n),\nwith_total AS (  -- one row per campaign with spend\n  SELECT campaign_id, channel_id, spend,\n         SUM(spend) OVER (PARTITION BY channel_id) AS channel_spend\n  FROM campaign_spend\n)\nSELECT campaign_id, channel_id, spend, channel_spend\nFROM with_total\nWHERE spend > 0.1 * channel_spend",
+  "alternatives": [
+    "WITH campaign_spend AS (  -- one row per campaign with spend\n  SELECT c.campaign_id, c.channel_id, SUM(a.spend) AS spend\n  FROM ad_spend_daily a\n  JOIN campaigns c ON c.campaign_id = a.campaign_id\n  GROUP BY c.campaign_id, c.channel_id\n),\nchannel_spend AS (  -- one row per channel with spend\n  SELECT channel_id, SUM(spend) AS total_spend\n  FROM campaign_spend\n  GROUP BY channel_id\n)\nSELECT cs.campaign_id, cs.channel_id, cs.spend, ch.total_spend AS channel_spend\nFROM campaign_spend cs\nJOIN channel_spend ch ON ch.channel_id = cs.channel_id\nWHERE cs.spend > 0.1 * ch.total_spend",
+    "SELECT t.campaign_id, t.channel_id, t.spend, t.channel_spend\nFROM (\n  -- one row per campaign with spend\n  SELECT c.campaign_id, c.channel_id, SUM(a.spend) AS spend,\n         SUM(SUM(a.spend)) OVER (PARTITION BY c.channel_id) AS channel_spend\n  FROM ad_spend_daily a\n  JOIN campaigns c ON c.campaign_id = a.campaign_id\n  GROUP BY c.campaign_id, c.channel_id\n) AS t\nWHERE t.spend > 0.1 * t.channel_spend"
+  ],
+  "other_way": {
+    "sql": "WITH campaign_spend AS (  -- one row per campaign with spend\n  SELECT c.campaign_id, c.channel_id, SUM(a.spend) AS spend\n  FROM ad_spend_daily a\n  JOIN campaigns c ON c.campaign_id = a.campaign_id\n  GROUP BY c.campaign_id, c.channel_id\n),\nchannel_spend AS (  -- one row per channel with spend\n  SELECT channel_id, SUM(spend) AS total_spend\n  FROM campaign_spend\n  GROUP BY channel_id\n)\nSELECT cs.campaign_id, cs.channel_id, cs.spend, ch.total_spend AS channel_spend\nFROM campaign_spend cs\nJOIN channel_spend ch ON ch.channel_id = cs.channel_id\nWHERE cs.spend > 0.1 * ch.total_spend",
+    "tradeoff": "A channel totals step joined back finds the same campaigns without a window, at the cost of a join."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-SYN-08",
+      "sql": "WITH campaign_spend AS (SELECT c.campaign_id, c.channel_id, SUM(a.spend) AS spend FROM ad_spend_daily a JOIN campaigns c ON c.campaign_id = a.campaign_id GROUP BY c.campaign_id, c.channel_id) SELECT campaign_id, channel_id, spend, SUM(spend) OVER (PARTITION BY channel_id) AS channel_spend FROM campaign_spend WHERE spend > 0.1 * SUM(spend) OVER (PARTITION BY channel_id)"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-37",
+      "sql": "WITH campaign_spend AS (SELECT c.campaign_id, c.channel_id, SUM(a.spend) AS spend FROM ad_spend_daily a JOIN campaigns c ON c.campaign_id = a.campaign_id GROUP BY c.campaign_id, c.channel_id), with_total AS (SELECT campaign_id, channel_id, spend, SUM(spend) OVER () AS channel_spend FROM campaign_spend) SELECT campaign_id, channel_id, spend, channel_spend FROM with_total WHERE spend > 0.1 * channel_spend"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-21",
+      "sql": "WITH campaign_spend AS (SELECT c.campaign_id, c.channel_id, SUM(a.spend) AS spend FROM ad_spend_daily a JOIN campaigns c ON c.campaign_id = a.campaign_id GROUP BY c.campaign_id, c.channel_id), with_total AS (SELECT campaign_id, channel_id, spend, SUM(spend) OVER (PARTITION BY channel_id) AS channel_spend FROM campaign_spend) SELECT campaign_id, channel_id, spend, channel_spend FROM with_total WHERE 100.0 * spend / channel_spend > 0.1"
+    }
+  ],
+  "hint3_partial": "WITH campaign_spend AS (  -- one row per campaign with spend\n  SELECT c.campaign_id, c.channel_id, SUM(a.spend) AS spend\n  FROM ad_spend_daily a\n  JOIN campaigns c ON c.campaign_id = a.campaign_id\n  GROUP BY c.campaign_id, c.channel_id\n),\nwith_total AS (  -- one row per campaign with spend\n  SELECT campaign_id, channel_id, spend,\n         SUM(spend) OVER (PARTITION BY channel_id) AS channel_spend\n  FROM campaign_spend\n)\nSELECT campaign_id, channel_id, spend, channel_spend\nFROM with_total\nWHERE ___",
+  "solver": {
+    "prompt_hash": "21f3ca7256d57d20",
+    "schema_version": "09f3a33d3123",
+    "dataset_version": "e7c58abf7e8f892e",
+    "grader_version": "7a.1",
+    "query": "WITH camp AS (\n  SELECT c.campaign_id, c.channel_id, SUM(a.spend) AS spend\n  FROM ad_spend_daily a\n  JOIN campaigns c ON c.campaign_id = a.campaign_id\n  GROUP BY c.campaign_id, c.channel_id\n),\nx AS (\n  SELECT campaign_id, channel_id, spend,\n         SUM(spend) OVER (PARTITION BY channel_id) AS channel_spend\n  FROM camp\n)\nSELECT campaign_id, channel_id, spend, channel_spend\nFROM x\nWHERE spend > 0.1 * channel_spend\n",
+    "at": "2026-10-21T09:05:05.998Z"
+  }
+}

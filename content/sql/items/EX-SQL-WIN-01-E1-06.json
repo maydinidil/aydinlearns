@@ -1,0 +1,114 @@
+{
+  "id": "EX-SQL-WIN-01-E1-06",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "window",
+    "partition_by",
+    "count",
+    "stores"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-WIN-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-AGG-01",
+    "SQL-WIN-01"
+  ],
+  "template_id": "T-WIN-01-row-beside-group-count",
+  "template_params": {
+    "table": "stores",
+    "partition": "country"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_win",
+  "prompt": "For every store, show how many stores its country has, the store itself included. The webshop, WEB-01, counts as a store in NL, and closed stores count too. Return three columns, in this order: store_code, country_code and country_stores. Return one row for each store. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "store_code",
+        "type_class": "text"
+      },
+      {
+        "name": "country_code",
+        "type_class": "text"
+      },
+      {
+        "name": "country_stores",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "store_code",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "country_code",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "country_stores",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "store_code"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the calculated column: the number of stores of the same country, on every store row.",
+    "Count rows, not values of a column that can be missing, in a window that restarts for each country."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 99,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 100,
+      "to": 111,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 90000,
+  "why_this_works": "COUNT(*) over a window for each country counts every store of that country, closed ones included, on each store row."
+}

@@ -1,0 +1,43 @@
+{
+  "case_id": "CASE-MOCK-B",
+  "truths": {
+    "CP2": "WITH firsts AS (\n  -- one row per visitor, with the visitor's earliest session\n  SELECT visitor_id, MIN(session_start) AS first_start\n  FROM sessions\n  GROUP BY visitor_id\n)\nSELECT COUNT(*)\nFROM firsts\nWHERE first_start >= TIMESTAMPTZ '2025-07-01 00:00:00+00'\n  AND first_start < TIMESTAMPTZ '2025-11-01 00:00:00+00'",
+    "CP4": "WITH numbered AS (\n  -- one row per session, with its channel name (paid sessions only) and its place among the visitor's sessions\n  SELECT s.session_start, ch.channel_name,\n         ROW_NUMBER() OVER (PARTITION BY s.visitor_id ORDER BY s.session_start, s.session_id) AS visit_no\n  FROM sessions AS s\n  LEFT JOIN campaigns AS c ON c.utm_campaign = s.utm_campaign\n  LEFT JOIN channels AS ch ON ch.channel_id = c.channel_id\n)\nSELECT ROUND(100.0 * COUNT(*) FILTER (WHERE visit_no = 1) / COUNT(*), 1)\nFROM numbered\nWHERE channel_name = 'youtube'\n  AND session_start >= TIMESTAMPTZ '2025-07-01 00:00:00+00'\n  AND session_start < TIMESTAMPTZ '2025-11-01 00:00:00+00'"
+  },
+  "choices": {
+    "CP1": {
+      "correct_oid": "of3e31ad",
+      "explanation": "A first visit is the visitor's earliest session ever, so every session of the visitor counts before the period is applied; numbering only July to October makes returning visitors look new, and signups or campaign tags do not decide it."
+    },
+    "CP5": {
+      "correct_oid": "od242225",
+      "explanation": "A new visitor_id is not proof of a new person or a signup, and the table cannot show how many brand search visitors would come anyway, so a test such as a regional pause comes before moving budget; counting first visits instead of their share does not show that either."
+    }
+  },
+  "solver": {
+    "CP1": {
+      "pass": true,
+      "prompt_hash": "198da84e0da29bda",
+      "key_hash": "1f0eef79d93f1595",
+      "at": "2026-10-22T13:33:47.604Z"
+    },
+    "CP2": {
+      "pass": true,
+      "prompt_hash": "8f03929b7f40c339",
+      "key_hash": "ee8d50fd1909e3e4",
+      "at": "2026-10-22T13:00:38.686Z"
+    },
+    "CP4": {
+      "pass": true,
+      "prompt_hash": "bdc62bf0d1117bc3",
+      "key_hash": "ea09f7e15c36d651",
+      "at": "2026-10-22T13:00:38.686Z"
+    },
+    "CP5": {
+      "pass": true,
+      "prompt_hash": "c3d7b37e2145ef4b",
+      "key_hash": "8252e6737f45fb45",
+      "at": "2026-10-22T13:33:47.604Z"
+    }
+  }
+}

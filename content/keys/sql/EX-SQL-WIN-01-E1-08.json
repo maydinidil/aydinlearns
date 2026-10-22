@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-WIN-01-E1-08",
+  "item_version": 1,
+  "reference_sql": "SELECT promo_id, product_id,\n       COUNT(*) OVER (PARTITION BY promo_id) AS promo_products\nFROM promotion_products",
+  "alternatives": [
+    "WITH promo_counts AS (  -- one row per promotion with products\n  SELECT promo_id, COUNT(*) AS n_products\n  FROM promotion_products\n  GROUP BY promo_id\n)\nSELECT pp.promo_id, pp.product_id, pc.n_products AS promo_products\nFROM promotion_products pp\nJOIN promo_counts pc ON pc.promo_id = pp.promo_id",
+    "SELECT pp.promo_id, pp.product_id,\n       (SELECT COUNT(*) FROM promotion_products pp2 WHERE pp2.promo_id = pp.promo_id) AS promo_products\nFROM promotion_products pp"
+  ],
+  "other_way": {
+    "sql": "WITH promo_counts AS (  -- one row per promotion with products\n  SELECT promo_id, COUNT(*) AS n_products\n  FROM promotion_products\n  GROUP BY promo_id\n)\nSELECT pp.promo_id, pp.product_id, pc.n_products AS promo_products\nFROM promotion_products pp\nJOIN promo_counts pc ON pc.promo_id = pp.promo_id",
+    "tradeoff": "A per-promotion count joined back is portable, but it reads the bridge table twice."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-37",
+      "sql": "SELECT promo_id, product_id, COUNT(*) OVER () AS promo_products FROM promotion_products"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-07",
+      "sql": "SELECT promo_id, product_id, COUNT(*) AS promo_products FROM promotion_products GROUP BY promo_id, product_id"
+    }
+  ],
+  "hint3_partial": "SELECT promo_id, product_id,\n       COUNT(*) OVER (PARTITION BY ___) AS promo_products\nFROM promotion_products",
+  "solver": {
+    "prompt_hash": "1f861f80f0737eb1",
+    "schema_version": "fe85d04d4c0e",
+    "dataset_version": "e7c58abf7e8f892e",
+    "grader_version": "7a.1",
+    "query": "SELECT promo_id, product_id,\n       COUNT(*) OVER (PARTITION BY promo_id) AS promo_products\nFROM promotion_products\n",
+    "at": "2026-10-21T09:05:05.106Z"
+  }
+}

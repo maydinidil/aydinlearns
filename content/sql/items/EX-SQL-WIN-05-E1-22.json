@@ -1,0 +1,146 @@
+{
+  "id": "EX-SQL-WIN-05-E1-22",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "moving_average",
+    "forward_window",
+    "budget_monthly",
+    "drill"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-05"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-WIN-05",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-TYPE-01",
+    "SQL-WIN-01",
+    "SQL-WIN-04",
+    "SQL-WIN-05"
+  ],
+  "template_id": "T-WIN-05-forward-average",
+  "template_params": {
+    "table": "budget_monthly",
+    "group": "channel",
+    "window": "3 months ahead"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "mailvora",
+  "schema": "mailvora",
+  "edge_schema": "mailvora_edge_win",
+  "prompt": "For each paid channel and each month of 2025 in budget_monthly, show the month's budget and the average budget of that month and the 2 months after it, rounded to 2 decimals. Within each channel, months follow each other by month. Only 2025's months count, so the last two months have fewer than 3 months to average: show how many months each average covers in months_in_window. Return channel_id, month, budget_eur, avg_budget_next_3m and months_in_window. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "channel_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "month",
+        "type_class": "temporal"
+      },
+      {
+        "name": "budget_eur",
+        "type_class": "numeric"
+      },
+      {
+        "name": "avg_budget_next_3m",
+        "type_class": "numeric"
+      },
+      {
+        "name": "months_in_window",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "channel_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "month",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "budget_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "avg_budget_next_3m",
+        "type_class": "numeric",
+        "precision": "money",
+        "require_rounding": 2
+      },
+      {
+        "name": "months_in_window",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "channel_id",
+      "month"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the average of the month and the 2 months after it, and the number of months it covers, within each channel.",
+    "The frame starts at the current row and reaches 2 rows forward; the count shows the short windows at the end of the year."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 293,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 294,
+      "to": 313,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 314,
+      "to": 373,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "A frame from the current row to 2 FOLLOWING looks ahead; November and December run out of months, and the count shows it."
+}

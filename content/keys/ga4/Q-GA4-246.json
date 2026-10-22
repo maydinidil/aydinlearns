@@ -1,0 +1,13 @@
+{
+  "item_id": "Q-GA4-246",
+  "item_version": 1,
+  "correct_oid": "ofcd2ea5",
+  "explanation": "Cross-domain measurement keeps one user and session across the configured domains, and links to a configured domain stop firing outbound click events, so the fall is expected and bookings are still measured. Enhanced measurement stays on, self-referrals from the cross-domain setup are ignored automatically, so no unwanted referral is needed, and data thresholds apply to demographic data and search query rows, not to click events.",
+  "solver": {
+    "prompt_hash": "c32fb8f55236c347",
+    "grader_version": "choice.3",
+    "chosen": "ofcd2ea5",
+    "typed": null,
+    "at": "2026-10-22T11:25:43.896Z"
+  }
+}

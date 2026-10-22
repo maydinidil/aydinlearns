@@ -1,0 +1,52 @@
+{
+  "id": "Q-GA4-255",
+  "version": 1,
+  "kind": "mcq",
+  "section": "ga4",
+  "concept_id": "GA4-ADMIN-20",
+  "parent_id": "GA4-METRICS-01",
+  "topic_id": "T-GA4-02",
+  "legacy_id": null,
+  "stem": "An analyst switched the property from Blended to Device-based to see one pseudonymous ID's events in User explorer. The marketing manager worries that the switch deleted the modeled data and changed what GA4 collects. What do you tell them?",
+  "options": [
+    {
+      "oid": "ob98e563",
+      "text": "The switch reprocessed the past data, so modeled users stay gone until GA4 collects them all again",
+      "misconception_id": null
+    },
+    {
+      "oid": "of7a6fa1",
+      "text": "Collection and processing are unchanged; the option only changes reports and can be switched back",
+      "misconception_id": null
+    },
+    {
+      "oid": "of8eaf37",
+      "text": "The switch stopped user IDs from being collected, so signed-in data is lost from that day on",
+      "misconception_id": null
+    },
+    {
+      "oid": "o57bcb32",
+      "text": "The switch is fixed for the month it was made in, so that month keeps the Device-based figures",
+      "misconception_id": null
+    }
+  ],
+  "typed": null,
+  "exam_relevance": "core",
+  "held_out": true,
+  "enemy_group": null,
+  "status": "active",
+  "verified": true,
+  "level": 1,
+  "tags": [
+    "ga4",
+    "T-GA4-02"
+  ],
+  "source_ids": [
+    "10:GA4-ADMIN-20",
+    "10:§1",
+    "ERRATA:E-205"
+  ],
+  "as_of": "2026-09-30",
+  "review_after": null,
+  "supersedes": []
+}

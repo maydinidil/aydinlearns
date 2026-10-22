@@ -1,0 +1,149 @@
+{
+  "id": "EX-SQL-WIN-04-E2-03",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "running_total",
+    "range_frame",
+    "sales",
+    "cte"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-04"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-WIN-04",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CTE-01",
+    "SQL-WIN-01",
+    "SQL-WIN-04"
+  ],
+  "template_id": "T-WIN-04-running-total-range",
+  "template_params": {
+    "table": "sales",
+    "stores": "NL-01, NL-02",
+    "ties": "together"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_win",
+  "prompt": "For stores NL-01 and NL-02, show each order from 10 to 16 February 2025 (UTC order dates, both days included) with its net revenue and the store's running revenue by day over that week: the revenue of all the store's orders on that day and the days before it in the week. Orders on the same day count together, so they show the same running revenue. Each store has its own total. Return store_code, order_id, order_date, revenue_eur and running_revenue_eur. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "store_code",
+        "type_class": "text"
+      },
+      {
+        "name": "order_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "order_date",
+        "type_class": "temporal"
+      },
+      {
+        "name": "revenue_eur",
+        "type_class": "numeric"
+      },
+      {
+        "name": "running_revenue_eur",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "store_code",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "order_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "order_date",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "revenue_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "running_revenue_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "order_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, total each order's revenue in a first step, then add a running total per store by day.",
+    "Orders of one day count together: the frame must take every row whose date is up to this one, counting values of the date, not rows."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 288,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 289,
+      "to": 342,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 343,
+      "to": 485,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 486,
+      "to": 500,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "RANGE in date order takes every order of the store up to this day, so two orders of one day share the day's running revenue."
+}

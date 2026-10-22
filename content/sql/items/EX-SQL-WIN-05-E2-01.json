@@ -1,0 +1,142 @@
+{
+  "id": "EX-SQL-WIN-05-E2-01",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "moving_average",
+    "date_spine",
+    "calendar",
+    "sales"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-05"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "lesson",
+  "target_concept_id": "SQL-WIN-05",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CASE-01",
+    "SQL-TYPE-01",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-WIN-01",
+    "SQL-WIN-04",
+    "SQL-WIN-05"
+  ],
+  "template_id": "T-WIN-05-moving-average-calendar",
+  "template_params": {
+    "table": "sales",
+    "store": "WEB-01",
+    "window": "7 days"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_win",
+  "prompt": "For the webshop (store_code WEB-01), show every UTC day from 1 to 31 March 2025 with its net revenue and its 7-day moving average: the average daily revenue of that day and the 6 days before it, rounded to 2 decimals. Every day of March has a row, and a day with no orders counts as 0 revenue. Only March's days count, so the first six days of March have fewer than 7 days to average: show their avg_revenue_7d as missing. Return order_date, revenue_eur and avg_revenue_7d. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "order_date",
+        "type_class": "temporal"
+      },
+      {
+        "name": "revenue_eur",
+        "type_class": "numeric"
+      },
+      {
+        "name": "avg_revenue_7d",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per day of March 2025"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "order_date",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "revenue_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "avg_revenue_7d",
+        "type_class": "numeric",
+        "precision": "money",
+        "require_rounding": 2
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "order_date"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the moving average of the daily revenue, kept only when its window holds 7 days.",
+    "Every day already has a row in the second step, so a frame of the day and the 6 rows before it covers 7 days; count the rows in the same frame."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 506,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 507,
+      "to": 538,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 539,
+      "to": 762,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 763,
+      "to": 772,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": {
+    "stage1": 541,
+    "stage2": 541
+  },
+  "faded_shape": "WITH daily AS (\n  -- one row per day with webshop orders\n  SELECT order_date, SUM(net_revenue_eur) AS revenue_eur\n  FROM sales\n  WHERE store_code = 'WEB-01'\n    AND order_date BETWEEN DATE '2025-03-01' AND DATE '2025-03-31'\n  GROUP BY order_date\n), days AS (\n  -- one row per day of March 2025\n  SELECT c.cal_date AS order_date, COALESCE(d.revenue_eur, 0) AS revenue_eur\n  FROM calendar c\n  LEFT JOIN daily d ON d.order_date = c.cal_date\n  WHERE c.cal_date BETWEEN DATE '2025-03-01' AND DATE '2025-03-31'\n)\nSELECT order_date, revenue_eur,\n  ",
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "The calendar gives every March day a row, so 7 rows are 7 days, and the count over the same frame leaves the first six days missing.",
+  "faded_suffix": "\nFROM days"
+}

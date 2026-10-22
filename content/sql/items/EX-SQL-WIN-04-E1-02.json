@@ -1,0 +1,141 @@
+{
+  "id": "EX-SQL-WIN-04-E1-02",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "running_total",
+    "ad_spend_daily",
+    "cte"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-04"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pretest",
+  "target_concept_id": "SQL-WIN-04",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-WIN-01",
+    "SQL-WIN-04"
+  ],
+  "template_id": "T-WIN-04-running-total",
+  "template_params": {
+    "table": "ad_spend_daily",
+    "group": "channel",
+    "period": "day"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "mailvora",
+  "schema": "mailvora",
+  "edge_schema": "mailvora_edge_win",
+  "prompt": "For each channel, show each UTC day from 1 July to 31 October 2025 on which it had ad spend, with that day's total spend and the channel's cumulative spend from 1 July up to and including that day. Each channel's total starts from its own first day; days with no spend are left out. Return channel_id, spend_date, spend_eur and cumulative_spend_eur. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "channel_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "spend_date",
+        "type_class": "temporal"
+      },
+      {
+        "name": "spend_eur",
+        "type_class": "numeric"
+      },
+      {
+        "name": "cumulative_spend_eur",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per channel and day with spend"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "channel_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "spend_date",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "spend_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "cumulative_spend_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "channel_id",
+      "spend_date"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, total each channel's spend per day in a first step, then add a running total over those days.",
+    "The running total needs one series per channel, in date order, and a frame from the first row to the current one."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 307,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 308,
+      "to": 349,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 350,
+      "to": 490,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 491,
+      "to": 501,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 150000,
+  "why_this_works": "Partitioned by channel and ordered by day, the ROWS frame adds each channel's days so far, starting again for every channel."
+}

@@ -1,0 +1,99 @@
+{
+  "id": "EX-SQL-WIN-03-E2-41",
+  "version": 1,
+  "kind": "choose_query",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "choose_query",
+    "lag",
+    "month_over_month",
+    "date_spine"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-03"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-WIN-03",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-DATE-01",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-WIN-01",
+    "SQL-WIN-03"
+  ],
+  "template_id": "T-WIN-03-choose-calendar-month",
+  "template_params": {
+    "table": "ad_spend_daily",
+    "spine": "budget_monthly"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "mailvora",
+  "schema": "mailvora",
+  "edge_schema": "mailvora_edge_win",
+  "prompt": "For each paid channel and each month of 2025, a report needs the channel's clicks and the change from the previous calendar month. Every channel with a budget row that month is shown, a month with no clicks counts as 0, and January's change is missing. Which query returns that, with the columns channel_id, month, clicks and change?",
+  "output_contract": null,
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [],
+  "subgoals": [],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 150000,
+  "why_this_works": "",
+  "options": [
+    {
+      "oid": "ofa63ad1",
+      "text": "WITH monthly AS (\n  -- one row per channel and month with spend\n  SELECT c.channel_id, CAST(date_trunc('month', a.spend_date) AS DATE) AS month, SUM(a.clicks) AS clicks\n  FROM ad_spend_daily a\n  JOIN campaigns c ON c.campaign_id = a.campaign_id\n  WHERE a.spend_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\n  GROUP BY c.channel_id, CAST(date_trunc('month', a.spend_date) AS DATE)\n)\nSELECT channel_id, month, clicks,\n  clicks - LAG(clicks) OVER (PARTITION BY channel_id ORDER BY month) AS change\nFROM monthly",
+      "misconception_id": "ERR-LOG-39"
+    },
+    {
+      "oid": "o326a8b3",
+      "text": "WITH monthly AS (\n  -- one row per channel and month with spend\n  SELECT c.channel_id, CAST(date_trunc('month', a.spend_date) AS DATE) AS month, SUM(a.clicks) AS clicks\n  FROM ad_spend_daily a\n  JOIN campaigns c ON c.campaign_id = a.campaign_id\n  WHERE a.spend_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\n  GROUP BY c.channel_id, CAST(date_trunc('month', a.spend_date) AS DATE)\n), grid AS (\n  -- one row per channel and month with a budget\n  SELECT b.channel_id, b.month, COALESCE(m.clicks, 0) AS clicks\n  FROM budget_monthly b\n  LEFT JOIN monthly m ON m.channel_id = b.channel_id AND m.month = b.month\n  WHERE b.month BETWEEN DATE '2025-01-01' AND DATE '2025-12-01'\n)\nSELECT channel_id, month, clicks,\n  clicks - LAG(clicks) OVER (ORDER BY channel_id, month) AS change\nFROM grid",
+      "misconception_id": "ERR-LOG-37"
+    },
+    {
+      "oid": "ob0de2a4",
+      "text": "WITH monthly AS (\n  -- one row per channel and month with spend\n  SELECT c.channel_id, CAST(date_trunc('month', a.spend_date) AS DATE) AS month, SUM(a.clicks) AS clicks\n  FROM ad_spend_daily a\n  JOIN campaigns c ON c.campaign_id = a.campaign_id\n  WHERE a.spend_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\n  GROUP BY c.channel_id, CAST(date_trunc('month', a.spend_date) AS DATE)\n), grid AS (\n  -- one row per channel and month with a budget\n  SELECT b.channel_id, b.month, COALESCE(m.clicks, 0) AS clicks\n  FROM budget_monthly b\n  LEFT JOIN monthly m ON m.channel_id = b.channel_id AND m.month = b.month\n  WHERE b.month BETWEEN DATE '2025-01-01' AND DATE '2025-12-01'\n)\nSELECT channel_id, month, clicks,\n  clicks - LAG(clicks) OVER (PARTITION BY channel_id ORDER BY month) AS change\nFROM grid",
+      "misconception_id": null
+    },
+    {
+      "oid": "oa6814c5",
+      "text": "WITH monthly AS (\n  -- one row per channel and month with spend\n  SELECT c.channel_id, CAST(date_trunc('month', a.spend_date) AS DATE) AS month, SUM(a.clicks) AS clicks\n  FROM ad_spend_daily a\n  JOIN campaigns c ON c.campaign_id = a.campaign_id\n  WHERE a.spend_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\n  GROUP BY c.channel_id, CAST(date_trunc('month', a.spend_date) AS DATE)\n), grid AS (\n  -- one row per channel and month with a budget\n  SELECT b.channel_id, b.month, COALESCE(m.clicks, 0) AS clicks\n  FROM budget_monthly b\n  LEFT JOIN monthly m ON m.channel_id = b.channel_id AND m.month = b.month\n  WHERE b.month BETWEEN DATE '2025-01-01' AND DATE '2025-12-01'\n)\nSELECT channel_id, month, clicks,\n  clicks - LAG(clicks) OVER (PARTITION BY channel_id ORDER BY clicks, month) AS change\nFROM grid",
+      "misconception_id": "ERR-LOG-41"
+    }
+  ]
+}

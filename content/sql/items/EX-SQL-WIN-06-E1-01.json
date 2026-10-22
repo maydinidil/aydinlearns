@@ -1,0 +1,144 @@
+{
+  "id": "EX-SQL-WIN-06-E1-01",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "window",
+    "row_number",
+    "latest_row",
+    "filter_window_result",
+    "orders"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-06"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pretest",
+  "target_concept_id": "SQL-WIN-06",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-CTE-01",
+    "SQL-WIN-01",
+    "SQL-WIN-02",
+    "SQL-WIN-06"
+  ],
+  "template_id": "T-WIN-06-latest-row-per-key",
+  "template_params": {
+    "table": "orders",
+    "key": "customer_id"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_win",
+  "prompt": "For each customer with customer_id from 3001 to 3100 (both included), find the latest order the customer placed from 1 January to 30 June 2025 (order_ts holds UTC time; both days included, in UTC). When two orders of a customer tie on order_ts, keep the one with the lower order_id. Return three columns, in this order: customer_id, order_id and order_ts. Return one row for each customer with an order in that period. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "customer_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "order_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "order_ts",
+        "type_class": "temporal"
+      }
+    ],
+    "grain": "one row per customer with an order in the period"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "customer_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "order_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "order_ts",
+        "type_class": "temporal",
+        "precision": "exact"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "customer_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, number each customer's orders from the latest in a first step, then keep the first one in a second step.",
+    "A window function cannot be tested in the WHERE of the query that works it out; name the number in a CTE and filter it in the outer query."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 84,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 85,
+      "to": 219,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 220,
+      "to": 233,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 234,
+      "to": 356,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 359,
+      "to": 397,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 398,
+      "to": 409,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 410,
+      "to": 422,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "ROW_NUMBER numbers each customer's orders from the latest, with order_id breaking a tie, and the outer WHERE keeps number 1."
+}

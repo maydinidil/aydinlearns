@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-WIN-07-E2-42",
+  "item_version": 1,
+  "correct_oid": "of930426",
+  "explanation": "With four values there is no single middle one, so the continuous percentile at 0.5 lies halfway between the two middle costs, 75.80 and 89.12: 82.46. Picking one of the two middle costs is what a discrete percentile does, and the average of all four, 84.2075, is pulled up by the most expensive product.",
+  "solver": {
+    "prompt_hash": "6d139d42e0160ead",
+    "grader_version": "choice.3",
+    "chosen": "of930426",
+    "typed": null,
+    "at": "2026-10-20T20:50:48.416Z"
+  }
+}

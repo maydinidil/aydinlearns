@@ -21,9 +21,19 @@ export interface TutorModel {
   readonly model: string;
   ask(input: TutorModelInput): AsyncGenerator<string, TutorDone, void>;
 }
-/** Why a call failed (spec §10). `cut_off`: the stream broke after text had arrived. */
-export type TutorFailureKind = 'key_refused' | 'busy' | 'offline' | 'cut_off' | 'refused_request';
+/**
+ * Why a call failed (spec §10). `cut_off`: the stream broke after the provider's first event (S7-32). `declined`: the provider refused
+ * on policy (S7-31), which the learner reads as the model declining.
+ */
+export type TutorFailureKind = 'key_refused' | 'busy' | 'offline' | 'cut_off' | 'refused_request' | 'declined';
 export class TutorFailure extends Error {
   readonly kind: TutorFailureKind;
-  constructor(kind: TutorFailureKind, message: string) { super(message); this.kind = kind; this.name = 'TutorFailure'; }
+  /**
+   * S7-32: the input the provider reported before the call failed (Claude's message_start), output 0; null when it reported none. The
+   * route counts a cut reply from it.
+   */
+  readonly usage: TutorUsage | null;
+  constructor(kind: TutorFailureKind, message: string, usage: TutorUsage | null = null) {
+    super(message); this.kind = kind; this.usage = usage; this.name = 'TutorFailure';
+  }
 }

@@ -1,0 +1,143 @@
+{
+  "id": "EX-SQL-WIN-05-E1-04",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "moving_average",
+    "short_window_flag",
+    "fx_rates_monthly"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-05"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "lesson",
+  "target_concept_id": "SQL-WIN-05",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-TYPE-01",
+    "SQL-WIN-01",
+    "SQL-WIN-04",
+    "SQL-WIN-05"
+  ],
+  "template_id": "T-WIN-05-moving-average-flag",
+  "template_params": {
+    "table": "fx_rates_monthly",
+    "window": "3 months"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "mailvora",
+  "schema": "mailvora",
+  "edge_schema": "mailvora_edge_win",
+  "prompt": "fx_rates_monthly holds one USD rate per month. For each month of 2025, show the rate and its 3-month moving average: the average eur_per_unit of that month and the 2 months before it, rounded to 4 decimals. Months follow each other by month. Only 2025's months count, so the first two months have fewer than 3 months to average: show how many months each average covers in months_in_window. Return month, eur_per_unit, avg_rate_3m and months_in_window. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "month",
+        "type_class": "temporal"
+      },
+      {
+        "name": "eur_per_unit",
+        "type_class": "numeric"
+      },
+      {
+        "name": "avg_rate_3m",
+        "type_class": "numeric"
+      },
+      {
+        "name": "months_in_window",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per month"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "month",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "eur_per_unit",
+        "type_class": "numeric",
+        "precision": "ratio"
+      },
+      {
+        "name": "avg_rate_3m",
+        "type_class": "numeric",
+        "precision": "ratio",
+        "require_rounding": 4
+      },
+      {
+        "name": "months_in_window",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "month"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the two calculated columns: the 3-month average of the rate and the number of months it covers.",
+    "There is one series, in month order, so each window needs only an order and a frame of the current row and the 2 rows before it."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 27,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 28,
+      "to": 230,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 231,
+      "to": 252,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 253,
+      "to": 335,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": {
+    "stage1": 30,
+    "stage2": 30
+  },
+  "faded_shape": "SELECT month, eur_per_unit,\n  ",
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "The frame holds the month and up to 2 months before it; COUNT over the same frame shows that the first two months average fewer than 3.",
+  "faded_suffix": "\nFROM fx_rates_monthly\nWHERE currency = 'USD'\n  AND month BETWEEN DATE '2025-01-01' AND DATE '2025-12-01'"
+}

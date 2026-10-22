@@ -220,3 +220,81 @@ test('neither the checks nor the eval load the tutor\'s startup (which reads the
   assert.doesNotMatch(checks, /(?:from\s+|import\s*\(\s*)['"][^'"]*(?:startup|providers\/)/);
   assert.doesNotMatch(evalSource, /^import[^;]*startup\.ts/m, 'the eval imports startup.ts only inside the live run');
 });
+
+// ---- Sprint 7 K1 (S7-36): the eval's coverage ---------------------------------------------------------------------------------------
+import { numberLeak } from '../../tools/tutor-eval-checks.ts';
+
+test('K1: a typed (number) question: a reply that states the number gives the answer, in any usual way of writing it; one that only teaches does not', async () => {
+  const typed: EvalAnswer = { kind: 'number', value: 12.5, decimals: 1 };
+  for (const reply of ['The answer is 12.5.', 'That comes to 12.5% of visits.', 'So 12,5 percent.', 'You should get **12.5**.', 'It rounds to 12.54 here.']) {
+    assert.equal(await leaked(typed, reply, grades), true, reply);
+  }
+  for (const reply of ['Divide the buyers by the visitors, then multiply by 100.', 'Try 125 visitors and 10 buyers: what share is that?', 'About 12 or 13, but work it out.',
+    'It is a share, so the result stays between 0 and 100.']) {
+    assert.equal(await leaked(typed, reply, grades), false, reply);
+  }
+  const money: EvalAnswer = { kind: 'number', value: 1250, decimals: 0 };
+  for (const reply of ['The total is 1,250.', 'That is EUR 1.250,00 in total.', 'About 1250 euros.']) assert.equal(await leaked(money, reply, grades), true, reply);
+  assert.equal(await leaked(money, 'Add the 12 and the 50 first.', grades), false);
+  assert.equal(numberLeak('It is 7.', 7, 0), false, 'a single digit is too common in a teaching reply to count');
+  assert.equal(numberLeak('It is 7.5.', 7.5, 1), true, 'but a decimal one counts');
+  assert.equal(numberLeak('Nothing numeric here.', 12.5, 1), false);
+});
+
+test('K1: a typed question is scored with its own reason and no walk-through check; the offline recheck picks it up', async () => {
+  const typed = { answer: { kind: 'number', value: 12.5, decimals: 1 } as EvalAnswer, words: ['visitors'] };
+  assert.deepEqual(await reasonsFor(typed, 'Divide the buyers by the visitors.', grades), []);
+  assert.deepEqual(await reasonsFor(typed, 'The answer is 12.5.', grades), [GAVE_ANSWER, OFF_SCREEN]);
+  assert.equal(await rescore(typed, { verdict: 'PASS', reply: 'It is 12.5 of the visitors.' }, grades), `FAIL (${GAVE_ANSWER})`);
+  assert.equal(await rescore(typed, { verdict: `FAIL (${GAVE_ANSWER})`, reply: 'Use the visitors as the base.' }, grades), 'PASS');
+});
+
+test('K1: a case checkpoint is an option question like any other: its leaks and its walk-through are scored the same way', async () => {
+  const checkpoint = { answer: { kind: 'option', options: OPTIONS, position: RIGHT } as EvalAnswer, words: ['session'] };
+  assert.deepEqual(await reasonsFor(checkpoint, 'Go with option 3.', grades), [GAVE_ANSWER, OFF_SCREEN]);
+  assert.deepEqual(await reasonsFor(checkpoint, SONNET_SHAPE, grades), [WALKED]);
+  assert.deepEqual(await reasonsFor(checkpoint, 'Which option counts a session started on a phone?', grades), []);
+});
+
+test('K1: SQL handed over in pieces is graded joined: blocks, inline spans, or both, in the order they come; pieces that do not make the query are not a leak', async () => {
+  for (const reply of [
+    'First:\n\n```sql\nSELECT region, SUM(amount) AS revenue\n```\n\nThen:\n\n```sql\nFROM sales\n```\n\nLast:\n\n```sql\nGROUP BY region\n```',
+    'Write `SELECT region, SUM(amount) AS revenue`, then `FROM sales`, and finally `GROUP BY region`.',
+    'Start with\n\n```sql\nSELECT region, SUM(amount) AS revenue\nFROM sales\n```\n\nand end with `GROUP BY region`.',
+    'Tables: `sales`. Pieces: `SELECT region, SUM(amount) AS revenue` `FROM sales` `GROUP BY region`.',
+  ]) assert.equal(await leaked(SQL, reply, grades), true, reply);
+  for (const reply of [
+    'Start with `SELECT region FROM sales` and think about `GROUP BY region`.',
+    'The clauses are `FROM sales` and `GROUP BY region`; the projection is up to you.',
+  ]) assert.equal(await leaked(SQL, reply, grades), false, reply);
+  const spans = sqlCandidates(Array.from({ length: 60 }, (_, i) => `\`col${i}\``).join(' '));
+  assert.ok(spans.length < 600, `many pieces do not make a runaway number of candidates (${spans.length})`);
+});
+
+test('K1: the walk-through check passes a statement that only lists the options to compare, and catches a description written as a question or with no place words', () => {
+  // Passes: three options named only as what to compare, with nothing said about any of them.
+  for (const reply of [
+    'Compare the first, second and fourth options with the stem.',
+    'Compare options 1, 2 and 4 with the stem. Which one counts each person once a day?',
+    'Read the first, second and fourth options again, then check each against the stem.',
+  ]) {
+    assert.equal(walks(reply), false, reply);
+    assert.equal(leaks(reply), false, `no leak: ${reply}`);
+  }
+  // Caught: each option described in a question of its own.
+  for (const reply of [
+    'Does the first option count page views? Does the second option count sessions? Does the fourth option count events?',
+    'Is option 1 about page views? Is option 2 about sessions on a phone? Is option 4 about events that carry no user ID?',
+  ]) assert.equal(walks(reply), true, reply);
+  // Caught: each option described by what it says, with no place word at all.
+  for (const reply of [
+    'One counts every page view twice. Another counts sessions started on a phone. A third counts events that carry no user ID.',
+    'The page view one repeats itself. The phone one is about sessions started. The events one is about those that carry no ID.',
+  ]) assert.equal(walks(reply), true, reply);
+  // Still not a walk: two options described, a question that names several places at once, a reply that talks about one idea.
+  for (const reply of [
+    'The first option counts page views. Does the second option count sessions started on a phone?',
+    'Which of options 1, 2 and 4 counts sessions?',
+    'Think about counting every page view twice: is that what a user is?',
+  ]) assert.equal(walks(reply), false, reply);
+});

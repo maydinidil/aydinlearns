@@ -1,0 +1,162 @@
+{
+  "id": "EX-SQL-WIN-03-E2-04",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "lag",
+    "month_over_month",
+    "date_spine",
+    "ad_spend_daily",
+    "budget_monthly"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-03"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-WIN-03",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-DATE-01",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-WIN-01",
+    "SQL-WIN-03"
+  ],
+  "template_id": "T-WIN-03-lag-calendar-month",
+  "template_params": {
+    "table": "ad_spend_daily",
+    "spine": "budget_monthly",
+    "period": "month"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "mailvora",
+  "schema": "mailvora",
+  "edge_schema": "mailvora_edge_win",
+  "prompt": "For each paid channel and each month from July to October 2025, show the channel's total ad spend that month and the change from the previous calendar month. Show every channel that has a budget row for the month, even in a month it spent nothing: a month with no spend counts as 0. Return channel_id, month (the first day of the month), spend_eur and change_eur, this month's spend minus the previous calendar month's. July's previous month is outside the range, so July shows change_eur as missing. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "channel_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "month",
+        "type_class": "temporal"
+      },
+      {
+        "name": "spend_eur",
+        "type_class": "numeric"
+      },
+      {
+        "name": "change_eur",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "channel_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "month",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "spend_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "change_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "channel_id",
+      "month"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, build one row for every channel and month with a budget, with the month's spend or 0, before any window.",
+    "A month with no spend has no row in the spend data, so the row before October could be August; give every budget month a row first, then compare with the row before."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 450,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 451,
+      "to": 520,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 521,
+      "to": 619,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 620,
+      "to": 685,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 686,
+      "to": 722,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 723,
+      "to": 811,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 812,
+      "to": 821,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "Every budget month gets a row, with 0 where nothing was spent, so the row before each month is the calendar month before."
+}

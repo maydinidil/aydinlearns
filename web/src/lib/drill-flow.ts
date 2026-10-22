@@ -8,6 +8,17 @@ export type { CumulativeFillView, CumulativeOffer, DrillQuestionOutcome, DrillSc
 export { CUMULATIVE_NAME };
 
 export const HELP_LINE = 'Help opens in the end-of-run review.';
+/** S7-35, S2-44: the review's help line. Help opens on the closed instances, and replay ignores it after the close. */
+export const REVIEW_HELP_LINE = 'The run is over, so hints and answers here are free.';
+/**
+ * The exercise panel's help note. In the drill review (`reviewOnly`) help is free (S2-44), and the screen's header says so once
+ * (s3b:L35, S7-35), so the panel adds none; everywhere else help lowers the item's rating (design §4).
+ */
+export const panelHelpNote = (reviewOnly: boolean): string | null => (reviewOnly ? null : 'Help is always here. Using it lowers this item\'s rating.');
+/** The "Show answer" confirmation: free in the drill review (S2-44), a rating cost everywhere else. */
+export const showAnswerQuestion = (reviewOnly: boolean): string => (reviewOnly
+  ? 'Show the answer? The run is over, so it is free.'
+  : 'Show the answer? Using it lowers this item\'s rating. You can still try the item yourself.');
 export const TIME_UP = 'Time is up.';
 /** D50 (sprint 4c): the history's last column, where a live rep's row has its "explained aloud" box. */
 export const EXPLAINED_COLUMN = 'Explained aloud';
@@ -161,6 +172,8 @@ export function runFromRefusal(e: unknown): DrillStarted | null {
   const run = (e.body as { run?: DrillStarted } | undefined)?.run;
   // A GA4 run also answers 409 to an SQL start (B2 concern): it is resumed on the GA4 run screen, never as an SQL drill (ga4RunFromRefusal).
   if ((run as { section?: string } | undefined)?.section === 'ga4') return null;
+  // A mock run also answers 409 to a drill start (F2, FN3): it is resumed on the mock screen, never as an SQL drill.
+  if ((run as { kind?: string } | undefined)?.kind === 'mock') return null;
   return run && Array.isArray(run.servings) && typeof run.ends_at === 'string' ? run : null;
 }
 
@@ -178,6 +191,8 @@ export function reviewOutcomes(servings: { item_instance_id: string }[], items: 
 /** A question square's name: its number, then its outcome in words when the review knows it. */
 export const questionLabel = (index: number, outcome: Outcome | null): string => (outcome ? `Question ${index + 1}: ${OUTCOME_WORDS[outcome]}` : `Question ${index + 1}`);
 export const outcomeClass = (outcome: Outcome | null): string => (outcome ? OUTCOME_CLASS[outcome] : '');
+/** S7-35, S4-12: a question reads passed from the run's outcomes (which survive a reload), or from a pass seen on this screen. */
+export const passedInReview = (outcome: Outcome | null, passedHere: boolean): boolean => outcome === 'passed' || passedHere;
 /** A question never answered has nothing to edit: the review says so instead of opening an empty editor. */
 export const showsEditor = (outcome: Outcome | null): boolean => outcome !== 'not_answered';
 

@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-WIN-03-E2-05",
+  "item_version": 1,
+  "reference_sql": "SELECT product_id, valid_from,\n  LEAD(valid_from) OVER (PARTITION BY product_id ORDER BY valid_from) - valid_from AS days_to_next\nFROM price_history\nWHERE product_id BETWEEN 1 AND 25",
+  "alternatives": [
+    "SELECT p.product_id, p.valid_from,\n  (SELECT MIN(p2.valid_from) FROM price_history p2 WHERE p2.product_id = p.product_id AND p2.valid_from > p.valid_from) - p.valid_from AS days_to_next\nFROM price_history p\nWHERE p.product_id BETWEEN 1 AND 25",
+    "SELECT product_id, valid_from,\n  LAG(valid_from) OVER (PARTITION BY product_id ORDER BY valid_from DESC) - valid_from AS days_to_next\nFROM price_history\nWHERE product_id BETWEEN 1 AND 25"
+  ],
+  "other_way": {
+    "sql": "SELECT p.product_id, p.valid_from,\n  (SELECT MIN(p2.valid_from) FROM price_history p2 WHERE p2.product_id = p.product_id AND p2.valid_from > p.valid_from) - p.valid_from AS days_to_next\nFROM price_history p\nWHERE p.product_id BETWEEN 1 AND 25",
+    "tradeoff": "The earliest later valid_from from a subquery gives the same next date, but rereads the table for each version."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-37",
+      "sql": "SELECT product_id, valid_from, LEAD(valid_from) OVER (ORDER BY product_id, valid_from) - valid_from AS days_to_next FROM price_history WHERE product_id BETWEEN 1 AND 25"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-18",
+      "sql": "SELECT product_id, valid_from, LEAD(valid_from) OVER (PARTITION BY product_id ORDER BY valid_from DESC) - valid_from AS days_to_next FROM price_history WHERE product_id BETWEEN 1 AND 25"
+    }
+  ],
+  "hint3_partial": "SELECT product_id, valid_from,\n  LEAD(valid_from) OVER (PARTITION BY ___ ORDER BY valid_from) - valid_from AS days_to_next\nFROM price_history\nWHERE product_id BETWEEN 1 AND 25",
+  "solver": {
+    "prompt_hash": "b2ebd87ce9e94525",
+    "schema_version": "e8cea7c4eacc",
+    "dataset_version": "e7c58abf7e8f892e",
+    "grader_version": "7a.1",
+    "query": "SELECT product_id, valid_from,\n  LEAD(valid_from) OVER (PARTITION BY product_id ORDER BY valid_from) - valid_from AS days_to_next\nFROM price_history\nWHERE product_id BETWEEN 1 AND 25\n",
+    "at": "2026-10-21T09:05:07.477Z"
+  }
+}

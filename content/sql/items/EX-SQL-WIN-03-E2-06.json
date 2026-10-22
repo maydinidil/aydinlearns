@@ -1,0 +1,159 @@
+{
+  "id": "EX-SQL-WIN-03-E2-06",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "lag",
+    "ad_spend_daily",
+    "filter_window_result",
+    "cte"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-03"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-WIN-03",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-DATE-01",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-WIN-01",
+    "SQL-WIN-03"
+  ],
+  "template_id": "T-WIN-03-filter-lag",
+  "template_params": {
+    "table": "ad_spend_daily",
+    "group": "channel",
+    "order": "month"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "mailvora",
+  "schema": "mailvora",
+  "edge_schema": "mailvora_edge_win",
+  "prompt": "In which months of 2025 did a channel spend less on ads than in its previous month with spend? Only months with spend count, and the previous month with spend can be more than one month back; a channel's first month with spend in 2025 has nothing to compare with and is never listed. Return channel_id, month (the first day of the month), spend_eur and prev_spend_eur for those months only. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "channel_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "month",
+        "type_class": "temporal"
+      },
+      {
+        "name": "spend_eur",
+        "type_class": "numeric"
+      },
+      {
+        "name": "prev_spend_eur",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "channel_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "month",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "spend_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "prev_spend_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "channel_id",
+      "month"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, put the previous month's spend on each row in a step of its own, then keep the rows where spend fell.",
+    "WHERE runs before any window, so it cannot test LAG directly; filter the column the step made in the outer query."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 449,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 450,
+      "to": 488,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 489,
+      "to": 571,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 572,
+      "to": 588,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 589,
+      "to": 640,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 641,
+      "to": 652,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 653,
+      "to": 685,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "The step puts the previous month's spend on each row; the outer WHERE can then compare the two, which a WHERE beside the window cannot."
+}

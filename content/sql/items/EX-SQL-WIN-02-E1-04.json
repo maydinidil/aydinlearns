@@ -1,0 +1,155 @@
+{
+  "id": "EX-SQL-WIN-02-E1-04",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "ranking",
+    "rank",
+    "partition_by",
+    "ad_spend_daily",
+    "campaigns"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "lesson",
+  "target_concept_id": "SQL-WIN-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-WIN-01",
+    "SQL-WIN-02"
+  ],
+  "template_id": "T-WIN-02-rank-within-group",
+  "template_params": {
+    "table": "ad_spend_daily",
+    "step": "campaign",
+    "partition": "channel",
+    "fn": "RANK",
+    "order": "clicks, most first"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "mailvora",
+  "schema": "mailvora",
+  "edge_schema": "mailvora_edge_win",
+  "prompt": "Rank the campaigns of each channel by their total clicks, the most clicks first. Count all the rows of ad_spend_daily. Campaigns that tie on clicks share a place, and the place after a tie is skipped. Return four columns, in this order: campaign_id, channel_id, clicks and clicks_rank. Return one row for each campaign with spend. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "campaign_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "channel_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "clicks",
+        "type_class": "numeric"
+      },
+      {
+        "name": "clicks_rank",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per campaign"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "campaign_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "channel_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "clicks",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "clicks_rank",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "campaign_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the calculated column clicks_rank: a ranking that restarts in each channel, the most clicks first.",
+    "Tied campaigns must share a place with a gap after them, so choose the ranking function that does both."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 61,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 62,
+      "to": 123,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 124,
+      "to": 199,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 200,
+      "to": 238,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 241,
+      "to": 361,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 362,
+      "to": 382,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": {
+    "stage1": 288,
+    "stage2": 288
+  },
+  "faded_shape": "WITH campaign_clicks AS (  -- one row per campaign with spend\n  SELECT c.campaign_id, c.channel_id, SUM(a.clicks) AS clicks\n  FROM ad_spend_daily a\n  JOIN campaigns c ON c.campaign_id = a.campaign_id\n  GROUP BY c.campaign_id, c.channel_id\n)\nSELECT campaign_id, channel_id, clicks,\n       ",
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "RANK over each channel's campaigns, the most clicks first, gives tied campaigns one place and skips the places they share.",
+  "faded_suffix": "\nFROM campaign_clicks"
+}

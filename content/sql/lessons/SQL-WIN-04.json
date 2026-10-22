@@ -1,0 +1,136 @@
+{
+  "concept_id": "SQL-WIN-04",
+  "version": 1,
+  "reading_md": "## Running totals and frames\n\nPut an ORDER BY inside OVER, and SUM stops giving the group's total: it adds up the rows from the start of the group to the current row. That is a running total:\n\n```sql\nSUM(revenue_eur) OVER (ORDER BY order_date ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)\n```\n\n### The frame says which rows count\n\nThe part after the ORDER BY is the **frame**: the rows the function reads for the current row.\n\n- `ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW`: from the first row of the group to this row, one row at a time.\n- `ROWS BETWEEN 1 PRECEDING AND CURRENT ROW`: this row and the one before.\n- `ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING`: the whole group.\n\nCOUNT, AVG, MIN and MAX take the same frames: `MAX(price) OVER (... ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)` is the highest price so far.\n\n### ROWS or RANGE: what happens to ties\n\nWith an ORDER BY and no frame, SQL uses `RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW`. RANGE counts values of the sort column, not rows, so rows that share the sort value are peers and get the same total: two orders on one day both show the day's full total.\n\nRead the question's tie rule and write the frame that fits it:\n\n- **one row at a time**: give the ORDER BY a tie-break the question names, such as `ORDER BY spend_date, campaign_id`, and use ROWS;\n- **rows on the same date count together**: use `RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW`, written out.\n\nAlways write the frame out, even when the default happens to fit: a reader then sees which rule you meant.\n\n### Start again for each group\n\nPARTITION BY makes the total start again. Month-to-date revenue is a running total partitioned by month:\n\n```sql\nSUM(revenue_eur) OVER (PARTITION BY order_month ORDER BY order_date\n                       ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)\n```\n\nLeave out PARTITION BY and the total runs on across every month or every store.\n\n### Order by what sets the sequence\n\nThe running total follows the ORDER BY inside OVER, not the order of the table or the ORDER BY at the end. Order by the date (or the rank the question names), not by an ID or the amount itself.\n\n### Cumulative share\n\nDivide the running total by the group's total, worked out with a second window over the whole group:\n\n```sql\n100.0 * SUM(x) OVER (PARTITION BY g ORDER BY x DESC, id ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)\n      / SUM(x) OVER (PARTITION BY g)\n```\n\nAggregate first when the question is per day or per month: one row per day, then the running total over those rows.",
+  "syntax_md": "```sql\nSELECT order_date, revenue_eur,                     -- metrics: one row per day stays\n  SUM(revenue_eur) OVER (\n    PARTITION BY order_month                         -- start again each month\n    ORDER BY order_date                              -- the sequence\n    ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW -- the frame: first row to this row\n  ) AS mtd_revenue_eur\nFROM daily;\n```\n\n- ROWS counts rows; RANGE counts values of the sort column, so tied rows share one total.\n- With an ORDER BY and no frame, the frame is `RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW`: write the frame out.\n- One row at a time: a tie-break in the ORDER BY and ROWS. Same date together: RANGE.",
+  "dialect_note": "Frames are standard SQL: ROWS BETWEEN ... AND ... and RANGE BETWEEN ... AND ... read the same in DuckDB and PostgreSQL. In both, a window with an ORDER BY and no frame uses RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW, which adds tied rows together. Write the frame out so the query means the same thing wherever it runs.",
+  "worked_examples": [
+    {
+      "title": "Month-to-date revenue for one store",
+      "prompt": "For store NL-02, each UTC day with orders from January to March 2025: the day's net revenue and the month-to-date revenue, which starts again each month.",
+      "clauses": [
+        {
+          "text": "WITH daily AS (\n  -- one row per day with orders",
+          "subgoal": "source_grain",
+          "why": "The running total adds up days, so the step makes one row per day first."
+        },
+        {
+          "text": "  SELECT order_month, order_date, SUM(net_revenue_eur) AS revenue_eur",
+          "subgoal": "metrics",
+          "why": "Each day's revenue, with its month kept for the partition."
+        },
+        {
+          "text": "  FROM sales",
+          "subgoal": "source_grain",
+          "why": "One row per order line."
+        },
+        {
+          "text": "  WHERE store_code = 'NL-02'\n    AND order_date BETWEEN DATE '2025-01-01' AND DATE '2025-03-31'",
+          "subgoal": "row_filter",
+          "why": "One store, three months."
+        },
+        {
+          "text": "  GROUP BY order_month, order_date\n)",
+          "subgoal": "output_grain",
+          "why": "One row per day with orders."
+        },
+        {
+          "text": "SELECT order_date, revenue_eur,",
+          "subgoal": "metrics",
+          "why": "Every day stays in the result."
+        },
+        {
+          "text": "  SUM(revenue_eur) OVER (PARTITION BY order_month ORDER BY order_date ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS mtd_revenue_eur",
+          "subgoal": "metrics",
+          "why": "The partition starts the total again each month, the ORDER BY sets the sequence, and the frame adds the days so far."
+        },
+        {
+          "text": "FROM daily",
+          "subgoal": "source_grain",
+          "why": "One row per day: no two rows share a date, so ROWS adds one day at a time."
+        }
+      ]
+    },
+    {
+      "title": "Same-day rows: one at a time or together",
+      "prompt": "For the brand_search channel, each campaign's spend row in August 2025 with the channel's running spend, adding the rows in order of spend_date, then campaign_id.",
+      "clauses": [
+        {
+          "text": "SELECT a.spend_date, a.campaign_id, a.spend,",
+          "subgoal": "metrics",
+          "why": "One row per campaign and day: several rows can share a date."
+        },
+        {
+          "text": "  SUM(a.spend) OVER (ORDER BY a.spend_date, a.campaign_id ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS running_spend",
+          "subgoal": "metrics",
+          "why": "campaign_id breaks the ties and ROWS adds one row at a time; with ORDER BY spend_date alone and no frame, rows of one day would all show the day's full total."
+        },
+        {
+          "text": "FROM ad_spend_daily a\nJOIN campaigns c ON c.campaign_id = a.campaign_id",
+          "subgoal": "source_grain",
+          "why": "The campaign gives the channel."
+        },
+        {
+          "text": "WHERE c.channel_id = 2\n  AND a.spend_date BETWEEN DATE '2025-08-01' AND DATE '2025-08-31'",
+          "subgoal": "row_filter",
+          "why": "One channel and one month, so no PARTITION BY is needed."
+        }
+      ]
+    }
+  ],
+  "pretest_item_ids": [
+    "EX-SQL-WIN-04-E1-01",
+    "EX-SQL-WIN-04-E1-02"
+  ],
+  "lesson_item_ids": [
+    "EX-SQL-WIN-04-E1-03",
+    "EX-SQL-WIN-04-E1-04",
+    "EX-SQL-WIN-04-E2-01",
+    "EX-SQL-WIN-04-E2-02"
+  ],
+  "retest_item_id": "EX-SQL-WIN-04-E1-05",
+  "pool_item_ids": [
+    "EX-SQL-WIN-04-E1-06",
+    "EX-SQL-WIN-04-E1-07",
+    "EX-SQL-WIN-04-E1-08",
+    "EX-SQL-WIN-04-E2-03",
+    "EX-SQL-WIN-04-E2-04",
+    "EX-SQL-WIN-04-E2-05",
+    "EX-SQL-WIN-04-E2-06",
+    "EX-SQL-WIN-04-E2-07",
+    "EX-SQL-WIN-04-E3-01",
+    "EX-SQL-WIN-04-E3-02",
+    "EX-SQL-WIN-04-E2-31",
+    "EX-SQL-WIN-04-E2-32",
+    "EX-SQL-WIN-04-E1-42",
+    "EX-SQL-WIN-04-E2-41",
+    "EX-SQL-WIN-04-E2-42"
+  ],
+  "source_ids": [
+    "01:SQL-WIN-04"
+  ],
+  "why_clause": {
+    "clause": "  SUM(a.spend) OVER (ORDER BY a.spend_date, a.campaign_id ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS running_spend",
+    "stem": "Why does this window end its ORDER BY with campaign_id and use ROWS?",
+    "options": [
+      {
+        "id": "a",
+        "text": "So rows of the same day are added one at a time in a fixed order, instead of all showing the day's full total."
+      },
+      {
+        "id": "b",
+        "text": "Because SUM over a window needs at least two sort columns."
+      },
+      {
+        "id": "c",
+        "text": "So the result comes out sorted by campaign_id."
+      },
+      {
+        "id": "d",
+        "text": "To give each campaign its own running total."
+      }
+    ],
+    "correct_id": "a",
+    "explanation": "Several campaigns can spend on one day. With ORDER BY spend_date alone and no frame, the RANGE default treats those rows as peers and gives them all the day's total. The tie-break fixes their order and ROWS adds them one by one. It does not sort the output or restart the total per campaign: that would take PARTITION BY campaign_id."
+  }
+}

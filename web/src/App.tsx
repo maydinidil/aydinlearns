@@ -19,14 +19,17 @@ import { LessonScreen } from './screens/LessonScreen.tsx';
 import { SetupScreen } from './screens/SetupScreen.tsx';
 import { TodayScreen } from './screens/TodayScreen.tsx';
 import { CaseScreen } from './screens/CaseScreen.tsx';
+import { CaseMockReviewScreen, CaseMockScreen } from './screens/CaseMockScreen.tsx';
 import { InboxScreen } from './screens/InboxScreen.tsx';
 import { PortfolioScreen } from './screens/PortfolioScreen.tsx';
 import { ProgressScreen } from './screens/ProgressScreen.tsx';
+import { MocksScreen } from './screens/MocksScreen.tsx';
+import { MockReviewScreen, MockScreen } from './screens/MockScreen.tsx';
 import { ExploreScreen } from './screens/ExploreScreen.tsx';
 import { AppShell } from './components/AppShell.tsx';
-import { caseIdFrom } from './lib/case-flow.ts';
+import { caseIdFrom, isCaseMockBlock, isCaseMockKind } from './lib/case-flow.ts';
 import { tabOf } from './lib/nav.ts';
-import { focusHeading, shouldFocusRoute } from './lib/focus-flow.ts';
+import { shouldFocusRoute, watchForHeading } from './lib/focus-flow.ts';
 import { choiceSectionOf } from './lib/choice-flow.ts';
 import { screenOf } from './lib/journey.ts';
 import { TutorProvider } from './tutor/TutorContext.tsx';
@@ -50,21 +53,15 @@ export function App() {
   // chosen model's provider, saved in Settings or read from .env).
   const [tutorOn, setTutorOn] = useState(false);
   useEffect(() => { api.status().then(setStatus, () => setNotice(NOT_RUNNING)); }, []);
-  // After a route change focus moves to the new screen's heading (Task A2). Not on the first load. A screen whose heading
-  // draws a moment later is tried again for a few frames.
+  // After a route change focus moves to the new screen's heading (Task A2). Not on the first load. A screen whose heading draws when
+  // its data arrives is watched for up to two seconds; a screen with no heading gets focus on main (S7-29).
   const shownHash = useRef<string | null>(null);
   useEffect(() => {
     if (!status) return;
     const prev = shownHash.current;
     shownHash.current = hash;
     if (!shouldFocusRoute(prev, hash)) return;
-    let tries = 0, frame = 0;
-    const attempt = () => {
-      if (focusHeading(document.querySelector<HTMLElement>('main h1, main h2')) || ++tries > 10) return;
-      frame = requestAnimationFrame(attempt);
-    };
-    attempt();
-    return () => cancelAnimationFrame(frame);
+    return watchForHeading(document);
   }, [hash, status]);
   // D77: each screen shown, for the study journey; once the status says the app is up and not in setup mode. Never shown on failure.
   const journeyOn = status !== null && !status.degraded;
@@ -129,6 +126,16 @@ export function App() {
   else if (parts[0] === 'portfolio') screen = <PortfolioScreen />;
   // Progress (sprint 4b, Task E1, D39): the fifth top-bar tab; it covers all three sections, so it takes no section colour.
   else if (parts[0] === 'progress') screen = <ProgressScreen />;
+  // Recruiter mocks (sprint 7, S7-18): the sixth tab; ?stage=N focuses a stage's card (a Progress board row links there). A mock's start
+  // screen and run at #/mock/<mock>; an ended run's review at #/mock/review/<block_id>.
+  else if (parts[0] === 'mocks') screen = <MocksScreen stage={Number(new URLSearchParams(query ?? '').get('stage')) || null} />;
+  // Sprint 7 Part 2 (Task N2, N3): a case-round's or take-home's start screen and run, and its review (screens/CaseMockScreen.tsx).
+  else if (parts[0] === 'mock' && parts[1] === 'review' && parts[2] && isCaseMockBlock(decodeURIComponent(parts[2]))) {
+    screen = <CaseMockReviewScreen key={parts[2]} blockId={decodeURIComponent(parts[2])} />;
+  }
+  else if (parts[0] === 'mock' && parts[1] === 'review' && parts[2]) screen = <MockReviewScreen key={parts[2]} blockId={decodeURIComponent(parts[2])} />;
+  else if (parts[0] === 'mock' && parts[1] && isCaseMockKind(parts[1])) screen = <CaseMockScreen key={parts[1]} mock={parts[1]} />;
+  else if (parts[0] === 'mock' && parts[1]) screen = <MockScreen key={parts[1]} mock={parts[1]} />;
   // The dataset explorer (Task E2, S4B-28): a free editor and the schema panel; an SQL screen reached by links, like the portfolio.
   else if (parts[0] === 'explore') screen = <ExploreScreen />;
   else if (parts[0] === 'item') {

@@ -1,29 +1,29 @@
 {
   "id": "Q-MET-SAAS-07-03",
-  "version": 1,
+  "version": 2,
   "kind": "mcq",
   "section": "methodology",
   "concept_id": "MET-SAAS-07",
-  "stem": "Voltmarkt's CFO asks about Business Care, Voltmarkt's device-support subscription for small offices: \"Of the subscription revenue we had from existing businesses a year ago, how much do we still keep, leaving any upgrades out?\" Which metric answers this question?",
+  "stem": "Voltmarkt's CFO asks about Business Care, Voltmarkt's device-support subscription for small offices: \"Of the subscription revenue we had from existing businesses a year ago, how much do we still keep, leaving any upgrades out?\" Which calculation answers this question?",
   "options": [
     {
       "oid": "o58234ea",
-      "text": "Logo churn rate",
+      "text": "100 × businesses lost in the month / businesses active at the start of the month",
       "misconception_id": null
     },
     {
       "oid": "occaa96d",
-      "text": "Monthly recurring revenue (MRR)",
+      "text": "The sum of the monthly fees of every active plan this month",
       "misconception_id": null
     },
     {
       "oid": "ocf47f04",
-      "text": "Net revenue retention (NRR)",
+      "text": "100 × cohort MRR now, upgrades included / MRR a year ago",
       "misconception_id": null
     },
     {
       "oid": "odc4fc91",
-      "text": "Gross revenue retention (GRR)",
+      "text": "100 × cohort MRR now, each business capped at its old MRR / MRR a year ago",
       "misconception_id": null
     }
   ],

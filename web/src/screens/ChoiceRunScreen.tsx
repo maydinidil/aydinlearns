@@ -13,6 +13,7 @@ import { Crumb } from '../components/PageHead.tsx';
 import { crumbParts } from '../lib/crumb.ts';
 import { createBusyGate } from '../lib/busy-gate.ts';
 import { EndGuard, endWithRetry, remainingSeconds } from '../lib/drill-flow.ts';
+import { mockHref, mockRunFromRefusal } from '../lib/mock-flow.ts';
 import {
   HELP_LINE, RUN_KINDS, TOPIC_COLUMNS, canMoveTo, endNowText, entryNote, endReasonLine, endRefusalNote, flagsAfter, ga4RunFromRefusal, hiddenFlags, isMock, kindLabel, listRows,
   modeRules, overConfirmed, reachedEnd, questionsShown, questionView, readinessNote, recallIndex, recallSet, rememberIndex, rememberSet, resumeIndex, recoveredLine, reviewNote, reviewRows,
@@ -140,7 +141,10 @@ export function ChoiceRunScreen({ block = null }: { block?: string | null }) {
     try { resume(await api.runStart(kind)); }
     catch (e) {
       const on = ga4RunFromRefusal(e);
-      if (on) resume(on);                   // a GA4 run is already on: pick it up instead of leaving it stranded
+      const mock = mockRunFromRefusal(e);
+      // F4-1-5 (S7-02): a recruiter mock is on (the knowledge mock among them): it is picked up on its own screen, as the drill screen does.
+      if (mock) { setMessage('A recruiter mock is on. Opening it.'); location.hash = mockHref(mock.mock); }
+      else if (on) resume(on);                   // a GA4 run is already on: pick it up instead of leaving it stranded
       else setMessage((e as Error).message);   // the server's reason: a pool not written yet, or an SQL drill already on
     } finally { setBusy(false); }
   }

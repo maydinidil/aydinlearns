@@ -1,0 +1,146 @@
+{
+  "id": "EX-SQL-WIN-03-E1-05",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "lag",
+    "competitor_prices"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-03"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "retest",
+  "target_concept_id": "SQL-WIN-03",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-WIN-01",
+    "SQL-WIN-03"
+  ],
+  "template_id": "T-WIN-03-lag-prev-value",
+  "template_params": {
+    "table": "competitor_prices",
+    "group": "product and competitor",
+    "order": "observed_ts"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_win",
+  "prompt": "For every competitor price check of products 1 to 20 (product_id from 1 to 20, both included) observed from 1 January to 30 June 2025 (observed_ts holds UTC time; both days included, in UTC), show the price the same competitor showed for the same product at its check before. Checks follow each other by observed_ts. Only checks in that period count, so the first check of a product and competitor in it shows prev_price_eur as missing. Return product_id, competitor, observed_ts, price_eur and prev_price_eur. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "competitor",
+        "type_class": "text"
+      },
+      {
+        "name": "observed_ts",
+        "type_class": "temporal"
+      },
+      {
+        "name": "price_eur",
+        "type_class": "numeric"
+      },
+      {
+        "name": "prev_price_eur",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "competitor",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "observed_ts",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "price_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "prev_price_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "product_id",
+      "competitor",
+      "observed_ts"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, add the column that reads price_eur from the check before, for the same product and competitor.",
+    "The group is a product and a competitor together; inside it, the checks go in time order."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 54,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 55,
+      "to": 153,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 154,
+      "to": 176,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 177,
+      "to": 315,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "Each product and competitor pair is its own series in time order, and the filter runs first, so the first check in the period has no previous price."
+}

@@ -1,29 +1,29 @@
 {
   "id": "Q-MET-PRICE-01-01",
-  "version": 1,
+  "version": 2,
   "kind": "mcq",
   "section": "methodology",
   "concept_id": "MET-PRICE-01",
-  "stem": "A Voltmarkt category manager asks: \"Are our soundbars priced above or below our two national rivals this week?\" Which metric answers this question?",
+  "stem": "A Voltmarkt category manager asks: \"Are our soundbars priced above or below our two national rivals this week?\" Which calculation answers this question?",
   "options": [
     {
       "oid": "o3f4bdb0",
-      "text": "Price index vs competitors",
+      "text": "100 × our shelf price / the rivals' average shelf price",
       "misconception_id": null
     },
     {
       "oid": "o5ae2aa0",
-      "text": "Average selling price (ASP)",
+      "text": "Our soundbar net revenue / soundbar units sold this week",
       "misconception_id": null
     },
     {
       "oid": "oce48b50",
-      "text": "Discount depth vs list price",
+      "text": "100 × (1 - net revenue / list value) for soundbars",
       "misconception_id": null
     },
     {
       "oid": "o6a545e8",
-      "text": "Promo uplift vs baseline",
+      "text": "100 × (deal-week units - baseline) / baseline",
       "misconception_id": null
     }
   ],

@@ -1,6 +1,6 @@
 {
   "name": "aydinlearns",
-  "version": "1.6.0",
+  "version": "0.7.1",
   "private": true,
   "type": "module",
   "engines": {
@@ -8,7 +8,7 @@
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p web/tsconfig.json --noEmit",
-    "test": "node --test \"tests/**/*.test.ts\"",
+    "test": "node --import ./tests/helpers/register-tsx.ts --test \"tests/**/*.test.ts\"",
     "test:e2e": "node tests/e2e/smoke.ts",
     "check:imports": "node tools/import-check.ts",
     "extract": "node tools/extract.ts",
@@ -66,6 +66,7 @@
   },
   "devDependencies": {
     "@marimo-team/codemirror-sql": "0.3.0",
+    "happy-dom": "20.14.5",
     "playwright": "1.63.0"
   }
 }

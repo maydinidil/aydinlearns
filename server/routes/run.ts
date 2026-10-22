@@ -14,6 +14,8 @@
 //   Nothing is served, started or logged; a run past its limit ends first, as for the history (S2-42).
 // A run ends at its limit (a server timer and the check on every request, S2-42), by the learner, or at a session end (S3-09); its
 // end closes every served item run_end and writes one rated block_close (routes/drill.ts's end, shared through DrillRuns).
+// Sprint 7 Part 2 (S7-11): every route here ignores a knowledge mock's blocks (server/run.ts knowledgeBlocks), and a half-mock or a full
+// mock never draws a knowledge-pool item (ga4ExamPool).
 import type { Context, Hono } from 'hono';
 import { HTTPException } from 'hono/http-exception';
 import { randomUUID } from 'node:crypto';
@@ -27,8 +29,8 @@ import { runFinishedOnce } from './drill.ts';
 import { coldAnswers, instanceFacts, type InstanceFact } from '../progress.ts';
 import { ga4Readiness } from '../readiness.ts';
 import {
-  answeredPositions, CHOICE_RUN_KINDS, choiceRuns, drawRun, examHistory, historyRow, isChoicePlan, isGa4Item, isMockKind, lastShowing, PHASE_OF, REVIEW_WAITS, reviewOf,
-  runView, seenWindow, type ChoiceRun, type ChoiceRunKind, type ChoiceRunPlan,
+  answeredPositions, CHOICE_RUN_KINDS, choiceRuns, drawRun, examHistory, ga4ExamPool, historyRow, isChoicePlan, isGa4Item, isMockKind, knowledgeInstances, lastShowing, PHASE_OF,
+  REVIEW_WAITS, reviewOf, runView, seenWindow, type ChoiceRun, type ChoiceRunKind, type ChoiceRunPlan,
 } from '../run.ts';
 import { seenIn } from '../session-composer.ts';
 import { LESSON_WINDOW_MS } from '../state.ts';
@@ -51,9 +53,10 @@ export function mountRun(app: Hono, d: RouteDeps, runs: DrillRuns): void {
   const askable = () => (d.content.choiceItems?.('ga4') ?? []).filter(isGa4Item).filter((i) => i.status === 'active' && d.content.choiceKey?.(i.id) !== undefined);
   /**
    * S3-02: a mini drill draws from the whole non-held-out bank; S3-06: a half-mock or a full mock only from the held-out pool, and
-   * (owner decision, design §8) only from core items. server/content.ts counts the same pool at load for the full mock's check.
+   * (owner decision, design §8) only from core items, never from the knowledge pool (S7-11): server/run.ts ga4ExamPool, which content
+   * check C46 counts too.
    */
-  const poolOf = (kind: ChoiceRunKind) => askable().filter((i) => (d.content.heldOut?.(i.id) ?? false) === isMockKind(kind) && (!isMockKind(kind) || i.exam_relevance === 'core'));
+  const poolOf = (kind: ChoiceRunKind) => (isMockKind(kind) ? ga4ExamPool(d.content) : askable().filter((i) => !(d.content.heldOut?.(i.id) ?? false)));
   const history = async (): Promise<ChoiceRun[]> => choiceRuns(await d.logger.readAll('attempts'),
     { cfg: config(), itemOf: (id) => d.content.choiceItem?.(id), events: await d.logger.readAll('events') });
   const section = (v: unknown): void => { if (v !== 'ga4') throw refuse(400, 'section must be ga4.'); };
@@ -162,7 +165,9 @@ export function mountRun(app: Hono, d: RouteDeps, runs: DrillRuns): void {
     const choiceRunList = choiceRuns(attempts, { cfg, itemOf: (id) => d.content.choiceItem?.(id), events });
     // A GA4 item's own topic, as a run's per-topic score reads it; any other item has none.
     const topicOf = (f: InstanceFact): string | null => { const i = d.content.choiceItem?.(f.item_id); return isGa4Item(i) ? i.topic_id : null; };
-    const facts = instanceFacts(d.state.current(), attempts, events, (id) => d.content.item(id)?.kind);
+    // S7-11: a knowledge mock's answers are no GA4 run's and no cold answer of the check, as its blocks are no run of choiceRuns.
+    const knowledge = knowledgeInstances(attempts);
+    const facts = instanceFacts(d.state.current(), attempts, events, (id) => d.content.item(id)?.kind).filter((f) => !knowledge.has(f.instance_id));
     const cold = coldAnswers(facts, attempts, (id) => d.state.catalog().cardOf(id), LESSON_WINDOW_MS, topicOf);
     const names = cfg.topic_names ?? {};
     return c.json(ga4Readiness(choiceRunList, cold, Object.keys(cfg.topic_weights).map((t) => ({ topic_id: t, title: names[t] ?? t }))));

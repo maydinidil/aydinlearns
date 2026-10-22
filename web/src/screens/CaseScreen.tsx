@@ -7,8 +7,11 @@
 // answer per serving, then its instance closes; answering again serves a new instance (S4B-07). Model texts and correct answers come
 // only in the replies to the learner's logged answers (S4B-10); the case view never carries them. CP1 and CP5 show the options of
 // their own serving, in the order the answer logs (D1 review M4). Reading the case serves and logs nothing.
+// The case-round and take-home mocks (sprint 7 Part 2) are web/src/screens/CaseMockScreen.tsx (split out in Task N3, L105); the brief and
+// "say it in 60 seconds" are the parts both screens share (components/CaseParts.tsx).
 import { useEffect, useRef, useState } from 'react';
-import { type Served } from '../api.ts';
+import type { Served } from '../api.ts';
+import { CaseBrief, SayAloud } from '../components/CaseParts.tsx';
 import { ConfidenceRow, type Confidence } from '../components/ConfidenceRow.tsx';
 import { ExercisePanel } from '../components/ExercisePanel.tsx';
 import { Markdown } from '../components/Markdown.tsx';
@@ -19,7 +22,7 @@ import { cp4HintFor } from '../lib/cp4-flow.ts';
 import { isClosedError } from '../lib/exercise.ts';
 import { formatDate } from '../lib/labels.ts';
 import {
-  INBOX_HREF, INBOX_TITLE, SAY_PROMPTS, SCORE_RULE, actualRowCount, allBlank, askedStep, caseSteps, checkpointLabel, choiceFeedback, countdown, dataSourceLine, fieldsFrom,
+  INBOX_HREF, INBOX_TITLE, SCORE_RULE, actualRowCount, allBlank, askedStep, caseSteps, checkpointLabel, choiceFeedback, fieldsFrom,
   heldBackNote, keepLines, kindLabel, lastLine, mainIsAnswer, modelAnswerOf, modelPlanOf, nextStep, rowCountLine, rubricGroups, scoreText, startStep, statusChip, stepName,
   stepState, typedFeedback, viewScore, type StepId, type StepState,
 } from '../lib/case-flow.ts';
@@ -82,7 +85,6 @@ export function CaseScreen({ caseId }: { caseId: string }) {
   const { passed, total } = viewScore(view);
   const chip = statusChip(view.status);
   const rowLine = rowCountLine(view.plan?.fields?.expected_row_count, actualRows);
-  const out = view.expected_output;
   function graded(g: Parameters<typeof actualRowCount>[0]): void {
     const n = actualRowCount(g);
     if (n !== null) setActualRows(n);
@@ -110,20 +112,7 @@ export function CaseScreen({ caseId }: { caseId: string }) {
         <span className={`chip ${chip.tone}`.trim()}>{chip.label}</span> <span>{scoreText(passed, total)}</span>
         {view.solved_at && <span className="muted"> · Solved {dateOf(view.solved_at)}</span>}
       </p>
-      <div className="card case-brief" role="group" aria-label="The manager's message">
-        <p className="muted">From {view.persona.name}, {view.persona.role}</p>
-        <p><strong>Decision:</strong> {view.brief.decision}</p>
-        <p><strong>Deadline:</strong> {view.brief.deadline}</p>
-        <p><strong>Tables:</strong> {view.data_needed === null ? <span className="muted">{heldBackNote(view)}</span>
-          : view.data_needed.map((t, i) => <span key={t}>{i > 0 && ', '}<code>{t}</code></span>)}</p>
-        {out.columns.length > 0 && (
-          <p><strong>Return:</strong> {out.columns.map((c, i) => <span key={c}>{i > 0 && ', '}<code>{c}</code></span>)}{out.sort.length > 0 && <>. Sorted by {out.sort.map((k, i) => (
-            <span key={k.column}>{i > 0 && ', then '}<code>{k.column}</code>{k.desc && ' (highest first)'}</span>
-          ))}.</>}</p>
-        )}
-        <p><strong>Grain:</strong> {out.grain ?? <span className="muted">{heldBackNote(view)}</span>}</p>
-        {view.data_source && <p className="muted">{dataSourceLine(view.data_source)}</p>}
-      </div>
+      <CaseBrief persona={view.persona} brief={view.brief} tables={view.data_needed} output={view.expected_output} dataSource={view.data_source} heldBack={heldBackNote(view)} />
       <nav className="steps" aria-label="Case steps">
         {steps.map((s) => {
           const state = stepState(s.id, view, local);
@@ -467,30 +456,11 @@ function InsightStep({ caseId, cp, view, onSaved }: { caseId: string; cp: CaseCh
 
 /** S4B-11: four prompts and a countdown the learner starts. Said aloud: nothing is recorded or logged. */
 function SayStep({ insight, onStarted }: { insight: string | null; onStarted: () => void }) {
-  const [startedAt, setStartedAt] = useState<number | null>(null);
-  const [now, setNow] = useState(() => Date.now());
-  const c = countdown(startedAt, now);
-  const ticking = startedAt !== null && c.state !== 'done';
-  useEffect(() => {
-    if (!ticking) return;
-    const t = setInterval(() => setNow(Date.now()), 250);
-    return () => clearInterval(t);
-  }, [ticking, startedAt]);
-  function start(): void {
-    const t = Date.now();
-    setNow(t);
-    setStartedAt(t);
-    onStarted();
-  }
   return (
     <section className="card case-step">
-      <h2 tabIndex={-1}>Say it in 60 seconds</h2>
-      <p className="muted">Say your answer aloud, as you would to the manager. Nothing is recorded.</p>
-      <ol className="say-prompts">{SAY_PROMPTS.map((p) => <li key={p.label}><strong>{p.label}.</strong> {p.text}</li>)}</ol>
-      {insight && <><p className="muted">Your insight, to start from:</p><blockquote className="prompt">{insight}</blockquote></>}
-      <p className="say-timer" role="timer" aria-label="Time left">{c.state === 'done' ? '0:00' : c.text}</p>
-      <p role="status">{c.state === 'done' ? c.text : ''}</p>
-      <p><button type="button" className={c.state === 'ready' ? 'btn-main' : undefined} onClick={start}>{c.state === 'ready' ? 'Start the 60 seconds' : 'Start again'}</button></p>
+      <SayAloud intro="Say your answer aloud, as you would to the manager. Nothing is recorded." onStarted={onStarted}>
+        {insight && <><p className="muted">Your insight, to start from:</p><blockquote className="prompt">{insight}</blockquote></>}
+      </SayAloud>
     </section>
   );
 }

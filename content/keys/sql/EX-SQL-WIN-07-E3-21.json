@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-WIN-07-E3-21",
+  "item_version": 1,
+  "reference_sql": "WITH user_paid AS (  -- one row per user with a payment in 2025 that was not refunded\n  SELECT s.user_id, SUM(p.amount_eur) AS paid_eur\n  FROM payments p\n  JOIN subscriptions s ON s.subscription_id = p.subscription_id\n  WHERE p.paid_at >= TIMESTAMPTZ '2025-01-01 00:00:00+00' AND p.paid_at < TIMESTAMPTZ '2026-01-01 00:00:00+00'\n    AND NOT p.refunded\n  GROUP BY s.user_id\n),\nquartiles AS (  -- one row per user, with its quartile\n  SELECT user_id, paid_eur,\n         NTILE(4) OVER (ORDER BY paid_eur DESC, user_id) AS quartile\n  FROM user_paid\n)\nSELECT quartile, COUNT(*) AS users,\n       ROUND(100.0 * SUM(paid_eur) / SUM(SUM(paid_eur)) OVER (), 1) AS paid_share_pct\nFROM quartiles\nGROUP BY quartile",
+  "alternatives": [
+    "WITH user_paid AS (  -- one row per user with a payment in 2025 that was not refunded\n  SELECT s.user_id, SUM(p.amount_eur) AS paid_eur\n  FROM payments p\n  JOIN subscriptions s ON s.subscription_id = p.subscription_id\n  WHERE p.paid_at >= TIMESTAMPTZ '2025-01-01 00:00:00+00' AND p.paid_at < TIMESTAMPTZ '2026-01-01 00:00:00+00'\n    AND NOT p.refunded\n  GROUP BY s.user_id\n)\nSELECT q.quartile, COUNT(*) AS users,\n       ROUND(100.0 * SUM(q.paid_eur) / (SELECT SUM(paid_eur) FROM user_paid), 1) AS paid_share_pct\nFROM (\n  -- one row per user, with its quartile\n  SELECT user_id, paid_eur,\n         NTILE(4) OVER (ORDER BY paid_eur DESC, user_id) AS quartile\n  FROM user_paid\n) AS q\nGROUP BY q.quartile",
+    "WITH user_paid AS (  -- one row per user with a payment in 2025 that was not refunded\n  SELECT s.user_id, SUM(p.amount_eur) AS paid_eur\n  FROM payments p\n  JOIN subscriptions s ON s.subscription_id = p.subscription_id\n  WHERE p.paid_at >= TIMESTAMPTZ '2025-01-01 00:00:00+00' AND p.paid_at < TIMESTAMPTZ '2026-01-01 00:00:00+00'\n    AND p.refunded = false\n  GROUP BY s.user_id\n),\nquartiles AS (  -- one row per user, with its quartile\n  SELECT user_id, paid_eur,\n         NTILE(4) OVER (ORDER BY paid_eur DESC, user_id) AS quartile\n  FROM user_paid\n),\ntotals AS (  -- one row: the total of all these users\n  SELECT SUM(paid_eur) AS all_paid FROM user_paid\n)\nSELECT qq.quartile, COUNT(*) AS users,\n       ROUND(100.0 * SUM(qq.paid_eur) / MAX(t.all_paid), 1) AS paid_share_pct\nFROM quartiles qq\nCROSS JOIN totals t\nGROUP BY qq.quartile"
+  ],
+  "other_way": {
+    "sql": "WITH user_paid AS (  -- one row per user with a payment in 2025 that was not refunded\n  SELECT s.user_id, SUM(p.amount_eur) AS paid_eur\n  FROM payments p\n  JOIN subscriptions s ON s.subscription_id = p.subscription_id\n  WHERE p.paid_at >= TIMESTAMPTZ '2025-01-01 00:00:00+00' AND p.paid_at < TIMESTAMPTZ '2026-01-01 00:00:00+00'\n    AND NOT p.refunded\n  GROUP BY s.user_id\n)\nSELECT q.quartile, COUNT(*) AS users,\n       ROUND(100.0 * SUM(q.paid_eur) / (SELECT SUM(paid_eur) FROM user_paid), 1) AS paid_share_pct\nFROM (\n  -- one row per user, with its quartile\n  SELECT user_id, paid_eur,\n         NTILE(4) OVER (ORDER BY paid_eur DESC, user_id) AS quartile\n  FROM user_paid\n) AS q\nGROUP BY q.quartile",
+    "tradeoff": "A scalar subquery for the total reads plainly, but the window over the grouped rows finds the total without reading the table again."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-18",
+      "sql": "WITH user_paid AS (SELECT s.user_id, SUM(p.amount_eur) AS paid_eur FROM payments p JOIN subscriptions s ON s.subscription_id = p.subscription_id WHERE p.paid_at >= TIMESTAMPTZ '2025-01-01 00:00:00+00' AND p.paid_at < TIMESTAMPTZ '2026-01-01 00:00:00+00' AND NOT p.refunded GROUP BY s.user_id), quartiles AS (SELECT user_id, paid_eur, NTILE(4) OVER (ORDER BY paid_eur, user_id) AS quartile FROM user_paid) SELECT quartile, COUNT(*) AS users, ROUND(100.0 * SUM(paid_eur) / SUM(SUM(paid_eur)) OVER (), 1) AS paid_share_pct FROM quartiles GROUP BY quartile"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-07",
+      "sql": "WITH quartiles AS (SELECT p.payment_id, p.amount_eur AS paid_eur, NTILE(4) OVER (ORDER BY p.amount_eur DESC, p.payment_id) AS quartile FROM payments p WHERE p.paid_at >= TIMESTAMPTZ '2025-01-01 00:00:00+00' AND p.paid_at < TIMESTAMPTZ '2026-01-01 00:00:00+00' AND NOT p.refunded) SELECT quartile, COUNT(*) AS users, ROUND(100.0 * SUM(paid_eur) / SUM(SUM(paid_eur)) OVER (), 1) AS paid_share_pct FROM quartiles GROUP BY quartile"
+    }
+  ],
+  "hint3_partial": "WITH user_paid AS (  -- one row per user with a payment in 2025 that was not refunded\n  SELECT s.user_id, SUM(p.amount_eur) AS paid_eur\n  FROM payments p\n  JOIN subscriptions s ON s.subscription_id = p.subscription_id\n  WHERE p.paid_at >= TIMESTAMPTZ '2025-01-01 00:00:00+00' AND p.paid_at < TIMESTAMPTZ '2026-01-01 00:00:00+00'\n    AND NOT p.refunded\n  GROUP BY s.user_id\n),\nquartiles AS (  -- one row per user, with its quartile\n  SELECT user_id, paid_eur,\n         NTILE(4) OVER (ORDER BY ___) AS quartile\n  FROM user_paid\n)\nSELECT quartile, COUNT(*) AS users,\n       ROUND(100.0 * SUM(paid_eur) / ___, 1) AS paid_share_pct\nFROM quartiles\nGROUP BY quartile",
+  "solver": {
+    "prompt_hash": "cf265c00059f3a78",
+    "schema_version": "8318987af50d",
+    "dataset_version": "e7c58abf7e8f892e",
+    "grader_version": "7a.1",
+    "query": "WITH tot AS (\n  SELECT s.user_id, SUM(p.amount_eur) AS total\n  FROM payments p\n  JOIN subscriptions s ON s.subscription_id = p.subscription_id\n  WHERE p.paid_at >= TIMESTAMPTZ '2025-01-01 00:00:00+00' AND p.paid_at < TIMESTAMPTZ '2026-01-01 00:00:00+00'\n    AND NOT p.refunded\n  GROUP BY s.user_id\n), g AS (\n  SELECT user_id, total,\n         NTILE(4) OVER (ORDER BY total DESC, user_id ASC) AS quartile\n  FROM tot\n)\nSELECT quartile, COUNT(*) AS users,\n       ROUND(100.0 * SUM(total) / SUM(SUM(total)) OVER (), 1) AS paid_share_pct\nFROM g\nGROUP BY quartile\n",
+    "at": "2026-10-21T09:05:11.446Z"
+  }
+}

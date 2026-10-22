@@ -1,0 +1,93 @@
+{
+  "id": "EX-SQL-WIN-04-E2-42",
+  "version": 1,
+  "kind": "choose_query",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "choose_query",
+    "tie_break",
+    "rows_frame",
+    "ad_spend_daily"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-04"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-WIN-04",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-JOIN-01",
+    "SQL-WIN-01",
+    "SQL-WIN-04"
+  ],
+  "template_id": "T-WIN-04-choose-tie-rule",
+  "template_params": {
+    "table": "ad_spend_daily",
+    "channel": "meta"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "mailvora",
+  "schema": "mailvora",
+  "edge_schema": "mailvora_edge_win",
+  "prompt": "For the meta channel (channel_id 3), a report needs each campaign's spend row from 15 to 25 August 2025 with the channel's running spend, adding the rows one at a time in order of spend_date and, on the same day, from the lowest campaign_id up. Which query returns that, with the columns spend_date, campaign_id, spend and running_spend_eur?",
+  "output_contract": null,
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [],
+  "subgoals": [],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 150000,
+  "why_this_works": "",
+  "options": [
+    {
+      "oid": "o32ed43b",
+      "text": "SELECT a.spend_date, a.campaign_id, a.spend,\n  SUM(a.spend) OVER (ORDER BY a.spend_date) AS running_spend_eur\nFROM ad_spend_daily a\nJOIN campaigns c ON c.campaign_id = a.campaign_id\nWHERE c.channel_id = 3\n  AND a.spend_date BETWEEN DATE '2025-08-15' AND DATE '2025-08-25'",
+      "misconception_id": "ERR-LOG-38"
+    },
+    {
+      "oid": "o0f1a309",
+      "text": "SELECT a.spend_date, a.campaign_id, a.spend,\n  SUM(a.spend) OVER (ORDER BY a.spend_date, a.campaign_id ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS running_spend_eur\nFROM ad_spend_daily a\nJOIN campaigns c ON c.campaign_id = a.campaign_id\nWHERE c.channel_id = 3\n  AND a.spend_date BETWEEN DATE '2025-08-15' AND DATE '2025-08-25'",
+      "misconception_id": null
+    },
+    {
+      "oid": "o3a7c84d",
+      "text": "SELECT a.spend_date, a.campaign_id, a.spend,\n  SUM(a.spend) OVER (ORDER BY a.campaign_id, a.spend_date ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS running_spend_eur\nFROM ad_spend_daily a\nJOIN campaigns c ON c.campaign_id = a.campaign_id\nWHERE c.channel_id = 3\n  AND a.spend_date BETWEEN DATE '2025-08-15' AND DATE '2025-08-25'",
+      "misconception_id": "ERR-LOG-41"
+    },
+    {
+      "oid": "o7e7e12d",
+      "text": "SELECT a.spend_date, a.campaign_id, a.spend,\n  SUM(a.spend) OVER (PARTITION BY a.campaign_id ORDER BY a.spend_date ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS running_spend_eur\nFROM ad_spend_daily a\nJOIN campaigns c ON c.campaign_id = a.campaign_id\nWHERE c.channel_id = 3\n  AND a.spend_date BETWEEN DATE '2025-08-15' AND DATE '2025-08-25'",
+      "misconception_id": "ERR-LOG-07"
+    }
+  ]
+}

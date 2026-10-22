@@ -1,0 +1,13 @@
+{
+  "item_id": "Q-GA4-263",
+  "item_version": 1,
+  "correct_oid": "o539a0b2",
+  "explanation": "Data past the retention period is deleted monthly. Increasing retention also covers data already collected that has not been deleted yet, but data that was deleted does not come back, so the past year is not restored. Standard aggregated reports are not affected by retention, and with 14 months set, explorations can reach back that far as data builds up.",
+  "solver": {
+    "prompt_hash": "b8bb06f274cadb42",
+    "grader_version": "choice.3",
+    "chosen": "o539a0b2",
+    "typed": null,
+    "at": "2026-10-22T11:25:43.912Z"
+  }
+}

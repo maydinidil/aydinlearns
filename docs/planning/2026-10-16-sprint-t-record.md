@@ -1,4 +1,4 @@
-# Sprint T record: the AI tutor (release 1.6)
+# Sprint T record: the AI tutor (release 0.6.2)
 
 Sprint T adds an opt-in AI tutor on every screen: it sees what the learner sees, teaches before a pass and explains
 after, and counts as help like hint 1 on an item not yet passed. It is off until a key is added in Settings or `.env`. The README's
@@ -9,12 +9,12 @@ after, and counts as help like hint 1 on an item not yet passed. It is off until
 | Spec | [`2026-10-16-aydinlearns-ai-tutor-design.md`](../superpowers/specs/2026-10-16-aydinlearns-ai-tutor-design.md) (D91 to D99, approved 2026-10-16) |
 | Plan | [`2026-10-16-aydinlearns-sprint-t.md`](../superpowers/plans/2026-10-16-aydinlearns-sprint-t.md) (T0 to T12, rulings T-01 to T-14; block P: P1 to P3, rulings T-20 to T-23) |
 | Branch | `feat/aydinlearns-sprint-t`, from main `d36a0c1` (PR #50's merge) |
-| Version | 1.6.0 |
+| Version | 0.6.2 |
 | Execution | Subagent-driven: one implementer per task, one review per task, one fix round for Critical and Important findings, then a seams review across tasks and a triage of every deferred minor |
 
 ## Owner decisions (2026-10-17)
 
-"merge and go", then "yes for 1.5 release as well":
+"merge and go", then "yes for 0.6.1 release as well":
 
 | Question | Choice |
 |---|---|
@@ -136,14 +136,14 @@ $0.10 per million tokens.
 | An on/off switch, and "No daily limit" | Both |
 | Where keys and models are chosen | In the app's Settings, without opening `.env` |
 | Effort | Chosen in Settings: medium by default for every model; low or high is saved |
-| Where it ships | On PR #51, in 1.6.0 |
+| Where it ships | On PR #51, in 0.6.2 |
 | The live eval | Haiku, Sonnet and GPT-6.1 Sol; after the pause, GPT-6 Luna too. Opus is offered but not tested |
 
 | Ruling | What it says | Why |
 |---|---|---|
 | T-20 | Keys saved in Settings are kept by the server in `tutor-keys.json` (git-ignored, never exported, written whole), one per provider, and win over `.env`; the browser learns only where a key came from; `AYDINLEARNS_KEYS_FILE` moves the file, and every test and smoke server sets it | The owner's answer: keys in Settings. A key never reaches the browser |
 | T-21 | Five models with price rows; effort low, medium (the default) or high, sent as Claude's `output_config.effort` and OpenAI's `reasoning.effort`; a reply limit of 4,096, 8,192 or 16,384 tokens | Thinking needs room for the answer |
-| T-22 | Settings `tutor_enabled`, `tutor_model`, `tutor_effort`; `tutor_daily_cap_usd` takes `"none"`; the effort is on the record, the journey and the metrics | Log format version 6 grows only by optional fields, and 1.6.0 is not released |
+| T-22 | Settings `tutor_enabled`, `tutor_model`, `tutor_effort`; `tutor_daily_cap_usd` takes `"none"`; the effort is on the record, the journey and the metrics | Log format version 6 grows only by optional fields, and 0.6.2 is not released |
 | T-23 | `.env` keeps only the two keys; `AYDINLEARNS_TUTOR_MODEL` is gone; `AYDINLEARNS_TUTOR_PROVIDER` is only the test hook `fake` | One place to choose |
 
 | Task | Commits | What happened |
@@ -211,7 +211,7 @@ price rows match the official figures; F34's guards agree with replay.
 
 ## The gate
 
-At `6679926` plus the 1.6.0 docs. The first gate run failed row tu-4: the panel listened for Escape on the whole window, so an Escape in the code editor (closing its suggestions) also closed the tutor. Fixed in `6679926`: Escape closes the panel only from inside it.
+At `6679926` plus the 0.6.2 docs. The first gate run failed row tu-4: the panel listened for Escape on the whole window, so an Escape in the code editor (closing its suggestions) also closed the tutor. Fixed in `6679926`: Escape closes the panel only from inside it.
 
 | Check | Result |
 |---|---|
@@ -221,7 +221,7 @@ At `6679926` plus the 1.6.0 docs. The first gate run failed row tu-4: the panel 
 | `npm run extract` | No change in `content/sql` |
 | `npm test` | 2,400 of 2,400 |
 | Pipeline tests | 248, OK |
-| `npm run check:content` | 18,716 of 18,716 (unchanged from 1.5.0; no content changed) |
+| `npm run check:content` | 18,716 of 18,716 (unchanged from 0.6.1; no content changed) |
 | `npm run build:web` | Built |
 | `npm run test:e2e` (port 5184) | 81 of 81 rows, 0 page errors, on two consecutive runs |
 
@@ -244,7 +244,7 @@ email.
 
 ## Slips
 
-- An 8 Week SQL Challenge scan during the 1.5 release matched answer-key files and printed five Voltmarkt reference
+- An 8 Week SQL Challenge scan during the 0.6.1 release matched answer-key files and printed five Voltmarkt reference
   queries (EX-SQL-SUBQ-02-E1-01, -E1-04, -E1-06, -E1-22, -E2-04) into the conversation; the owner was told. Key folders
   are searched with file-name-only output since.
 - `a97a90b` was committed while one route test failed (the chain checked the count line, not the exit code); `cef1798`
@@ -256,5 +256,12 @@ email.
 
 ## After the merge
 
-To fill in: the PR, Codex's findings, the merge, the public `v1.6.0` (export, scan, fresh install on 5194, tag), and
-the owner's checkout.
+| Step | Status |
+|---|---|
+| PR | #51, opened 2026-10-17 at `21a3a93`; block P, prompt version 4, F34 and the review fixes pushed on it (`6ca202c`) |
+| Codex | One P2 line comment on `21a3a93`: aydinlearns F34, confirmed and fixed on the branch before the merge. Codex reviews a PR when it opens, so the later commits had no Codex review; the `claude-review` check passed on `6ca202c` |
+| Merge | Done, `209d2fc` (PR #51, 2026-10-17, at the owner's word) |
+| The owner's checkout | `C:\zehirlab` fast-forwarded from `d36a0c1` to `209d2fc` with the app closed. The `aydinlearns/CLAUDE.md` trim was set aside and put back with the same cuts, its state line brought to 0.6.2 and PR #51; `nabiz/CLAUDE.md`'s trim and the untracked folders were left as they were. The launcher installs the two new packages and rebuilds the screens at the next start; the tutor stays off until a key is saved in Settings or found in `.env` |
+| Public copy | `tools/export-public.sh <clone> origin/main` exported `209d2fc` as `804b11d` (103 files changed). The scan found neither real key and only invented `sk-` strings, no token, no `.env`, `journey/`, `logs/`, `data/`, database, `tutor-keys.json` or `tutor-eval/` file, no email address, session link or personal path (`C:\Users` only with the tests' invented names), and no content change. One new file names the monorepo's folder (the plan's `cd` lines), as 19 already did. Pushed `8eafb70..804b11d` |
+| Fresh-install test | The public tree in a clean folder, started with the launcher (`node tools/launch.ts --no-browser`, `AYDINLEARNS_PORT=5194`, temporary logs and journey folders, telemetry off, both key variables unset). Setup ran end to end (packages, Python, the course database, the screens). Version 0.6.2 with 9 of 9 checks; the start line and the tutor's status said off ("Claude Haiku 5.5 needs a Claude key. Add one in Settings to turn the tutor on."), five models listed and none available, both keys unset, the budget $1; a question was refused with 404 `tutor_off`, so no outside call; Today answered for SQL, GA4 and Methodology; 10 labs; EX-SQL-BASICS-01-E1-01 graded a pass and was logged to the temporary folder. The journey held session_started, study_session_started, exercise_submitted, exercise_passed and concept_state_changed, and no `journey/`, `logs/` or `tutor-keys.json` appeared in the tree. The server was stopped, nothing listened on 5194, and the folder was deleted |
+| Tag and release | `v1.6.0` on `804b11d`, release "aydinlearns 0.6.2": what 0.6.2 adds, turning the tutor on, what is never written or sent, the cut-off reply's cost, the two new packages |

@@ -1,6 +1,6 @@
 // tests/web/polish-p2b.test.ts: sprint 5a, Task P2b. Small screen fixes on the SQL exercise, the dataset explorer, drills, Mistakes and
-// Portfolio (P1 findings 4, 5, 8, 10 to 15, 17, 18, 42, 43, 47). The screens run in the browser; what is checked here is the wording, the
-// pure helpers and the wiring they are built from.
+// Portfolio (P1 findings 4, 5, 8, 10 to 15, 17, 18, 42, 43, 47). What is checked here is the wording, the pure helpers and the style rules.
+// What the screens draw is in tests/web/render/ (S7-28).
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
@@ -14,26 +14,16 @@ import type { MistakeCardView } from '../../web/src/api.ts';
 const src = (p: string) => readFile(new URL(`../../web/src/${p}`, import.meta.url), 'utf8');
 const noDash = (s: string) => assert.ok(!/—/.test(s), `no em dash in "${s}"`);
 
-test('4: a level with no drill says so in plain words, and the screen shows no Start button for it', async () => {
+test('4: a level with no drill says so in plain words', () => {
   assert.equal(NO_DRILL_LINE, 'No drill for this level yet. It comes in a later version.');
   noDash(NO_DRILL_LINE);
-  const s = await src('screens/DrillScreen.tsx');
-  assert.match(s, /spec \? \([\s\S]*Start drill[\s\S]*\) : null/, 'the Start button sits inside the spec branch');
-  assert.ok(!/No drill is written/.test(s));
 });
 
 test('17: the level line reads "Level 1, Foundations: one table. 10 questions, 20 minutes, pass at 90%."', () => {
   assert.equal(levelLine({ level: 1, questions: 10, minutes: 20, pass_pct: 90 }, 'Foundations: one table'), 'Level 1, Foundations: one table. 10 questions, 20 minutes, pass at 90%.');
 });
 
-test('17: the choose screen has no main button and the concept list is a card', async () => {
-  const s = await src('screens/DrillScreen.tsx');
-  const choose = s.slice(s.indexOf('<h2>Level drills</h2>'));
-  assert.ok(!/btn-main/.test(choose), 'at most one main button, here none');
-  assert.match(choose, /<fieldset className="card drill-pick">/);
-});
-
-test('18: the history shows "8 October", a Drill column, and scrolls inside a card', async () => {
+test('18: the history shows "8 October" and a Drill column', () => {
   assert.deepEqual(HISTORY_COLUMNS.slice(0, 3), ['Date', 'Drill', 'Mode']);
   const rows = historyRows([
     { block_id: 'a', kind: 'level', level: 2, date: '2026-10-08', screen_mode: false, passed: 9, questions: 10, pct: 90, run_passed: true, unseen: 8, unseen_pct: 80, counts_for_level: true },
@@ -41,24 +31,13 @@ test('18: the history shows "8 October", a Drill column, and scrolls inside a ca
   ], '2026-10-09');
   assert.deepEqual(rows.map((r) => r.cells.slice(0, 3)), [['8 October', 'Level 2', 'Normal'], ['31 December 2025', 'Chosen concepts', 'Screen mode']]);
   assert.equal(drillKindText({ kind: 'live_rep', level: null }), 'Live rep');
-  const s = await src('screens/DrillScreen.tsx');
-  assert.match(s, /className="table-scroll card"/);
 });
 
-test('15: the running drill uses the crumb, the run bar and the numbered question strip', async () => {
-  const s = await src('screens/DrillScreen.tsx');
-  assert.match(s, /<Crumb section="sql"/);
-  assert.match(s, /className="card run-bar"/);
-  assert.match(s, /className="qstrip"/);
-  assert.match(s, /aria-label=\{questionLabel\(i, /, 'each square is named by questionLabel: "Question N" while running, with its outcome in the review (H3)');
-});
-
-test('14: the exercise screen has a crumb and a title', async () => {
+test('14: the exercise screen has a crumb and a title', () => {
   assert.equal(itemHead('free').title, 'Exercise');
   assert.equal(itemHead('retest').title, 'Re-test');
   assert.deepEqual(itemHead('free').crumb, ['SQL', 'Practice']);
   assert.deepEqual(itemHead('retest').crumb, ['SQL', 'Re-test']);
-  assert.match(await src('screens/ItemScreen.tsx'), /<PageHead /);
 });
 
 test('13: the checklist and the score line use plain words', () => {
@@ -73,14 +52,10 @@ test('13: the checklist has no bullets', async () => {
   assert.match(await src('styles/components.css'), /ul\.checklist \{[^}]*list-style: none/);
 });
 
-test('12: feedback shows inline code and counts in the right plural', async () => {
+test('12: feedback counts in the right plural', () => {
   assert.equal(feedbackText('The contract asks for 7 column(s) and 1 column(s).'), 'The contract asks for 7 columns and 1 column.');
   assert.equal(feedbackText('You have 0 row(s).'), 'You have 0 rows.');
   assert.equal(feedbackText('No count here (s).'), 'No count here (s).');
-  const g = await src('components/GradePanel.tsx');
-  assert.match(g, /inline\(feedbackText\(grade\.diagnosis\.feedback\.why\)\)/);
-  assert.match(g, /inline\(feedbackText\(grade\.diagnosis\.feedback\.assumed\)\)/);
-  assert.match(g, /inline\(feedbackText\(grade\.diagnosis\.feedback\.model\)\)/);
 });
 
 test('47: counts have a thousands separator', () => {
@@ -97,21 +72,13 @@ test('10 and 11: a long result scrolls in a box with a sticky header, and the Ta
   assert.match(css, /\.schema-panel \{[^}]*align-self: start/);
 });
 
-test('5: the explorer keeps the editor, Run and the result in one column beside the Tables card', async () => {
-  assert.match(await src('screens/ExploreScreen.tsx'), /explore-main[\s\S]*<ResultTable[\s\S]*<\/div>\s*<SchemaPanel/);
-});
-
-test('8: Portfolio wording has no build jargon, a capital M and a full stop after the Settings link', async () => {
+test('8: Portfolio wording has no build jargon', () => {
   assert.equal(FLAGSHIP_LINE, 'Flagship pieces use real data: open a real dataset in the explorer, run your query and choose "Save as a flagship draft".');
-  const s = await src('screens/PortfolioScreen.tsx');
-  assert.match(s, /as a Markdown page/);
-  assert.match(s, /\{folder\.link\}<\/a>\./);
 });
 
-test('42: the empty Mistakes page says one error is enough and links back to Today', async () => {
+test('42: the empty Mistakes page says one error is enough and links back to Today', () => {
   assert.equal(EMPTY_MISTAKES, 'No active mistake cards. A card appears when one of the common SQL errors shows up in your answers.');
   assert.deepEqual(TODAY_LINK, { href: '#/', text: 'Back to Today' });
-  assert.match(await src('screens/MistakesScreen.tsx'), /TODAY_LINK/);
 });
 
 test('43: the original attempt reads as a sentence, and the card head stacks on a narrow screen', async () => {

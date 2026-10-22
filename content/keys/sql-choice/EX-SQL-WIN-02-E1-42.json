@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-WIN-02-E1-42",
+  "item_version": 1,
+  "correct_oid": "o8271133",
+  "explanation": "RANK gives nonbrand_search and meta, tied on 48 campaigns, the same place, 1, and skips place 2, so youtube is third. DENSE_RANK would give youtube 2 with no gap, and ROW_NUMBER would number the two tied channels 1 and 2. DESC ranks the most campaigns first.",
+  "solver": {
+    "prompt_hash": "7edd9bca7d4dc784",
+    "grader_version": "choice.3",
+    "chosen": "o8271133",
+    "typed": null,
+    "at": "2026-10-20T20:50:48.330Z"
+  }
+}

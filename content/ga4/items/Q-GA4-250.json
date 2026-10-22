@@ -1,0 +1,52 @@
+{
+  "id": "Q-GA4-250",
+  "version": 1,
+  "kind": "mcq",
+  "section": "ga4",
+  "concept_id": "GA4-METRICS-01",
+  "parent_id": null,
+  "topic_id": "T-GA4-02",
+  "legacy_id": null,
+  "stem": "On Monday an admin raised the engaged-session timer from 10 to 30 seconds. By Friday the stakeholder sees engagement rate down and bounce rate up, and asks whether the site got worse. What is the best answer?",
+  "options": [
+    {
+      "oid": "o07769e9",
+      "text": "Yes: the timer only changes the session timeout, so the drop is a real change in behaviour",
+      "misconception_id": null
+    },
+    {
+      "oid": "o283761e",
+      "text": "Not necessarily: a session now needs 30 seconds, not 10, to count as engaged by time alone",
+      "misconception_id": null
+    },
+    {
+      "oid": "o8844ead",
+      "text": "Not necessarily: bounce rate counts single-page sessions, which the timer change does not touch",
+      "misconception_id": null
+    },
+    {
+      "oid": "o24c16f4",
+      "text": "Yes: the new timer applies only to new users, so returning visitors must be engaging less",
+      "misconception_id": null
+    }
+  ],
+  "typed": null,
+  "exam_relevance": "core",
+  "held_out": true,
+  "enemy_group": null,
+  "status": "active",
+  "verified": true,
+  "level": 1,
+  "tags": [
+    "ga4",
+    "T-GA4-02"
+  ],
+  "source_ids": [
+    "06:GA4-METRICS-01",
+    "ERRATA:E-118",
+    "ERRATA:E-205"
+  ],
+  "as_of": "2026-09-30",
+  "review_after": null,
+  "supersedes": []
+}

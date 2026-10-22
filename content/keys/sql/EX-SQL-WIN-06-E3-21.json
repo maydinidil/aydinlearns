@@ -1,0 +1,39 @@
+{
+  "item_id": "EX-SQL-WIN-06-E3-21",
+  "item_version": 1,
+  "reference_sql": "WITH campaign_spend AS (  -- one row per campaign with spend rows in the period\n  SELECT c.channel_id, c.campaign_id, SUM(a.spend) AS spend\n  FROM ad_spend_daily a\n  JOIN campaigns c ON c.campaign_id = a.campaign_id\n  WHERE a.spend_date BETWEEN DATE '2025-07-01' AND DATE '2025-10-31'\n  GROUP BY c.channel_id, c.campaign_id\n),\nranked AS (  -- one row per campaign, with its channel's total and its place by spend\n  SELECT channel_id, campaign_id, spend,\n         SUM(spend) OVER (PARTITION BY channel_id) AS channel_spend,\n         ROW_NUMBER() OVER (PARTITION BY channel_id ORDER BY spend DESC, campaign_id) AS rn\n  FROM campaign_spend\n)\nSELECT channel_id, campaign_id, spend, ROUND(100.0 * spend / channel_spend, 1) AS share_pct\nFROM ranked\nWHERE rn = 1",
+  "alternatives": [
+    "WITH campaign_spend AS (  -- one row per campaign with spend rows in the period\n  SELECT c.channel_id, c.campaign_id, SUM(a.spend) AS spend\n  FROM ad_spend_daily a\n  JOIN campaigns c ON c.campaign_id = a.campaign_id\n  WHERE a.spend_date BETWEEN DATE '2025-07-01' AND DATE '2025-10-31'\n  GROUP BY c.channel_id, c.campaign_id\n)\nSELECT r.channel_id, r.campaign_id, r.spend, ROUND(100.0 * r.spend / r.channel_spend, 1) AS share_pct\nFROM (\n  -- one row per campaign, with its channel's total and its place by spend\n  SELECT channel_id, campaign_id, spend,\n         SUM(spend) OVER (PARTITION BY channel_id) AS channel_spend,\n         ROW_NUMBER() OVER (PARTITION BY channel_id ORDER BY spend DESC, campaign_id) AS rn\n  FROM campaign_spend\n) AS r\nWHERE r.rn = 1",
+    "WITH campaign_spend AS (  -- one row per campaign with spend rows in the period\n  SELECT c.channel_id, c.campaign_id, SUM(a.spend) AS spend\n  FROM ad_spend_daily a\n  JOIN campaigns c ON c.campaign_id = a.campaign_id\n  WHERE a.spend_date BETWEEN DATE '2025-07-01' AND DATE '2025-10-31'\n  GROUP BY c.channel_id, c.campaign_id\n)\nSELECT channel_id, campaign_id, spend,\n       ROUND(100.0 * spend / SUM(spend) OVER (PARTITION BY channel_id), 1) AS share_pct\nFROM campaign_spend\nQUALIFY ROW_NUMBER() OVER (PARTITION BY channel_id ORDER BY spend DESC, campaign_id) = 1"
+  ],
+  "other_way": {
+    "sql": "WITH campaign_spend AS (  -- one row per campaign with spend rows in the period\n  SELECT c.channel_id, c.campaign_id, SUM(a.spend) AS spend\n  FROM ad_spend_daily a\n  JOIN campaigns c ON c.campaign_id = a.campaign_id\n  WHERE a.spend_date BETWEEN DATE '2025-07-01' AND DATE '2025-10-31'\n  GROUP BY c.channel_id, c.campaign_id\n)\nSELECT channel_id, campaign_id, spend,\n       ROUND(100.0 * spend / SUM(spend) OVER (PARTITION BY channel_id), 1) AS share_pct\nFROM campaign_spend\nQUALIFY ROW_NUMBER() OVER (PARTITION BY channel_id ORDER BY spend DESC, campaign_id) = 1",
+    "tradeoff": "QUALIFY filters the window result in the same query, which is shorter, but PostgreSQL, MySQL and SQL Server do not accept it."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-40",
+      "sql": "WITH campaign_spend AS (SELECT c.channel_id, c.campaign_id, SUM(a.spend) AS spend FROM ad_spend_daily a JOIN campaigns c ON c.campaign_id = a.campaign_id WHERE a.spend_date BETWEEN DATE '2025-07-01' AND DATE '2025-10-31' GROUP BY c.channel_id, c.campaign_id), ranked AS (SELECT channel_id, campaign_id, spend, SUM(spend) OVER (PARTITION BY channel_id) AS channel_spend, RANK() OVER (PARTITION BY channel_id ORDER BY spend DESC) AS rn FROM campaign_spend) SELECT channel_id, campaign_id, spend, ROUND(100.0 * spend / channel_spend, 1) AS share_pct FROM ranked WHERE rn = 1"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-37",
+      "sql": "WITH campaign_spend AS (SELECT c.channel_id, c.campaign_id, SUM(a.spend) AS spend FROM ad_spend_daily a JOIN campaigns c ON c.campaign_id = a.campaign_id WHERE a.spend_date BETWEEN DATE '2025-07-01' AND DATE '2025-10-31' GROUP BY c.channel_id, c.campaign_id), ranked AS (SELECT channel_id, campaign_id, spend, SUM(spend) OVER () AS channel_spend, ROW_NUMBER() OVER (PARTITION BY channel_id ORDER BY spend DESC, campaign_id) AS rn FROM campaign_spend) SELECT channel_id, campaign_id, spend, ROUND(100.0 * spend / channel_spend, 1) AS share_pct FROM ranked WHERE rn = 1"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-07",
+      "sql": "WITH campaign_spend AS (SELECT c.channel_id, c.campaign_id, SUM(a.spend) AS spend FROM ad_spend_daily a JOIN campaigns c ON c.campaign_id = a.campaign_id WHERE a.spend_date BETWEEN DATE '2025-07-01' AND DATE '2025-10-31' GROUP BY c.channel_id, c.campaign_id), top_campaign AS (SELECT channel_id, campaign_id, spend FROM (SELECT channel_id, campaign_id, spend, ROW_NUMBER() OVER (PARTITION BY channel_id ORDER BY spend DESC, campaign_id) AS rn FROM campaign_spend) AS r WHERE rn = 1) SELECT channel_id, campaign_id, spend, ROUND(100.0 * spend / SUM(spend) OVER (PARTITION BY channel_id), 1) AS share_pct FROM top_campaign"
+    }
+  ],
+  "hint3_partial": "WITH campaign_spend AS (  -- one row per campaign with spend rows in the period\n  SELECT c.channel_id, c.campaign_id, SUM(a.spend) AS spend\n  FROM ad_spend_daily a\n  JOIN campaigns c ON c.campaign_id = a.campaign_id\n  WHERE a.spend_date BETWEEN DATE '2025-07-01' AND DATE '2025-10-31'\n  GROUP BY c.channel_id, c.campaign_id\n),\nranked AS (  -- one row per campaign, with its channel's total and its place by spend\n  SELECT channel_id, campaign_id, spend,\n         SUM(spend) OVER (PARTITION BY ___) AS channel_spend,\n         ROW_NUMBER() OVER (PARTITION BY channel_id ORDER BY spend DESC, campaign_id) AS rn\n  FROM campaign_spend\n)\nSELECT channel_id, campaign_id, spend, ROUND(100.0 * spend / channel_spend, 1) AS share_pct\nFROM ranked\nWHERE rn = 1",
+  "solver": {
+    "prompt_hash": "54a51bfe3be49be2",
+    "schema_version": "09f3a33d3123",
+    "dataset_version": "e7c58abf7e8f892e",
+    "grader_version": "7a.1",
+    "query": "WITH camp AS (\n  SELECT c.channel_id, s.campaign_id, SUM(s.spend) AS spend\n  FROM ad_spend_daily s\n  JOIN campaigns c ON c.campaign_id = s.campaign_id\n  WHERE s.spend_date >= DATE '2025-07-01' AND s.spend_date <= DATE '2025-10-31'\n  GROUP BY c.channel_id, s.campaign_id\n), r AS (\n  SELECT channel_id, campaign_id, spend,\n         SUM(spend) OVER (PARTITION BY channel_id) AS channel_spend,\n         ROW_NUMBER() OVER (PARTITION BY channel_id ORDER BY spend DESC, campaign_id ASC) AS rn\n  FROM camp\n)\nSELECT channel_id, campaign_id, spend, ROUND(100.0 * spend / channel_spend, 1) AS share_pct\nFROM r\nWHERE rn = 1\n",
+    "at": "2026-10-21T09:05:10.682Z"
+  }
+}

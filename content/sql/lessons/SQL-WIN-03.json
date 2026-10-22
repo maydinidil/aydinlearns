@@ -1,0 +1,105 @@
+{
+  "concept_id": "SQL-WIN-03",
+  "version": 1,
+  "reading_md": "## LAG and LEAD: the row before and the row after\n\nA window function keeps every row and adds a value worked out from related rows. LAG and LEAD add a value from a neighbouring row:\n\n- `LAG(x)` reads `x` from the row before;\n- `LEAD(x)` reads `x` from the row after.\n\n\"Before\" and \"after\" mean nothing until you say the order, so the window holds two parts:\n\n```sql\nLAG(list_price_eur) OVER (PARTITION BY product_id ORDER BY valid_from)\n```\n\n- **PARTITION BY** names the group. Each product's versions form their own series, so LAG never reads a price from another product.\n- **ORDER BY inside OVER** sets the sequence. It is not the ORDER BY at the end of the query, which only sorts the finished rows.\n\n### The first row has nothing before it\n\nOn a product's first version there is no row before, so LAG gives a missing value (and LEAD does on the last row). Decide what the question wants there: missing, 0, or the row left out. `LAG(x, 1, 0)` gives 0 instead of missing, but only when the question asks for 0.\n\n### Change from the row before\n\nLAG brings the earlier value onto the current row, so the change is one subtraction:\n\n```sql\nspend - LAG(spend) OVER (ORDER BY spend_date) AS change_eur\n```\n\nA percentage change divides by the earlier value: `100.0 * (x - prev) / prev`. Work the LAG out once in a CTE when you need it twice.\n\n### Ties need a tie-break\n\nIf two rows share the sort value, such as two orders placed at the same moment, the engine may put either first, and LAG can return different rows on different runs. Add a second sort key the question names, usually an ID: `ORDER BY order_ts, order_id`.\n\n### WHERE runs first\n\nWHERE picks the rows before any window is worked out. Filter to July, and the first July row gets a missing LAG, even though June has data. That is right when only July counts; when the row before July must count too, work the LAG out in a CTE first and filter after.\n\n### The previous row is not always the previous period\n\nLAG steps to the row before, which is the day or month before only when every period has a row. If no campaign spent in September, the row before October is August. When a question compares with the previous calendar month and counts a month with no rows as 0, first build one row per month from a full list of periods, such as `budget_monthly` or `calendar`, LEFT JOIN the data to it, and only then take the LAG.\n\n### Days between rows\n\nSubtract dates: `CAST(order_ts AS DATE) - CAST(LAG(order_ts) OVER (...) AS DATE)` is a whole number of days between the two UTC dates.",
+  "syntax_md": "```sql\nSELECT product_id, valid_from, list_price_eur,       -- metrics: every row stays\n  LAG(list_price_eur) OVER (                         -- the value from the row before\n    PARTITION BY product_id                          -- the group: one series per product\n    ORDER BY valid_from                              -- the sequence inside the group\n  ) AS prev_price_eur\nFROM price_history;                                  -- source: one row per price version\n```\n\n- `LEAD(x)` reads the row after; the last row of each group gets a missing value.\n- `LAG(x, 2)` reads two rows back; `LAG(x, 1, 0)` gives 0 instead of missing.\n- End the ORDER BY with a tie-break when two rows can share the sort value.\n- For the previous calendar period, give every period a row first, then take the LAG.",
+  "dialect_note": "LAG and LEAD with OVER (PARTITION BY ... ORDER BY ...) are standard SQL, and the same query runs in PostgreSQL and BigQuery. Where the window's sort column can be missing, engines put those rows in different places: DuckDB and PostgreSQL sort missing values last when ascending, BigQuery first (01, DIALECT-11). Write NULLS FIRST or NULLS LAST, or leave those rows out, so LAG reads the same neighbour everywhere.",
+  "worked_examples": [
+    {
+      "title": "Each product's previous price",
+      "prompt": "For every price version, show the list price of the same product's version before it. Return product_id, valid_from, list_price_eur and prev_price_eur; a product's first version shows a missing prev_price_eur.",
+      "clauses": [
+        {
+          "text": "SELECT product_id, valid_from, list_price_eur,",
+          "subgoal": "metrics",
+          "why": "Every row stays: a window adds a column, it never folds rows together."
+        },
+        {
+          "text": "  LAG(list_price_eur) OVER (PARTITION BY product_id ORDER BY valid_from) AS prev_price_eur",
+          "subgoal": "metrics",
+          "why": "LAG reads the price from the row before, within the same product, in valid_from order; the first version has none, so it is missing."
+        },
+        {
+          "text": "FROM price_history",
+          "subgoal": "source_grain",
+          "why": "One row per product per price version: the series LAG steps through."
+        }
+      ]
+    },
+    {
+      "title": "Each subscription's previous plan",
+      "prompt": "For each subscription, show the plan of the same user's subscription before it, by start_date. Return subscription_id, user_id, plan_name and prev_plan_name; a user's first subscription shows a missing prev_plan_name.",
+      "clauses": [
+        {
+          "text": "SELECT subscription_id, user_id, plan_name,",
+          "subgoal": "metrics",
+          "why": "One output row for each subscription, as in the table."
+        },
+        {
+          "text": "  LAG(plan_name) OVER (PARTITION BY user_id ORDER BY start_date) AS prev_plan_name",
+          "subgoal": "metrics",
+          "why": "PARTITION BY user_id keeps each user's subscriptions apart; without it, a user's first subscription would read the plan of another user."
+        },
+        {
+          "text": "FROM subscriptions",
+          "subgoal": "source_grain",
+          "why": "One row per subscription: a plan change starts a new one."
+        }
+      ]
+    }
+  ],
+  "pretest_item_ids": [
+    "EX-SQL-WIN-03-E1-01",
+    "EX-SQL-WIN-03-E1-02"
+  ],
+  "lesson_item_ids": [
+    "EX-SQL-WIN-03-E1-03",
+    "EX-SQL-WIN-03-E1-04",
+    "EX-SQL-WIN-03-E2-01",
+    "EX-SQL-WIN-03-E2-02"
+  ],
+  "retest_item_id": "EX-SQL-WIN-03-E1-05",
+  "pool_item_ids": [
+    "EX-SQL-WIN-03-E1-06",
+    "EX-SQL-WIN-03-E1-07",
+    "EX-SQL-WIN-03-E2-03",
+    "EX-SQL-WIN-03-E2-04",
+    "EX-SQL-WIN-03-E2-05",
+    "EX-SQL-WIN-03-E3-01",
+    "EX-SQL-WIN-03-E3-02",
+    "EX-SQL-WIN-03-E2-06",
+    "EX-SQL-WIN-03-E2-31",
+    "EX-SQL-WIN-03-E2-32",
+    "EX-SQL-WIN-03-E2-33",
+    "EX-SQL-WIN-03-E1-42",
+    "EX-SQL-WIN-03-E2-41",
+    "EX-SQL-WIN-03-E2-42"
+  ],
+  "source_ids": [
+    "01:SQL-WIN-03"
+  ],
+  "why_clause": {
+    "clause": "  LAG(list_price_eur) OVER (PARTITION BY product_id ORDER BY valid_from) AS prev_price_eur",
+    "stem": "Why does this window need PARTITION BY product_id?",
+    "options": [
+      {
+        "id": "a",
+        "text": "So LAG reads only the same product's earlier version, and each product's first version gets a missing value."
+      },
+      {
+        "id": "b",
+        "text": "Because LAG cannot run without a GROUP BY, and PARTITION BY stands in for it."
+      },
+      {
+        "id": "c",
+        "text": "So the result comes out sorted by product_id."
+      },
+      {
+        "id": "d",
+        "text": "To remove products that have only one price version."
+      }
+    ],
+    "correct_id": "a",
+    "explanation": "Without PARTITION BY, all versions form one long series, so a product's first version would read the last price of the product before it. PARTITION BY starts the series again for each product. It does not group or sort the output, and it keeps every row, single versions included."
+  }
+}

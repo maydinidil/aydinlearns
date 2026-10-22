@@ -1,0 +1,36 @@
+{
+  "item_id": "EX-MOCK-SCREEN-A-03",
+  "item_version": 2,
+  "reference_sql": "SELECT p.product_id, p.product_name, COUNT(cp.product_id) AS n_checks, MIN(cp.price_eur) AS lowest_price_eur\nFROM products p\nLEFT JOIN competitor_prices cp\n  ON cp.product_id = p.product_id\n AND cp.observed_ts >= TIMESTAMP '2025-03-10 00:00:00'\n AND cp.observed_ts < TIMESTAMP '2025-03-17 00:00:00'\nWHERE p.category_id = 17\nGROUP BY p.product_id, p.product_name\nORDER BY n_checks, p.product_id",
+  "alternatives": [
+    "SELECT p.product_id, p.product_name, COUNT(cp.observed_ts) AS n_checks, MIN(cp.price_eur) AS lowest_price_eur\nFROM competitor_prices cp\nRIGHT JOIN products p\n  ON p.product_id = cp.product_id\n AND cp.observed_ts >= '2025-03-10'\n AND cp.observed_ts < '2025-03-17'\nWHERE p.category_id = 17\nGROUP BY p.product_id, p.product_name\nORDER BY 3, 1",
+    "SELECT p.product_id, p.product_name, COUNT(cp.price_eur) AS n_checks, MIN(cp.price_eur) AS lowest_price_eur\nFROM products AS p\nLEFT JOIN competitor_prices AS cp\n  ON cp.product_id = p.product_id\n AND cp.observed_ts BETWEEN TIMESTAMP '2025-03-10 00:00:00' AND TIMESTAMP '2025-03-16 23:59:59.999999'\nWHERE p.category_id = 17\nGROUP BY p.product_id, p.product_name\nORDER BY n_checks ASC, p.product_id ASC"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-10",
+      "sql": "SELECT p.product_id, p.product_name, COUNT(cp.product_id) AS n_checks, MIN(cp.price_eur) AS lowest_price_eur FROM products p LEFT JOIN competitor_prices cp ON cp.product_id = p.product_id WHERE p.category_id = 17 AND cp.observed_ts >= TIMESTAMP '2025-03-10 00:00:00' AND cp.observed_ts < TIMESTAMP '2025-03-17 00:00:00' GROUP BY p.product_id, p.product_name ORDER BY n_checks, p.product_id"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-04",
+      "sql": "SELECT p.product_id, p.product_name, COUNT(*) AS n_checks, MIN(cp.price_eur) AS lowest_price_eur FROM products p LEFT JOIN competitor_prices cp ON cp.product_id = p.product_id AND cp.observed_ts >= TIMESTAMP '2025-03-10 00:00:00' AND cp.observed_ts < TIMESTAMP '2025-03-17 00:00:00' WHERE p.category_id = 17 GROUP BY p.product_id, p.product_name ORDER BY n_checks, p.product_id"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-06",
+      "sql": "SELECT p.product_id, p.product_name, COUNT(cp.product_id) AS n_checks, MIN(cp.price_eur) AS lowest_price_eur FROM products p LEFT JOIN competitor_prices cp ON cp.product_id = p.product_id AND cp.observed_ts >= TIMESTAMP '2025-03-10 00:00:00' AND cp.observed_ts <= TIMESTAMP '2025-03-16 00:00:00' WHERE p.category_id = 17 GROUP BY p.product_id, p.product_name ORDER BY n_checks, p.product_id"
+    }
+  ],
+  "hint3_partial": "SELECT p.product_id, p.product_name, COUNT(___) AS n_checks, MIN(cp.price_eur) AS lowest_price_eur\nFROM products p\nLEFT JOIN competitor_prices cp\n  ON cp.product_id = p.product_id\n AND ___\nWHERE p.category_id = 17\nGROUP BY p.product_id, p.product_name\nORDER BY ___",
+  "solver": {
+    "prompt_hash": "9d8682d485cd99ba",
+    "schema_version": "6cd8d6857bb2",
+    "dataset_version": "e7c58abf7e8f892e",
+    "grader_version": "7a.1",
+    "query": "SELECT p.product_id, p.product_name,\n       COUNT(cp.product_id) AS n_checks,\n       MIN(cp.price_eur) AS lowest_price_eur\nFROM products p\nLEFT JOIN competitor_prices cp\n  ON cp.product_id = p.product_id\n AND cp.observed_ts >= TIMESTAMP '2025-03-10 00:00:00'\n AND cp.observed_ts < TIMESTAMP '2025-03-17 00:00:00'\nWHERE p.category_id = 17\nGROUP BY p.product_id, p.product_name\nORDER BY n_checks ASC, p.product_id ASC\n",
+    "at": "2026-10-21T10:46:58.817Z"
+  }
+}

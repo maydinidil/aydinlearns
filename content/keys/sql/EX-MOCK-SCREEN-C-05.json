@@ -1,0 +1,36 @@
+{
+  "item_id": "EX-MOCK-SCREEN-C-05",
+  "item_version": 1,
+  "reference_sql": "WITH product_units AS (  -- one row per product with sales in January to June 2025\n  SELECT parent_category, product_id, product_name, SUM(units) AS units_sold\n  FROM sales\n  WHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-06-30'\n  GROUP BY parent_category, product_id, product_name\n),\nquartered AS (  -- one row per product, with its quarter of its parent category\n  SELECT parent_category, product_id, product_name, units_sold,\n         NTILE(4) OVER (PARTITION BY parent_category ORDER BY units_sold DESC, product_id) AS units_quarter\n  FROM product_units\n)\nSELECT parent_category, product_id, product_name, units_sold\nFROM quartered\nWHERE units_quarter = 1\nORDER BY parent_category, units_sold DESC, product_id",
+  "alternatives": [
+    "SELECT parent_category, product_id, product_name, units_sold\nFROM (\n  -- one row per product with sales in January to June 2025, with its quarter of its parent category\n  SELECT parent_category, product_id, product_name, SUM(units) AS units_sold,\n         NTILE(4) OVER (PARTITION BY parent_category ORDER BY SUM(units) DESC, product_id ASC) AS units_quarter\n  FROM sales\n  WHERE order_date >= DATE '2025-01-01' AND order_date < DATE '2025-07-01'\n  GROUP BY parent_category, product_id, product_name\n) AS q\nWHERE units_quarter = 1\nORDER BY 1, 4 DESC, 2",
+    "WITH product_units AS (  -- one row per product with sales in January to June 2025\n  SELECT parent_category, product_id, product_name, SUM(units) AS units_sold\n  FROM sales\n  WHERE order_date BETWEEN '2025-01-01' AND '2025-06-30'\n  GROUP BY 1, 2, 3\n),\npositioned AS (  -- one row per product: its position in its parent category and the category's number of products\n  SELECT parent_category, product_id, product_name, units_sold,\n         ROW_NUMBER() OVER (PARTITION BY parent_category ORDER BY units_sold DESC, product_id) AS position,\n         COUNT(*) OVER (PARTITION BY parent_category) AS n_products\n  FROM product_units\n)\nSELECT parent_category, product_id, product_name, units_sold\nFROM positioned\nWHERE position <= CEIL(n_products / 4.0)\nORDER BY parent_category ASC, units_sold DESC, product_id ASC"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-18",
+      "sql": "WITH product_units AS (SELECT parent_category, product_id, product_name, SUM(units) AS units_sold FROM sales WHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-06-30' GROUP BY parent_category, product_id, product_name), quartered AS (SELECT parent_category, product_id, product_name, units_sold, NTILE(4) OVER (PARTITION BY parent_category ORDER BY units_sold, product_id) AS units_quarter FROM product_units) SELECT parent_category, product_id, product_name, units_sold FROM quartered WHERE units_quarter = 1 ORDER BY parent_category, units_sold DESC, product_id"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-37",
+      "sql": "WITH product_units AS (SELECT parent_category, product_id, product_name, SUM(units) AS units_sold FROM sales WHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-06-30' GROUP BY parent_category, product_id, product_name), quartered AS (SELECT parent_category, product_id, product_name, units_sold, NTILE(4) OVER (ORDER BY units_sold DESC, product_id) AS units_quarter FROM product_units) SELECT parent_category, product_id, product_name, units_sold FROM quartered WHERE units_quarter = 1 ORDER BY parent_category, units_sold DESC, product_id"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-16",
+      "sql": "WITH product_units AS (SELECT parent_category, product_id, product_name, SUM(units) AS units_sold FROM sales WHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-06-30' GROUP BY parent_category, product_id, product_name), quartered AS (SELECT parent_category, product_id, product_name, units_sold, NTILE(4) OVER (PARTITION BY parent_category ORDER BY units_sold DESC, product_id DESC) AS units_quarter FROM product_units) SELECT parent_category, product_id, product_name, units_sold FROM quartered WHERE units_quarter = 1 ORDER BY parent_category, units_sold DESC, product_id"
+    }
+  ],
+  "hint3_partial": "WITH product_units AS (  -- one row per product with sales in January to June 2025\n  SELECT parent_category, product_id, product_name, SUM(units) AS units_sold\n  FROM sales\n  WHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-06-30'\n  GROUP BY parent_category, product_id, product_name\n),\nquartered AS (  -- one row per product, with its quarter of its parent category\n  SELECT parent_category, product_id, product_name, units_sold,\n         ___ OVER (PARTITION BY ___ ORDER BY ___) AS units_quarter\n  FROM product_units\n)\nSELECT parent_category, product_id, product_name, units_sold\nFROM quartered\nWHERE ___\nORDER BY parent_category, units_sold DESC, product_id",
+  "solver": {
+    "prompt_hash": "272546def2864c8f",
+    "schema_version": "cebf75df442f",
+    "dataset_version": "e7c58abf7e8f892e",
+    "grader_version": "7a.1",
+    "query": "WITH p AS (\n  SELECT parent_category, product_id, product_name, SUM(units) AS units_sold\n  FROM sales\n  WHERE order_date >= DATE '2025-01-01' AND order_date <= DATE '2025-06-30'\n  GROUP BY parent_category, product_id, product_name\n), q AS (\n  SELECT *, NTILE(4) OVER (PARTITION BY parent_category ORDER BY units_sold DESC, product_id ASC) AS quarter\n  FROM p\n)\nSELECT parent_category, product_id, product_name, units_sold\nFROM q\nWHERE quarter = 1\nORDER BY parent_category ASC, units_sold DESC, product_id ASC\n",
+    "at": "2026-10-21T09:53:59.211Z"
+  }
+}

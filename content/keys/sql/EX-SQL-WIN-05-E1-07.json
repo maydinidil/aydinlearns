@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-WIN-05-E1-07",
+  "item_version": 1,
+  "reference_sql": "SELECT product_id, competitor, observed_ts, price_eur,\n  ROUND(AVG(price_eur) OVER (PARTITION BY product_id, competitor ORDER BY observed_ts ROWS BETWEEN 2 PRECEDING AND CURRENT ROW), 2) AS avg_price_3c,\n  COUNT(*) OVER (PARTITION BY product_id, competitor ORDER BY observed_ts ROWS BETWEEN 2 PRECEDING AND CURRENT ROW) AS checks_in_window\nFROM competitor_prices\nWHERE product_id BETWEEN 1 AND 10\n  AND observed_ts >= TIMESTAMP '2025-01-01 00:00:00'\n  AND observed_ts < TIMESTAMP '2025-07-01 00:00:00'",
+  "alternatives": [
+    "WITH p AS (\n  -- one row per price check in the period\n  SELECT product_id, competitor, observed_ts, price_eur,\n    LAG(price_eur, 1) OVER (PARTITION BY product_id, competitor ORDER BY observed_ts) AS prev_1,\n    LAG(price_eur, 2) OVER (PARTITION BY product_id, competitor ORDER BY observed_ts) AS prev_2\n  FROM competitor_prices\n  WHERE product_id BETWEEN 1 AND 10\n    AND observed_ts >= TIMESTAMP '2025-01-01 00:00:00'\n    AND observed_ts < TIMESTAMP '2025-07-01 00:00:00'\n), c AS (\n  -- one row per price check in the period\n  SELECT product_id, competitor, observed_ts, price_eur,\n    price_eur + COALESCE(prev_1, 0) + COALESCE(prev_2, 0) AS total_3,\n    1 + CASE WHEN prev_1 IS NULL THEN 0 ELSE 1 END + CASE WHEN prev_2 IS NULL THEN 0 ELSE 1 END AS n\n  FROM p\n)\nSELECT product_id, competitor, observed_ts, price_eur, ROUND(total_3 / n, 2) AS avg_price_3c, n AS checks_in_window\nFROM c",
+    "WITH w AS (\n  -- one row per price check in the period\n  SELECT product_id, competitor, observed_ts, price_eur,\n    AVG(price_eur) OVER (PARTITION BY product_id, competitor ORDER BY observed_ts ROWS BETWEEN 2 PRECEDING AND CURRENT ROW) AS avg_3,\n    COUNT(*) OVER (PARTITION BY product_id, competitor ORDER BY observed_ts ROWS BETWEEN 2 PRECEDING AND CURRENT ROW) AS n\n  FROM competitor_prices\n  WHERE product_id BETWEEN 1 AND 10\n    AND observed_ts >= TIMESTAMP '2025-01-01 00:00:00'\n    AND observed_ts < TIMESTAMP '2025-07-01 00:00:00'\n)\nSELECT product_id, competitor, observed_ts, price_eur, ROUND(avg_3, 2) AS avg_price_3c, n AS checks_in_window\nFROM w"
+  ],
+  "other_way": {
+    "sql": "WITH p AS (\n  -- one row per price check in the period\n  SELECT product_id, competitor, observed_ts, price_eur,\n    LAG(price_eur, 1) OVER (PARTITION BY product_id, competitor ORDER BY observed_ts) AS prev_1,\n    LAG(price_eur, 2) OVER (PARTITION BY product_id, competitor ORDER BY observed_ts) AS prev_2\n  FROM competitor_prices\n  WHERE product_id BETWEEN 1 AND 10\n    AND observed_ts >= TIMESTAMP '2025-01-01 00:00:00'\n    AND observed_ts < TIMESTAMP '2025-07-01 00:00:00'\n), c AS (\n  -- one row per price check in the period\n  SELECT product_id, competitor, observed_ts, price_eur,\n    price_eur + COALESCE(prev_1, 0) + COALESCE(prev_2, 0) AS total_3,\n    1 + CASE WHEN prev_1 IS NULL THEN 0 ELSE 1 END + CASE WHEN prev_2 IS NULL THEN 0 ELSE 1 END AS n\n  FROM p\n)\nSELECT product_id, competitor, observed_ts, price_eur, ROUND(total_3 / n, 2) AS avg_price_3c, n AS checks_in_window\nFROM c",
+    "tradeoff": "Adding up the check and the two LAG prices by hand gives the same averages, but each extra row of the window needs another LAG and CASE."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-37",
+      "sql": "SELECT product_id, competitor, observed_ts, price_eur, ROUND(AVG(price_eur) OVER (ORDER BY product_id, competitor, observed_ts ROWS BETWEEN 2 PRECEDING AND CURRENT ROW), 2) AS avg_price_3c, COUNT(*) OVER (ORDER BY product_id, competitor, observed_ts ROWS BETWEEN 2 PRECEDING AND CURRENT ROW) AS checks_in_window FROM competitor_prices WHERE product_id BETWEEN 1 AND 10 AND observed_ts >= TIMESTAMP '2025-01-01 00:00:00' AND observed_ts < TIMESTAMP '2025-07-01 00:00:00'"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-41",
+      "sql": "SELECT product_id, competitor, observed_ts, price_eur, ROUND(AVG(price_eur) OVER (PARTITION BY product_id, competitor ORDER BY price_eur, observed_ts ROWS BETWEEN 2 PRECEDING AND CURRENT ROW), 2) AS avg_price_3c, COUNT(*) OVER (PARTITION BY product_id, competitor ORDER BY price_eur, observed_ts ROWS BETWEEN 2 PRECEDING AND CURRENT ROW) AS checks_in_window FROM competitor_prices WHERE product_id BETWEEN 1 AND 10 AND observed_ts >= TIMESTAMP '2025-01-01 00:00:00' AND observed_ts < TIMESTAMP '2025-07-01 00:00:00'"
+    }
+  ],
+  "hint3_partial": "SELECT product_id, competitor, observed_ts, price_eur,\n  ROUND(AVG(price_eur) OVER (PARTITION BY ___ ORDER BY observed_ts ROWS BETWEEN 2 PRECEDING AND CURRENT ROW), 2) AS avg_price_3c,\n  COUNT(*) OVER (PARTITION BY ___ ORDER BY observed_ts ROWS BETWEEN 2 PRECEDING AND CURRENT ROW) AS checks_in_window\nFROM competitor_prices\nWHERE product_id BETWEEN 1 AND 10\n  AND observed_ts >= TIMESTAMP '2025-01-01 00:00:00'\n  AND observed_ts < TIMESTAMP '2025-07-01 00:00:00'",
+  "solver": {
+    "prompt_hash": "74cf5ac3f1b882b8",
+    "schema_version": "ffc6be9b2fbc",
+    "dataset_version": "e7c58abf7e8f892e",
+    "grader_version": "7a.1",
+    "query": "SELECT product_id, competitor, observed_ts, price_eur,\n  ROUND(AVG(price_eur) OVER (PARTITION BY product_id, competitor ORDER BY observed_ts ROWS BETWEEN 2 PRECEDING AND CURRENT ROW), 2) AS avg_price_3c,\n  COUNT(*) OVER (PARTITION BY product_id, competitor ORDER BY observed_ts ROWS BETWEEN 2 PRECEDING AND CURRENT ROW) AS checks_in_window\nFROM competitor_prices\nWHERE product_id BETWEEN 1 AND 10\n  AND CAST(observed_ts AS DATE) BETWEEN DATE '2025-01-01' AND DATE '2025-06-30'\n",
+    "at": "2026-10-21T09:05:09.183Z"
+  }
+}

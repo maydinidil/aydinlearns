@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-WIN-03-E1-41",
+  "item_version": 1,
+  "correct_oid": "o0888073",
+  "explanation": "WHERE keeps only the three July days before the window runs, so LAG sees 1 July as the first row and has nothing before it: prev_spend is missing there, not 0 and not the spend of 30 June. The other days read the day before. Reading the next day's spend is what LEAD does, or LAG with the order reversed.",
+  "solver": {
+    "prompt_hash": "b3635b0e5747c0e2",
+    "grader_version": "choice.3",
+    "chosen": "o0888073",
+    "typed": null,
+    "at": "2026-10-20T20:50:48.342Z"
+  }
+}

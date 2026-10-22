@@ -67,3 +67,46 @@ test('a question the panel stopped is not a failure to show: the abort comes bac
   t.mock.method(globalThis, 'fetch', async () => { ac.abort(); throw new DOMException('The operation was aborted.', 'AbortError'); });
   await assert.rejects(tutorAsk(body, () => {}, ac.signal), (e: unknown) => !(e instanceof ApiError) && (e as Error).name === 'AbortError');
 });
+
+// ---- Sprint 7 K1: sprint T's test gaps for the stream (T9 M6 and the web rows of the Test gaps backlog row) ----------------------------
+test('K1: a summary split across reads still comes out whole, and none of it is shown while it arrives', async (t: Mock) => {
+  const line = JSON.stringify(summary);
+  const cut = Math.floor(line.length / 2);
+  t.mock.method(globalThis, 'fetch', async () => new Response(streamed(['Look at ', `the WHERE clause.${SUMMARY_MARK}`, line.slice(0, cut), line.slice(cut)]), { status: 200 }));
+  const shown: string[] = [];
+  const r = await tutorAsk(body, (s) => shown.push(s), new AbortController().signal);
+  assert.deepEqual(r, { reply: 'Look at the WHERE clause.', summary });
+  assert.ok(shown.every((s) => !s.includes(SUMMARY_MARK) && !s.includes('"outcome"')), 'no part of the summary is shown');
+  assert.equal(shown.at(-1), 'Look at the WHERE clause.');
+});
+
+test('K1: a multi-byte character split across two reads is read whole', async (t: Mock) => {
+  const bytes = new TextEncoder().encode('Use the é key.');
+  const at = bytes.indexOf(0xc3) + 1;                                          // between the two bytes of the letter
+  const enc = [bytes.slice(0, at), bytes.slice(at), new TextEncoder().encode(`${SUMMARY_MARK}${JSON.stringify(summary)}`)];
+  const left = [...enc];
+  t.mock.method(globalThis, 'fetch', async () => new Response(new ReadableStream({ pull(c) { const x = left.shift(); if (x) c.enqueue(x); else c.close(); } }, { highWaterMark: 0 }), { status: 200 }));
+  assert.deepEqual(await tutorAsk(body, () => {}, new AbortController().signal), { reply: 'Use the é key.', summary });
+});
+
+test('K1: a stop that lands inside the read loop comes back as the abort, not as a cut-off reply', async (t: Mock) => {
+  const ac = new AbortController();
+  const enc = new TextEncoder();
+  let reads = 0;
+  t.mock.method(globalThis, 'fetch', async () => new Response(new ReadableStream({
+    pull(c) {
+      if (reads++ === 0) c.enqueue(enc.encode('Look at '));
+      else { ac.abort(); c.error(new DOMException('The operation was aborted.', 'AbortError')); }
+    },
+  }, { highWaterMark: 0 }), { status: 200 }));
+  const shown: string[] = [];
+  await assert.rejects(tutorAsk(body, (s) => shown.push(s), ac.signal), (e: unknown) => !(e instanceof ApiError) && (e as Error).name === 'AbortError');
+  assert.deepEqual(shown, ['Look at '], 'what arrived before the stop was shown');
+});
+
+test('K1: a mark inside the reply text: the last mark starts the summary, and the reply keeps the earlier one', () => {
+  // The server removes the mark from the model's text, so a reply holds none (tests/server/tutor-routes.test.ts); if one got through, the
+  // summary line, which is always last, still decides.
+  const r = splitReply(`one${SUMMARY_MARK}two${SUMMARY_MARK}${JSON.stringify(summary)}`);
+  assert.deepEqual(r, { reply: `one${SUMMARY_MARK}two`, summary });
+});

@@ -1,0 +1,156 @@
+{
+  "id": "EX-SQL-WIN-01-E3-21",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "window",
+    "partition_by",
+    "filter_on_window",
+    "ad_spend_daily",
+    "drill"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-WIN-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-AGG-01",
+    "SQL-TYPE-01",
+    "SQL-CTE-01",
+    "SQL-WIN-01"
+  ],
+  "template_id": "T-WIN-01-filter-on-window",
+  "template_params": {
+    "table": "ad_spend_daily",
+    "partition": "campaign",
+    "threshold": "40% above",
+    "period": "July to September 2025"
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "mailvora",
+  "schema": "mailvora",
+  "edge_schema": "mailvora_edge_win",
+  "prompt": "On which days from 1 July to 30 September 2025, both days included, did a campaign spend more than 40% above its own average daily spend over that period? spend_date is a UTC day, and a campaign's average is over its rows of ad_spend_daily in that period. Compare with the exact average. Return four columns, in this order: campaign_id, spend_date, spend and campaign_avg, the campaign's average daily spend in that period rounded to 2 decimals. Return one row for each such campaign and day. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "campaign_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "spend_date",
+        "type_class": "temporal"
+      },
+      {
+        "name": "spend",
+        "type_class": "numeric"
+      },
+      {
+        "name": "campaign_avg",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "campaign_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "spend_date",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "spend",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "campaign_avg",
+        "type_class": "numeric",
+        "precision": "money",
+        "require_rounding": 2
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "campaign_id",
+      "spend_date"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the step that puts each campaign's average daily spend in the period on every one of its days.",
+    "The period filter belongs in that step, before the window averages; the comparison belongs in the outer query, after it."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 76,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 77,
+      "to": 182,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 183,
+      "to": 204,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 205,
+      "to": 280,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 283,
+      "to": 357,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 358,
+      "to": 368,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 369,
+      "to": 398,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "The step averages each campaign's days in the period and names the result, so the outer WHERE can compare every day with it."
+}

@@ -78,3 +78,8 @@ export function mistakesStatus(shown: number, total: number, due: number): strin
 /** A served try, as the exercise panel runs it: the instance the server minted, its phase, labels shown (a try is free practice or a card review). */
 export interface TriedView { key: string; item_id: string; instance_id: string; phase: Phase; hide_labels: boolean }
 export const triedView = (t: MistakeTryView): TriedView => ({ key: t.item_instance_id, item_id: t.item_id, instance_id: t.item_instance_id, phase: t.phase, hide_labels: t.hide_labels });
+
+/** S7-29: a due card with no exercise free is skipped and the next due card is served, so the try is for another card than the one clicked. */
+export const OTHER_CARD_NOTICE = 'That card is not due now, so here is the next one.';
+/** Free practice (no card in the reply) is the clicked card's own exercise; only a reply naming another card needs the notice. */
+export const servedOtherCard = (clicked: string, served: Pick<MistakeTryView, 'card_id'>): boolean => served.card_id !== null && served.card_id !== clicked;

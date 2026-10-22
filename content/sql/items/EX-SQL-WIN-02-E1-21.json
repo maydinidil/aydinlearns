@@ -1,0 +1,133 @@
+{
+  "id": "EX-SQL-WIN-02-E1-21",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "ranking",
+    "row_number",
+    "tie_break",
+    "budget_monthly",
+    "drill"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-WIN-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-WIN-01",
+    "SQL-WIN-02"
+  ],
+  "template_id": "T-WIN-02-number-within-group",
+  "template_params": {
+    "table": "budget_monthly",
+    "partition": "channel",
+    "fn": "ROW_NUMBER",
+    "order": "budget, highest first"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "mailvora",
+  "schema": "mailvora",
+  "edge_schema": "mailvora_edge_win",
+  "prompt": "For every channel, number its months of 2025 in budget_monthly from the highest budget down. When two months of a channel tie on budget_eur, the earlier month comes first. Return four columns, in this order: channel_id, month, budget_eur and budget_order, 1 for the channel's biggest budget. Return one row for each channel and month of 2025. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "channel_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "month",
+        "type_class": "temporal"
+      },
+      {
+        "name": "budget_eur",
+        "type_class": "numeric"
+      },
+      {
+        "name": "budget_order",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "channel_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "month",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "budget_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "budget_order",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "channel_id",
+      "month"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the calculated column budget_order: a number that restarts for each channel, the biggest budget first.",
+    "Every month needs its own number, so the order inside the window needs the stated tie-break after the budget."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 136,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 137,
+      "to": 156,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 157,
+      "to": 219,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 90000,
+  "why_this_works": "ROW_NUMBER numbers each channel's 2025 months from the biggest budget, and month settles two months with the same budget."
+}

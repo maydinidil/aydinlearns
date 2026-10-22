@@ -1,4 +1,5 @@
-// tests/web/nav.test.ts: which top-bar tab each route belongs to (visuals spec §4), and the tabs in order (D39: Progress after Methodology).
+// tests/web/nav.test.ts: which top-bar tab each route belongs to (visuals spec §4), and the tabs in order (D39: Progress after Methodology;
+// S7-18: Mocks after Progress).
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
@@ -10,14 +11,16 @@ const CASES: [string, ReturnType<typeof tabOf>][] = [
   ['#/inbox', 'sql'], ['#/case/CASE-PRICE-01', 'sql'], ['#/portfolio', 'sql'], ['#/explore', 'sql'],
   ['#/ga4', 'ga4'], ['#/ga4/run', 'ga4'], ['#/ga4/run/b-123', 'ga4'], ['#/reading/ga4/GA4-SETUP-01', 'ga4'], ['#/practice/ga4/GA4-SETUP-01', 'ga4'],
   ['#/progress', 'progress'], ['#/progress?x=1', 'progress'],
+  ['#/mocks', 'mocks'], ['#/mocks?stage=2', 'mocks'], ['#/mock/screen', 'mocks'], ['#/mock/review/mock-screen-1', 'mocks'],
   ['#/methodology', 'methodology'], ['#/reading/methodology/MET-MKT-02', 'methodology'], ['#/practice/methodology/MET-MKT-02', 'methodology'],
   ['#/setup', null], ['#/reading/sql/SQL-AGG-01', null], ['#/nowhere', null],
 ];
 for (const [hash, tab] of CASES) test(`${hash || '(empty)'} is ${tab ?? 'no tab'}`, () => assert.equal(tabOf(hash), tab));
 
-test('the top bar: Today, SQL, GA4, Methodology, then Progress (D39); the Progress tab is current on #/progress', () => {
+test('the top bar: Today, SQL, GA4, Methodology, then Progress (D39), then Mocks (S7-18); the Progress tab is current on #/progress', () => {
   assert.deepEqual(TABS.map((t) => [t.tab, t.label, t.href]), [
     ['today', 'Today', '#/'], ['sql', 'SQL', '#/map'], ['ga4', 'GA4', '#/ga4'], ['methodology', 'Methodology', '#/methodology'], ['progress', 'Progress', '#/progress'],
+    ['mocks', 'Mocks', '#/mocks'],
   ]);
   // AppShell marks the tab whose tab is the route's as aria-current="page".
   const current = TABS.filter((t) => t.tab === tabOf('#/progress'));

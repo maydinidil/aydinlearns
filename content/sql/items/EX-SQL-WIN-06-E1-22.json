@@ -1,0 +1,137 @@
+{
+  "id": "EX-SQL-WIN-06-E1-22",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "window",
+    "row_number",
+    "latest_row",
+    "filter_window_result",
+    "orders",
+    "drill"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-06"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-WIN-06",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-CTE-01",
+    "SQL-WIN-01",
+    "SQL-WIN-02",
+    "SQL-WIN-06"
+  ],
+  "template_id": "T-WIN-06-latest-row-then-filter",
+  "template_params": {
+    "table": "orders",
+    "key": "customer_id",
+    "test": "channel = 'web'"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_win",
+  "prompt": "Which customers with customer_id from 3001 to 3100 (both included) placed their latest order of January to June 2025 on the web? Take each such customer's latest order from 1 January to 30 June 2025 (order_ts holds UTC time; both days included, in UTC); when two orders of a customer tie on order_ts, the one with the lower order_id counts as the latest. A web order has channel 'web'. Return two columns, in this order: customer_id and order_id (the latest order). Return one row for each customer whose latest order was a web order. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "customer_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "order_id",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "customer_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "order_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "customer_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, number each customer's orders of the period from the latest; the test on the channel comes after keeping number 1.",
+    "A channel test inside the numbering step would find the latest web order instead of checking whether the latest order was a web order."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 84,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 85,
+      "to": 218,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 219,
+      "to": 232,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 233,
+      "to": 355,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 358,
+      "to": 386,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 387,
+      "to": 398,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 399,
+      "to": 433,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "The numbering finds each customer's latest order over all channels, and only then does the outer WHERE keep the customers whose latest order was a web order."
+}

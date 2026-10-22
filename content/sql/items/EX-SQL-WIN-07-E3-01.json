@@ -1,0 +1,171 @@
+{
+  "id": "EX-SQL-WIN-07-E3-01",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "window",
+    "ntile",
+    "decile",
+    "share_of_total",
+    "orders",
+    "order_lines"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-07"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-WIN-07",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-WIN-01",
+    "SQL-WIN-07"
+  ],
+  "template_id": "T-WIN-07-ntile-share",
+  "template_params": {
+    "table": "order_lines",
+    "key": "customer_id",
+    "n": 10,
+    "measure": "revenue"
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_win",
+  "prompt": "How much of the revenue from registered customers in January to June 2025 came from each tenth of those customers? Take the orders with order_ts from 1 January to 30 June 2025 (order_ts holds UTC time; both days included, in UTC) that have a customer_id; guest orders have a missing customer_id and do not count. A customer's revenue is the sum over the lines of the customer's orders of quantity times unit_price_eur minus line_discount_eur. Sort the customers from the highest revenue down and split them into ten groups whose sizes differ by at most one, the larger groups first: decile 1 holds the top spenders. When customers tie on revenue, the lower customer_id comes first. Return three columns, in this order: decile, customers (the number of customers in the decile) and revenue_share_pct, the decile's revenue as a percentage of all these customers' revenue, rounded to 1 decimal. Return one row for each decile. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "decile",
+        "type_class": "numeric"
+      },
+      {
+        "name": "customers",
+        "type_class": "numeric"
+      },
+      {
+        "name": "revenue_share_pct",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "decile",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "customers",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "revenue_share_pct",
+        "type_class": "numeric",
+        "precision": "ratio",
+        "require_rounding": 1
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "decile"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, total each registered customer's revenue, split the customers into ten groups from the highest revenue, then add up each group's revenue as a share of the whole.",
+    "The groups hold the same number of customers, not the same revenue; the share needs the total over all deciles, which a window over the grouped rows can give."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 95,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 96,
+      "to": 190,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 191,
+      "to": 256,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 257,
+      "to": 375,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 376,
+      "to": 400,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 404,
+      "to": 466,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 467,
+      "to": 568,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 569,
+      "to": 592,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 595,
+      "to": 719,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 720,
+      "to": 732,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 733,
+      "to": 748,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "NTILE(10) puts the same number of customers in each decile, and the window total over the grouped rows shows how unequal their revenue shares are."
+}

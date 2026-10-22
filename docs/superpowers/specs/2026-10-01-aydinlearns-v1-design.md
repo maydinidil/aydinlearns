@@ -76,6 +76,53 @@ already known.
 | 5. Take-home | 2-4 hours on a dataset: SQL plus a written answer | **Take-home mock:** 2 hours on a case dataset, graded checkpoints plus the written-insight rubric | Early December |
 | 6. Live SQL | Talking while typing, and follow-ups such as "can you do it another way?" | **Live rep:** a drill preset with one unseen timed item in screen mode and an "explained aloud" self-check (from slice 3). The stage passes when at least 4 reps are logged in the last 4 weeks and at least 3 of them passed. The "other ways" panel supports the follow-ups | Weekly from level 3 |
 
+**(amended 2026-10-21, sprint 7 Part 1, 0.7.0) The screen mock as built** (D104, S7-01 to S7-09):
+- 6 problems in 45 minutes, in screen mode (§6), from three held-out forms, `SCREEN-A`, `-B` and `-C`. Each form
+  holds one item from each of levels 1 to 4 and two from level 5 (one ranking or QUALIFY, one LAG, LEAD or running
+  total), served in that order, E2 or E3, at least two on Mailvora. Its 18 items (`EX-MOCK-SCREEN-<form>-NN`) are
+  held out by where they are stored (D114, S7-08): only the mock's own instances, while the run is on, and its review
+  reach them.
+- Each question takes one graded answer; Run is free. A question is **exactly right** when that answer passes on the
+  visible and the hidden data. The run passes at 5 of 6 (D102).
+- A start takes the first form with no `mock_open`, so a form opened and left unanswered is taken. Once all three are
+  taken, a start takes the one opened longest ago, as practice: its pass never meets the stage (S7-04).
+- The first pass on an unseen form meets stage 2, dated on the board (S7-05). Which moment dates it (the run's end, as
+  built, or a later step of a case mock) is settled in Part 2.
+- A form is spent once taken (S7-07, S7-C13): after the run, its review shows every question. So the forms were fixed
+  before 0.7.0, the content review's minor findings included, and a taken form is not edited.
+- The run ends at its limit, by "Hand in", or at a session end or app stop, as a drill does (S7-06). After a stop or a
+  crash mid-run, an answer to one of its questions gets the mock's "run is over" refusal and the screen opens the
+  review (S7-C18).
+- The knowledge, case-round and take-home mocks follow in 0.7.1 (D100).
+
+**(amended 2026-10-22, sprint 7 Part 2, 0.7.1) The knowledge, case-round and take-home mocks as built** (S7-10 to S7-16):
+- **Knowledge mock** (stage 3): 30 multiple-choice questions in 40 minutes, 20 Methodology from the held-out items and
+  10 GA4 from `content/ga4/knowledge-pool.json` (18 interview questions; the pool is not in the GA4 half or full
+  mock pool). Shuffled with no section labels, one answer each; pass at 24 of 30. The pool is empty-safe: until it
+  holds 10 usable GA4 items the mock is not offered (S7-C21). The review gives the score per section and topic, never a
+  question (S7-07). C25 reads the pool as a second held-out list (S7-C26); two drafts were dropped for nearness to
+  held-out items and no ERRATA row was added for four facts the files lack (S7-C31, S7-C32). Typed answers are not
+  used: the GA4 schema allows multiple choice only.
+- **What is unseen for the knowledge mock** (S7-04, S7-C36): a run is unseen when its 30 questions were unseen for 30
+  days. Every question a knowledge block's records name counts as shown at that block's `mock_open`, answered or not,
+  as a fixed form is spent once opened. S2-97 stays as it is for every other run.
+- **Case-round mock** (stage 4): `CASE-ROUND-A` (`CASE-MOCK-A`, Voltmarkt) and `-B` (`CASE-MOCK-B`, Mailvora), 45
+  minutes. The plan comes first and the server refuses a checkpoint before it (409 `PLAN_FIRST`, S7-C28). One answer
+  per checkpoint; the model plan, model answer and rubric open in the review. After CP6, "say it in 60 seconds" shows a
+  count and four points to tick, logged as an `explained_aloud` self-check; it does not decide the pass. CP3 is a
+  mock SQL item served through the mock routes.
+- **Take-home mock** (stage 5): `TAKE-HOME-A` (`CASE-TAKE-A`, `voltmarkt_raw`) and `-B` (`CASE-TAKE-B`,
+  `mailvora_raw`, edge `mailvora_edge_clean`), 120 minutes of wall time from `mock_open` (S7-15). Leaving, a
+  session end or an app stop never ends it; the idle rule may end the study session while the clock goes on (S7-C29).
+  A take-home under 24 hours old with no `block_close` is rebuilt at start with its answered checkpoints and clock; at
+  24 hours or more the first start or request closes it, and a session end never does (S7-C25). A memo saved after 120
+  minutes is late and the run cannot pass (S7-C30); "Give up" ends a run like "Hand in" (S7-C29).
+- **Pass rule** (S7-16): CP6 passes when every core rubric line is ticked (four for the case round; five for the
+  take-home, which adds a reconciliation), and the run passes with CP6 passed and at least 4 of CP1 to CP5 passed on
+  their one answer. Until the rubric is ticked an ended run reads "Waiting for your rubric". Case mock answers do not
+  count toward mastery (S7-C29).
+- **Dates** (S7-C24): a run's one date is its `mock_open`'s local date, for the history row and the stage met.
+
 **Recruitment-ready** means every stage test is passed. The Progress screen shows this as a
 readiness board (§14).
 
@@ -468,6 +515,27 @@ available at any time; their cost shows in the rating. Inside a timed drill or a
 
 **(amended 2026-10-17, sprint T)** A tutor question on an item not yet passed is help, like hint 1 (D95).
 
+**(amended 2026-10-21, sprint 7 Part 1) Help and the tutor in mocks** (D108, S7-02, S7-03):
+- While a mock runs, hints, "show answer" and "other ways" answer with the help-waits line. They open in the review,
+  free (S2-44). The screen mock's review offers "show answer".
+- The tutor is closed on the mock's run screen, and for any question that names one of the run's questions, while its
+  clock runs (D108). It opens in the review (screen `mock_review`). Other screens keep the tutor's per-screen rule, as
+  for a drill (D94).
+- Each mock question takes one graded answer, and the reply says only that it was recorded. "I was right" is refused
+  for any question served in a mock, during the run and after it, before anything that would tell a pass from a
+  failure (S7-C17).
+- A mock answer's mistakes are noted when its question closes at the run's end, not when the answer is logged, so no
+  mistake card, Today review step or feedback line shows during the run (S7-C16). Logs with no mock replay as before.
+- A screen mock answer rates its card as a drill answer (the rating map's drill row, above): Good on a pass within
+  the limit, Again otherwise, never Easy; a run reaching two or more concepts is a mixed set (S7-06, S7-C08).
+
+**(amended 2026-10-22, sprint 7 Part 2) The tutor's second opinion** (D101, S7-17, S7-C35):
+- In a case-round or take-home review, with the tutor on, the CP6 panel offers the quick prompt "Grade my written
+  answer against each rubric line: met or not, with one reason each." The snapshot holds the learner's text, the model
+  answer and the rubric lines. It shows only when CP6 has an answer (S7-C35).
+- It is logged as `tutor_asked` with screen `mock_review` and no item instance, so it is not help and changes no pass.
+  `TUTOR_PROMPT_VERSION` stays 4.
+
 **"I was right"** (LE-05):
 - It schedules as Hard at once (rating map above) and counts toward Practised.
 - It counts toward Mastered and level completion only after the weekly tune-up writes an
@@ -559,7 +627,7 @@ into grader test cases.
       or case on raw data is itself on the raw schema (`schema: 'voltmarkt_raw'`, edge schema
       `voltmarkt_edge_clean`) and reads its tables by unqualified name, so the hidden run swaps
       them like any other item. The qualified `_raw` name is for the explorer, from Part 2
-      (S6-24). **(amended 2026-10-16, sprint 6 Part 2)** From 1.5 the explorer's dataset picker offers
+      (S6-24). **(amended 2026-10-16, sprint 6 Part 2)** From 0.6.1 the explorer's dataset picker offers
       `voltmarkt`, `mailvora`, their raw schemas and every prepared real and 8 Week SQL Challenge schema.
 1. **Run.** The query runs on the visible dataset and on the hidden edge-case dataset (NULLs,
    ties, empty groups, boundary dates), with a default timeout of 5 seconds each. §11 says how a
@@ -913,7 +981,7 @@ added this section on 2026-10-02.
 | Company | World | Arrives | Changes before or at its first build |
 |---|---|---|---|
 | Voltmarkt (CO-01, Utrecht) | Pricing and promotions, plus stores | Slice 1 | In the **first** build, because they alter the tables levels 1-2 use: `stores.close_date` with planted openings and closures, elasticity within SKU (FIND-01-11), a ship-to country, the check on whether FIND-01-04's Black Week and Sinterklaas multipliers stack, and **the canonical beginner sales view** (below). Appended tables arrive with the slice that needs them: `cost_history` (PRICE-05) and chain-wide inventory (FIND-01-09) |
-| Mailvora (CO-03, Dublin) | Marketing performance | Slice 5 | A budget table (MKT-02). FIND-03-11 stores spend per day, so there is no hour to shift. **As built (1.5, S6-20):** `mailvora` and `mailvora_raw` from seed 3303, every older object's hash unchanged, and the edge schema `mailvora_edge_case` |
+| Mailvora (CO-03, Dublin) | Marketing performance | Slice 5 | A budget table (MKT-02). FIND-03-11 stores spend per day, so there is no hour to shift. **As built (0.6.1, S6-20):** `mailvora` and `mailvora_raw` from seed 3303, every older object's hash unchanged, and the edge schema `mailvora_edge_case` |
 | LedgerLoop (CO-02, Ghent) | B2B SaaS | Slice 7 | Opening-balance MRR events: about €11M ARR (about €0.9M MRR) already exists on day 1, so the opening events must sum to about €0.9M MRR (FIND-02-03). Leads, opportunities, COGS and full S&M expense. Check FIND-02-01 and FIND-02-15 |
 | Noordkant (CO-04, Amsterdam) | Retail e-commerce operations | After the first applications | Stock receipts. A returned-units rule: `returns` already carries `order_line_id` but has no units, so the view treats a return as the whole line (units = `order_lines.quantity`). The 04 case SQL joins returns through `order_line_id`. Check FIND-04-12 |
 
@@ -996,7 +1064,7 @@ the owner.**
 
 | When | Datasets |
 |---|---|
-| Slice 5 (mid November) | 8 Week SQL Challenge case studies, Online Retail II, Breakfast at the Frat. **As built (1.5, S6-21 to S6-23):** one record each in `content/datasets/registry.json`; `npm run prep:datasets` reads the owner's downloads into `data/real/` and rebuilds; the edge schemas `online_retail_ii_edge` and `breakfast_at_the_frat_edge` are always built |
+| Slice 5 (mid November) | 8 Week SQL Challenge case studies, Online Retail II, Breakfast at the Frat. **As built (0.6.1, S6-21 to S6-23):** one record each in `content/datasets/registry.json`; `npm run prep:datasets` reads the owner's downloads into `data/real/` and rebuilds; the edge schemas `online_retail_ii_edge` and `breakfast_at_the_frat_edge` are always built |
 | Slice 7 (mid December) | Olist, Maven Toy Store |
 | After the first applications | KKBox as the SaaS capstone, if the Kaggle check passes (review #18a): `transactions`, `transactions_v2`, `members_v3` (review #13), plus `train_v2` for churn labels; the `user_logs` files are skipped. The 09 MRR-bridge fixes (review #16) apply first |
 | Post-v1 | Dominick's, Carbo-Loading, Criteo, Robyn and Meridian (labelled simulated or transformed), plus TheLook and the GA4 sample, which need the same Google Cloud pull as the deferred bridge |
@@ -1013,7 +1081,7 @@ ground.
 | METHOD | Olist and Online Retail II | Divergence cards: alternative reference SQL for different definitions |
 
 Link-outs to public solutions are available on each real-data question from slice 5. **(amended 2026-10-16,
-sprint 6 Part 2)** As built in 1.5, the links are on each real dataset's card in the explorer (the registry's
+sprint 6 Part 2)** As built in 0.6.1, the links are on each real dataset's card in the explorer (the registry's
 `links`); the registry's own manager questions are not shown in the app yet.
 
 ## 11. Architecture
@@ -1532,6 +1600,28 @@ a half-mock. Both changes are additive: a version 4 log reads as before, and a r
 `tutor_daily_cap_usd` setting. Both are additive; replay reads versions 1 to 6. See the
 [AI tutor design](2026-10-16-aydinlearns-ai-tutor-design.md) §7.
 
+**(amended 2026-10-21, sprint 7 Part 1) Log format version 7** (`SCHEMA_VERSION` 7, D112): three additive changes.
+- `mock_open`, in the attempt files, written once when a mock starts (S7-01): `{ record: 'mock_open',
+  schema_version: 7, ts, session_id, block_id, mock, form_id, minutes, on_unseen }`. `mock` is `screen`, `knowledge`,
+  `case_round` or `take_home`; `block_id` is `mock-<mock>-<uuid>`; `on_unseen` is what the start decided. Every item the
+  run serves carries that `block_id` and phase `mock`, and its end writes the `block_close` a drill writes. Each run
+  (on, ended, its score, passed, and whether it counts) is derived from these records alone (`server/mocks.ts`); a
+  form opened before is practice whatever its `on_unseen` says.
+- `run_kind: 'knowledge_mock'` on a knowledge mock's answers, so the GA4 run history never reads one as a half-mock
+  (used from 0.7.1).
+- `tutor_asked.ts` is the time the question was asked, not the reply's end (S7-33).
+
+Replay reads versions 1 to 7, and a log with no mock record replays exactly as before. At startup, recovery writes the
+missing `block_close` of a screen mock whose `mock_open` has none, stamped at its session's recovered end and never
+after its limit (S7-C18); a take-home keeps its own wall clock (S7-15).
+
+**(amended 2026-10-22, sprint 7 Part 2) `pass_correct` on `mock_open`** (S7-C34, the owner's call on Codex F35): an
+additive field, the number of correct answers the run needs, written for every kind (screen `pass_correct`; knowledge
+`ceil(pass_pct x questions / 100)`, which is 24; case-round and take-home `auto_min`, which is 4). Replay scores each
+run on its own served questions and its own pass mark, and a `mock_open` without the field reads as the file's value.
+The journey's run events cover every mock kind; a knowledge or case mock carries no SQL section, and a case-mock
+`run_finished` has no pass flag.
+
 **The aydinlearns extension:**
 - `world`, `difficulty`, `sub_skill`, `dataset_version`, `duckdb_version`;
 - the SQL payload: the submitted query, per-dataset results, the matched planted wrong query, a
@@ -1553,7 +1643,7 @@ a half-mock. Both changes are additive: a version 4 log reads as before, and a r
 | `override_confirm` / `override_revert` | Refers back to an `attempt_id` |
 | `outside_practice` | Manual entries: SQLBolt, LeetCode or HackerRank work, and the monthly outside benchmark with its score |
 | `external_result` | Manual entries from Settings: the real GA4 exam (date, score, pass), and a finalised portfolio piece (title, data source, real or fictional). Stage 1 (§2.1) reads them |
-| `session` | Start, end, section and active minutes. Information and time-target calibration only, never a plan. A session ends explicitly, or after 30 minutes idle; if the server stops first, it writes the missing end at its next start. Replay reads session ends only from this event |
+| `session` | Start, end, section and active minutes. Information and time-target calibration only, never a plan. A session ends explicitly, or after 30 minutes idle; if the server stops first, it writes the missing end at its next start. Replay reads session ends only from this event. **(amended 2026-10-21, sprint 7 Part 1, S7-C19)** While a mock runs before its limit, idle time does not end the session; the mock's own limit ends the run |
 
 **Learner state is derived.** Replay walks the log in time order through ts-fsrs's `next()`. It:
 - switches config at each `config_change`;
@@ -1585,6 +1675,24 @@ folder. Restoring means copying it back and replaying.
 | Dataset explorer | Schema browser and a free, ungraded editor | Slice 3 |
 | Portfolio | Solved cases, export with CSV, flagship drafts | Slice 3 |
 | Recruiter mocks | Screen mock, knowledge mock, case-round mock, take-home mock (§2.1) | Slice 6 |
+
+**(amended 2026-10-21, sprint 7 Part 1) The Recruiter mocks screen as built in 0.7.0** (S7-18, S7-04, S7-05):
+- `#/mocks`, "Mocks" in the top bar after Progress. Six stage cards in stage order, each with its readiness board chip
+  and criterion lines: stage 1 (the GA4 exam and two portfolio pieces, with a link to Settings' external results);
+  stage 2 (the screen mock's rules, the forms left unseen, Start, and the history: date, score, passed, late, practice,
+  and a review link per run); stages 3 to 5 (what each tests, and "Coming in 0.7.1"); stage 6 (live reps logged and
+  passed in the last 4 weeks, with a link to Drills). Each Progress board row opens its stage's card.
+- The start screen shows the rules, the help line, and whether the form is new to you or practice (S7-04's line).
+- The board reads its mock stages from the mock runs (S7-05): met, with the date of the first pass on an unseen form;
+  open when a start can take a form; "not yet available" otherwise. A met stage stays met, and its date reads like
+  every other date ("Screen mock passed on 3 November").
+- Part 2 completes the screen with the other three mocks (0.7.1).
+
+**(amended 2026-10-22, sprint 7 Part 2, 0.7.1) The Recruiter mocks screen, complete:** all six stage cards are live.
+Stages 3 to 5 show the mock's rules (questions, minutes, pass mark), the forms left unseen or, for the knowledge mock,
+the date enough unseen questions come back, Start, the history (date, score, passed, late, practice, a review link)
+and, for a case mock waiting on its rubric, "Waiting for your rubric". The "Coming in 0.7.1" lines are gone. The case
+mocks run on their own screen (`CaseMockScreen`), sharing the mock-question editor with the screen mock.
 
 ## 15. The shared core for aydindutch
 
@@ -1637,10 +1745,10 @@ serves (§2.2). If a slice misses its date, the slip rule in §2.3 applies.
 | **7. SQL level 6, LedgerLoop, more real data** | Take-home patterns. LedgerLoop with opening balances, and the SaaS and MKT-05 cases. Olist and Maven Toy Store | Level 6 is completable. SaaS cases pass on LedgerLoop | 2026-12-07 |
 | **After the first applications** | v1: level 7 (BigQuery, craft), Noordkant and the retail cases, KKBox, the compare-with-others tiers, the other GA4 labs, GA4 bank growth, the optimiser path. Post-v1: the GA4-export bridge and TheLook, the remaining datasets, copying `core/` into aydindutch. Future update: PL-300 | | January onward |
 
-**Release numbers (D63, 2026-10-08).** The app was released as 1.0 (version 1.0.0) after sprint
-5a: slices 0 to 3 and the Methodology half of slice 4. The rest of the table above ships as 1.x
-releases, starting with slice 4's GA4 half as 1.1. What this design calls post-v1 becomes 2.0 or
-later. "v1" in this design still means the whole plan above, not release 1.0.
+**Release numbers (D63, 2026-10-08).** The app was released as 0.5.0 (version 0.5.0) after sprint
+5a: slices 0 to 3 and the Methodology half of slice 4. The rest of the table above ships as 0.x
+releases, starting with slice 4's GA4 half as 0.5.1. What this design calls post-v1 becomes 2.0 or
+later. "v1" in this design still means the whole plan above, not release 0.5.0.
 
 ## 17. Testing
 
@@ -1672,7 +1780,12 @@ not refuse them. Through the gate, both are refused, as for any statement that i
 - `read_duckdb` aimed at a truth file;
 - replacement scans;
 - `query()` and `query_table()`;
-- runaway queries.
+- runaway queries;
+- **(amended 2026-10-21, sprint 7 Part 1, S7-23)** an unused named WINDOW whose ORDER BY calls a function the gate
+  refuses (`SELECT 1 AS x WINDOW w AS (ORDER BY <that function>)`). Result: the gate's text denylist refuses every
+  refused function placed there before prepare, and DuckDB 1.5.6 never binds or runs an unused WINDOW (the parse tree
+  drops it), so nothing in one is evaluated or read. `tests/runner/escape-probes.test.ts` pins both through the real
+  runner, and also that a WINDOW that is used stays in the tree, where the gate sees what it calls and reads.
 
 **Semantics probes:**
 - NULL matching and type coercion inside `EXCEPT ALL`;

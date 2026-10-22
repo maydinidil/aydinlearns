@@ -7,32 +7,15 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { SCHEMA_VERSION } from '../../core/envelope.ts';
 import { openJsonlLog } from '../../core/jsonl.ts';
-import type { LabAnswer } from '../../schemas/log-ext.ts';
 import { AttemptLogger } from '../../server/log.ts';
 import { instanceFacts, revealRate, topicReadiness, trends } from '../../server/progress.ts';
-import { instance, item, run, snapshot, A, C, GA4, card, type Log } from '../helpers/replay-fixture.ts';
+import { run, snapshot, GA4, card, type Log } from '../helpers/replay-fixture.ts';
+// L86 (Task N2): the builders live in a helper, so the log version 7 test replays this log too.
+import { attemptsOnly, labAnswer, withLab } from '../helpers/replay-logs.ts';
 
-const at = (hms: string): string => `2026-11-03T${hms}Z`;
 const TODAY = '2026-11-03';
 
-const labAnswer = (ts: string, over: Partial<LabAnswer> = {}): LabAnswer => ({
-  record: 'lab_answer', schema_version: SCHEMA_VERSION, ts, session_id: 'S-V5', lab_id: 'LAB-GA4-01', lab_version: 1, kind: 'first',
-  month: '2026-10', range: null,
-  parts: [{ part_id: 'P1', value: 'Sessions', result: 'pass' }, { part_id: 'P2', value: 42, result: 'fail' }, { part_id: 'P3', value: null, result: 'not_checked' }],
-  note: null, ...over,
-});
-
-function attemptsOnly(): Log {
-  const attempts = [
-    ...instance({ id: 'V5-1', item: item(A, 'E1-01'), concept: A, start: at('09:01:00'), steps: [{ at: at('09:02:00'), submit: 'fail', errors: ['ERR-LOG-00'] }, { at: at('09:03:00'), submit: 'pass' }], version: 2 }),
-    ...instance({ id: 'V5-2', item: item(C, 'E1-02'), concept: C, start: at('09:05:00'), steps: [{ at: at('09:06:30'), submit: 'pass' }], version: 2 }),
-    ...instance({ id: 'V5-3', item: 'EX-GA4-SETUP-01-Q1', concept: GA4, section: 'ga4', kind: 'mcq', start: at('09:10:00'), steps: [{ at: at('09:11:00'), submit: 'pass' }], version: 2 }),
-  ];
-  return { attempts, events: [] };
-}
-const withLab = (log: Log): Log => ({ ...log, attempts: [log.attempts[0], labAnswer(at('09:02:30')), ...log.attempts.slice(1, 4), labAnswer(at('09:07:00'), { kind: 'recheck', range: { from: '2026-10-01', to: '2026-10-31' }, month: null, note: 'again' }), ...log.attempts.slice(4)] });
-
-test('the log version is 6 (5 added lab_answer)', () => assert.equal(SCHEMA_VERSION, 6));
+test('the log version is 7 (5 added lab_answer; 7 is D112, tests/server/log-v7.test.ts)', () => assert.equal(SCHEMA_VERSION, 7));
 
 test('replay over a log with lab_answer records gives the same result and no warnings', () => {
   const plain = attemptsOnly();

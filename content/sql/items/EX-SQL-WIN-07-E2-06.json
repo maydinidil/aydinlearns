@@ -1,0 +1,173 @@
+{
+  "id": "EX-SQL-WIN-07-E2-06",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "percentile",
+    "quartile_cut",
+    "cte",
+    "join",
+    "ad_spend_daily",
+    "campaigns"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-07"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-WIN-07",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-WIN-07"
+  ],
+  "template_id": "T-WIN-07-percentile-cutoff",
+  "template_params": {
+    "table": "ad_spend_daily",
+    "group": "channel",
+    "measure": "spend",
+    "p": 0.75
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "mailvora",
+  "schema": "mailvora",
+  "edge_schema": "mailvora_edge_win",
+  "prompt": "Which campaigns spent at or above their channel's 75th percentile of campaign spend from 1 July to 31 October 2025, both days included? spend_date is a UTC day, a campaign's spend is the sum of its spend in ad_spend_daily over those days, and only campaigns with rows in that period count. Use the continuous 75th percentile of the channel's campaign spends: when it falls between two campaigns' spends, it lies between them in proportion. Return three columns, in this order: channel_id, campaign_id and spend. Return one row for each such campaign. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "channel_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "campaign_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "spend",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "channel_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "campaign_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "spend",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "campaign_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, total each campaign's spend, work out each channel's 75th percentile of those totals, then keep the campaigns at or above it.",
+    "The cut point is one value per channel, worked out from the campaign totals; compare each campaign with its own channel's cut."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 79,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 80,
+      "to": 139,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 140,
+      "to": 215,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 216,
+      "to": 284,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 285,
+      "to": 323,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 327,
+      "to": 402,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 403,
+      "to": 488,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 489,
+      "to": 510,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 511,
+      "to": 532,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 535,
+      "to": 581,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 582,
+      "to": 653,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 654,
+      "to": 684,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "The cutoffs step works out one 75th percentile per channel from the campaign totals, and the join compares each campaign with its own channel's cut."
+}

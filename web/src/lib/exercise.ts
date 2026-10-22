@@ -1,7 +1,7 @@
 // web/src/lib/exercise.ts
 import { DEFAULT_RULES, type GradingRules } from '../../../schemas/item.ts';
 import type { DatasetResult, DiffSample, GradeOutcome, PartialScore } from '../../../server/grader/types.ts';
-import type { DisplayOk } from '../../../server/runner/protocol.ts';
+import type { DisplayOk, RunnerError } from '../../../server/runner/protocol.ts';
 import { ApiError } from '../api.ts';
 
 /** One showing of an exercise, as the browser tracks it. The server knows it by `id`, and closes it once. */
@@ -101,6 +101,10 @@ export function canDispute(g: { outcome: GradeOutcome; attempt_id: string | null
 
 /** Leaving after a pass (or an "I was right") closes the item as passed, by the Next button or by navigating away. */
 export function closeReason(i: { passed: boolean }): 'pass' | 'left' { return i.passed ? 'pass' : 'left'; }
+
+/** What a Run that could not finish says: the runner's own message, or why it stopped. One line for every panel that runs an item (L105). */
+export const runErrorLine = (e: RunnerError): string =>
+  ('message' in e ? e.message : e.kind === 'timeout' ? 'Stopped: the query took too long. It may be multiplying rows.' : 'The query could not run.');
 
 /**
  * The grain sentence after the output contract ("One row per customer."), or '' when the item has none. S4-04: the content decides

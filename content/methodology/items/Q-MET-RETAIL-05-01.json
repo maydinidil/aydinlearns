@@ -1,29 +1,29 @@
 {
   "id": "Q-MET-RETAIL-05-01",
-  "version": 1,
+  "version": 2,
   "kind": "mcq",
   "section": "methodology",
   "concept_id": "MET-RETAIL-05",
-  "stem": "After a laptop sold out for a week, Voltmarkt's commercial director asks: \"How many units did that store fail to sell because the shelf was empty?\" Which metric answers this question?",
+  "stem": "After a laptop sold out for a week, Voltmarkt's commercial director asks: \"How many units did that store fail to sell because the shelf was empty?\" Which calculation answers this question?",
   "options": [
     {
       "oid": "o2897db7",
-      "text": "Stockout rate",
+      "text": "100 × days that closed at 0 units / all days",
       "misconception_id": null
     },
     {
       "oid": "o6e28ba9",
-      "text": "Lost sales estimate",
+      "text": "Days that closed at 0 × units sold per in-stock day",
       "misconception_id": null
     },
     {
       "oid": "o4cb9ecb",
-      "text": "Stock cover (weeks)",
+      "text": "Units on hand / average weekly units sold",
       "misconception_id": null
     },
     {
       "oid": "oea10663",
-      "text": "Promo uplift vs baseline",
+      "text": "100 × (average deal-week units - baseline) / baseline units",
       "misconception_id": null
     }
   ],

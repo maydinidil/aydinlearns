@@ -1,6 +1,6 @@
 {
   "id": "EX-CASE-REAL-01",
-  "version": 1,
+  "version": 2,
   "kind": "write",
   "tags": [
     "sql",
@@ -55,7 +55,7 @@
   "company": "online_retail_ii",
   "schema": "online_retail_ii",
   "edge_schema": "online_retail_ii_edge",
-  "prompt": "Noor, the analytics lead, sets this take-home task on Online Retail II, a public dataset of the invoice lines of a UK online gift shop, and asks how the shop's net product revenue moved through 2010. Take the lines dated from 1 January to 31 December 2010, each in the month of its invoice date. A product line is a line whose stock code starts with a digit; every other code, such as POST, DOT, M or BANK CHARGES, is postage, a fee, an adjustment or a voucher, and stays out. An invoice whose number starts with C is a cancellation: it counts in the month of its own date, and its quantities are negative. A line's value is its quantity times its price, in pounds sterling, and lines with a missing customer ID count. The data holds December 2010 once, although both of the source's sheets held that month. A line that matches another line in every column, a missing value matching a missing value, is a copy: count it once. Return one row per month with five columns in this order: month_start, the first day of the month; sales_gbp, the value of the product lines on invoices that are not cancellations; cancelled_gbp, the value of the product lines on cancellations, as a positive amount; net_revenue_gbp, sales_gbp minus cancelled_gbp; and cancelled_pct, 100 times cancelled_gbp divided by sales_gbp, missing when sales_gbp is 0. Round the three amounts to 2 decimals and cancelled_pct to 1 decimal. Sort by month_start from early to late.",
+  "prompt": "Noor, the analytics lead, sets this take-home task on Online Retail II, a public dataset of the invoice lines of a UK online gift shop, and asks how the shop's net product revenue moved through 2010. Take the lines dated from 1 January to 31 December 2010, each in the month of its invoice date. A product line is a line whose stock code starts with a digit; every other code stays out, such as POST, DOT, M or BANK CHARGES for postage, fees, adjustments and vouchers. An invoice whose number starts with C is a cancellation: it counts in the month of its own date, and its quantities are negative. A line's value is its quantity times its price, in pounds sterling, and lines with a missing customer ID count. Both of the source's sheets held some of the same December 2010 lines, and the data keeps one copy of those. A line that matches another line in every column, a missing value matching a missing value, is a copy: count it once. Return one row per month with five columns in this order: month_start, the first day of the month; sales_gbp, the value of the product lines on invoices that are not cancellations; cancelled_gbp, the value of the product lines on cancellations, as a positive amount; net_revenue_gbp, sales_gbp minus cancelled_gbp; and cancelled_pct, 100 times cancelled_gbp divided by sales_gbp, missing when sales_gbp is 0. Round the three amounts to 2 decimals and cancelled_pct to 1 decimal. Sort by month_start from early to late.",
   "output_contract": {
     "columns": [
       {

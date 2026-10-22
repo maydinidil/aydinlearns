@@ -29,7 +29,7 @@
 // Incremental mode (sprint 3, S3-21, S3-22): new items join the pool, and a few held items leave it, without ever moving an
 // item the learner has practised. Usage:
 //   node tools/reserve-held-out.ts <ga4|methodology> --extend --candidates <file>
-//     (--per-card <k> | --topic <T> --count <n> [--release-from <T1,T2,...>]) [--logs <dir>] [content-root]
+//     (--per-card <k> | --topic <T> --count <n> [--release-from <T1,T2,...> | --release-list <file>]) [--logs <dir>] [content-root]
 // - <file> lists, one item ID per line, the only items that may be ADDED (the new, unpublished ones). A candidate that is not in
 //   the bank or is already held refuses the run. One that may not be held out (C25's eligibility: practice-only, unverified, D23's
 //   list, inactive, a 2026 feature) is skipped, and the output says how many were skipped (a count only). Too few eligible
@@ -37,6 +37,10 @@
 // - --per-card k adds k candidates for every card that has candidates (Methodology: 1 per new metric). --topic T --count n adds
 //   n candidates of topic T. --release-from T1,T2 releases the same number of held items, from T1 first, then T2, so the total
 //   is unchanged. Without it nothing is released.
+// - --release-list <file> (S7-38) releases exactly the held items it lists, one item ID per line, instead of choosing by topic: a swap
+//   of one held item for a candidate. It cannot be combined with --release-from. The number listed must equal the number to add
+//   (so the total is unchanged); a listed item that is not in the bank, is not held, or is named by a log record refuses the run.
+//   Every other rule holds for the result.
 // - The choice follows the draw's order: the card with the most practice items of the topic left (ties: fewer held, then the
 //   card ID), an item that blocks no other candidate first, then the hash of the item ID. A release takes the card with the
 //   most held items first, then the hash. Nothing is random.
@@ -46,6 +50,9 @@
 //   serving or instance record, solution_opened, item_close); a candidate named there is refused, a held item named there is
 //   not released. Without --logs this is safe this sprint because no route has ever served a held-out item (S2-64) and the
 //   candidates are new, unpublished items, so no record can name them.
+// - The GA4 knowledge pool (ga4/knowledge-pool.json, S7-C26) is a second held-out list: its items count as held for enemy groups
+//   and floors, but are never written to held-out.json, never counted in the output, and never released (a --release-list naming one
+//   refuses; --release-from only picks from the exam pool).
 // The output is counts only, as above.
 import { createHash } from 'node:crypto';
 import { readdir, readFile, writeFile } from 'node:fs/promises';
@@ -241,6 +248,13 @@ function currentPool(bank: ChoiceBank): Set<string> {
   return pool;
 }
 
+/** The knowledge pool's item IDs (GA4's second held-out list, S7-C26); empty when the file is missing or unreadable. */
+function knowledgePoolIds(bank: ChoiceBank): Set<string> {
+  const listed = bank.knowledgePool?.readable && bank.knowledgePool.data && typeof bank.knowledgePool.data === 'object'
+    ? (bank.knowledgePool.data as { item_ids?: unknown }).item_ids : undefined;
+  return new Set(Array.isArray(listed) ? listed.filter((id): id is string => typeof id === 'string') : []);
+}
+
 /** What an incremental run asks for. */
 export interface ExtendOptions {
   candidates: ReadonlySet<string>;
@@ -248,8 +262,15 @@ export interface ExtendOptions {
   topic?: string;
   count?: number;
   releaseFrom?: readonly string[];
+  /** Exactly the held items to release (S7-38); the count must equal the number to add. Not with `releaseFrom`. */
+  releaseList?: ReadonlySet<string>;
   /** Item IDs named by a log record: they may neither be added nor released. */
   logged?: ReadonlySet<string>;
+  /**
+   * The knowledge pool's item IDs (GA4, S7-C26): a second held-out list. They count as held for enemy groups and floors, as C25
+   * counts them, but are never added to or released from the pool, never written to held-out.json and never counted in the output.
+   */
+  knowledge?: ReadonlySet<string>;
 }
 export interface Extension { pool: string[]; added: number; released: number; skipped: number; topics: { topic: string; before: number; after: number }[]; cards: CardCount[] }
 export class ExtendRefusal extends Error {}
@@ -271,7 +292,8 @@ export function extendHeldOut(section: ChoiceSection, items: readonly ChoiceItem
   const found = [...opts.candidates].map((id) => byId.get(id));
   if (found.some((c) => !c)) refuse(`${plural(found.filter((c) => !c).length, 'candidate is', 'candidates are')} not in the ${section} bank`);
   const listed = found as ChoiceItem[];
-  const alreadyHeld = listed.filter((c) => pool.has(c.id)).length;
+  const knowledge = opts.knowledge ?? new Set<string>();
+  const alreadyHeld = listed.filter((c) => pool.has(c.id) || knowledge.has(c.id)).length;
   if (alreadyHeld) refuse(`${plural(alreadyHeld, 'candidate is', 'candidates are')} already held out`);
   const weighted = (c: ChoiceItem): boolean => rules.weights === null || (rules.weights[topicOf(c) ?? ''] ?? 0) > 0;
   // An ineligible candidate (D23's list, unverified, not active, a 2026 feature, a practice-only concept, or no topic weight) is skipped and counted.
@@ -283,7 +305,7 @@ export function extendHeldOut(section: ChoiceSection, items: readonly ChoiceItem
   if (heldItems.length < pool.size) refuse(`${plural(pool.size - heldItems.length, 'held-out ID is', 'held-out IDs are')} not in the ${section} bank`);
 
   const active = items.filter((i) => i.status === 'active');
-  const next = new Set(pool);
+  const next = new Set([...pool, ...[...knowledge].filter((id) => byId.has(id))]);
   const heldIn = (card: string): number => active.filter((i) => next.has(i.id) && cardOf(i) === card).length;
   const usedGroups = (): Set<string> => new Set(active.filter((i) => next.has(i.id) && i.enemy_group !== null).map((i) => i.enemy_group!));
   const counts = new Set(active.filter((i) => levelOneCoreItem(i, conceptById)).map((i) => i.id));
@@ -295,6 +317,20 @@ export function extendHeldOut(section: ChoiceSection, items: readonly ChoiceItem
   // Release first: it frees enemy groups the candidates may need. T1 first, then T2; the card with most held items first, then the hash.
   const released: string[] = [];
   const release = (n: number): void => {
+    if (opts.releaseList) {
+      const listedIds = [...opts.releaseList];
+      const missing = listedIds.filter((id) => !byId.has(id)).length;
+      if (missing) refuse(`${plural(missing, 'listed item is', 'listed items are')} not in the ${section} bank`);
+      const inKnowledge = listedIds.filter((id) => knowledge.has(id)).length;
+      if (inKnowledge) refuse(`${plural(inKnowledge, 'listed item is', 'listed items are')} in the knowledge pool, which a release never touches`);
+      const notHeld = listedIds.filter((id) => !pool.has(id)).length;
+      if (notHeld) refuse(`${plural(notHeld, 'listed item is', 'listed items are')} not held out`);
+      const named = listedIds.filter((id) => logged.has(id)).length;
+      if (named) refuse(`${plural(named, 'listed item is', 'listed items are')} named by a log record`);
+      if (listedIds.length !== n) refuse(`${plural(listedIds.length, 'item is', 'items are')} listed for release, ${n} to add`);
+      for (const id of listedIds) { next.delete(id); released.push(id); }
+      return;
+    }
     for (const t of opts.releaseFrom ?? []) {
       const pickable = heldItems.filter((i) => next.has(i.id) && topicOf(i) === t && !logged.has(i.id));
       while (released.length < n && pickable.length) {
@@ -327,11 +363,13 @@ export function extendHeldOut(section: ChoiceSection, items: readonly ChoiceItem
     return true;
   };
 
+  if (opts.releaseList && opts.releaseFrom) refuse('--release-list cannot be combined with --release-from');
+  const releasing = opts.releaseFrom !== undefined || opts.releaseList !== undefined;
   if (opts.perCard !== undefined) {
     if (opts.topic !== undefined || opts.count !== undefined) refuse('--per-card cannot be combined with --topic or --count');
     const perCard = new Map<string, ChoiceItem[]>();
     for (const c of cands) perCard.set(cardOf(c), [...(perCard.get(cardOf(c)) ?? []), c]);
-    if (opts.releaseFrom) release(perCard.size * opts.perCard);
+    if (releasing) release(perCard.size * opts.perCard);
     for (const card of [...perCard.keys()].sort(byText)) {
       for (let k = 0; k < opts.perCard; k++) {
         if (!addOne(perCard.get(card)!, null)) refuse(`a card with candidates can take only ${k} of ${opts.perCard} (enemy groups or its practice floor)`);
@@ -342,16 +380,17 @@ export function extendHeldOut(section: ChoiceSection, items: readonly ChoiceItem
     const n = opts.count!;
     const inTopic = cands.filter((c) => topicOf(c) === opts.topic);
     if (inTopic.length < n) refuse(`only ${inTopic.length} candidates are of topic ${opts.topic}, ${n} wanted`);
-    if (opts.releaseFrom) release(n);
+    if (releasing) release(n);
     for (let k = 0; k < n; k++) {
       if (!addOne(inTopic, opts.topic!)) refuse(`only ${k} of ${n} candidates of topic ${opts.topic} can be added (enemy groups or practice floors)`);
     }
   }
 
   // The result must pass C25's rules.
-  const finalItems = [...next].map((id) => byId.get(id)!);
+  const allHeld = [...next].map((id) => byId.get(id)!);
+  const finalItems = allHeld.filter((i) => !knowledge.has(i.id));   // the exam pool alone; the knowledge pool is its own file
   const wasHeld = new Set(heldItems.map((i) => i.id));
-  const groups = finalItems.filter((i) => i.enemy_group !== null).map((i) => i.enemy_group);
+  const groups = allHeld.filter((i) => i.enemy_group !== null).map((i) => i.enemy_group);
   if (new Set(groups).size !== groups.length) refuse('the new pool would hold two items of one enemy group');
   const cardIds = [...new Set(active.map(cardOf))].sort(byText);
   const cards = cardIds.map((card) => {
@@ -364,7 +403,7 @@ export function extendHeldOut(section: ChoiceSection, items: readonly ChoiceItem
   if (lowLevelOne) refuse(`${plural(lowLevelOne, 'level 1 parent', 'level 1 parents')} would fall below S2-103's own-topic floor`);
   const topicIds = [...new Set(active.map(topicOf).filter((t): t is string => t !== null))].sort(byText);
   return {
-    pool: [...next].sort(byText), added: finalItems.filter((i) => !wasHeld.has(i.id)).length, released: released.length, skipped,
+    pool: finalItems.map((i) => i.id).sort(byText), added: finalItems.filter((i) => !wasHeld.has(i.id)).length, released: released.length, skipped,
     topics: topicIds.map((t) => ({ topic: t, before: heldItems.filter((i) => topicOf(i) === t).length, after: finalItems.filter((i) => topicOf(i) === t).length })),
     cards,
   };
@@ -385,7 +424,13 @@ async function loggedIds(dir: string, ids: readonly string[]): Promise<Set<strin
   return named;
 }
 
-const EXTEND_USAGE = 'Usage: node tools/reserve-held-out.ts <ga4|methodology> --extend --candidates <file> (--per-card <k> | --topic <T> --count <n> [--release-from <T1,T2,...>]) [--logs <dir>] [content-root]';
+const EXTEND_USAGE = 'Usage: node tools/reserve-held-out.ts <ga4|methodology> --extend --candidates <file> (--per-card <k> | --topic <T> --count <n> [--release-from <T1,T2,...> | --release-list <file>]) [--logs <dir>] [content-root]';
+
+/** The item IDs a list file holds, one per line; null when the file cannot be read. */
+async function readIdList(file: string): Promise<Set<string> | null> {
+  const text = await readFile(resolve(file), 'utf8').catch(() => null);
+  return text === null ? null : new Set(text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean));
+}
 
 async function extendMain(argv: string[]): Promise<number> {
   const flags = new Map<string, string>();
@@ -393,7 +438,7 @@ async function extendMain(argv: string[]): Promise<number> {
   for (let k = 0; k < argv.length; k++) {
     const a = argv[k]!;
     if (a === '--extend') continue;
-    if (['--candidates', '--per-card', '--topic', '--count', '--release-from', '--logs'].includes(a)) {
+    if (['--candidates', '--per-card', '--topic', '--count', '--release-from', '--release-list', '--logs'].includes(a)) {
       const v = argv[++k];
       if (v === undefined || v.startsWith('--')) { console.error(`${a} needs a value. ${EXTEND_USAGE}`); return 1; }
       flags.set(a, v);
@@ -413,25 +458,32 @@ async function extendMain(argv: string[]): Promise<number> {
   const s = section as ChoiceSection;
   const root = rootArg ? resolve(rootArg) : fileURLToPath(new URL('../content', import.meta.url));
   const fail = (m: string): number => { console.error(`${s}: ${m}. Nothing was written.`); return 1; };
-  const candidateText = await readFile(resolve(flags.get('--candidates')!), 'utf8').catch(() => null);
-  if (candidateText === null) return fail('the candidates file cannot be read');
-  const candidates = new Set(candidateText.split(/\r?\n/).map((l) => l.trim()).filter(Boolean));
+  const candidates = await readIdList(flags.get('--candidates')!);
+  if (candidates === null) return fail('the candidates file cannot be read');
   if (!candidates.size) return fail('the candidates file lists no item');
+  let releaseList: Set<string> | undefined;
+  if (flags.has('--release-list')) {
+    const list = await readIdList(flags.get('--release-list')!);
+    if (list === null) return fail('the release list file cannot be read');
+    if (!list.size) return fail('the release list file lists no item');
+    releaseList = list;
+  }
   const bank = await loadChoiceBank(root, s);
   const problem = bankProblem(bank);
   if (problem) return fail(`${problem}. Run npm run check:content and fix the bank first`);
   const items = bank.items.map((f) => f.data as ChoiceItem);
   const concepts = (bank.concepts!.data as { concepts: ChoiceConcept[] }).concepts;
-  const before = currentPool(bank);
+  const knowledgeIds = knowledgePoolIds(bank);
+  const before = new Set([...currentPool(bank)].filter((id) => !knowledgeIds.has(id)));
   let logged: Set<string> | undefined;
   if (flags.has('--logs')) {
-    try { logged = await loggedIds(resolve(flags.get('--logs')!), [...candidates, ...before]); }
+    try { logged = await loggedIds(resolve(flags.get('--logs')!), [...candidates, ...before, ...(releaseList ?? [])]); }
     catch (e) { return fail(e instanceof NoAttemptsFiles ? 'the logs folder has no attempts files, so it may be the wrong folder' : 'the logs folder cannot be read'); }
   }
   let ext: Extension;
   try {
     ext = extendHeldOut(s, items, concepts, before, {
-      candidates, perCard, topic: flags.get('--topic'), count, logged,
+      candidates, perCard, topic: flags.get('--topic'), count, logged, releaseList, knowledge: knowledgeIds,
       releaseFrom: flags.has('--release-from') ? flags.get('--release-from')!.split(',').map((t) => t.trim()).filter(Boolean) : undefined,
     });
   } catch (e) {
@@ -450,8 +502,9 @@ async function extendMain(argv: string[]): Promise<number> {
   let written = 0;
   for (const f of bank.items) {
     const item = f.data as ChoiceItem;
-    if (item.held_out === pool.has(item.id)) continue;
-    await writeFile(join(root, f.file), JSON.stringify({ ...item, held_out: pool.has(item.id) }, null, 2) + '\n');
+    const wanted = pool.has(item.id) || knowledgeIds.has(item.id);
+    if (item.held_out === wanted) continue;
+    await writeFile(join(root, f.file), JSON.stringify({ ...item, held_out: wanted }, null, 2) + '\n');
     written++;
   }
   await writeFile(join(root, `${s}/held-out.json`), JSON.stringify({ item_ids: ext.pool }, null, 2) + '\n');

@@ -1,0 +1,39 @@
+{
+  "item_id": "EX-SQL-WIN-07-E1-04",
+  "item_version": 1,
+  "reference_sql": "SELECT a.campaign_id, a.spend_date, a.spend,\n       FIRST_VALUE(a.spend) OVER (PARTITION BY a.campaign_id ORDER BY a.spend_date\n                                  ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS first_day_spend\nFROM ad_spend_daily a\nJOIN campaigns c ON c.campaign_id = a.campaign_id\nWHERE c.channel_id = 2\n  AND a.spend_date BETWEEN DATE '2025-07-01' AND DATE '2025-10-31'",
+  "alternatives": [
+    "WITH first_days AS (  -- one row per brand_search campaign: its first day with spend in the period\n  SELECT a.campaign_id, MIN(a.spend_date) AS first_date\n  FROM ad_spend_daily a\n  JOIN campaigns c ON c.campaign_id = a.campaign_id\n  WHERE c.channel_id = 2\n    AND a.spend_date BETWEEN DATE '2025-07-01' AND DATE '2025-10-31'\n  GROUP BY a.campaign_id\n)\nSELECT a.campaign_id, a.spend_date, a.spend, f.spend AS first_day_spend\nFROM ad_spend_daily a\nJOIN first_days fd ON fd.campaign_id = a.campaign_id\nJOIN ad_spend_daily f ON f.campaign_id = fd.campaign_id AND f.spend_date = fd.first_date\nWHERE a.spend_date BETWEEN DATE '2025-07-01' AND DATE '2025-10-31'",
+    "SELECT a.campaign_id, a.spend_date, a.spend,\n       FIRST_VALUE(a.spend) OVER (PARTITION BY a.campaign_id ORDER BY a.spend_date\n                                  ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS first_day_spend\nFROM ad_spend_daily a\nJOIN campaigns c ON c.campaign_id = a.campaign_id\nWHERE c.channel_id = 2\n  AND a.spend_date BETWEEN DATE '2025-07-01' AND DATE '2025-10-31'"
+  ],
+  "other_way": {
+    "sql": "WITH first_days AS (  -- one row per brand_search campaign: its first day with spend in the period\n  SELECT a.campaign_id, MIN(a.spend_date) AS first_date\n  FROM ad_spend_daily a\n  JOIN campaigns c ON c.campaign_id = a.campaign_id\n  WHERE c.channel_id = 2\n    AND a.spend_date BETWEEN DATE '2025-07-01' AND DATE '2025-10-31'\n  GROUP BY a.campaign_id\n)\nSELECT a.campaign_id, a.spend_date, a.spend, f.spend AS first_day_spend\nFROM ad_spend_daily a\nJOIN first_days fd ON fd.campaign_id = a.campaign_id\nJOIN ad_spend_daily f ON f.campaign_id = fd.campaign_id AND f.spend_date = fd.first_date\nWHERE a.spend_date BETWEEN DATE '2025-07-01' AND DATE '2025-10-31'",
+    "tradeoff": "Joining each campaign's first day back to its rows works on any engine, but FIRST_VALUE says the same in one line."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-18",
+      "sql": "SELECT a.campaign_id, a.spend_date, a.spend, FIRST_VALUE(a.spend) OVER (PARTITION BY a.campaign_id ORDER BY a.spend_date DESC ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS first_day_spend FROM ad_spend_daily a JOIN campaigns c ON c.campaign_id = a.campaign_id WHERE c.channel_id = 2 AND a.spend_date BETWEEN DATE '2025-07-01' AND DATE '2025-10-31'"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-37",
+      "sql": "SELECT a.campaign_id, a.spend_date, a.spend, FIRST_VALUE(a.spend) OVER (ORDER BY a.spend_date, a.campaign_id ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS first_day_spend FROM ad_spend_daily a JOIN campaigns c ON c.campaign_id = a.campaign_id WHERE c.channel_id = 2 AND a.spend_date BETWEEN DATE '2025-07-01' AND DATE '2025-10-31'"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-42",
+      "sql": "SELECT a.campaign_id, a.spend_date, a.spend, LAST_VALUE(a.spend) OVER (PARTITION BY a.campaign_id ORDER BY a.spend_date DESC) AS first_day_spend FROM ad_spend_daily a JOIN campaigns c ON c.campaign_id = a.campaign_id WHERE c.channel_id = 2 AND a.spend_date BETWEEN DATE '2025-07-01' AND DATE '2025-10-31'"
+    }
+  ],
+  "hint3_partial": "SELECT a.campaign_id, a.spend_date, a.spend,\n       FIRST_VALUE(a.spend) OVER (PARTITION BY ___ ORDER BY ___\n                                  ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS first_day_spend\nFROM ad_spend_daily a\nJOIN campaigns c ON c.campaign_id = a.campaign_id\nWHERE c.channel_id = 2\n  AND a.spend_date BETWEEN DATE '2025-07-01' AND DATE '2025-10-31'",
+  "solver": {
+    "prompt_hash": "6ffb8b5d27d1b008",
+    "schema_version": "09f3a33d3123",
+    "dataset_version": "e7c58abf7e8f892e",
+    "grader_version": "7a.1",
+    "query": "SELECT s.campaign_id, s.spend_date, s.spend,\n       FIRST_VALUE(s.spend) OVER (PARTITION BY s.campaign_id ORDER BY s.spend_date\n                                  ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS first_day_spend\nFROM ad_spend_daily s\nJOIN campaigns c ON c.campaign_id = s.campaign_id\nWHERE c.channel_id = 2\n  AND s.spend_date >= DATE '2025-07-01' AND s.spend_date <= DATE '2025-10-31'\n",
+    "at": "2026-10-21T09:05:10.771Z"
+  }
+}

@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-WIN-01-E3-21",
+  "item_version": 1,
+  "reference_sql": "WITH daily AS (  -- one row per campaign and day from July to September 2025\n  SELECT campaign_id, spend_date, spend,\n         AVG(spend) OVER (PARTITION BY campaign_id) AS avg_spend\n  FROM ad_spend_daily\n  WHERE spend_date >= DATE '2025-07-01' AND spend_date <= DATE '2025-09-30'\n)\nSELECT campaign_id, spend_date, spend, ROUND(avg_spend, 2) AS campaign_avg\nFROM daily\nWHERE spend > 1.4 * avg_spend",
+  "alternatives": [
+    "WITH daily AS (  -- one row per campaign and day from July to September 2025\n  SELECT campaign_id, spend_date, spend\n  FROM ad_spend_daily\n  WHERE spend_date >= DATE '2025-07-01' AND spend_date <= DATE '2025-09-30'\n),\ncampaign_avg AS (  -- one row per campaign with spend in the period\n  SELECT campaign_id, AVG(spend) AS avg_spend\n  FROM daily\n  GROUP BY campaign_id\n)\nSELECT d.campaign_id, d.spend_date, d.spend, ROUND(ca.avg_spend, 2) AS campaign_avg\nFROM daily d\nJOIN campaign_avg ca ON ca.campaign_id = d.campaign_id\nWHERE d.spend > 1.4 * ca.avg_spend",
+    "SELECT t.campaign_id, t.spend_date, t.spend, ROUND(t.avg_spend, 2) AS campaign_avg\nFROM (\n  -- one row per campaign and day from July to September 2025\n  SELECT campaign_id, spend_date, spend,\n         AVG(spend) OVER (PARTITION BY campaign_id) AS avg_spend\n  FROM ad_spend_daily\n  WHERE spend_date >= DATE '2025-07-01' AND spend_date <= DATE '2025-09-30'\n) AS t\nWHERE t.spend > 1.4 * t.avg_spend"
+  ],
+  "other_way": {
+    "sql": "WITH daily AS (  -- one row per campaign and day from July to September 2025\n  SELECT campaign_id, spend_date, spend\n  FROM ad_spend_daily\n  WHERE spend_date >= DATE '2025-07-01' AND spend_date <= DATE '2025-09-30'\n),\ncampaign_avg AS (  -- one row per campaign with spend in the period\n  SELECT campaign_id, AVG(spend) AS avg_spend\n  FROM daily\n  GROUP BY campaign_id\n)\nSELECT d.campaign_id, d.spend_date, d.spend, ROUND(ca.avg_spend, 2) AS campaign_avg\nFROM daily d\nJOIN campaign_avg ca ON ca.campaign_id = d.campaign_id\nWHERE d.spend > 1.4 * ca.avg_spend",
+    "tradeoff": "A per-campaign average step joined back to the days needs no window, but it adds a step and a join."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-SYN-08",
+      "sql": "SELECT campaign_id, spend_date, spend, ROUND(AVG(spend) OVER (PARTITION BY campaign_id), 2) AS campaign_avg FROM ad_spend_daily WHERE spend_date >= DATE '2025-07-01' AND spend_date <= DATE '2025-09-30' AND spend > 1.4 * AVG(spend) OVER (PARTITION BY campaign_id)"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-37",
+      "sql": "WITH daily AS (SELECT campaign_id, spend_date, spend, AVG(spend) OVER () AS avg_spend FROM ad_spend_daily WHERE spend_date >= DATE '2025-07-01' AND spend_date <= DATE '2025-09-30') SELECT campaign_id, spend_date, spend, ROUND(avg_spend, 2) AS campaign_avg FROM daily WHERE spend > 1.4 * avg_spend"
+    }
+  ],
+  "hint3_partial": "WITH daily AS (  -- one row per campaign and day from July to September 2025\n  SELECT campaign_id, spend_date, spend,\n         AVG(spend) OVER (PARTITION BY ___) AS avg_spend\n  FROM ad_spend_daily\n  WHERE spend_date >= DATE '2025-07-01' AND spend_date <= DATE '2025-09-30'\n)\nSELECT campaign_id, spend_date, spend, ROUND(avg_spend, 2) AS campaign_avg\nFROM daily\nWHERE ___",
+  "solver": {
+    "prompt_hash": "99da4dbd5b96ad4e",
+    "schema_version": "9292abbb642a",
+    "dataset_version": "e7c58abf7e8f892e",
+    "grader_version": "7a.1",
+    "query": "WITH d AS (\n  SELECT campaign_id, spend_date, spend,\n         AVG(spend) OVER (PARTITION BY campaign_id) AS avg_exact\n  FROM ad_spend_daily\n  WHERE spend_date >= DATE '2025-07-01' AND spend_date <= DATE '2025-09-30'\n)\nSELECT campaign_id, spend_date, spend, ROUND(avg_exact, 2) AS campaign_avg\nFROM d\nWHERE spend > 1.4 * avg_exact\n",
+    "at": "2026-10-21T09:05:06.112Z"
+  }
+}

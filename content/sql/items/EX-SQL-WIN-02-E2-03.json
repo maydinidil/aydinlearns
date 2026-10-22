@@ -1,0 +1,140 @@
+{
+  "id": "EX-SQL-WIN-02-E2-03",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "ranking",
+    "row_number",
+    "top_n_per_group",
+    "tie_break",
+    "products"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-WIN-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-CTE-01",
+    "SQL-WIN-01",
+    "SQL-WIN-02"
+  ],
+  "template_id": "T-WIN-02-top-n-per-group",
+  "template_params": {
+    "table": "products",
+    "partition": "category",
+    "fn": "ROW_NUMBER",
+    "n": 2,
+    "order": "unit cost, cheapest first"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_win",
+  "prompt": "Which are the 2 cheapest products of each category, by unit cost? Keep exactly 2 products per category, or the only one when a category has just one. When products tie on unit cost, the lower product_id comes first. Return three columns, in this order: category_id, product_id and unit_cost_eur. Return one row for each product kept. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "category_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "product_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "unit_cost_eur",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "category_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "product_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "unit_cost_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "product_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the step that numbers each category's products from the cheapest; the outer query keeps the first 2.",
+    "Exactly 2 per category needs every row numbered apart, with the stated tie-break after the cost."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 40,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 41,
+      "to": 184,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 185,
+      "to": 200,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 203,
+      "to": 248,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 249,
+      "to": 260,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 261,
+      "to": 274,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "ROW_NUMBER numbers each category's products from the cheapest, with product_id settling ties, so rn <= 2 keeps exactly 2."
+}

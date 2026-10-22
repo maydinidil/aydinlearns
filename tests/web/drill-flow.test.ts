@@ -1,10 +1,11 @@
 // tests/web/drill-flow.test.ts: the drill screen's wording, countdown and states (design §14; rulings D9, D10, S2-42 to S2-44, S2-98; Task B16).
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
 import { api } from '../../web/src/api.ts';
 import {
   HELP_LINE, TIME_UP, clockLeft, countdownText, helpAllowed, levelLine, remainingSeconds, scoreLine, unseenLine, historyRows, HISTORY_COLUMNS,
-  SCREEN_BANNER, SCREEN_MODE_HINT, SCREEN_MODE_LABEL, startBody, type DrillScoreView, NOT_ANSWERED_LINE, outcomeClass, questionLabel, reviewOutcomes, showsEditor,
+  SCREEN_BANNER, panelHelpNote, passedInReview, REVIEW_HELP_LINE, showAnswerQuestion, SCREEN_MODE_HINT, SCREEN_MODE_LABEL, startBody, type DrillScoreView, NOT_ANSWERED_LINE, outcomeClass, questionLabel, reviewOutcomes, showsEditor,
   type DrillQuestionOutcome,
 } from '../../web/src/lib/drill-flow.ts';
 
@@ -393,4 +394,48 @@ test('K2: the Cumulative heading renders only when the server offers a cumulativ
   assert.equal(cumulativeHeading([]), null, 'no offer, no heading');
   const offer = { id: 'cumulative-1-4', levels: [1, 2, 3, 4], questions: 12, minutes: 30, pass_pct: 80, unseen_min_pct: 70, available: false, fill: [], overall: { questions: 0, from_seen: 0, unseen_pct: 100 } };
   assert.equal(cumulativeHeading([offer]), CUMULATIVE_NAME, 'an offer, even one that is not open yet, has its heading');
+});
+
+// ---- Sprint 7 H4 (S7-35, S4-12, S2-44): a passed question reads passed after a reload; help in the review is free ----
+
+test('H4: after a reload the review takes a passed question from the run\'s outcomes, with no pass seen on this screen', () => {
+  const items: DrillQuestionOutcome[] = [
+    { item_instance_id: 'inst-1', item_id: 'I1', outcome: 'passed' }, { item_instance_id: 'inst-2', item_id: 'I2', outcome: 'failed' },
+    { item_instance_id: 'inst-3', item_id: 'I3', outcome: 'not_answered' },
+  ];
+  const outcomes = reviewOutcomes(servings, items);
+  assert.equal(passedInReview(outcomes[0] ?? null, false), true, 'passed by the outcomes alone');
+  assert.equal(passedInReview(outcomes[1] ?? null, false), false);
+  assert.equal(passedInReview(outcomes[2] ?? null, false), false);
+  assert.equal(passedInReview(null, false), false, 'no outcome and no pass seen: not passed');
+});
+
+test('H4: a pass seen on this screen still counts when the outcomes do not say so', () => {
+  assert.equal(passedInReview(null, true), true);
+});
+
+test('H4: the review\'s help line says the run is over, so help is free (S7-35, S2-44)', () => {
+  assert.equal(REVIEW_HELP_LINE, 'The run is over, so hints and answers here are free.');
+});
+
+test('H4 fix (I1): in the drill review the panel adds no help note (the header\'s line says help is free) and "Show answer" asks without the rating', () => {
+  assert.equal(panelHelpNote(true), null, 'the review header already shows the help line once (s3b:L35)');
+  assert.equal(panelHelpNote(false), 'Help is always here. Using it lowers this item\'s rating.', 'outside the review the note is unchanged');
+  assert.equal(/rating|lower/.test(showAnswerQuestion(true)), false, 'the review\'s question must not say help lowers the rating (S2-44)');
+  assert.equal(showAnswerQuestion(true), 'Show the answer? The run is over, so it is free.');
+  assert.equal(showAnswerQuestion(false), 'Show the answer? Using it lowers this item\'s rating. You can still try the item yourself.', 'outside the review the question is unchanged');
+});
+
+test('H4 fix (I1): the exercise panel picks its help note and show-answer question by reviewOnly, so the drill review never says help lowers the rating', async () => {
+  const code = (s: string): string => s.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|\s)\/\/.*$/gm, '$1');
+  const panel = code(await readFile(new URL('../../web/src/components/ExercisePanel.tsx', import.meta.url), 'utf8'));
+  assert.equal(/lowers this item\\?'s rating/.test(panel), false, 'the panel hard-codes the rating copy, so the drill review shows it too');
+  assert.equal(/panelHelpNote\(reviewOnly\)/.test(panel), true, 'the help note is not chosen by reviewOnly');
+  assert.equal(/showAnswerQuestion\(reviewOnly\)/.test(panel), true, 'the show-answer question is not chosen by reviewOnly');
+});
+
+test('FN3: a 409 whose run is a mock run is never resumed as an SQL drill', () => {
+  const run = { block_id: 'b', kind: 'mock', questions: 1, minutes: 45, ends_at: '2026-10-04T10:00:00Z', servings: [{ item_id: 'I', item_instance_id: 'x' }] };
+  assert.equal(runFromRefusal(new ApiError('A mock is already running.', 409, { run })), null);
+  assert.ok(runFromRefusal(new ApiError('A drill is already running.', 409, { run: { ...run, kind: 'level' } })), 'a drill run still resumes');
 });

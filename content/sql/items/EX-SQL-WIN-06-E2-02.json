@@ -1,0 +1,183 @@
+{
+  "id": "EX-SQL-WIN-06-E2-02",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "window",
+    "rank",
+    "top_n_per_group",
+    "ties_share",
+    "filter_window_result",
+    "ad_spend_daily",
+    "campaigns"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-06"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "lesson",
+  "target_concept_id": "SQL-WIN-06",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-WIN-01",
+    "SQL-WIN-02",
+    "SQL-WIN-06"
+  ],
+  "template_id": "T-WIN-06-top-n-per-group-ties-share",
+  "template_params": {
+    "table": "ad_spend_daily",
+    "group": "channel",
+    "measure": "clicks",
+    "n": 3
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "mailvora",
+  "schema": "mailvora",
+  "edge_schema": "mailvora_edge_win",
+  "prompt": "For each channel, which campaigns are in its top 3 by clicks from 1 July to 31 October 2025, both days included? spend_date is a UTC day, and a campaign's clicks are the sum of its clicks in ad_spend_daily over those days. Campaigns that tie on clicks share a place, so a channel can have more than three campaigns in its top 3. Return four columns, in this order: channel_id, campaign_id, clicks and click_rank, the campaign's place in its channel: 1 plus the number of the channel's campaigns with more clicks. Return one row for each such campaign. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "channel_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "campaign_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "clicks",
+        "type_class": "numeric"
+      },
+      {
+        "name": "click_rank",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per campaign in its channel's top 3"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "channel_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "campaign_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "clicks",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "click_rank",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "campaign_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the outer query: it reads the placed campaigns and keeps places 1 to 3.",
+    "Tied campaigns share a place here, so the place comes from a function that gives ties the same number; filter it after the step that works it out."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 80,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 81,
+      "to": 142,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 143,
+      "to": 218,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 219,
+      "to": 287,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 288,
+      "to": 326,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 330,
+      "to": 414,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 415,
+      "to": 538,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 539,
+      "to": 561,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 564,
+      "to": 614,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 615,
+      "to": 626,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 627,
+      "to": 648,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": {
+    "stage1": 564,
+    "stage2": 457
+  },
+  "faded_shape": "WITH campaign_clicks AS (  -- one row per campaign with spend rows in the period\n  SELECT c.channel_id, c.campaign_id, SUM(a.clicks) AS clicks\n  FROM ad_spend_daily a\n  JOIN campaigns c ON c.campaign_id = a.campaign_id\n  WHERE a.spend_date BETWEEN DATE '2025-07-01' AND DATE '2025-10-31'\n  GROUP BY c.channel_id, c.campaign_id\n),\nranked AS (  -- one row per campaign, placed within its channel from the most clicks\n  SELECT channel_id, campaign_id, clicks,\n         RANK() OVER (PARTITION BY channel_id ORDER BY clicks DESC) AS click_rank\n  FROM campaign_clicks\n)\n",
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "RANK gives tied campaigns the same place and skips the places after them, so click_rank <= 3 keeps every campaign that ties into the top 3."
+}

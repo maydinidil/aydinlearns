@@ -1,0 +1,43 @@
+{
+  "case_id": "CASE-MOCK-A",
+  "truths": {
+    "CP2": "SELECT COUNT(*)\nFROM promotions AS pr\nJOIN promotion_products AS pp ON pp.promo_id = pr.promo_id\nWHERE pr.start_date >= DATE '2025-01-01'\n  AND pr.start_date <= DATE '2025-12-31'",
+    "CP4": "WITH versions AS (\n  -- one row per product and price version, with the list price of the version before it\n  SELECT product_id, valid_from, valid_to, list_price_eur,\n         LAG(list_price_eur) OVER (PARTITION BY product_id ORDER BY valid_from) AS prev_price_eur\n  FROM price_history\n),\npromo_products AS (\n  -- one row per 2025 promotion and product, with the version in effect on the promotion's first day\n  SELECT v.list_price_eur, v.prev_price_eur, pr.start_date - v.valid_from AS days_before\n  FROM promotions AS pr\n  JOIN promotion_products AS pp ON pp.promo_id = pr.promo_id\n  JOIN versions AS v ON v.product_id = pp.product_id\n   AND v.valid_from <= pr.start_date\n   AND (v.valid_to >= pr.start_date OR v.valid_to IS NULL)\n  WHERE pr.start_date >= DATE '2025-01-01'\n    AND pr.start_date <= DATE '2025-12-31'\n)\nSELECT ROUND(100.0 * COUNT(*) FILTER (WHERE list_price_eur > prev_price_eur AND days_before <= 14) / COUNT(*), 1)\nFROM promo_products"
+  },
+  "choices": {
+    "CP1": {
+      "correct_oid": "o24634dc",
+      "explanation": "The discount is taken off the list price in effect when the promotion starts, so that version against the one before it, with the day it began, shows a fresh rise; a lifetime move, the prices paid or a later price cannot."
+    },
+    "CP5": {
+      "correct_oid": "o0f5e699",
+      "explanation": "Rises and cuts were about equally common in those days, which looks like routine repricing, so the table shows where to look first, the large Black Week rises, but not intent; a rise that is small next to the discount still makes the saving look bigger than it is."
+    }
+  },
+  "solver": {
+    "CP1": {
+      "pass": true,
+      "prompt_hash": "978dc431934d85c6",
+      "key_hash": "aa677177cb84eda7",
+      "at": "2026-10-22T13:33:47.604Z"
+    },
+    "CP2": {
+      "pass": true,
+      "prompt_hash": "df788f05fc4d4511",
+      "key_hash": "3fa5336f2cef6bab",
+      "at": "2026-10-22T13:00:38.686Z"
+    },
+    "CP4": {
+      "pass": true,
+      "prompt_hash": "9e3690d329b17ec3",
+      "key_hash": "969035b678a6693f",
+      "at": "2026-10-22T13:00:38.686Z"
+    },
+    "CP5": {
+      "pass": true,
+      "prompt_hash": "cd612e2572682345",
+      "key_hash": "2a0b17c2eb0deb23",
+      "at": "2026-10-22T13:33:47.604Z"
+    }
+  }
+}

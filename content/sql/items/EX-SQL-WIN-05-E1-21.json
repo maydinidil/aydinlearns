@@ -1,0 +1,139 @@
+{
+  "id": "EX-SQL-WIN-05-E1-21",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "moving_average",
+    "short_window_missing",
+    "cost_history",
+    "drill"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-05"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-WIN-05",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-CASE-01",
+    "SQL-TYPE-01",
+    "SQL-JOIN-01",
+    "SQL-WIN-01",
+    "SQL-WIN-04",
+    "SQL-WIN-05"
+  ],
+  "template_id": "T-WIN-05-moving-average-missing",
+  "template_params": {
+    "table": "cost_history",
+    "group": "product",
+    "window": "2 versions"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_win",
+  "prompt": "For every cost version of the products of categories 15 and 16, show the average unit cost of that version and the version before it of the same product, rounded to 2 decimals. Within each product, versions follow each other by valid_from. A product's first version has no version before it: show its avg_cost_2v as missing. Return product_id, valid_from, unit_cost_eur and avg_cost_2v. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "valid_from",
+        "type_class": "temporal"
+      },
+      {
+        "name": "unit_cost_eur",
+        "type_class": "numeric"
+      },
+      {
+        "name": "avg_cost_2v",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "valid_from",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "unit_cost_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "avg_cost_2v",
+        "type_class": "numeric",
+        "precision": "money",
+        "require_rounding": 2
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "product_id",
+      "valid_from"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the 2-version average for each product, kept only when its window holds 2 versions.",
+    "One series per product in valid_from order; the frame is the version and the row before it, counted to find the first version."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 332,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 333,
+      "to": 399,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 400,
+      "to": 431,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 90000,
+  "why_this_works": "The frame holds the version and the one before it, and the count of 2 keeps the average only where a previous version exists."
+}

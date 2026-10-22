@@ -1,0 +1,62 @@
+{
+  "schema": "mailvora_edge_clean",
+  "mirrors": "mailvora_raw",
+  "family": "clean",
+  "contains": [
+    "Meta sessions with utm_source fb and ig and utm_medium Paid-Social and cpc, as in mailvora_raw, and one with utm_source instagram and utm_medium paid-social, which mailvora_raw does not have",
+    "LinkedIn sessions with utm_source LinkedIn and linkedin.com and utm_medium Paid-Social and social, so spellings vary outside Meta too",
+    "LinkedIn spend in US dollars on Los Angeles days: the row dated 31 July 2025 is 1 August in UTC, so it takes August's rate",
+    "Capterra spend dated by the Los Angeles day (export_timezone America/Los_Angeles), so LinkedIn is not the only channel whose days shift",
+    "G2 spend in US dollars, exported in UTC, so LinkedIn is not the only channel billed in dollars",
+    "affiliate spend in British pounds (GBP), with a GBP rate for each month in fx_rates_monthly",
+    "a LinkedIn spend row exported in UTC and in euros, which needs no shift and no conversion",
+    "Meta spend for 14 and 15 July 2025 loaded twice",
+    "nonbrand search spend for 5 August 2025 loaded three times",
+    "a bot with 230 sessions on one day and no UTM fields",
+    "a bot with exactly 200 sessions on one day, each tagged google and organic",
+    "a direct session with empty strings in all three UTM fields",
+    "a direct session with an empty utm_source and a missing utm_medium and utm_campaign",
+    "an organic session with an empty utm_campaign",
+    "direct sessions with missing UTM fields",
+    "signups whose last session is a respelled or empty-string session, or a LinkedIn or Capterra session on the UTC day after its spend row's date",
+    "refunded payments: 2 of 8, and most of the money paid in August 2025, so the refunded share is far from 4%"
+  ],
+  "tables": {
+    "campaigns": [
+      "Meta sessions with utm_source fb and ig and utm_medium Paid-Social and cpc, as in mailvora_raw, and one with utm_source instagram and utm_medium paid-social, which mailvora_raw does not have",
+      "LinkedIn sessions with utm_source LinkedIn and linkedin.com and utm_medium Paid-Social and social, so spellings vary outside Meta too"
+    ],
+    "sessions": [
+      "Meta sessions with utm_source fb and ig and utm_medium Paid-Social and cpc, as in mailvora_raw, and one with utm_source instagram and utm_medium paid-social, which mailvora_raw does not have",
+      "LinkedIn sessions with utm_source LinkedIn and linkedin.com and utm_medium Paid-Social and social, so spellings vary outside Meta too",
+      "a bot with 230 sessions on one day and no UTM fields",
+      "a bot with exactly 200 sessions on one day, each tagged google and organic",
+      "a direct session with empty strings in all three UTM fields",
+      "a direct session with an empty utm_source and a missing utm_medium and utm_campaign",
+      "an organic session with an empty utm_campaign",
+      "direct sessions with missing UTM fields",
+      "signups whose last session is a respelled or empty-string session, or a LinkedIn or Capterra session on the UTC day after its spend row's date"
+    ],
+    "ad_spend_daily": [
+      "LinkedIn spend in US dollars on Los Angeles days: the row dated 31 July 2025 is 1 August in UTC, so it takes August's rate",
+      "Capterra spend dated by the Los Angeles day (export_timezone America/Los_Angeles), so LinkedIn is not the only channel whose days shift",
+      "G2 spend in US dollars, exported in UTC, so LinkedIn is not the only channel billed in dollars",
+      "affiliate spend in British pounds (GBP), with a GBP rate for each month in fx_rates_monthly",
+      "a LinkedIn spend row exported in UTC and in euros, which needs no shift and no conversion",
+      "Meta spend for 14 and 15 July 2025 loaded twice",
+      "nonbrand search spend for 5 August 2025 loaded three times",
+      "signups whose last session is a respelled or empty-string session, or a LinkedIn or Capterra session on the UTC day after its spend row's date"
+    ],
+    "fx_rates_monthly": [
+      "LinkedIn spend in US dollars on Los Angeles days: the row dated 31 July 2025 is 1 August in UTC, so it takes August's rate",
+      "G2 spend in US dollars, exported in UTC, so LinkedIn is not the only channel billed in dollars",
+      "affiliate spend in British pounds (GBP), with a GBP rate for each month in fx_rates_monthly"
+    ],
+    "signups": [
+      "signups whose last session is a respelled or empty-string session, or a LinkedIn or Capterra session on the UTC day after its spend row's date"
+    ],
+    "payments": [
+      "refunded payments: 2 of 8, and most of the money paid in August 2025, so the refunded share is far from 4%"
+    ]
+  }
+}

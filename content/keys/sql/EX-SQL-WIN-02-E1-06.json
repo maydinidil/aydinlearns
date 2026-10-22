@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-WIN-02-E1-06",
+  "item_version": 1,
+  "reference_sql": "SELECT country_code, COUNT(*) AS signups,\n       RANK() OVER (ORDER BY COUNT(*) DESC) AS signup_rank\nFROM signups\nGROUP BY country_code",
+  "alternatives": [
+    "WITH country_signups AS (  -- one row per country with signups\n  SELECT country_code, COUNT(*) AS signups\n  FROM signups\n  GROUP BY country_code\n)\nSELECT cs.country_code, cs.signups,\n       1 + (SELECT COUNT(*) FROM country_signups cs2 WHERE cs2.signups > cs.signups) AS signup_rank\nFROM country_signups cs",
+    "WITH country_signups AS (  -- one row per country with signups\n  SELECT country_code, COUNT(*) AS signups\n  FROM signups\n  GROUP BY country_code\n)\nSELECT country_code, signups,\n       RANK() OVER (ORDER BY signups DESC) AS signup_rank\nFROM country_signups"
+  ],
+  "other_way": {
+    "sql": "WITH country_signups AS (  -- one row per country with signups\n  SELECT country_code, COUNT(*) AS signups\n  FROM signups\n  GROUP BY country_code\n)\nSELECT cs.country_code, cs.signups,\n       1 + (SELECT COUNT(*) FROM country_signups cs2 WHERE cs2.signups > cs.signups) AS signup_rank\nFROM country_signups cs",
+    "tradeoff": "Counting the countries with more signups gives the same rank on any engine, but needs a step and a subquery."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-40",
+      "sql": "SELECT country_code, COUNT(*) AS signups, ROW_NUMBER() OVER (ORDER BY COUNT(*) DESC, country_code) AS signup_rank FROM signups GROUP BY country_code"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-18",
+      "sql": "SELECT country_code, COUNT(*) AS signups, RANK() OVER (ORDER BY COUNT(*)) AS signup_rank FROM signups GROUP BY country_code"
+    }
+  ],
+  "hint3_partial": "SELECT country_code, COUNT(*) AS signups,\n       RANK() OVER (ORDER BY ___) AS signup_rank\nFROM signups\nGROUP BY country_code",
+  "solver": {
+    "prompt_hash": "be03dcb57a39696c",
+    "schema_version": "bbce96780a2f",
+    "dataset_version": "e7c58abf7e8f892e",
+    "grader_version": "7a.1",
+    "query": "WITH c AS (\n  SELECT country_code, COUNT(*) AS signups\n  FROM signups\n  GROUP BY country_code\n)\nSELECT country_code, signups,\n       RANK() OVER (ORDER BY signups DESC) AS signup_rank\nFROM c\n",
+    "at": "2026-10-21T09:05:06.239Z"
+  }
+}

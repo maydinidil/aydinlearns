@@ -2,7 +2,8 @@
 // pages on 2026-10-17. Every model Settings offers (models.ts) has a row (a test checks), so the daily limit can always price a reply.
 // Claude's rows: a cache write costs 1.25x input; Claude Opus 5.5 lists cache reads at $0.20, Sonnet 5.5 at $0.10 (T-21 corrected it).
 // Claude Haiku 5.5's row holds for prompts of 100K tokens or fewer; the tutor never comes near that, since the server refuses a snapshot
-// over 32,000 characters. OpenAI bills no cache write (the provider reports none); its cache_write column only bounds the worst cost.
+// over 32,000 characters. OpenAI's usage reports cache writes inside input_tokens; the provider splits them out (S7-31) and they are
+// priced at the cache_write column, as Claude's are.
 import type { TutorUsage } from './types.ts';
 
 export interface Price { input: number; cache_write: number; cached_input: number; output: number }

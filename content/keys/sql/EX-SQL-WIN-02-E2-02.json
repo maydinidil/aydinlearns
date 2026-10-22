@@ -1,0 +1,39 @@
+{
+  "item_id": "EX-SQL-WIN-02-E2-02",
+  "item_version": 1,
+  "reference_sql": "WITH campaign_spend AS (  -- one row per campaign with spend\n  SELECT c.campaign_id, c.channel_id, SUM(a.spend) AS spend\n  FROM ad_spend_daily a\n  JOIN campaigns c ON c.campaign_id = a.campaign_id\n  GROUP BY c.campaign_id, c.channel_id\n),\nranked AS (  -- one row per campaign with spend\n  SELECT channel_id, campaign_id, spend,\n         RANK() OVER (PARTITION BY channel_id ORDER BY spend DESC) AS spend_rank\n  FROM campaign_spend\n)\nSELECT channel_id, campaign_id, spend\nFROM ranked\nWHERE spend_rank = 1",
+  "alternatives": [
+    "WITH campaign_spend AS (  -- one row per campaign with spend\n  SELECT c.campaign_id, c.channel_id, SUM(a.spend) AS spend\n  FROM ad_spend_daily a\n  JOIN campaigns c ON c.campaign_id = a.campaign_id\n  GROUP BY c.campaign_id, c.channel_id\n),\nchannel_max AS (  -- one row per channel with spend\n  SELECT channel_id, MAX(spend) AS max_spend\n  FROM campaign_spend\n  GROUP BY channel_id\n)\nSELECT cs.channel_id, cs.campaign_id, cs.spend\nFROM campaign_spend cs\nJOIN channel_max cm ON cm.channel_id = cs.channel_id AND cm.max_spend = cs.spend",
+    "WITH campaign_spend AS (  -- one row per campaign with spend\n  SELECT c.campaign_id, c.channel_id, SUM(a.spend) AS spend\n  FROM ad_spend_daily a\n  JOIN campaigns c ON c.campaign_id = a.campaign_id\n  GROUP BY c.campaign_id, c.channel_id\n)\nSELECT cs.channel_id, cs.campaign_id, cs.spend\nFROM campaign_spend cs\nWHERE cs.spend = (SELECT MAX(cs2.spend) FROM campaign_spend cs2 WHERE cs2.channel_id = cs.channel_id)"
+  ],
+  "other_way": {
+    "sql": "WITH campaign_spend AS (  -- one row per campaign with spend\n  SELECT c.campaign_id, c.channel_id, SUM(a.spend) AS spend\n  FROM ad_spend_daily a\n  JOIN campaigns c ON c.campaign_id = a.campaign_id\n  GROUP BY c.campaign_id, c.channel_id\n),\nchannel_max AS (  -- one row per channel with spend\n  SELECT channel_id, MAX(spend) AS max_spend\n  FROM campaign_spend\n  GROUP BY channel_id\n)\nSELECT cs.channel_id, cs.campaign_id, cs.spend\nFROM campaign_spend cs\nJOIN channel_max cm ON cm.channel_id = cs.channel_id AND cm.max_spend = cs.spend",
+    "tradeoff": "Joining each channel's highest spend keeps every tied campaign too, and it reads well for first place but not for a top 3."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-40",
+      "sql": "WITH campaign_spend AS (SELECT c.campaign_id, c.channel_id, SUM(a.spend) AS spend FROM ad_spend_daily a JOIN campaigns c ON c.campaign_id = a.campaign_id GROUP BY c.campaign_id, c.channel_id), ranked AS (SELECT channel_id, campaign_id, spend, ROW_NUMBER() OVER (PARTITION BY channel_id ORDER BY spend DESC, campaign_id) AS spend_rank FROM campaign_spend) SELECT channel_id, campaign_id, spend FROM ranked WHERE spend_rank = 1"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-37",
+      "sql": "WITH campaign_spend AS (SELECT c.campaign_id, c.channel_id, SUM(a.spend) AS spend FROM ad_spend_daily a JOIN campaigns c ON c.campaign_id = a.campaign_id GROUP BY c.campaign_id, c.channel_id), ranked AS (SELECT channel_id, campaign_id, spend, RANK() OVER (ORDER BY spend DESC) AS spend_rank FROM campaign_spend) SELECT channel_id, campaign_id, spend FROM ranked WHERE spend_rank = 1"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-18",
+      "sql": "WITH campaign_spend AS (SELECT c.campaign_id, c.channel_id, SUM(a.spend) AS spend FROM ad_spend_daily a JOIN campaigns c ON c.campaign_id = a.campaign_id GROUP BY c.campaign_id, c.channel_id), ranked AS (SELECT channel_id, campaign_id, spend, RANK() OVER (PARTITION BY channel_id ORDER BY spend) AS spend_rank FROM campaign_spend) SELECT channel_id, campaign_id, spend FROM ranked WHERE spend_rank = 1"
+    }
+  ],
+  "hint3_partial": "WITH campaign_spend AS (  -- one row per campaign with spend\n  SELECT c.campaign_id, c.channel_id, SUM(a.spend) AS spend\n  FROM ad_spend_daily a\n  JOIN campaigns c ON c.campaign_id = a.campaign_id\n  GROUP BY c.campaign_id, c.channel_id\n),\nranked AS (  -- one row per campaign with spend\n  SELECT channel_id, campaign_id, spend,\n         RANK() OVER (PARTITION BY channel_id ORDER BY ___) AS spend_rank\n  FROM campaign_spend\n)\nSELECT channel_id, campaign_id, spend\nFROM ranked\nWHERE ___",
+  "solver": {
+    "prompt_hash": "ab66fe32e4f1912c",
+    "schema_version": "09f3a33d3123",
+    "dataset_version": "e7c58abf7e8f892e",
+    "grader_version": "7a.1",
+    "query": "WITH camp AS (\n  SELECT c.channel_id, c.campaign_id, SUM(a.spend) AS spend\n  FROM ad_spend_daily a\n  JOIN campaigns c ON c.campaign_id = a.campaign_id\n  GROUP BY c.channel_id, c.campaign_id\n),\nr AS (\n  SELECT channel_id, campaign_id, spend,\n         RANK() OVER (PARTITION BY channel_id ORDER BY spend DESC) AS rk\n  FROM camp\n)\nSELECT channel_id, campaign_id, spend\nFROM r\nWHERE rk = 1\n",
+    "at": "2026-10-21T09:05:06.346Z"
+  }
+}

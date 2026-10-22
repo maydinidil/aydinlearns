@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-WIN-04-E3-01",
+  "item_version": 1,
+  "reference_sql": "WITH prod AS (\n  -- one row per product sold by the webshop in the period\n  SELECT product_id, SUM(net_revenue_eur) AS revenue_eur\n  FROM sales\n  WHERE store_code = 'WEB-01'\n    AND order_date BETWEEN DATE '2025-01-01' AND DATE '2025-06-30'\n  GROUP BY product_id\n), ranked AS (\n  -- one row per product sold by the webshop in the period\n  SELECT product_id, revenue_eur,\n    SUM(revenue_eur) OVER (ORDER BY revenue_eur DESC, product_id ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS running_eur,\n    SUM(revenue_eur) OVER () AS total_eur\n  FROM prod\n)\nSELECT COUNT(*) AS n_products\nFROM ranked\nWHERE running_eur - revenue_eur < 0.6 * total_eur",
+  "alternatives": [
+    "WITH prod AS (\n  -- one row per product sold by the webshop in the period\n  SELECT product_id, SUM(net_revenue_eur) AS revenue_eur\n  FROM sales\n  WHERE store_code = 'WEB-01'\n    AND order_date BETWEEN DATE '2025-01-01' AND DATE '2025-06-30'\n  GROUP BY product_id\n)\nSELECT COUNT(*) AS n_products\nFROM prod p\nWHERE (SELECT COALESCE(SUM(q.revenue_eur), 0) FROM prod q\n       WHERE q.revenue_eur > p.revenue_eur OR (q.revenue_eur = p.revenue_eur AND q.product_id < p.product_id))\n      < 0.6 * (SELECT SUM(revenue_eur) FROM prod)",
+    "WITH prod AS (\n  -- one row per product sold by the webshop in the period\n  SELECT product_id, SUM(net_revenue_eur) AS revenue_eur\n  FROM sales\n  WHERE store_code = 'WEB-01'\n    AND order_date BETWEEN DATE '2025-01-01' AND DATE '2025-06-30'\n  GROUP BY product_id\n), ranked AS (\n  -- one row per product sold by the webshop in the period\n  SELECT product_id, revenue_eur,\n    SUM(revenue_eur) OVER (ORDER BY revenue_eur DESC, product_id ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS running_eur,\n    SUM(revenue_eur) OVER () AS total_eur\n  FROM prod\n)\nSELECT COUNT(*) AS n_products\nFROM ranked\nWHERE running_eur - revenue_eur < 0.6 * total_eur"
+  ],
+  "other_way": {
+    "sql": "WITH prod AS (\n  -- one row per product sold by the webshop in the period\n  SELECT product_id, SUM(net_revenue_eur) AS revenue_eur\n  FROM sales\n  WHERE store_code = 'WEB-01'\n    AND order_date BETWEEN DATE '2025-01-01' AND DATE '2025-06-30'\n  GROUP BY product_id\n)\nSELECT COUNT(*) AS n_products\nFROM prod p\nWHERE (SELECT COALESCE(SUM(q.revenue_eur), 0) FROM prod q\n       WHERE q.revenue_eur > p.revenue_eur OR (q.revenue_eur = p.revenue_eur AND q.product_id < p.product_id))\n      < 0.6 * (SELECT SUM(revenue_eur) FROM prod)",
+    "tradeoff": "Subqueries for the revenue before each product work without windows, but the tie rule has to be written out and they are slower."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-38",
+      "sql": "WITH prod AS (SELECT product_id, SUM(net_revenue_eur) AS revenue_eur FROM sales WHERE store_code = 'WEB-01' AND order_date BETWEEN DATE '2025-01-01' AND DATE '2025-06-30' GROUP BY product_id), ranked AS (SELECT product_id, revenue_eur, SUM(revenue_eur) OVER (ORDER BY revenue_eur DESC) AS running_eur, SUM(revenue_eur) OVER () AS total_eur FROM prod) SELECT COUNT(*) AS n_products FROM ranked WHERE running_eur - revenue_eur < 0.6 * total_eur"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-41",
+      "sql": "WITH prod AS (SELECT product_id, SUM(net_revenue_eur) AS revenue_eur FROM sales WHERE store_code = 'WEB-01' AND order_date BETWEEN DATE '2025-01-01' AND DATE '2025-06-30' GROUP BY product_id), ranked AS (SELECT product_id, revenue_eur, SUM(revenue_eur) OVER (ORDER BY product_id ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS running_eur, SUM(revenue_eur) OVER () AS total_eur FROM prod) SELECT COUNT(*) AS n_products FROM ranked WHERE running_eur - revenue_eur < 0.6 * total_eur"
+    }
+  ],
+  "hint3_partial": "WITH prod AS (\n  -- one row per product sold by the webshop in the period\n  SELECT product_id, SUM(net_revenue_eur) AS revenue_eur\n  FROM sales\n  WHERE store_code = 'WEB-01'\n    AND order_date BETWEEN DATE '2025-01-01' AND DATE '2025-06-30'\n  GROUP BY product_id\n), ranked AS (\n  -- one row per product sold by the webshop in the period\n  SELECT product_id, revenue_eur,\n    SUM(revenue_eur) OVER (ORDER BY revenue_eur DESC, product_id ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS running_eur,\n    SUM(revenue_eur) OVER () AS total_eur\n  FROM prod\n)\nSELECT COUNT(*) AS n_products\nFROM ranked\nWHERE ___ < 0.6 * total_eur",
+  "solver": {
+    "prompt_hash": "6e32834b3013a0d4",
+    "schema_version": "cebf75df442f",
+    "dataset_version": "e7c58abf7e8f892e",
+    "grader_version": "7a.1",
+    "query": "WITH p AS (\n  SELECT product_id, SUM(net_revenue_eur) AS revenue_eur\n  FROM sales\n  WHERE store_code = 'WEB-01' AND order_date BETWEEN DATE '2025-01-01' AND DATE '2025-06-30'\n  GROUP BY product_id\n), r AS (\n  SELECT revenue_eur,\n    SUM(revenue_eur) OVER (ORDER BY revenue_eur DESC, product_id ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS running_eur,\n    SUM(revenue_eur) OVER () AS total_eur\n  FROM p\n)\nSELECT COUNT(*) AS n_products\nFROM r\nWHERE running_eur - revenue_eur < 0.6 * total_eur\n",
+    "at": "2026-10-21T09:05:08.864Z"
+  }
+}

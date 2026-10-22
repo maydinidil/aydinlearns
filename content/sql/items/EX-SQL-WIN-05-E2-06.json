@@ -1,0 +1,144 @@
+{
+  "id": "EX-SQL-WIN-05-E2-06",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "moving_average",
+    "range_interval",
+    "zero_days",
+    "signups"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-05"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-WIN-05",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-CTE-01",
+    "SQL-DATE-02",
+    "SQL-WIN-01",
+    "SQL-WIN-04",
+    "SQL-WIN-05"
+  ],
+  "template_id": "T-WIN-05-moving-average-range",
+  "template_params": {
+    "table": "signups",
+    "window": "7 calendar days"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "mailvora",
+  "schema": "mailvora",
+  "edge_schema": "mailvora_edge_win",
+  "prompt": "For each UTC day from 1 July to 31 October 2025 on which at least one user signed up (signup_ts holds UTC time), show the number of signups that day and the 7-day average of daily signups: the signups of the 7 calendar days ending on that day, divided by 7, rounded to 2 decimals. A day with no signups counts as 0, and the 7 days may reach back into June. Return signup_date, signups and avg_signups_7d. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "signup_date",
+        "type_class": "temporal"
+      },
+      {
+        "name": "signups",
+        "type_class": "numeric"
+      },
+      {
+        "name": "avg_signups_7d",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "signup_date",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "signups",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "avg_signups_7d",
+        "type_class": "numeric",
+        "precision": "ratio",
+        "require_rounding": 2
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "signup_date"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, add up the signups of the 7 calendar days ending on each day, then divide by 7.",
+    "Days with no signups have no row, so let the frame count days rather than rows, and keep July to October only after the window."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 227,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 228,
+      "to": 374,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 375,
+      "to": 389,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 390,
+      "to": 453,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 454,
+      "to": 467,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 468,
+      "to": 533,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 210000,
+  "why_this_works": "The RANGE frame holds the 7 calendar days ending on the day, and dividing its sum by 7 counts a day with no signups as 0."
+}

@@ -1,0 +1,50 @@
+{
+  "item_id": "EX-CASE-DAILY-L5-02",
+  "item_version": 1,
+  "reference_sql": "WITH campaign_clicks AS (\n  -- one row per campaign with spend rows from July to October 2025\n  SELECT c.channel_id, a.campaign_id, c.campaign_name, SUM(a.clicks) AS clicks\n  FROM ad_spend_daily AS a\n  JOIN campaigns AS c ON c.campaign_id = a.campaign_id\n  WHERE a.spend_date BETWEEN DATE '2025-07-01' AND DATE '2025-10-31'\n  GROUP BY c.channel_id, a.campaign_id, c.campaign_name\n),\nranked AS (\n  -- one row per campaign, with its place in its channel\n  SELECT channel_id, campaign_id, campaign_name, clicks,\n         ROW_NUMBER() OVER (PARTITION BY channel_id ORDER BY clicks DESC, campaign_id) AS click_rank\n  FROM campaign_clicks\n)\nSELECT channel_id, campaign_id, campaign_name, clicks\nFROM ranked\nWHERE click_rank = 1\nORDER BY channel_id",
+  "alternatives": [
+    "WITH campaign_clicks AS (\n  -- one row per campaign with spend rows from July to October 2025\n  SELECT c.channel_id, a.campaign_id, c.campaign_name, SUM(a.clicks) AS clicks\n  FROM ad_spend_daily AS a\n  JOIN campaigns AS c ON c.campaign_id = a.campaign_id\n  WHERE a.spend_date BETWEEN DATE '2025-07-01' AND DATE '2025-10-31'\n  GROUP BY c.channel_id, a.campaign_id, c.campaign_name\n)\nSELECT channel_id, campaign_id, campaign_name, clicks\nFROM campaign_clicks\nQUALIFY ROW_NUMBER() OVER (PARTITION BY channel_id ORDER BY clicks DESC, campaign_id) = 1\nORDER BY channel_id",
+    "WITH campaign_clicks AS (\n  -- one row per campaign with spend rows from July to October 2025\n  SELECT c.channel_id, a.campaign_id, c.campaign_name, SUM(a.clicks) AS clicks\n  FROM ad_spend_daily AS a\n  JOIN campaigns AS c ON c.campaign_id = a.campaign_id\n  WHERE a.spend_date BETWEEN DATE '2025-07-01' AND DATE '2025-10-31'\n  GROUP BY c.channel_id, a.campaign_id, c.campaign_name\n)\nSELECT cc.channel_id, cc.campaign_id, cc.campaign_name, cc.clicks\nFROM campaign_clicks AS cc\nWHERE NOT EXISTS (\n  SELECT 1\n  FROM campaign_clicks AS other\n  WHERE other.channel_id = cc.channel_id\n    AND (other.clicks > cc.clicks\n         OR (other.clicks = cc.clicks AND other.campaign_id < cc.campaign_id))\n)\nORDER BY cc.channel_id",
+    "WITH campaign_clicks AS (\n  -- one row per campaign with spend rows from July to October 2025\n  SELECT c.channel_id, a.campaign_id, c.campaign_name, SUM(a.clicks) AS clicks\n  FROM ad_spend_daily AS a\n  JOIN campaigns AS c ON c.campaign_id = a.campaign_id\n  WHERE a.spend_date BETWEEN DATE '2025-07-01' AND DATE '2025-10-31'\n  GROUP BY c.channel_id, a.campaign_id, c.campaign_name\n),\ntop_clicks AS (\n  -- one row per channel, with the most clicks any of its campaigns had\n  SELECT channel_id, MAX(clicks) AS max_clicks\n  FROM campaign_clicks\n  GROUP BY channel_id\n),\nleaders AS (\n  -- one row per channel: the lowest campaign_id among its campaigns with the most clicks\n  SELECT cc.channel_id, MIN(cc.campaign_id) AS campaign_id\n  FROM campaign_clicks AS cc\n  JOIN top_clicks AS t ON t.channel_id = cc.channel_id AND t.max_clicks = cc.clicks\n  GROUP BY cc.channel_id\n)\nSELECT cc.channel_id, cc.campaign_id, cc.campaign_name, cc.clicks\nFROM campaign_clicks AS cc\nJOIN leaders AS l ON l.campaign_id = cc.campaign_id\nORDER BY cc.channel_id"
+  ],
+  "other_way": {
+    "sql": "WITH campaign_clicks AS (\n  -- one row per campaign with spend rows from July to October 2025\n  SELECT c.channel_id, a.campaign_id, c.campaign_name, SUM(a.clicks) AS clicks\n  FROM ad_spend_daily AS a\n  JOIN campaigns AS c ON c.campaign_id = a.campaign_id\n  WHERE a.spend_date BETWEEN DATE '2025-07-01' AND DATE '2025-10-31'\n  GROUP BY c.channel_id, a.campaign_id, c.campaign_name\n)\nSELECT channel_id, campaign_id, campaign_name, clicks\nFROM campaign_clicks\nQUALIFY ROW_NUMBER() OVER (PARTITION BY channel_id ORDER BY clicks DESC, campaign_id) = 1\nORDER BY channel_id",
+    "tradeoff": "QUALIFY keeps the first place in the same query, which is shorter, but PostgreSQL, MySQL and SQL Server do not accept it."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-40",
+      "sql": "WITH campaign_clicks AS (\n  SELECT c.channel_id, a.campaign_id, c.campaign_name, SUM(a.clicks) AS clicks\n  FROM ad_spend_daily AS a\n  JOIN campaigns AS c ON c.campaign_id = a.campaign_id\n  WHERE a.spend_date BETWEEN DATE '2025-07-01' AND DATE '2025-10-31'\n  GROUP BY c.channel_id, a.campaign_id, c.campaign_name\n),\nranked AS (\n  SELECT channel_id, campaign_id, campaign_name, clicks,\n         RANK() OVER (PARTITION BY channel_id ORDER BY clicks DESC) AS click_rank\n  FROM campaign_clicks\n)\nSELECT channel_id, campaign_id, campaign_name, clicks\nFROM ranked\nWHERE click_rank = 1\nORDER BY channel_id"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-37",
+      "sql": "WITH campaign_clicks AS (\n  SELECT c.channel_id, a.campaign_id, c.campaign_name, SUM(a.clicks) AS clicks\n  FROM ad_spend_daily AS a\n  JOIN campaigns AS c ON c.campaign_id = a.campaign_id\n  WHERE a.spend_date BETWEEN DATE '2025-07-01' AND DATE '2025-10-31'\n  GROUP BY c.channel_id, a.campaign_id, c.campaign_name\n),\nranked AS (\n  SELECT channel_id, campaign_id, campaign_name, clicks,\n         ROW_NUMBER() OVER (ORDER BY clicks DESC, campaign_id) AS click_rank\n  FROM campaign_clicks\n)\nSELECT channel_id, campaign_id, campaign_name, clicks\nFROM ranked\nWHERE click_rank = 1\nORDER BY channel_id"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-18",
+      "sql": "WITH campaign_clicks AS (\n  SELECT c.channel_id, a.campaign_id, c.campaign_name, SUM(a.clicks) AS clicks\n  FROM ad_spend_daily AS a\n  JOIN campaigns AS c ON c.campaign_id = a.campaign_id\n  WHERE a.spend_date BETWEEN DATE '2025-07-01' AND DATE '2025-10-31'\n  GROUP BY c.channel_id, a.campaign_id, c.campaign_name\n),\nranked AS (\n  SELECT channel_id, campaign_id, campaign_name, clicks,\n         ROW_NUMBER() OVER (PARTITION BY channel_id ORDER BY clicks, campaign_id) AS click_rank\n  FROM campaign_clicks\n)\nSELECT channel_id, campaign_id, campaign_name, clicks\nFROM ranked\nWHERE click_rank = 1\nORDER BY channel_id"
+    },
+    {
+      "id": "PW4",
+      "error_id": "ERR-SYN-08",
+      "sql": "SELECT c.channel_id, a.campaign_id, c.campaign_name, SUM(a.clicks) AS clicks\nFROM ad_spend_daily AS a\nJOIN campaigns AS c ON c.campaign_id = a.campaign_id\nWHERE a.spend_date BETWEEN DATE '2025-07-01' AND DATE '2025-10-31'\n  AND ROW_NUMBER() OVER (PARTITION BY c.channel_id ORDER BY a.clicks DESC, a.campaign_id) = 1\nGROUP BY c.channel_id, a.campaign_id, c.campaign_name\nORDER BY c.channel_id"
+    },
+    {
+      "id": "PW5",
+      "error_id": "ERR-LOG-07",
+      "sql": "WITH ranked AS (\n  SELECT c.channel_id, a.campaign_id, c.campaign_name, a.clicks,\n         ROW_NUMBER() OVER (PARTITION BY c.channel_id ORDER BY a.clicks DESC, a.campaign_id) AS click_rank\n  FROM ad_spend_daily AS a\n  JOIN campaigns AS c ON c.campaign_id = a.campaign_id\n  WHERE a.spend_date BETWEEN DATE '2025-07-01' AND DATE '2025-10-31'\n)\nSELECT channel_id, campaign_id, campaign_name, clicks\nFROM ranked\nWHERE click_rank = 1\nORDER BY channel_id"
+    }
+  ],
+  "hint3_partial": "WITH campaign_clicks AS (\n  -- one row per campaign with spend rows from July to October 2025\n  SELECT c.channel_id, a.campaign_id, c.campaign_name, SUM(a.clicks) AS clicks\n  FROM ad_spend_daily AS a\n  JOIN campaigns AS c ON c.campaign_id = a.campaign_id\n  WHERE a.spend_date BETWEEN DATE '2025-07-01' AND DATE '2025-10-31'\n  GROUP BY c.channel_id, a.campaign_id, c.campaign_name\n),\nranked AS (\n  -- one row per campaign, with its place in its channel\n  SELECT channel_id, campaign_id, campaign_name, clicks,\n         ROW_NUMBER() OVER (___) AS click_rank\n  FROM campaign_clicks\n)\nSELECT channel_id, campaign_id, campaign_name, clicks\nFROM ranked\nWHERE ___\nORDER BY channel_id",
+  "solver": {
+    "prompt_hash": "b88c98868d38c4ed",
+    "schema_version": "09f3a33d3123",
+    "dataset_version": "e7c58abf7e8f892e",
+    "grader_version": "7a.1",
+    "query": "WITH t AS (\n  SELECT cp.channel_id, cp.campaign_id, cp.campaign_name, SUM(a.clicks) AS clicks\n  FROM ad_spend_daily a\n  JOIN campaigns cp ON cp.campaign_id = a.campaign_id\n  WHERE a.spend_date >= DATE '2025-07-01' AND a.spend_date <= DATE '2025-10-31'\n  GROUP BY cp.channel_id, cp.campaign_id, cp.campaign_name\n)\nSELECT channel_id, campaign_id, campaign_name, clicks\nFROM t\nQUALIFY ROW_NUMBER() OVER (PARTITION BY channel_id ORDER BY clicks DESC, campaign_id ASC) = 1\nORDER BY channel_id ASC\n",
+    "at": "2026-10-21T09:53:57.231Z"
+  }
+}

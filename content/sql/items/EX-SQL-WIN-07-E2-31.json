@@ -1,0 +1,135 @@
+{
+  "id": "EX-SQL-WIN-07-E2-31",
+  "version": 1,
+  "kind": "fix",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "window",
+    "last_value",
+    "frame",
+    "default_frame",
+    "orders",
+    "fix"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-07"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-WIN-07",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-WIN-01",
+    "SQL-WIN-04",
+    "SQL-WIN-07"
+  ],
+  "template_id": "T-WIN-07-fix-last-value-frame",
+  "template_params": {
+    "table": "orders",
+    "key": "customer_id",
+    "measure": "channel"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_win",
+  "prompt": "The query in the editor has one mistake. Fix it so that it answers this question: for every order of the customers with customer_id from 3001 to 3100 (both included) placed from 1 January to 30 June 2025 (order_ts holds UTC time; both days included, in UTC), what was the channel of the customer's last order in that period? When two orders of a customer tie on order_ts, the one with the higher order_id counts as the later order. Return four columns, in this order: customer_id, order_id, channel and last_channel. Return one row for each such order. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "customer_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "order_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "channel",
+        "type_class": "text"
+      },
+      {
+        "name": "last_channel",
+        "type_class": "text"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "customer_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "order_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "channel",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "last_channel",
+        "type_class": "text",
+        "precision": "exact"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "order_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, run the query and compare last_channel with channel: on every row they match, because the window stops at the row itself.",
+    "With an ORDER BY and no frame, a window ends at the current row; write a frame that reaches the customer's last order."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 231,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 232,
+      "to": 243,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 244,
+      "to": 362,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": "SELECT customer_id, order_id, channel,\n       LAST_VALUE(channel) OVER (PARTITION BY customer_id ORDER BY order_ts, order_id) AS last_channel\nFROM orders\nWHERE customer_id BETWEEN 3001 AND 3100\n  AND order_ts >= TIMESTAMP '2025-01-01' AND order_ts < TIMESTAMP '2025-07-01'",
+  "time_target_ms": 120000,
+  "why_this_works": "The written frame runs to the customer's last order, so LAST_VALUE returns that order's channel on every row instead of the row's own.",
+  "starter_error_id": "ERR-LOG-42"
+}

@@ -1,0 +1,119 @@
+{
+  "id": "EX-SQL-WIN-03-E1-21",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "lag",
+    "fx_rates_monthly",
+    "drill"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-03"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-WIN-03",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-SORT-01",
+    "SQL-WIN-01",
+    "SQL-WIN-03"
+  ],
+  "template_id": "T-WIN-03-lag-change",
+  "template_params": {
+    "table": "fx_rates_monthly",
+    "order": "month"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "mailvora",
+  "schema": "mailvora",
+  "edge_schema": "mailvora_edge_win",
+  "prompt": "fx_rates_monthly holds one USD rate per month. For each month, show the rate and how much it changed from the month before: eur_per_unit minus the previous month's eur_per_unit. Months follow each other by month. The first month has no month before it: show its rate_change as missing. Return month, eur_per_unit and rate_change. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "month",
+        "type_class": "temporal"
+      },
+      {
+        "name": "eur_per_unit",
+        "type_class": "numeric"
+      },
+      {
+        "name": "rate_change",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "month",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "eur_per_unit",
+        "type_class": "numeric",
+        "precision": "ratio"
+      },
+      {
+        "name": "rate_change",
+        "type_class": "numeric",
+        "precision": "ratio"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "month"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the change: this month's rate minus the rate LAG reads from the month before.",
+    "There is one currency, so the window needs only an order: by month, earliest first."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 27,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 28,
+      "to": 99,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 100,
+      "to": 121,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 90000,
+  "why_this_works": "LAG in month order reads the rate of the month before, so the subtraction gives the change, and the first month has none."
+}

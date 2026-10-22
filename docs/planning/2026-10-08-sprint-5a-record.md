@@ -1,4 +1,4 @@
-# Sprint 5a record: Methodology complete, polish, release 1.0
+# Sprint 5a record: Methodology complete, polish, release 0.5.0
 
 Copied on 2026-10-08 from sprint 5a's build ledger and its review files, which live in a
 git-ignored scratch workspace. It is the sprint 5a counterpart of `2026-10-08-sprint-4c-record.md`.
@@ -10,7 +10,7 @@ are named by ID only.
 What the sprint did: finished the Methodology section (48 new concepts: the 21 remaining metrics
 and the 27 experiment, statistics and pricing economics concepts of knowledge file 11), added a
 Voltmarkt A/B test to the course data with three SQL items and a daily case, fixed Codex F26 and
-the leftover SQL content findings, polished every screen, and numbered the app 1.0.0. No log
+the leftover SQL content findings, polished every screen, and numbered the app 0.5.0. No log
 change (`SCHEMA_VERSION` stays 4) and no grading change (`GRADER_VERSION` stays `4c.1`).
 
 ## Owner decisions
@@ -29,8 +29,8 @@ were accepted by "go".
 | D59 | A concept whose lesson window is open ranks last when Today or practice picks the next choice concept |
 | D60 | Codex F26 (PR #41) is fixed first, test first |
 | D61 | The three sprint 4c owner questions: keep `ERR-LOG-29` on all 9 items; accept M3; keep JR-02 as is |
-| D62 | Polish before 1.0: a screen-by-screen pass, the leftover content fixes and a fresh-install test of the public copy |
-| D63 | This is release 1.0 (version 1.0.0). The design's longer plan continues as 1.x releases (5b is 1.1); its "post-v1" items become 2.0 or later |
+| D62 | Polish before 0.5.0: a screen-by-screen pass, the leftover content fixes and a fresh-install test of the public copy |
+| D63 | This is release 0.5.0 (version 0.5.0). The design's longer plan continues as 0.x releases (5b is 0.5.1); its "post-v1" items become 2.0 or later |
 | D64 | At release: the public repo is synced and tagged `v1.0.0` with a GitHub release note, and the local checkout is fast-forwarded to `main` |
 | Defaults | IDs `EXP-AB-NN`, `STAT-BASIC-NN`, `ECON-PRICE-NN` (E-175); topics `T-MET-EXP`, `T-MET-STAT`, `T-MET-ECON`; level null for all 48; file 11's teaching order; one held-out item per new concept; every typed item blind-solved |
 
@@ -51,7 +51,7 @@ Base `2481fc2` (PR #41 merged).
 | C6 | 48 items held out, one per new concept; pool 45 to 93 | `1dbe55e` |
 | C7 | Methodology blind solve, 291 of 291; the readings test counts from `concepts.json` | `58868dd`, `f0986ec` |
 | P3 | Leftover SQL content: six SQL-DATE-01 references return a DATE; four feedback texts; three prompts reworded and re-solved | `3aa018d`, `c1e0ff9` |
-| P4 | Version 1.0.0 in `package.json`, carried by the status route and shown in Settings | `01bda4e` |
+| P4 | Version 0.5.0 in `package.json`, carried by the status route and shown in Settings | `01bda4e` |
 | C5 | A/B test SQL items EX-SQL-JOIN-02-E2-07, EX-SQL-CTE-01-E3-03, EX-SQL-JOIN-03-E3-04; CASE-DAILY-L3-03 "Checkout test readout" (CP2 to CP6) with EX-CASE-DAILY-L3-03; S4B-04 amended (S5A-14) | `e9b02e7` |
 | F1 | Smoke rows 5a-1 to 5a-5 | `2b903ac` |
 | P1, P2 | Screen-by-screen pass at 1366 and 390 px (49 findings, 148 screenshots); 46 small findings fixed | `749eedd` |
@@ -90,10 +90,10 @@ Content results:
 | S5A-15 | The three A/B items join their lessons' `pool_item_ids` (SQL-JOIN-02, SQL-JOIN-03, SQL-CTE-01) | Otherwise no route serves them | None |
 | S5A-16 | F1 runs its smoke test on port 5186 while P1 holds 5184; the gate re-runs it on 5184 after P2 | Saves a serial wait | None |
 | S5A-17 | P1 #4 (a "Start drill" button on levels with no drill, which only gave a 404 notice) is fixed in P2 as small | Hiding a control changes no route or log | None |
-| S5A-18 | P1 #6 (Today's "Next goal" per section) and #16 (per-question outcomes in the drill review) are large: backlog rows, not built in 1.0 | They need a route change | They stay as they are in 1.0 |
+| S5A-18 | P1 #6 (Today's "Next goal" per section) and #16 (per-question outcomes in the drill review) are large: backlog rows, not built in 0.5.0 | They need a route change | They stay as they are in 0.5.0 |
 | S5A-19 | P2 runs as three agents on disjoint screens; `base.css` and `components.css` are shared with small re-read-before-edit edits | Wall time | An edit conflict, redone by the agent |
 | S5A-20 | "web shop" becomes "webshop" only outside CASE-DAILY-L3-03's checkpoint prompts | A prompt change would stale its blind record | None |
-| S5A-21 | The five minors the seams review marked "fix before 1.0" are fixed in one round, with no re-review; two content items are blind-solved again | Each is cheap, learner-visible and safe, and this is the sprint's end, where minors are settled | A small follow-up commit |
+| S5A-21 | The five minors the seams review marked "fix before 0.5.0" are fixed in one round, with no re-review; two content items are blind-solved again | Each is cheap, learner-visible and safe, and this is the sprint's end, where minors are settled | A small follow-up commit |
 
 ## The gate
 
@@ -164,7 +164,7 @@ None blocks studying. What is open is in [`backlog.md`](backlog.md), one line ea
 - C1: Q-EXP-AB-05-03 ruled no change; 5 empty unit labels accepted; the held-out anchors are S5A-12.
 - C7 rounding notes: all graded right.
 - P2 M6: a level drill with no level cannot happen with today's data.
-- P4 M2 to M4: the version line's place, a repeated call, and the 1.0.0 test pin (the 1.1 bump
+- P4 M2 to M4: the version line's place, a repeated call, and the 0.5.0 test pin (the 0.5.1 bump
   edits it).
 
 **Closed in this sprint**
@@ -197,7 +197,7 @@ The other Minors: F2-02 (two stale backlog rows and a count), F2-04 (a scratch r
 CP5 options; nothing tracked does), F2-05 (three test assertions that could not fail), F2-06 (two
 CHANGELOG wordings) and F2-07 (one older held-out MET-MKT-05 item to check, now a backlog row).
 
-**Fix round (S5A-21).** The review sorted every deferred minor into fix before 1.0 (5), backlog (14)
+**Fix round (S5A-21).** The review sorted every deferred minor into fix before 0.5.0 (5), backlog (14)
 and drop (13). The five, with F2-01 and F2-05, were fixed in one round with no re-review: the case's
 held-back note names the step; a half-mock says whether any question was shown in the last 21 days;
 the taller textarea is scoped to form fields; the three assertions now test what they claim;
@@ -210,13 +210,13 @@ again, 2 of 2 PASS. F2-02 and F2-06 were fixed in the docs. Commit `594b573`: ty
 PR #42 merged on 2026-10-08 (`fbf6cce`). Codex finished its review with no findings (a +1 and no
 comments), logged in `docs/reviews/codex-findings.md`.
 
-**Release 1.0 (D64), the same day:**
+**Release 0.5.0 (D64), the same day:**
 
 | Step | Result |
 |---|---|
 | Public copy | A fresh clone of `maydinidil/aydinlearns` outside the monorepo; `tools/export-public.sh <clone> origin/main` from the main checkout exported `fbf6cce` as `6af683a` (766 files changed). The scan found no logs, data, `.env`, scratch folders, session links, emails or `C:Users` paths. Pushed `fcb8f35..6af683a` |
-| Fresh-install test | The clone's tree in a second clean folder, started with the launcher (`node tools/launch.ts --no-browser`, `AYDINLEARNS_PORT=5194`, a temporary `AYDINLEARNS_LOGS_DIR`). Setup ran end to end in 37 seconds: `npm ci` 3 s, the venv and `pip install` 18 s (DuckDB 1.5.6), `build:data` 10 s (dataset `6de53e5dbeafe2d5`), `build:web` 1 s, the server answering 3 s later. The status route reported version 1.0.0 with all 9 checks passing; Today answered for SQL and Methodology; EX-SQL-BASICS-01-E1-01 graded a pass and logged to the temporary folder. No README step was wrong. Both folders were deleted after |
-| Tag and release | `v1.0.0` on `6af683a`, release "aydinlearns 1.0": what 1.0 does, how to start it, the known issues, what 1.1 adds |
+| Fresh-install test | The clone's tree in a second clean folder, started with the launcher (`node tools/launch.ts --no-browser`, `AYDINLEARNS_PORT=5194`, a temporary `AYDINLEARNS_LOGS_DIR`). Setup ran end to end in 37 seconds: `npm ci` 3 s, the venv and `pip install` 18 s (DuckDB 1.5.6), `build:data` 10 s (dataset `6de53e5dbeafe2d5`), `build:web` 1 s, the server answering 3 s later. The status route reported version 0.5.0 with all 9 checks passing; Today answered for SQL and Methodology; EX-SQL-BASICS-01-E1-01 graded a pass and logged to the temporary folder. No README step was wrong. Both folders were deleted after |
+| Tag and release | `v1.0.0` on `6af683a`, release "aydinlearns 0.5.0": what 0.5.0 does, how to start it, the known issues, what 0.5.1 adds |
 | Local checkout | `C:zehirlab` fast-forwarded from `e11b686` to `fbf6cce` (85 commits) with the app closed; untracked folders untouched. The launcher rebuilds the data and the screens at the next start |
 
 Not covered by the install test, and noted in the launcher's backlog row: the browser-opening line

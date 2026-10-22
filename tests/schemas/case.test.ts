@@ -95,7 +95,7 @@ const at = (base: CaseRecord, kind: string): string => `checkpoints[${base.check
 
 const cases: [string, CaseRecord, (r: Rec) => void, string][] = [
   // S4B-01: the new record fields
-  ['kind is one of the three', inboxCase, (r) => { r.kind = 'mock'; }, 'kind must be opener, inbox or daily'],
+  ['kind is one of the five (S7-08 adds the mock kinds)', inboxCase, (r) => { r.kind = 'mock'; }, 'kind must be opener, inbox, daily, case_round or take_home'],
   ['level is a curriculum level', inboxCase, (r) => { r.level = 0; }, 'level must be a whole number from 1 to 7'],
   ['level is a whole number', inboxCase, (r) => { r.level = 2.5; }, 'level must be a whole number from 1 to 7'],
   ['data_needed names at least one table', inboxCase, (r) => { r.data_needed = []; }, 'data_needed must list the tables the case reads, each a plain name such as promotions, once'],
@@ -151,6 +151,12 @@ const cases: [string, CaseRecord, (r: Rec) => void, string][] = [
   ['a daily case has difficulty 1', dailyCase, (r) => { r.difficulty = 2; }, 'a daily case has difficulty 1'],
   ['a daily case ID names its level', dailyCase, (r) => { r.level = 3; }, 'a daily case ID looks like CASE-DAILY-L3-01'],
   ['a daily case is asked by the cast', dailyCase, (r) => { r.persona = { name: 'Fleur', role: 'CFO' }; },
+    'a daily case is asked by one of the five managers in their own role: Sanne, Joost, Fleur, Marieke or Yara'],
+  ['a Mailvora daily case is asked by a Mailvora manager (S7-C11)', dailyCase, (r) => { r.schema = 'mailvora'; r.persona = { name: 'Sanne', role: 'Category manager' }; },
+    'a daily case on Mailvora is asked by one of its four managers in their own role: Aoife, Ciarán, Siobhán or Declan'],
+  ['a Mailvora daily case needs the manager own role (S7-C11)', dailyCase, (r) => { r.schema = 'mailvora'; r.persona = { name: 'Aoife', role: 'CFO' }; },
+    'a daily case on Mailvora is asked by one of its four managers in their own role: Aoife, Ciarán, Siobhán or Declan'],
+  ['a Voltmarkt daily case is not asked by a Mailvora manager (S7-C11)', dailyCase, (r) => { r.persona = { name: 'Aoife', role: 'Performance marketing manager' }; },
     'a daily case is asked by one of the five managers in their own role: Sanne, Joost, Fleur, Marieke or Yara'],
   ['only a daily case has a daily ID', goodCase,
     (r) => { r.case_id = 'CASE-DAILY-L1-01'; Object.assign(cp(r, 'CP4'), { item_id: 'CASE-DAILY-L1-01:CP4', truth_key: 'CASE-DAILY-L1-01:CP4' }); },
@@ -242,3 +248,9 @@ for (const [name, base, patch, message] of keyCases) {
     assert.ok(!got.join(' ').includes('invented_marker_query') && !got.join(' ').includes('season'), 'no key text in a message');
   });
 }
+
+// Ruling S7-C11: a Mailvora daily case is asked by one of Mailvora's four managers in their own role.
+test('a Mailvora daily case asked by Aoife in her role validates (S7-C11)', () => {
+  const rec = patched(dailyCase, (r) => { r.schema = 'mailvora'; r.persona = { name: 'Aoife', role: 'Performance marketing manager' }; });
+  assert.deepEqual(validateCaseRecord(rec), []);
+});

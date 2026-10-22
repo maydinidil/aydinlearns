@@ -1,0 +1,138 @@
+{
+  "id": "EX-SQL-WIN-04-E1-07",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "running_count",
+    "range_frame",
+    "products"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-04"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-WIN-04",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-WIN-01",
+    "SQL-WIN-04"
+  ],
+  "template_id": "T-WIN-04-running-count-range",
+  "template_params": {
+    "table": "products",
+    "group": "category",
+    "ties": "together"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_win",
+  "prompt": "For each product in categories 1, 13 and 17 with a known launch date, show how many products of its category had launched up to and including its launch_date. Products launched on the same day as it count too, so products that share a launch day show the same number. Leave out products with a missing launch_date. Return product_id, category_id, launch_date and launched_so_far. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "category_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "launch_date",
+        "type_class": "temporal"
+      },
+      {
+        "name": "launched_so_far",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "category_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "launch_date",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "launched_so_far",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "product_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write a running count per category in launch_date order.",
+    "Products of one launch day count together, so the frame must treat rows with the same date as one step: it counts values of the sort column, not rows."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 44,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 45,
+      "to": 177,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 178,
+      "to": 191,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 192,
+      "to": 254,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 150000,
+  "why_this_works": "RANGE takes every row whose launch_date is at or before this one, so products launched on the same day share one count."
+}

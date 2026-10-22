@@ -1,0 +1,39 @@
+{
+  "item_id": "EX-SQL-WIN-07-E2-31",
+  "item_version": 1,
+  "reference_sql": "SELECT customer_id, order_id, channel,\n       LAST_VALUE(channel) OVER (PARTITION BY customer_id ORDER BY order_ts, order_id\n                                 ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS last_channel\nFROM orders\nWHERE customer_id BETWEEN 3001 AND 3100\n  AND order_ts >= TIMESTAMP '2025-01-01' AND order_ts < TIMESTAMP '2025-07-01'",
+  "alternatives": [
+    "WITH last_orders AS (  -- one row per order in the period, numbered within its customer from the latest\n  SELECT customer_id, channel,\n         ROW_NUMBER() OVER (PARTITION BY customer_id ORDER BY order_ts DESC, order_id DESC) AS rn\n  FROM orders\n  WHERE customer_id BETWEEN 3001 AND 3100\n    AND order_ts >= TIMESTAMP '2025-01-01' AND order_ts < TIMESTAMP '2025-07-01'\n)\nSELECT o.customer_id, o.order_id, o.channel, l.channel AS last_channel\nFROM orders o\nJOIN last_orders l ON l.customer_id = o.customer_id AND l.rn = 1\nWHERE o.customer_id BETWEEN 3001 AND 3100\n  AND o.order_ts >= TIMESTAMP '2025-01-01' AND o.order_ts < TIMESTAMP '2025-07-01'",
+    "SELECT customer_id, order_id, channel,\n       FIRST_VALUE(channel) OVER (PARTITION BY customer_id ORDER BY order_ts DESC, order_id DESC\n                                  ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS last_channel\nFROM orders\nWHERE customer_id BETWEEN 3001 AND 3100\n  AND order_ts >= TIMESTAMP '2025-01-01' AND order_ts < TIMESTAMP '2025-07-01'"
+  ],
+  "other_way": {
+    "sql": "WITH last_orders AS (  -- one row per order in the period, numbered within its customer from the latest\n  SELECT customer_id, channel,\n         ROW_NUMBER() OVER (PARTITION BY customer_id ORDER BY order_ts DESC, order_id DESC) AS rn\n  FROM orders\n  WHERE customer_id BETWEEN 3001 AND 3100\n    AND order_ts >= TIMESTAMP '2025-01-01' AND order_ts < TIMESTAMP '2025-07-01'\n)\nSELECT o.customer_id, o.order_id, o.channel, l.channel AS last_channel\nFROM orders o\nJOIN last_orders l ON l.customer_id = o.customer_id AND l.rn = 1\nWHERE o.customer_id BETWEEN 3001 AND 3100\n  AND o.order_ts >= TIMESTAMP '2025-01-01' AND o.order_ts < TIMESTAMP '2025-07-01'",
+    "tradeoff": "Joining each customer's last order back to the orders works on any engine, but the frame fix is one line."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-42",
+      "sql": "SELECT customer_id, order_id, channel,\n       LAST_VALUE(channel) OVER (PARTITION BY customer_id ORDER BY order_ts, order_id) AS last_channel\nFROM orders\nWHERE customer_id BETWEEN 3001 AND 3100\n  AND order_ts >= TIMESTAMP '2025-01-01' AND order_ts < TIMESTAMP '2025-07-01'"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-37",
+      "sql": "SELECT customer_id, order_id, channel, LAST_VALUE(channel) OVER (ORDER BY order_ts, order_id ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS last_channel FROM orders WHERE customer_id BETWEEN 3001 AND 3100 AND order_ts >= TIMESTAMP '2025-01-01' AND order_ts < TIMESTAMP '2025-07-01'"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-18",
+      "sql": "SELECT customer_id, order_id, channel, LAST_VALUE(channel) OVER (PARTITION BY customer_id ORDER BY order_ts DESC, order_id DESC ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS last_channel FROM orders WHERE customer_id BETWEEN 3001 AND 3100 AND order_ts >= TIMESTAMP '2025-01-01' AND order_ts < TIMESTAMP '2025-07-01'"
+    }
+  ],
+  "hint3_partial": "SELECT customer_id, order_id, channel,\n       LAST_VALUE(channel) OVER (PARTITION BY customer_id ORDER BY order_ts, order_id\n                                 ROWS BETWEEN ___) AS last_channel\nFROM orders\nWHERE customer_id BETWEEN 3001 AND 3100\n  AND order_ts >= TIMESTAMP '2025-01-01' AND order_ts < TIMESTAMP '2025-07-01'",
+  "solver": {
+    "prompt_hash": "f54799999d8920eb",
+    "schema_version": "7ed366279088",
+    "dataset_version": "e7c58abf7e8f892e",
+    "grader_version": "7a.1",
+    "query": "SELECT customer_id, order_id, channel,\n       LAST_VALUE(channel) OVER (PARTITION BY customer_id ORDER BY order_ts, order_id\n                                 ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS last_channel\nFROM orders\nWHERE customer_id BETWEEN 3001 AND 3100\n  AND order_ts >= TIMESTAMP '2025-01-01' AND order_ts < TIMESTAMP '2025-07-01'\n",
+    "at": "2026-10-21T09:05:11.227Z"
+  }
+}

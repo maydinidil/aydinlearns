@@ -1,0 +1,52 @@
+{
+  "id": "Q-GA4-252",
+  "version": 1,
+  "kind": "mcq",
+  "section": "ga4",
+  "concept_id": "GA4-ATTRIB-22",
+  "parent_id": "GA4-REPORTS-01",
+  "topic_id": "T-GA4-02",
+  "legacy_id": null,
+  "stem": "The site team added UTM tags to the homepage banners that link to the sale page. Two weeks later a campaign called homepage_banner is the top source of purchases, and purchases credited to paid search fell. What most likely happened?",
+  "options": [
+    {
+      "oid": "o6cf9363",
+      "text": "The tagged internal links started new attribution and overwrote the visitors' real sources",
+      "misconception_id": null
+    },
+    {
+      "oid": "o0338f43",
+      "text": "The banners drew buyers away from paid search, so the shift is a real change in their behaviour",
+      "misconception_id": null
+    },
+    {
+      "oid": "o1852e3f",
+      "text": "Paid search clicks lost their gclid on the sale page, so GA4 filed them under the banner",
+      "misconception_id": null
+    },
+    {
+      "oid": "o430443f",
+      "text": "The homepage_banner campaign became a key event, so GA4 now gives it the purchase credit",
+      "misconception_id": null
+    }
+  ],
+  "typed": null,
+  "exam_relevance": "core",
+  "held_out": true,
+  "enemy_group": null,
+  "status": "active",
+  "verified": true,
+  "level": null,
+  "tags": [
+    "ga4",
+    "T-GA4-02"
+  ],
+  "source_ids": [
+    "10:GA4-ATTRIB-22",
+    "10:§4",
+    "ERRATA:E-205"
+  ],
+  "as_of": "2026-09-30",
+  "review_after": null,
+  "supersedes": []
+}

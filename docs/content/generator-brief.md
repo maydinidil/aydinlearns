@@ -22,6 +22,10 @@ Agents that write a case (a level opener, an inbox case or a daily case) also fo
   [Level 4](#level-4-subqueries-text-date-arithmetic-and-data-quality-sprint-6), and an item on raw
   data also follows [Raw data](#raw-data-voltmarkt_raw-sprint-6). Where they differ from the rest,
   they win for level 4.
+- Level 5 content (sprint 7) follows the Level 3 and Level 4 sections too, then
+  [Level 5](#level-5-window-functions-sprint-7). Where it differs from the rest, it wins for level 5.
+- A held-out mock item (sprint 7) follows the sections for its level, then
+  [Mock items](#mock-items-sprint-7-task-c3). Where it differs from the rest, it wins for mock items.
 - Paths are relative to `aydinlearns/`. Work in the folder the controller names in the `Root`
   dispatch field, and write files directly. A sprint is built in a git worktree, so the root is
   that worktree's `aydinlearns` folder: in sprint 2,
@@ -594,7 +598,7 @@ and a join that keeps each row once; NOT EXISTS and a LEFT JOIN with `IS NULL`; 
 
 | Check | Fails when |
 |---|---|
-| C47 | A raw-data item does not have `schema` `voltmarkt_raw` and edge schema `voltmarkt_edge_clean`, its key names a schema, or its key gives the same result on the clean `voltmarkt` as on `voltmarkt_raw`; or a clean item's key reads a raw table (`voltmarkt_raw.`) |
+| C47 | A raw-data item is not on a raw schema (`voltmarkt_raw` or `mailvora_raw`) with its clean edge schema, its key names a schema or does not find the quirk (its result on the clean schema equals its result on the raw one); or a clean item's key reads a raw table |
 | C48 | A must-have trap in the table above is planted in no pool or fix item of its concept |
 | C49 | The level 4 drill pool holds fewer than 30 drill items or misses a level 4 concept, or a cumulative drill entry asks for more than its levels' pools can serve unseen |
 | C50 | A case checkpoint (CP1, CP2, CP4 or CP5) has no passing blind-solve record for its current prompt, options or typed spec, or its record's answer fingerprint (`key_hash`, F32) is missing or no longer matches the answer key or the built value A case whose dataset is not prepared waits for its CP2 and CP4 values with a warning |
@@ -633,6 +637,220 @@ A raw case's model-plan expected row count is counted on its own schema, `voltma
 | Clean only what the question asks about, and say whether rows with a missing value count | Every extra cleaning step changes the answer | Blind solver |
 | Raw `orders.order_ts` is not UTC throughout (Q-01-05). A prompt that turns on a day of it says how to read each kind of order, for example "store orders are in the store's local time (`stores.timezone`), web orders in UTC" | P-10's rule that every `*_ts` column is UTC holds in `voltmarkt` only | Blind solver |
 | Check the edge cases on `voltmarkt_edge_clean` (`content/sql/edge/voltmarkt_edge_clean.json`): an exact and a near duplicate, a BE-07 line in cents outside June, every category spelling, a sku with a space inside, two windows that touch but do not overlap, and a store order at 23:30 local time | The key must stay right on every planted case (S6-04) | C03, C04, blind solver |
+
+## Level 5: window functions (sprint 7)
+
+For the seven level 5 concepts, in curriculum order: `SQL-WIN-01` to `SQL-WIN-07`. Everything above still
+applies, the Level 3 and Level 4 sections included (the grain line fades, keys run on the edge
+schema, every key has an `other_way`, each CTE step names its grain in a comment); where this
+section differs, it wins. The rulings are in the sprint 7 plan
+(`docs/superpowers/plans/2026-10-20-aydinlearns-sprint-7.md`): S7-19 to S7-22, S7-24 and S7-25, with
+the controller's ruling S7-C02 (no `ERR-LOG-44`). The ERRATA rows are E-200 to E-204.
+
+### What to write per concept
+
+| Concept | Schemas, edge schemas | Pool (write) | Must-have traps | Also |
+|---|---|---|---|---|
+| `SQL-WIN-01` | `voltmarkt` with `voltmarkt_edge_win`, `mailvora` with `mailvora_edge_win` | 10 to 12 | `ERR-LOG-37` missing PARTITION BY; `ERR-SYN-08` a window function in WHERE | A window against GROUP BY: the window keeps every row; shares of a partition total |
+| `SQL-WIN-02` | both | 10 to 12 | `ERR-LOG-40` RANK where exactly N rows were asked, or ROW_NUMBER where ties must share a place; the tie rule (S7-22, below) | ROW_NUMBER, RANK and DENSE_RANK on the same tie |
+| `SQL-WIN-03` | both | 8 to 10 | `ERR-LOG-41` LAG or a running total in no stated order, or ordered by the wrong column; `ERR-LOG-37`; `ERR-LOG-39` a period with no rows | The first row's missing LAG; month over month on Mailvora's spend |
+| `SQL-WIN-04` | both | 10 to 12 | `ERR-LOG-38` the default RANGE frame; `ERR-LOG-41` | Running totals that start again each month |
+| `SQL-WIN-05` | both | 8 to 10 | `ERR-LOG-43` a moving average over a short early window with no flag or filter; `ERR-LOG-20` averaging a ratio instead of dividing rolling sums (S7-C02); `ERR-LOG-39` | A 7-day moving average with a flag for short windows; a 7-day rolling click-through rate from rolling sums |
+| `SQL-WIN-06` | both, and `voltmarkt_raw` with `voltmarkt_edge_clean` | 8 to 10 | `ERR-SYN-08`; the tie rule | FIND-01-13's duplicates removed with ROW_NUMBER (E-202); a portable reference, with QUALIFY as the `other_way` (S7-20) |
+| `SQL-WIN-07` | both | 8 to 10 | `ERR-LOG-42` LAST_VALUE or FIRST_VALUE with the default frame; NTILE's ties (E-007) | NTILE quartiles; `quantile_cont` (E-151); FIRST_VALUE with a frame you write |
+
+For each concept, as at levels 3 and 4:
+- the lesson: the reading, 2 worked examples with subgoals and fading, the pretest (2 write items,
+  then 1 predict item), the lesson block, the re-test, and a `why_clause`;
+- the write pool, sized as above;
+- one fix item per trap ID the grader raises for that concept (`kind: "fix"`, `use: "pool"`);
+- 3 pool choice items, at least one a predict kind and one a `choose_query`;
+- 5 drill items, `use: "drill"`, E1 to E3: 35 across the level. Task C1 lists them in the level 5
+  entry's `pool_item_ids` in `content/sql/drills.json` (10 questions, 25 minutes, 90% to pass,
+  normal mode, the 7 level 5 concepts, S7-19). Until then the entry's pool is empty, the app lists
+  the drill as not available, and C19 warns;
+- every key with an `other_way`.
+
+At least a third of each concept's items read Mailvora (S7-19): `company: "mailvora"`, `schema:
+"mailvora"`, `edge_schema: "mailvora_edge_win"`. A Voltmarkt item has `schema: "voltmarkt"` and
+`edge_schema: "voltmarkt_edge_win"`, apart from the raw-data items of `SQL-WIN-06`. You may query
+`data/course.duckdb` read-only on `mailvora` and `mailvora_edge_win` too.
+
+Item numbers follow levels 3 and 4: `01` upward for the pretest, lesson, re-test and write pool
+items, `21` upward for drill items, `31` upward for fix items and `41` upward for choice items,
+each counted within its difficulty.
+
+`ERR-LOG-39`'s concept is `SQL-PAT-04` (level 6), after every level 5 concept. S7-24 names it for
+date gaps at level 5 all the same, so it is the one trap ID here whose concept comes later.
+
+### Prompts at level 5
+
+| Rule | Why | Checked by |
+|---|---|---|
+| Name the partition and the order in words, never in SQL: "for each category, from the highest unit cost down", not "PARTITION BY category_id ORDER BY unit_cost_eur DESC" | Writing the window is the skill; words that name the group and the direction have one reading | Review, blind solver |
+| Every prompt whose answer ranks rows states its tie rule, in the words C53 reads (below) | Without it a ranking has two right answers, and a top N passes on the visible data and differs on the edge (S7-22, E-204) | C53, blind solver |
+| A LAG or LEAD prompt says what the first row shows (the last row, for LEAD): missing, 0, or left out | The first row has no row before it, so LAG gives a missing value; an unstated rule has two right answers | Blind solver |
+| A moving-average prompt states the window ("the last 7 days, that day included") and what the first rows show: the average of the days so far with a flag column, missing, or left out | `ERR-LOG-43`: on the third day a 7-day frame holds 3 rows | Blind solver |
+| A prompt that compares a period with the one before says whether that is the previous calendar period (a period with no rows counts as 0, or as missing) or the previous period that has rows | `ERR-LOG-39`: the edge schemas skip a whole month (below) | Blind solver |
+| A running-total prompt names the order and the tie-break for rows that share a date, or says that rows on the same date count together | `ERR-LOG-38`: the default frame adds tied rows together | Blind solver |
+| When the window's sort column can be missing (product 5's launch date and an active plan's end date on the edge schemas), the prompt says where those rows go, and the key writes `NULLS FIRST` or `NULLS LAST` | DuckDB 1.5.6 puts missing values last in both directions unless told (checked); a key that leans on a default has no stated rule | Blind solver |
+| Mailvora's `session_start`, `signup_ts`, `paid_at` and `event_ts` hold moments in UTC, and the database runs in UTC. A prompt that turns on a day of them says "in UTC". Voltmarkt keeps P-10 (above) | The solver and the learner see only the prompt and the panel | Blind solver |
+| Keep each question's period inside the edge data: Voltmarkt's edge orders run from January to June 2025, Mailvora's edge spend from July to October 2025 | A key whose period misses the edge data returns no rows there and tests nothing | C03, review |
+
+**The tie rule, as C53 reads it** (S7-22, Task A1). C53 checks every key query (the reference, the
+alternatives and the other way) that filters a ranking function's result (ROW_NUMBER, RANK,
+DENSE_RANK or NTILE) by a comparison, in an outer query, a CTE or QUALIFY:
+- ROW_NUMBER and NTILE: the window's ORDER BY has at least two keys and ends in a plain column, the
+  tie-break, and a sentence of the prompt that says tie, ties, tied, tying, tie-break or
+  tie-breaker names that column, as written (`product_id`) or with spaces (`product ID`), in any
+  case. For example: "When products tie on unit cost, the lower product_id comes first."
+- RANK and DENSE_RANK: a sentence about ties says share, shares or sharing, or "same place", "same
+  rank" or "same position". For example: "Products that tie share a place."
+- ROW_NUMBER over a single sort key fails C53, apart from FIND-01-13's keep-one dedup on raw data
+  (S7-C06, "Keys at level 5" below). A planted query or a fix item's starter may leave the
+  tie-break out on purpose: that is a trap, and C53 does not read it.
+- C53 then grades the query with the other tie rule (RANK for ROW_NUMBER, ROW_NUMBER for RANK and
+  DENSE_RANK, the tie-break reversed for NTILE) and it must fail on the item's edge schema. So rank
+  by a measure and a cutoff where the edge schema holds a tie (the table below), or report the item
+  ID and the tie it needs.
+
+Prompts that show a rank without filtering on it state their tie rule too; C53 does not read them,
+the blind solver does.
+
+### The level 5 edge schemas (S7-25)
+
+Both have their company's table names (`voltmarkt_edge_win` has voltmarkt's three views too), and
+`content/sql/edge/<schema>.json` lists every plant under its tables. The ties sit at these cutoffs
+(each found by comparing ROW_NUMBER with RANK, `pipeline/tests/test_edge_win.py`):
+
+| Ranking | Edge schema | Ties at the cutoff, and where |
+|---|---|---|
+| Products by unit cost within category, highest first | `voltmarkt_edge_win` | Top 1 and top 3: TVs 50-55 inch (2) and Earbuds (16). Top 2: TVs up to 43 inch (1) and Cables (35) |
+| Products by unit cost within category, lowest first | `voltmarkt_edge_win` | Top 2: categories 1, 2, 16 and 35 |
+| Products by revenue (all the edge orders, January to June 2025) within category, highest first | `voltmarkt_edge_win` | As unit cost, highest first. With no partition, products 1 and 2 tie for first |
+| Each customer's latest order | `voltmarkt_edge_win` | Top 1: customers 3001 and 3002 placed their two latest orders at the same moment |
+| Each product's latest competitor price check | `voltmarkt_edge_win` | Top 1: products 1 and 6 |
+| Customers by last order day (E-203's recency for CASE-RETAIL-05) | `voltmarkt_edge_win` | Customers 3001 and 3004 last ordered on the same day, across NTILE(5)'s first boundary |
+| Campaigns by spend or by clicks (all the edge spend, July to October 2025) within channel, highest first | `mailvora_edge_win` | Top 1 and top 3: nonbrand search (1) and Meta (3). Top 2: brand search (2) and review sites (6) |
+| Each visitor's first session | `mailvora_edge_win` | Top 1: visitors V9100002 and V9100003 each have two first sessions at the same moment, from two channels |
+
+The ties hold over each edge schema's whole span. A prompt that filters a shorter period may lose
+them: C53 says so when it does.
+
+The other plants, which every key must stay right on:
+
+| Plant | `voltmarkt_edge_win` | `mailvora_edge_win` |
+|---|---|---|
+| A partition with one row | Soundbars (17) has one product; store LU-01 (24) one order; customers 3003 and 3006 one order each | LinkedIn (4) has one campaign, which spent on one day; visitors with one session |
+| A missing value in a window's sort column | Product 5 has no launch date | Active plans have no end date; user 1 moved from Lite (ended) to Pro (active) |
+| A month with no rows between two months with rows | No order in April 2025; the calendar holds every day from 1 January to 30 June 2025, so a spine over it shows April. Customer 3004 orders in January, then May and June | No ad spend in September 2025, while `budget_monthly` holds September for every channel. Subscription 3 is paid in August and October, not September |
+| Two rows with the same sort date | Store NL-01 has two orders on 14 February 2025 | Two or three campaigns of nonbrand search, brand search and Meta spent on the same day; users 6 and 7 signed up on the same day |
+| A group of 3 rows under NTILE(5) | Headphones (15) has three products; customer 3004 has three orders | YouTube (5) has three campaigns; subscription 4 has three payments |
+| Also | Product 15's price fell and rose again (three versions); products 1, 8 and 21 changed price once; guest orders | Campaign 1 spent on ten days in July 2025 with 6 July missing, and its daily click-through rates vary, so 7 rows are not 7 days and the average of daily rates is not the rate of the sums; a refunded payment |
+
+### Trap IDs at level 5
+
+Use only IDs the grader raises on DuckDB (R9). Every fact below was checked on DuckDB 1.5.6.
+
+| ID | Concept | How DuckDB raises it | A planted query that works |
+|---|---|---|---|
+| `ERR-LOG-37` | `SQL-WIN-01` | Planted match | The window with no PARTITION BY: a share of the grand total, or a running total that runs across every group |
+| `ERR-SYN-08` | `SQL-WIN-01` | Engine error: "WHERE clause cannot contain window functions" | A ranking function or a window total in WHERE |
+| `ERR-LOG-40` | `SQL-WIN-02` | Planted match | RANK or DENSE_RANK where the prompt asks for exactly N rows, or ROW_NUMBER where tied rows share a place: the edge tie at the cutoff keeps a row too many or too few |
+| `ERR-LOG-41` | `SQL-WIN-03` | Planted match | LAG or a running total ordered by the wrong column, such as an ID instead of the date. Plant the wrong column, not a window with no ORDER BY: that one reads the rows in no fixed order, so its output can change between runs |
+| `ERR-LOG-38` | `SQL-WIN-04` | Planted match | A running total with an ORDER BY and no frame, where rows share the sort date: the tied rows get one total |
+| `ERR-LOG-39` | `SQL-PAT-04` (level 6, by S7-24) | Planted match | LAG or a 7-row window over periods that skip one: April 2025 on Voltmarkt's edge, September 2025 and 6 July 2025 on Mailvora's |
+| `ERR-LOG-43` | `SQL-WIN-05` | Planted match | A moving average with no flag or filter on the first rows of the series |
+| `ERR-LOG-20` | `SQL-AGG-01` | Planted match | The average of the daily rates over the window, where the prompt wants the rolling sum of clicks over the rolling sum of impressions (S7-C02) |
+| `ERR-LOG-42` | `SQL-WIN-07` | Planted match | LAST_VALUE with an ORDER BY and no frame: it returns the current row's value |
+| `ERR-LOG-18` | `SQL-SORT-01` | Planted match | The window's ORDER BY in the wrong direction (S7-24) |
+| `ERR-LOG-07` | `SQL-AGG-02` | Shape or planted match | Ranking or summing at the wrong grain, such as ranking order lines where the question ranks products (S7-24) |
+
+The diagnosis order (engine error, shape, planted match, then the fallback) holds as at levels 3 and
+4: a planted query returns the reference's number of columns, each in the same type class, unless
+it is an engine-error trap such as `ERR-SYN-08`.
+
+### Keys at level 5
+
+| Rule | Why | Checked by |
+|---|---|---|
+| Frames are written out: every aggregate window with an ORDER BY (a running total, a moving average, LAST_VALUE) states its frame, such as `ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW` or `ROWS BETWEEN 6 PRECEDING AND CURRENT ROW` | The default is a RANGE frame that adds tied rows together (`ERR-LOG-38`), and the reference is what "show answer" shows | Review |
+| `SQL-WIN-06`: the reference filters the window's result in a CTE or a derived table; the QUALIFY form is its `other_way`, copied from the alternatives (S7-20, E-201). C11 does not warn on QUALIFY in an `SQL-WIN-06` other way; anywhere else in a key it still warns | Keys are portable first: PostgreSQL, MySQL and SQL Server have no QUALIFY. A learner's QUALIFY query passes and gets a portability note | C11, C39 |
+| FIND-01-13 (E-202): an `SQL-WIN-06` item on `voltmarkt_raw` (`uses_raw: true`) keeps one row per resent order line with ROW_NUMBER over the line's natural key (order, product, quantity and unit price), filtered to `= 1`. The prompt states which copy is kept in one sentence that names the column: "Keep the copy with the lowest order_line_id." The key's window orders by that one column, and C53 accepts it as a keep-one dedup (S7-C06): a resent line is a copy of one fact with a new ID, so which copy is kept changes no count or total. C53's two-key rule is for rank cutoffs. The raw-data rules above apply | E-099 places the ROW_NUMBER fix at level 5 | C47, C53 |
+| NTILE splits tied values between buckets by chance unless a tie-break orders them, so an NTILE key's ORDER BY ends in a tie-break the prompt names (C53 reads NTILE as it reads ROW_NUMBER). An RFM F score uses fixed thresholds, not NTILE (E-007) | E-007 | C53 |
+| `quantile_cont`, `MEDIAN` and `percentile_cont` exist on DuckDB 1.5.6 (E-151) | | |
+| On DuckDB 1.5.6, `MEDIAN` and `quantile_cont` of a DECIMAL column keep the column's scale and cut the extra digit: the median of 1.01 and 1.02 is 1.01, where over DOUBLE it is 1.015. A median or percentile of money is asked in whole euros, or the prompt states the cast or the rounding, so a learner's cast cannot change the answer (S7-C09) | A learner who casts to DOUBLE and rounds to the cent can differ from the key by a cent | Review, blind solver |
+| A reference's result stays under 1,000 rows. C08 runs the reference twice and compares the rows it shows, and it shows at most 1,000: above that, which rows show can change between runs, and C08 fails. Narrow the question (one country, one month) rather than raise the cap (S7-C09) | The check's display cap is 1,000 rows | C08 |
+
+### Constructs at level 5 (C09)
+
+| Rule | Why | Checked by |
+|---|---|---|
+| The level 5 constructs are `window` (`SQL-WIN-01`: any OVER), `ranking` (`SQL-WIN-02`: ROW_NUMBER, RANK, DENSE_RANK), `lag_lead` (`SQL-WIN-03`), `qualify` (`SQL-WIN-06`), and `ntile_first_value` and `percentile` (`SQL-WIN-07`: NTILE, FIRST_VALUE, LAST_VALUE, NTH_VALUE, PERCENT_RANK, CUME_DIST; MEDIAN and the quantile functions). `SQL-WIN-04` and `SQL-WIN-05` have none of their own | `content/sql/constructs.json` | C09, C16 |
+| Curriculum order: an `SQL-WIN-01` key uses no ranking function, an `SQL-WIN-02` key no LAG or LEAD, and only `SQL-WIN-07` keys use NTILE, FIRST_VALUE, LAST_VALUE or a percentile. QUALIFY appears only in an `SQL-WIN-06` other way | The learner has not met them yet (S7-21) | C09, C11 |
+
+## Mock items (sprint 7, Task C3)
+
+For the held-out SQL items of the recruiter mocks (design §2.1). A mock item is a write item that only
+a mock run serves. Everything above still applies at the item's level, the Level 3 to Level 5 sections
+included; where this section differs, it wins. The rulings are S7-08, S7-09 and S7-22 in the sprint 7
+plan (`docs/superpowers/plans/2026-10-20-aydinlearns-sprint-7.md`). Task C3 wrote the screen mock's
+three forms; Part 2's case mocks add their CP3 items (`EX-MOCK-CASE-<letter>`, `EX-MOCK-TAKE-<letter>`)
+and their rules here.
+
+### What a screen mock item is (S7-08, S7-09)
+
+| Rule | Why | Checked by |
+|---|---|---|
+| `use: "mock"` and the ID `EX-MOCK-SCREEN-<form letter>-NN`, with NN from 01 to 06 in serving order. The item goes in `content/sql/items/` and its key in `content/keys/sql/`, under the same name. Only a mock item may carry an `EX-MOCK-` ID | The content store keeps an item with that ID in its mock map, never with the practice items (D114). Only the mock routes, the checks and the solver tools read it | C01, C54 |
+| Held out of practice: no drill pool, case, lesson or other practice content names a mock item. Never edit practice content to point at one | A held-out item is not browsable, one of the three declared exceptions to "nothing is locked" | C54 |
+| The key's `other_way` is null | "Other ways to write this" never shows a mock item (S7-08) | C54 |
+| Never print a mock item's prompt, key, planted query or answer in a report, a reply, a test name or a failure message: IDs, counts and check results only | Held-out items, like the GA4 and Methodology mock pools | Review |
+| `content/mocks.json` lists the forms in `screen.forms`, in form order: `{ "id": "SCREEN-A", "item_ids": [six IDs in serving order] }`. A mock item is in exactly one form. Change nothing else in the file | The mock run serves a form's items in that order (S7-09) | C54 |
+
+### A screen form (S7-09)
+
+| NN | Level | What the item asks |
+|---|---|---|
+| 01 | 1 | A level 1 concept, on Voltmarkt |
+| 02 | 2 | A level 2 concept, on Voltmarkt |
+| 03 | 3 | A level 3 concept, on Voltmarkt |
+| 04 | 4 | A level 4 concept, on Mailvora |
+| 05 | 5 | A ranking, or a cutoff on a ranking (`SQL-WIN-02`, `-06` or `-07`) |
+| 06 | 5 | LAG, LEAD or a running total (`SQL-WIN-03` or `-04`) |
+
+| Rule | Why | Checked by |
+|---|---|---|
+| The level is the target concept's level in `content/sql/curriculum.json`, and the form serves levels 1, 2, 3, 4, 5, 5 in that order | S7-09: one item from each of levels 1 to 4, then two from level 5 | C54 |
+| At least two items of each form read Mailvora (`company` and `schema` `"mailvora"`). Mailvora's tables show from level 4, so these are the level 4 item and at least one level 5 item; levels 1 to 3 are Voltmarkt | S7-09; the schema panel shows an item only the tables of its level | C52, review |
+| Difficulty E2 or E3 | S7-09: a screen asks for more than the first practice step | Review |
+| No concept twice in one form, and the three forms between them touch most of each level's concepts. Sprint 7's forms use 3 different concepts at each of levels 1 to 4, and 5 of the 7 at level 5 | A form samples the whole course, and a learner who takes all three forms meets different skills | Review |
+| The edge schema is the one the concept's practice items use: the concept's pool edge schema at levels 1 to 3 and for a Voltmarkt level 4 item; `mailvora_edge_case` for a Mailvora level 4 item, as the level 4 Mailvora case items use (the level 4 pools are Voltmarkt only); `voltmarkt_edge_win` or `mailvora_edge_win` at level 5 | The hidden run tests what the concept's edge data plants | C40, C52 |
+| Not a near copy of a practice item: read the concept's pool and drill items, and report the closest by ID with a one-word judgement | A held-out item tests transfer, not recall of a practised question | Review |
+
+### The prompt and the key
+
+| Rule | Why | Checked by |
+|---|---|---|
+| A business question with an output contract, as an online SQL test words it: the question a manager asks, then the output columns in order, the sort with its tie-break, and the rounding. Never lean on a lesson's wording or reuse a lesson's example | The screen mock stands for a recruiter's online test (S7-09) | Blind solver, content review |
+| The item's level sets everything else: the grain line (null from level 3, C38), the cues a prompt may give, the time zone sentences, a date difference's counting rule, and at level 5 the partition, order, tie rule and first-row rules | A mock item is graded like a practice item of its level | C38, blind solver |
+| Every prompt whose key filters a ranking function states its tie rule in the words C53 reads, and the edge schema holds a tie at the cutoff. A key that finds a threshold crossing without a ranking function (the running total before the row below the threshold, the running total after it at or above) is not a rank cutoff; any alternative that does use a ranking cutoff must pass C53 too | S7-22: without the rule a ranking has two right answers | C53 |
+| `order_matters` with `sort_keys` whenever the prompt asks for an order, and every sort key changes the grade when reversed; state the rounding and set `require_rounding` on that column | The run grades in screen mode (design §6: autocomplete off, G4's integer check, `require_rounding`, the dialect banner) | C15, grader |
+| The key follows the level: a reference, 2 or 3 alternatives, one planted wrong query per trap the item names (at least 2, each with its own output), a hint 3, `solver` null. Constructs only up to the target concept (C09), CTE and derived-table steps with a grain comment, and frames written out at level 5 | The screen mock rates its cards as a drill does (S7-06), and its end-of-run review gives the same feedback, so it needs the same planted traps | C03 to C05, C09 |
+
+### Checks for mock items
+
+| Check | Fails when |
+|---|---|
+| C54 | `content/mocks.json` does not validate, a form names a missing item or one whose `use` is not `mock`, a screen form's levels are not 1, 2, 3, 4, 5, 5 in serving order, a mock item is in no form or in two, a drill pool, case or lesson names a mock item, or a mock item's key has an other way |
+| C55 | (case mocks) a mock case does not list CP1 to CP6, its CP3 item is not a mock item, or a take-home does not read raw data |
+| C14 | A mock item has no fresh blind-solve record: the controller solves the forms in screen mode after you hand back |
+| The item checks | C01 to C18, C38 to C40, C47, C52 and C53 run on a mock item as on any other; `check:content` reads the mock map for them |
+
+Before you hand back, run `npm run check:content` and `npm test`, as below. C14 fails on every new or
+changed mock item until the blind solve; C54 passes once the forms are filled. The report gives per
+item its ID, form, level, concept, company, difficulty, edge schema and trap IDs, the closest practice
+item with the one-word judgement, and the check results.
 
 ## Before you hand back
 
@@ -1091,3 +1309,52 @@ an explanation, a value, the model plan or the model answer.
 | Credits | Each checkpoint's credited concept IDs |
 | Checks | The last line of `npm run check:content`, and your FAIL lines as check ID and ID (C14 and C41's truth values expected) |
 | Could not do | Anything left, with IDs |
+
+## Mock cases (sprint 7 Part 2, Task P2)
+
+For agents that write a case-round or a take-home: the held-out cases of the recruiter mocks (design §2.1). The rulings are
+S7-08 and S7-13 to S7-16 in the sprint 7 plan (`docs/superpowers/plans/2026-10-20-aydinlearns-sprint-7.md`). Everything in
+[Cases](#cases-sprint-4b-task-b2-for-task-c1) still applies, and [Mock items](#mock-items-sprint-7-task-c3) applies to the
+CP3 item; where this section differs, it wins.
+
+### Files (mock cases)
+
+| File | Shape | Notes |
+|---|---|---|
+| `content/sql/mocks/<case_id>.json` | `CaseRecord` with `kind: "case_round"` or `"take_home"` (`MockCaseRecord` in `schemas/case.ts`) | `CASE-MOCK-<letter>` for a case-round, `CASE-TAKE-<letter>` for a take-home. The folder holds the mock cases only, and a mock case goes nowhere else (C41) |
+| `content/keys/cases/<case_id>.json` | The case key | As for any case |
+| `content/sql/items/EX-MOCK-CASE-<letter>.json`, `EX-MOCK-TAKE-<letter>.json` | `SqlItem`, `use: "mock"` | The CP3 item. Its key goes in `content/keys/sql/` under the same name, with `other_way` null (C54) |
+| `content/mocks.json` | `case_round.forms` and `take_home.forms`: `{ "id": "CASE-ROUND-A", "case_id": "CASE-MOCK-A" }`, `{ "id": "TAKE-HOME-A", "case_id": "CASE-TAKE-A" }` | One form per case, in letter order. Change nothing else in the file (C54) |
+
+### What a mock case is (S7-13 to S7-15)
+
+| Rule | Why | Checked by |
+|---|---|---|
+| Level 5, difficulty 3, checkpoints CP1 to CP6. Every credited concept is an SQL concept at or below level 5; CP6 credits nothing | A mock samples the finished course (S7-14) | C41, C55 |
+| A question no inbox, daily or opener case asks. Read the shipped cases of the same company and name the closest by ID in the report | A held-out case tests transfer, not recall of a practised case | Review |
+| Held out: no practice content names the case or its CP3 item. Never print its brief, prompts, options, truths, model plan or model answer | Like every mock item (S7-08) | C54, review |
+| The plan comes first (S7-13): the learner writes a plan before CP1, and the model plan shows only in the review. Write the model plan so it answers "how would you approach this" on its own | The review sets the learner's plan beside the model plan | Review |
+| The model answer template fills only `{CP2}` and `{CP4}` and covers each core rubric line: the number, its direction, a caveat and a next step, and for a take-home the reconciliation | The learner ticks these lines in the review, and CP6 passes only when all are ticked (S7-16) | C41, review |
+| Every CP2 and CP4 truth returns one number on the case's schema and on its CP3 item's edge schema (P16) | As in Cases | C41 |
+
+| Kind | Rules |
+|---|---|
+| Case-round (S7-14) | A manager from `knowledge/05_fictional_companies.md`'s cast of the case's company asks. On the clean schema (`voltmarkt` or `mailvora`), CP3's edge `voltmarkt_edge_win` or `mailvora_edge_win`. A level 5 learner finishes the plan and CP1 to CP6 in 45 minutes. After CP6 the learner says the answer aloud in 60 seconds, so CP6's insight must fit that |
+| Take-home (S7-15) | On raw data: `schema` `voltmarkt_raw` or `mailvora_raw`, `uses_raw: true`, the CP3 item on the same raw schema with the edge `voltmarkt_edge_clean` or `mailvora_edge_clean` (C47, C55). At least two raw-data quirks change the answer: the CP3 key and at least one truth give another result on the company's clean schema. Every prompt that reads raw data says the data may hold errors and what "correct" means for each quirk, as [Raw data](#raw-data-voltmarkt_raw-sprint-6) asks. A level 5 learner finishes it in 2 hours. CP6 asks for a memo of 4 to 8 sentences that includes the reconciliation: how the cleaned number differs from the raw one, and why |
+
+### Raw data: `mailvora_raw` (sprint 7)
+
+Mailvora's raw tables have the clean schema's table names, with the planted quirks Q-03-01 to Q-03-07 of
+`knowledge/05_fictional_companies.md` (apply every ERRATA row that names them). `mailvora_edge_clean`
+(`content/sql/edge/mailvora_edge_clean.json`) adds, for each quirk, a case the raw tables do not show; a key must stay
+right on it. Every rule of the `voltmarkt_raw` table above applies with Mailvora's names: unqualified table names in keys
+and prompts, a key that finds the quirk (another result on the clean `mailvora`), and a prompt that states its cleaning
+rule. Mailvora's clean timestamps are UTC; a prompt that turns on a day of raw data says how to read each row's time.
+
+### Before you hand back (mock cases)
+
+Run `npm run check:content` and `npm test`. Expected until the controller's steps: C14 on the CP3 item (the blind solve),
+C41's "has no value in the truth file" (the controller's `build:data`), and C50 (the case solver's records). Any other
+FAIL on your case IDs or CP3 item IDs is yours. The report follows "Report format (cases)", plus per case its kind, the
+manager, the schema and the CP3 edge schema, the quirk IDs it uses (take-home), the closest shipped case by ID, and one
+line per truth key with its P16 proof (PASS or FAIL on the case schema and on the edge schema, never the value).

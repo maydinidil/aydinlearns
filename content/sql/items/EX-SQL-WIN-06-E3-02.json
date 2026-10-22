@@ -1,0 +1,152 @@
+{
+  "id": "EX-SQL-WIN-06-E3-02",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "window",
+    "row_number",
+    "dedup",
+    "raw_data",
+    "FIND-01-13",
+    "order_lines"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-06"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-WIN-06",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-AGG-03",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-CLEAN-01",
+    "SQL-WIN-01",
+    "SQL-WIN-02",
+    "SQL-WIN-06"
+  ],
+  "template_id": "T-WIN-06-dedup-keep-one",
+  "template_params": {
+    "table": "order_lines",
+    "store": "BE-14",
+    "grain": "order"
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "voltmarkt",
+  "schema": "voltmarkt_raw",
+  "edge_schema": "voltmarkt_edge_clean",
+  "uses_raw": true,
+  "prompt": "Which of store BE-14's orders of 2024 had a line resent, and what is each one's value once the copies are removed? These tables may hold errors. Some of store BE-14's order lines were resent under a new order_line_id: two lines are copies of one order line when order_id, product_id, quantity and unit_price_eur all match. Keep the copy with the lowest order_line_id. A line's value is quantity times unit_price_eur minus line_discount_eur. 2024 means order_ts, as stored, from 1 January 2024 up to but not including 1 January 2025. Return two columns, in this order: order_id and order_value. Return one row for each BE-14 order of 2024 with at least one resent line. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "order_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "order_value",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "order_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "order_value",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "order_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, number the copies of each order line and count them, keep copy 1, then add up the values of the orders that had a copy.",
+    "An order had a resent line when one of its lines has more than one copy; that count comes from a window over the four columns that make a line."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 104,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 105,
+      "to": 453,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 454,
+      "to": 562,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 563,
+      "to": 678,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 681,
+      "to": 728,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 729,
+      "to": 742,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 743,
+      "to": 760,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 761,
+      "to": 778,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 779,
+      "to": 803,
+      "subgoal": "group_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "Copy 1 of each set counts each order line once, and the window count of copies, kept on that row, shows which orders had a line resent."
+}

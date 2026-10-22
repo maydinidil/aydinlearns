@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-WIN-07-E1-42",
+  "item_version": 1,
+  "correct_oid": "oe1c7c7b",
+  "explanation": "NTILE(2) counts rows, not values: four rows make two halves of two, taken in the sort order. product_id breaks the tie at 5.28, so 1148 comes before 1166 and the tied pair is split, 1148 in half 1 and 1166 in half 2. NTILE never keeps tied values together; only the tie-break decides which tied row goes first, so a query without one could put either product in half 1.",
+  "solver": {
+    "prompt_hash": "a4116a619e84ee1d",
+    "grader_version": "choice.3",
+    "chosen": "oe1c7c7b",
+    "typed": null,
+    "at": "2026-10-20T20:50:48.407Z"
+  }
+}

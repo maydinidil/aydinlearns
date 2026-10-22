@@ -217,3 +217,42 @@ test('npm run journey on a folder that does not exist says so and creates nothin
   assert.match(said.join('\n'), /No journey folder at .*deeper/);
   assert.equal(await exists(join(parent, 'none')), false);
 });
+
+// Sprint 7 K1 (S7-36): the tutor's numbers load as numbers, and a starter view groups the tutor's questions by screen and outcome.
+const TUTOR = [
+  e(S1, 1, '09:00', 'session_started', { reason: 'app_start' }),
+  e(S1, 2, '09:01', 'tutor_asked', { screen: 'item', item_id: 'SQL-A-01-W01', provider: 'claude', model: 'claude-haiku-5-5', effort: 'medium',
+    input_tokens: 1000, cached_input_tokens: 0, output_tokens: 200, cost_usd: 0.0002, outcome: 'answered' }),
+  e(S1, 3, '09:02', 'tutor_asked', { screen: 'item', item_id: 'SQL-A-01-W02', provider: 'claude', model: 'claude-haiku-5-5', effort: 'medium',
+    input_tokens: 2000, cached_input_tokens: 500, output_tokens: 100, cost_usd: 0.0004, outcome: 'answered' }),
+  e(S1, 4, '09:03', 'tutor_asked', { screen: 'practice', item_id: 'GA4-Q-01', provider: 'openai', model: 'gpt-test', effort: 'low',
+    input_tokens: 10, cached_input_tokens: 0, output_tokens: 0, cost_usd: 0, outcome: 'refused' }),
+  e(S1, 5, '09:04', 'tutor_asked', { screen: 'item', provider: 'claude', model: 'claude-haiku-5-5', effort: 'medium', outcome: 'capped' }),
+];
+
+test('K1: the tutor\'s cost and token counts are DOUBLE columns, so they add up and sort as numbers', async () => {
+  const db = await load(TUTOR);
+  try {
+    const types = await rows(db, `SELECT column_name, data_type FROM information_schema.columns WHERE table_name = 'events'
+      AND column_name IN ('cost_usd', 'input_tokens', 'cached_input_tokens', 'output_tokens') ORDER BY column_name`);
+    assert.deepEqual(types.map((t) => [t.column_name, t.data_type]), [['cached_input_tokens', 'DOUBLE'], ['cost_usd', 'DOUBLE'], ['input_tokens', 'DOUBLE'], ['output_tokens', 'DOUBLE']]);
+    const [sum] = await rows(db, "SELECT round(sum(cost_usd), 6) AS cost, sum(input_tokens) AS tokens FROM events WHERE event = 'tutor_asked'");
+    assert.deepEqual([sum!.cost, sum!.tokens], [0.0006, 3010]);
+  } finally { db.close(); }
+});
+
+test('K1: tutor_questions groups the tutor\'s questions by screen and outcome, with their tokens and cost; a question with no counts adds none', async () => {
+  const db = await load(TUTOR);
+  try {
+    assert.ok(VIEWS.includes('tutor_questions' as never), 'a starter view');
+    const view = await rows(db, 'SELECT screen, outcome, questions, input_tokens, cached_input_tokens, output_tokens, cost_usd FROM tutor_questions');
+    assert.deepEqual(plain(view), [['item', 'answered', 2, 3000, 500, 300, 0.0006], ['item', 'capped', 1, 0, 0, 0, 0], ['practice', 'refused', 1, 10, 0, 0, 0]]);
+  } finally { db.close(); }
+});
+
+test('K1: with no tutor question the view is empty and the other views still run', async () => {
+  const db = await load(VISITS);
+  try {
+    assert.deepEqual(await rows(db, 'SELECT * FROM tutor_questions'), []);
+  } finally { db.close(); }
+});

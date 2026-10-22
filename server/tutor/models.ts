@@ -20,6 +20,9 @@ export const DEFAULT_EFFORT: Effort = 'medium';
 /** T-21: a reply's token limit grows with the effort, so thinking leaves room for the answer. The reservation uses the same limit. */
 const TOKEN_LIMITS: Readonly<Record<Effort, number>> = { low: 4_096, medium: 8_192, high: 16_384 };
 export const tokenLimit = (e: Effort): number => TOKEN_LIMITS[e];
+/** T-15, S7-32: the most a whole reply may take, from the call to its last piece; it scales with the effort as the token limit does. */
+const REPLY_DEADLINES: Readonly<Record<Effort, number>> = { low: 60_000, medium: 120_000, high: 240_000 };
+export const replyDeadlineMs = (e: Effort): number => REPLY_DEADLINES[e];
 
 /** The catalog entry for an ID, or null; anything that is not one of the IDs above (a built-in name like toString too) is null. */
 export const modelInfo = (id: unknown): ModelInfo | null => MODELS.find((m) => m.id === id) ?? null;

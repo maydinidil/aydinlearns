@@ -1,0 +1,39 @@
+{
+  "item_id": "EX-SQL-WIN-06-E2-31",
+  "item_version": 1,
+  "reference_sql": "WITH ranked AS (  -- one row per product, numbered within its category from the lowest cost\n  SELECT category_id, product_id, unit_cost_eur,\n         ROW_NUMBER() OVER (PARTITION BY category_id ORDER BY unit_cost_eur, product_id) AS rn\n  FROM products\n)\nSELECT category_id, product_id, unit_cost_eur\nFROM ranked\nWHERE rn <= 2",
+  "alternatives": [
+    "SELECT r.category_id, r.product_id, r.unit_cost_eur\nFROM (\n  -- one row per product, numbered within its category from the lowest cost\n  SELECT category_id, product_id, unit_cost_eur,\n         ROW_NUMBER() OVER (PARTITION BY category_id ORDER BY unit_cost_eur, product_id) AS rn\n  FROM products\n) AS r\nWHERE r.rn <= 2",
+    "SELECT category_id, product_id, unit_cost_eur\nFROM products\nQUALIFY ROW_NUMBER() OVER (PARTITION BY category_id ORDER BY unit_cost_eur, product_id) <= 2"
+  ],
+  "other_way": {
+    "sql": "SELECT category_id, product_id, unit_cost_eur\nFROM products\nQUALIFY ROW_NUMBER() OVER (PARTITION BY category_id ORDER BY unit_cost_eur, product_id) <= 2",
+    "tradeoff": "QUALIFY filters the window result in the same query, which is shorter, but PostgreSQL, MySQL and SQL Server do not accept it."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-SYN-08",
+      "sql": "SELECT category_id, product_id, unit_cost_eur\nFROM products\nWHERE ROW_NUMBER() OVER (PARTITION BY category_id ORDER BY unit_cost_eur, product_id) <= 2"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-40",
+      "sql": "WITH ranked AS (SELECT category_id, product_id, unit_cost_eur, RANK() OVER (PARTITION BY category_id ORDER BY unit_cost_eur) AS rn FROM products) SELECT category_id, product_id, unit_cost_eur FROM ranked WHERE rn <= 2"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-18",
+      "sql": "WITH ranked AS (SELECT category_id, product_id, unit_cost_eur, ROW_NUMBER() OVER (PARTITION BY category_id ORDER BY unit_cost_eur DESC, product_id) AS rn FROM products) SELECT category_id, product_id, unit_cost_eur FROM ranked WHERE rn <= 2"
+    }
+  ],
+  "hint3_partial": "WITH ranked AS (  -- one row per product, numbered within its category from the lowest cost\n  SELECT category_id, product_id, unit_cost_eur,\n         ROW_NUMBER() OVER (PARTITION BY category_id ORDER BY unit_cost_eur, product_id) AS rn\n  FROM products\n)\nSELECT category_id, product_id, unit_cost_eur\nFROM ranked\nWHERE ___",
+  "solver": {
+    "prompt_hash": "42fd65eba422bce4",
+    "schema_version": "d77fe1c31a0e",
+    "dataset_version": "e7c58abf7e8f892e",
+    "grader_version": "7a.1",
+    "query": "SELECT category_id, product_id, unit_cost_eur\nFROM products\nQUALIFY ROW_NUMBER() OVER (PARTITION BY category_id ORDER BY unit_cost_eur, product_id) <= 2\n",
+    "at": "2026-10-21T09:05:10.564Z"
+  }
+}

@@ -1,0 +1,133 @@
+{
+  "id": "EX-SQL-WIN-07-E1-01",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "window",
+    "ntile",
+    "quartile",
+    "partition_by",
+    "products"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-07"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pretest",
+  "target_concept_id": "SQL-WIN-07",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-WIN-01",
+    "SQL-WIN-07"
+  ],
+  "template_id": "T-WIN-07-ntile-within-group",
+  "template_params": {
+    "table": "products",
+    "group": "category_id",
+    "n": 4,
+    "order": "unit cost, highest first"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_win",
+  "prompt": "Split the products of each Audio category (category_id from 15 to 20, both included) into four cost quartiles within the category: quartile 1 holds the most expensive products and quartile 4 the cheapest. The quartiles of a category differ in size by at most one product, and the larger ones come first. When products of a category tie on unit cost, the lower product_id comes first. Return four columns, in this order: category_id, product_id, unit_cost_eur and cost_quartile. Return one row for each such product. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "category_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "product_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "unit_cost_eur",
+        "type_class": "numeric"
+      },
+      {
+        "name": "cost_quartile",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per product"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "category_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "product_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "unit_cost_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "cost_quartile",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "product_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the calculated column: a group number from 1 to 4 that starts again in each category, the most expensive products first.",
+    "One window function deals rows into a fixed number of groups of near equal size; give it the category as its partition and a sort order that ends in the tie-break."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 151,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 152,
+      "to": 165,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 166,
+      "to": 201,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "NTILE(4) deals each category's products, from the highest cost down with product_id settling a tie, into four groups whose sizes differ by at most one."
+}

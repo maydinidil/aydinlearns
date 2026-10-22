@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-WIN-04-E2-41",
+  "item_version": 1,
+  "correct_oid": "o5f4473a",
+  "explanation": "The right query starts the total again for each month with PARTITION BY order_month and adds the days in date order from the first row to the current one. Without the partition the total runs on across months. With no ORDER BY each day shows the whole month's total, and ordered by revenue the totals add up days that are not the days so far.",
+  "solver": {
+    "prompt_hash": "988e285647b23d53",
+    "grader_version": "choice.3",
+    "chosen": "o5f4473a",
+    "typed": null,
+    "at": "2026-10-20T20:50:48.364Z"
+  }
+}

@@ -631,6 +631,46 @@
       ],
       "feedback_template": "Grouping only the rows that exist leaves out every period with no rows, so it does not appear instead of showing 0. Start from a full list of periods, such as the calendar table, and LEFT JOIN the data to it.",
       "concept_id": "SQL-PAT-04"
+    },
+    {
+      "id": "ERR-LOG-40",
+      "category": "LOG",
+      "name": "RANK where exactly N rows were asked, or ROW_NUMBER where ties must share a place",
+      "detection_checks": [
+        "CHK-MUTANT-MATCH"
+      ],
+      "feedback_template": "RANK and DENSE_RANK give tied rows the same number, so a filter on them can keep more than N rows, while ROW_NUMBER numbers tied rows apart and keeps only some of them. Use ROW_NUMBER with the question's tie-break when it asks for exactly N rows, and RANK or DENSE_RANK when tied rows share a place.",
+      "concept_id": "SQL-WIN-02"
+    },
+    {
+      "id": "ERR-LOG-41",
+      "category": "LOG",
+      "name": "A running total or LAG over rows in no stated order, or ordered by the wrong column",
+      "detection_checks": [
+        "CHK-MUTANT-MATCH"
+      ],
+      "feedback_template": "A running total, LAG or LEAD reads the rows in the order of the ORDER BY inside OVER, so with none, or with the wrong column, it adds up or compares rows that are not neighbours. Order the window by the column that sets the sequence, usually the date, and add a tie-break when two rows can share it.",
+      "concept_id": "SQL-WIN-03"
+    },
+    {
+      "id": "ERR-LOG-42",
+      "category": "LOG",
+      "name": "LAST_VALUE or FIRST_VALUE with the default frame",
+      "detection_checks": [
+        "CHK-MUTANT-MATCH"
+      ],
+      "feedback_template": "With an ORDER BY and no frame, the window ends at the current row and the rows tied with it, so LAST_VALUE returns that row's value (or its last tie's), and the last value of the group only on the group's last row. Write the frame ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING, or take FIRST_VALUE with the order reversed.",
+      "concept_id": "SQL-WIN-07"
+    },
+    {
+      "id": "ERR-LOG-43",
+      "category": "LOG",
+      "name": "A moving average over a partial early window with no flag or filter",
+      "detection_checks": [
+        "CHK-MUTANT-MATCH"
+      ],
+      "feedback_template": "On the first rows of a series a moving average has fewer rows than its window, so a 7-day average on the third day is the average of 3 days. Count the rows in the same frame with COUNT(*), and flag or leave out the rows where the count is below the window's size.",
+      "concept_id": "SQL-WIN-05"
     }
   ]
 }

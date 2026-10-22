@@ -216,9 +216,10 @@ fieldset.lab-field { border: 0; padding: 0; margin: 0 0 var(--s3); min-width: 0;
 fieldset.lab-field > legend { padding: 0; margin-bottom: var(--s1); }
 .lab-field.choice label.option { display: flex; align-items: flex-start; padding: var(--s2) var(--s3); gap: var(--s3); cursor: pointer; }
 
-/* The tutor's side panel (sprint T): fixed on the right under the top bar, scrolling on its own. On a wide window the screen narrows
-   beside it, so nothing the learner asks about is hidden; on a narrow one it covers the screen, top bar included, until Close. */
-.tutor-panel { position: fixed; top: 4rem; right: 0; bottom: 0; width: min(28rem, 100%); overflow-y: auto; z-index: 20;
+/* The tutor's side panel (sprint T): fixed on the right under the top bar, scrolling on its own. From 701px the screen narrows beside it
+   (S7-36: a panel of at most 45% of the window, so between 701 and 1099px nothing is hidden under it either); at 700px or less it covers the
+   screen, top bar included, until Close, and the page behind it is inert. --tutor-top is the top bar's bottom edge, set as the page scrolls. */
+.tutor-panel { position: fixed; top: var(--tutor-top, 4rem); right: 0; bottom: 0; width: min(28rem, 100%); overflow-y: auto; z-index: 20;
   border-left: 1px solid var(--line); background: var(--surface); padding: var(--s3) var(--s4); display: flex; flex-direction: column; gap: var(--s2); }
 .tutor-panel header { display: flex; gap: var(--s2); align-items: center; }
 .tutor-panel header h2 { margin: 0 auto 0 0; }
@@ -228,7 +229,7 @@ fieldset.lab-field > legend { padding: 0; margin-bottom: var(--s1); }
 .tutor-help-note { border-left: 3px solid var(--control); padding-left: var(--s2); }
 .tutor-ask { display: block; font-weight: 600; }
 .tutor-ask textarea { display: block; width: 100%; margin-top: var(--s1); font-weight: 400; }
-@media (min-width: 1100px) { body:has(.tutor-panel) main { margin-right: 28rem; } }
+@media (min-width: 701px) { .tutor-panel { width: min(28rem, 45vw); } body:has(.tutor-panel) main { margin-right: min(28rem, 45vw); } }
 @media (max-width: 700px) { .tutor-panel { top: 0; z-index: 30; } }
 
 /* Settings, the AI tutor's card (block P): the model and effort choices one per line, the line under a model that needs a key, the key fields. */
@@ -237,6 +238,5 @@ fieldset.tutor-choice > legend { padding: 0; margin-bottom: var(--s1); font-weig
 fieldset.tutor-choice > p { margin: 0 0 var(--s1); }
 fieldset.tutor-choice > label { display: block; margin-bottom: var(--s1); }
 .tutor-model-note { display: block; padding-left: var(--s5); }
-.tutor-key input[type="password"] { width: min(24rem, 100%); }
 .tutor-key > p { margin: 0 0 var(--s1); }
 .tutor-key { margin-bottom: var(--s3); }

@@ -1,6 +1,6 @@
 {
   "item_id": "EX-SQL-CLEAN-01-E2-04",
-  "item_version": 2,
+  "item_version": 3,
   "reference_sql": "SELECT a.product_id, b.valid_from,\n       CASE WHEN b.valid_to IS NULL OR b.valid_to > a.valid_to THEN a.valid_to ELSE b.valid_to END - b.valid_from + 1 AS shared_days\nFROM price_history a\nJOIN price_history b\n  ON b.product_id = a.product_id\n AND b.valid_from > a.valid_from\n AND (a.valid_to IS NULL OR b.valid_from <= a.valid_to)",
   "alternatives": [
     "WITH pairs AS (  -- one row per pair of overlapping windows\n  SELECT a.product_id, b.valid_from,\n         CASE WHEN b.valid_to IS NULL OR b.valid_to > a.valid_to THEN a.valid_to ELSE b.valid_to END AS shared_end\n  FROM price_history a\n  JOIN price_history b\n    ON b.product_id = a.product_id\n   AND b.valid_from > a.valid_from\n   AND (a.valid_to IS NULL OR b.valid_from <= a.valid_to)\n)\nSELECT product_id, valid_from, date_diff('day', valid_from, shared_end) + 1 AS shared_days\nFROM pairs",
@@ -24,11 +24,11 @@
   ],
   "hint3_partial": "SELECT a.product_id, b.valid_from,\n       CASE WHEN ___ THEN a.valid_to ELSE b.valid_to END - b.valid_from + ___ AS shared_days\nFROM price_history a\nJOIN price_history b\n  ON b.product_id = a.product_id\n AND b.valid_from > a.valid_from\n AND (a.valid_to IS NULL OR b.valid_from <= a.valid_to)",
   "solver": {
-    "prompt_hash": "2a94181f9b43e196",
+    "prompt_hash": "4f1230794e0cc2fb",
     "schema_version": "e8cea7c4eacc",
-    "dataset_version": "86b0bb39def0dd70",
-    "grader_version": "6a.1",
-    "query": "SELECT b.product_id,\n       b.valid_from,\n       CASE WHEN a.valid_to IS NULL AND b.valid_to IS NULL THEN NULL\n            ELSE date_diff('day', CAST(b.valid_from AS DATE), CAST(least(a.valid_to, b.valid_to) AS DATE)) + 1 END AS shared_days\nFROM price_history a\nJOIN price_history b\n  ON a.product_id = b.product_id\n AND b.valid_from > a.valid_from\n AND (a.valid_to IS NULL OR b.valid_from <= a.valid_to)\n",
-    "at": "2026-10-15T23:00:11.797Z"
+    "dataset_version": "ef4aa0325da6ea43",
+    "grader_version": "7a.1",
+    "query": "WITH p AS (\n  SELECT product_id,\n         CAST(valid_from AS DATE) AS vf,\n         COALESCE(CAST(valid_to AS DATE), DATE '9999-12-31') AS vt,\n         valid_to IS NULL AS open_end\n  FROM price_history\n)\nSELECT a.product_id,\n       b.vf AS valid_from,\n       CASE WHEN a.open_end AND b.open_end THEN NULL\n            ELSE DATE_DIFF('day', b.vf, LEAST(a.vt, b.vt)) + 1 END AS shared_days\nFROM p a\nJOIN p b ON a.product_id = b.product_id\n        AND a.vf < b.vf\n        AND b.vf <= a.vt\n",
+    "at": "2026-10-21T22:36:27.537Z"
   }
 }

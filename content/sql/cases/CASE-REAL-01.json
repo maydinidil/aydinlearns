@@ -11,7 +11,7 @@
     "role": "Analytics lead"
   },
   "brief": {
-    "decision": "A take-home task from our hiring team in the Netherlands, on a public dataset, Online Retail II: how the shop's net product revenue moved month by month in 2010, once cancellations, postage and fees are taken out. Both of the source's sheets held December 2010, and the data keeps one copy of those lines; lines repeated within a sheet were kept as the source has them, so in this task a line that matches another line in every column counts once.",
+    "decision": "A take-home task from our hiring team in the Netherlands, on a public dataset, Online Retail II: how the shop's net product revenue moved month by month in 2010, after cancellations are taken off and postage and fees are left out. Both of the source's sheets held some of the same December 2010 lines, and the data keeps one copy of those; lines repeated within a sheet were kept as the source has them, so in this task a line that matches another line in every column counts once.",
     "deadline": "Your second interview, on Thursday"
   },
   "data_needed": [
@@ -55,7 +55,7 @@
         },
         {
           "oid": "o560394c",
-          "text": "Fill each one in from another line of the same invoice, and leave out the lines that still have no customer ID."
+          "text": "Keep them, but in a separate row for unknown customers, outside each month's revenue total that Noor reports."
         }
       ]
     },
@@ -119,7 +119,7 @@
         },
         {
           "oid": "o6aa4844",
-          "text": "No. Both of the source's sheets held December 2010, so the fall only shows one copy of its lines being removed when the data was prepared."
+          "text": "No. Both of the source's sheets held some of the same December 2010 lines, so the fall only shows the extra copies of those lines being taken out when the data was prepared."
         },
         {
           "oid": "o9f41f5c",

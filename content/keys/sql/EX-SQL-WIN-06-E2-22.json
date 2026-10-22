@@ -1,0 +1,39 @@
+{
+  "item_id": "EX-SQL-WIN-06-E2-22",
+  "item_version": 1,
+  "reference_sql": "WITH campaign_spend AS (  -- one row per campaign with spend rows in the period\n  SELECT c.channel_id, c.campaign_id, SUM(a.spend) AS spend\n  FROM ad_spend_daily a\n  JOIN campaigns c ON c.campaign_id = a.campaign_id\n  WHERE a.spend_date BETWEEN DATE '2025-07-01' AND DATE '2025-10-31'\n  GROUP BY c.channel_id, c.campaign_id\n),\nranked AS (  -- one row per campaign, numbered within its channel from the highest spend\n  SELECT channel_id, campaign_id, spend,\n         ROW_NUMBER() OVER (PARTITION BY channel_id ORDER BY spend DESC, campaign_id) AS spend_rank\n  FROM campaign_spend\n)\nSELECT channel_id, campaign_id, spend, spend_rank\nFROM ranked\nWHERE spend_rank <= 2",
+  "alternatives": [
+    "WITH campaign_spend AS (  -- one row per campaign with spend rows in the period\n  SELECT c.channel_id, c.campaign_id, SUM(a.spend) AS spend\n  FROM ad_spend_daily a\n  JOIN campaigns c ON c.campaign_id = a.campaign_id\n  WHERE a.spend_date BETWEEN DATE '2025-07-01' AND DATE '2025-10-31'\n  GROUP BY c.channel_id, c.campaign_id\n)\nSELECT r.channel_id, r.campaign_id, r.spend, r.spend_rank\nFROM (\n  -- one row per campaign, numbered within its channel from the highest spend\n  SELECT channel_id, campaign_id, spend,\n         ROW_NUMBER() OVER (PARTITION BY channel_id ORDER BY spend DESC, campaign_id) AS spend_rank\n  FROM campaign_spend\n) AS r\nWHERE r.spend_rank <= 2",
+    "SELECT c.channel_id, c.campaign_id, SUM(a.spend) AS spend,\n       ROW_NUMBER() OVER (PARTITION BY c.channel_id ORDER BY SUM(a.spend) DESC, c.campaign_id) AS spend_rank\nFROM ad_spend_daily a\nJOIN campaigns c ON c.campaign_id = a.campaign_id\nWHERE a.spend_date BETWEEN DATE '2025-07-01' AND DATE '2025-10-31'\nGROUP BY c.channel_id, c.campaign_id\nQUALIFY ROW_NUMBER() OVER (PARTITION BY c.channel_id ORDER BY SUM(a.spend) DESC, c.campaign_id) <= 2"
+  ],
+  "other_way": {
+    "sql": "SELECT c.channel_id, c.campaign_id, SUM(a.spend) AS spend,\n       ROW_NUMBER() OVER (PARTITION BY c.channel_id ORDER BY SUM(a.spend) DESC, c.campaign_id) AS spend_rank\nFROM ad_spend_daily a\nJOIN campaigns c ON c.campaign_id = a.campaign_id\nWHERE a.spend_date BETWEEN DATE '2025-07-01' AND DATE '2025-10-31'\nGROUP BY c.channel_id, c.campaign_id\nQUALIFY ROW_NUMBER() OVER (PARTITION BY c.channel_id ORDER BY SUM(a.spend) DESC, c.campaign_id) <= 2",
+    "tradeoff": "QUALIFY filters the window result in the same query, which is shorter, but PostgreSQL, MySQL and SQL Server do not accept it."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-40",
+      "sql": "WITH campaign_spend AS (SELECT c.channel_id, c.campaign_id, SUM(a.spend) AS spend FROM ad_spend_daily a JOIN campaigns c ON c.campaign_id = a.campaign_id WHERE a.spend_date BETWEEN DATE '2025-07-01' AND DATE '2025-10-31' GROUP BY c.channel_id, c.campaign_id), ranked AS (SELECT channel_id, campaign_id, spend, RANK() OVER (PARTITION BY channel_id ORDER BY spend DESC) AS spend_rank FROM campaign_spend) SELECT channel_id, campaign_id, spend, spend_rank FROM ranked WHERE spend_rank <= 2"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-18",
+      "sql": "WITH campaign_spend AS (SELECT c.channel_id, c.campaign_id, SUM(a.spend) AS spend FROM ad_spend_daily a JOIN campaigns c ON c.campaign_id = a.campaign_id WHERE a.spend_date BETWEEN DATE '2025-07-01' AND DATE '2025-10-31' GROUP BY c.channel_id, c.campaign_id), ranked AS (SELECT channel_id, campaign_id, spend, ROW_NUMBER() OVER (PARTITION BY channel_id ORDER BY spend, campaign_id) AS spend_rank FROM campaign_spend) SELECT channel_id, campaign_id, spend, spend_rank FROM ranked WHERE spend_rank <= 2"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-37",
+      "sql": "WITH campaign_spend AS (SELECT c.channel_id, c.campaign_id, SUM(a.spend) AS spend FROM ad_spend_daily a JOIN campaigns c ON c.campaign_id = a.campaign_id WHERE a.spend_date BETWEEN DATE '2025-07-01' AND DATE '2025-10-31' GROUP BY c.channel_id, c.campaign_id), ranked AS (SELECT channel_id, campaign_id, spend, ROW_NUMBER() OVER (ORDER BY spend DESC, campaign_id) AS spend_rank FROM campaign_spend) SELECT channel_id, campaign_id, spend, spend_rank FROM ranked WHERE spend_rank <= 2"
+    }
+  ],
+  "hint3_partial": "WITH campaign_spend AS (  -- one row per campaign with spend rows in the period\n  SELECT c.channel_id, c.campaign_id, SUM(a.spend) AS spend\n  FROM ad_spend_daily a\n  JOIN campaigns c ON c.campaign_id = a.campaign_id\n  WHERE a.spend_date BETWEEN DATE '2025-07-01' AND DATE '2025-10-31'\n  GROUP BY c.channel_id, c.campaign_id\n),\nranked AS (  -- one row per campaign, numbered within its channel from the highest spend\n  SELECT channel_id, campaign_id, spend,\n         ROW_NUMBER() OVER (PARTITION BY channel_id ORDER BY spend DESC, campaign_id) AS spend_rank\n  FROM campaign_spend\n)\nSELECT channel_id, campaign_id, spend, spend_rank\nFROM ranked\nWHERE ___",
+  "solver": {
+    "prompt_hash": "6b4cc341de0bd630",
+    "schema_version": "09f3a33d3123",
+    "dataset_version": "e7c58abf7e8f892e",
+    "grader_version": "7a.1",
+    "query": "WITH camp AS (\n  SELECT c.channel_id, s.campaign_id, SUM(s.spend) AS spend\n  FROM ad_spend_daily s\n  JOIN campaigns c ON c.campaign_id = s.campaign_id\n  WHERE s.spend_date >= DATE '2025-07-01' AND s.spend_date <= DATE '2025-10-31'\n  GROUP BY c.channel_id, s.campaign_id\n), r AS (\n  SELECT channel_id, campaign_id, spend,\n         ROW_NUMBER() OVER (PARTITION BY channel_id ORDER BY spend DESC, campaign_id ASC) AS spend_rank\n  FROM camp\n)\nSELECT channel_id, campaign_id, spend, spend_rank\nFROM r\nWHERE spend_rank <= 2\n",
+    "at": "2026-10-21T09:05:10.543Z"
+  }
+}

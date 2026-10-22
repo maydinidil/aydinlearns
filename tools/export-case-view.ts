@@ -5,7 +5,8 @@
 // solver records), the truth values, the credits, the model plan, the model answer or the follow-up question; the key is never opened.
 // CP3 is an SQL item, in export:solver-view, and CP6 is self-scored.
 //
-// Writes <out>/<case_id>.json for every case (content/sql/openers/ and content/sql/cases/) with a CP1, CP2, CP4 or CP5. The CASE-*.json
+// Writes <out>/<case_id>.json for every case (content/sql/openers/, content/sql/cases/ and, sprint 7, the held-out mock cases in
+// content/sql/mocks/, S7-08) with a CP1, CP2, CP4 or CP5. The CASE-*.json
 // files of an earlier export are removed first; any other file is left alone. The default out-dir is tools/.solver-view/cases/
 // (git-ignored), beside the other views, which leave it alone. Prints case IDs and counts only.
 // Usage: node tools/export-case-view.ts [content-root] [out-dir] [--seed <text>] [--notes <schema-notes.json>]
@@ -91,7 +92,7 @@ export async function exportCaseView(contentRoot: string, outDir: string, notesF
   try { const parsed: unknown = JSON.parse(await readFile(notesFile, 'utf8')); if (Array.isArray(parsed)) notes = parsed as TableNote[]; }
   catch (e) { if ((e as NodeJS.ErrnoException).code !== 'ENOENT') throw new Refused('the schema notes file is not valid JSON; run npm run build:data'); }
   const views: CaseSolverView[] = [];
-  for (const folder of ['openers', 'cases']) {
+  for (const folder of ['openers', 'cases', 'mocks']) {
     let names: string[] = [];
     try { names = (await readdir(join(root, 'sql', folder))).filter((n) => n.endsWith('.json')).sort(); }
     catch (e) { if ((e as NodeJS.ErrnoException).code !== 'ENOENT') throw e; }

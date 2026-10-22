@@ -6,11 +6,14 @@
  * case_export event (D35), and self_check is a new record in the attempt files (D38, S4B-09); external_result is typed as a union on
  * `kind`, with no change to its data. 5 since sprint 5b (owner decision D68, 2026-10-08): `lab_answer` is a new record in the attempt files, and a GA4 run answer's mcq
  * payload may carry `run_kind`. 6 since sprint T (owner decision D95, 2026-10-16): `tutor_asked` is a new record in the attempt files, and
- * the events file gains a `tutor_daily_cap_usd` setting. Block P (T-22, 2026-10-17, additive, before 1.6.0 was released): `tutor_asked`
+ * the events file gains a `tutor_daily_cap_usd` setting. Block P (T-22, 2026-10-17, additive, before 0.6.2 was released): `tutor_asked`
  * carries `effort`, the events file gains `tutor_enabled`, `tutor_model` and `tutor_effort`, and `tutor_daily_cap_usd` also takes "none".
- * Replay reads versions 1 to 6; no reader checks the version.
+ * 7 since sprint 7 (owner decision D112, 2026-10-20): `mock_open` is a new record in the attempt files, written when a recruiter mock
+ * starts (S7-01); a knowledge mock's answers carry `run_kind: 'knowledge_mock'` in their mcq payload; and `tutor_asked.ts` is the time the
+ * question was asked (before version 7 it was the time the reply ended).
+ * Replay reads versions 1 to 7; no reader checks the version, apart from S2-15's: a version 1 record logged no rating to compare.
  */
-export const SCHEMA_VERSION = 6;
+export const SCHEMA_VERSION = 7;
 
 export type Section = 'sql' | 'ga4' | 'methodology';
 export type Phase =
@@ -155,4 +158,21 @@ export interface TutorAsked {
   outcome: TutorOutcome;
 }
 
-export type AttemptFileRecord = AttemptBase | ItemClose | BlockClose | HintOpened | SolutionOpened | Exposure | OtherWayOpened | SelfCheck | TutorAsked;
+/**
+ * D112 (version 7, S7-01): a recruiter mock started. Written once, at the start, before any item is served: a form is taken once its
+ * mock_open exists, answered or not (S7-04). `block_id` is `mock-<mock>-<uuid>`, the block every item the run serves, every self-check
+ * of the run and its block_close name. `form_id` is the form (SCREEN-A, CASE-ROUND-B, TAKE-HOME-A; the knowledge mock's is KNOWLEDGE);
+ * `minutes` is the run's limit; `on_unseen` is what the start decided (S7-04): a run on seen content is practice and never counts.
+ * Replay rates nothing from it; server/mocks.ts derives each mock run from it and the records that name its block.
+ * `pass_correct` (Codex F35, ruling S7-C34; additive on version 7, sprint 7 Part 2): the count of correct answers the run needs, as its start
+ * read the rules (the screen mock's pass_correct; the knowledge mock's pass_pct of its questions, rounded up; a case mock's auto_min of CP1 to
+ * CP5). A run keeps its own pass mark; a mock_open without it (written before Part 2) is read with the rules' value.
+ */
+export interface MockOpen {
+  record: 'mock_open'; schema_version: number; ts: string; session_id: string; block_id: string;
+  mock: 'screen' | 'knowledge' | 'case_round' | 'take_home'; form_id: string; minutes: number; on_unseen: boolean;
+  pass_correct?: number;
+}
+
+export type AttemptFileRecord = AttemptBase | ItemClose | BlockClose | HintOpened | SolutionOpened | Exposure | OtherWayOpened | SelfCheck | TutorAsked
+  | MockOpen;

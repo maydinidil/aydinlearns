@@ -48,8 +48,8 @@ const stubRunner = (reply: (req: RunnerReq) => RunnerResult): RunnerClient => ({
   restarts: 0,
 });
 
-test('the grader version is 6a.1 (sprint 6, Task A1: the nesting refusal S6-08 and ERR-SYN-08 of S6-11)', () => {
-  assert.equal(GRADER_VERSION, '6a.1');
+test('the grader version is 7a.1 (sprint 7, Task A1: S7-26, the QUALIFY note of S7-20 is logged in portability_notes)', () => {
+  assert.equal(GRADER_VERSION, '7a.1');
 });
 test('a correct query passes on both datasets', async () => {
   const r = await grade({ item, key, sql: 'select city from stores where city is not null;' }, deps);

@@ -1,0 +1,174 @@
+{
+  "id": "EX-SQL-WIN-01-E3-03",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "window",
+    "partition_by",
+    "filter_on_window",
+    "sales"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-WIN-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-CTE-01",
+    "SQL-WIN-01"
+  ],
+  "template_id": "T-WIN-01-filter-on-window",
+  "template_params": {
+    "table": "sales",
+    "step": "product",
+    "partition": "category"
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_win",
+  "prompt": "Which products earned more 2025 net revenue than the average product of their category? Use the sales rows whose order_date falls in 2025, and average over the products of the category with sales in 2025. Compare with the exact average. Return four columns, in this order: category_name, product_id, revenue (the product's 2025 net revenue) and category_avg, the category's average product revenue rounded to 2 decimals. Return one row for each such product. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "category_name",
+        "type_class": "text"
+      },
+      {
+        "name": "product_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "revenue",
+        "type_class": "numeric"
+      },
+      {
+        "name": "category_avg",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "category_name",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "product_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "revenue",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "category_avg",
+        "type_class": "numeric",
+        "precision": "money",
+        "require_rounding": 2
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "product_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the step that gives each product's 2025 revenue with its category, one row per product.",
+    "Then average the revenues in a window for each category in a second step, and keep the products above that average in the outer query."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 61,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 62,
+      "to": 129,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 130,
+      "to": 142,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 143,
+      "to": 217,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 218,
+      "to": 254,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 258,
+      "to": 311,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 312,
+      "to": 423,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 424,
+      "to": 442,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 445,
+      "to": 521,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 522,
+      "to": 535,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 536,
+      "to": 559,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "Each product is compared with the average of its own category, which the window writes on every product row before the outer filter runs."
+}

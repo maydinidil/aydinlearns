@@ -1,0 +1,128 @@
+{
+  "id": "EX-SQL-WIN-03-E1-22",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "lag",
+    "stores",
+    "drill"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-03"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-WIN-03",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-SORT-01",
+    "SQL-WIN-01",
+    "SQL-WIN-03"
+  ],
+  "template_id": "T-WIN-03-lag-prev-value",
+  "template_params": {
+    "table": "stores",
+    "order": "opened_on"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_win",
+  "prompt": "For each store, show the city of the store that opened just before it. Stores follow each other by opened_on; no two stores opened on the same day. Return store_id, city, opened_on and prev_city. The first store to open shows prev_city as missing. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "store_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "city",
+        "type_class": "text"
+      },
+      {
+        "name": "opened_on",
+        "type_class": "temporal"
+      },
+      {
+        "name": "prev_city",
+        "type_class": "text"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "store_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "city",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "opened_on",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "prev_city",
+        "type_class": "text",
+        "precision": "exact"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "store_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, add the column that reads the city from the store that opened before.",
+    "All stores form one series, so the window needs only an order: by the opening date."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 33,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 34,
+      "to": 84,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 85,
+      "to": 96,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 90000,
+  "why_this_works": "Ordered by opening date, LAG reads the city of the store that opened just before; the first store has no row before it."
+}

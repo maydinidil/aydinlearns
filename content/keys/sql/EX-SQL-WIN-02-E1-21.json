@@ -1,0 +1,39 @@
+{
+  "item_id": "EX-SQL-WIN-02-E1-21",
+  "item_version": 1,
+  "reference_sql": "SELECT channel_id, month, budget_eur,\n       ROW_NUMBER() OVER (PARTITION BY channel_id ORDER BY budget_eur DESC, month) AS budget_order\nFROM budget_monthly\nWHERE month >= DATE '2025-01-01' AND month < DATE '2026-01-01'",
+  "alternatives": [
+    "SELECT b.channel_id, b.month, b.budget_eur,\n       1 + (SELECT COUNT(*) FROM budget_monthly b2\n            WHERE b2.channel_id = b.channel_id\n              AND b2.month >= DATE '2025-01-01' AND b2.month < DATE '2026-01-01'\n              AND (b2.budget_eur > b.budget_eur OR (b2.budget_eur = b.budget_eur AND b2.month < b.month))) AS budget_order\nFROM budget_monthly b\nWHERE b.month >= DATE '2025-01-01' AND b.month < DATE '2026-01-01'",
+    "WITH budgets_2025 AS (  -- one row per channel and month of 2025\n  SELECT channel_id, month, budget_eur\n  FROM budget_monthly\n  WHERE month >= DATE '2025-01-01' AND month < DATE '2026-01-01'\n)\nSELECT b.channel_id, b.month, b.budget_eur, COUNT(b2.month) + 1 AS budget_order\nFROM budgets_2025 b\nLEFT JOIN budgets_2025 b2 ON b2.channel_id = b.channel_id\n  AND (b2.budget_eur > b.budget_eur OR (b2.budget_eur = b.budget_eur AND b2.month < b.month))\nGROUP BY b.channel_id, b.month, b.budget_eur"
+  ],
+  "other_way": {
+    "sql": "SELECT b.channel_id, b.month, b.budget_eur,\n       1 + (SELECT COUNT(*) FROM budget_monthly b2\n            WHERE b2.channel_id = b.channel_id\n              AND b2.month >= DATE '2025-01-01' AND b2.month < DATE '2026-01-01'\n              AND (b2.budget_eur > b.budget_eur OR (b2.budget_eur = b.budget_eur AND b2.month < b.month))) AS budget_order\nFROM budget_monthly b\nWHERE b.month >= DATE '2025-01-01' AND b.month < DATE '2026-01-01'",
+    "tradeoff": "Counting the months that come before gives the same numbers on any engine, but the tie-break must be spelled out by hand."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-18",
+      "sql": "SELECT channel_id, month, budget_eur, ROW_NUMBER() OVER (PARTITION BY channel_id ORDER BY budget_eur, month) AS budget_order FROM budget_monthly WHERE month >= DATE '2025-01-01' AND month < DATE '2026-01-01'"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-37",
+      "sql": "SELECT channel_id, month, budget_eur, ROW_NUMBER() OVER (ORDER BY budget_eur DESC, month) AS budget_order FROM budget_monthly WHERE month >= DATE '2025-01-01' AND month < DATE '2026-01-01'"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-40",
+      "sql": "SELECT channel_id, month, budget_eur, RANK() OVER (PARTITION BY channel_id ORDER BY budget_eur DESC) AS budget_order FROM budget_monthly WHERE month >= DATE '2025-01-01' AND month < DATE '2026-01-01'"
+    }
+  ],
+  "hint3_partial": "SELECT channel_id, month, budget_eur,\n       ROW_NUMBER() OVER (PARTITION BY channel_id ORDER BY budget_eur DESC, ___) AS budget_order\nFROM budget_monthly\nWHERE month >= DATE '2025-01-01' AND month < DATE '2026-01-01'",
+  "solver": {
+    "prompt_hash": "1c3f4f39ef32f91a",
+    "schema_version": "1ea1a0f5ae04",
+    "dataset_version": "e7c58abf7e8f892e",
+    "grader_version": "7a.1",
+    "query": "SELECT channel_id, month, budget_eur,\n       ROW_NUMBER() OVER (PARTITION BY channel_id ORDER BY budget_eur DESC, month) AS budget_order\nFROM budget_monthly\nWHERE month >= DATE '2025-01-01' AND month < DATE '2026-01-01'\n",
+    "at": "2026-10-21T09:05:06.286Z"
+  }
+}

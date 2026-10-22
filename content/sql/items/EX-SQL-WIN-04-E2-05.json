@@ -1,0 +1,131 @@
+{
+  "id": "EX-SQL-WIN-04-E2-05",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "running_total",
+    "week_to_date",
+    "sales",
+    "cte"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-04"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-WIN-04",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CTE-01",
+    "SQL-WIN-01",
+    "SQL-WIN-04"
+  ],
+  "template_id": "T-WIN-04-week-to-date",
+  "template_params": {
+    "table": "sales",
+    "store": "WEB-01",
+    "reset": "week"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_win",
+  "prompt": "For the webshop (store_code WEB-01), show each UTC day from 3 to 30 March 2025 (four weeks, Monday to Sunday) on which it had orders, with the units sold that day and the week-to-date units: the units from that week's Monday up to and including that day. The total starts again every Monday. Days with no orders are left out. Return order_date, units and wtd_units. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "order_date",
+        "type_class": "temporal"
+      },
+      {
+        "name": "units",
+        "type_class": "numeric"
+      },
+      {
+        "name": "wtd_units",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "order_date",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "units",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "wtd_units",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "order_date"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the running total that starts again each week.",
+    "sales already holds each day's week (order_week, its Monday); keep it in the first step and start the total again for each week."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 255,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 256,
+      "to": 281,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 282,
+      "to": 407,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 408,
+      "to": 418,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "Partitioned by the week, the running total starts again each Monday and adds that week's days so far."
+}

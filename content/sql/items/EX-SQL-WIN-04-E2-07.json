@@ -1,0 +1,139 @@
+{
+  "id": "EX-SQL-WIN-04-E2-07",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "running_total",
+    "range_frame",
+    "ad_spend_daily"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-04"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-WIN-04",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-JOIN-01",
+    "SQL-WIN-01",
+    "SQL-WIN-04"
+  ],
+  "template_id": "T-WIN-04-running-total-range",
+  "template_params": {
+    "table": "ad_spend_daily",
+    "channel": "review_sites",
+    "ties": "together"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "mailvora",
+  "schema": "mailvora",
+  "edge_schema": "mailvora_edge_win",
+  "prompt": "For the review_sites channel (channel_id 6), show each campaign's spend row from 1 July to 31 October 2025 with the channel's spend so far over that period, up to and including the row's day. Rows on the same spend_date count together, so they show the same spend so far. Return spend_date, campaign_id, spend and spend_so_far_eur. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "spend_date",
+        "type_class": "temporal"
+      },
+      {
+        "name": "campaign_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "spend",
+        "type_class": "numeric"
+      },
+      {
+        "name": "spend_so_far_eur",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "spend_date",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "campaign_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "spend",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "spend_so_far_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "spend_date",
+      "campaign_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the running total in spend_date order where a day's rows count together.",
+    "Rows that share a date are peers when the frame counts values of the date instead of rows."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 44,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 45,
+      "to": 158,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 159,
+      "to": 230,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 231,
+      "to": 320,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "RANGE in spend_date order takes every row dated up to this one, so the rows of one day show the same spend so far."
+}

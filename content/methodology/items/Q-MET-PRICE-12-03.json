@@ -1,29 +1,29 @@
 {
   "id": "Q-MET-PRICE-12-03",
-  "version": 1,
+  "version": 2,
   "kind": "mcq",
   "section": "methodology",
   "concept_id": "MET-PRICE-12",
-  "stem": "Voltmarkt's pricing manager asks: \"When we moved the soundbar's price last month, by what percent did its units move for each 1% change in price?\" Which metric answers this question?",
+  "stem": "Voltmarkt's pricing manager asks: \"When we moved the soundbar's price last month, by what percent did its units move for each 1% change in price?\" Which calculation answers this question?",
   "options": [
     {
       "oid": "o91dfe7c",
-      "text": "Promo uplift vs baseline",
+      "text": "100 × (average deal-week units - baseline units) / baseline units",
       "misconception_id": null
     },
     {
       "oid": "o8ef92a7",
-      "text": "Arc price elasticity",
+      "text": "% change in units / % change in price, each against the midpoint",
       "misconception_id": null
     },
     {
       "oid": "oc865fca",
-      "text": "Price index vs competitors",
+      "text": "100 × our price / the rivals' average price",
       "misconception_id": null
     },
     {
       "oid": "o0e48dc5",
-      "text": "Discount depth",
+      "text": "100 × (1 - net revenue / list value)",
       "misconception_id": null
     }
   ],

@@ -1,6 +1,8 @@
 // server/tutor/context.ts: the model input (spec §5, §6): the system prompt; the earlier turns of the thread as plain text (T-07); then one
 // user turn with the screen's name, the course content the server adds, the screen's snapshot and the question. What the learner or the
-// screen sent is redacted here, the one way out (spec §9), and a tag inside it is defused so it cannot close the real one.
+// screen sent is redacted here, the one way out (spec §9), and a tag inside it is defused so it cannot close the real one. The course
+// text is defused too (S7-32, review T6 M8): it is committed content, but buildInput does not trust its callers. The route passes a
+// screen it checked against the journey's SCREENS (typed Screen there; schemas/journey.ts is outside the tutor's import allow-list).
 import { TUTOR_SYSTEM_PROMPT } from './prompt.ts';
 import { redact, type RedactOptions } from './redact.ts';
 import type { TutorModelInput, TutorTurn } from './types.ts';
@@ -27,7 +29,7 @@ export function buildInput(c: ContextInput): TutorModelInput {
     { role: 'assistant', text: clean(x.reply).slice(0, EARLIER_REPLY_CHARS) },
   ]);
   const message = [`Screen: ${c.screen}`];
-  if (c.course) message.push('<course>', c.course, '</course>');
+  if (c.course) message.push('<course>', defuse(c.course), '</course>');
   message.push('<screen>', clean(c.snapshot), '</screen>', '<question>', clean(c.question), '</question>');
   return { system: TUTOR_SYSTEM_PROMPT, turns, question: message.join('\n'), maxTokens: MAX_TOKENS };
 }

@@ -1,0 +1,92 @@
+{
+  "id": "EX-SQL-WIN-02-E2-41",
+  "version": 1,
+  "kind": "choose_query",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "choose_query",
+    "ranking",
+    "top_n_per_group",
+    "tie_break",
+    "products"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-WIN-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-CTE-01",
+    "SQL-WIN-01",
+    "SQL-WIN-02"
+  ],
+  "template_id": "T-WIN-02-choose-top-n-per-group",
+  "template_params": {
+    "table": "products",
+    "partition": "category",
+    "n": 2
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_win",
+  "prompt": "Which query returns exactly the 2 most expensive products of each category, by unit cost, in the columns category_id, product_id and unit_cost_eur? When products tie on unit cost, the lower product_id comes first, and a category with one product keeps it.",
+  "output_contract": null,
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [],
+  "subgoals": [],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "",
+  "options": [
+    {
+      "oid": "o81671c1",
+      "text": "WITH ranked AS (  -- one row per product\n  SELECT category_id, product_id, unit_cost_eur,\n         RANK() OVER (PARTITION BY category_id ORDER BY unit_cost_eur DESC) AS rn\n  FROM products\n)\nSELECT category_id, product_id, unit_cost_eur\nFROM ranked\nWHERE rn <= 2",
+      "misconception_id": "ERR-LOG-40"
+    },
+    {
+      "oid": "od9c7215",
+      "text": "WITH ranked AS (  -- one row per product\n  SELECT category_id, product_id, unit_cost_eur,\n         ROW_NUMBER() OVER (ORDER BY unit_cost_eur DESC, product_id) AS rn\n  FROM products\n)\nSELECT category_id, product_id, unit_cost_eur\nFROM ranked\nWHERE rn <= 2",
+      "misconception_id": "ERR-LOG-37"
+    },
+    {
+      "oid": "o33083d1",
+      "text": "WITH ranked AS (  -- one row per product\n  SELECT category_id, product_id, unit_cost_eur,\n         ROW_NUMBER() OVER (PARTITION BY category_id ORDER BY unit_cost_eur DESC, product_id) AS rn\n  FROM products\n)\nSELECT category_id, product_id, unit_cost_eur\nFROM ranked\nWHERE rn <= 2",
+      "misconception_id": null
+    },
+    {
+      "oid": "ob4120c7",
+      "text": "WITH ranked AS (  -- one row per product\n  SELECT category_id, product_id, unit_cost_eur,\n         ROW_NUMBER() OVER (PARTITION BY category_id ORDER BY unit_cost_eur, product_id) AS rn\n  FROM products\n)\nSELECT category_id, product_id, unit_cost_eur\nFROM ranked\nWHERE rn <= 2",
+      "misconception_id": "ERR-LOG-18"
+    }
+  ]
+}

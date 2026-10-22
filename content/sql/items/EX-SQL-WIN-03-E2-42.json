@@ -1,0 +1,185 @@
+{
+  "id": "EX-SQL-WIN-03-E2-42",
+  "version": 1,
+  "kind": "predict_result",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "predict_result",
+    "lead",
+    "price_history"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-03"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-WIN-03",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-SORT-01",
+    "SQL-WIN-01",
+    "SQL-WIN-03"
+  ],
+  "template_id": "T-WIN-03-predict-lead-last-row",
+  "template_params": {
+    "table": "price_history"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_win",
+  "prompt": "Product 1 has three price versions. Which result does this query return?",
+  "output_contract": null,
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [],
+  "subgoals": [],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 90000,
+  "why_this_works": "",
+  "shown_sql": "SELECT valid_from, list_price_eur,\n  LEAD(list_price_eur) OVER (ORDER BY valid_from) AS next_price_eur\nFROM price_history\nWHERE product_id = 1",
+  "options": [
+    {
+      "oid": "oefdba8f",
+      "text": "Each version shows the next price; the last one is missing",
+      "misconception_id": null,
+      "table": {
+        "columns": [
+          "valid_from",
+          "list_price_eur",
+          "next_price_eur"
+        ],
+        "rows": [
+          [
+            "2024-10-09",
+            "239.99",
+            "259.99"
+          ],
+          [
+            "2025-07-06",
+            "259.99",
+            "269.99"
+          ],
+          [
+            "2025-12-17",
+            "269.99",
+            null
+          ]
+        ]
+      }
+    },
+    {
+      "oid": "o3114992",
+      "text": "Each version shows the earlier price; the first one is missing",
+      "misconception_id": "ERR-LOG-18",
+      "table": {
+        "columns": [
+          "valid_from",
+          "list_price_eur",
+          "next_price_eur"
+        ],
+        "rows": [
+          [
+            "2024-10-09",
+            "239.99",
+            null
+          ],
+          [
+            "2025-07-06",
+            "259.99",
+            "239.99"
+          ],
+          [
+            "2025-12-17",
+            "269.99",
+            "259.99"
+          ]
+        ]
+      }
+    },
+    {
+      "oid": "o5db780b",
+      "text": "The last version shows its own price",
+      "misconception_id": null,
+      "table": {
+        "columns": [
+          "valid_from",
+          "list_price_eur",
+          "next_price_eur"
+        ],
+        "rows": [
+          [
+            "2024-10-09",
+            "239.99",
+            "259.99"
+          ],
+          [
+            "2025-07-06",
+            "259.99",
+            "269.99"
+          ],
+          [
+            "2025-12-17",
+            "269.99",
+            "269.99"
+          ]
+        ]
+      }
+    },
+    {
+      "oid": "o53b2f96",
+      "text": "The last version shows 0.00",
+      "misconception_id": "ERR-LOG-17",
+      "table": {
+        "columns": [
+          "valid_from",
+          "list_price_eur",
+          "next_price_eur"
+        ],
+        "rows": [
+          [
+            "2024-10-09",
+            "239.99",
+            "259.99"
+          ],
+          [
+            "2025-07-06",
+            "259.99",
+            "269.99"
+          ],
+          [
+            "2025-12-17",
+            "269.99",
+            "0.00"
+          ]
+        ]
+      }
+    }
+  ]
+}

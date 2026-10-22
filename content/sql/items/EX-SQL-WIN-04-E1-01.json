@@ -1,0 +1,130 @@
+{
+  "id": "EX-SQL-WIN-04-E1-01",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "running_total",
+    "sales",
+    "cte"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-04"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pretest",
+  "target_concept_id": "SQL-WIN-04",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CTE-01",
+    "SQL-WIN-01",
+    "SQL-WIN-04"
+  ],
+  "template_id": "T-WIN-04-running-total",
+  "template_params": {
+    "table": "sales",
+    "store": "NL-01",
+    "period": "day"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_win",
+  "prompt": "For store NL-01, show each UTC day from 1 January to 30 June 2025 on which it had orders, with that day's net revenue and the store's running revenue from 1 January up to and including that day. Days follow each other by date; days with no orders are left out. Return order_date, revenue_eur and running_revenue_eur. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "order_date",
+        "type_class": "temporal"
+      },
+      {
+        "name": "revenue_eur",
+        "type_class": "numeric"
+      },
+      {
+        "name": "running_revenue_eur",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per day with orders"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "order_date",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "revenue_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "running_revenue_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "order_date"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, add up each day's revenue in a first step, then add a running total over those days.",
+    "The running total is a SUM with an order by date inside OVER and a frame from the first row to the current one."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 238,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 239,
+      "to": 270,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 271,
+      "to": 388,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 389,
+      "to": 399,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 150000,
+  "why_this_works": "One row per day, then SUM in date order with a frame from the first row to the current one adds up the days so far."
+}

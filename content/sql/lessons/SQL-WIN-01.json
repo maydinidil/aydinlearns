@@ -1,0 +1,121 @@
+{
+  "concept_id": "SQL-WIN-01",
+  "version": 1,
+  "reading_md": "## Window functions: OVER and PARTITION BY\n\nA window function works out a number over a group of rows and writes it on every row of that group. Unlike GROUP BY, it keeps every row.\n\n```sql\nSELECT product_id, category_id, unit_cost_eur,\n       AVG(unit_cost_eur) OVER (PARTITION BY category_id) AS category_avg_cost\nFROM products;\n```\n\nThe result has one row per product, all 1,200 of them, and each row carries the average of its own category. GROUP BY category_id would return 40 rows and lose the products.\n\n### OVER and PARTITION BY\n\n- OVER turns an aggregate (SUM, AVG, COUNT, MIN or MAX) into a window function.\n- PARTITION BY names the group: rows with the same value share one window. It can list several columns.\n- OVER () with nothing inside makes the whole result one window, so every row gets the grand total.\n\n### Shares of a group total\n\nA share divides a row's value by its group's total:\n\n```sql\n100.0 * revenue / SUM(revenue) OVER (PARTITION BY country_code)\n```\n\nLeave out PARTITION BY and each row is divided by the grand total instead. The shares of a group then add up to less than 100, and nothing warns you.\n\n### When a window is worked out\n\nSQL works in this order: FROM and the joins, WHERE, GROUP BY, HAVING, then the SELECT list with its windows, then ORDER BY. Two things follow.\n\n- A window sees only the rows WHERE kept. After a GROUP BY it sees the grouped rows, so `SUM(SUM(units)) OVER ()` adds up group totals: the inner SUM belongs to GROUP BY, the outer one to the window.\n- WHERE cannot test a window's result, because the window is not worked out yet. DuckDB stops with \"WHERE clause cannot contain window functions\". Work the window out in a WITH step, give it a name, and filter that name in the outer query:\n\n```sql\nWITH costed AS (  -- one row per product\n  SELECT product_id, unit_cost_eur,\n         AVG(unit_cost_eur) OVER (PARTITION BY category_id) AS avg_cost\n  FROM products\n)\nSELECT product_id\nFROM costed\nWHERE unit_cost_eur > avg_cost;\n```\n\n### Window, or GROUP BY and a join?\n\nBefore windows, the same answer took two steps: GROUP BY in a WITH step, then a join back to the rows. That still works on every engine, and older code is full of it. The window does the same job in one line, without the join.",
+  "syntax_md": "```sql\nSELECT product_id, category_id, unit_cost_eur,   -- the rows to keep\n       AVG(unit_cost_eur)                         -- an aggregate ...\n         OVER (PARTITION BY category_id)          -- ... over a window: one per category\n         AS category_avg_cost\nFROM products;\n```\n\n- `OVER ()`: the whole result is one window.\n- `OVER (PARTITION BY a, b)`: one window for each combination of a and b.\n- Filter on a window's result in an outer query, never in the WHERE of the same query.",
+  "dialect_note": "Nothing here is DuckDB-only: OVER and PARTITION BY are standard SQL, and PostgreSQL, SQL Server and BigQuery run these windows the same way. No engine allows a window function in WHERE.",
+  "worked_examples": [
+    {
+      "title": "Each product's share of its category's revenue",
+      "prompt": "What share of its category's 2025 net revenue does each product take? Use the sales rows whose order_date falls in 2025. Return category_name, product_id, revenue and share_pct, rounded to 2 decimals.",
+      "clauses": [
+        {
+          "text": "WITH product_rev AS (  -- one row per product with 2025 sales",
+          "subgoal": "source_grain",
+          "why": "The first step adds up each product's sales lines, so the window later works on one row per product."
+        },
+        {
+          "text": "SELECT category_name, product_id, SUM(net_revenue_eur) AS revenue",
+          "subgoal": "metrics",
+          "why": "Each product's 2025 revenue, with its category carried along."
+        },
+        {
+          "text": "FROM sales",
+          "subgoal": "source_grain",
+          "why": "One row per order line, with the category name already joined in."
+        },
+        {
+          "text": "WHERE order_date >= DATE '2025-01-01' AND order_date < DATE '2026-01-01'",
+          "subgoal": "row_filter",
+          "why": "Only 2025 lines count, both for the product and for its category."
+        },
+        {
+          "text": "GROUP BY category_name, product_id)",
+          "subgoal": "output_grain",
+          "why": "The step ends at one row per product."
+        },
+        {
+          "text": "SELECT category_name, product_id, revenue, ROUND(100.0 * revenue / SUM(revenue) OVER (PARTITION BY category_name), 2) AS share_pct",
+          "subgoal": "metrics",
+          "why": "The window adds up the revenue of every product of the same category and writes it on each row, so each product is divided by its own category."
+        },
+        {
+          "text": "FROM product_rev",
+          "subgoal": "source_grain",
+          "why": "The outer query reads the product step, and the window keeps all of its rows."
+        }
+      ]
+    },
+    {
+      "title": "Each category beside the size of its parent category",
+      "prompt": "For every category, how many categories does its parent category hold? Return category_name, parent_category and parent_categories.",
+      "clauses": [
+        {
+          "text": "SELECT category_name, parent_category, COUNT(*) OVER (PARTITION BY parent_category) AS parent_categories",
+          "subgoal": "metrics",
+          "why": "COUNT(*) over a window for each parent category counts its categories and writes the count on each category row."
+        },
+        {
+          "text": "FROM categories",
+          "subgoal": "source_grain",
+          "why": "One row per category, and the window keeps all 40."
+        }
+      ]
+    }
+  ],
+  "pretest_item_ids": [
+    "EX-SQL-WIN-01-E1-01",
+    "EX-SQL-WIN-01-E1-02"
+  ],
+  "lesson_item_ids": [
+    "EX-SQL-WIN-01-E1-03",
+    "EX-SQL-WIN-01-E1-04",
+    "EX-SQL-WIN-01-E2-01",
+    "EX-SQL-WIN-01-E2-02"
+  ],
+  "retest_item_id": "EX-SQL-WIN-01-E1-05",
+  "pool_item_ids": [
+    "EX-SQL-WIN-01-E1-06",
+    "EX-SQL-WIN-01-E1-07",
+    "EX-SQL-WIN-01-E1-08",
+    "EX-SQL-WIN-01-E2-03",
+    "EX-SQL-WIN-01-E2-04",
+    "EX-SQL-WIN-01-E2-05",
+    "EX-SQL-WIN-01-E2-06",
+    "EX-SQL-WIN-01-E3-01",
+    "EX-SQL-WIN-01-E3-02",
+    "EX-SQL-WIN-01-E3-03",
+    "EX-SQL-WIN-01-E2-31",
+    "EX-SQL-WIN-01-E2-32",
+    "EX-SQL-WIN-01-E1-42",
+    "EX-SQL-WIN-01-E2-41",
+    "EX-SQL-WIN-01-E2-42"
+  ],
+  "source_ids": [
+    "01:SQL-WIN-01"
+  ],
+  "why_clause": {
+    "clause": "SELECT category_name, product_id, revenue, ROUND(100.0 * revenue / SUM(revenue) OVER (PARTITION BY category_name), 2) AS share_pct",
+    "stem": "Why does the window in this line say PARTITION BY category_name?",
+    "options": [
+      {
+        "id": "a",
+        "text": "So each product's revenue is divided by the total of its own category."
+      },
+      {
+        "id": "b",
+        "text": "So the rows come out sorted by category."
+      },
+      {
+        "id": "c",
+        "text": "So the result has one row per category instead of one per product."
+      },
+      {
+        "id": "d",
+        "text": "Because a window function cannot run without a PARTITION BY."
+      }
+    ],
+    "correct_id": "a",
+    "explanation": "PARTITION BY category_name makes one window per category, so SUM adds up only that category's products and each product is divided by its own category's total. A window never sorts the result and never folds rows: the result keeps one row per product. And OVER () with no PARTITION BY runs too; it just adds up every row."
+  }
+}

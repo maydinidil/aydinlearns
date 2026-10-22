@@ -1,0 +1,173 @@
+{
+  "id": "EX-SQL-WIN-02-E2-04",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "ranking",
+    "rank",
+    "top_n_per_group",
+    "ties_share",
+    "ad_spend_daily"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-WIN-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-WIN-01",
+    "SQL-WIN-02"
+  ],
+  "template_id": "T-WIN-02-top-n-per-group",
+  "template_params": {
+    "table": "ad_spend_daily",
+    "step": "campaign",
+    "partition": "channel",
+    "fn": "RANK",
+    "n": 2,
+    "order": "clicks, most first"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "mailvora",
+  "schema": "mailvora",
+  "edge_schema": "mailvora_edge_win",
+  "prompt": "Which campaigns are in the top 2 of their channel by total clicks? Count all the rows of ad_spend_daily. Campaigns that tie on clicks share a place, and the place after a tie is skipped, so a tie for second place keeps both campaigns. Return four columns, in this order: channel_id, campaign_id, clicks and clicks_rank. Return one row for each campaign kept. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "channel_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "campaign_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "clicks",
+        "type_class": "numeric"
+      },
+      {
+        "name": "clicks_rank",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "channel_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "campaign_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "clicks",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "clicks_rank",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "campaign_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the step that ranks each channel's campaigns by clicks, the most first; the outer query keeps the top 2 places.",
+    "Tied campaigns must share a place and skip the next one, so a tie for second keeps both and a tie for first keeps no third."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 61,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 62,
+      "to": 123,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 124,
+      "to": 199,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 200,
+      "to": 238,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 242,
+      "to": 289,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 290,
+      "to": 414,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 415,
+      "to": 437,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 440,
+      "to": 491,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 492,
+      "to": 503,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 504,
+      "to": 526,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "RANK gives tied campaigns one place and skips the next, so clicks_rank <= 2 keeps a tie for second and drops a third behind a tie for first."
+}

@@ -1,0 +1,39 @@
+{
+  "item_id": "EX-SQL-WIN-02-E1-02",
+  "item_version": 1,
+  "reference_sql": "SELECT campaign_id, channel_id, start_date,\n       ROW_NUMBER() OVER (PARTITION BY channel_id ORDER BY start_date, campaign_id) AS start_order\nFROM campaigns",
+  "alternatives": [
+    "SELECT c.campaign_id, c.channel_id, c.start_date,\n       1 + (SELECT COUNT(*) FROM campaigns c2\n            WHERE c2.channel_id = c.channel_id\n              AND (c2.start_date < c.start_date OR (c2.start_date = c.start_date AND c2.campaign_id < c.campaign_id))) AS start_order\nFROM campaigns c",
+    "SELECT c.campaign_id, c.channel_id, c.start_date, COUNT(c2.campaign_id) + 1 AS start_order\nFROM campaigns c\nLEFT JOIN campaigns c2 ON c2.channel_id = c.channel_id\n  AND (c2.start_date < c.start_date OR (c2.start_date = c.start_date AND c2.campaign_id < c.campaign_id))\nGROUP BY c.campaign_id, c.channel_id, c.start_date"
+  ],
+  "other_way": {
+    "sql": "SELECT c.campaign_id, c.channel_id, c.start_date,\n       1 + (SELECT COUNT(*) FROM campaigns c2\n            WHERE c2.channel_id = c.channel_id\n              AND (c2.start_date < c.start_date OR (c2.start_date = c.start_date AND c2.campaign_id < c.campaign_id))) AS start_order\nFROM campaigns c",
+    "tradeoff": "Counting the campaigns that come earlier gives the same numbers on any engine, but the tie-break has to be spelled out by hand."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-18",
+      "sql": "SELECT campaign_id, channel_id, start_date, ROW_NUMBER() OVER (PARTITION BY channel_id ORDER BY start_date DESC, campaign_id) AS start_order FROM campaigns"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-37",
+      "sql": "SELECT campaign_id, channel_id, start_date, ROW_NUMBER() OVER (ORDER BY start_date, campaign_id) AS start_order FROM campaigns"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-40",
+      "sql": "SELECT campaign_id, channel_id, start_date, RANK() OVER (PARTITION BY channel_id ORDER BY start_date) AS start_order FROM campaigns"
+    }
+  ],
+  "hint3_partial": "SELECT campaign_id, channel_id, start_date,\n       ROW_NUMBER() OVER (PARTITION BY channel_id ORDER BY ___) AS start_order\nFROM campaigns",
+  "solver": {
+    "prompt_hash": "87b88a49bc4064ff",
+    "schema_version": "487f49df0fcd",
+    "dataset_version": "e7c58abf7e8f892e",
+    "grader_version": "7a.1",
+    "query": "SELECT campaign_id, channel_id, start_date,\n       ROW_NUMBER() OVER (PARTITION BY channel_id ORDER BY start_date, campaign_id) AS start_order\nFROM campaigns\n",
+    "at": "2026-10-21T09:05:06.150Z"
+  }
+}

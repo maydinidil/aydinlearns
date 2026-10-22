@@ -1,0 +1,135 @@
+{
+  "id": "EX-SQL-WIN-01-E1-04",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "window",
+    "partition_by",
+    "sum",
+    "budget_monthly"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "lesson",
+  "target_concept_id": "SQL-WIN-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-AGG-01",
+    "SQL-WIN-01"
+  ],
+  "template_id": "T-WIN-01-row-beside-group-total",
+  "template_params": {
+    "table": "budget_monthly",
+    "partition": "channel",
+    "period": "2025"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "mailvora",
+  "schema": "mailvora",
+  "edge_schema": "mailvora_edge_win",
+  "prompt": "For every channel and month of 2025 in budget_monthly, show the channel's total budget over all the months of 2025. Return four columns, in this order: month, channel_id, budget_eur and channel_budget_2025. Return one row for each channel and month of 2025. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "month",
+        "type_class": "temporal"
+      },
+      {
+        "name": "channel_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "budget_eur",
+        "type_class": "numeric"
+      },
+      {
+        "name": "channel_budget_2025",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per channel and month"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "month",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "channel_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "budget_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "channel_budget_2025",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "month",
+      "channel_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the calculated column: the channel's 2025 budget total, on every month row of that channel.",
+    "SUM becomes a window function with OVER; the group to add up over is the channel, and the row filter already keeps only 2025."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 114,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 115,
+      "to": 134,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 135,
+      "to": 197,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": {
+    "stage1": 45,
+    "stage2": 45
+  },
+  "faded_shape": "SELECT month, channel_id, budget_eur,\n       ",
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "WHERE keeps the 2025 months, and SUM over a window for each channel adds up that channel's months on every row.",
+  "faded_suffix": "\nFROM budget_monthly\nWHERE month >= DATE '2025-01-01' AND month < DATE '2026-01-01'"
+}

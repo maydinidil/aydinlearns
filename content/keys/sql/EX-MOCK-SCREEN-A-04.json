@@ -1,0 +1,36 @@
+{
+  "item_id": "EX-MOCK-SCREEN-A-04",
+  "item_version": 1,
+  "reference_sql": "WITH sept AS (  -- one row per campaign with spend rows in September 2025\n  SELECT a.campaign_id, SUM(a.clicks) AS clicks, SUM(a.impressions) AS impressions\n  FROM ad_spend_daily a\n  WHERE a.spend_date BETWEEN DATE '2025-09-01' AND DATE '2025-09-30'\n  GROUP BY a.campaign_id\n)\nSELECT c.campaign_id, c.campaign_name, ROUND(100.0 * s.clicks / s.impressions, 2) AS ctr_pct\nFROM sept s\nJOIN campaigns c ON c.campaign_id = s.campaign_id\nWHERE 1.0 * s.clicks / s.impressions > (\n  SELECT 1.0 * SUM(a.clicks) / SUM(a.impressions)\n  FROM ad_spend_daily a\n  WHERE a.spend_date BETWEEN DATE '2025-09-01' AND DATE '2025-09-30')\nORDER BY ctr_pct DESC, c.campaign_id",
+  "alternatives": [
+    "SELECT c.campaign_id, c.campaign_name, ROUND(100.0 * SUM(a.clicks) / SUM(a.impressions), 2) AS ctr_pct\nFROM ad_spend_daily a\nJOIN campaigns c ON c.campaign_id = a.campaign_id\nWHERE a.spend_date BETWEEN DATE '2025-09-01' AND DATE '2025-09-30'\nGROUP BY c.campaign_id, c.campaign_name\nHAVING 1.0 * SUM(a.clicks) / SUM(a.impressions) > (\n  SELECT 1.0 * SUM(clicks) / SUM(impressions)\n  FROM ad_spend_daily\n  WHERE spend_date BETWEEN DATE '2025-09-01' AND DATE '2025-09-30')\nORDER BY 3 DESC, 1",
+    "WITH sept AS (  -- one row per campaign with spend rows in September 2025\n  SELECT campaign_id, SUM(clicks) AS clicks, SUM(impressions) AS impressions\n  FROM ad_spend_daily\n  WHERE spend_date >= DATE '2025-09-01' AND spend_date < DATE '2025-10-01'\n  GROUP BY campaign_id\n),\noverall AS (  -- one row: the month's overall rate\n  SELECT CAST(SUM(clicks) AS DOUBLE) / SUM(impressions) AS rate\n  FROM sept\n)\nSELECT c.campaign_id, c.campaign_name, ROUND(100.0 * s.clicks / s.impressions, 2) AS ctr_pct\nFROM sept s\nJOIN campaigns c ON c.campaign_id = s.campaign_id\nCROSS JOIN overall o\nWHERE CAST(s.clicks AS DOUBLE) / s.impressions > o.rate\nORDER BY ctr_pct DESC, c.campaign_id ASC"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-20",
+      "sql": "WITH sept AS (SELECT a.campaign_id, SUM(a.clicks) AS clicks, SUM(a.impressions) AS impressions FROM ad_spend_daily a WHERE a.spend_date BETWEEN DATE '2025-09-01' AND DATE '2025-09-30' GROUP BY a.campaign_id) SELECT c.campaign_id, c.campaign_name, ROUND(100.0 * s.clicks / s.impressions, 2) AS ctr_pct FROM sept s JOIN campaigns c ON c.campaign_id = s.campaign_id WHERE 1.0 * s.clicks / s.impressions > (SELECT AVG(1.0 * a.clicks / a.impressions) FROM ad_spend_daily a WHERE a.spend_date BETWEEN DATE '2025-09-01' AND DATE '2025-09-30') ORDER BY ctr_pct DESC, c.campaign_id"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-SEM-05",
+      "sql": "WITH sept AS (SELECT a.campaign_id, SUM(a.clicks) AS clicks, SUM(a.impressions) AS impressions FROM ad_spend_daily a WHERE a.spend_date BETWEEN DATE '2025-09-01' AND DATE '2025-09-30' GROUP BY a.campaign_id) SELECT c.campaign_id, c.campaign_name, ROUND(100.0 * s.clicks / s.impressions, 2) AS ctr_pct FROM sept s JOIN campaigns c ON c.campaign_id = s.campaign_id WHERE 1.0 * s.clicks / s.impressions > (SELECT 1.0 * SUM(a.clicks) / SUM(a.impressions) FROM ad_spend_daily a WHERE a.spend_date BETWEEN DATE '2025-09-01' AND DATE '2025-09-30' GROUP BY a.campaign_id) ORDER BY ctr_pct DESC, c.campaign_id"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-05",
+      "sql": "WITH sept AS (SELECT a.campaign_id, SUM(a.clicks) AS clicks, SUM(a.impressions) AS impressions FROM ad_spend_daily a WHERE a.spend_date BETWEEN DATE '2025-09-01' AND DATE '2025-09-30' GROUP BY a.campaign_id) SELECT c.campaign_id, c.campaign_name, ROUND(100.0 * s.clicks / s.impressions, 2) AS ctr_pct FROM sept s JOIN campaigns c ON c.campaign_id = s.campaign_id WHERE s.clicks // s.impressions > (SELECT 1.0 * SUM(a.clicks) / SUM(a.impressions) FROM ad_spend_daily a WHERE a.spend_date BETWEEN DATE '2025-09-01' AND DATE '2025-09-30') ORDER BY ctr_pct DESC, c.campaign_id"
+    }
+  ],
+  "hint3_partial": "WITH sept AS (  -- one row per campaign with spend rows in September 2025\n  SELECT a.campaign_id, SUM(a.clicks) AS clicks, SUM(a.impressions) AS impressions\n  FROM ad_spend_daily a\n  WHERE a.spend_date BETWEEN DATE '2025-09-01' AND DATE '2025-09-30'\n  GROUP BY a.campaign_id\n)\nSELECT c.campaign_id, c.campaign_name, ROUND(100.0 * s.clicks / s.impressions, 2) AS ctr_pct\nFROM sept s\nJOIN campaigns c ON c.campaign_id = s.campaign_id\nWHERE 1.0 * s.clicks / s.impressions > (\n  SELECT ___\n  FROM ad_spend_daily a\n  WHERE ___)\nORDER BY ___",
+  "solver": {
+    "prompt_hash": "bed932a3cfe3a0d4",
+    "schema_version": "09f3a33d3123",
+    "dataset_version": "e7c58abf7e8f892e",
+    "grader_version": "7a.1",
+    "query": "WITH d AS (\n  SELECT campaign_id, SUM(clicks) AS clicks, SUM(impressions) AS imps\n  FROM ad_spend_daily\n  WHERE spend_date >= DATE '2025-09-01' AND spend_date <= DATE '2025-09-30'\n  GROUP BY campaign_id\n), o AS (\n  SELECT SUM(clicks)::DOUBLE / SUM(imps) AS rate FROM d\n)\nSELECT d.campaign_id, c.campaign_name, ROUND(100.0 * d.clicks / d.imps, 2) AS ctr_pct\nFROM d JOIN campaigns c ON c.campaign_id = d.campaign_id CROSS JOIN o\nWHERE d.imps > 0 AND d.clicks::DOUBLE / d.imps > o.rate\nORDER BY ctr_pct DESC, d.campaign_id ASC\n",
+    "at": "2026-10-21T09:53:57.957Z"
+  }
+}

@@ -1,0 +1,150 @@
+{
+  "id": "EX-SQL-WIN-01-E1-42",
+  "version": 1,
+  "kind": "predict_result",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "predict_result",
+    "window",
+    "window_after_where",
+    "stores"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-WIN-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-AGG-01",
+    "SQL-WIN-01"
+  ],
+  "template_id": "T-WIN-01-predict-result-window-after-where",
+  "template_params": {
+    "table": "stores",
+    "partition": "country"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_win",
+  "prompt": "Which result does this query return? The stores table holds 26 stores: 15 in NL (the webshop, WEB-01, included), 9 in BE and 2 in LU, LU-01 and LU-02.",
+  "output_contract": null,
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [],
+  "subgoals": [],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 90000,
+  "why_this_works": "",
+  "shown_sql": "SELECT store_code, COUNT(*) OVER (PARTITION BY country_code) AS n\nFROM stores\nWHERE country_code = 'LU'",
+  "options": [
+    {
+      "oid": "o46cc2ed",
+      "text": "One row: LU and 2",
+      "misconception_id": "ERR-LOG-07",
+      "table": {
+        "columns": [
+          "country_code",
+          "n"
+        ],
+        "rows": [
+          [
+            "LU",
+            2
+          ]
+        ]
+      }
+    },
+    {
+      "oid": "o69c4053",
+      "text": "Two rows, LU-01 and LU-02, each with 2",
+      "misconception_id": null,
+      "table": {
+        "columns": [
+          "store_code",
+          "n"
+        ],
+        "rows": [
+          [
+            "LU-01",
+            2
+          ],
+          [
+            "LU-02",
+            2
+          ]
+        ]
+      }
+    },
+    {
+      "oid": "o5bf9434",
+      "text": "Two rows, LU-01 and LU-02, each with 26",
+      "misconception_id": "ERR-LOG-37",
+      "table": {
+        "columns": [
+          "store_code",
+          "n"
+        ],
+        "rows": [
+          [
+            "LU-01",
+            26
+          ],
+          [
+            "LU-02",
+            26
+          ]
+        ]
+      }
+    },
+    {
+      "oid": "obd7e089",
+      "text": "Two rows, LU-01 and LU-02, each with 1",
+      "misconception_id": "ERR-LOG-07",
+      "table": {
+        "columns": [
+          "store_code",
+          "n"
+        ],
+        "rows": [
+          [
+            "LU-01",
+            1
+          ],
+          [
+            "LU-02",
+            1
+          ]
+        ]
+      }
+    }
+  ]
+}

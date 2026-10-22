@@ -1,0 +1,160 @@
+{
+  "id": "EX-SQL-WIN-05-E2-31",
+  "version": 1,
+  "kind": "fix",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "moving_average",
+    "short_window_left_out",
+    "weekly_units",
+    "fix"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-05"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-WIN-05",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-TYPE-01",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-WIN-01",
+    "SQL-WIN-04",
+    "SQL-WIN-05"
+  ],
+  "template_id": "T-WIN-05-fix-short-window",
+  "template_params": {
+    "table": "weekly_units",
+    "group": "product",
+    "window": "4 weeks"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_win",
+  "prompt": "The query in the editor has one mistake. Fix it so that it answers this question: for each product of category 16 and each week starting from 6 January to 30 June 2025 (week_start, both days included), what is the 4-week moving average of units: the average of that week and the 3 weeks before it, rounded to 2 decimals? weekly_units holds a row for every product and week, with 0 when nothing sold. Within each product, weeks follow each other by week_start. Only weeks in that range count, and a week whose window holds fewer than 4 weeks is left out. Return product_id, week_start, units and avg_units_4w. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "week_start",
+        "type_class": "temporal"
+      },
+      {
+        "name": "units",
+        "type_class": "numeric"
+      },
+      {
+        "name": "avg_units_4w",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "week_start",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "units",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "avg_units_4w",
+        "type_class": "numeric",
+        "precision": "ratio",
+        "require_rounding": 2
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "product_id",
+      "week_start"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, count the weeks in each average's window and keep only the weeks whose window holds 4.",
+    "A window cannot be tested in WHERE beside it: work out the average and the count in a step, then filter the count in the outer query."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 58,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 59,
+      "to": 356,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 357,
+      "to": 427,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 428,
+      "to": 525,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 526,
+      "to": 596,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 597,
+      "to": 603,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 604,
+      "to": 629,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": "SELECT w.product_id, w.week_start, w.units,\n  ROUND(AVG(w.units) OVER (PARTITION BY w.product_id ORDER BY w.week_start ROWS BETWEEN 3 PRECEDING AND CURRENT ROW), 2) AS avg_units_4w\nFROM weekly_units w\nJOIN products p ON p.product_id = w.product_id\nWHERE p.category_id = 16\n  AND w.week_start BETWEEN DATE '2025-01-06' AND DATE '2025-06-30'",
+  "time_target_ms": 180000,
+  "why_this_works": "The step counts the weeks in each frame, and the outer filter drops each product's first three weeks, whose averages cover fewer than 4 weeks.",
+  "starter_error_id": "ERR-LOG-43"
+}

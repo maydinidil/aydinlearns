@@ -1,0 +1,44 @@
+{
+  "item_id": "EX-SQL-WIN-06-E2-02",
+  "item_version": 1,
+  "reference_sql": "WITH campaign_clicks AS (  -- one row per campaign with spend rows in the period\n  SELECT c.channel_id, c.campaign_id, SUM(a.clicks) AS clicks\n  FROM ad_spend_daily a\n  JOIN campaigns c ON c.campaign_id = a.campaign_id\n  WHERE a.spend_date BETWEEN DATE '2025-07-01' AND DATE '2025-10-31'\n  GROUP BY c.channel_id, c.campaign_id\n),\nranked AS (  -- one row per campaign, placed within its channel from the most clicks\n  SELECT channel_id, campaign_id, clicks,\n         RANK() OVER (PARTITION BY channel_id ORDER BY clicks DESC) AS click_rank\n  FROM campaign_clicks\n)\nSELECT channel_id, campaign_id, clicks, click_rank\nFROM ranked\nWHERE click_rank <= 3",
+  "alternatives": [
+    "WITH campaign_clicks AS (  -- one row per campaign with spend rows in the period\n  SELECT c.channel_id, c.campaign_id, SUM(a.clicks) AS clicks\n  FROM ad_spend_daily a\n  JOIN campaigns c ON c.campaign_id = a.campaign_id\n  WHERE a.spend_date BETWEEN DATE '2025-07-01' AND DATE '2025-10-31'\n  GROUP BY c.channel_id, c.campaign_id\n)\nSELECT r.channel_id, r.campaign_id, r.clicks, r.click_rank\nFROM (\n  -- one row per campaign, placed within its channel from the most clicks\n  SELECT channel_id, campaign_id, clicks,\n         RANK() OVER (PARTITION BY channel_id ORDER BY clicks DESC) AS click_rank\n  FROM campaign_clicks\n) AS r\nWHERE r.click_rank <= 3",
+    "SELECT c.channel_id, c.campaign_id, SUM(a.clicks) AS clicks,\n       RANK() OVER (PARTITION BY c.channel_id ORDER BY SUM(a.clicks) DESC) AS click_rank\nFROM ad_spend_daily a\nJOIN campaigns c ON c.campaign_id = a.campaign_id\nWHERE a.spend_date BETWEEN DATE '2025-07-01' AND DATE '2025-10-31'\nGROUP BY c.channel_id, c.campaign_id\nQUALIFY RANK() OVER (PARTITION BY c.channel_id ORDER BY SUM(a.clicks) DESC) <= 3"
+  ],
+  "other_way": {
+    "sql": "SELECT c.channel_id, c.campaign_id, SUM(a.clicks) AS clicks,\n       RANK() OVER (PARTITION BY c.channel_id ORDER BY SUM(a.clicks) DESC) AS click_rank\nFROM ad_spend_daily a\nJOIN campaigns c ON c.campaign_id = a.campaign_id\nWHERE a.spend_date BETWEEN DATE '2025-07-01' AND DATE '2025-10-31'\nGROUP BY c.channel_id, c.campaign_id\nQUALIFY RANK() OVER (PARTITION BY c.channel_id ORDER BY SUM(a.clicks) DESC) <= 3",
+    "tradeoff": "QUALIFY filters the window result in the same query, which is shorter, but PostgreSQL, MySQL and SQL Server do not accept it."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-40",
+      "sql": "WITH campaign_clicks AS (SELECT c.channel_id, c.campaign_id, SUM(a.clicks) AS clicks FROM ad_spend_daily a JOIN campaigns c ON c.campaign_id = a.campaign_id WHERE a.spend_date BETWEEN DATE '2025-07-01' AND DATE '2025-10-31' GROUP BY c.channel_id, c.campaign_id), ranked AS (SELECT channel_id, campaign_id, clicks, ROW_NUMBER() OVER (PARTITION BY channel_id ORDER BY clicks DESC, campaign_id) AS click_rank FROM campaign_clicks) SELECT channel_id, campaign_id, clicks, click_rank FROM ranked WHERE click_rank <= 3"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-18",
+      "sql": "WITH campaign_clicks AS (SELECT c.channel_id, c.campaign_id, SUM(a.clicks) AS clicks FROM ad_spend_daily a JOIN campaigns c ON c.campaign_id = a.campaign_id WHERE a.spend_date BETWEEN DATE '2025-07-01' AND DATE '2025-10-31' GROUP BY c.channel_id, c.campaign_id), ranked AS (SELECT channel_id, campaign_id, clicks, RANK() OVER (PARTITION BY channel_id ORDER BY clicks) AS click_rank FROM campaign_clicks) SELECT channel_id, campaign_id, clicks, click_rank FROM ranked WHERE click_rank <= 3"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-37",
+      "sql": "WITH campaign_clicks AS (SELECT c.channel_id, c.campaign_id, SUM(a.clicks) AS clicks FROM ad_spend_daily a JOIN campaigns c ON c.campaign_id = a.campaign_id WHERE a.spend_date BETWEEN DATE '2025-07-01' AND DATE '2025-10-31' GROUP BY c.channel_id, c.campaign_id), ranked AS (SELECT channel_id, campaign_id, clicks, RANK() OVER (ORDER BY clicks DESC) AS click_rank FROM campaign_clicks) SELECT channel_id, campaign_id, clicks, click_rank FROM ranked WHERE click_rank <= 3"
+    },
+    {
+      "id": "PW4",
+      "error_id": "ERR-SYN-08",
+      "sql": "WITH campaign_clicks AS (SELECT c.channel_id, c.campaign_id, SUM(a.clicks) AS clicks FROM ad_spend_daily a JOIN campaigns c ON c.campaign_id = a.campaign_id WHERE a.spend_date BETWEEN DATE '2025-07-01' AND DATE '2025-10-31' GROUP BY c.channel_id, c.campaign_id) SELECT channel_id, campaign_id, clicks, RANK() OVER (PARTITION BY channel_id ORDER BY clicks DESC) AS click_rank FROM campaign_clicks WHERE RANK() OVER (PARTITION BY channel_id ORDER BY clicks DESC) <= 3"
+    }
+  ],
+  "hint3_partial": "WITH campaign_clicks AS (  -- one row per campaign with spend rows in the period\n  SELECT c.channel_id, c.campaign_id, SUM(a.clicks) AS clicks\n  FROM ad_spend_daily a\n  JOIN campaigns c ON c.campaign_id = a.campaign_id\n  WHERE a.spend_date BETWEEN DATE '2025-07-01' AND DATE '2025-10-31'\n  GROUP BY c.channel_id, c.campaign_id\n),\nranked AS (  -- one row per campaign, placed within its channel from the most clicks\n  SELECT channel_id, campaign_id, clicks,\n         RANK() OVER (PARTITION BY channel_id ORDER BY clicks DESC) AS click_rank\n  FROM campaign_clicks\n)\nSELECT channel_id, campaign_id, clicks, click_rank\nFROM ranked\nWHERE ___",
+  "solver": {
+    "prompt_hash": "120e2349b67cedb5",
+    "schema_version": "09f3a33d3123",
+    "dataset_version": "e7c58abf7e8f892e",
+    "grader_version": "7a.1",
+    "query": "WITH camp AS (\n  SELECT c.channel_id, s.campaign_id, SUM(s.clicks) AS clicks\n  FROM ad_spend_daily s\n  JOIN campaigns c ON c.campaign_id = s.campaign_id\n  WHERE s.spend_date >= DATE '2025-07-01' AND s.spend_date <= DATE '2025-10-31'\n  GROUP BY c.channel_id, s.campaign_id\n), r AS (\n  SELECT channel_id, campaign_id, clicks,\n         RANK() OVER (PARTITION BY channel_id ORDER BY clicks DESC) AS click_rank\n  FROM camp\n)\nSELECT channel_id, campaign_id, clicks, click_rank\nFROM r\nWHERE click_rank <= 3\n",
+    "at": "2026-10-21T09:05:10.310Z"
+  }
+}

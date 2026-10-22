@@ -1,0 +1,43 @@
+{
+  "case_id": "CASE-TAKE-A",
+  "truths": {
+    "CP2": "WITH order_days AS (\n  -- one row per order, with its day on Amsterdam's clock\n  SELECT order_id,\n         CASE WHEN channel = 'web'\n              THEN CAST(timezone('Europe/Amsterdam', timezone('UTC', order_ts)) AS DATE)\n              ELSE CAST(order_ts AS DATE) END AS order_day\n  FROM orders\n),\nlines AS (\n  -- one row per line of an order placed in 2024, as stored, numbered within each set of copies\n  SELECT ol.unit_price_eur, p.unit_cost_eur,\n         ROW_NUMBER() OVER (PARTITION BY ol.order_id, ol.product_id, ol.quantity, ol.unit_price_eur, ol.promo_id, ol.line_discount_eur\n                            ORDER BY ol.order_line_id) AS copy_no\n  FROM order_lines AS ol\n  JOIN order_days AS d ON d.order_id = ol.order_id\n  JOIN products AS p ON p.product_id = ol.product_id\n  WHERE d.order_day >= DATE '2024-01-01'\n    AND d.order_day < DATE '2025-01-01'\n)\nSELECT COUNT(*)\nFROM lines\nWHERE copy_no > 1\n   OR unit_price_eur > 10 * unit_cost_eur",
+    "CP4": "WITH order_days AS (\n  -- one row per order, with its day on Amsterdam's clock\n  SELECT order_id,\n         CASE WHEN channel = 'web'\n              THEN CAST(timezone('Europe/Amsterdam', timezone('UTC', order_ts)) AS DATE)\n              ELSE CAST(order_ts AS DATE) END AS order_day\n  FROM orders\n),\nlines AS (\n  -- one row per line of an order placed in 2024, as stored, numbered within each set of copies\n  SELECT ol.quantity, ol.unit_price_eur, ol.line_discount_eur, p.unit_cost_eur,\n         ROW_NUMBER() OVER (PARTITION BY ol.order_id, ol.product_id, ol.quantity, ol.unit_price_eur, ol.promo_id, ol.line_discount_eur\n                            ORDER BY ol.order_line_id) AS copy_no\n  FROM order_lines AS ol\n  JOIN order_days AS d ON d.order_id = ol.order_id\n  JOIN products AS p ON p.product_id = ol.product_id\n  WHERE d.order_day >= DATE '2024-01-01'\n    AND d.order_day < DATE '2025-01-01'\n)\nSELECT ROUND(100.0 * SUM(line_discount_eur)\n             / SUM(quantity * CASE WHEN unit_price_eur > 10 * unit_cost_eur THEN unit_price_eur * 0.01 ELSE unit_price_eur END), 2)\nFROM lines\nWHERE copy_no = 1"
+  },
+  "choices": {
+    "CP1": {
+      "correct_oid": "oe763b92",
+      "explanation": "Depth divides a month's discounts by the gross value of all its sales, so every line counts, each copy once and in euros, and a web order's UTC time must become Amsterdam time first, since a late-evening order can belong to the next month; leaving out the lines with no promotion drops the full-price sales the depth is measured against."
+    },
+    "CP5": {
+      "correct_oid": "o53a5429",
+      "explanation": "The depth divides all of a month's discounts by all of its gross value, sales with no promotion included, so it measures how much was given away overall rather than the size of a typical promotion, and counting each copy once does not change what it measures."
+    }
+  },
+  "solver": {
+    "CP1": {
+      "pass": true,
+      "prompt_hash": "66469a7cc145a5b8",
+      "key_hash": "7d877d12ad7ac6ed",
+      "at": "2026-10-22T13:33:47.604Z"
+    },
+    "CP2": {
+      "pass": true,
+      "prompt_hash": "f28bf1c67193cc00",
+      "key_hash": "acea7e1d940db00d",
+      "at": "2026-10-22T13:00:38.686Z"
+    },
+    "CP4": {
+      "pass": true,
+      "prompt_hash": "69067f8c1b3ceb38",
+      "key_hash": "fef2c813401a0933",
+      "at": "2026-10-22T13:00:38.686Z"
+    },
+    "CP5": {
+      "pass": true,
+      "prompt_hash": "71c41b4390105340",
+      "key_hash": "696e4f987613996d",
+      "at": "2026-10-22T13:33:47.604Z"
+    }
+  }
+}

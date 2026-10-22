@@ -1,0 +1,156 @@
+{
+  "id": "EX-SQL-WIN-06-E1-03",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "window",
+    "row_number",
+    "latest_row",
+    "filter_window_result",
+    "competitor_prices"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-06"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "lesson",
+  "target_concept_id": "SQL-WIN-06",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-CTE-01",
+    "SQL-WIN-01",
+    "SQL-WIN-02",
+    "SQL-WIN-06"
+  ],
+  "template_id": "T-WIN-06-latest-row-per-key",
+  "template_params": {
+    "table": "competitor_prices",
+    "key": "product_id"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_win",
+  "prompt": "For each of products 1 to 20 (product_id from 1 to 20, both included), find its latest competitor price check observed from 1 January to 30 June 2025 (observed_ts holds UTC time; both days included, in UTC). When two checks of a product tie on observed_ts, keep the one whose competitor comes first in alphabetical order. Return four columns, in this order: product_id, competitor, observed_ts and price_eur. Return one row for each such product with a check in that period. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "competitor",
+        "type_class": "text"
+      },
+      {
+        "name": "observed_ts",
+        "type_class": "temporal"
+      },
+      {
+        "name": "price_eur",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per product with a check in the period"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "competitor",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "observed_ts",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "price_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "product_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the filter that keeps each product's latest check.",
+    "The row number exists only once the CTE has run, so the outer query can test it; number 1 is the latest check."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 83,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 84,
+      "to": 237,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 238,
+      "to": 262,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 263,
+      "to": 385,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 388,
+      "to": 441,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 442,
+      "to": 453,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 454,
+      "to": 466,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": {
+    "stage1": 454,
+    "stage2": 388
+  },
+  "faded_shape": "WITH ranked AS (  -- one row per check, numbered within its product from the latest\n  SELECT product_id, competitor, observed_ts, price_eur,\n         ROW_NUMBER() OVER (PARTITION BY product_id ORDER BY observed_ts DESC, competitor) AS rn\n  FROM competitor_prices\n  WHERE product_id BETWEEN 1 AND 20\n    AND observed_ts >= TIMESTAMP '2025-01-01' AND observed_ts < TIMESTAMP '2025-07-01'\n)\nSELECT product_id, competitor, observed_ts, price_eur\nFROM ranked\n",
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "The CTE numbers each product's checks from the latest, with the competitor name breaking a tie, and the outer WHERE keeps number 1."
+}

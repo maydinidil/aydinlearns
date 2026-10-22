@@ -1,6 +1,6 @@
 {
   "id": "EX-SQL-CLEAN-01-E2-04",
-  "version": 2,
+  "version": 3,
   "kind": "write",
   "tags": [
     "sql",
@@ -42,7 +42,7 @@
   "schema": "voltmarkt_raw",
   "edge_schema": "voltmarkt_edge_clean",
   "uses_raw": true,
-  "prompt": "For each pair of overlapping price windows, how many days do they share? This table may hold errors. A product's price windows should never overlap. A window runs from valid_from to valid_to, both days included, and a missing valid_to means the window is still open: an open window never ends. Two windows of one product overlap when the later one starts on or before the day the earlier one ends. The shared days run from the later window's valid_from to the earlier of the two valid_to dates, both days included, and shared_days is missing when both windows are still open. Return three columns, in this order: product_id, valid_from, the later window's start, and shared_days. Return one row for each pair of overlapping windows. Any row order is fine.",
+  "prompt": "For each pair of overlapping price windows, how many days do they share? This table may hold errors. A product's price windows should never overlap. A window runs from valid_from to valid_to, both days included, and a missing valid_to means the window is still open: an open window never ends. Two windows of one product overlap when the one that starts later starts on or before the day the one that starts first ends. A window can sit wholly inside another. The shared days run from the later-starting window's valid_from to whichever of the two valid_to dates comes first, both days included, and shared_days is missing when both windows are still open. Return three columns, in this order: product_id, valid_from, the later-starting window's start, and shared_days. Return one row for each pair of overlapping windows. Any row order is fine.",
   "output_contract": {
     "columns": [
       {

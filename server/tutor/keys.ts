@@ -29,7 +29,7 @@ export const keyProblem = (p: KeyProvider, value: string): string | null =>
 
 /**
  * The key file: AYDINLEARNS_KEYS_FILE, or tutor-keys.json in the app folder. A test server on a temporary logs folder
- * (AYDINLEARNS_LOGS_DIR) with no AYDINLEARNS_KEYS_FILE gets none, so it never reads or writes the real file (as the journey, release 1.3
+ * (AYDINLEARNS_LOGS_DIR) with no AYDINLEARNS_KEYS_FILE gets none, so it never reads or writes the real file (as the journey, release 0.5.3
  * B4): its keys last for the run only.
  */
 export function keysFileFrom(env: Record<string, string | undefined>, appDir: string): string | null {

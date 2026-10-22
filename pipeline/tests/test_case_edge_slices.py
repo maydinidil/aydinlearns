@@ -18,14 +18,12 @@ Assertions name data facts only; no key is read here.
 import datetime as dt
 import pathlib
 import shutil
-import sys
 import tempfile
 import unittest
 
 import duckdb
 
-sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
-import build_course_db  # noqa: E402
+from course_build import build_course_db   # L50: the paths, and Mailvora generated once per process (S7-30)
 
 NO_NETWORK = {"autoinstall_known_extensions": False, "autoload_known_extensions": False}
 JOIN = "voltmarkt_edge_join"

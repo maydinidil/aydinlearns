@@ -1,0 +1,180 @@
+{
+  "id": "EX-SQL-WIN-06-E2-22",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "window",
+    "row_number",
+    "top_n_per_group",
+    "filter_window_result",
+    "ad_spend_daily",
+    "campaigns",
+    "drill"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-06"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-WIN-06",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-WIN-01",
+    "SQL-WIN-02",
+    "SQL-WIN-06"
+  ],
+  "template_id": "T-WIN-06-top-n-per-group",
+  "template_params": {
+    "table": "ad_spend_daily",
+    "group": "channel",
+    "measure": "spend",
+    "n": 2
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "mailvora",
+  "schema": "mailvora",
+  "edge_schema": "mailvora_edge_win",
+  "prompt": "For each channel, which two campaigns spent the most from 1 July to 31 October 2025, both days included? spend_date is a UTC day, and a campaign's spend is the sum of its spend in ad_spend_daily over those days. When campaigns of a channel tie on spend, the lower campaign_id comes first, so each channel has at most two rows. Return four columns, in this order: channel_id, campaign_id, spend and spend_rank, the campaign's place in its channel, 1 or 2. Return one row for each such campaign. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "channel_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "campaign_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "spend",
+        "type_class": "numeric"
+      },
+      {
+        "name": "spend_rank",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "channel_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "campaign_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "spend",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "spend_rank",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "campaign_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, total each campaign's spend in the period, number the campaigns of each channel from the highest spend, and keep numbers 1 and 2.",
+    "Exactly two rows per channel needs a number no two campaigns share; the tie-break goes last in the window's sort order."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 79,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 80,
+      "to": 139,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 140,
+      "to": 215,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 216,
+      "to": 284,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 285,
+      "to": 323,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 327,
+      "to": 415,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 416,
+      "to": 556,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 557,
+      "to": 578,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 581,
+      "to": 630,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 631,
+      "to": 642,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 643,
+      "to": 664,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "ROW_NUMBER gives every campaign of a channel its own place, campaign_id settling ties, so spend_rank <= 2 keeps exactly two per channel where two exist."
+}

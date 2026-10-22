@@ -1,0 +1,143 @@
+{
+  "id": "EX-SQL-WIN-06-E2-04",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "window",
+    "row_number",
+    "first_row",
+    "filter_window_result",
+    "group_by",
+    "sessions"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-06"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-WIN-06",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CTE-01",
+    "SQL-WIN-01",
+    "SQL-WIN-02",
+    "SQL-WIN-06"
+  ],
+  "template_id": "T-WIN-06-count-after-first-row",
+  "template_params": {
+    "table": "sessions",
+    "key": "visitor_id",
+    "group": "utm_source"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "mailvora",
+  "schema": "mailvora",
+  "edge_schema": "mailvora_edge_win",
+  "prompt": "Where did visitors come from on their first visit in July 2025? For each visitor with a session in July 2025 (session_start holds UTC time; 1 to 31 July, both days included, in UTC), take the visitor's first session in that month. When two sessions of a visitor tie on session_start, the one with the lower session_id counts as the first. Then count the visitors by the utm_source of that first session; a missing utm_source is a group of its own. Return two columns, in this order: utm_source and visitors. Return one row for each utm_source, the missing one included. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "utm_source",
+        "type_class": "text"
+      },
+      {
+        "name": "visitors",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "utm_source",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "visitors",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "utm_source"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, number each visitor's July sessions from the first, keep number 1, then count those sessions by source.",
+    "Count after the filter on the number: counting all of July's sessions would count a visitor once for every visit."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 91,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 92,
+      "to": 218,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 219,
+      "to": 234,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 235,
+      "to": 353,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 356,
+      "to": 395,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 396,
+      "to": 409,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 410,
+      "to": 422,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 423,
+      "to": 442,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "ROW_NUMBER marks each visitor's first July session, session_id settling a tie, so after rn = 1 every visitor is one row and the count is a count of visitors."
+}

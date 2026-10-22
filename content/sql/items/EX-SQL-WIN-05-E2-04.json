@@ -1,0 +1,144 @@
+{
+  "id": "EX-SQL-WIN-05-E2-04",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "moving_average",
+    "month_spine",
+    "budget_monthly",
+    "ad_spend_daily"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-05"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-WIN-05",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CASE-01",
+    "SQL-TYPE-01",
+    "SQL-DATE-01",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-WIN-01",
+    "SQL-WIN-04",
+    "SQL-WIN-05"
+  ],
+  "template_id": "T-WIN-05-moving-average-month-spine",
+  "template_params": {
+    "table": "ad_spend_daily",
+    "spine": "budget_monthly",
+    "window": "3 months"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "mailvora",
+  "schema": "mailvora",
+  "edge_schema": "mailvora_edge_win",
+  "prompt": "For each paid channel and each month from July to October 2025, show the channel's total ad spend that month and the 3-month moving average of its monthly spend: the average of that month and the 2 months before it, rounded to 2 decimals. Every channel with a budget row for a month has a row for it, and a month with no spend counts as 0. Only July to October count, so July and August have fewer than 3 months to average: show their avg_spend_3m as missing. Return channel_id, month (the first day of the month), spend_eur and avg_spend_3m. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "channel_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "month",
+        "type_class": "temporal"
+      },
+      {
+        "name": "spend_eur",
+        "type_class": "numeric"
+      },
+      {
+        "name": "avg_spend_3m",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "channel_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "month",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "spend_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "avg_spend_3m",
+        "type_class": "numeric",
+        "precision": "money",
+        "require_rounding": 2
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "channel_id",
+      "month"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, give every channel and budget month a row with its spend or 0, before any window.",
+    "A month with no spend has no row in the spend data, so start from budget_monthly and join the spend to it; then average over the month and the 2 rows before it."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 685,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 686,
+      "to": 980,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 981,
+      "to": 990,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "budget_monthly gives every channel a row for each month, with 0 where nothing was spent, so 3 rows are 3 calendar months."
+}

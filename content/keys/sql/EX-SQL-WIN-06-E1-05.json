@@ -1,0 +1,44 @@
+{
+  "item_id": "EX-SQL-WIN-06-E1-05",
+  "item_version": 1,
+  "reference_sql": "WITH product_revenue AS (  -- one row per product with sales in the period\n  SELECT category_name, product_id, SUM(net_revenue_eur) AS revenue\n  FROM sales\n  WHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-06-30'\n  GROUP BY category_name, product_id\n),\nranked AS (  -- one row per product, numbered within its category from the highest revenue\n  SELECT category_name, product_id, revenue,\n         ROW_NUMBER() OVER (PARTITION BY category_name ORDER BY revenue DESC, product_id) AS rn\n  FROM product_revenue\n)\nSELECT category_name, product_id, revenue\nFROM ranked\nWHERE rn = 1",
+  "alternatives": [
+    "WITH product_revenue AS (  -- one row per product with sales in the period\n  SELECT category_name, product_id, SUM(net_revenue_eur) AS revenue\n  FROM sales\n  WHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-06-30'\n  GROUP BY category_name, product_id\n)\nSELECT r.category_name, r.product_id, r.revenue\nFROM (\n  -- one row per product, numbered within its category from the highest revenue\n  SELECT category_name, product_id, revenue,\n         ROW_NUMBER() OVER (PARTITION BY category_name ORDER BY revenue DESC, product_id) AS rn\n  FROM product_revenue\n) AS r\nWHERE r.rn = 1",
+    "SELECT category_name, product_id, SUM(net_revenue_eur) AS revenue\nFROM sales\nWHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-06-30'\nGROUP BY category_name, product_id\nQUALIFY ROW_NUMBER() OVER (PARTITION BY category_name ORDER BY SUM(net_revenue_eur) DESC, product_id) = 1"
+  ],
+  "other_way": {
+    "sql": "SELECT category_name, product_id, SUM(net_revenue_eur) AS revenue\nFROM sales\nWHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-06-30'\nGROUP BY category_name, product_id\nQUALIFY ROW_NUMBER() OVER (PARTITION BY category_name ORDER BY SUM(net_revenue_eur) DESC, product_id) = 1",
+    "tradeoff": "QUALIFY filters the window result in the same query, which is shorter, but PostgreSQL, MySQL and SQL Server do not accept it."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-40",
+      "sql": "WITH product_revenue AS (SELECT category_name, product_id, SUM(net_revenue_eur) AS revenue FROM sales WHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-06-30' GROUP BY category_name, product_id), ranked AS (SELECT category_name, product_id, revenue, RANK() OVER (PARTITION BY category_name ORDER BY revenue DESC) AS rn FROM product_revenue) SELECT category_name, product_id, revenue FROM ranked WHERE rn = 1"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-18",
+      "sql": "WITH product_revenue AS (SELECT category_name, product_id, SUM(net_revenue_eur) AS revenue FROM sales WHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-06-30' GROUP BY category_name, product_id), ranked AS (SELECT category_name, product_id, revenue, ROW_NUMBER() OVER (PARTITION BY category_name ORDER BY revenue, product_id) AS rn FROM product_revenue) SELECT category_name, product_id, revenue FROM ranked WHERE rn = 1"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-37",
+      "sql": "WITH product_revenue AS (SELECT category_name, product_id, SUM(net_revenue_eur) AS revenue FROM sales WHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-06-30' GROUP BY category_name, product_id), ranked AS (SELECT category_name, product_id, revenue, ROW_NUMBER() OVER (ORDER BY revenue DESC, product_id) AS rn FROM product_revenue) SELECT category_name, product_id, revenue FROM ranked WHERE rn = 1"
+    },
+    {
+      "id": "PW4",
+      "error_id": "ERR-LOG-07",
+      "sql": "WITH ranked AS (SELECT category_name, product_id, net_revenue_eur AS revenue, ROW_NUMBER() OVER (PARTITION BY category_name ORDER BY net_revenue_eur DESC, product_id) AS rn FROM sales WHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-06-30') SELECT category_name, product_id, revenue FROM ranked WHERE rn = 1"
+    }
+  ],
+  "hint3_partial": "WITH product_revenue AS (  -- one row per product with sales in the period\n  SELECT category_name, product_id, SUM(net_revenue_eur) AS revenue\n  FROM sales\n  WHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-06-30'\n  GROUP BY category_name, product_id\n),\nranked AS (  -- one row per product, numbered within its category from the highest revenue\n  SELECT category_name, product_id, revenue,\n         ROW_NUMBER() OVER (PARTITION BY category_name ORDER BY ___) AS rn\n  FROM product_revenue\n)\nSELECT category_name, product_id, revenue\nFROM ranked\nWHERE rn = 1",
+  "solver": {
+    "prompt_hash": "8a4215f13cf0f939",
+    "schema_version": "cebf75df442f",
+    "dataset_version": "e7c58abf7e8f892e",
+    "grader_version": "7a.1",
+    "query": "WITH prod AS (\n  SELECT category_name, product_id, SUM(net_revenue_eur) AS revenue\n  FROM sales\n  WHERE order_date >= DATE '2025-01-01' AND order_date <= DATE '2025-06-30'\n  GROUP BY category_name, product_id\n)\nSELECT category_name, product_id, revenue\nFROM prod\nQUALIFY ROW_NUMBER() OVER (PARTITION BY category_name ORDER BY revenue DESC, product_id ASC) = 1\n",
+    "at": "2026-10-21T09:05:10.172Z"
+  }
+}

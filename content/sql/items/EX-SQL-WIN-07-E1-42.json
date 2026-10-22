@@ -1,0 +1,207 @@
+{
+  "id": "EX-SQL-WIN-07-E1-42",
+  "version": 1,
+  "kind": "predict_result",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "predict_result",
+    "ntile",
+    "ties",
+    "products"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-07"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-WIN-07",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-WIN-01",
+    "SQL-WIN-07"
+  ],
+  "template_id": "T-WIN-07-predict-result-ntile-ties",
+  "template_params": {
+    "table": "products",
+    "category": 36,
+    "n": 2
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_win",
+  "prompt": "Products 1148 and 1166 both cost 5.28; product 1136 costs 5.27 and product 1106 costs 5.54. Which result does this query return?",
+  "output_contract": null,
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [],
+  "subgoals": [],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 90000,
+  "why_this_works": "",
+  "shown_sql": "SELECT product_id, unit_cost_eur,\n       NTILE(2) OVER (ORDER BY unit_cost_eur, product_id) AS cost_half\nFROM products\nWHERE product_id IN (1106, 1136, 1148, 1166)",
+  "options": [
+    {
+      "oid": "o182259d",
+      "text": "The two products at 5.28 together in half 1, product 1106 alone in half 2",
+      "misconception_id": null,
+      "table": {
+        "columns": [
+          "product_id",
+          "unit_cost_eur",
+          "cost_half"
+        ],
+        "rows": [
+          [
+            1136,
+            "5.27",
+            1
+          ],
+          [
+            1148,
+            "5.28",
+            1
+          ],
+          [
+            1166,
+            "5.28",
+            1
+          ],
+          [
+            1106,
+            "5.54",
+            2
+          ]
+        ]
+      }
+    },
+    {
+      "oid": "oe1c7c7b",
+      "text": "Products 1136 and 1148 in half 1, products 1166 and 1106 in half 2",
+      "misconception_id": null,
+      "table": {
+        "columns": [
+          "product_id",
+          "unit_cost_eur",
+          "cost_half"
+        ],
+        "rows": [
+          [
+            1136,
+            "5.27",
+            1
+          ],
+          [
+            1148,
+            "5.28",
+            1
+          ],
+          [
+            1166,
+            "5.28",
+            2
+          ],
+          [
+            1106,
+            "5.54",
+            2
+          ]
+        ]
+      }
+    },
+    {
+      "oid": "o7d5160d",
+      "text": "Product 1136 alone in half 1, the other three in half 2",
+      "misconception_id": null,
+      "table": {
+        "columns": [
+          "product_id",
+          "unit_cost_eur",
+          "cost_half"
+        ],
+        "rows": [
+          [
+            1136,
+            "5.27",
+            1
+          ],
+          [
+            1148,
+            "5.28",
+            2
+          ],
+          [
+            1166,
+            "5.28",
+            2
+          ],
+          [
+            1106,
+            "5.54",
+            2
+          ]
+        ]
+      }
+    },
+    {
+      "oid": "odf298d8",
+      "text": "Products 1166 and 1106 in half 1, products 1136 and 1148 in half 2",
+      "misconception_id": "ERR-LOG-18",
+      "table": {
+        "columns": [
+          "product_id",
+          "unit_cost_eur",
+          "cost_half"
+        ],
+        "rows": [
+          [
+            1136,
+            "5.27",
+            2
+          ],
+          [
+            1148,
+            "5.28",
+            2
+          ],
+          [
+            1166,
+            "5.28",
+            1
+          ],
+          [
+            1106,
+            "5.54",
+            1
+          ]
+        ]
+      }
+    }
+  ]
+}

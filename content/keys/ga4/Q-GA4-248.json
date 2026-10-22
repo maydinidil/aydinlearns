@@ -1,0 +1,13 @@
+{
+  "item_id": "Q-GA4-248",
+  "item_version": 1,
+  "correct_oid": "oc2c38a4",
+  "explanation": "A user ID must be 256 characters or less and must not contain information a third party could use to identify a user, so an email address is not allowed, whatever its length. An internal number that only your own systems can map to a customer meets the rule. The Device-based identity ignores user IDs, and User-ID is called the most accurate identity space because it uses your own IDs, not because of emails.",
+  "solver": {
+    "prompt_hash": "d68f914cb32a5094",
+    "grader_version": "choice.3",
+    "chosen": "oc2c38a4",
+    "typed": null,
+    "at": "2026-10-22T11:25:43.899Z"
+  }
+}

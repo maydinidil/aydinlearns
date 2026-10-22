@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-WIN-03-E2-04",
+  "item_version": 1,
+  "reference_sql": "WITH monthly AS (\n  -- one row per channel and month with spend\n  SELECT c.channel_id, CAST(date_trunc('month', a.spend_date) AS DATE) AS month, SUM(a.spend) AS spend_eur\n  FROM ad_spend_daily a\n  JOIN campaigns c ON c.campaign_id = a.campaign_id\n  WHERE a.spend_date BETWEEN DATE '2025-07-01' AND DATE '2025-10-31'\n  GROUP BY c.channel_id, CAST(date_trunc('month', a.spend_date) AS DATE)\n), grid AS (\n  -- one row per channel and month with a budget\n  SELECT b.channel_id, b.month, COALESCE(m.spend_eur, 0) AS spend_eur\n  FROM budget_monthly b\n  LEFT JOIN monthly m ON m.channel_id = b.channel_id AND m.month = b.month\n  WHERE b.month BETWEEN DATE '2025-07-01' AND DATE '2025-10-01'\n)\nSELECT channel_id, month, spend_eur,\n  spend_eur - LAG(spend_eur) OVER (PARTITION BY channel_id ORDER BY month) AS change_eur\nFROM grid",
+  "alternatives": [
+    "WITH monthly AS (\n  -- one row per channel and month with spend\n  SELECT c.channel_id, CAST(date_trunc('month', a.spend_date) AS DATE) AS month, SUM(a.spend) AS spend_eur\n  FROM ad_spend_daily a\n  JOIN campaigns c ON c.campaign_id = a.campaign_id\n  WHERE a.spend_date BETWEEN DATE '2025-07-01' AND DATE '2025-10-31'\n  GROUP BY c.channel_id, CAST(date_trunc('month', a.spend_date) AS DATE)\n), grid AS (\n  -- one row per channel and month with a budget\n  SELECT b.channel_id, b.month, COALESCE(m.spend_eur, 0) AS spend_eur\n  FROM budget_monthly b\n  LEFT JOIN monthly m ON m.channel_id = b.channel_id AND m.month = b.month\n  WHERE b.month BETWEEN DATE '2025-07-01' AND DATE '2025-10-01'\n)\nSELECT g.channel_id, g.month, g.spend_eur, g.spend_eur - p.spend_eur AS change_eur\nFROM grid g\nLEFT JOIN grid p ON p.channel_id = g.channel_id AND p.month = g.month - INTERVAL 1 MONTH",
+    "WITH grid AS (\n  -- one row per channel and month with a budget\n  SELECT b.channel_id, b.month,\n    COALESCE((SELECT SUM(a.spend) FROM ad_spend_daily a JOIN campaigns c ON c.campaign_id = a.campaign_id\n              WHERE c.channel_id = b.channel_id AND CAST(date_trunc('month', a.spend_date) AS DATE) = b.month), 0) AS spend_eur\n  FROM budget_monthly b\n  WHERE b.month BETWEEN DATE '2025-07-01' AND DATE '2025-10-01'\n)\nSELECT channel_id, month, spend_eur,\n  spend_eur - LAG(spend_eur) OVER (PARTITION BY channel_id ORDER BY month) AS change_eur\nFROM grid"
+  ],
+  "other_way": {
+    "sql": "WITH monthly AS (\n  -- one row per channel and month with spend\n  SELECT c.channel_id, CAST(date_trunc('month', a.spend_date) AS DATE) AS month, SUM(a.spend) AS spend_eur\n  FROM ad_spend_daily a\n  JOIN campaigns c ON c.campaign_id = a.campaign_id\n  WHERE a.spend_date BETWEEN DATE '2025-07-01' AND DATE '2025-10-31'\n  GROUP BY c.channel_id, CAST(date_trunc('month', a.spend_date) AS DATE)\n), grid AS (\n  -- one row per channel and month with a budget\n  SELECT b.channel_id, b.month, COALESCE(m.spend_eur, 0) AS spend_eur\n  FROM budget_monthly b\n  LEFT JOIN monthly m ON m.channel_id = b.channel_id AND m.month = b.month\n  WHERE b.month BETWEEN DATE '2025-07-01' AND DATE '2025-10-01'\n)\nSELECT g.channel_id, g.month, g.spend_eur, g.spend_eur - p.spend_eur AS change_eur\nFROM grid g\nLEFT JOIN grid p ON p.channel_id = g.channel_id AND p.month = g.month - INTERVAL 1 MONTH",
+    "tradeoff": "Joining each month to the month one month earlier says \"previous calendar month\" outright, but adds a self-join that LAG avoids."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-39",
+      "sql": "WITH monthly AS (\n  -- one row per channel and month with spend\n  SELECT c.channel_id, CAST(date_trunc('month', a.spend_date) AS DATE) AS month, SUM(a.spend) AS spend_eur\n  FROM ad_spend_daily a\n  JOIN campaigns c ON c.campaign_id = a.campaign_id\n  WHERE a.spend_date BETWEEN DATE '2025-07-01' AND DATE '2025-10-31'\n  GROUP BY c.channel_id, CAST(date_trunc('month', a.spend_date) AS DATE)\n)\nSELECT channel_id, month, spend_eur, spend_eur - LAG(spend_eur) OVER (PARTITION BY channel_id ORDER BY month) AS change_eur FROM monthly"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-37",
+      "sql": "WITH monthly AS (\n  -- one row per channel and month with spend\n  SELECT c.channel_id, CAST(date_trunc('month', a.spend_date) AS DATE) AS month, SUM(a.spend) AS spend_eur\n  FROM ad_spend_daily a\n  JOIN campaigns c ON c.campaign_id = a.campaign_id\n  WHERE a.spend_date BETWEEN DATE '2025-07-01' AND DATE '2025-10-31'\n  GROUP BY c.channel_id, CAST(date_trunc('month', a.spend_date) AS DATE)\n), grid AS (SELECT b.channel_id, b.month, COALESCE(m.spend_eur, 0) AS spend_eur FROM budget_monthly b LEFT JOIN monthly m ON m.channel_id = b.channel_id AND m.month = b.month WHERE b.month BETWEEN DATE '2025-07-01' AND DATE '2025-10-01')\nSELECT channel_id, month, spend_eur, spend_eur - LAG(spend_eur) OVER (ORDER BY channel_id, month) AS change_eur FROM grid"
+    }
+  ],
+  "hint3_partial": "WITH monthly AS (\n  -- one row per channel and month with spend\n  SELECT c.channel_id, CAST(date_trunc('month', a.spend_date) AS DATE) AS month, SUM(a.spend) AS spend_eur\n  FROM ad_spend_daily a\n  JOIN campaigns c ON c.campaign_id = a.campaign_id\n  WHERE a.spend_date BETWEEN DATE '2025-07-01' AND DATE '2025-10-31'\n  GROUP BY c.channel_id, CAST(date_trunc('month', a.spend_date) AS DATE)\n), grid AS (\n  -- one row per channel and month with a budget\n  SELECT b.channel_id, b.month, COALESCE(m.spend_eur, 0) AS spend_eur\n  FROM budget_monthly b\n  LEFT JOIN monthly m ON ___\n  WHERE b.month BETWEEN DATE '2025-07-01' AND DATE '2025-10-01'\n)\nSELECT channel_id, month, spend_eur,\n  spend_eur - LAG(spend_eur) OVER (PARTITION BY channel_id ORDER BY month) AS change_eur\nFROM grid",
+  "solver": {
+    "prompt_hash": "f735f94d0b605c4e",
+    "schema_version": "e6d71da27077",
+    "dataset_version": "e7c58abf7e8f892e",
+    "grader_version": "7a.1",
+    "query": "WITH monthly AS (\n  SELECT c.channel_id, CAST(date_trunc('month', a.spend_date) AS DATE) AS month, SUM(a.spend) AS spend_eur\n  FROM ad_spend_daily a JOIN campaigns c ON c.campaign_id = a.campaign_id\n  WHERE a.spend_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\n  GROUP BY c.channel_id, CAST(date_trunc('month', a.spend_date) AS DATE)\n), grid AS (\n  SELECT b.channel_id, b.month, COALESCE(m.spend_eur, 0) AS spend_eur\n  FROM budget_monthly b\n  LEFT JOIN monthly m ON m.channel_id = b.channel_id AND m.month = b.month\n  WHERE b.month BETWEEN DATE '2025-07-01' AND DATE '2025-10-01'\n)\nSELECT channel_id, month, spend_eur,\n  spend_eur - LAG(spend_eur) OVER (PARTITION BY channel_id ORDER BY month) AS change_eur\nFROM grid\n",
+    "at": "2026-10-21T09:05:07.457Z"
+  }
+}

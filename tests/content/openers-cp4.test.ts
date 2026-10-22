@@ -26,7 +26,7 @@ test('a CP4 credits only what its CP3 credits (S2-102), and the CP3 item stays t
   }
 });
 test('a CP4 credits only a concept of its own level that no accepted answer can avoid, and may credit none (S2-106)', () => {
-  const credited: Record<string, string[]> = { 'CASE-VOLT-L1': [], 'CASE-VOLT-L2': ['SQL-AGG-01'], 'CASE-VOLT-L3': [], 'CASE-VOLT-L4': [] };
+  const credited: Record<string, string[]> = { 'CASE-VOLT-L1': [], 'CASE-VOLT-L2': ['SQL-AGG-01'], 'CASE-VOLT-L3': [], 'CASE-VOLT-L4': [], 'CASE-VOLT-L5': [] };
   for (const r of records) {
     const cp4 = r.checkpoints.find((c) => c.kind === 'CP4')!;
     assert.deepEqual(cp4.credits_concepts, credited[r.case_id], r.case_id);
@@ -43,6 +43,18 @@ test('the level 4 opener is CASE-VOLT-L4: level 4, CP1 to CP6 in order, and CP3 
   assert.equal(cp3.item_id, 'EX-OPENER-L4-01');
   const item = JSON.parse(await readFile('content/sql/items/EX-OPENER-L4-01.json', 'utf8')) as SqlItem;
   assert.deepEqual([item.use, item.level, item.schema, item.edge_schema], ['opener', 4, 'voltmarkt', 'voltmarkt_edge_subq']);
+});
+// Sprint 7, Task C2 (S7-27): the level 5 opener, CP1 to CP6 in order, CP1 the mid-level question (S4B-14), asked by Joost, and its
+// CP3 item EX-OPENER-L5-01 on the window edge data.
+test('the level 5 opener is CASE-VOLT-L5: level 5, Joost, CP1 to CP6 in order, and CP3 is EX-OPENER-L5-01 on voltmarkt_edge_win', async () => {
+  const r = records.find((x) => x.case_id === 'CASE-VOLT-L5');
+  assert.ok(r, 'content/sql/openers/ holds CASE-VOLT-L5');
+  assert.deepEqual([r.kind, r.level, r.world, r.persona.name], ['opener', 5, 'PRICE', 'Joost']);
+  assert.deepEqual(r.checkpoints.map((c) => c.kind), ['CP1', 'CP2', 'CP3', 'CP4', 'CP5', 'CP6']);
+  const cp3 = r.checkpoints.find((c) => c.kind === 'CP3')!;
+  assert.equal(cp3.item_id, 'EX-OPENER-L5-01');
+  const item = JSON.parse(await readFile('content/sql/items/EX-OPENER-L5-01.json', 'utf8')) as SqlItem;
+  assert.deepEqual([item.use, item.level, item.schema, item.edge_schema], ['opener', 5, 'voltmarkt', 'voltmarkt_edge_win']);
 });
 test('a CP4 prompt states the decimals it grades to, in plain English', () => {
   for (const r of records) {

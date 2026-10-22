@@ -1,0 +1,146 @@
+{
+  "id": "EX-SQL-WIN-03-E2-21",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "lag",
+    "month_over_month",
+    "date_spine",
+    "sales",
+    "drill"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-03"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-WIN-03",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-JOIN-05",
+    "SQL-WIN-01",
+    "SQL-WIN-03"
+  ],
+  "template_id": "T-WIN-03-lag-calendar-month",
+  "template_params": {
+    "table": "sales",
+    "spine": "calendar x categories",
+    "period": "month"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_win",
+  "prompt": "For each parent category in categories and each month from January to June 2025 (UTC order dates), show the units sold and the change from the previous calendar month. Every parent category has a row for every month of the range, and a month with no sales counts as 0. Return parent_category, month (the first day of the month), units and change_units, this month's units minus the previous calendar month's. January's previous month is outside the range, so January shows change_units as missing. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "parent_category",
+        "type_class": "text"
+      },
+      {
+        "name": "month",
+        "type_class": "temporal"
+      },
+      {
+        "name": "units",
+        "type_class": "numeric"
+      },
+      {
+        "name": "change_units",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "parent_category",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "month",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "units",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "change_units",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "parent_category",
+      "month"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, build one row for every parent category and month of the range, with 0 units where nothing sold, before any window.",
+    "Each parent category is its own series in month order; without the full grid, a month with no sales would vanish and the row before would be the wrong month."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 793,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 794,
+      "to": 831,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 832,
+      "to": 919,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 920,
+      "to": 929,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "The grid gives every parent category a row for every month, 0 where nothing sold, so LAG within each category reads the calendar month before."
+}

@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-WIN-05-E2-01",
+  "item_version": 1,
+  "reference_sql": "WITH daily AS (\n  -- one row per day with webshop orders\n  SELECT order_date, SUM(net_revenue_eur) AS revenue_eur\n  FROM sales\n  WHERE store_code = 'WEB-01'\n    AND order_date BETWEEN DATE '2025-03-01' AND DATE '2025-03-31'\n  GROUP BY order_date\n), days AS (\n  -- one row per day of March 2025\n  SELECT c.cal_date AS order_date, COALESCE(d.revenue_eur, 0) AS revenue_eur\n  FROM calendar c\n  LEFT JOIN daily d ON d.order_date = c.cal_date\n  WHERE c.cal_date BETWEEN DATE '2025-03-01' AND DATE '2025-03-31'\n)\nSELECT order_date, revenue_eur,\n  CASE WHEN COUNT(*) OVER (ORDER BY order_date ROWS BETWEEN 6 PRECEDING AND CURRENT ROW) = 7\n       THEN ROUND(AVG(revenue_eur) OVER (ORDER BY order_date ROWS BETWEEN 6 PRECEDING AND CURRENT ROW), 2)\n  END AS avg_revenue_7d\nFROM days",
+  "alternatives": [
+    "WITH daily AS (\n  -- one row per day with webshop orders\n  SELECT order_date, SUM(net_revenue_eur) AS revenue_eur\n  FROM sales\n  WHERE store_code = 'WEB-01'\n    AND order_date BETWEEN DATE '2025-03-01' AND DATE '2025-03-31'\n  GROUP BY order_date\n), days AS (\n  -- one row per day of March 2025\n  SELECT c.cal_date AS order_date, COALESCE(d.revenue_eur, 0) AS revenue_eur\n  FROM calendar c\n  LEFT JOIN daily d ON d.order_date = c.cal_date\n  WHERE c.cal_date BETWEEN DATE '2025-03-01' AND DATE '2025-03-31'\n)\nSELECT d.order_date, d.revenue_eur,\n  CASE WHEN COUNT(*) = 7 THEN ROUND(AVG(p.revenue_eur), 2) END AS avg_revenue_7d\nFROM days d\nJOIN days p ON p.order_date BETWEEN d.order_date - INTERVAL 6 DAY AND d.order_date\nGROUP BY d.order_date, d.revenue_eur",
+    "WITH daily AS (\n  -- one row per day with webshop orders\n  SELECT order_date, SUM(net_revenue_eur) AS revenue_eur\n  FROM sales\n  WHERE store_code = 'WEB-01'\n    AND order_date BETWEEN DATE '2025-03-01' AND DATE '2025-03-31'\n  GROUP BY order_date\n), days AS (\n  -- one row per day of March 2025\n  SELECT c.cal_date AS order_date, COALESCE(d.revenue_eur, 0) AS revenue_eur\n  FROM calendar c\n  LEFT JOIN daily d ON d.order_date = c.cal_date\n  WHERE c.cal_date BETWEEN DATE '2025-03-01' AND DATE '2025-03-31'\n), w AS (\n  -- one row per day of March 2025\n  SELECT order_date, revenue_eur,\n    AVG(revenue_eur) OVER (ORDER BY order_date ROWS BETWEEN 6 PRECEDING AND CURRENT ROW) AS avg_7d,\n    COUNT(*) OVER (ORDER BY order_date ROWS BETWEEN 6 PRECEDING AND CURRENT ROW) AS n\n  FROM days\n)\nSELECT order_date, revenue_eur, CASE WHEN n = 7 THEN ROUND(avg_7d, 2) END AS avg_revenue_7d\nFROM w"
+  ],
+  "other_way": {
+    "sql": "WITH daily AS (\n  -- one row per day with webshop orders\n  SELECT order_date, SUM(net_revenue_eur) AS revenue_eur\n  FROM sales\n  WHERE store_code = 'WEB-01'\n    AND order_date BETWEEN DATE '2025-03-01' AND DATE '2025-03-31'\n  GROUP BY order_date\n), days AS (\n  -- one row per day of March 2025\n  SELECT c.cal_date AS order_date, COALESCE(d.revenue_eur, 0) AS revenue_eur\n  FROM calendar c\n  LEFT JOIN daily d ON d.order_date = c.cal_date\n  WHERE c.cal_date BETWEEN DATE '2025-03-01' AND DATE '2025-03-31'\n)\nSELECT d.order_date, d.revenue_eur,\n  CASE WHEN COUNT(*) = 7 THEN ROUND(AVG(p.revenue_eur), 2) END AS avg_revenue_7d\nFROM days d\nJOIN days p ON p.order_date BETWEEN d.order_date - INTERVAL 6 DAY AND d.order_date\nGROUP BY d.order_date, d.revenue_eur",
+    "tradeoff": "Joining each day to the 6 days before it gives the same averages without a window, but it joins every day to seven others."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-39",
+      "sql": "WITH daily AS (SELECT order_date, SUM(net_revenue_eur) AS revenue_eur FROM sales WHERE store_code = 'WEB-01' AND order_date BETWEEN DATE '2025-03-01' AND DATE '2025-03-31' GROUP BY order_date) SELECT order_date, revenue_eur, CASE WHEN COUNT(*) OVER (ORDER BY order_date ROWS BETWEEN 6 PRECEDING AND CURRENT ROW) = 7 THEN ROUND(AVG(revenue_eur) OVER (ORDER BY order_date ROWS BETWEEN 6 PRECEDING AND CURRENT ROW), 2) END AS avg_revenue_7d FROM daily"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-43",
+      "sql": "WITH daily AS (SELECT order_date, SUM(net_revenue_eur) AS revenue_eur FROM sales WHERE store_code = 'WEB-01' AND order_date BETWEEN DATE '2025-03-01' AND DATE '2025-03-31' GROUP BY order_date), days AS (SELECT c.cal_date AS order_date, COALESCE(d.revenue_eur, 0) AS revenue_eur FROM calendar c LEFT JOIN daily d ON d.order_date = c.cal_date WHERE c.cal_date BETWEEN DATE '2025-03-01' AND DATE '2025-03-31') SELECT order_date, revenue_eur, ROUND(AVG(revenue_eur) OVER (ORDER BY order_date ROWS BETWEEN 6 PRECEDING AND CURRENT ROW), 2) AS avg_revenue_7d FROM days"
+    }
+  ],
+  "hint3_partial": "WITH daily AS (\n  -- one row per day with webshop orders\n  SELECT order_date, SUM(net_revenue_eur) AS revenue_eur\n  FROM sales\n  WHERE store_code = 'WEB-01'\n    AND order_date BETWEEN DATE '2025-03-01' AND DATE '2025-03-31'\n  GROUP BY order_date\n), days AS (\n  -- one row per day of March 2025\n  SELECT c.cal_date AS order_date, COALESCE(d.revenue_eur, 0) AS revenue_eur\n  FROM calendar c\n  LEFT JOIN daily d ON d.order_date = c.cal_date\n  WHERE c.cal_date BETWEEN DATE '2025-03-01' AND DATE '2025-03-31'\n)\nSELECT order_date, revenue_eur,\n  CASE WHEN COUNT(*) OVER (ORDER BY order_date ROWS BETWEEN 6 PRECEDING AND CURRENT ROW) = 7\n       THEN ROUND(AVG(revenue_eur) OVER (ORDER BY order_date ROWS BETWEEN ___ AND CURRENT ROW), 2)\n  END AS avg_revenue_7d\nFROM days",
+  "solver": {
+    "prompt_hash": "9d4ea479e7cbe42f",
+    "schema_version": "bfa72b600579",
+    "dataset_version": "e7c58abf7e8f892e",
+    "grader_version": "7a.1",
+    "query": "WITH days AS (\n  SELECT CAST(d AS DATE) AS order_date\n  FROM generate_series(DATE '2025-03-01', DATE '2025-03-31', INTERVAL 1 DAY) AS g(d)\n), rev AS (\n  SELECT order_date, SUM(net_revenue_eur) AS revenue_eur\n  FROM sales\n  WHERE store_code = 'WEB-01' AND order_date BETWEEN DATE '2025-03-01' AND DATE '2025-03-31'\n  GROUP BY order_date\n), j AS (\n  SELECT d.order_date, COALESCE(r.revenue_eur, 0) AS revenue_eur\n  FROM days d LEFT JOIN rev r ON r.order_date = d.order_date\n)\nSELECT order_date, revenue_eur,\n  CASE WHEN COUNT(*) OVER (ORDER BY order_date ROWS BETWEEN 6 PRECEDING AND CURRENT ROW) = 7\n    THEN ROUND(AVG(revenue_eur) OVER (ORDER BY order_date ROWS BETWEEN 6 PRECEDING AND CURRENT ROW), 2) END AS avg_revenue_7d\nFROM j\n",
+    "at": "2026-10-21T09:05:09.274Z"
+  }
+}

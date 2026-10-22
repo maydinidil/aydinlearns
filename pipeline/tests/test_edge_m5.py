@@ -19,14 +19,12 @@ import json
 import pathlib
 import re
 import shutil
-import sys
 import tempfile
 import unittest
 
 import duckdb
 
-sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
-import build_course_db  # noqa: E402
+from course_build import build_course_db   # L50: the paths, and Mailvora generated once per process (S7-30)
 
 NO_NETWORK = {"autoinstall_known_extensions": False, "autoload_known_extensions": False}   # ruling R17
 ROOT = pathlib.Path(build_course_db.ROOT)
@@ -51,6 +49,22 @@ CHOICE_KINDS = {"predict_rows", "predict_result", "choose_query", "which_table",
 # C52's count: the promotions whose days counted through the calendar are not their length (a missing end date counts none).
 SHORT_PROMOTIONS = """SELECT count(*) FROM {s}.promotions p
     WHERE (SELECT count(*) FROM {s}.calendar c WHERE c.cal_date BETWEEN p.start_date AND p.end_date) <> date_diff('day', p.start_date, p.end_date) + 1"""
+
+
+def written_schema(query):
+    """The schema a statement of an M5 block writes into: the one in front of the table after INSERT INTO or CREATE TABLE (comments left out)."""
+    code = re.sub(r"--[^\n]*", "", query)
+    m = re.search(r"\b(?:INSERT\s+INTO|CREATE\s+TABLE)\s+(\w+)\.\w+", code, re.IGNORECASE)
+    return m.group(1) if m else None
+
+
+class WrittenSchema(unittest.TestCase):
+    def test_the_schema_a_statement_writes_into(self):
+        self.assertEqual(written_schema("INSERT INTO voltmarkt_edge_agg.calendar SELECT c.* FROM voltmarkt.calendar AS c"), "voltmarkt_edge_agg")
+        self.assertEqual(written_schema("-- INSERT INTO voltmarkt.calendar\nINSERT INTO voltmarkt_edge_set.orders VALUES (1)"), "voltmarkt_edge_set")
+        self.assertEqual(written_schema("create table voltmarkt_edge_date.ab_assignments AS SELECT * FROM voltmarkt.ab_assignments LIMIT 0"), "voltmarkt_edge_date")
+        self.assertEqual(written_schema("INSERT INTO voltmarkt.calendar SELECT * FROM voltmarkt_edge_agg.calendar"), "voltmarkt", "an insert into another schema is seen as one")
+        self.assertIsNone(written_schema("INSERT INTO calendar VALUES (1)"))
 
 
 class EdgeM5(unittest.TestCase):
@@ -159,6 +173,10 @@ class EdgeM5(unittest.TestCase):
                     adds = kind == duckdb.StatementType.INSERT or (
                         kind == duckdb.StatementType.CREATE and re.search(r"\bLIMIT\s+0\s*;?\s*$", query.strip(), re.IGNORECASE))
                     self.assertTrue(adds, f"{s}: M5's block only inserts rows or creates empty copies ({kind})")
+                    # S7-30: and only into this file's own schema (an insert into voltmarkt or another edge schema would pass the check above).
+                    target = written_schema(query)
+                    self.assertIsNotNone(target, f"{s}: a statement of M5's block names no schema-qualified table")
+                    self.assertEqual(target, s, f"{s}: M5's block writes into {target}")
                 scratch.execute(before)
                 tables = [r[0] for r in scratch.execute("SELECT table_name FROM duckdb_tables() WHERE schema_name = ? ORDER BY 1", [s]).fetchall()]
                 self.assertTrue(tables)

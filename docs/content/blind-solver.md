@@ -52,6 +52,25 @@ from today, so the solver writes date literals and never `now()` or `current_dat
 item returns a check's result (a count, a list of failing keys, a pass or fail column), not a
 cleaned table. No level 4 item needs a window function.
 
+**Level 5 prompts** (sprint 7, S7-19 to S7-22) are about window functions, on Voltmarkt and on
+Mailvora. A Mailvora item's view says `"schema": "mailvora"`, and the solver reads the notes whose
+schema is `mailvora` (from level 4 the panel shows all eleven of its tables); its times are UTC
+moments, as Voltmarkt's are. The prompt names the group and the order in words ("for each
+category, from the highest unit cost down"), and the solver turns them into the window. It also
+states:
+- the tie rule of every ranking: a tie-break column, which goes last in the window's ORDER BY, or
+  that tied rows share a place, which means RANK (or DENSE_RANK when the places after a tie do not
+  skip);
+- what LAG's first row, or a short moving-average window at the start of a series, shows;
+- whether "the previous month" is the previous calendar month or the previous month with rows;
+- where rows with a missing value in the sort column go, which the solver writes as `NULLS FIRST`
+  or `NULLS LAST`.
+
+The solver writes each frame out (`ROWS BETWEEN ...` or `RANGE BETWEEN ...`, as the prompt's rule
+for rows with the same date says) rather than leaning on the default, and may filter a window's
+result in a CTE or with QUALIFY: grading compares results, and a QUALIFY query gets a portability
+note only (S7-20).
+
 **Raw schema notes** (sprint 6, S6-01 and S6-02). A raw-data item's view says `"schema":
 "voltmarkt_raw"`. Its tables have the same names as the clean ones, and `data/schema-notes.json`
 holds a note for each with `"schema": "voltmarkt_raw"` and the line "This table may hold errors."
@@ -134,7 +153,7 @@ Work in <root>. You may read ONLY:
   Use only the tables whose from_level is at or below your level: a learner at that level sees
   no other table. Use only the notes whose schema is the item's own schema (the "schema" field of
   its view): "voltmarkt" for most items, "voltmarkt_raw" for a raw-data item, whose tables may
-  hold errors.
+  hold errors, and "mailvora" for a Mailvora item.
 
 Never open anything else: not content/ (items, keys, lessons), pipeline/, knowledge/, server/,
 tests/, docs/, other files under tools/, or another concept's solver-view files. Do not query the
@@ -156,6 +175,12 @@ file:
   Write it as a date literal; never use now(), current_date or today().
 - On "voltmarkt_raw", the tables may hold errors. Apply exactly the rule the prompt gives for what
   is correct (which rows are copies, which spelling is right), and clean nothing else.
+- Window functions (level 5): follow the prompt's tie rule exactly. A tie-break column it names
+  goes last in the window's ORDER BY; when it says tied rows share a place, use RANK or
+  DENSE_RANK as it says. Write each frame out (ROWS BETWEEN ... or RANGE BETWEEN ..., as the
+  prompt's rule for rows with the same date says). Do what the prompt says with LAG's first row
+  and with short windows at the start of a series, and put rows with a missing sort value where it
+  says (NULLS FIRST or NULLS LAST).
 
 When a view holds starter_sql, the prompt asks you to fix that query. Write the whole corrected
 query to the .sql file, not a description of the change.

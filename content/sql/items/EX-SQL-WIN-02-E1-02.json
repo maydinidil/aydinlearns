@@ -1,0 +1,125 @@
+{
+  "id": "EX-SQL-WIN-02-E1-02",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "ranking",
+    "row_number",
+    "tie_break",
+    "campaigns"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pretest",
+  "target_concept_id": "SQL-WIN-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-WIN-01",
+    "SQL-WIN-02"
+  ],
+  "template_id": "T-WIN-02-number-within-group",
+  "template_params": {
+    "table": "campaigns",
+    "partition": "channel",
+    "fn": "ROW_NUMBER",
+    "order": "start_date, earliest first"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "mailvora",
+  "schema": "mailvora",
+  "edge_schema": "mailvora_edge_win",
+  "prompt": "Number the campaigns of each channel by start_date, the earliest first. When two campaigns of a channel tie on start_date, the lower campaign_id comes first. Return four columns, in this order: campaign_id, channel_id, start_date and start_order, 1 for the channel's first campaign. Return one row for each campaign. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "campaign_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "channel_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "start_date",
+        "type_class": "temporal"
+      },
+      {
+        "name": "start_order",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per campaign"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "campaign_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "channel_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "start_date",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "start_order",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "campaign_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the calculated column start_order: a number that restarts for each channel, the earliest start first.",
+    "Every campaign needs its own number, even on a shared start date, so the order inside the window needs the stated tie-break after the date."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 142,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 143,
+      "to": 157,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "ROW_NUMBER gives every campaign its own number in each channel, and campaign_id after the date settles campaigns that start on the same day."
+}

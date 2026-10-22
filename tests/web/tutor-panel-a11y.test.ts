@@ -32,3 +32,14 @@ test('M4: a build that throws is skipped, the other parts still build, and nothi
   } finally { Object.assign(console, orig); }
   assert.deepEqual(logged, []);
 });
+
+// ---- Sprint 7 K1 (S7-36): the panel's place in the style sheet --------------------------------------------------------------------------
+test('S7-36 (T8 M7): the panel sits at the top bar\'s bottom edge, from 701px the page narrows beside it, and at 700px or less it covers the page from the top', async () => {
+  const { readFile } = await import('node:fs/promises');
+  const css = await readFile(new URL('../../web/src/styles/components.css', import.meta.url), 'utf8');
+  assert.match(css, /\.tutor-panel \{[^}]*top: var\(--tutor-top, 4rem\)/, 'the top comes from the measured bar, with 4rem when none is set');
+  assert.match(css, /@media \(min-width: 701px\) \{[^}]*\.tutor-panel \{ width: min\(28rem, 45vw\); \}[^}]*body:has\(\.tutor-panel\) main \{ margin-right: min\(28rem, 45vw\); \}/,
+    'from 701px the panel and the space kept for it are the same width');
+  assert.doesNotMatch(css, /min-width: 1100px\) \{ body:has\(\.tutor-panel\)/, 'no window width leaves the panel over the page');
+  assert.match(css, /@media \(max-width: 700px\) \{ \.tutor-panel \{ top: 0;/, 'narrow: from the very top');
+});

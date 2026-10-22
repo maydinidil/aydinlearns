@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-WIN-03-E3-01",
+  "item_version": 1,
+  "reference_sql": "WITH gaps AS (\n  -- one row per registered customer's order in the period\n  SELECT order_id,\n    CAST(order_ts AS DATE) - CAST(LAG(order_ts) OVER (PARTITION BY customer_id ORDER BY order_ts, order_id) AS DATE) AS days_since_prev\n  FROM orders\n  WHERE customer_id IS NOT NULL\n    AND order_ts >= TIMESTAMP '2025-01-01 00:00:00'\n    AND order_ts < TIMESTAMP '2025-07-01 00:00:00'\n)\nSELECT ROUND(100.0 * COUNT(*) FILTER (WHERE days_since_prev <= 30) / COUNT(days_since_prev), 1) AS pct_within_30\nFROM gaps",
+  "alternatives": [
+    "WITH period AS (\n  -- one row per registered customer's order in the period\n  SELECT order_id, customer_id, order_ts\n  FROM orders\n  WHERE customer_id IS NOT NULL\n    AND order_ts >= TIMESTAMP '2025-01-01 00:00:00'\n    AND order_ts < TIMESTAMP '2025-07-01 00:00:00'\n), gaps AS (\n  -- one row per registered customer's order in the period\n  SELECT o.order_id,\n    CAST(o.order_ts AS DATE) - CAST((SELECT MAX(o2.order_ts) FROM period o2\n      WHERE o2.customer_id = o.customer_id\n        AND (o2.order_ts < o.order_ts OR (o2.order_ts = o.order_ts AND o2.order_id < o.order_id))) AS DATE) AS days_since_prev\n  FROM period o\n)\nSELECT ROUND(100.0 * SUM(CASE WHEN days_since_prev <= 30 THEN 1 ELSE 0 END) / COUNT(days_since_prev), 1) AS pct_within_30\nFROM gaps",
+    "WITH gaps AS (\n  -- one row per registered customer's order in the period\n  SELECT order_id,\n    CAST(order_ts AS DATE) - CAST(LAG(order_ts) OVER (PARTITION BY customer_id ORDER BY order_ts, order_id) AS DATE) AS days_since_prev\n  FROM orders\n  WHERE customer_id IS NOT NULL\n    AND order_ts >= TIMESTAMP '2025-01-01 00:00:00'\n    AND order_ts < TIMESTAMP '2025-07-01 00:00:00'\n)\nSELECT ROUND(100.0 * SUM(CASE WHEN days_since_prev <= 30 THEN 1 ELSE 0 END) / COUNT(*), 1) AS pct_within_30\nFROM gaps\nWHERE days_since_prev IS NOT NULL"
+  ],
+  "other_way": {
+    "sql": "WITH period AS (\n  -- one row per registered customer's order in the period\n  SELECT order_id, customer_id, order_ts\n  FROM orders\n  WHERE customer_id IS NOT NULL\n    AND order_ts >= TIMESTAMP '2025-01-01 00:00:00'\n    AND order_ts < TIMESTAMP '2025-07-01 00:00:00'\n), gaps AS (\n  -- one row per registered customer's order in the period\n  SELECT o.order_id,\n    CAST(o.order_ts AS DATE) - CAST((SELECT MAX(o2.order_ts) FROM period o2\n      WHERE o2.customer_id = o.customer_id\n        AND (o2.order_ts < o.order_ts OR (o2.order_ts = o.order_ts AND o2.order_id < o.order_id))) AS DATE) AS days_since_prev\n  FROM period o\n)\nSELECT ROUND(100.0 * SUM(CASE WHEN days_since_prev <= 30 THEN 1 ELSE 0 END) / COUNT(days_since_prev), 1) AS pct_within_30\nFROM gaps",
+    "tradeoff": "A subquery for each order's previous order works without windows, but spells out the tie rule by hand and is slower on many orders."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-37",
+      "sql": "WITH gaps AS (SELECT order_id, CAST(order_ts AS DATE) - CAST(LAG(order_ts) OVER (ORDER BY customer_id, order_ts, order_id) AS DATE) AS days_since_prev FROM orders WHERE customer_id IS NOT NULL AND order_ts >= TIMESTAMP '2025-01-01 00:00:00' AND order_ts < TIMESTAMP '2025-07-01 00:00:00') SELECT ROUND(100.0 * COUNT(*) FILTER (WHERE days_since_prev <= 30) / COUNT(days_since_prev), 1) AS pct_within_30 FROM gaps"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-04",
+      "sql": "WITH gaps AS (\n  -- one row per registered customer's order in the period\n  SELECT order_id,\n    CAST(order_ts AS DATE) - CAST(LAG(order_ts) OVER (PARTITION BY customer_id ORDER BY order_ts, order_id) AS DATE) AS days_since_prev\n  FROM orders\n  WHERE customer_id IS NOT NULL\n    AND order_ts >= TIMESTAMP '2025-01-01 00:00:00'\n    AND order_ts < TIMESTAMP '2025-07-01 00:00:00'\n) SELECT ROUND(100.0 * COUNT(*) FILTER (WHERE days_since_prev <= 30) / COUNT(*), 1) AS pct_within_30 FROM gaps"
+    }
+  ],
+  "hint3_partial": "WITH gaps AS (\n  -- one row per registered customer's order in the period\n  SELECT order_id,\n    CAST(order_ts AS DATE) - CAST(LAG(order_ts) OVER (PARTITION BY customer_id ORDER BY order_ts, order_id) AS DATE) AS days_since_prev\n  FROM orders\n  WHERE customer_id IS NOT NULL\n    AND order_ts >= TIMESTAMP '2025-01-01 00:00:00'\n    AND order_ts < TIMESTAMP '2025-07-01 00:00:00'\n)\nSELECT ROUND(100.0 * COUNT(*) FILTER (WHERE days_since_prev <= 30) / COUNT(___), 1) AS pct_within_30\nFROM gaps",
+  "solver": {
+    "prompt_hash": "686a2f4ffb417ba8",
+    "schema_version": "7ed366279088",
+    "dataset_version": "e7c58abf7e8f892e",
+    "grader_version": "7a.1",
+    "query": "WITH o AS (\n  SELECT order_id, customer_id, order_ts, CAST(order_ts AS DATE) AS d\n  FROM orders\n  WHERE customer_id IS NOT NULL\n    AND CAST(order_ts AS DATE) BETWEEN DATE '2025-01-01' AND DATE '2025-06-30'\n), g AS (\n  SELECT d - LAG(d) OVER (PARTITION BY customer_id ORDER BY order_ts, order_id) AS gap\n  FROM o\n)\nSELECT ROUND(100.0 * COUNT(*) FILTER (WHERE gap <= 30) / COUNT(*), 1) AS pct_within_30\nFROM g\nWHERE gap IS NOT NULL\n",
+    "at": "2026-10-21T09:05:07.787Z"
+  }
+}

@@ -1,0 +1,141 @@
+{
+  "id": "EX-SQL-WIN-06-E1-04",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "window",
+    "row_number",
+    "first_row",
+    "filter_window_result",
+    "campaigns"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-06"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "lesson",
+  "target_concept_id": "SQL-WIN-06",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-CTE-01",
+    "SQL-WIN-01",
+    "SQL-WIN-02",
+    "SQL-WIN-06"
+  ],
+  "template_id": "T-WIN-06-first-row-per-key",
+  "template_params": {
+    "table": "campaigns",
+    "key": "channel_id"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "mailvora",
+  "schema": "mailvora",
+  "edge_schema": "mailvora_edge_win",
+  "prompt": "For each channel, which campaign started first? A campaign starts on its start_date. When campaigns of a channel tie on start_date, keep the one with the lower campaign_id. Return three columns, in this order: channel_id, campaign_id and start_date. Return one row for each channel with campaigns. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "channel_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "campaign_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "start_date",
+        "type_class": "temporal"
+      }
+    ],
+    "grain": "one row per channel with campaigns"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "channel_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "campaign_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "start_date",
+        "type_class": "temporal",
+        "precision": "exact"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "channel_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the filter that keeps the first campaign of each channel.",
+    "The CTE has already numbered each channel's campaigns from the earliest start; the outer query can now test that number."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 94,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 95,
+      "to": 232,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 233,
+      "to": 249,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 252,
+      "to": 294,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 295,
+      "to": 306,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 307,
+      "to": 319,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": {
+    "stage1": 307,
+    "stage2": 252
+  },
+  "faded_shape": "WITH ranked AS (  -- one row per campaign, numbered within its channel from the earliest start\n  SELECT channel_id, campaign_id, start_date,\n         ROW_NUMBER() OVER (PARTITION BY channel_id ORDER BY start_date, campaign_id) AS rn\n  FROM campaigns\n)\nSELECT channel_id, campaign_id, start_date\nFROM ranked\n",
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "Many campaigns of a channel start on the same day, so campaign_id decides the order among them, and the outer WHERE keeps number 1."
+}

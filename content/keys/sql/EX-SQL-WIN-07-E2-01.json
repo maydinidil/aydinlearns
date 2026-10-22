@@ -1,0 +1,39 @@
+{
+  "item_id": "EX-SQL-WIN-07-E2-01",
+  "item_version": 1,
+  "reference_sql": "SELECT product_id, valid_from, list_price_eur,\n       LAST_VALUE(list_price_eur) OVER (PARTITION BY product_id ORDER BY valid_from\n                                        ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS current_price_eur\nFROM price_history\nWHERE product_id BETWEEN 1 AND 30",
+  "alternatives": [
+    "SELECT ph.product_id, ph.valid_from, ph.list_price_eur, cur.list_price_eur AS current_price_eur\nFROM price_history ph\nJOIN price_history cur\n  ON cur.product_id = ph.product_id\n AND cur.valid_from = (SELECT MAX(p2.valid_from) FROM price_history p2 WHERE p2.product_id = ph.product_id)\nWHERE ph.product_id BETWEEN 1 AND 30",
+    "SELECT product_id, valid_from, list_price_eur,\n       FIRST_VALUE(list_price_eur) OVER (PARTITION BY product_id ORDER BY valid_from DESC\n                                         ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS current_price_eur\nFROM price_history\nWHERE product_id BETWEEN 1 AND 30"
+  ],
+  "other_way": {
+    "sql": "SELECT ph.product_id, ph.valid_from, ph.list_price_eur, cur.list_price_eur AS current_price_eur\nFROM price_history ph\nJOIN price_history cur\n  ON cur.product_id = ph.product_id\n AND cur.valid_from = (SELECT MAX(p2.valid_from) FROM price_history p2 WHERE p2.product_id = ph.product_id)\nWHERE ph.product_id BETWEEN 1 AND 30",
+    "tradeoff": "Joining the latest version found with MAX works on any engine, but it reads the table twice where LAST_VALUE reads it once."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-42",
+      "sql": "SELECT product_id, valid_from, list_price_eur, LAST_VALUE(list_price_eur) OVER (PARTITION BY product_id ORDER BY valid_from) AS current_price_eur FROM price_history WHERE product_id BETWEEN 1 AND 30"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-37",
+      "sql": "SELECT product_id, valid_from, list_price_eur, LAST_VALUE(list_price_eur) OVER (ORDER BY product_id, valid_from ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS current_price_eur FROM price_history WHERE product_id BETWEEN 1 AND 30"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-18",
+      "sql": "SELECT product_id, valid_from, list_price_eur, LAST_VALUE(list_price_eur) OVER (PARTITION BY product_id ORDER BY valid_from DESC ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS current_price_eur FROM price_history WHERE product_id BETWEEN 1 AND 30"
+    }
+  ],
+  "hint3_partial": "SELECT product_id, valid_from, list_price_eur,\n       LAST_VALUE(list_price_eur) OVER (PARTITION BY product_id ORDER BY valid_from\n                                        ROWS BETWEEN ___) AS current_price_eur\nFROM price_history\nWHERE product_id BETWEEN 1 AND 30",
+  "solver": {
+    "prompt_hash": "101662d98c8b7a69",
+    "schema_version": "e8cea7c4eacc",
+    "dataset_version": "e7c58abf7e8f892e",
+    "grader_version": "7a.1",
+    "query": "SELECT product_id, valid_from, list_price_eur,\n       LAST_VALUE(list_price_eur) OVER (PARTITION BY product_id ORDER BY valid_from\n                                        ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS current_price_eur\nFROM price_history\nWHERE product_id BETWEEN 1 AND 30\n",
+    "at": "2026-10-21T09:05:10.984Z"
+  }
+}

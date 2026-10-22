@@ -1,0 +1,36 @@
+{
+  "item_id": "EX-MOCK-SCREEN-C-01",
+  "item_version": 2,
+  "reference_sql": "SELECT product_id, product_name, brand, unit_cost_eur\nFROM products\nWHERE brand IN ('Vistara', 'Lumio', 'Nordvue')\n  AND unit_cost_eur < 1000\nORDER BY unit_cost_eur DESC, product_id\nLIMIT 3",
+  "alternatives": [
+    "SELECT product_id, product_name, brand, unit_cost_eur\nFROM products\nWHERE (brand = 'Vistara' OR brand = 'Lumio' OR brand = 'Nordvue')\n  AND unit_cost_eur < 1000\nORDER BY 4 DESC, 1\nLIMIT 3",
+    "SELECT product_id, product_name, brand, unit_cost_eur\nFROM products\nWHERE unit_cost_eur < 1000.00 AND brand IN ('Lumio', 'Nordvue', 'Vistara')\nORDER BY unit_cost_eur DESC, product_id ASC\nLIMIT 3"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-16",
+      "sql": "SELECT product_id, product_name, brand, unit_cost_eur FROM products WHERE brand IN ('Vistara', 'Lumio', 'Nordvue') AND unit_cost_eur < 1000 ORDER BY unit_cost_eur DESC, product_id DESC LIMIT 3"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-18",
+      "sql": "SELECT product_id, product_name, brand, unit_cost_eur FROM products WHERE brand IN ('Vistara', 'Lumio', 'Nordvue') AND unit_cost_eur < 1000 ORDER BY unit_cost_eur, product_id LIMIT 3"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-13",
+      "sql": "SELECT product_id, product_name, brand, unit_cost_eur FROM products WHERE brand = 'Vistara' OR brand = 'Lumio' OR brand = 'Nordvue' AND unit_cost_eur < 1000 ORDER BY unit_cost_eur DESC, product_id LIMIT 3"
+    }
+  ],
+  "hint3_partial": "SELECT product_id, product_name, brand, unit_cost_eur\nFROM products\nWHERE brand IN ('Vistara', 'Lumio', 'Nordvue')\n  AND unit_cost_eur < 1000\nORDER BY ___\nLIMIT ___",
+  "solver": {
+    "prompt_hash": "61af60c3d13e1f49",
+    "schema_version": "d77fe1c31a0e",
+    "dataset_version": "e7c58abf7e8f892e",
+    "grader_version": "7a.1",
+    "query": "SELECT product_id, product_name, brand, unit_cost_eur\nFROM products\nWHERE brand IN ('Vistara', 'Lumio', 'Nordvue')\n  AND unit_cost_eur IS NOT NULL\n  AND unit_cost_eur < 1000\nORDER BY unit_cost_eur DESC, product_id ASC\nLIMIT 3\n",
+    "at": "2026-10-21T10:46:59.283Z"
+  }
+}

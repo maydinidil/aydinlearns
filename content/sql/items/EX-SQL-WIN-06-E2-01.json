@@ -1,0 +1,152 @@
+{
+  "id": "EX-SQL-WIN-06-E2-01",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "window",
+    "row_number",
+    "top_n_per_group",
+    "filter_window_result",
+    "products"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-06"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "lesson",
+  "target_concept_id": "SQL-WIN-06",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-CTE-01",
+    "SQL-WIN-01",
+    "SQL-WIN-02",
+    "SQL-WIN-06"
+  ],
+  "template_id": "T-WIN-06-top-n-per-group",
+  "template_params": {
+    "table": "products",
+    "group": "category_id",
+    "n": 2
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_win",
+  "prompt": "For each category, which two products have the highest unit cost? When products of a category tie on unit cost, the lower product_id comes first. Return four columns, in this order: category_id, product_id, unit_cost_eur and cost_rank, the product's place in its category, 1 or 2. Return one row for each such product. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "category_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "product_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "unit_cost_eur",
+        "type_class": "numeric"
+      },
+      {
+        "name": "cost_rank",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per category and place, two for each category"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "category_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "product_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "unit_cost_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "cost_rank",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "category_id",
+      "cost_rank"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the outer query: it reads the numbered products and keeps places 1 and 2.",
+    "The places exist only after the CTE has run; test the named number in the outer query's WHERE."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 92,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 93,
+      "to": 248,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 249,
+      "to": 264,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 267,
+      "to": 323,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 324,
+      "to": 335,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 336,
+      "to": 356,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": {
+    "stage1": 267,
+    "stage2": 142
+  },
+  "faded_shape": "WITH ranked AS (  -- one row per product, numbered within its category from the highest cost\n  SELECT category_id, product_id, unit_cost_eur,\n         ROW_NUMBER() OVER (PARTITION BY category_id ORDER BY unit_cost_eur DESC, product_id) AS cost_rank\n  FROM products\n)\n",
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "ROW_NUMBER gives every product of a category its own place, product_id settling a tie, so cost_rank <= 2 keeps exactly two products per category."
+}

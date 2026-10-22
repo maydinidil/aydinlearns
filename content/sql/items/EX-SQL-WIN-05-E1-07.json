@@ -1,0 +1,155 @@
+{
+  "id": "EX-SQL-WIN-05-E1-07",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "moving_average",
+    "short_window_flag",
+    "competitor_prices"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-05"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-WIN-05",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-TYPE-01",
+    "SQL-WIN-01",
+    "SQL-WIN-04",
+    "SQL-WIN-05"
+  ],
+  "template_id": "T-WIN-05-moving-average-flag",
+  "template_params": {
+    "table": "competitor_prices",
+    "group": "product and competitor",
+    "window": "3 checks"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_win",
+  "prompt": "For every competitor price check of products 1 to 10 (product_id from 1 to 10, both included) observed from 1 January to 30 June 2025 (observed_ts holds UTC time; both days included, in UTC), show the average price of that check and the 2 checks before it of the same product by the same competitor, rounded to 2 decimals. Checks follow each other by observed_ts. Only checks in that period count, so the first checks of a product and competitor have fewer than 3 to average: show how many checks each average covers in checks_in_window. Return product_id, competitor, observed_ts, price_eur, avg_price_3c and checks_in_window. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "competitor",
+        "type_class": "text"
+      },
+      {
+        "name": "observed_ts",
+        "type_class": "temporal"
+      },
+      {
+        "name": "price_eur",
+        "type_class": "numeric"
+      },
+      {
+        "name": "avg_price_3c",
+        "type_class": "numeric"
+      },
+      {
+        "name": "checks_in_window",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "competitor",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "observed_ts",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "price_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "avg_price_3c",
+        "type_class": "numeric",
+        "precision": "money",
+        "require_rounding": 2
+      },
+      {
+        "name": "checks_in_window",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "product_id",
+      "competitor",
+      "observed_ts"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the 3-check average and the number of checks it covers, for each product and competitor.",
+    "The group is a product and a competitor together, in time order, with a frame of the check and the 2 rows before it."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 339,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 340,
+      "to": 362,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 363,
+      "to": 501,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 150000,
+  "why_this_works": "Each product and competitor pair is its own series in time order; the count over the same frame shows which averages cover fewer than 3 checks."
+}

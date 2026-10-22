@@ -1,15 +1,60 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { DETECTORS, detectConstructs, helperCalls } from '../../tools/constructs.ts';
+import { DETECTORS, detectConstructs, helperCalls, laterConstructs, prerequisitesOf } from '../../tools/constructs.ts';
+import type { Curriculum } from '../../schemas/concepts.ts';
 
 const map = JSON.parse(await readFile('content/sql/constructs.json', 'utf8'));
+const curriculum = JSON.parse(await readFile('content/sql/curriculum.json', 'utf8')) as Curriculum;
 
 test('every construct in the map has a detector', () => {
   for (const c of map.constructs) assert.ok(DETECTORS[c.construct], c.construct);
 });
 test('every example is detected as its own construct', () => {
   for (const c of map.constructs) for (const ex of c.examples) assert.ok(detectConstructs(ex).includes(c.construct), `${c.construct}: ${ex}`);
+});
+// S7-21 (sprint 7, Task A1; the build record's Task 7 minor): an example may also fire the constructs of its concept's
+// prerequisites, followed transitively, and never a later concept's: a later construct firing on an example would fail C09 on a
+// correct key of the example's own concept.
+type Entry = { construct: string; concept_id: string; examples: string[] };
+/** Each example that does not fire its own construct, or fires a later concept's, as `construct: example (what is wrong)`. */
+const exampleProblems = (entries: Entry[]): string[] => entries.flatMap((c) => c.examples.flatMap((ex) => {
+  const later = laterConstructs(ex, c.concept_id, entries, curriculum);
+  return [
+    ...(detectConstructs(ex).includes(c.construct) ? [] : [`${c.construct}: ${ex} (does not fire ${c.construct})`]),
+    ...(later.length ? [`${c.construct}: ${ex} (fires ${later.join(', ')})`] : []),
+  ];
+}));
+test('S7-21: every example fires its own construct and none of a later concept\'s', () => {
+  assert.deepEqual(exampleProblems(map.constructs), []);
+});
+test('S7-21: the qualify example fires qualify and window, which is correct: SQL-WIN-01 is a prerequisite of SQL-WIN-06 through SQL-WIN-02', () => {
+  const entry = map.constructs.find((c: Entry) => c.construct === 'qualify') as Entry;
+  assert.equal(entry.concept_id, 'SQL-WIN-06');
+  for (const ex of entry.examples) {
+    const fired = detectConstructs(ex);
+    assert.ok(fired.includes('qualify') && fired.includes('window'), `${ex}: ${fired.join(', ')}`);
+    assert.deepEqual(laterConstructs(ex, entry.concept_id, map.constructs, curriculum), [], ex);
+  }
+  const before = prerequisitesOf('SQL-WIN-06', curriculum);
+  assert.ok(before.has('SQL-WIN-02') && before.has('SQL-WIN-01'), [...before].join(', '));
+  assert.ok(!before.has('SQL-WIN-06'), 'a concept is not its own prerequisite');
+});
+test('S7-21: an example that fires a later concept\'s construct fails', () => {
+  // A window example written with QUALIFY fires SQL-WIN-06's qualify, which comes after SQL-WIN-01 and is not one of its prerequisites.
+  const bad = 'SELECT product_name, SUM(unit_cost_eur) OVER (PARTITION BY brand) AS brand_cost FROM products QUALIFY brand_cost > 100';
+  assert.deepEqual(laterConstructs(bad, 'SQL-WIN-01', map.constructs, curriculum), ['qualify']);
+  const entries = map.constructs.map((c: Entry) => (c.construct === 'window' ? { ...c, examples: [...c.examples, bad] } : c));
+  assert.deepEqual(exampleProblems(entries), [`window: ${bad} (fires qualify)`]);
+  // The same text is fine as a qualify example: window is SQL-WIN-06's prerequisite's construct.
+  assert.deepEqual(laterConstructs(bad, 'SQL-WIN-06', map.constructs, curriculum), []);
+});
+test('S7-21: prerequisites are followed transitively, and a cycle in them ends', () => {
+  const ring = { concepts: [
+    { id: 'A', order: 1, prerequisites: ['C'] }, { id: 'B', order: 2, prerequisites: ['A'] }, { id: 'C', order: 3, prerequisites: ['B'] },
+  ] } as unknown as Curriculum;
+  assert.deepEqual([...prerequisitesOf('C', ring)].sort(), ['A', 'B', 'C']);
+  assert.deepEqual([...prerequisitesOf('SQL-NOPE-01', curriculum)], []);
 });
 test('constructs inside strings and comments are ignored', () => {
   assert.deepEqual(detectConstructs("SELECT city FROM stores WHERE city = 'GROUP BY' -- JOIN").filter((c) => ['group_by', 'join'].includes(c)), []);

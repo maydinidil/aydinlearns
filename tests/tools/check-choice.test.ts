@@ -8,7 +8,7 @@ import { join } from 'node:path';
 import { promisify } from 'node:util';
 import { optionId, type ChoiceItem, type ChoiceKey } from '../../schemas/choice.ts';
 import {
-  checkChoice, checkChoiceBank, choicePromptHash, correctIsOnlyLongest, namesOptionLetter, pointsByPosition, tallyByCheck, urlAllowed,
+  checkChoice, checkChoiceBank, loadChoiceBank, choicePromptHash, correctIsOnlyLongest, namesOptionLetter, pointsByPosition, tallyByCheck, urlAllowed,
   HELD_OUT_EXCLUDED_ITEMS, LEVEL1_OWN_TOPIC_CORE_FLOOR, LEVEL1_PARENTS,
 } from '../../tools/check-choice.ts';
 import type { CheckResult } from '../../tools/check-content.ts';
@@ -253,6 +253,76 @@ test('C25: at most 1 held-out item per enemy group, and a parent keeps its pract
   const heldMet = met({ ...withItem(m, 'Q-MET-902', (i) => ({ ...i, held_out: true })), heldOut: ['Q-MET-902'] });
   assert.match(detailOf(heldMet, 'C25', 'MET-FAKE-01'), /at least 4 must stay/);
 });
+// Ruling S7-C26: ga4/knowledge-pool.json is a second held-out list for GA4 (the knowledge mock's questions).
+const POOL_FILE = 'ga4/knowledge-pool.json';
+const withPool = (f: SectionFiles, pool: unknown, readable = true) =>
+  checkChoiceBank({ ...bankOf('ga4', f), knowledgePool: { file: POOL_FILE, data: pool, readable } });
+/** PARENT's card holds 901, 902, 903 (child), 905, 906, 907; OTHER holds 904. */
+function poolBank(edit: (i: any) => any = (i) => i): SectionFiles {
+  const f = solved(ga4Files());
+  const more = [ga4Item('Q-GA4-905'), ga4Item('Q-GA4-906'), ga4Item('Q-GA4-907')];
+  return { ...f, items: [...f.items, ...more].map(edit), keys: [...f.keys, ...more.map((i) => mcqKey(i.id))] };
+}
+const heldIn = (f: SectionFiles, ...ids: string[]): SectionFiles => ({ ...f, items: f.items.map((i: any) => (ids.includes(i.id) ? { ...i, held_out: true } : i)) });
+const solvedBank = (f: SectionFiles) => solved(f);
+
+test('C25 (S7-C26): an item the pool lists may be held out without being in held-out.json', () => {
+  const f = solvedBank(heldIn(poolBank(), 'Q-GA4-905'));
+  const rs = withPool(f, { item_ids: ['Q-GA4-905'] });
+  assert.deepEqual(failsOf(rs, 'C25'), []);
+  assert.ok(rs.some((r) => r.check === 'C25' && r.id === 'Q-GA4-905' && r.ok));
+  assert.ok(rs.some((r) => r.check === 'C25' && r.id === POOL_FILE && r.ok), 'the pool file itself is checked');
+  // Without the pool the same flag is still an error.
+  assert.equal(detailOf(ga4(f), 'C25', 'Q-GA4-905'), 'held_out is true, but ga4/held-out.json does not list the item');
+});
+test('C25 (S7-C26): an item in both lists fails; a pool item whose held_out is not true fails', () => {
+  const both = withPool({ ...solvedBank(heldIn(poolBank(), 'Q-GA4-905')), heldOut: ['Q-GA4-905'] }, { item_ids: ['Q-GA4-905'] });
+  assert.match(detailOf(both, 'C25', 'Q-GA4-905'), /both/);
+  const unflagged = withPool(poolBank(), { item_ids: ['Q-GA4-905'] });
+  assert.equal(detailOf(unflagged, 'C25', 'Q-GA4-905'), `${POOL_FILE} lists the item, but its held_out is false`);
+});
+test('C25 (S7-C26): pool items count as held for the enemy-group rule, the eligibility rules and the practice floor', () => {
+  // 905 in the pool and 906 in held-out.json share an enemy group.
+  const grouped = poolBank((i) => (i.id === 'Q-GA4-905' || i.id === 'Q-GA4-906' ? { ...i, enemy_group: 'EG-GA4-61' } : i));
+  const g = withPool({ ...solvedBank(heldIn(grouped, 'Q-GA4-905', 'Q-GA4-906')), heldOut: ['Q-GA4-906'] }, { item_ids: ['Q-GA4-905'] });
+  assert.equal(detailOf(g, 'C25', 'EG-GA4-61'), '2 items of this enemy group are held out; at most 1 may be');
+  // An ineligible pool item is refused like any held item.
+  const bad = withPool(solvedBank(heldIn(poolBank((i) => (i.id === 'Q-GA4-905' ? { ...i, exam_relevance: 'new_2026' } : i)), 'Q-GA4-905')), { item_ids: ['Q-GA4-905'] });
+  assert.match(detailOf(bad, 'C25', 'Q-GA4-905'), /2026 feature/);
+  // The card has 6 practice items (901, 902, the child's 903, 905 to 907); holding 4 through the pool leaves 2, below the floor of 3.
+  const low = withPool(solvedBank(heldIn(poolBank(), 'Q-GA4-902', 'Q-GA4-905', 'Q-GA4-906', 'Q-GA4-907')), { item_ids: ['Q-GA4-902', 'Q-GA4-905', 'Q-GA4-906', 'Q-GA4-907'] });
+  assert.equal(detailOf(low, 'C25', PARENT), `holding items out leaves ${PARENT} 2 practice items; at least 3 must stay`);
+});
+test('C25 (S7-C26): with no pool file, results are unchanged; a missing or empty pool reads as empty', () => {
+  const f = heldIn(poolBank(), 'Q-GA4-905');
+  const plain = ga4({ ...f, heldOut: ['Q-GA4-905'] });
+  assert.deepEqual(checkChoiceBank({ ...bankOf('ga4', { ...f, heldOut: ['Q-GA4-905'] }), knowledgePool: null }), plain);
+  assert.deepEqual(withPool({ ...f, heldOut: ['Q-GA4-905'] }, { item_ids: [] }).filter((r) => r.id !== POOL_FILE), plain);
+  assert.ok(!plain.some((r) => r.id === POOL_FILE));
+});
+test('C25 (S7-C26): an unreadable or malformed pool is a problem on its file; a stranger in it is named', () => {
+  assert.equal(detailOf(withPool(poolBank(), null, false), 'C25', POOL_FILE), 'not valid JSON');
+  assert.match(detailOf(withPool(poolBank(), { item_ids: 'Q-GA4-905' }), 'C25', POOL_FILE), /"item_ids" must be a list/);
+  const stranger = withPool(poolBank(), { item_ids: ['Q-GA4-777', 'Q-GA4-777'] });
+  assert.match(detailOf(stranger, 'C25', POOL_FILE), /Q-GA4-777 is not an item of this section/);
+  assert.match(detailOf(stranger, 'C25', POOL_FILE), /twice/);
+});
+test('C25 (S7-C26): the Methodology section ignores a pool', () => {
+  const m = solved(methodologyFiles());
+  const flagged = withItem(m, 'Q-MET-901', (i) => ({ ...i, held_out: true }));
+  const rs = checkChoiceBank({ ...bankOf('methodology', flagged), knowledgePool: { file: 'methodology/knowledge-pool.json', data: { item_ids: ['Q-MET-901'] }, readable: true } });
+  assert.equal(detailOf(rs, 'C25', 'Q-MET-901'), 'held_out is true, but methodology/held-out.json does not list the item');
+  assert.ok(!rs.some((r) => r.id.endsWith('knowledge-pool.json')));
+});
+test('C25 (S7-C26): loadChoiceBank reads ga4/knowledge-pool.json, and a missing file reads as none', async () => {
+  const root = await makeChoiceRoot(solved(ga4Files()), null);
+  assert.equal((await loadChoiceBank(root, 'ga4')).knowledgePool ?? null, null);
+  await writeFile(join(root, POOL_FILE), JSON.stringify({ item_ids: [] }));
+  const bank = await loadChoiceBank(root, 'ga4');
+  assert.equal(bank.knowledgePool?.readable, true);
+  assert.equal((await loadChoiceBank(root, 'methodology')).knowledgePool ?? null, null);
+});
+
 test('C25 (S2-103): a level 1 parent keeps 5 practice items of its own topic that are core, verified and not on D23\'s list, where the bank has that many', () => {
   assert.deepEqual(LEVEL1_PARENTS, ['GA4-SETUP-01', 'GA4-EVENTS-01', 'GA4-EVENTS-02', 'GA4-METRICS-01']);
   assert.equal(LEVEL1_OWN_TOPIC_CORE_FLOOR, 5);

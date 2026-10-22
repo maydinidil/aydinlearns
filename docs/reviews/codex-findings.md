@@ -3,7 +3,66 @@
 Append-only log of findings raised by the Codex PR reviewer, each with an independent verdict.
 Newest review first.
 
-## PR #51: sprint T, the AI tutor, release 1.6.0 (reviewed 2026-10-17)
+## PR #52: sprint 7 Part 1, SQL level 5 and the screen mock, release 0.7.0 (reviewed 2026-10-21)
+
+Codex left two line comments (P2), plus its summary comment. Both are confirmed. Both were already known from
+sprint 7's own seams review and carried to Part 2's Task N3 (F2-4-3 and ledger L102 in the sprint 7 record); they
+are logged here so the PR's findings have a home.
+
+### F35: A finished screen mock is scored against the current form, not the questions it served
+
+**P2 · `server/mocks.ts:130` · Verdict: CONFIRMED · Status: FIXED 2026-10-22**
+
+The claim: when `content/mocks.json` changes after a run was taken, the run's score is recomputed against the
+current form, so removing or replacing an item can change `correct`, revoke a met stage, or make the review disagree
+with the logged outcomes.
+
+What I found: the mechanism is as described. `scoreOf` takes the screen run's item list from
+`file.screen.forms.find((f) => f.id === o.form).item_ids` and the pass mark from `file.screen.pass_correct`
+(`server/mocks.ts:126-131`), both read from the current file at every replay; `mockRuns` calls it for ended runs
+too (`server/mocks.ts:116`). The seams review reproduced it in a scratch copy: replacing one passed item ID of
+SCREEN-A, or raising `pass_correct` to 6, emptied `stagesMet`, against S7-05's "a met stage stays met". It is
+latent in 0.7.0 in practice: no release has changed a form, and S7-C13 treats a taken form as spent. A content fix
+to a form, or a change to the pass mark, would arm it.
+
+**Fix direction:** score a run on the questions it served, not the current form: the instances its start served
+carry the block ID, and every run end closes each of them (S7-06), so the scored item set and the total come from
+the log. The pass mark needs the owner's call, because freezing it means a field in the log: either `mock_open`
+records `pass_correct` (an additive field on log version 7; replay reads an absent one as the file's value), or a
+change to the pass mark is declared to apply to past runs too. Tests: a run scored, then the form's item replaced
+and the pass mark raised; the run's score, `passed` and `stagesMet` unchanged.
+
+> **Update 2026-10-21: the owner's calls.** Fix it in Part 2's Task N3, not on PR #52. Each run keeps its own pass
+> mark: `mock_open` records `pass_correct` (an additive field on log version 7; replay reads an absent one as the
+> file's value), and the scored item set comes from the run's own instances.
+
+> **Update 2026-10-22: fixed** in Task N3 (`5136248b`), with S7-C34: every `mock_open` records `pass_correct`, and each run is scored on its own instances and pass mark.
+
+### F36: Resuming a screen mock loses the "answered" marks on its questions
+
+**P2 · `web/src/screens/MockScreen.tsx:38` · Verdict: CONFIRMED · Status: FIXED 2026-10-22**
+
+The claim: after a browser refresh, or on returning to a running mock, every question starts as unanswered, so the
+question strip loses its marks and Submit is enabled again for answers that are already final, sending the learner
+round the questions into `ONE_ANSWER` refusals during a timed test.
+
+What I found: the mechanism is as described. `MockQuestion` keeps `answered` in local state that starts `false`
+(`web/src/screens/MockScreen.tsx:38`), and the run view the server returns (`MockRunView` in
+`web/src/lib/mock-flow.ts:30`, built in `server/routes/mocks.ts`) carries each serving's item and instance but no
+answered state. The server still refuses a second answer, so no answer is lost or changed; the cost is time and
+confusion inside a 45-minute test. This is ledger item L102, carried to Task N3, and listed in the 0.7.0 CHANGELOG's
+known issues.
+
+**Fix direction:** the run view carries, per serving, whether it has its one answer (from the log's answers in the
+block, as `mockRuns` reads them); `MockQuestion` seeds `answered` from it, so the strip shows the marks and Submit
+stays closed for an answered question. Tests: a mock-routes test that the run view marks an answered serving after
+a restart, and a render test that a resumed run shows the mark and no Submit.
+
+> **Update 2026-10-21: the owner's call.** Fix it in Part 2's Task N3, not on PR #52.
+
+> **Update 2026-10-22: fixed** in Task N3 (`5136248b`): the run view carries each question's answered state and the strip shows it after a reload.
+
+## PR #51: sprint T, the AI tutor, release 0.6.2 (reviewed 2026-10-17, merged 2026-10-17)
 
 Codex left one line comment (P2) on commit `21a3a93`, plus its summary comment. It is confirmed, and fixed on the
 branch before the merge at the owner's go.
@@ -56,7 +115,7 @@ tutor answer goes to the reading.
 > now reads it, but checks the pass itself, so the lesson flow follows replay. A lesson position saved before the fix
 > could hold the wrong flag, but no released version had the tutor, so none exists.
 
-## PR #50: sprint 6 Part 2, Mailvora and real data, release 1.5.0 (reviewed 2026-10-16, merged 2026-10-17)
+## PR #50: sprint 6 Part 2, Mailvora and real data, release 0.6.1 (reviewed 2026-10-16, merged 2026-10-17)
 
 Codex left one line comment (P2) on commit `2b0c13b`, plus its summary comment. The `claude-review`
 check passed. The finding is refuted: the real content store already does what it asks for.
@@ -81,7 +140,7 @@ With openers missing from `cases()`, that test would read `pricing` and fail.
 
 **Fix direction:** none; nothing is wrong. No CHANGELOG entry.
 
-## PR #49: sprint 6 Part 1, SQL level 4, release 1.4.0 (reviewed 2026-10-15, merged 2026-10-15)
+## PR #49: sprint 6 Part 1, SQL level 4, release 0.6.0 (reviewed 2026-10-15, merged 2026-10-15)
 
 Codex left one line comment (P2) on commit `a4e3b11`, plus its summary comment. The `claude-review`
 check passed. The finding is confirmed. At the owner's word (D88) it is fixed in Part 2's first block
@@ -117,7 +176,7 @@ checkpoints of the 24 cases pass, each record with `key_hash`. One checkpoint, C
 prompt fix first (two solvers' natural queries ran out of the runner's memory) and a third solve.
 `npm run check:content` then passed 18564 of 18564, C50 included.
 
-## PR #48: the study journey, D77, release 1.3 (reviewed 2026-10-13, merged 2026-10-13)
+## PR #48: the study journey, D77, release 0.5.3 (reviewed 2026-10-13, merged 2026-10-13)
 
 Codex completed its review of commit `7d46c8a` with no line comments and a +1 reaction on the PR
 (checked through the API: 0 review comments, 0 reviews). The `claude-review` check passed. No
@@ -125,7 +184,7 @@ findings; nothing to log. The branch had its own reviews: one per task, a whole-
 findings, 29 upheld and fixed or documented, 1 refuted) and a review of the owner-go changes; see
 [`docs/planning/2026-10-13-release-1-3-record.md`](../planning/2026-10-13-release-1-3-record.md).
 
-## PR #47: release 1.2 (merged 2026-10-12)
+## PR #47: release 0.5.2 (merged 2026-10-12)
 
 Codex completed its review with no line comments and a +1 reaction on the PR (checked through the
 API on 2026-10-13: 0 review comments). No findings; nothing to log.
@@ -202,7 +261,7 @@ Codex completed its review of commit `f09bf6d` with no line comments and a +1 re
 (checked through the API: 0 review comments, 0 reviews). No findings; nothing to log. Each task had
 its own review (0 Critical, 0 Important); see the sprint 5b record, "Hygiene after the merge".
 
-## PR #43: sprint 5b, GA4 complete, release 1.1 (reviewed 2026-10-09, merged 2026-10-09)
+## PR #43: sprint 5b, GA4 complete, release 0.5.1 (reviewed 2026-10-09, merged 2026-10-09)
 
 Codex left two line comments on commit `a5647b4`, both P2, both on the readiness check (D70). The
 owner asked to merge and log them; the fixes go into the hygiene PR before the next sprint. One is
@@ -270,7 +329,7 @@ check then disagrees with the run's own score and replay's S3-07. Either way, on
 > **Update 2026-10-09: the owner chose (a).** F28 is closed as WON'T FIX. The test that pins the
 > last-answer rule stays; the CHANGELOG Known issues bullet stays, with the reason.
 
-## PR #42: sprint 5a, Methodology complete, polish, release 1.0 (reviewed 2026-10-08, merged 2026-10-08)
+## PR #42: sprint 5a, Methodology complete, polish, release 0.5.0 (reviewed 2026-10-08, merged 2026-10-08)
 
 Codex completed its review of commit `274adc5` with no line comments and a +1 reaction on the PR
 (checked through the API: 0 review comments, 0 reviews). No findings; nothing to log. The

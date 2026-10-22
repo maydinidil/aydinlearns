@@ -1,7 +1,7 @@
 # aydinlearns: the AI tutor (design)
 
-Date: 2026-10-16. Status: approved by the owner on 2026-10-16, with D95 at hint 1. Sprint: **sprint T**, after sprint 6 (release 1.5.0) and before
-sprint 7; it ships as release 1.6.0, and sprint 7 then ships as 1.7.0.
+Date: 2026-10-16. Status: approved by the owner on 2026-10-16, with D95 at hint 1. Sprint: **sprint T**, after sprint 6 (release 0.6.1) and before
+sprint 7; it ships as release 0.6.2, and sprint 7 then ships as 0.7.0.
 
 Read with the v1 design ([`2026-10-01-aydinlearns-v1-design.md`](2026-10-01-aydinlearns-v1-design.md)): this spec lifts
 its §19 line "Runtime AI tutor. Planned later" for the tutor alone, and changes nothing else in it unless a section below
@@ -29,7 +29,7 @@ to use my claude api key with haiku for now."
 
 | ID | Decision | Choice |
 |---|---|---|
-| D91 | A runtime AI tutor | **Yes, opt-in**, in sprint T (release 1.6.0). On only when `.env` holds a key; without one the app stays fully offline. Approach A: each screen sends a text snapshot of what it shows; the server adds public content by ID and calls the model. No screenshots, and no call from the browser |
+| D91 | A runtime AI tutor | **Yes, opt-in**, in sprint T (release 0.6.2). On only when `.env` holds a key; without one the app stays fully offline. Approach A: each screen sends a text snapshot of what it shows; the server adds public content by ID and calls the model. No screenshots, and no call from the browser |
 | D92 | What the tutor knows beyond the screen | **Only what the learner has seen.** The grader's verdict after a submission is part of it (the learner sees it); the answer key is not. After "show answer" the shown answer is on the screen, so it is in the snapshot. After a pass, the learner's own passing work is the answer |
 | D93 | Teaching style | **Teach, don't tell.** Before a pass or a reveal: explain the idea, point at what is off, ask a guiding question or give the next step. After a pass or a reveal: explain in full |
 | D94 | Timed drills and mocks | **Closed while the clock runs, open in the review after**, as hints are today (non-negotiable 7) |
@@ -249,7 +249,7 @@ The providers keep API inputs under their own retention terms, on the owner's ow
 3. Log version 6, replay and the rating rule.
 4. The context, the prompt, redaction and the route, with telemetry and the journey.
 5. The panel, the button, the quick prompts and every screen's snapshot.
-6. Smoke rows, the live eval, the docs, release 1.6.0.
+6. Smoke rows, the live eval, the docs, release 0.6.2.
 
 ## 14. Out of scope
 
@@ -259,7 +259,7 @@ tutor writing new items or cases; any other model provider; Dutch.
 ## 15. As built (sprint T, 2026-10-17)
 
 Built by the plan [`../plans/2026-10-16-aydinlearns-sprint-t.md`](../plans/2026-10-16-aydinlearns-sprint-t.md) as release
-1.6.0. The record is [`../../planning/2026-10-16-sprint-t-record.md`](../../planning/2026-10-16-sprint-t-record.md). Where
+0.6.2. The record is [`../../planning/2026-10-16-sprint-t-record.md`](../../planning/2026-10-16-sprint-t-record.md). Where
 the build differs from the sections above, this section wins.
 
 | Ruling | What was decided |

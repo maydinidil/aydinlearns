@@ -1,0 +1,147 @@
+{
+  "id": "EX-SQL-WIN-03-E1-04",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "lead",
+    "ad_spend_daily",
+    "cte"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-03"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "lesson",
+  "target_concept_id": "SQL-WIN-03",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-DATE-01",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-WIN-01",
+    "SQL-WIN-03"
+  ],
+  "template_id": "T-WIN-03-lead-next-value",
+  "template_params": {
+    "table": "ad_spend_daily",
+    "group": "channel",
+    "order": "month"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "mailvora",
+  "schema": "mailvora",
+  "edge_schema": "mailvora_edge_win",
+  "prompt": "For each channel and each month of 2025 in which the channel had ad spend, show its total spend that month and its total spend in its next month with spend. Months with no spend are left out, so the next month with spend can be more than one month later. Return channel_id, month (the first day of the month), spend_eur and next_spend_eur. A channel's last month with spend in 2025 shows next_spend_eur as missing. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "channel_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "month",
+        "type_class": "temporal"
+      },
+      {
+        "name": "spend_eur",
+        "type_class": "numeric"
+      },
+      {
+        "name": "next_spend_eur",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per channel and month with spend"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "channel_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "month",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "spend_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "next_spend_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "channel_id",
+      "month"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the column that reads spend_eur from the channel's next row.",
+    "LEAD looks one row ahead; give it one group per channel, in month order."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 390,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 391,
+      "to": 427,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 428,
+      "to": 509,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 510,
+      "to": 522,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": {
+    "stage1": 428,
+    "stage2": 428
+  },
+  "faded_shape": "WITH monthly AS (\n  -- one row per channel and month with spend\n  SELECT c.channel_id, CAST(date_trunc('month', a.spend_date) AS DATE) AS month, SUM(a.spend) AS spend_eur\n  FROM ad_spend_daily a\n  JOIN campaigns c ON c.campaign_id = a.campaign_id\n  WHERE a.spend_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\n  GROUP BY c.channel_id, CAST(date_trunc('month', a.spend_date) AS DATE)\n)\nSELECT channel_id, month, spend_eur,\n",
+  "faded_suffix": "\nFROM monthly",
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "LEAD reads the next row within each channel in month order, which is the next month with spend, and the channel's last month has none."
+}

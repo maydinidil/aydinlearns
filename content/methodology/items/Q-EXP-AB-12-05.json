@@ -1,6 +1,6 @@
 {
   "id": "Q-EXP-AB-12-05",
-  "version": 1,
+  "version": 2,
   "kind": "mcq",
   "section": "methodology",
   "concept_id": "EXP-AB-12",
@@ -8,12 +8,12 @@
   "options": [
     {
       "oid": "o36989ea",
-      "text": "None, as long as at least three guardrails are reported with the result",
+      "text": "None, as long as the success metric itself was fixed in the plan",
       "misconception_id": null
     },
     {
       "oid": "offf3bcf",
-      "text": "Guardrails should be chosen from the metrics that improved the most",
+      "text": "None, once a Bonferroni correction is applied to the chosen guardrails",
       "misconception_id": null
     },
     {
@@ -23,7 +23,7 @@
     },
     {
       "oid": "of3400e1",
-      "text": "Guardrails must always be the same metric as the test's success metric",
+      "text": "Only that too few guardrails were chosen; reporting more metrics would fix it",
       "misconception_id": null
     }
   ],

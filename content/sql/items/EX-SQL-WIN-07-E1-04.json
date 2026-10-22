@@ -1,0 +1,139 @@
+{
+  "id": "EX-SQL-WIN-07-E1-04",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "window",
+    "first_value",
+    "frame",
+    "ad_spend_daily",
+    "campaigns"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-07"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "lesson",
+  "target_concept_id": "SQL-WIN-07",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-JOIN-01",
+    "SQL-WIN-01",
+    "SQL-WIN-04",
+    "SQL-WIN-07"
+  ],
+  "template_id": "T-WIN-07-first-value-beside-row",
+  "template_params": {
+    "table": "ad_spend_daily",
+    "group": "campaign_id",
+    "channel": 2
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "mailvora",
+  "schema": "mailvora",
+  "edge_schema": "mailvora_edge_win",
+  "prompt": "For each day with spend of the brand_search campaigns (channel_id 2) from 1 July to 31 October 2025, both days included, show the campaign's spend on its first day with spend in that period beside the day's own spend. spend_date is a UTC day, and a campaign has at most one row per day. Return four columns, in this order: campaign_id, spend_date, spend and first_day_spend. Return one row for each campaign and day with spend in that period. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "campaign_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "spend_date",
+        "type_class": "temporal"
+      },
+      {
+        "name": "spend",
+        "type_class": "numeric"
+      },
+      {
+        "name": "first_day_spend",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per campaign and day with spend"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "campaign_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "spend_date",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "spend",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "first_day_spend",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "campaign_id",
+      "spend_date"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the calculated column first_day_spend: the spend of the campaign's earliest row, repeated on each of its rows.",
+    "The window takes the value from the first row of each campaign's rows in date order; write the frame out so it covers all of them."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 238,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 239,
+      "to": 310,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 311,
+      "to": 400,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": {
+    "stage1": 52,
+    "stage2": 52
+  },
+  "faded_shape": "SELECT a.campaign_id, a.spend_date, a.spend,\n       ",
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "FIRST_VALUE reads the spend of the first row of each campaign in date order, and the written frame makes that row part of every row's window.",
+  "faded_suffix": "\nFROM ad_spend_daily a\nJOIN campaigns c ON c.campaign_id = a.campaign_id\nWHERE c.channel_id = 2\n  AND a.spend_date BETWEEN DATE '2025-07-01' AND DATE '2025-10-31'"
+}

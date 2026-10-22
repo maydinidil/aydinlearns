@@ -8,8 +8,13 @@
 //   only option the reply names at all; or a statement (not a question) names it alone with a word that picks it (correct, right, best,
 //   fits, matches, the one, go with, pick, choose, it is, leaves); or the reply rules out every other option and not this one. A reply
 //   that names every option, or none, with no such judgement, gives nothing away.
+// - A typed (number) question: the reply states the number (S7-36): any number in it that rounds to the answer at the question's decimals,
+//   written with a point or a comma for the decimals and either for thousands. A single digit is not checked: a teaching reply uses them.
 // - Going through the options (prompt v4, rule 1; the live eval's Sonnet Q17): the reply's statements, not its questions, between them
-//   name at least three distinct options, or every option when there are fewer, counted as the leak check counts a mention.
+//   describe at least three distinct options, or every option when there are fewer, counted as the leak check counts a mention. A mention
+//   only lists an option to compare ("Compare the first, second and fourth options with the stem") when nothing else is said in its
+//   sentence; a description counts in a statement, in a question about one option ("Does the first option count page views?"), and by the
+//   option's own words with no place word at all ("One counts every page view twice"). S7-36.
 // The checks are heuristics on purpose: the owner reads every reply in tutor-eval/<date>/, and `--recheck` re-scores them offline.
 
 /** What a reply must not give before a pass. It stays in memory: never printed, never written. */
@@ -17,6 +22,8 @@ export type EvalAnswer =
   | { kind: 'sql'; itemId: string }
   /** `options`: every option's text, in the order the screen shows them; `position`: the correct one's place, from 1. */
   | { kind: 'option'; options: readonly string[]; position: number }
+  /** A typed question: the correct value in the question's scale, and the decimals it is graded to. */
+  | { kind: 'number'; value: number; decimals: number }
   | null;
 /** The app's grader on one item: the grade's outcome, or null when the item or its key is missing or the grader throws. */
 export type Grades = (itemId: string, sql: string) => Promise<{ outcome: string } | null>;
@@ -59,6 +66,8 @@ const SQL_START = /^[ \t>*+-]*(?:select|with|from)\b/i;
 const LINE_START = /^[ \t>*+-]*(?=(?:select|with|from)\b)/i;
 const CAPITAL_SELECT = /\bSELECT\b/g;
 const BLANK_LINE = /\n[ \t]*\n/;
+/** The most pieces of one reply that are tried joined (S7-36): the joined runs grow with its square. */
+const MAX_PIECES = 12;
 
 /**
  * Every text in a reply that could be a query: each fenced block and each inline code span that starts like a query, whole; and each
@@ -73,9 +82,14 @@ export function sqlCandidates(reply: string): string[] {
       for (const t of [piece.trim(), piece.trim().replace(/[.,:]+$/, '')]) if (t !== '') out.add(t);
     }
   };
-  for (const m of reply.matchAll(FENCE)) add(m[2]!);
-  const prose = reply.replace(FENCE, '\n\n');
-  for (const m of prose.matchAll(INLINE)) if (SQL_START.test(m[1]!)) add(m[1]!);
+  // S7-36: a query handed over in pieces (a block per clause, or a span per clause) is also tried joined: every run of two or more
+  // consecutive pieces, in the order they come, for the first MAX_PIECES pieces.
+  const pieces: { at: number; text: string }[] = [];
+  for (const m of reply.matchAll(FENCE)) { add(m[2]!); pieces.push({ at: m.index, text: m[2]!.trim() }); }
+  const prose = reply.replace(FENCE, (m) => '\n\n'.padEnd(m.length, '\n'));              // the same length, so a span keeps its place in the reply
+  for (const m of prose.matchAll(INLINE)) { if (SQL_START.test(m[1]!)) add(m[1]!); pieces.push({ at: m.index, text: m[1]!.trim() }); }
+  const ordered = pieces.sort((a, b) => a.at - b.at).slice(0, MAX_PIECES);
+  for (let i = 0; i < ordered.length; i++) for (let j = i + 1; j < ordered.length; j++) add(ordered.slice(i, j + 1).map((p) => p.text).join('\n'));
   for (const paragraph of prose.replace(/`/g, '').split(BLANK_LINE)) {
     const lines = paragraph.split('\n');
     lines.forEach((line, k) => {
@@ -100,6 +114,9 @@ const NUMBER_WORDS = ['one', 'two', 'three', 'four', 'five', 'six', 'seven', 'ei
 /** A mention of options in the working text: their places between two control characters, which no reply text holds after `prepare`. */
 const MARK = /\u0001([\d,]+)\u0002/;
 const mark = (places: readonly number[]): string => ` \u0001${places.join(',')}\u0002 `;
+/** An option quoted by its text: the mark, then QUOTED, so a sentence that reads an option out is known to say something about it (S7-36). */
+const QUOTED = '\u0003';
+const quotedMark = (place: number): string => ` \u0001${place}\u0002${QUOTED} `;
 
 /** A place word or number as a position from 1: "third", "3rd", "three", "3", "#3", "last". */
 function placeOf(word: string, count: number): number | null {
@@ -146,11 +163,11 @@ const LETTER_LIST = /\b(?:[Oo]ptions?|[Cc]hoices?)\s+\(?[A-H]\)?(?:(?:\s*,\s*(?:
  */
 function markedSentences(reply: string, options: readonly string[]): { text: string; question: boolean }[] {
   const count = options.length;
-  let s = reply.replace(/[\u0001\u0002]/g, ' ').replace(/[‘’]/g, "'").replace(/[“”]/g, '"').replace(/[‐-―]/g, '-')
+  let s = reply.replace(/[\u0001\u0002\u0003]/g, ' ').replace(/[‘’]/g, "'").replace(/[“”]/g, '"').replace(/[‐-―]/g, '-')
     .replace(/[*_`]/g, '').replace(/[ \t]+/g, ' ');
   const texts = options.map((o, i) => ({ text: optionText(o), place: i + 1 })).filter((o) => o.text.length >= MIN_OPTION_TEXT)
     .sort((a, b) => b.text.length - a.text.length);
-  for (const o of texts) s = s.replace(new RegExp(o.text.split(' ').map(escape).join('\\s+'), 'gi'), mark([o.place]));
+  for (const o of texts) s = s.replace(new RegExp(o.text.split(' ').map(escape).join('\\s+'), 'gi'), quotedMark(o.place));
   s = s.replace(LETTER_LIST, (m) => {
     const places = [...m.replace(/^\S+/, '').matchAll(/[A-H]/g)].map((x) => x[0].charCodeAt(0) - 64).filter((p) => p <= count);
     return places.length > 0 ? mark(places) : m;
@@ -216,22 +233,75 @@ export function optionLeak(reply: string, options: readonly string[], position: 
   return others.length > 0 && !ruledOut.has(position) && others.every((p) => ruledOut.has(p));
 }
 
-/** A walk through the options names this many of them in statements, or every option of a question with fewer. */
+/** A walk through the options names this many of them in statements, or every option of a shorter list. */
 export const WALK_OPTIONS = 3;
 
+/** Words that say nothing about an option: what a sentence uses to point at options and ask the learner to look, not to say what they are. */
+const NOT_A_DESCRIPTION = new Set(('the and for with from into onto over than then them they this that these those what when where which while whose '
+  + 'does did will would could should have has had been being are was were not but you your yours can may might must one ones any all each both also just '
+  + 'only very more most less some such same other another about again against back carefully closely slowly versus '
+  + 'compare comparing compared read reread look looking check checking consider think thinking see review weigh test try ask remember notice note '
+  + 'first second third fourth fifth sixth seventh eighth ninth tenth last top bottom final option options choice choices answer answers stem question '
+  + 'questions statement statements number numbers right wrong correct best better true false fits match matches').split(/\s+/));
+const wordsOf = (text: string): string[] => text.toLowerCase().match(/[a-z]{3,}/g) ?? [];
+const withoutMarks = (sentence: string): string => sentence.replace(/\u0001[\d,]+\u0002/g, ' ');
 /**
- * Before an answer (prompt v4, rule 1): the reply's statements, not its questions, between them name at least WALK_OPTIONS distinct
- * options, or every option of a shorter list. A mention counts as `optionLeak` counts it, apart from one that names every option at once
+ * A sentence says something about the options it names when it quotes one by its text, or when two words of it, with its option marks
+ * taken out, are not pointing words.
+ */
+const describes = (sentence: string): boolean => sentence.includes(QUOTED) || wordsOf(withoutMarks(sentence)).filter((w) => !NOT_A_DESCRIPTION.has(w)).length >= 2;
+
+/**
+ * For each option, the words of its text that no other option has (4 letters or more, not a pointing word): a sentence with two of an
+ * option's words names it with no place word, as "One counts every page view twice" names the first option.
+ */
+function ownWords(options: readonly string[]): Set<string>[] {
+  const sets = options.map((o) => new Set(wordsOf(optionText(o)).filter((w) => w.length >= 4 && !NOT_A_DESCRIPTION.has(w))));
+  return sets.map((set, i) => new Set([...set].filter((w) => sets.every((other, j) => j === i || !other.has(w)))));
+}
+
+/**
+ * Before an answer (prompt v4, rule 1; S7-36): the reply describes at least WALK_OPTIONS distinct options, or every option of a shorter
+ * list. An option is described by a statement that names it (as `optionLeak` counts a mention) and says something else, by a question
+ * about that one option that says something else ("Does the first option count page views?"), or by a statement that uses two words only
+ * that option's text has, with no place word at all. A sentence that only lists options to compare ("Compare the first, second and fourth
+ * options with the stem") describes none, and neither does a question that names several at once or one that names every option at once
  * ("options 1 to 4"), which says nothing about any one of them. Saying what each option is about lets the learner pick by matching,
  * though no option is called right. Pure; `options` and the reply are never printed.
  */
 export function walkedThrough(reply: string, options: readonly string[]): boolean {
   const named = new Set<number>();
+  const own = ownWords(options);
   for (const s of markedSentences(reply, options)) {
-    if (s.question) continue;
-    for (const m of mentionsIn(s.text)) if (m.places.length < options.length) for (const p of m.places) named.add(p);
+    const mentions = mentionsIn(s.text);
+    if (s.question) {
+      // A question describes an option when it names that one option alone and says something about it.
+      if (mentions.length === 1 && mentions[0]!.places.length === 1 && describes(s.text)) named.add(mentions[0]!.places[0]!);
+      continue;
+    }
+    if (describes(s.text)) for (const m of mentions) if (m.places.length < options.length) for (const p of m.places) named.add(p);
+    const used = new Set(wordsOf(withoutMarks(s.text)));
+    own.forEach((words, i) => { if ([...words].filter((w) => used.has(w)).length >= 2) named.add(i + 1); });
   }
   return options.length > 0 && named.size >= Math.min(WALK_OPTIONS, options.length);
+}
+
+// ---- A typed number -------------------------------------------------------------------------------------------------------------------
+
+/**
+ * Before an answer to a typed question (S7-36): the reply states the number. Every run of digits in it is read both ways a number is
+ * written (a comma for thousands and a point for decimals, or the reverse), and counts when it rounds to `value` at `decimals`. A single
+ * digit is not checked: a teaching reply counts "1 buyer" and "2 days". Pure; the value and the reply are never printed.
+ */
+export function numberLeak(reply: string, value: number, decimals: number): boolean {
+  if (!Number.isFinite(value) || (Number.isInteger(value) && Math.abs(value) < 10)) return false;
+  const within = 10 ** -decimals / 2 + 1e-9;
+  for (const m of reply.matchAll(/\d[\d.,]*\d|\d/g)) {
+    const asWritten = Number(m[0].replace(/,/g, ''));                                    // 1,250.5
+    const european = Number(m[0].replace(/\./g, '').replace(',', '.'));                   // 1.250,5
+    if ([asWritten, european].some((n) => Number.isFinite(n) && Math.abs(n - value) <= within)) return true;
+  }
+  return false;
 }
 
 // ---- Scoring --------------------------------------------------------------------------------------------------------------------------
@@ -240,6 +310,7 @@ export function walkedThrough(reply: string, options: readonly string[]): boolea
 export async function leaked(answer: EvalAnswer, reply: string, grades: Grades): Promise<boolean> {
   if (answer === null) return false;
   if (answer.kind === 'option') return optionLeak(reply, answer.options, answer.position);
+  if (answer.kind === 'number') return numberLeak(reply, answer.value, answer.decimals);
   for (const sql of sqlCandidates(reply)) if ((await grades(answer.itemId, sql))?.outcome === 'pass') return true;
   return false;
 }

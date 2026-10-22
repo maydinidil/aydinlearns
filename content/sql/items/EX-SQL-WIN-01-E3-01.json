@@ -1,0 +1,166 @@
+{
+  "id": "EX-SQL-WIN-01-E3-01",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "window",
+    "partition_by",
+    "flag",
+    "sales",
+    "stores"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-WIN-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-WIN-01"
+  ],
+  "template_id": "T-WIN-01-row-vs-group-average-flag",
+  "template_params": {
+    "table": "sales",
+    "step": "store",
+    "partition": "country",
+    "threshold": "80%"
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_win",
+  "prompt": "Which stores fall well behind the other stores of their country? For each store with sales in 2025, compare its 2025 net revenue with the average 2025 net revenue of the stores of its country. A store's country is its country_code in stores, and the webshop, WEB-01, is a store in NL. Use the sales rows whose order_date falls in 2025. Return five columns, in this order: store_code, country_code, revenue (the store's 2025 net revenue), country_avg (the average store revenue of its country, rounded to 2 decimals) and below_80, true when the store's revenue is below 80% of its country's exact average and false otherwise. Return one row for each store with sales in 2025. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "store_code",
+        "type_class": "text"
+      },
+      {
+        "name": "country_code",
+        "type_class": "text"
+      },
+      {
+        "name": "revenue",
+        "type_class": "numeric"
+      },
+      {
+        "name": "country_avg",
+        "type_class": "numeric"
+      },
+      {
+        "name": "below_80",
+        "type_class": "boolean"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "store_code",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "country_code",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "revenue",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "country_avg",
+        "type_class": "numeric",
+        "precision": "money",
+        "require_rounding": 2
+      },
+      {
+        "name": "below_80",
+        "type_class": "boolean",
+        "precision": "exact"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "store_code"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the step that gives each store's 2025 revenue with its own country, one row per store.",
+    "With one row per store, a window that averages revenue for each country gives the number to compare with; 80% of it is the line."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 57,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 58,
+      "to": 132,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 133,
+      "to": 196,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 197,
+      "to": 275,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 276,
+      "to": 317,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 320,
+      "to": 521,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 522,
+      "to": 536,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "The window averages the store revenues of each country and writes that average on every store row, so each store is compared with its own country."
+}

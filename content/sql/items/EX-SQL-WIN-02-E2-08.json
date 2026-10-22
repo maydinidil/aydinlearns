@@ -1,0 +1,146 @@
+{
+  "id": "EX-SQL-WIN-02-E2-08",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "ranking",
+    "row_number",
+    "first_row",
+    "tie_break",
+    "signups",
+    "sessions"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-WIN-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-WIN-01",
+    "SQL-WIN-02"
+  ],
+  "template_id": "T-WIN-02-latest-row-per-group",
+  "template_params": {
+    "table": "sessions",
+    "partition": "user",
+    "fn": "ROW_NUMBER",
+    "first": "session_start"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "mailvora",
+  "schema": "mailvora",
+  "edge_schema": "mailvora_edge_win",
+  "prompt": "For each user from Germany (country_code 'DE' in signups) who signed up in July 2025, which session was their first? July 2025 means signup_ts, a UTC moment, from 1 July 2025 up to but not including 1 August 2025. A user's first session is their session with the earliest session_start; when two sessions tie on session_start, the lower session_id counts as the first. Return three columns, in this order: user_id, session_id and utm_source, missing when the session had none. Return one row for each such user with at least one session. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "user_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "session_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "utm_source",
+        "type_class": "text"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "user_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "session_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "utm_source",
+        "type_class": "text",
+        "precision": "exact"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "user_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the step that numbers each user's sessions from the earliest; the outer query keeps the first.",
+    "Each user needs exactly one first session, so number the sessions apart, the earliest first, with the stated tie-break after the start time."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 91,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 92,
+      "to": 238,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 239,
+      "to": 306,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 307,
+      "to": 454,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 457,
+      "to": 495,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 496,
+      "to": 514,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 515,
+      "to": 527,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "ROW_NUMBER marks one first session per user, with session_id settling two sessions that start at the same moment."
+}

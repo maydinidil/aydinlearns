@@ -43,7 +43,7 @@
         "SQL-DATE-01",
         "SQL-CLEAN-01"
       ],
-      "prompt": "Yara's daily store report shows store orders after midnight, when every store is closed. The orders table may hold errors. The report reads every order_ts as UTC and turns it into Amsterdam time. In fact a store order's order_ts holds the store's local time (stores.timezone), and a web order's holds UTC. How many orders does the report put on another day than the Amsterdam day they were really placed on? Count every order, store and web. Type a whole number.",
+      "prompt": "Yara's daily store report shows store orders after midnight, when every store is closed. The orders table may hold errors. The report reads every order_ts as UTC and turns it into Amsterdam time. In fact a store order's order_ts holds the store's local time (stores.timezone: Amsterdam, Brussels or Luxembourg, which keep the same clock, summer time included), and a web order's holds UTC. How many orders does the report put on another day than the Amsterdam day they were really placed on? Count every order, store and web. Type a whole number.",
       "typed": {
         "precision": "count",
         "scale": "plain",
@@ -72,7 +72,7 @@
         "SQL-DATE-01",
         "SQL-CLEAN-01"
       ],
-      "prompt": "Yara's monthly store targets read the same report. How much revenue does the report book in another month than the month the order was really placed in, in Amsterdam time? These tables may hold errors. The report reads every order_ts as UTC and turns it into Amsterdam time. In fact a store order's order_ts holds the store's local time (stores.timezone), and a web order's holds UTC. A line's revenue is quantity times unit_price_eur minus line_discount_eur, as stored. Add up the revenue of every order the report puts in another month. Type the amount in euros, rounded to 2 decimals.",
+      "prompt": "Yara's monthly store targets read the same report. How much revenue does the report book in another month than the month the order was really placed in, in Amsterdam time? These tables may hold errors. The report reads every order_ts as UTC and turns it into Amsterdam time. In fact a store order's order_ts holds the store's local time (stores.timezone: Amsterdam, Brussels or Luxembourg, which keep the same clock, summer time included), and a web order's holds UTC. A line's revenue is quantity times unit_price_eur minus line_discount_eur, as stored. Add up the revenue of every order the report puts in another month. Type the amount in euros, rounded to 2 decimals.",
       "typed": {
         "precision": "money",
         "scale": "eur",

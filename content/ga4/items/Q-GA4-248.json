@@ -1,0 +1,52 @@
+{
+  "id": "Q-GA4-248",
+  "version": 1,
+  "kind": "mcq",
+  "section": "ga4",
+  "concept_id": "GA4-SETUP-20",
+  "parent_id": "GA4-SETUP-01",
+  "topic_id": "T-GA4-01",
+  "legacy_id": null,
+  "stem": "A developer plans to send each customer's email address as the user ID, so that GA4 data matches the CRM one to one. You review the plan before it ships. What do you say?",
+  "options": [
+    {
+      "oid": "oc2c38a4",
+      "text": "Use an internal customer number: no user ID may hold data a third party could identify a person by",
+      "misconception_id": null
+    },
+    {
+      "oid": "o0a912fc",
+      "text": "Go ahead: email addresses stay under 256 characters, and that length is the only user ID rule",
+      "misconception_id": null
+    },
+    {
+      "oid": "ofbb340b",
+      "text": "Go ahead, as long as the property uses the Device-based identity for the signed-in customers",
+      "misconception_id": null
+    },
+    {
+      "oid": "o4be28a3",
+      "text": "Go ahead: an email is the most accurate identity space, so the one-to-one CRM match is well worth it",
+      "misconception_id": null
+    }
+  ],
+  "typed": null,
+  "exam_relevance": "core",
+  "held_out": true,
+  "enemy_group": null,
+  "status": "active",
+  "verified": true,
+  "level": 1,
+  "tags": [
+    "ga4",
+    "T-GA4-01"
+  ],
+  "source_ids": [
+    "10:GA4-SETUP-20",
+    "10:§5",
+    "ERRATA:E-205"
+  ],
+  "as_of": "2026-09-30",
+  "review_after": null,
+  "supersedes": []
+}

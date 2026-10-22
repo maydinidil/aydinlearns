@@ -1,0 +1,172 @@
+{
+  "id": "EX-SQL-WIN-01-E2-32",
+  "version": 1,
+  "kind": "fix",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "window",
+    "window_in_where",
+    "filter_on_window",
+    "ad_spend_daily",
+    "fix"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-WIN-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-WIN-01"
+  ],
+  "template_id": "T-WIN-01-fix-window-in-where",
+  "template_params": {
+    "table": "ad_spend_daily",
+    "step": "campaign",
+    "partition": "channel"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "mailvora",
+  "schema": "mailvora",
+  "edge_schema": "mailvora_edge_win",
+  "prompt": "The query in the editor has one mistake. Fix it so that it answers this question: which campaigns spent more than the average campaign of their channel? Count all the spend in ad_spend_daily, and average over the campaigns of the channel that have spend. Compare with the exact average. Return four columns, in this order: campaign_id, channel_id, spend (the campaign's total spend) and channel_avg, the channel's average campaign spend rounded to 2 decimals. Return one row for each such campaign. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "campaign_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "channel_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "spend",
+        "type_class": "numeric"
+      },
+      {
+        "name": "channel_avg",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "campaign_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "channel_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "spend",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "channel_avg",
+        "type_class": "numeric",
+        "precision": "money",
+        "require_rounding": 2
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "campaign_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, move the comparison out of the query that works out the window: name the channel average in a step first.",
+    "WHERE picks rows before any window is worked out, so the average must be a named column of a WITH step before the outer WHERE can test it."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 60,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 61,
+      "to": 120,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 121,
+      "to": 196,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 197,
+      "to": 235,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 239,
+      "to": 288,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 289,
+      "to": 393,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 394,
+      "to": 415,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 418,
+      "to": 491,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 492,
+      "to": 505,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 506,
+      "to": 529,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": "WITH campaign_spend AS (  -- one row per campaign with spend\n  SELECT c.campaign_id, c.channel_id, SUM(a.spend) AS spend\n  FROM ad_spend_daily a\n  JOIN campaigns c ON c.campaign_id = a.campaign_id\n  GROUP BY c.campaign_id, c.channel_id\n)\nSELECT campaign_id, channel_id, spend, ROUND(AVG(spend) OVER (PARTITION BY channel_id), 2) AS channel_avg\nFROM campaign_spend\nWHERE spend > AVG(spend) OVER (PARTITION BY channel_id)",
+  "time_target_ms": 180000,
+  "why_this_works": "The window is worked out in a WITH step and named, so the outer WHERE can test it: WHERE never sees a window in its own query.",
+  "starter_error_id": "ERR-SYN-08"
+}

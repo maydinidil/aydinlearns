@@ -1,0 +1,147 @@
+{
+  "id": "EX-SQL-WIN-06-E1-07",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "window",
+    "lag",
+    "filter_window_result",
+    "subscriptions"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-06"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-WIN-06",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-CTE-01",
+    "SQL-WIN-01",
+    "SQL-WIN-03",
+    "SQL-WIN-06"
+  ],
+  "template_id": "T-WIN-06-filter-lag-result",
+  "template_params": {
+    "table": "subscriptions",
+    "test": "plan changed"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "mailvora",
+  "schema": "mailvora",
+  "edge_schema": "mailvora_edge_win",
+  "prompt": "Which subscriptions that started in August 2025 (start_date from 1 to 31 August 2025, both days included) moved the user to another plan? Compare each subscription with the same user's subscription just before it, whenever that one started; a user's subscriptions follow each other by start_date, and no user has two subscriptions that start on the same day. A user's first subscription has nothing before it and is never listed. Return four columns, in this order: user_id, subscription_id, prev_plan (the plan_name of the subscription before) and plan_name. Return one row for each such subscription. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "user_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "subscription_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "prev_plan",
+        "type_class": "text"
+      },
+      {
+        "name": "plan_name",
+        "type_class": "text"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "user_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "subscription_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "prev_plan",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "plan_name",
+        "type_class": "text",
+        "precision": "exact"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "subscription_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, put the plan of each user's previous subscription beside every subscription, before any filter on August.",
+    "The earlier subscription can start before August, so the LAG must see all of a user's subscriptions; the August test and the plan test both go in the outer query."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 92,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 93,
+      "to": 235,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 236,
+      "to": 256,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 259,
+      "to": 312,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 313,
+      "to": 322,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 323,
+      "to": 416,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "LAG reads each user's subscription before over all of the user's subscriptions, and only then does the outer WHERE keep August's starts whose plan differs."
+}

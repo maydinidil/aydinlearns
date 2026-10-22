@@ -1,0 +1,54 @@
+{
+  "id": "Q-GA4-263",
+  "version": 1,
+  "kind": "mcq",
+  "section": "ga4",
+  "concept_id": "GA4-PRIVACY-21",
+  "parent_id": "GA4-PRIVACY-02",
+  "topic_id": "T-GA4-05",
+  "legacy_id": null,
+  "stem": "Event data retention has been set to 2 months for a year. Today the admin raises it to 14 months, and an analyst asks whether a funnel exploration over the past 12 months will now show the full year. What is the accurate answer?",
+  "options": [
+    {
+      "oid": "od6690a0",
+      "text": "Yes: raising retention restores the past 12 months to every exploration within 24 hours",
+      "misconception_id": null
+    },
+    {
+      "oid": "o9c5d4fd",
+      "text": "Yes, but only in standard reports, which take their data from event data retention",
+      "misconception_id": null
+    },
+    {
+      "oid": "o2c89096",
+      "text": "No: explorations always cover at most 2 months of data, whatever the retention setting",
+      "misconception_id": null
+    },
+    {
+      "oid": "o539a0b2",
+      "text": "No: older events were already deleted; only data still held is now kept for longer",
+      "misconception_id": null
+    }
+  ],
+  "typed": null,
+  "exam_relevance": "core",
+  "held_out": true,
+  "enemy_group": null,
+  "status": "active",
+  "verified": true,
+  "level": null,
+  "tags": [
+    "ga4",
+    "T-GA4-05"
+  ],
+  "source_ids": [
+    "10:GA4-PRIVACY-21",
+    "10:§3",
+    "06:GA4-PRIVACY-02",
+    "ERRATA:E-113",
+    "ERRATA:E-205"
+  ],
+  "as_of": "2026-09-30",
+  "review_after": null,
+  "supersedes": []
+}

@@ -89,7 +89,10 @@ export interface InstanceFact {
   close_date: string;
   /** summarise (core/rating.ts) on the instance's attempts and the help before its close: its graded attempts (S2-07), its first one, its pass. */
   summary: InstanceSummary;
-  /** A hint, "show answer" or an answered tutor question came before the close (help after it is free, S2-44). */
+  /**
+   * A hint or "show answer" came before the close (help after it is free, S2-44), or an answered tutor question came before the pass,
+   * or before the close when there is none (S7-33: a question after the pass counts for nothing, spec §7).
+   */
   helped: boolean;
   /** The instance was served as a repeat exposure (replay's reading: any of its records says so). */
   repeat_exposure: boolean;
@@ -179,9 +182,12 @@ export function instanceFacts(replay: ReplayResult, attempts: readonly object[],
       closed_at: x.closed_at, close_reason: null, override: overrideId === null ? 'none' : decided.get(overrideId) ?? 'pending',
     }, rules);
     const latest = list.filter((a) => a.fact.outcome === 'pass' && a.fact.grading_source !== 'override').at(-1);
+    // S7-33 (T5 M1): a tutor question asked after the pass is no help (spec §7), by its ask time (tutor_asked.ts, D112).
+    const passAt = summary.passAttempt === null ? null : Date.parse(summary.passAttempt.submitted_at);
+    const helped = help.some((h) => h.kind !== 'tutor' || passAt === null || Date.parse(h.ts) < passAt);
     out.push({
       instance_id: x.instance_id, item_id: x.item_id, section: x.section, concept_id: x.concept_id, phase: x.phase, answer,
-      closed_at: x.closed_at, close_date: amsterdamDate(new Date(closed)), summary, helped: help.length > 0,
+      closed_at: x.closed_at, close_date: amsterdamDate(new Date(closed)), summary, helped,
       repeat_exposure: x.repeat_exposure,
       latest_pass: latest ? { submitted_at: latest.fact.submitted_at, grader_version: latest.grader_version, notes: latest.notes, division_check: latest.division_check } : null,
     });
@@ -273,7 +279,8 @@ export interface TrendWeek { week: string; starts: string; sql: TrendCell; choic
 /**
  * S4B-27: the last 8 ISO weeks, oldest first, this week last. Each week holds the instances closed in it (Amsterdam dates). First-attempt
  * accuracy: of the instances with a graded attempt, those whose first one was right with no help before it. Help: of all of them,
- * those with a hint or "show answer" before the close. A week with no instances has 0 of 0 and no percentage.
+ * those `helped`: a hint or "show answer" before the close, or a tutor question before the pass (S7-33). A week with no instances has 0
+ * of 0 and no percentage.
  */
 export function trends(facts: readonly InstanceFact[], today: string): TrendWeek[] {
   const thisWeek = isoWeek(today).monday;

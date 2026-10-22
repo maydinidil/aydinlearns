@@ -1,0 +1,85 @@
+{
+  "case_id": "CASE-DAILY-L5-01",
+  "kind": "daily",
+  "level": 5,
+  "world": "RETAIL",
+  "company_id": "voltmarkt",
+  "title": "Each store's share of its country",
+  "persona": {
+    "name": "Yara",
+    "role": "Retail operations"
+  },
+  "brief": {
+    "decision": "How to spread extra weekend staff over each country's stores for the summer sales",
+    "deadline": "The country staffing call on Thursday"
+  },
+  "data_needed": [
+    "order_lines",
+    "orders",
+    "stores"
+  ],
+  "expected_output": {
+    "columns": [
+      "store_code",
+      "country_code",
+      "net_revenue_eur",
+      "country_share_pct"
+    ],
+    "grain": "one row per physical store with an order from January to June 2025",
+    "sort": [
+      {
+        "column": "store_code",
+        "desc": false
+      }
+    ]
+  },
+  "checkpoints": [
+    {
+      "id": "CP3",
+      "kind": "CP3",
+      "prompt": "Write the query that answers Yara's question.",
+      "credits_concepts": [
+        "SQL-WIN-01"
+      ],
+      "item_id": "EX-CASE-DAILY-L5-01"
+    },
+    {
+      "id": "CP4",
+      "kind": "CP4",
+      "prompt": "Yara's headline: take the physical stores in the Netherlands, the stores with country_code NL other than the webshop (store_type web), and their orders with an order_ts from 2025-01-01 00:00:00 up to but not including 2025-07-01 00:00:00 (order_ts holds UTC time). Net revenue is the sum of quantity times unit_price_eur minus line_discount_eur over the lines of those orders. What percentage of that net revenue came from store NL-01? Type the percentage rounded to 1 decimal, for example 12.3.",
+      "credits_concepts": [],
+      "item_id": "CASE-DAILY-L5-01:CP4",
+      "typed": {
+        "precision": "ratio",
+        "scale": "percent",
+        "decimals": 1,
+        "unit_label": "%"
+      },
+      "truth_key": "CASE-DAILY-L5-01:CP4"
+    }
+  ],
+  "model_plan": "Metric formula: net_revenue_eur, the sum of quantity times unit_price_eur minus line_discount_eur over a store's lines; country_share_pct, 100 times that divided by the net revenue of all the physical stores of the same country.\nOutput grain: one row per physical store with an order from January to June 2025.\nTables and keys: order_lines joined to orders on order_id and to stores on store_id, in a step at one row per store; a window total over the stores of each country gives the denominator.\nFilters: order_ts from 2025-01-01 up to but not including 2025-07-01, in UTC; store_type is not web.\nEdge cases: a country with one store that sold gives that store 100 percent; a store with no order in the period has no row and adds nothing to its country's total; the webshop is left out of the rows and the totals.\nExpected row count: 25",
+  "model_answer_template": "From January to June 2025, the Amsterdam flagship NL-01 brought in {CP4} percent of the net revenue of the Dutch physical stores, the largest share of any Dutch store. In each country the flagship carries the biggest share, so extra weekend staff does the most good there first. A share says nothing about how busy a store is per staff hour, and a store that opened or closed during the half year traded for fewer days. Next, compare each store's revenue per trading day and its weekend peak before sharing out the extra staff.",
+  "follow_up_question": "How does each store's share of its country's revenue on weekends compare with its share on weekdays?",
+  "data_source": {
+    "label": "Fictional, generated data: Voltmarkt",
+    "real": false,
+    "licence": null
+  },
+  "difficulty": 1,
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-WIN-01"
+  ],
+  "metric_ids": [],
+  "find_ids": [],
+  "uses_raw": false
+}

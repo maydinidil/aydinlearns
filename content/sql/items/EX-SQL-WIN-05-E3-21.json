@@ -1,0 +1,159 @@
+{
+  "id": "EX-SQL-WIN-05-E3-21",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "moving_average",
+    "trailing_window",
+    "spike",
+    "weekly_units",
+    "drill"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-05"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-WIN-05",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-TYPE-01",
+    "SQL-CTE-01",
+    "SQL-WIN-01",
+    "SQL-WIN-04",
+    "SQL-WIN-05"
+  ],
+  "template_id": "T-WIN-05-spike-over-trailing",
+  "template_params": {
+    "table": "weekly_units",
+    "group": "product",
+    "window": "4 weeks before"
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_win",
+  "prompt": "For products 1 to 50 (product_id from 1 to 50, both included), find the weeks starting from 3 March to 30 June 2025 (week_start, both days included) in which the product sold at least 2 units and at least twice its average weekly units of the 4 weeks before (that week not included). weekly_units holds a row for every product and week, with 0 when nothing sold, and the 4 weeks may reach back before 3 March. Return product_id, week_start, units and avg_prev_4w, the 4-week average rounded to 2 decimals, for those weeks only. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "week_start",
+        "type_class": "temporal"
+      },
+      {
+        "name": "units",
+        "type_class": "numeric"
+      },
+      {
+        "name": "avg_prev_4w",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "week_start",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "units",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "avg_prev_4w",
+        "type_class": "numeric",
+        "precision": "ratio",
+        "require_rounding": 2
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "product_id",
+      "week_start"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, give each product's weeks their average over the 4 weeks before, before keeping the March to June spikes.",
+    "The frame ends on the row before the week and starts 4 rows back; the week filter goes in the outer query so March can read February."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 45,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 46,
+      "to": 207,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 208,
+      "to": 227,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 228,
+      "to": 265,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 266,
+      "to": 340,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 341,
+      "to": 347,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 348,
+      "to": 460,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "The frame of the 4 rows before each week leaves the week itself out, and filtering March to June after the window lets early March read February."
+}

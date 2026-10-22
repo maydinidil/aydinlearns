@@ -1,0 +1,172 @@
+{
+  "case_id": "CASE-MOCK-B",
+  "kind": "case_round",
+  "level": 5,
+  "world": "MKT",
+  "company_id": "mailvora",
+  "schema": "mailvora",
+  "title": "First visits by channel, July to October 2025",
+  "persona": {
+    "name": "Ciarán",
+    "role": "Marketing director"
+  },
+  "brief": {
+    "decision": "Which channels the 2026 marketing plan counts on to bring people to Mailvora's site for the first time, and which bring back more of the people who already know Mailvora, based on each channel's share of first visits from July to October 2025",
+    "deadline": "Friday's planning workshop"
+  },
+  "data_needed": [
+    "sessions",
+    "campaigns",
+    "channels"
+  ],
+  "expected_output": {
+    "columns": [
+      "channel",
+      "sessions",
+      "first_visits",
+      "first_visit_pct"
+    ],
+    "grain": "one row per channel with at least one session from July to October 2025",
+    "sort": [
+      {
+        "column": "first_visit_pct",
+        "desc": true
+      },
+      {
+        "column": "channel",
+        "desc": false
+      }
+    ]
+  },
+  "checkpoints": [
+    {
+      "id": "CP1",
+      "kind": "CP1",
+      "item_id": "CASE-MOCK-B:CP1",
+      "credits_concepts": [],
+      "prompt": "Ciarán wants each channel's share of the sessions from July to October 2025 that were a visitor's first visit to Mailvora's site. Which sessions decide whether a session in that period is a first visit?",
+      "options": [
+        {
+          "oid": "oc61f120",
+          "text": "Only the sessions from July to October 2025: a visitor's first session in that period is the first visit, since visits before July are outside the question's scope."
+        },
+        {
+          "oid": "of3e31ad",
+          "text": "All of the visitor's sessions at any date: the visitor's earliest session ever is the first visit, and it counts only when it falls from July to October 2025."
+        },
+        {
+          "oid": "o4bedb37",
+          "text": "Only the sessions of visitors who later signed up, since a first visit matters to the plan only for the people who went on to become Mailvora users."
+        },
+        {
+          "oid": "oec16da4",
+          "text": "Only the sessions with a utm_campaign, since organic, referral and direct visitors carry no campaign tag and cannot be followed back to their first visit."
+        }
+      ]
+    },
+    {
+      "id": "CP2",
+      "kind": "CP2",
+      "item_id": "CASE-MOCK-B:CP2",
+      "credits_concepts": [
+        "SQL-AGG-01"
+      ],
+      "prompt": "How many visitors came to Mailvora's site for the first time from 1 July 2025 00:00 up to but not including 1 November 2025 00:00, UTC? A visitor's first time is the visitor's earliest session_start in sessions, at any date, and session_start is a moment in UTC. Count each visitor once. Type a whole number.",
+      "typed": {
+        "precision": "count",
+        "scale": "plain",
+        "decimals": 0,
+        "unit_label": "visitors"
+      },
+      "truth_key": "CASE-MOCK-B:CP2"
+    },
+    {
+      "id": "CP3",
+      "kind": "CP3",
+      "item_id": "EX-MOCK-CASE-B",
+      "credits_concepts": [
+        "SQL-WIN-02",
+        "SQL-WIN-01",
+        "SQL-CTE-01",
+        "SQL-JOIN-02",
+        "SQL-CASE-01",
+        "SQL-AGG-04"
+      ],
+      "prompt": "Write the query that answers Ciarán's question."
+    },
+    {
+      "id": "CP4",
+      "kind": "CP4",
+      "item_id": "CASE-MOCK-B:CP4",
+      "credits_concepts": [],
+      "prompt": "Ciarán's headline is YouTube's share of first visits. Take the sessions whose session_start, a moment in UTC, is from 1 July 2025 00:00 up to but not including 1 November 2025 00:00, and whose utm_campaign is the utm_campaign of a campaign of the channel named youtube (campaigns, then channels). A session is a first visit when it is its visitor's earliest session in sessions at any date. When two sessions of a visitor tie on session_start, the one with the lower session_id counts as the earlier. What percentage of those YouTube sessions were first visits? Type the percentage rounded to 1 decimal, for example 12.3.",
+      "typed": {
+        "precision": "ratio",
+        "scale": "percent",
+        "decimals": 1,
+        "unit_label": "%"
+      },
+      "truth_key": "CASE-MOCK-B:CP4"
+    },
+    {
+      "id": "CP5",
+      "kind": "CP5",
+      "item_id": "CASE-MOCK-B:CP5",
+      "credits_concepts": [],
+      "prompt": "Ciarán's table for July to October 2025 shows that most YouTube sessions were a visitor's first visit, while brand search and direct sessions were far more often return visits than YouTube's. Ciarán wants to move part of the brand search budget to YouTube on the strength of this table. What should Ciarán be told?",
+      "options": [
+        {
+          "oid": "o40103cc",
+          "text": "Go ahead: YouTube finds new people, while brand search only brings back visitors who already know Mailvora and would have come anyway, so its budget is wasted."
+        },
+        {
+          "oid": "od242225",
+          "text": "Not yet: a first visit is a new visitor_id, not proof of a new person or signup, and the table cannot show what brand search adds; test the move first with a regional pause."
+        },
+        {
+          "oid": "o732b329",
+          "text": "Do the opposite: return visitors are the ones who go on to sign up, so part of the YouTube budget should move to brand search, which is what brings them back."
+        },
+        {
+          "oid": "o616889d",
+          "text": "Not on the share alone: rank the channels by their number of first visits instead, since a small channel can have a high share, and move the budget to the channel with the most."
+        }
+      ]
+    },
+    {
+      "id": "CP6",
+      "kind": "CP6",
+      "credits_concepts": [],
+      "prompt": "Write 2 to 4 sentences for Ciarán that you could say aloud in 60 seconds: the headline number, what it means for the channels' roles in the 2026 plan, one caveat and one next step before Friday's planning workshop."
+    }
+  ],
+  "model_plan": "Metric formula: per channel, the sessions from 1 July to 31 October 2025 (UTC), how many of them were the visitor's first session ever (ROW_NUMBER over all of a visitor's sessions by session_start, then session_id, equal to 1), and that count as a percentage of the channel's sessions, rounded to 1 decimal.\nOutput grain: one row per channel with at least one session in the period.\nTables and keys: sessions left joined to campaigns on utm_campaign, and campaigns to channels on channel_id, for the channel rule; the numbering is per visitor_id.\nFilters: number every session first, then keep the sessions whose session_start is from 1 July 2025 00:00 up to but not including 1 November 2025 00:00, UTC.\nEdge cases: filtering the period before the numbering makes a returning visitor's first session in July look new; two sessions of a visitor at the same moment need the session_id tie-break so only one is first; sessions without a utm_campaign need left joins and the organic, referral and direct rule.\nExpected row count: 10",
+  "model_answer_template": "{CP4} percent of YouTube's sessions from July to October 2025 were a visitor's first visit, the highest share of any channel, while brand search and direct had the lowest shares; across all channels, {CP2} visitors came to the site for the first time. So YouTube is the channel that finds new people, and brand search and direct bring back more of the people who already know Mailvora. A first visit is a new visitor_id, so cleared cookies or a new device make a returning person look new, and the table says nothing about who signs up. Before Friday, I would add the signups per first visit for each channel and propose a test that pauses brand search in some regions, to see how many of its visitors come back anyway.",
+  "follow_up_question": "How many of each channel's first-time visitors went on to sign up?",
+  "data_source": {
+    "label": "Fictional, generated data: Mailvora",
+    "real": false,
+    "licence": null
+  },
+  "difficulty": 3,
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-SORT-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CASE-01",
+    "SQL-AGG-04",
+    "SQL-TYPE-01",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-WIN-01",
+    "SQL-WIN-02"
+  ],
+  "metric_ids": [],
+  "find_ids": [],
+  "uses_raw": false
+}

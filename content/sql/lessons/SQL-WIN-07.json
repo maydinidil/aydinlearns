@@ -1,0 +1,108 @@
+{
+  "concept_id": "SQL-WIN-07",
+  "version": 1,
+  "reading_md": "## Groups, edges and percentiles\n\nThe last window functions of level 5 answer three kinds of question: which group of a ranking a row falls in, what value sits at the edge of a group, and where the middle of a group's values lies.\n\n### NTILE: groups of near equal size\n\n`NTILE(4) OVER (PARTITION BY category_id ORDER BY unit_cost_eur DESC, product_id)` deals each category's products, in that order, into 4 groups: quartiles. The groups differ in size by at most one row, and the larger ones come first: 30 products give 8, 8, 7 and 7. A group with fewer rows than groups fills only the first ones: 3 products get groups 1, 2 and 3.\n\nNTILE counts rows, not values. Two products with the same cost can land in different groups, and which one goes first is chance unless the ORDER BY ends in a tie-break such as product_id. Say the tie-break in every NTILE query.\n\nGroups of equal size are not equal shares. The top tenth of customers often brings far more than a tenth of the revenue, and that gap is usually the finding.\n\n### FIRST_VALUE and LAST_VALUE: the edge of the frame\n\nFIRST_VALUE(x) returns x from the first row of the window frame, and LAST_VALUE(x) from its last row. With an ORDER BY, the default frame runs from the first row of the partition to the current row, so LAST_VALUE returns the current row's own value. Write the frame out:\n\n```sql\nLAST_VALUE(list_price_eur) OVER (\n  PARTITION BY product_id ORDER BY valid_from\n  ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS current_price_eur\n```\n\nFIRST_VALUE gives the right answer with the default frame, because that frame always starts at the first row, but writing the frame makes the query say what it means. NTH_VALUE(x, 2) reads the second row of the frame in the same way.\n\n### Percentiles\n\nThe median is the middle value once the values are sorted; with an even number of values, it is the average of the two middle ones. `percentile_cont(0.5) WITHIN GROUP (ORDER BY clicks)` is an aggregate, used with GROUP BY like SUM. 0.25 and 0.75 give the quartile cut points. \"cont\" means continuous: a percentile that falls between two values lies between them in proportion. DuckDB also has MEDIAN(x) and quantile_cont(x, 0.5), which give the same value and also work over a window.\n\n### A row's place as a share\n\nCUME_DIST() gives the share of the partition's rows that sort at or before the current row, tied rows included. PERCENT_RANK() gives (rank - 1) / (rows - 1): 0 for the first row and 1 for the last.",
+  "syntax_md": "```sql\nNTILE(4) OVER (PARTITION BY category_id\n               ORDER BY unit_cost_eur DESC, product_id)       -- groups 1 to 4\n\nLAST_VALUE(list_price_eur) OVER (PARTITION BY product_id ORDER BY valid_from\n  ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING)    -- the latest version's price\n\npercentile_cont(0.5) WITHIN GROUP (ORDER BY clicks)           -- an aggregate: the median\n```\n\n- NTILE(n) makes n groups whose sizes differ by at most one row; end its ORDER BY with a tie-break.\n- FIRST_VALUE and LAST_VALUE read the edge of the frame: write the frame out.\n- percentile_cont(p) takes p from 0 to 1 and works with GROUP BY. DuckDB also has MEDIAN(x) and quantile_cont(x, p).\n- CUME_DIST() and PERCENT_RANK() give a row's place as a share of its partition.",
+  "dialect_note": "In DuckDB 1.5.6, percentile_cont(p) WITHIN GROUP (ORDER BY x) works only as an aggregate; for a percentile on every row, write quantile_cont(x, p) OVER (...) or MEDIAN(x) OVER (...). On a DECIMAL column such as a price, the result keeps the column's decimals and drops the rest: the median of 1.01 and 1.02 shows as 1.01, not 1.015. That is why a median of money here is rounded to whole euros. The answer keys write percentile_cont, and MEDIAN or quantile_cont answers pass too.",
+  "worked_examples": [
+    {
+      "title": "Cost quartiles within each category",
+      "prompt": "Split the products of each category into four cost quartiles, quartile 1 the most expensive; when products tie on unit cost, the lower product_id comes first. Return category_id, product_id, unit_cost_eur and cost_quartile.",
+      "clauses": [
+        {
+          "text": "SELECT category_id, product_id, unit_cost_eur,",
+          "subgoal": "metrics",
+          "why": "The columns to show; every product stays a row."
+        },
+        {
+          "text": "NTILE(4) OVER (PARTITION BY category_id ORDER BY unit_cost_eur DESC, product_id) AS cost_quartile",
+          "subgoal": "metrics",
+          "why": "Each category's products are dealt, most expensive first, into four groups whose sizes differ by at most one; product_id settles a tie."
+        },
+        {
+          "text": "FROM products",
+          "subgoal": "source_grain",
+          "why": "One row per product."
+        }
+      ]
+    },
+    {
+      "title": "Each day beside the campaign's last day of July",
+      "prompt": "For each day with spend of campaign 25 in July 2025, show the spend on the campaign's last day with spend in July beside the day's own spend. Return spend_date, spend and last_day_spend.",
+      "clauses": [
+        {
+          "text": "SELECT spend_date, spend,",
+          "subgoal": "metrics",
+          "why": "Each day of the campaign stays a row."
+        },
+        {
+          "text": "LAST_VALUE(spend) OVER (ORDER BY spend_date ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS last_day_spend",
+          "subgoal": "metrics",
+          "why": "The frame runs from the first day to the last, so its last row is the last day of July on every row; without the frame it would end at the current day."
+        },
+        {
+          "text": "FROM ad_spend_daily",
+          "subgoal": "source_grain",
+          "why": "One row per campaign per day with spend."
+        },
+        {
+          "text": "WHERE campaign_id = 25 AND spend_date BETWEEN DATE '2025-07-01' AND DATE '2025-07-31'",
+          "subgoal": "row_filter",
+          "why": "Only campaign 25's July days take part, so the window needs no PARTITION BY."
+        }
+      ]
+    }
+  ],
+  "pretest_item_ids": [
+    "EX-SQL-WIN-07-E1-01",
+    "EX-SQL-WIN-07-E1-02"
+  ],
+  "lesson_item_ids": [
+    "EX-SQL-WIN-07-E1-03",
+    "EX-SQL-WIN-07-E1-04",
+    "EX-SQL-WIN-07-E2-01",
+    "EX-SQL-WIN-07-E2-02"
+  ],
+  "retest_item_id": "EX-SQL-WIN-07-E1-05",
+  "pool_item_ids": [
+    "EX-SQL-WIN-07-E1-06",
+    "EX-SQL-WIN-07-E1-07",
+    "EX-SQL-WIN-07-E2-03",
+    "EX-SQL-WIN-07-E2-04",
+    "EX-SQL-WIN-07-E2-05",
+    "EX-SQL-WIN-07-E2-06",
+    "EX-SQL-WIN-07-E3-01",
+    "EX-SQL-WIN-07-E3-02",
+    "EX-SQL-WIN-07-E2-31",
+    "EX-SQL-WIN-07-E1-42",
+    "EX-SQL-WIN-07-E2-41",
+    "EX-SQL-WIN-07-E2-42"
+  ],
+  "source_ids": [
+    "01:SQL-WIN-07"
+  ],
+  "why_clause": {
+    "clause": "ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING",
+    "stem": "Why does LAST_VALUE in the second example need this frame?",
+    "options": [
+      {
+        "id": "a",
+        "text": "With an ORDER BY and no frame, the window ends at the current row, so LAST_VALUE would return each day's own spend."
+      },
+      {
+        "id": "b",
+        "text": "Without it, LAST_VALUE would sort the days from the latest to the earliest."
+      },
+      {
+        "id": "c",
+        "text": "Without it, the window would run over every campaign, not only campaign 25."
+      },
+      {
+        "id": "d",
+        "text": "The frame makes LAST_VALUE skip days with a missing spend."
+      }
+    ],
+    "correct_id": "a",
+    "explanation": "With an ORDER BY, the default frame runs from the first row to the current row, so its last row is the current day and LAST_VALUE returns that day's spend. The frame written out runs to the last row, the last day of July. The sort order comes from ORDER BY, the campaign from the WHERE clause, and a frame does not skip missing values."
+  }
+}

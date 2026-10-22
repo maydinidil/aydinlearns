@@ -11,7 +11,10 @@ export interface GoalView {
   conceptsOf(section: Section, maxLevel: number): string[];
   stateOf(conceptId: string): ConceptStateName;
   externals: { kind: 'ga4_exam' | 'portfolio_piece'; data: unknown }[];
-  mocksPassed: Set<string>;
+  /** S7-05: each mock whose stage is met, with the Amsterdam date of its first counting pass (a pass on unseen content). */
+  mocksPassed: ReadonlyMap<string, string>;
+  /** S2-38, S7-04: the mocks a start can take now; an unpassed one is open (available, not met), any other "not yet available". */
+  mocksAvailable: ReadonlySet<string>;
   /** S4B-20: every solved case (replay, S4B-08) with its level, and whether a case_export event names it. */
   casesSolved: { case_id: string; level: number; exported: boolean; real: boolean }[];
   /** S6-26: how many cases on real data (data_source.real) can be opened now, their dataset being in the database. */
@@ -60,9 +63,12 @@ function evaluateCriterion(c: GoalCriterion, view: GoalView, today: string): Cri
       return { label, met: done === ids.length, available: true, done, total: ids.length };
     }
     case 'mock_pass': {
-      // No mock is built yet (slice 4 onward): a passed one is the only evidence the build can read.
+      // S7-05: a counting pass is the only evidence. The label names the date of the first counting pass, which the readiness board
+      // shows; a met stage stays met. Unpassed, a mock a start can take is open; one that cannot start yet reads "not yet available".
       const label = `${MOCK[c.mock] ?? c.mock} mock passed`;
-      return view.mocksPassed.has(c.mock) ? { label, met: true, available: true, done: null, total: null } : notYet(label);
+      const on = view.mocksPassed.get(c.mock);
+      if (on !== undefined) return { label: `${label} on ${on}`, met: true, available: true, done: null, total: null };
+      return view.mocksAvailable.has(c.mock) ? { label, met: false, available: true, done: null, total: null } : notYet(label);
     }
     case 'external': {
       const data = view.externals.filter((e) => e.kind === c.result).map((e) => e.data).filter(isRecord);

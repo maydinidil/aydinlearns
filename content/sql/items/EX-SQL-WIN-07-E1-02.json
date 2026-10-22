@@ -1,0 +1,120 @@
+{
+  "id": "EX-SQL-WIN-07-E1-02",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "percentile",
+    "median",
+    "group_by",
+    "ad_spend_daily",
+    "campaigns"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-07"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pretest",
+  "target_concept_id": "SQL-WIN-07",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-AGG-02",
+    "SQL-JOIN-01",
+    "SQL-WIN-07"
+  ],
+  "template_id": "T-WIN-07-median-per-group",
+  "template_params": {
+    "table": "ad_spend_daily",
+    "group": "channel",
+    "measure": "clicks"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "mailvora",
+  "schema": "mailvora",
+  "edge_schema": "mailvora_edge_win",
+  "prompt": "For each channel, what is the median of its campaigns' daily clicks from 1 July to 31 October 2025, both days included? spend_date is a UTC day, and each row of ad_spend_daily in that period is one value. The median is the middle value once the values are sorted; with an even number of values, it is the average of the two middle values. Return two columns, in this order: channel_id and median_clicks. Return one row for each channel with rows in that period. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "channel_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "median_clicks",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per channel with rows in the period"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "channel_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "median_clicks",
+        "type_class": "numeric",
+        "precision": "ratio"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "channel_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the median of the daily clicks as an aggregate, one value for each channel.",
+    "A continuous percentile at 0.5 is the median: it averages the two middle values when the count is even, which no plain average does."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 98,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 99,
+      "to": 170,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 171,
+      "to": 237,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 238,
+      "to": 259,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "percentile_cont(0.5) sorts each channel's daily clicks and takes the middle value, the average of the two middle ones when the count is even."
+}

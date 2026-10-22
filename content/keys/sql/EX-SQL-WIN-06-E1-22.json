@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-WIN-06-E1-22",
+  "item_version": 1,
+  "reference_sql": "WITH ranked AS (  -- one row per order, numbered within its customer from the latest\n  SELECT customer_id, order_id, channel,\n         ROW_NUMBER() OVER (PARTITION BY customer_id ORDER BY order_ts DESC, order_id) AS rn\n  FROM orders\n  WHERE customer_id BETWEEN 3001 AND 3100\n    AND order_ts >= TIMESTAMP '2025-01-01' AND order_ts < TIMESTAMP '2025-07-01'\n)\nSELECT customer_id, order_id\nFROM ranked\nWHERE rn = 1\n  AND channel = 'web'",
+  "alternatives": [
+    "SELECT r.customer_id, r.order_id\nFROM (\n  -- one row per order, numbered within its customer from the latest\n  SELECT customer_id, order_id, channel,\n         ROW_NUMBER() OVER (PARTITION BY customer_id ORDER BY order_ts DESC, order_id) AS rn\n  FROM orders\n  WHERE customer_id BETWEEN 3001 AND 3100\n    AND order_ts >= TIMESTAMP '2025-01-01' AND order_ts < TIMESTAMP '2025-07-01'\n) AS r\nWHERE r.rn = 1\n  AND r.channel = 'web'",
+    "WITH latest AS (  -- one row per customer: the latest order\n  SELECT customer_id, order_id, channel\n  FROM orders\n  WHERE customer_id BETWEEN 3001 AND 3100\n    AND order_ts >= TIMESTAMP '2025-01-01' AND order_ts < TIMESTAMP '2025-07-01'\n  QUALIFY ROW_NUMBER() OVER (PARTITION BY customer_id ORDER BY order_ts DESC, order_id) = 1\n)\nSELECT customer_id, order_id\nFROM latest\nWHERE channel = 'web'"
+  ],
+  "other_way": {
+    "sql": "WITH latest AS (  -- one row per customer: the latest order\n  SELECT customer_id, order_id, channel\n  FROM orders\n  WHERE customer_id BETWEEN 3001 AND 3100\n    AND order_ts >= TIMESTAMP '2025-01-01' AND order_ts < TIMESTAMP '2025-07-01'\n  QUALIFY ROW_NUMBER() OVER (PARTITION BY customer_id ORDER BY order_ts DESC, order_id) = 1\n)\nSELECT customer_id, order_id\nFROM latest\nWHERE channel = 'web'",
+    "tradeoff": "QUALIFY filters the window result in the same query, which is shorter, but PostgreSQL, MySQL and SQL Server do not accept it."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-40",
+      "sql": "WITH ranked AS (SELECT customer_id, order_id, channel, RANK() OVER (PARTITION BY customer_id ORDER BY order_ts DESC) AS rn FROM orders WHERE customer_id BETWEEN 3001 AND 3100 AND order_ts >= TIMESTAMP '2025-01-01' AND order_ts < TIMESTAMP '2025-07-01') SELECT customer_id, order_id FROM ranked WHERE rn = 1 AND channel = 'web'"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-18",
+      "sql": "WITH ranked AS (SELECT customer_id, order_id, channel, ROW_NUMBER() OVER (PARTITION BY customer_id ORDER BY order_ts, order_id) AS rn FROM orders WHERE customer_id BETWEEN 3001 AND 3100 AND order_ts >= TIMESTAMP '2025-01-01' AND order_ts < TIMESTAMP '2025-07-01') SELECT customer_id, order_id FROM ranked WHERE rn = 1 AND channel = 'web'"
+    }
+  ],
+  "hint3_partial": "WITH ranked AS (  -- one row per order, numbered within its customer from the latest\n  SELECT customer_id, order_id, channel,\n         ROW_NUMBER() OVER (PARTITION BY customer_id ORDER BY order_ts DESC, order_id) AS rn\n  FROM orders\n  WHERE customer_id BETWEEN 3001 AND 3100\n    AND order_ts >= TIMESTAMP '2025-01-01' AND order_ts < TIMESTAMP '2025-07-01'\n)\nSELECT customer_id, order_id\nFROM ranked\nWHERE ___",
+  "solver": {
+    "prompt_hash": "d9e6a410d47fe4b0",
+    "schema_version": "7ed366279088",
+    "dataset_version": "e7c58abf7e8f892e",
+    "grader_version": "7a.1",
+    "query": "WITH latest AS (\n  SELECT customer_id, order_id, channel\n  FROM orders\n  WHERE customer_id BETWEEN 3001 AND 3100\n    AND order_ts >= TIMESTAMP '2025-01-01 00:00:00' AND order_ts < TIMESTAMP '2025-07-01 00:00:00'\n  QUALIFY ROW_NUMBER() OVER (PARTITION BY customer_id ORDER BY order_ts DESC, order_id ASC) = 1\n)\nSELECT customer_id, order_id\nFROM latest\nWHERE channel = 'web'\n",
+    "at": "2026-10-21T09:05:10.263Z"
+  }
+}

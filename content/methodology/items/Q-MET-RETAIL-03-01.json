@@ -1,29 +1,29 @@
 {
   "id": "Q-MET-RETAIL-03-01",
-  "version": 1,
+  "version": 2,
   "kind": "mcq",
   "section": "methodology",
   "concept_id": "MET-RETAIL-03",
-  "stem": "A Voltmarkt store manager asks: \"At the pace we normally sell them, how many weeks will the gaming headsets we have in the store today last?\" Which metric answers this question?",
+  "stem": "A Voltmarkt store manager asks: \"At the pace we normally sell them, how many weeks will the gaming headsets we have in the store today last?\" Which calculation answers this question?",
   "options": [
     {
       "oid": "o6b19964",
-      "text": "Stockout rate",
+      "text": "100 × store-days that closed with 0 units / all store-days",
       "misconception_id": null
     },
     {
       "oid": "oa619d23",
-      "text": "Stock cover (weeks)",
+      "text": "Units on hand today / average weekly units sold",
       "misconception_id": null
     },
     {
       "oid": "o9d1d019",
-      "text": "Lost sales estimate",
+      "text": "Stockout days × units sold per in-stock day",
       "misconception_id": null
     },
     {
       "oid": "o84083d3",
-      "text": "Sell-through rate",
+      "text": "100 × (units sold - returns) / units received",
       "misconception_id": null
     }
   ],

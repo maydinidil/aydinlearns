@@ -1,0 +1,203 @@
+{
+  "id": "EX-MOCK-SCREEN-B-05",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "mock",
+    "screen",
+    "row_number",
+    "first_per_group",
+    "filter_window_result",
+    "mailvora",
+    "sessions",
+    "payments"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-06"
+  ],
+  "verified": true,
+  "as_of": "2026-10-21",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "mock",
+  "target_concept_id": "SQL-WIN-06",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-WIN-01",
+    "SQL-WIN-02",
+    "SQL-WIN-06"
+  ],
+  "template_id": "T-MOCK-SCREEN-first-session-landing-page-and-payers",
+  "template_params": {
+    "tables": "signups, sessions, subscriptions, payments",
+    "cohort": "signups from 2025-07-01 to 2025-09-30",
+    "fn": "ROW_NUMBER",
+    "keep": 1
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "mailvora",
+  "schema": "mailvora",
+  "edge_schema": "mailvora_edge_win",
+  "prompt": "The growth team wants to know which landing pages start the journeys of new users, and how many of those users go on to pay. Take the users whose signup_ts, a moment in UTC, is from 1 July 2025 00:00 up to but not including 1 October 2025 00:00. A user's sessions are the sessions with the user's visitor_id, and the user's first session is the one with the earliest session_start, whenever it was. When two sessions of a user tie on session_start, the one with the lower session_id counts as the first. A user is a paying user when any of the user's subscriptions has a payment that was not refunded (refunded is false). For each landing_page, return four columns, in this order: landing_page; new_users, the number of those users whose first session started on that landing page; paying_users, how many of them are paying users; and paying_pct, 100 times paying_users divided by new_users, rounded to 1 decimal. Count each user once, and leave out users with no session. Sort by new_users from highest to lowest; when landing pages tie on new_users, by landing_page from A to Z.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "landing_page",
+        "type_class": "text"
+      },
+      {
+        "name": "new_users",
+        "type_class": "numeric"
+      },
+      {
+        "name": "paying_users",
+        "type_class": "numeric"
+      },
+      {
+        "name": "paying_pct",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": true,
+    "sort_keys": [
+      {
+        "column": "new_users",
+        "desc": true
+      },
+      {
+        "column": "landing_page",
+        "desc": false
+      }
+    ],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "landing_page",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "new_users",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "paying_users",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "paying_pct",
+        "type_class": "numeric",
+        "precision": "ratio",
+        "require_rounding": 1
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "landing_page"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, number each new user's sessions from the earliest, keep the first one, and count the users by its landing page.",
+    "A filter on a numbered row belongs in an outer query, not in the WHERE of the query that numbers it; and a user with many payments must still count once."
+  ],
+  "subgoals": [
+    {
+      "from": 82,
+      "to": 108,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 111,
+      "to": 123,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 126,
+      "to": 238,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 325,
+      "to": 466,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 469,
+      "to": 535,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 611,
+      "to": 637,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 640,
+      "to": 721,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 724,
+      "to": 744,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 747,
+      "to": 909,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 910,
+      "to": 971,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 972,
+      "to": 994,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 995,
+      "to": 1018,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 1019,
+      "to": 1058,
+      "subgoal": "sort_limit"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "ROW_NUMBER with session_id as the tie-break gives each user exactly one first session, and the payers are reduced to one row per user before the join."
+}

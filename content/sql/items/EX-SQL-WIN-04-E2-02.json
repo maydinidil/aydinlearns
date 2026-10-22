@@ -1,0 +1,144 @@
+{
+  "id": "EX-SQL-WIN-04-E2-02",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "running_total",
+    "tie_break",
+    "rows_frame",
+    "ad_spend_daily"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-04"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "lesson",
+  "target_concept_id": "SQL-WIN-04",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-JOIN-01",
+    "SQL-WIN-01",
+    "SQL-WIN-04"
+  ],
+  "template_id": "T-WIN-04-running-total-tie-break",
+  "template_params": {
+    "table": "ad_spend_daily",
+    "channel": "brand_search",
+    "ties": "one at a time"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "mailvora",
+  "schema": "mailvora",
+  "edge_schema": "mailvora_edge_win",
+  "prompt": "For the brand_search channel (channel_id 2), show each campaign's spend row from 1 July to 31 October 2025 with the channel's running spend over that period, up to and including the row. Add the rows one at a time in order of spend_date; when two rows share a spend_date, the lower campaign_id comes first. Return spend_date, campaign_id, spend and running_spend_eur. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "spend_date",
+        "type_class": "temporal"
+      },
+      {
+        "name": "campaign_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "spend",
+        "type_class": "numeric"
+      },
+      {
+        "name": "running_spend_eur",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per campaign and day with spend"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "spend_date",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "campaign_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "spend",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "running_spend_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "spend_date",
+      "campaign_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the running total that adds the rows one at a time.",
+    "Several campaigns can spend on the same day: order by date, then by the campaign ID, and use a frame that counts rows, not values."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 44,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 45,
+      "to": 173,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 174,
+      "to": 245,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 246,
+      "to": 335,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": {
+    "stage1": 45,
+    "stage2": 45
+  },
+  "faded_shape": "SELECT a.spend_date, a.campaign_id, a.spend,\n",
+  "faded_suffix": "\nFROM ad_spend_daily a\nJOIN campaigns c ON c.campaign_id = a.campaign_id\nWHERE c.channel_id = 2\n  AND a.spend_date BETWEEN DATE '2025-07-01' AND DATE '2025-10-31'",
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "campaign_id breaks the same-day ties and ROWS adds one row at a time, so two rows of one day get different running totals."
+}

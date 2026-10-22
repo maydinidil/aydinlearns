@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-WIN-03-E1-22",
+  "item_version": 1,
+  "reference_sql": "SELECT store_id, city, opened_on,\n  LAG(city) OVER (ORDER BY opened_on) AS prev_city\nFROM stores",
+  "alternatives": [
+    "SELECT s.store_id, s.city, s.opened_on, p.city AS prev_city\nFROM stores s\nLEFT JOIN stores p ON p.opened_on = (SELECT MAX(s2.opened_on) FROM stores s2 WHERE s2.opened_on < s.opened_on)",
+    "SELECT store_id, city, opened_on,\n  LEAD(city) OVER (ORDER BY opened_on DESC) AS prev_city\nFROM stores"
+  ],
+  "other_way": {
+    "sql": "SELECT s.store_id, s.city, s.opened_on, p.city AS prev_city\nFROM stores s\nLEFT JOIN stores p ON p.opened_on = (SELECT MAX(s2.opened_on) FROM stores s2 WHERE s2.opened_on < s.opened_on)",
+    "tradeoff": "Joining each store to the latest earlier opening works without a window, but the subquery in the join is harder to follow."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-41",
+      "sql": "SELECT store_id, city, opened_on, LAG(city) OVER (ORDER BY store_id) AS prev_city FROM stores"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-18",
+      "sql": "SELECT store_id, city, opened_on, LAG(city) OVER (ORDER BY opened_on DESC) AS prev_city FROM stores"
+    }
+  ],
+  "hint3_partial": "SELECT store_id, city, opened_on,\n  LAG(city) OVER (ORDER BY ___) AS prev_city\nFROM stores",
+  "solver": {
+    "prompt_hash": "efc60397409b3efe",
+    "schema_version": "9a8d01143702",
+    "dataset_version": "e7c58abf7e8f892e",
+    "grader_version": "7a.1",
+    "query": "SELECT store_id, city, opened_on,\n  LAG(city) OVER (ORDER BY opened_on) AS prev_city\nFROM stores\n",
+    "at": "2026-10-21T09:05:07.336Z"
+  }
+}

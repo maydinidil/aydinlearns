@@ -18,7 +18,7 @@ import { LearnerState } from '../../server/state.ts';
 import type { ExploreDataset, ExploreView } from '../../server/routes/explore.ts';
 import type { TableNote } from '../../schemas/schema-notes.ts';
 import { makeContentFixture } from '../helpers/content-fixture.ts';
-import { EXPLORE_DB, exploreContent, exploreNotes } from '../helpers/explore-fixture.ts';
+import { BUILT_WITH_MAILVORA_RAW, EXPLORE_DB, exploreContent, exploreNotes } from '../helpers/explore-fixture.ts';
 import { makeFixtureDb } from '../helpers/fixture-db.ts';
 
 const root = await makeContentFixture();
@@ -28,6 +28,8 @@ const content = await loadContent(root);
 const withData = await exploreContent();
 /** The registry with an older build's truth file, which names no schemas. */
 const olderBuild = await exploreContent(null);
+/** The sprint 6 store on a build that also holds mailvora_raw, the mirror of voltmarkt_raw (Task G1, S6-20). */
+const withMailvoraRaw = await exploreContent(BUILT_WITH_MAILVORA_RAW);
 const H = { host: '127.0.0.1:5174' };
 const P = { ...H, origin: 'http://127.0.0.1:5174', 'content-type': 'application/json' };
 const get = (app: Hono, path: string) => app.request(`http://127.0.0.1:5174${path}`, { headers: H });
@@ -36,7 +38,7 @@ const json = async (r: Response | Promise<Response>): Promise<any> => (await r).
 
 const db = await makeFixtureDb(EXPLORE_DB);
 const runner = await startRunner(db);
-const made: string[] = [root, dirname(db), ...withData.dirs, ...olderBuild.dirs];
+const made: string[] = [root, dirname(db), ...withData.dirs, ...olderBuild.dirs, ...withMailvoraRaw.dirs];
 after(async () => {
   await runner.close();
   for (const d of made) await rm(d, { recursive: true, force: true });
@@ -185,6 +187,26 @@ test('S6-01: with voltmarkt active, voltmarkt_raw may be named and mailvora may 
     const r = await run(app, schema, sql);
     assert.equal(r.error?.kind, 'gate', `${schema}: ${sql}`);
   }
+});
+
+test('S7-30: a build that holds mailvora_raw lists it as the second schema of Mailvora and mirrors voltmarkt_raw: named from the clean schema, never the other way', async () => {
+  const { app } = await setup(withMailvoraRaw.content, exploreNotes());
+  const r = await json(get(app, '/api/explore')) as ExploreView;
+  const by = Object.fromEntries(r.datasets.map((d) => [d.id, d])) as Record<string, ExploreDataset>;
+  assert.deepEqual(by.mailvora!.schemas.map((s) => [s.name, s.prepared, s.also]), [['mailvora', true, 'mailvora_raw'], ['mailvora_raw', true, null]]);
+  assert.deepEqual(by.voltmarkt!.schemas.map((s) => [s.name, s.prepared, s.also]), [['voltmarkt', true, 'voltmarkt_raw'], ['voltmarkt_raw', true, null]]);
+  assert.equal((await run(app, 'mailvora_raw', 'SELECT session_id FROM sessions')).rowCount, 5, 'it runs on the raw schema');
+  assert.equal((await run(app, 'mailvora', 'SELECT s.session_id FROM mailvora_raw.sessions AS s')).rowCount, 5, 'the clean schema may name it');
+  for (const [schema, sql] of [
+    ['mailvora_raw', 'SELECT session_id FROM mailvora.sessions'],
+    ['voltmarkt', 'SELECT session_id FROM mailvora_raw.sessions'],
+    ['voltmarkt_raw', 'SELECT session_id FROM mailvora_raw.sessions'],
+    ['mailvora', 'SELECT order_id FROM voltmarkt_raw.orders'],
+  ] as const) assert.equal((await run(app, schema, sql)).error?.kind, 'gate', `${schema}: ${sql}`);
+  // The notes the panel shows are the build's: mailvora_raw's only on a build that holds it.
+  const notes = (store: ContentStore) => setup(store, exploreNotes()).then(({ app: a }) => json(get(a, '/api/explore')).then((v: ExploreView) => [...new Set(v.notes.map((n) => n.schema))].sort()));
+  assert.ok((await notes(withMailvoraRaw.content)).includes('mailvora_raw'));
+  assert.ok(!(await notes(withData.content)).includes('mailvora_raw'));
 });
 
 test('S6-24: a schema not in the list is refused with 400 before the runner: unknown, an edge schema, not built, not prepared', async () => {

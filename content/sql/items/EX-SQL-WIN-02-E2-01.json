@@ -1,0 +1,144 @@
+{
+  "id": "EX-SQL-WIN-02-E2-01",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "ranking",
+    "row_number",
+    "top_n_per_group",
+    "tie_break",
+    "products"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "lesson",
+  "target_concept_id": "SQL-WIN-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-CTE-01",
+    "SQL-WIN-01",
+    "SQL-WIN-02"
+  ],
+  "template_id": "T-WIN-02-top-n-per-group",
+  "template_params": {
+    "table": "products",
+    "partition": "category",
+    "fn": "ROW_NUMBER",
+    "n": 3,
+    "order": "unit cost, highest first"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_win",
+  "prompt": "Which are the 3 most expensive products of each category, by unit cost? Keep exactly 3 products per category, or all of them when a category has fewer than 3. When products tie on unit cost, the lower product_id comes first. Return three columns, in this order: category_id, product_id and unit_cost_eur. Return one row for each product kept. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "category_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "product_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "unit_cost_eur",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per product kept"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "category_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "product_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "unit_cost_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "product_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the number that orders each category's products, the most expensive first; the outer query keeps the first 3.",
+    "Exactly 3 rows per category needs a function that numbers tied rows apart, with the stated tie-break as the last sort key."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 40,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 41,
+      "to": 189,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 190,
+      "to": 205,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 208,
+      "to": 253,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 254,
+      "to": 265,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 266,
+      "to": 279,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": {
+    "stage1": 99,
+    "stage2": 99
+  },
+  "faded_shape": "WITH ranked AS (  -- one row per product\n  SELECT category_id, product_id, unit_cost_eur,\n         ",
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "ROW_NUMBER numbers each category's products apart, with product_id settling ties, so rn <= 3 keeps exactly 3 per category.",
+  "faded_suffix": "\n  FROM products\n)\nSELECT category_id, product_id, unit_cost_eur\nFROM ranked\nWHERE rn <= 3"
+}

@@ -1,0 +1,36 @@
+{
+  "item_id": "EX-MOCK-SCREEN-B-04",
+  "item_version": 1,
+  "reference_sql": "WITH first_pay AS (  -- one row per user with a payment that was not refunded\n  SELECT su.user_id, MIN(p.paid_at) AS first_paid_at\n  FROM subscriptions su\n  JOIN payments p ON p.subscription_id = su.subscription_id\n  WHERE NOT p.refunded\n  GROUP BY su.user_id\n)\nSELECT g.country_code,\n       COUNT(*) AS paying_users,\n       ROUND(AVG(CAST(f.first_paid_at AS DATE) - CAST(g.signup_ts AS DATE)), 1) AS avg_days_to_pay,\n       MAX(CAST(f.first_paid_at AS DATE) - CAST(g.signup_ts AS DATE)) AS max_days_to_pay\nFROM signups g\nJOIN first_pay f ON f.user_id = g.user_id\nWHERE g.signup_ts >= TIMESTAMPTZ '2025-07-01 00:00:00+00' AND g.signup_ts < TIMESTAMPTZ '2025-10-01 00:00:00+00'\nGROUP BY g.country_code\nORDER BY g.country_code",
+  "alternatives": [
+    "SELECT g.country_code,\n       COUNT(*) AS paying_users,\n       ROUND(AVG(date_diff('day', CAST(g.signup_ts AS DATE), CAST(f.first_paid_at AS DATE))), 1) AS avg_days_to_pay,\n       MAX(date_diff('day', CAST(g.signup_ts AS DATE), CAST(f.first_paid_at AS DATE))) AS max_days_to_pay\nFROM signups AS g\nJOIN (\n  -- one row per user with a payment that was not refunded\n  SELECT su.user_id, MIN(p.paid_at) AS first_paid_at\n  FROM subscriptions su\n  JOIN payments p ON p.subscription_id = su.subscription_id\n  WHERE p.refunded = false\n  GROUP BY su.user_id\n) AS f ON f.user_id = g.user_id\nWHERE CAST(g.signup_ts AS DATE) BETWEEN DATE '2025-07-01' AND DATE '2025-09-30'\nGROUP BY 1\nORDER BY 1",
+    "WITH q3_signups AS (  -- one row per user who signed up in July to September 2025\n  SELECT user_id, country_code, CAST(signup_ts AS DATE) AS signup_day\n  FROM signups\n  WHERE signup_ts >= '2025-07-01 00:00:00+00' AND signup_ts < '2025-10-01 00:00:00+00'\n),\npay_days AS (  -- one row per payment of those users that was not refunded\n  SELECT q.user_id, q.country_code, CAST(p.paid_at AS DATE) - q.signup_day AS days_to_pay\n  FROM q3_signups q\n  JOIN subscriptions su ON su.user_id = q.user_id\n  JOIN payments p ON p.subscription_id = su.subscription_id\n  WHERE NOT p.refunded\n),\nfirst_days AS (  -- one row per paying user\n  SELECT user_id, country_code, MIN(days_to_pay) AS days_to_pay\n  FROM pay_days\n  GROUP BY user_id, country_code\n)\nSELECT country_code, COUNT(user_id) AS paying_users, ROUND(AVG(days_to_pay), 1) AS avg_days_to_pay, MAX(days_to_pay) AS max_days_to_pay\nFROM first_days\nGROUP BY country_code\nORDER BY country_code ASC"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-34",
+      "sql": "WITH first_pay AS (SELECT su.user_id, MIN(p.paid_at) AS first_paid_at FROM subscriptions su JOIN payments p ON p.subscription_id = su.subscription_id WHERE NOT p.refunded GROUP BY su.user_id) SELECT g.country_code, COUNT(*) AS paying_users, ROUND(AVG(date_part('day', f.first_paid_at - g.signup_ts)), 1) AS avg_days_to_pay, MAX(date_part('day', f.first_paid_at - g.signup_ts)) AS max_days_to_pay FROM signups g JOIN first_pay f ON f.user_id = g.user_id WHERE g.signup_ts >= TIMESTAMPTZ '2025-07-01 00:00:00+00' AND g.signup_ts < TIMESTAMPTZ '2025-10-01 00:00:00+00' GROUP BY g.country_code ORDER BY g.country_code"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-07",
+      "sql": "SELECT g.country_code, COUNT(*) AS paying_users, ROUND(AVG(CAST(p.paid_at AS DATE) - CAST(g.signup_ts AS DATE)), 1) AS avg_days_to_pay, MAX(CAST(p.paid_at AS DATE) - CAST(g.signup_ts AS DATE)) AS max_days_to_pay FROM signups g JOIN subscriptions su ON su.user_id = g.user_id JOIN payments p ON p.subscription_id = su.subscription_id WHERE NOT p.refunded AND g.signup_ts >= TIMESTAMPTZ '2025-07-01 00:00:00+00' AND g.signup_ts < TIMESTAMPTZ '2025-10-01 00:00:00+00' GROUP BY g.country_code ORDER BY g.country_code"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-06",
+      "sql": "WITH first_pay AS (SELECT su.user_id, MIN(p.paid_at) AS first_paid_at FROM subscriptions su JOIN payments p ON p.subscription_id = su.subscription_id WHERE NOT p.refunded GROUP BY su.user_id) SELECT g.country_code, COUNT(*) AS paying_users, ROUND(AVG(CAST(f.first_paid_at AS DATE) - CAST(g.signup_ts AS DATE)), 1) AS avg_days_to_pay, MAX(CAST(f.first_paid_at AS DATE) - CAST(g.signup_ts AS DATE)) AS max_days_to_pay FROM signups g JOIN first_pay f ON f.user_id = g.user_id WHERE g.signup_ts >= TIMESTAMPTZ '2025-07-01 00:00:00+00' AND g.signup_ts <= TIMESTAMPTZ '2025-09-30 00:00:00+00' GROUP BY g.country_code ORDER BY g.country_code"
+    }
+  ],
+  "hint3_partial": "WITH first_pay AS (  -- one row per user with a payment that was not refunded\n  SELECT su.user_id, MIN(p.paid_at) AS first_paid_at\n  FROM subscriptions su\n  JOIN payments p ON p.subscription_id = su.subscription_id\n  WHERE NOT p.refunded\n  GROUP BY su.user_id\n)\nSELECT g.country_code,\n       COUNT(*) AS paying_users,\n       ROUND(AVG(___), 1) AS avg_days_to_pay,\n       MAX(___) AS max_days_to_pay\nFROM signups g\nJOIN first_pay f ON f.user_id = g.user_id\nWHERE ___\nGROUP BY g.country_code\nORDER BY g.country_code",
+  "solver": {
+    "prompt_hash": "2d4e90ea34bd7b55",
+    "schema_version": "b34b14f5dee5",
+    "dataset_version": "e7c58abf7e8f892e",
+    "grader_version": "7a.1",
+    "query": "WITH u AS (\n  SELECT user_id, country_code, signup_ts FROM signups\n  WHERE signup_ts >= TIMESTAMPTZ '2025-07-01 00:00:00+00' AND signup_ts < TIMESTAMPTZ '2025-10-01 00:00:00+00'\n), f AS (\n  SELECT s.user_id, MIN(p.paid_at) AS first_paid\n  FROM subscriptions s JOIN payments p ON p.subscription_id = s.subscription_id\n  WHERE p.refunded = false\n  GROUP BY s.user_id\n), x AS (\n  SELECT u.country_code,\n         date_diff('day', CAST(u.signup_ts AT TIME ZONE 'UTC' AS DATE), CAST(f.first_paid AT TIME ZONE 'UTC' AS DATE)) AS days\n  FROM u JOIN f ON f.user_id = u.user_id\n)\nSELECT country_code, COUNT(*) AS paying_users, ROUND(AVG(days::DOUBLE), 1) AS avg_days_to_pay, MAX(days) AS max_days_to_pay\nFROM x\nGROUP BY country_code\nORDER BY country_code ASC\n",
+    "at": "2026-10-21T09:53:58.439Z"
+  }
+}

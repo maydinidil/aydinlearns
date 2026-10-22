@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-WIN-04-E1-06",
+  "item_version": 1,
+  "reference_sql": "WITH daily AS (\n  -- one row per UTC day with signups\n  SELECT CAST(signup_ts AS DATE) AS signup_date, COUNT(*) AS signups\n  FROM signups\n  WHERE signup_ts >= TIMESTAMPTZ '2025-07-01 00:00:00+00'\n    AND signup_ts < TIMESTAMPTZ '2025-11-01 00:00:00+00'\n  GROUP BY CAST(signup_ts AS DATE)\n)\nSELECT signup_date, signups,\n  SUM(signups) OVER (ORDER BY signup_date ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS cumulative_signups\nFROM daily",
+  "alternatives": [
+    "WITH daily AS (\n  -- one row per UTC day with signups\n  SELECT CAST(signup_ts AS DATE) AS signup_date, COUNT(*) AS signups\n  FROM signups\n  WHERE signup_ts >= TIMESTAMPTZ '2025-07-01 00:00:00+00'\n    AND signup_ts < TIMESTAMPTZ '2025-11-01 00:00:00+00'\n  GROUP BY CAST(signup_ts AS DATE)\n)\nSELECT d.signup_date, d.signups,\n  (SELECT SUM(d2.signups) FROM daily d2 WHERE d2.signup_date <= d.signup_date) AS cumulative_signups\nFROM daily d",
+    "WITH daily AS (\n  -- one row per UTC day with signups\n  SELECT CAST(signup_ts AS DATE) AS signup_date, COUNT(*) AS signups\n  FROM signups\n  WHERE signup_ts >= TIMESTAMPTZ '2025-07-01 00:00:00+00'\n    AND signup_ts < TIMESTAMPTZ '2025-11-01 00:00:00+00'\n  GROUP BY CAST(signup_ts AS DATE)\n)\nSELECT d.signup_date, d.signups,\n  (SELECT COUNT(*) FROM signups s\n   WHERE s.signup_ts >= TIMESTAMPTZ '2025-07-01 00:00:00+00'\n     AND CAST(s.signup_ts AS DATE) <= d.signup_date) AS cumulative_signups\nFROM daily d"
+  ],
+  "other_way": {
+    "sql": "WITH daily AS (\n  -- one row per UTC day with signups\n  SELECT CAST(signup_ts AS DATE) AS signup_date, COUNT(*) AS signups\n  FROM signups\n  WHERE signup_ts >= TIMESTAMPTZ '2025-07-01 00:00:00+00'\n    AND signup_ts < TIMESTAMPTZ '2025-11-01 00:00:00+00'\n  GROUP BY CAST(signup_ts AS DATE)\n)\nSELECT d.signup_date, d.signups,\n  (SELECT SUM(d2.signups) FROM daily d2 WHERE d2.signup_date <= d.signup_date) AS cumulative_signups\nFROM daily d",
+    "tradeoff": "A subquery adding up the earlier days works anywhere, but rereads them for every day."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-41",
+      "sql": "WITH daily AS (\n  -- one row per UTC day with signups\n  SELECT CAST(signup_ts AS DATE) AS signup_date, COUNT(*) AS signups\n  FROM signups\n  WHERE signup_ts >= TIMESTAMPTZ '2025-07-01 00:00:00+00'\n    AND signup_ts < TIMESTAMPTZ '2025-11-01 00:00:00+00'\n  GROUP BY CAST(signup_ts AS DATE)\n) SELECT signup_date, signups, SUM(signups) OVER (ORDER BY signups, signup_date ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS cumulative_signups FROM daily"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-14",
+      "sql": "WITH daily AS (\n  -- one row per UTC day with signups\n  SELECT CAST(signup_ts AS DATE) AS signup_date, COUNT(*) AS signups\n  FROM signups\n  WHERE signup_ts >= TIMESTAMPTZ '2025-07-01 00:00:00+00'\n    AND signup_ts < TIMESTAMPTZ '2025-11-01 00:00:00+00'\n  GROUP BY CAST(signup_ts AS DATE)\n) SELECT signup_date, signups, COUNT(*) OVER (ORDER BY signup_date ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS cumulative_signups FROM daily"
+    }
+  ],
+  "hint3_partial": "WITH daily AS (\n  -- one row per UTC day with signups\n  SELECT CAST(signup_ts AS DATE) AS signup_date, COUNT(*) AS signups\n  FROM signups\n  WHERE signup_ts >= TIMESTAMPTZ '2025-07-01 00:00:00+00'\n    AND signup_ts < TIMESTAMPTZ '2025-11-01 00:00:00+00'\n  GROUP BY CAST(signup_ts AS DATE)\n)\nSELECT signup_date, signups,\n  SUM(___) OVER (ORDER BY signup_date ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS cumulative_signups\nFROM daily",
+  "solver": {
+    "prompt_hash": "fc28f72650dcc16e",
+    "schema_version": "bbce96780a2f",
+    "dataset_version": "e7c58abf7e8f892e",
+    "grader_version": "7a.1",
+    "query": "WITH daily AS (\n  SELECT CAST(timezone('UTC', signup_ts) AS DATE) AS signup_date, COUNT(*) AS signups\n  FROM signups\n  WHERE CAST(timezone('UTC', signup_ts) AS DATE) BETWEEN DATE '2025-07-01' AND DATE '2025-10-31'\n  GROUP BY CAST(timezone('UTC', signup_ts) AS DATE)\n)\nSELECT signup_date, signups,\n  SUM(signups) OVER (ORDER BY signup_date ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS cumulative_signups\nFROM daily\n",
+    "at": "2026-10-21T09:05:08.189Z"
+  }
+}

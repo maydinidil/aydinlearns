@@ -13,8 +13,7 @@ from unittest import mock
 
 import duckdb
 
-sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
-import build_course_db  # noqa: E402
+from course_build import build_course_db   # L50: the paths, and Mailvora generated once per process (S7-30)
 from voltmarkt import notes as vm_notes  # noqa: E402
 
 LEVEL1_TABLES = {"calendar", "stores", "categories", "products", "promotions"}
@@ -27,7 +26,7 @@ AB_TABLES = {"ab_assignments", "ab_conversions"}
 VIEWS = {"sales"}
 WEEKLY = "competitor_price_weekly"                      # S4B-31: its own build step, only where competitor_prices exists
 WEEKLY_SCHEMAS = ["voltmarkt", "voltmarkt_edge_join", "voltmarkt_edge_date", "voltmarkt_edge_set",
-                  "voltmarkt_edge_subq", "voltmarkt_edge_interval", "voltmarkt_edge_promo"]
+                  "voltmarkt_edge_subq", "voltmarkt_edge_interval", "voltmarkt_edge_promo", "voltmarkt_edge_win"]
 WEEKLY_COLUMNS = [("product_id", "INTEGER"), ("iso_year", "BIGINT"), ("iso_week", "BIGINT"),
                   ("avg_competitor_price_eur", "DOUBLE"), ("competitors_seen", "BIGINT")]
 LEVEL1_EDGE_SCHEMAS = ["voltmarkt_edge_basics", "voltmarkt_edge_filter", "voltmarkt_edge_sort", "voltmarkt_edge_null"]
@@ -40,8 +39,9 @@ RAW_TABLES = LEVEL2_TABLES
 RAW_WARNING = "This table may hold errors."
 COST = "cost_history"                                   # S6-07: appended to voltmarkt
 WEEKLY_UNITS = "weekly_units"                           # S6-06: its own build step, in voltmarkt and the level 4 edge schemas
-# F2 C1: the schema panel shows weekly_units to every level 4 item (P11), so every level 4 edge schema that mirrors voltmarkt has it.
-WEEKLY_UNITS_SCHEMAS = ["voltmarkt", "voltmarkt_edge_subq", "voltmarkt_edge_interval", "voltmarkt_edge_promo"]
+# F2 C1: the schema panel shows weekly_units to every level 4 item (P11), so every level 4 edge schema that mirrors voltmarkt has it,
+# and so does the level 5 one (S7-25).
+WEEKLY_UNITS_SCHEMAS = ["voltmarkt", "voltmarkt_edge_subq", "voltmarkt_edge_interval", "voltmarkt_edge_promo", "voltmarkt_edge_win"]
 WEEKLY_UNITS_COLUMNS = [("product_id", "INTEGER"), ("iso_year", "INTEGER"), ("iso_week", "INTEGER"), ("week_start", "DATE"),
                         ("units", "BIGINT"), ("net_revenue_eur", "DECIMAL(38,2)")]
 # S6-04: three new edge schemas mirror voltmarkt (every table and view name it has, weekly_units included since F2 C1), and the
@@ -68,6 +68,10 @@ M5_MOVES = {f"voltmarkt_edge_{f}.calendar" for f in ("agg", "basics", "case", "d
 M5_EMPTY_ORDER_TABLES = {"orders", "order_lines"}
 M5_ADDS = ([f"{s}.{t}" for s in LEVEL1_EDGE_SCHEMAS for t in M5_EMPTY_ORDER_TABLES | VIEWS]
            + [f"{s}.{t}" for s in ("voltmarkt_edge_date", "voltmarkt_edge_set") for t in AB_TABLES])
+# Sprint 7 (S7-25): the level 5 window edge schemas, one per company, each with its schema's table names. Their rows, plants and
+# lock are pipeline/tests/test_edge_win.py's; here they join the lists the build's views and notes cover.
+LEVEL5_EDGE_SCHEMAS = ["voltmarkt_edge_win"]
+MAILVORA_WIN_EDGE = "mailvora_edge_win"
 CLEAN_EDGE = "voltmarkt_edge_clean"
 NEW_EDGE_FAMILIES = {"voltmarkt_edge_subq": "subq", "voltmarkt_edge_interval": "interval", "voltmarkt_edge_clean": "clean",
                      "voltmarkt_edge_promo": "promo"}
@@ -77,6 +81,9 @@ BEFORE_SPRINT6 = json.loads((pathlib.Path(__file__).resolve().parent / "manifest
 BEFORE_LEVEL3 = json.loads((pathlib.Path(__file__).resolve().parent / "manifest_before_level3.json").read_text(encoding="utf-8"))["tables"]
 # Review Focus 1 (Task G1): every table and view as built at the end of block K, before Part 2. Part 2 only adds objects.
 BEFORE_SPRINT6B = json.loads((pathlib.Path(__file__).resolve().parent / "manifest_before_sprint6b.json").read_text(encoding="utf-8"))["tables"]
+# Sprint 7 Task 0: every table and view as built before sprint 7. The sprint 6 lock tests below compare only these objects, as
+# sprint 7's own additions are held by pipeline/tests/test_edge_win.py.
+BEFORE_SPRINT7 = json.loads((pathlib.Path(__file__).resolve().parent / "manifest_before_sprint7.json").read_text(encoding="utf-8"))["tables"]
 # Task G1 (S6-20, P31): Mailvora's clean schema (05 CO-03's 9 tables, budget_monthly, countries), its raw schema, its edge schema.
 MAILVORA = "mailvora"
 MAILVORA_RAW = "mailvora_raw"
@@ -87,9 +94,10 @@ MAILVORA_RAW_TABLES = {"sessions", "ad_spend_daily", "payments", "channels", "ca
 BUILD_LIMIT_SECONDS = 300                               # Task G1: the build stays under 5 minutes
 # The schema each edge schema mirrors when it is not voltmarkt: the clean edge schema mirrors voltmarkt_raw (S6-04), Mailvora's
 # mirrors mailvora (S6-20), and Part 2's real-data edge schemas (Task G2) mirror their dataset's schema. The build runs every
-# pipeline/edge/*.sql; the real-data ones stay out of the manifest's voltmarkt and mailvora coverage.
-EDGE_MIRRORS = {"voltmarkt_edge_clean": RAW, MAILVORA_EDGE: MAILVORA, "online_retail_ii_edge": "online_retail_ii",
-                "breakfast_at_the_frat_edge": "breakfast_at_the_frat"}
+# pipeline/edge/*.sql; the real-data ones stay out of the manifest's voltmarkt and mailvora coverage. Sprint 7 Part 2 (Task G1):
+# mailvora_edge_clean mirrors mailvora_raw; its rows, plants and lock are pipeline/tests/test_mailvora_edge_clean.py's.
+EDGE_MIRRORS = {"voltmarkt_edge_clean": RAW, MAILVORA_EDGE: MAILVORA, MAILVORA_WIN_EDGE: MAILVORA, "online_retail_ii_edge": "online_retail_ii",
+                "breakfast_at_the_frat_edge": "breakfast_at_the_frat", "mailvora_edge_clean": MAILVORA_RAW}
 # S4-01: the order and price tables join the schema panel from level 3: (grain, primary key, foreign keys as
 # (column, referenced table, referenced column), each 1:N). Levels 1 and 2 keep today's tables (from_level 1).
 LEVEL3_NOTES = {
@@ -251,7 +259,7 @@ class CourseDb(unittest.TestCase):
         self.assertEqual(self.one("SELECT count(*) FROM duckdb_views() WHERE schema_name = 'main' AND NOT internal")[0], 0)
 
     def test_sales_view_at_order_line_grain(self):
-        for s in ["voltmarkt", *LEVEL1_EDGE_SCHEMAS, *ORDER_EDGE_SCHEMAS, *LEVEL4_EDGE_SCHEMAS]:
+        for s in ["voltmarkt", *LEVEL1_EDGE_SCHEMAS, *ORDER_EDGE_SCHEMAS, *LEVEL4_EDGE_SCHEMAS, *LEVEL5_EDGE_SCHEMAS]:
             self.assertEqual(self.columns(s, "sales"), SALES_COLUMNS, s)
             views, lines = self.one(f"SELECT (SELECT count(*) FROM {s}.sales), (SELECT count(*) FROM {s}.order_lines)")
             self.assertEqual(views, lines, f"{s}.sales has one row per order line")
@@ -301,8 +309,8 @@ class CourseDb(unittest.TestCase):
 
     def test_view_bodies_hold_no_data_literals_and_read_their_own_schema(self):
         views = self.con.execute("SELECT schema_name, view_name, sql FROM duckdb_views() WHERE NOT internal").fetchall()
-        self.assertEqual(len(views), 1 + len(LEVEL1_EDGE_SCHEMAS) + len(ORDER_EDGE_SCHEMAS) + len(LEVEL4_EDGE_SCHEMAS) + len(WEEKLY_SCHEMAS)
-                         + len(WEEKLY_UNITS_SCHEMAS))
+        self.assertEqual(len(views), 1 + len(LEVEL1_EDGE_SCHEMAS) + len(ORDER_EDGE_SCHEMAS) + len(LEVEL4_EDGE_SCHEMAS) + len(LEVEL5_EDGE_SCHEMAS)
+                         + len(WEEKLY_SCHEMAS) + len(WEEKLY_UNITS_SCHEMAS))
         zero_fill = self.zero_fill_views()
         self.assertEqual({numbers for _, numbers in zero_fill.values()}, {frozenset({"0"})},
                          "S6-06: the zero-fill's 0 is the one number the weekly_units step writes, and it holds no data")
@@ -362,8 +370,9 @@ class CourseDb(unittest.TestCase):
         self.assertEqual(moved, sorted(M5_MOVES), "M5 moves the objects it names, and only those")
         for name in M5_MOVES:
             self.assertGreater(self.manifest["tables"][name]["rows"], BEFORE_SPRINT6[name]["rows"], f"{name} only gains rows")
-        # Part 2's own additions (Mailvora) are held by test_every_object_before_sprint6b_is_unchanged below.
-        added = sorted(n for n in set(self.manifest["tables"]) - set(BEFORE_SPRINT6) if n.startswith("voltmarkt"))
+        # Part 2's own additions (Mailvora) are held by test_every_object_before_sprint6b_is_unchanged below, and sprint 7's by
+        # pipeline/tests/test_edge_win.py.
+        added = sorted(n for n in (set(self.manifest["tables"]) & set(BEFORE_SPRINT7)) - set(BEFORE_SPRINT6) if n.startswith("voltmarkt"))
 
         def level4(s):
             return VOLTMARKT_TABLES | AB_TABLES | {COST} | VIEWS | {WEEKLY} | ({WEEKLY_UNITS} if s in WEEKLY_UNITS_SCHEMAS else set())
@@ -381,7 +390,7 @@ class CourseDb(unittest.TestCase):
         self.assertEqual(m["tables"]["voltmarkt.sales"]["rows"], m["tables"]["voltmarkt.order_lines"]["rows"])
         self.assertTrue(140_000 <= m["tables"]["voltmarkt.competitor_prices"]["rows"] <= 160_000)
         for s in ["voltmarkt", *LEVEL1_EDGE_SCHEMAS, *ORDER_EDGE_SCHEMAS, RAW, *LEVEL4_EDGE_SCHEMAS, CLEAN_EDGE,
-                  MAILVORA, MAILVORA_RAW, MAILVORA_EDGE]:
+                  MAILVORA, MAILVORA_RAW, MAILVORA_EDGE, *LEVEL5_EDGE_SCHEMAS, MAILVORA_WIN_EDGE]:
             tables, views = self.names(s)
             self.assertTrue(tables, s)
             for t in tables | views:
@@ -429,7 +438,7 @@ class CourseDb(unittest.TestCase):
         self.assertEqual({n["table"] for n in visible},
                          LEVEL1_TABLES | set(LEVEL3_NOTES) | AB_TABLES | {COST} | VIEWS | {WEEKLY, WEEKLY_UNITS})
         sales = {n["schema"]: n for n in notes if n["table"] == "sales"}
-        self.assertEqual(set(sales), {"voltmarkt", *LEVEL1_EDGE_SCHEMAS, *ORDER_EDGE_SCHEMAS, *LEVEL4_EDGE_SCHEMAS},
+        self.assertEqual(set(sales), {"voltmarkt", *LEVEL1_EDGE_SCHEMAS, *ORDER_EDGE_SCHEMAS, *LEVEL4_EDGE_SCHEMAS, *LEVEL5_EDGE_SCHEMAS},
                          "the view and every edge copy have notes")
         for s, n in sales.items():
             self.assertEqual(n["grain"], "one row per order line")
@@ -691,7 +700,7 @@ class CourseDb(unittest.TestCase):
             self.assertEqual(set(n["column_notes"]), {"iso_year", "iso_week", "avg_competitor_price_eur", "competitors_seen"}, s)
             self.assertIn("UTC", n["column_notes"]["iso_week"], s)
         sales = [n for n in notes if n["table"] == "sales"]
-        self.assertEqual({n["schema"] for n in sales}, {"voltmarkt", *LEVEL1_EDGE_SCHEMAS, *ORDER_EDGE_SCHEMAS, *LEVEL4_EDGE_SCHEMAS})
+        self.assertEqual({n["schema"] for n in sales}, {"voltmarkt", *LEVEL1_EDGE_SCHEMAS, *ORDER_EDGE_SCHEMAS, *LEVEL4_EDGE_SCHEMAS, *LEVEL5_EDGE_SCHEMAS})
         for n in sales:
             self.assertIn("ship-to country", n["column_notes"]["country_code"], n["schema"])
 
@@ -951,7 +960,7 @@ class CourseDb(unittest.TestCase):
         # in voltmarkt and in every edge copy of the sales view.
         notes = json.loads((self.dir / "schema-notes.json").read_text(encoding="utf-8"))
         sales = [n for n in notes if n["table"] == "sales"]
-        self.assertEqual({n["schema"] for n in sales}, {"voltmarkt", *LEVEL1_EDGE_SCHEMAS, *ORDER_EDGE_SCHEMAS, *LEVEL4_EDGE_SCHEMAS})
+        self.assertEqual({n["schema"] for n in sales}, {"voltmarkt", *LEVEL1_EDGE_SCHEMAS, *ORDER_EDGE_SCHEMAS, *LEVEL4_EDGE_SCHEMAS, *LEVEL5_EDGE_SCHEMAS})
         for n in sales:
             text = n.get("column_notes", {}).get("order_date", "")
             with self.subTest(schema=n["schema"]):
@@ -984,7 +993,7 @@ class CourseDb(unittest.TestCase):
         self.assertEqual(len(BEFORE_SPRINT6B), 186)
         moved = sorted(name for name, entry in BEFORE_SPRINT6B.items() if self.manifest["tables"].get(name) != entry)
         self.assertEqual(moved, [], "objects built before Part 2 whose rows or hash changed")
-        added = sorted(set(self.manifest["tables"]) - set(BEFORE_SPRINT6B))
+        added = sorted((set(self.manifest["tables"]) & set(BEFORE_SPRINT7)) - set(BEFORE_SPRINT6B))   # sprint 7's: test_edge_win.py
         expected = ([f"{MAILVORA}.{t}" for t in MAILVORA_TABLES] + [f"{MAILVORA_RAW}.{t}" for t in MAILVORA_RAW_TABLES]
                     + [f"{MAILVORA_EDGE}.{t}" for t in MAILVORA_TABLES])
         # Task G2, ruling P38: the real datasets' edge schemas are our own rows, always built, so they are in the main section too.
@@ -1232,6 +1241,19 @@ class CheckpointTruth(unittest.TestCase):
         self.assertEqual(got["sources"]["CASE-MKT-09:CP4"], build_course_db.truth_source("mailvora", count))
         self.assertEqual(got["sources"]["CASE-VOLT-L9:CP4"], build_course_db.truth_source("voltmarkt", count))
 
+    def test_a_mock_case_record_has_its_own_schema_and_its_truth_runs_on_it(self):
+        """S7-C33: content/sql/mocks/ is one of the case folders, so a mock case's CP2 and CP4 truths run on the case's schema."""
+        self.assertIn(build_course_db.ROOT / "content" / "sql" / "mocks", build_course_db.CASE_DIRS)
+        root = pathlib.Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, root, ignore_errors=True)
+        count = "SELECT count(*) FROM contacts"
+        self.key(root / "keys", "CASE-FIX-MOCK", query=count)
+        self.case(root / "mocks", "CASE-FIX-MOCK", "mailvora")
+        self.assertEqual(build_course_db.case_schemas([root / "cases", root / "mocks"]), {"CASE-FIX-MOCK": "mailvora"})
+        with mock.patch.object(build_course_db, "CASE_DIRS", (root / "cases", root / "mocks")):
+            got = build_course_db.checkpoint_truth(self.scratch(), root / "keys")
+        self.assertEqual(got["checkpoints"], {"CASE-FIX-MOCK:CP4": 5.0})
+
     def test_a_case_on_a_schema_the_database_lacks_gets_no_value_and_does_not_stop_the_build(self):
         """S6-13: the case is unavailable until its dataset is prepared, so the build skips its truths."""
         root = pathlib.Path(tempfile.mkdtemp())
@@ -1299,11 +1321,12 @@ class CheckpointTruth(unittest.TestCase):
         self.assertNotIn(self.MARKER, output)
 
     def test_the_real_openers_each_get_a_value(self):
-        """Every CP2 and CP4 of the real cases, the openers and content/sql/cases/ alike, gets its value when the build holds the
-        case's schema, and nothing else does: a case on a real dataset this build did not prepare gets none (S6-13, unavailable)."""
+        """Every CP2 and CP4 of the real cases, the openers, content/sql/cases/ and the mock cases (content/sql/mocks/) alike, gets
+        its value when the build holds the case's schema, and nothing else does: a case on a real dataset this build did not
+        prepare gets none (S6-13, unavailable)."""
         content = build_course_db.ROOT / "content"
         wanted, schema_of = {}, {}
-        for folder in ("openers", "cases"):
+        for folder in ("openers", "cases", "mocks"):
             for path in sorted((content / "sql" / folder).glob("*.json")):
                 record = json.loads(path.read_text(encoding="utf-8"))
                 for cp in record["checkpoints"]:

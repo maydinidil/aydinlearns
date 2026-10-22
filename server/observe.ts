@@ -25,6 +25,9 @@ export const levelName = (level: number | null | undefined): string => (level ==
  */
 const THEME_OF_WORLD: Readonly<Record<string, string>> = { PRICE: 'pricing', RETAIL: 'retail', MKT: 'marketing', DQ: 'data_quality' };
 const THEME_OF_COMPANY: Readonly<Record<string, string>> = { voltmarkt: 'pricing', mailvora: 'marketing' };
+/** A company's theme, only for a company the map names (S7-30): a name an object inherits, such as `constructor`, is no company. */
+const themeOfCompany = (company: string | undefined): string | undefined =>
+  company !== undefined && Object.hasOwn(THEME_OF_COMPANY, company) ? THEME_OF_COMPANY[company] : undefined;
 export const caseFunnel = (world: string, difficulty: string): FunnelAttributes =>
   ({ topic: 'SQL', case_theme: THEME_OF_WORLD[world] ?? 'pricing', difficulty });
 
@@ -33,7 +36,7 @@ export const caseFunnel = (world: string, difficulty: string): FunnelAttributes 
  * (a real dataset's world comes with Part 2), keeps pricing, so a call that passes none reads as before.
  */
 export const sqlFunnel = (difficulty: string, company?: string): FunnelAttributes =>
-  ({ topic: 'SQL', case_theme: (company === undefined ? undefined : THEME_OF_COMPANY[company]) ?? 'pricing', difficulty });
+  ({ topic: 'SQL', case_theme: themeOfCompany(company) ?? 'pricing', difficulty });
 
 /**
  * S6-32: an SQL item's funnel. An item of use `case` or `opener` takes its case's world (the case that names it as a checkpoint's
@@ -45,7 +48,7 @@ export function itemFunnel(content: Pick<ContentStore, 'cases'>, item: Pick<SqlI
     const owner = (content.cases?.() ?? []).find((c) => Array.isArray(c.checkpoints) && c.checkpoints.some((cp) => cp.item_id === item.id));
     if (owner) return caseFunnel(owner.world, item.difficulty);
   }
-  const company = [item.company, companyOf(item.schema)].find((c) => c !== undefined && THEME_OF_COMPANY[c] !== 'pricing' && c in THEME_OF_COMPANY) ?? item.company;
+  const company = [item.company, companyOf(item.schema)].find((c) => { const t = themeOfCompany(c); return t !== undefined && t !== 'pricing'; }) ?? item.company;
   return sqlFunnel(item.difficulty, company);
 }
 

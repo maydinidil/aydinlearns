@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-WIN-01-E1-01",
+  "item_version": 1,
+  "reference_sql": "SELECT product_id, category_id, unit_cost_eur,\n       ROUND(AVG(unit_cost_eur) OVER (PARTITION BY category_id), 2) AS category_avg_cost\nFROM products\nWHERE category_id BETWEEN 15 AND 20",
+  "alternatives": [
+    "WITH category_avg AS (  -- one row per Audio category\n  SELECT category_id, AVG(unit_cost_eur) AS avg_cost\n  FROM products\n  WHERE category_id BETWEEN 15 AND 20\n  GROUP BY category_id\n)\nSELECT p.product_id, p.category_id, p.unit_cost_eur, ROUND(ca.avg_cost, 2) AS category_avg_cost\nFROM products p\nJOIN category_avg ca ON ca.category_id = p.category_id",
+    "SELECT p.product_id, p.category_id, p.unit_cost_eur,\n       ROUND((SELECT AVG(p2.unit_cost_eur) FROM products p2 WHERE p2.category_id = p.category_id), 2) AS category_avg_cost\nFROM products p\nWHERE p.category_id BETWEEN 15 AND 20"
+  ],
+  "other_way": {
+    "sql": "WITH category_avg AS (  -- one row per Audio category\n  SELECT category_id, AVG(unit_cost_eur) AS avg_cost\n  FROM products\n  WHERE category_id BETWEEN 15 AND 20\n  GROUP BY category_id\n)\nSELECT p.product_id, p.category_id, p.unit_cost_eur, ROUND(ca.avg_cost, 2) AS category_avg_cost\nFROM products p\nJOIN category_avg ca ON ca.category_id = p.category_id",
+    "tradeoff": "A per-category step joined back runs on any engine, but it takes a second step and a join where the window takes one line."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-37",
+      "sql": "SELECT product_id, category_id, unit_cost_eur, ROUND(AVG(unit_cost_eur) OVER (), 2) AS category_avg_cost FROM products WHERE category_id BETWEEN 15 AND 20"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-14",
+      "sql": "SELECT product_id, category_id, unit_cost_eur, ROUND(MAX(unit_cost_eur) OVER (PARTITION BY category_id), 2) AS category_avg_cost FROM products WHERE category_id BETWEEN 15 AND 20"
+    }
+  ],
+  "hint3_partial": "SELECT product_id, category_id, unit_cost_eur,\n       ROUND(AVG(unit_cost_eur) OVER (PARTITION BY ___), 2) AS category_avg_cost\nFROM products\nWHERE category_id BETWEEN 15 AND 20",
+  "solver": {
+    "prompt_hash": "3bc64a296c3bd0c1",
+    "schema_version": "d77fe1c31a0e",
+    "dataset_version": "e7c58abf7e8f892e",
+    "grader_version": "7a.1",
+    "query": "SELECT product_id, category_id, unit_cost_eur,\n       ROUND(AVG(unit_cost_eur) OVER (PARTITION BY category_id), 2) AS category_avg_cost\nFROM products\nWHERE category_id BETWEEN 15 AND 20\n",
+    "at": "2026-10-21T09:05:04.930Z"
+  }
+}

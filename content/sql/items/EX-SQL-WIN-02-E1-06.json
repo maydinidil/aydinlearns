@@ -1,0 +1,123 @@
+{
+  "id": "EX-SQL-WIN-02-E1-06",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "ranking",
+    "rank",
+    "group_by_then_window",
+    "signups"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-WIN-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-WIN-01",
+    "SQL-WIN-02"
+  ],
+  "template_id": "T-WIN-02-rank-overall",
+  "template_params": {
+    "table": "signups",
+    "step": "country",
+    "fn": "RANK",
+    "order": "signups, most first"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "mailvora",
+  "schema": "mailvora",
+  "edge_schema": "mailvora_edge_win",
+  "prompt": "Rank the countries by their number of signups, the most first. Countries that tie on signups share a place, and the place after a tie is skipped. Return three columns, in this order: country_code, signups and signup_rank. Return one row for each country with signups. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "country_code",
+        "type_class": "text"
+      },
+      {
+        "name": "signups",
+        "type_class": "numeric"
+      },
+      {
+        "name": "signup_rank",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "country_code",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "signups",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "signup_rank",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "country_code"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the calculated column signup_rank over the per-country counts, the most signups first.",
+    "There is no group to restart in: every country is ranked against all the others, and tied countries share a place with a gap after it."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 100,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 101,
+      "to": 113,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 114,
+      "to": 135,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 90000,
+  "why_this_works": "GROUP BY counts each country, and RANK over those counts, the most first, gives tied countries one place."
+}

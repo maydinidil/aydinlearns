@@ -1,6 +1,6 @@
-# Release 1.3 record: the study journey (D77)
+# Release 0.5.3 record: the study journey (D77)
 
-Release 1.3 adds the study journey: every visit to the app kept as one ordered list of events
+Release 0.5.3 adds the study journey: every visit to the app kept as one ordered list of events
 (screens, exercises, help, timed runs, cases, labs, review cards and concept state changes), a local
 copy in `journey/`, and `npm run journey`, which loads it into DuckDB with twelve starter views. With
 telemetry on (D75), the same events also go to Dash0. The README's "Your study journey" section
@@ -11,7 +11,7 @@ describes it for a learner.
 | Plan | [`2026-10-13-aydinlearns-journey-1-3.md`](../superpowers/plans/2026-10-13-aydinlearns-journey-1-3.md) |
 | Branch | `feat/aydinlearns-journey`, from main `7bce3c5`; 24 commits (the plan, 13 build commits, 7 review fixes, 3 owner-go commits) |
 | PR | #48, merged 2026-10-13 as `7c77330`; public as `9609eb6`, tag `v1.3.0`. Codex: no findings (a +1 and no line comments); the `claude-review` check passed |
-| Version | 1.3.0 |
+| Version | 0.5.3 |
 
 ## Owner decisions (2026-10-13)
 
@@ -20,7 +20,7 @@ describes it for a learner.
 | Signals | The full journey: `session.id`, browser screen views, help, exercises left unanswered, runs, cases, labs, review cards and concept state changes |
 | Analysis | A local JSONL copy and `npm run journey` (DuckDB, ready-made views) |
 | History | From the release on; no backfill from old logs |
-| Timing | Its own branch, PR and public release (1.3), before sprint 6 |
+| Timing | Its own branch, PR and public release (0.5.3), before sprint 6 |
 
 ## Rulings
 
@@ -51,7 +51,7 @@ Seven tasks, each test-first, each reviewed before the next.
 | 4. Route hooks and the screen-view route | `f484cfb`, `b2f7a9f` | A live rep records `run_started`; R8 written down |
 | 5. The browser reports each screen | `3dbbe41` | Nothing |
 | 6. `npm run journey` | `b875c6f`, `f46f42d`, `cf5b354` | The console printer shows BIGINT, INTERVAL, DATE and TIMESTAMP values as DuckDB does |
-| 7. Settings, smoke test, docs, 1.3.0 | `f4f333c` | Nothing. The smoke row is JN, because row J already existed |
+| 7. Settings, smoke test, docs, 0.5.3 | `f4f333c` | Nothing. The smoke row is JN, because row J already existed |
 
 ## The whole-branch review
 
@@ -129,7 +129,7 @@ At `7d46c8a`, before the merge:
 |---|---|
 | Merge | Done, `7c77330` |
 | The owner's checkout | `C:\zehirlab` fast-forwarded from `7bce3c5` to `7c77330` with the app closed; the uncommitted `CLAUDE.md` trims of the 2026-10-12 cleanup were set aside and put back on the new file. The launcher rebuilds the screens at the next start, and the journey records from then on |
-| Public copy | `tools/export-public.sh <clone> origin/main` exported `7c77330` as `9609eb6` (34 files changed). The scan found no token, no `.env`, `journey/`, `logs/` or database files, and no email address or personal path. Two lines in the plan name the monorepo's folder, as 14 files already did in 1.2. Pushed `aa632c2..9609eb6` |
-| Tag and release | `v1.3.0` on `9609eb6`, release "aydinlearns 1.3": what 1.3 adds, what is never written or sent |
-| Fresh-install test | The public tree in a clean folder, started with the launcher (`node tools/launch.ts --no-browser`, `AYDINLEARNS_PORT=5194`, temporary logs and journey folders, telemetry off). Setup ran end to end and the server answered after 36 seconds. Version 1.3.0 with 9 of 9 checks; Today answered for SQL, GA4 and Methodology; 10 labs; EX-SQL-BASICS-01-E1-01 graded a pass and logged to the temporary folder; a screen view was taken. The journey file held session_started, item_viewed, study_session_started, exercise_submitted, exercise_passed, concept_state_changed and screen_viewed, and no `journey/` appeared in the tree. The server was stopped, nothing listened on 5194, and the folder was deleted. The first run's screen-view check sent a body without `event` and was refused (400), as the route should; the corrected check passed on a second start of the same tree |
+| Public copy | `tools/export-public.sh <clone> origin/main` exported `7c77330` as `9609eb6` (34 files changed). The scan found no token, no `.env`, `journey/`, `logs/` or database files, and no email address or personal path. Two lines in the plan name the monorepo's folder, as 14 files already did in 0.5.2. Pushed `aa632c2..9609eb6` |
+| Tag and release | `v1.3.0` on `9609eb6`, release "aydinlearns 0.5.3": what 0.5.3 adds, what is never written or sent |
+| Fresh-install test | The public tree in a clean folder, started with the launcher (`node tools/launch.ts --no-browser`, `AYDINLEARNS_PORT=5194`, temporary logs and journey folders, telemetry off). Setup ran end to end and the server answered after 36 seconds. Version 0.5.3 with 9 of 9 checks; Today answered for SQL, GA4 and Methodology; 10 labs; EX-SQL-BASICS-01-E1-01 graded a pass and logged to the temporary folder; a screen view was taken. The journey file held session_started, item_viewed, study_session_started, exercise_submitted, exercise_passed, concept_state_changed and screen_viewed, and no `journey/` appeared in the tree. The server was stopped, nothing listened on 5194, and the folder was deleted. The first run's screen-view check sent a body without `event` and was refused (400), as the route should; the corrected check passed on a second start of the same tree |
 | A "Journey" section on the Dash0 dashboard "aydinlearns: my study" | Waiting on the owner's go, best after a study session with the journey on |

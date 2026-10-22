@@ -1,0 +1,39 @@
+{
+  "item_id": "EX-SQL-WIN-02-E1-05",
+  "item_version": 1,
+  "reference_sql": "SELECT c.parent_category, c.category_name, COUNT(*) AS n_products,\n       DENSE_RANK() OVER (PARTITION BY c.parent_category ORDER BY COUNT(*) DESC) AS size_rank\nFROM products p\nJOIN categories c ON c.category_id = p.category_id\nGROUP BY c.parent_category, c.category_name",
+  "alternatives": [
+    "WITH category_size AS (  -- one row per category with products\n  SELECT c.parent_category, c.category_name, COUNT(*) AS n_products\n  FROM products p\n  JOIN categories c ON c.category_id = p.category_id\n  GROUP BY c.parent_category, c.category_name\n)\nSELECT cs.parent_category, cs.category_name, cs.n_products,\n       1 + (SELECT COUNT(DISTINCT cs2.n_products) FROM category_size cs2\n            WHERE cs2.parent_category = cs.parent_category AND cs2.n_products > cs.n_products) AS size_rank\nFROM category_size cs",
+    "WITH category_size AS (  -- one row per category with products\n  SELECT c.parent_category, c.category_name, COUNT(*) AS n_products\n  FROM products p\n  JOIN categories c ON c.category_id = p.category_id\n  GROUP BY c.parent_category, c.category_name\n)\nSELECT parent_category, category_name, n_products,\n       DENSE_RANK() OVER (PARTITION BY parent_category ORDER BY n_products DESC) AS size_rank\nFROM category_size"
+  ],
+  "other_way": {
+    "sql": "WITH category_size AS (  -- one row per category with products\n  SELECT c.parent_category, c.category_name, COUNT(*) AS n_products\n  FROM products p\n  JOIN categories c ON c.category_id = p.category_id\n  GROUP BY c.parent_category, c.category_name\n)\nSELECT cs.parent_category, cs.category_name, cs.n_products,\n       1 + (SELECT COUNT(DISTINCT cs2.n_products) FROM category_size cs2\n            WHERE cs2.parent_category = cs.parent_category AND cs2.n_products > cs.n_products) AS size_rank\nFROM category_size cs",
+    "tradeoff": "Counting the different larger sizes in a subquery gives the same place without a window, but it is harder to read."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-40",
+      "sql": "SELECT c.parent_category, c.category_name, COUNT(*) AS n_products, RANK() OVER (PARTITION BY c.parent_category ORDER BY COUNT(*) DESC) AS size_rank FROM products p JOIN categories c ON c.category_id = p.category_id GROUP BY c.parent_category, c.category_name"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-18",
+      "sql": "SELECT c.parent_category, c.category_name, COUNT(*) AS n_products, DENSE_RANK() OVER (PARTITION BY c.parent_category ORDER BY COUNT(*)) AS size_rank FROM products p JOIN categories c ON c.category_id = p.category_id GROUP BY c.parent_category, c.category_name"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-37",
+      "sql": "SELECT c.parent_category, c.category_name, COUNT(*) AS n_products, DENSE_RANK() OVER (ORDER BY COUNT(*) DESC) AS size_rank FROM products p JOIN categories c ON c.category_id = p.category_id GROUP BY c.parent_category, c.category_name"
+    }
+  ],
+  "hint3_partial": "SELECT c.parent_category, c.category_name, COUNT(*) AS n_products,\n       DENSE_RANK() OVER (PARTITION BY ___ ORDER BY COUNT(*) DESC) AS size_rank\nFROM products p\nJOIN categories c ON c.category_id = p.category_id\nGROUP BY c.parent_category, c.category_name",
+  "solver": {
+    "prompt_hash": "8064ea5336c8050c",
+    "schema_version": "81419b0500f4",
+    "dataset_version": "e7c58abf7e8f892e",
+    "grader_version": "7a.1",
+    "query": "WITH n AS (\n  SELECT c.parent_category, c.category_name, COUNT(p.product_id) AS n_products\n  FROM categories c\n  LEFT JOIN products p ON p.category_id = c.category_id\n  GROUP BY c.category_id, c.parent_category, c.category_name\n)\nSELECT parent_category, category_name, n_products,\n       DENSE_RANK() OVER (PARTITION BY parent_category ORDER BY n_products DESC) AS size_rank\nFROM n\n",
+    "at": "2026-10-21T09:05:06.217Z"
+  }
+}

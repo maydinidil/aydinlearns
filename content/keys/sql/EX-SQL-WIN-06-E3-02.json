@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-WIN-06-E3-02",
+  "item_version": 1,
+  "reference_sql": "WITH numbered AS (  -- one row per BE-14 order line of 2024 as stored, numbered within its set of copies\n  SELECT ol.order_id,\n         ol.quantity * ol.unit_price_eur - ol.line_discount_eur AS line_value,\n         COUNT(*) OVER (PARTITION BY ol.order_id, ol.product_id, ol.quantity, ol.unit_price_eur) AS n_copies,\n         ROW_NUMBER() OVER (PARTITION BY ol.order_id, ol.product_id, ol.quantity, ol.unit_price_eur ORDER BY ol.order_line_id) AS copy_no\n  FROM order_lines ol\n  JOIN orders o ON o.order_id = ol.order_id\n  JOIN stores s ON s.store_id = o.store_id\n  WHERE s.store_code = 'BE-14'\n    AND o.order_ts >= TIMESTAMP '2024-01-01' AND o.order_ts < TIMESTAMP '2025-01-01'\n)\nSELECT order_id, SUM(line_value) AS order_value\nFROM numbered\nWHERE copy_no = 1\nGROUP BY order_id\nHAVING MAX(n_copies) > 1",
+  "alternatives": [
+    "WITH line_sets AS (  -- one row per order line, its copies counted together\n  SELECT ol.order_id,\n         ol.quantity * ol.unit_price_eur - MIN(ol.line_discount_eur) AS line_value,\n         COUNT(*) AS n_copies\n  FROM order_lines ol\n  JOIN orders o ON o.order_id = ol.order_id\n  JOIN stores s ON s.store_id = o.store_id\n  WHERE s.store_code = 'BE-14'\n    AND o.order_ts >= TIMESTAMP '2024-01-01' AND o.order_ts < TIMESTAMP '2025-01-01'\n  GROUP BY ol.order_id, ol.product_id, ol.quantity, ol.unit_price_eur\n)\nSELECT order_id, SUM(line_value) AS order_value\nFROM line_sets\nGROUP BY order_id\nHAVING MAX(n_copies) > 1",
+    "SELECT order_id, SUM(line_value) AS order_value\nFROM (\n  -- one row per order line: the copy with the lowest order_line_id\n  SELECT ol.order_id,\n         ol.quantity * ol.unit_price_eur - ol.line_discount_eur AS line_value,\n         COUNT(*) OVER (PARTITION BY ol.order_id, ol.product_id, ol.quantity, ol.unit_price_eur) AS n_copies\n  FROM order_lines ol\n  JOIN orders o ON o.order_id = ol.order_id\n  JOIN stores s ON s.store_id = o.store_id\n  WHERE s.store_code = 'BE-14'\n    AND o.order_ts >= TIMESTAMP '2024-01-01' AND o.order_ts < TIMESTAMP '2025-01-01'\n  QUALIFY ROW_NUMBER() OVER (PARTITION BY ol.order_id, ol.product_id, ol.quantity, ol.unit_price_eur ORDER BY ol.order_line_id) = 1\n) AS kept\nGROUP BY order_id\nHAVING MAX(n_copies) > 1"
+  ],
+  "other_way": {
+    "sql": "SELECT order_id, SUM(line_value) AS order_value\nFROM (\n  -- one row per order line: the copy with the lowest order_line_id\n  SELECT ol.order_id,\n         ol.quantity * ol.unit_price_eur - ol.line_discount_eur AS line_value,\n         COUNT(*) OVER (PARTITION BY ol.order_id, ol.product_id, ol.quantity, ol.unit_price_eur) AS n_copies\n  FROM order_lines ol\n  JOIN orders o ON o.order_id = ol.order_id\n  JOIN stores s ON s.store_id = o.store_id\n  WHERE s.store_code = 'BE-14'\n    AND o.order_ts >= TIMESTAMP '2024-01-01' AND o.order_ts < TIMESTAMP '2025-01-01'\n  QUALIFY ROW_NUMBER() OVER (PARTITION BY ol.order_id, ol.product_id, ol.quantity, ol.unit_price_eur ORDER BY ol.order_line_id) = 1\n) AS kept\nGROUP BY order_id\nHAVING MAX(n_copies) > 1",
+    "tradeoff": "QUALIFY filters the window result in the same query, which is shorter, but PostgreSQL, MySQL and SQL Server do not accept it."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-36",
+      "sql": "WITH lines AS (SELECT ol.order_id, ol.quantity * ol.unit_price_eur - ol.line_discount_eur AS line_value, COUNT(*) OVER (PARTITION BY ol.order_id, ol.product_id, ol.quantity, ol.unit_price_eur) AS n_copies FROM order_lines ol JOIN orders o ON o.order_id = ol.order_id JOIN stores s ON s.store_id = o.store_id WHERE s.store_code = 'BE-14' AND o.order_ts >= TIMESTAMP '2024-01-01' AND o.order_ts < TIMESTAMP '2025-01-01') SELECT order_id, SUM(line_value) AS order_value FROM lines GROUP BY order_id HAVING MAX(n_copies) > 1"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-07",
+      "sql": "WITH numbered AS (SELECT ol.order_id, ol.quantity * ol.unit_price_eur - ol.line_discount_eur AS line_value, COUNT(*) OVER (PARTITION BY ol.order_id, ol.product_id) AS n_copies, ROW_NUMBER() OVER (PARTITION BY ol.order_id, ol.product_id ORDER BY ol.order_line_id) AS copy_no FROM order_lines ol JOIN orders o ON o.order_id = ol.order_id JOIN stores s ON s.store_id = o.store_id WHERE s.store_code = 'BE-14' AND o.order_ts >= TIMESTAMP '2024-01-01' AND o.order_ts < TIMESTAMP '2025-01-01') SELECT order_id, SUM(line_value) AS order_value FROM numbered WHERE copy_no = 1 GROUP BY order_id HAVING MAX(n_copies) > 1"
+    }
+  ],
+  "hint3_partial": "WITH numbered AS (  -- one row per BE-14 order line of 2024 as stored, numbered within its set of copies\n  SELECT ol.order_id,\n         ol.quantity * ol.unit_price_eur - ol.line_discount_eur AS line_value,\n         COUNT(*) OVER (PARTITION BY ol.order_id, ol.product_id, ol.quantity, ol.unit_price_eur) AS n_copies,\n         ROW_NUMBER() OVER (PARTITION BY ol.order_id, ol.product_id, ol.quantity, ol.unit_price_eur ORDER BY ol.order_line_id) AS copy_no\n  FROM order_lines ol\n  JOIN orders o ON o.order_id = ol.order_id\n  JOIN stores s ON s.store_id = o.store_id\n  WHERE s.store_code = 'BE-14'\n    AND o.order_ts >= TIMESTAMP '2024-01-01' AND o.order_ts < TIMESTAMP '2025-01-01'\n)\nSELECT order_id, SUM(line_value) AS order_value\nFROM numbered\nWHERE ___\nGROUP BY order_id\nHAVING ___",
+  "solver": {
+    "prompt_hash": "4cddb483df7e8644",
+    "schema_version": "6ef9ff4e4ad1",
+    "dataset_version": "e7c58abf7e8f892e",
+    "grader_version": "7a.1",
+    "query": "WITH l AS (\n  SELECT ol.order_id, ol.quantity, ol.unit_price_eur, ol.line_discount_eur,\n         ROW_NUMBER() OVER (PARTITION BY ol.order_id, ol.product_id, ol.quantity, ol.unit_price_eur ORDER BY ol.order_line_id) AS rn\n  FROM order_lines ol\n  JOIN orders o ON o.order_id = ol.order_id\n  JOIN stores s ON s.store_id = o.store_id\n  WHERE s.store_code = 'BE-14'\n    AND CAST(o.order_ts AS TIMESTAMP) >= TIMESTAMP '2024-01-01 00:00:00'\n    AND CAST(o.order_ts AS TIMESTAMP) < TIMESTAMP '2025-01-01 00:00:00'\n)\nSELECT order_id,\n       SUM(quantity * unit_price_eur - line_discount_eur) FILTER (WHERE rn = 1) AS order_value\nFROM l\nGROUP BY order_id\nHAVING COUNT(*) FILTER (WHERE rn > 1) > 0\n",
+    "at": "2026-10-21T09:05:10.646Z"
+  }
+}

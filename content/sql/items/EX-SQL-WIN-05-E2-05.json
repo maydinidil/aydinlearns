@@ -1,0 +1,152 @@
+{
+  "id": "EX-SQL-WIN-05-E2-05",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "moving_average",
+    "month_spine",
+    "calendar",
+    "cross_join"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-05"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-WIN-05",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-JOIN-05",
+    "SQL-WIN-01",
+    "SQL-WIN-04",
+    "SQL-WIN-05"
+  ],
+  "template_id": "T-WIN-05-moving-average-month-spine",
+  "template_params": {
+    "table": "sales",
+    "spine": "calendar x stores",
+    "window": "3 months"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_win",
+  "prompt": "For stores NL-01 and NL-02, show each month from January to June 2025 (UTC order dates) with the store's net revenue that month and its 3-month moving average: the average monthly revenue of that month and the 2 months before it, rounded to 2 decimals. Each store has a row for every month of the range, and a month with no orders counts as 0. Only January to June count, so January and February have fewer than 3 months to average: show how many months each average covers in months_in_window. Return store_code, month (the first day of the month), revenue_eur, avg_revenue_3m and months_in_window. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "store_code",
+        "type_class": "text"
+      },
+      {
+        "name": "month",
+        "type_class": "temporal"
+      },
+      {
+        "name": "revenue_eur",
+        "type_class": "numeric"
+      },
+      {
+        "name": "avg_revenue_3m",
+        "type_class": "numeric"
+      },
+      {
+        "name": "months_in_window",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "store_code",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "month",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "revenue_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "avg_revenue_3m",
+        "type_class": "numeric",
+        "precision": "money",
+        "require_rounding": 2
+      },
+      {
+        "name": "months_in_window",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "store_code",
+      "month"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, build one row for each store and month of the range, with the month's revenue or 0, before any window.",
+    "Take the months out of the calendar table and pair each with both stores; join the revenue to that grid, then average within each store over the month and the 2 rows before it."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 839,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 840,
+      "to": 1131,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 1132,
+      "to": 1143,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "The grid gives each store a row for every month, with 0 for a month with no orders, so the window always holds calendar months."
+}

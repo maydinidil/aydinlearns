@@ -1,0 +1,160 @@
+{
+  "id": "EX-SQL-WIN-07-E2-22",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "window",
+    "first_value",
+    "last_value",
+    "frame",
+    "price_index",
+    "price_history",
+    "drill"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-07"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-WIN-07",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-TYPE-01",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-WIN-01",
+    "SQL-WIN-04",
+    "SQL-WIN-07"
+  ],
+  "template_id": "T-WIN-07-first-last-ratio",
+  "template_params": {
+    "table": "price_history",
+    "key": "product_id"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_win",
+  "prompt": "For each product of the Audio categories (category_id from 15 to 20, both included) that has more than one price version, what is its current list price as a share of its launch price? The launch price is the list price of its earliest price version, and the current price that of its latest version, by valid_from. Round the share to 3 decimals. Return four columns, in this order: product_id, launch_price_eur, current_price_eur and price_index. Return one row for each such product. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "launch_price_eur",
+        "type_class": "numeric"
+      },
+      {
+        "name": "current_price_eur",
+        "type_class": "numeric"
+      },
+      {
+        "name": "price_index",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "launch_price_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "current_price_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "price_index",
+        "type_class": "numeric",
+        "precision": "ratio",
+        "require_rounding": 3
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "product_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, put each product's first and last list price on all of its price versions, keep one row per product with more than one version, then divide.",
+    "Both windows need a frame that covers all of the product's versions, or the last value is the row's own price."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 119,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 120,
+      "to": 650,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 651,
+      "to": 724,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 725,
+      "to": 764,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 767,
+      "to": 900,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 901,
+      "to": 914,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 915,
+      "to": 935,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "Both windows cover all of a product's versions, so every row carries the launch and the current price, and DISTINCT keeps one row per product."
+}

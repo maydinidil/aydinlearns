@@ -22,6 +22,10 @@ export interface TableNote {
   from_level?: number;
   /** A line of plain English about one column, by column name (for example that an `*_ts` column is a UTC instant). Missing means none. */
   column_notes?: Record<string, string>;
+  /** Sprint 6 Part 2 (pipeline/datasets/notes.py): each column's DuckDB type, by column name. Written for the datasets a prep builds and the edge schemas; older notes lack it. */
+  column_types?: Record<string, string>;
+  /** Sprint 6 Part 2: the registry's label for a prepared dataset (the line every page shows about its data). Missing means none. */
+  label?: string;
 }
 
 /**

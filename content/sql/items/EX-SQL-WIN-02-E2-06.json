@@ -1,0 +1,173 @@
+{
+  "id": "EX-SQL-WIN-02-E2-06",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "ranking",
+    "dense_rank",
+    "top_n_per_group",
+    "ties_share",
+    "ad_spend_daily"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-WIN-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-WIN-01",
+    "SQL-WIN-02"
+  ],
+  "template_id": "T-WIN-02-top-n-per-group",
+  "template_params": {
+    "table": "ad_spend_daily",
+    "step": "campaign",
+    "partition": "channel",
+    "fn": "DENSE_RANK",
+    "n": 2,
+    "order": "spend, highest first"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "mailvora",
+  "schema": "mailvora",
+  "edge_schema": "mailvora_edge_win",
+  "prompt": "For each channel, which campaigns are at its two highest levels of total spend? Count all the spend in ad_spend_daily. Campaigns that tie on spend share a place, and the next lower spend takes the next place with no gap, so the two highest levels can hold more than two campaigns. Return four columns, in this order: channel_id, campaign_id, spend and spend_level, 1 for the channel's highest spend. Return one row for each campaign kept. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "channel_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "campaign_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "spend",
+        "type_class": "numeric"
+      },
+      {
+        "name": "spend_level",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "channel_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "campaign_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "spend",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "spend_level",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "campaign_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the step that gives each campaign its spend level within its channel; the outer query keeps levels 1 and 2.",
+    "Tied campaigns share a level and the next spend takes the next level with no gap, so pick the ranking function that never skips a number."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 60,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 61,
+      "to": 120,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 121,
+      "to": 196,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 197,
+      "to": 235,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 239,
+      "to": 286,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 287,
+      "to": 415,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 416,
+      "to": 437,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 440,
+      "to": 490,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 491,
+      "to": 502,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 503,
+      "to": 525,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "DENSE_RANK gives tied campaigns one level with no gap after it, so spend_level <= 2 keeps every campaign at the two highest spends."
+}

@@ -1,0 +1,44 @@
+{
+  "item_id": "EX-SQL-WIN-06-E2-04",
+  "item_version": 1,
+  "reference_sql": "WITH numbered AS (  -- one row per July session, numbered within its visitor from the first\n  SELECT visitor_id, utm_source,\n         ROW_NUMBER() OVER (PARTITION BY visitor_id ORDER BY session_start, session_id) AS rn\n  FROM sessions\n  WHERE session_start >= TIMESTAMPTZ '2025-07-01 00:00:00+00' AND session_start < TIMESTAMPTZ '2025-08-01 00:00:00+00'\n)\nSELECT utm_source, COUNT(*) AS visitors\nFROM numbered\nWHERE rn = 1\nGROUP BY utm_source",
+  "alternatives": [
+    "SELECT f.utm_source, COUNT(*) AS visitors\nFROM (\n  -- one row per July session, numbered within its visitor from the first\n  SELECT visitor_id, utm_source,\n         ROW_NUMBER() OVER (PARTITION BY visitor_id ORDER BY session_start, session_id) AS rn\n  FROM sessions\n  WHERE session_start >= TIMESTAMPTZ '2025-07-01 00:00:00+00' AND session_start < TIMESTAMPTZ '2025-08-01 00:00:00+00'\n) AS f\nWHERE f.rn = 1\nGROUP BY f.utm_source",
+    "SELECT f.utm_source, COUNT(*) AS visitors\nFROM (\n  -- one row per visitor: the first July session\n  SELECT visitor_id, utm_source\n  FROM sessions\n  WHERE session_start >= TIMESTAMPTZ '2025-07-01 00:00:00+00' AND session_start < TIMESTAMPTZ '2025-08-01 00:00:00+00'\n  QUALIFY ROW_NUMBER() OVER (PARTITION BY visitor_id ORDER BY session_start, session_id) = 1\n) AS f\nGROUP BY f.utm_source"
+  ],
+  "other_way": {
+    "sql": "SELECT f.utm_source, COUNT(*) AS visitors\nFROM (\n  -- one row per visitor: the first July session\n  SELECT visitor_id, utm_source\n  FROM sessions\n  WHERE session_start >= TIMESTAMPTZ '2025-07-01 00:00:00+00' AND session_start < TIMESTAMPTZ '2025-08-01 00:00:00+00'\n  QUALIFY ROW_NUMBER() OVER (PARTITION BY visitor_id ORDER BY session_start, session_id) = 1\n) AS f\nGROUP BY f.utm_source",
+    "tradeoff": "QUALIFY filters the window result in the same query, which is shorter, but PostgreSQL, MySQL and SQL Server do not accept it."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-40",
+      "sql": "WITH numbered AS (SELECT visitor_id, utm_source, RANK() OVER (PARTITION BY visitor_id ORDER BY session_start) AS rn FROM sessions WHERE session_start >= TIMESTAMPTZ '2025-07-01 00:00:00+00' AND session_start < TIMESTAMPTZ '2025-08-01 00:00:00+00') SELECT utm_source, COUNT(*) AS visitors FROM numbered WHERE rn = 1 GROUP BY utm_source"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-18",
+      "sql": "WITH numbered AS (SELECT visitor_id, utm_source, ROW_NUMBER() OVER (PARTITION BY visitor_id ORDER BY session_start DESC, session_id) AS rn FROM sessions WHERE session_start >= TIMESTAMPTZ '2025-07-01 00:00:00+00' AND session_start < TIMESTAMPTZ '2025-08-01 00:00:00+00') SELECT utm_source, COUNT(*) AS visitors FROM numbered WHERE rn = 1 GROUP BY utm_source"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-07",
+      "sql": "SELECT utm_source, COUNT(*) AS visitors FROM sessions WHERE session_start >= TIMESTAMPTZ '2025-07-01 00:00:00+00' AND session_start < TIMESTAMPTZ '2025-08-01 00:00:00+00' GROUP BY utm_source"
+    },
+    {
+      "id": "PW4",
+      "error_id": "ERR-SYN-08",
+      "sql": "SELECT utm_source, COUNT(*) AS visitors FROM sessions WHERE session_start >= TIMESTAMPTZ '2025-07-01 00:00:00+00' AND session_start < TIMESTAMPTZ '2025-08-01 00:00:00+00' AND ROW_NUMBER() OVER (PARTITION BY visitor_id ORDER BY session_start, session_id) = 1 GROUP BY utm_source"
+    }
+  ],
+  "hint3_partial": "WITH numbered AS (  -- one row per July session, numbered within its visitor from the first\n  SELECT visitor_id, utm_source,\n         ROW_NUMBER() OVER (PARTITION BY visitor_id ORDER BY session_start, session_id) AS rn\n  FROM sessions\n  WHERE session_start >= TIMESTAMPTZ '2025-07-01 00:00:00+00' AND session_start < TIMESTAMPTZ '2025-08-01 00:00:00+00'\n)\nSELECT utm_source, COUNT(*) AS visitors\nFROM numbered\nWHERE ___\nGROUP BY utm_source",
+  "solver": {
+    "prompt_hash": "cf38445d6a04a42a",
+    "schema_version": "2b0e8a827ee7",
+    "dataset_version": "e7c58abf7e8f892e",
+    "grader_version": "7a.1",
+    "query": "WITH first_s AS (\n  SELECT visitor_id, utm_source\n  FROM sessions\n  WHERE session_start >= TIMESTAMPTZ '2025-07-01 00:00:00+00' AND session_start < TIMESTAMPTZ '2025-08-01 00:00:00+00'\n  QUALIFY ROW_NUMBER() OVER (PARTITION BY visitor_id ORDER BY session_start ASC, session_id ASC) = 1\n)\nSELECT utm_source, COUNT(*) AS visitors\nFROM first_s\nGROUP BY utm_source\n",
+    "at": "2026-10-21T09:05:10.378Z"
+  }
+}

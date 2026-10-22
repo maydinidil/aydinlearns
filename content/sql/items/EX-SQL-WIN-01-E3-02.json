@@ -1,0 +1,170 @@
+{
+  "id": "EX-SQL-WIN-01-E3-02",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "window",
+    "partition_by",
+    "filter_on_window",
+    "cte",
+    "ad_spend_daily"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-WIN-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-WIN-01"
+  ],
+  "template_id": "T-WIN-01-filter-on-share",
+  "template_params": {
+    "table": "ad_spend_daily",
+    "step": "campaign",
+    "partition": "channel",
+    "threshold": "10%"
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "mailvora",
+  "schema": "mailvora",
+  "edge_schema": "mailvora_edge_win",
+  "prompt": "Which campaigns took more than 10% of their channel's spend? Count all the spend in ad_spend_daily. Return four columns, in this order: campaign_id, channel_id, spend (the campaign's total spend) and channel_spend (the total spend of all the campaigns of its channel). Return one row for each such campaign. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "campaign_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "channel_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "spend",
+        "type_class": "numeric"
+      },
+      {
+        "name": "channel_spend",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "campaign_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "channel_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "spend",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "channel_spend",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "campaign_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the step that puts each channel's total spend on every campaign row, then filter in the query that reads it.",
+    "A window result cannot be tested in the WHERE of its own query; give the channel total a name in a WITH step, then compare."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 60,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 61,
+      "to": 120,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 121,
+      "to": 196,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 197,
+      "to": 235,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 239,
+      "to": 290,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 291,
+      "to": 399,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 400,
+      "to": 421,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 424,
+      "to": 476,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 477,
+      "to": 492,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 493,
+      "to": 526,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "The second step names each channel's total on every campaign row, so the outer WHERE can compare the campaign with a tenth of it."
+}

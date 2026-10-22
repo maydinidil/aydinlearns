@@ -21,6 +21,8 @@ import { DAILY_ID, EXPLANATION, INBOX_ID, makeCaseFixture, TRUTH_QUERY } from '.
 import { makeChoiceRoot } from '../helpers/choice-fixture.ts';
 import { FIXTURE_CONCEPT, makeContentFixture } from '../helpers/content-fixture.ts';
 import { makeLabRoot } from '../helpers/lab-fixture.ts';
+import { startRunner } from '../../server/runner/client.ts';
+import { makeFixtureDb } from '../helpers/fixture-db.ts';
 
 const made: string[] = [];
 after(async () => { for (const d of made) await rm(d, { recursive: true, force: true }); });
@@ -354,6 +356,33 @@ test('K2: a case item\'s item_viewed carries its case\'s theme, and a plain leve
   assert.deepEqual(themes, { 'EX-CASE-PRICE-01': 'data_quality', 'EX-CASE-DAILY-L1-01': 'retail', 'EX-OPENER-L1-01': 'marketing' });
 });
 
+// S7-30: the attempt reads itemFunnel too, so an answer to a case item carries the case's theme as its item_viewed does.
+test('S7-30: a submitted case item sends exercise_submitted and exercise_passed with the theme of its case, as its item_viewed does', async () => {
+  const dir = await tmp();
+  startJourney({ dir });
+  const f = await makeCaseFixture({ records: (r) => { r.inbox.world = 'DQ'; r.daily.world = 'RETAIL'; r.opener.world = 'MKT'; } });
+  keep(f.root);
+  const runner = await startRunner(await makeFixtureDb(['CREATE SCHEMA voltmarkt', 'CREATE SCHEMA voltmarkt_edge_basics',
+    "CREATE TABLE voltmarkt.stores AS SELECT * FROM (VALUES (8,'Utrecht')) v(store_id, city)",
+    "CREATE TABLE voltmarkt_edge_basics.stores AS SELECT * FROM (VALUES (8,'Zurich'),(9,'Gent')) v(store_id, city)"]));
+  try {
+    const app = createApp({ ...(await deps(await loadContent(f.root, { truthFile: f.truthFile }))), runner });
+    for (const id of ['EX-CASE-PRICE-01', 'EX-CASE-DAILY-L1-01', 'EX-OPENER-L1-01']) {
+      assert.equal((await get(app, `/api/items/${id}`)).status, 200, id);
+      const r = await post(app, '/api/submit', { item_id: id, item_instance_id: `inst-${id}`, sql: 'SELECT city FROM stores WHERE store_id = 8', phase: 'case' });
+      assert.equal(r.status, 200, `${id}: ${await r.clone().text()}`);
+      assert.equal(((await r.json()) as { outcome: string }).outcome, 'pass', id);
+    }
+  } finally { await runner.close(); }
+  await stopJourney();
+  const rows = await journal(dir);
+  const theme = (event: string) => Object.fromEntries(rows.filter((r) => r.event === event).map((r) => [r.item_id, r.case_theme]));
+  const expected = { 'EX-CASE-PRICE-01': 'data_quality', 'EX-CASE-DAILY-L1-01': 'retail', 'EX-OPENER-L1-01': 'marketing' };
+  assert.deepEqual(theme('item_viewed'), expected);
+  assert.deepEqual(theme('exercise_submitted'), expected, 'the attempt reads the same funnel as the view');
+  assert.deepEqual(theme('exercise_passed'), expected);
+});
+
 test('K2: an ordinary level item and a lesson still send pricing', async () => {
   const dir = await tmp();
   startJourney({ dir });
@@ -415,7 +444,10 @@ test('K2 M1: two apps in one process do not share what was sent; each live end s
     assert.equal((await post(app, '/api/drill/end', { block_id })).status, 200);
   }
   await stopJourney();
-  assert.deepEqual((await finished(dir)).map((r) => r.block_id).sort(), [...ids].sort());
+  assert.equal(new Set(ids).size, 2, 'the two runs have their own block IDs');
+  const sent = await finished(dir);
+  assert.equal(sent.length, 2, 'one run_finished for each app: neither app kept the other block in its set');
+  assert.deepEqual(sent.map((r) => r.block_id).sort(), [...ids].sort());
 });
 
 test('K2 M1: a live rep the browser ends sends exactly one run_finished; ended again by a new app over the same logs, none more', async () => {

@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-WIN-04-E2-42",
+  "item_version": 1,
+  "correct_oid": "o0f1a309",
+  "explanation": "The right query orders by date, then campaign_id, and uses ROWS, so each row adds its own spend once. With ORDER BY spend_date alone and no frame, all rows of one day share the day's full total. Ordering by campaign first adds a whole campaign before the next, and PARTITION BY campaign_id gives each campaign its own total instead of the channel's.",
+  "solver": {
+    "prompt_hash": "737dbb57594127d1",
+    "grader_version": "choice.3",
+    "chosen": "o0f1a309",
+    "typed": null,
+    "at": "2026-10-20T20:50:48.368Z"
+  }
+}

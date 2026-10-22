@@ -50,6 +50,17 @@ export function buildCatalog(content: ContentStore): ReplayCatalog {
     }
     return traps;
   };
+  /**
+   * Sprint 7 Part 2 (S7-06, S7-08; L123): the checkpoints of the held-out mock cases (content/sql/mocks/), CP3's SQL item included, by item
+   * ID, with what each credits. Built once, as the trap pairs are. A mock case is rated per checkpoint, as a case, but is never in `cases`
+   * (D114: no case status, inbox or portfolio names one).
+   */
+  let mockCheckpoints: Map<string, string[]> | null = null;
+  const mockCheckpoint = (itemId: string): string[] | undefined => {
+    mockCheckpoints ??= new Map((content.mockCases?.() ?? []).flatMap((c) => (Array.isArray(c?.checkpoints) ? c.checkpoints : [])
+      .filter((p) => typeof p?.item_id === 'string' && Array.isArray(p.credits_concepts)).map((p) => [p.item_id!, p.credits_concepts] as const)));
+    return mockCheckpoints.get(itemId);
+  };
   /** Sprint 4b (S4B-08): every case and its auto-graded checkpoints, built once, as the trap pairs are. Openers only, for a store without cases(). */
   let cases: ReplayCase[] | null = null;
   const caseList = (): ReplayCase[] => {
@@ -66,9 +77,11 @@ export function buildCatalog(content: ContentStore): ReplayCatalog {
     cardOf: (id) => `CARD-${content.choiceConcept?.(id)?.card_concept_id ?? id}`,
     familyOf: (itemId, itemKind): ItemFamily => {
       const item = content.item(itemId);
-      // Every case checkpoint item, CP1 to CP5 of every case, is rated by the case-checkpoint rule (design §5, S4B-02).
-      if (item?.use === 'opener' || item?.use === 'case' || content.checkpointCredits?.(itemId) !== undefined) return 'checkpoint';
-      const kind: string = item?.kind ?? itemKind;
+      // Every case checkpoint item, CP1 to CP5 of every case, is rated by the case-checkpoint rule (design §5, S4B-02). S7-06 (L123): a case
+      // mock's too, its CP3 SQL item included, so no case mock answer takes the drill rule a screen mock's SQL items take (S7-C08).
+      if (item?.use === 'opener' || item?.use === 'case' || content.checkpointCredits?.(itemId) !== undefined || mockCheckpoint(itemId) !== undefined) return 'checkpoint';
+      // L125: a mock item closed with no attempt is classed by its own kind (held in the mock store, S7-08), never as a choice item.
+      const kind: string = (item ?? content.mockItem?.(itemId))?.kind ?? itemKind;
       if (kind === 'write') return 'write';
       if (kind === 'fix') return 'fix';
       if (CHOICE_KINDS.has(kind)) return 'choice';
@@ -76,7 +89,7 @@ export function buildCatalog(content: ContentStore): ReplayCatalog {
       if (kind === '') return itemId.startsWith('EX-SQL-') ? 'write' : 'choice';
       return 'other_sql';
     },
-    creditsOf: (itemId) => content.checkpointCredits?.(itemId) ?? null,
+    creditsOf: (itemId) => content.checkpointCredits?.(itemId) ?? mockCheckpoint(itemId) ?? null,
     conceptForError: (errorId) => content.errorConcepts[errorId] ?? null,
     pretestCount: 2,
     trapItemsFor: (conceptId, errorId) => trapPairs().has(`${conceptId}~${errorId}`),
@@ -143,4 +156,9 @@ export class LearnerState {
     }
   }
   catalog(): ReplayCatalog { return this.#catalog; }
+  /**
+   * Sprint 7 Part 2 (S7-15, S7-C25): the attempt files' records as this state holds them (those read at start, then every write mirrored),
+   * in log order. Read only: the take-home's rebuild at start and a case mock's routes read them without reading the files again.
+   */
+  attemptRecords(): readonly object[] { return this.#attempts; }
 }

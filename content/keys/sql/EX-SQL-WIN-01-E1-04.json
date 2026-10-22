@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-WIN-01-E1-04",
+  "item_version": 1,
+  "reference_sql": "SELECT month, channel_id, budget_eur,\n       SUM(budget_eur) OVER (PARTITION BY channel_id) AS channel_budget_2025\nFROM budget_monthly\nWHERE month >= DATE '2025-01-01' AND month < DATE '2026-01-01'",
+  "alternatives": [
+    "WITH channel_totals AS (  -- one row per channel with a 2025 budget\n  SELECT channel_id, SUM(budget_eur) AS total_budget\n  FROM budget_monthly\n  WHERE month >= DATE '2025-01-01' AND month < DATE '2026-01-01'\n  GROUP BY channel_id\n)\nSELECT b.month, b.channel_id, b.budget_eur, ct.total_budget AS channel_budget_2025\nFROM budget_monthly b\nJOIN channel_totals ct ON ct.channel_id = b.channel_id\nWHERE b.month >= DATE '2025-01-01' AND b.month < DATE '2026-01-01'",
+    "SELECT b.month, b.channel_id, b.budget_eur,\n       (SELECT SUM(b2.budget_eur) FROM budget_monthly b2 WHERE b2.channel_id = b.channel_id AND b2.month >= DATE '2025-01-01' AND b2.month < DATE '2026-01-01') AS channel_budget_2025\nFROM budget_monthly b\nWHERE b.month >= DATE '2025-01-01' AND b.month < DATE '2026-01-01'"
+  ],
+  "other_way": {
+    "sql": "WITH channel_totals AS (  -- one row per channel with a 2025 budget\n  SELECT channel_id, SUM(budget_eur) AS total_budget\n  FROM budget_monthly\n  WHERE month >= DATE '2025-01-01' AND month < DATE '2026-01-01'\n  GROUP BY channel_id\n)\nSELECT b.month, b.channel_id, b.budget_eur, ct.total_budget AS channel_budget_2025\nFROM budget_monthly b\nJOIN channel_totals ct ON ct.channel_id = b.channel_id\nWHERE b.month >= DATE '2025-01-01' AND b.month < DATE '2026-01-01'",
+    "tradeoff": "Channel totals in a step of their own, joined back, work on any engine, but the 2025 filter must be written twice."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-37",
+      "sql": "SELECT month, channel_id, budget_eur, SUM(budget_eur) OVER () AS channel_budget_2025 FROM budget_monthly WHERE month >= DATE '2025-01-01' AND month < DATE '2026-01-01'"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-14",
+      "sql": "SELECT month, channel_id, budget_eur, AVG(budget_eur) OVER (PARTITION BY channel_id) AS channel_budget_2025 FROM budget_monthly WHERE month >= DATE '2025-01-01' AND month < DATE '2026-01-01'"
+    }
+  ],
+  "hint3_partial": "SELECT month, channel_id, budget_eur,\n       SUM(budget_eur) OVER (PARTITION BY ___) AS channel_budget_2025\nFROM budget_monthly\nWHERE month >= DATE '2025-01-01' AND month < DATE '2026-01-01'",
+  "solver": {
+    "prompt_hash": "9c65944449cbbd34",
+    "schema_version": "1ea1a0f5ae04",
+    "dataset_version": "e7c58abf7e8f892e",
+    "grader_version": "7a.1",
+    "query": "SELECT month, channel_id, budget_eur,\n       SUM(budget_eur) OVER (PARTITION BY channel_id) AS channel_budget_2025\nFROM budget_monthly\nWHERE month >= DATE '2025-01-01' AND month < DATE '2026-01-01'\n",
+    "at": "2026-10-21T09:05:05.013Z"
+  }
+}

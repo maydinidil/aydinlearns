@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-WIN-02-E2-41",
+  "item_version": 1,
+  "correct_oid": "o33083d1",
+  "explanation": "The right query numbers each category's products apart with ROW_NUMBER, the most expensive first and product_id settling ties, so rn <= 2 keeps exactly 2. RANK gives tied products the same number and keeps a third product when two tie for second place. Without PARTITION BY the numbering runs over all products, so only 2 are kept in total, and sorting without DESC keeps the 2 cheapest.",
+  "solver": {
+    "prompt_hash": "8a7711b3f0043855",
+    "grader_version": "choice.3",
+    "chosen": "o33083d1",
+    "typed": null,
+    "at": "2026-10-20T20:50:48.334Z"
+  }
+}

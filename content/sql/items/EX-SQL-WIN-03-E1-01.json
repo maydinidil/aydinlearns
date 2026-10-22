@@ -1,0 +1,136 @@
+{
+  "id": "EX-SQL-WIN-03-E1-01",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "lag",
+    "price_history"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-03"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pretest",
+  "target_concept_id": "SQL-WIN-03",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-WIN-01",
+    "SQL-WIN-03"
+  ],
+  "template_id": "T-WIN-03-lag-prev-value",
+  "template_params": {
+    "table": "price_history",
+    "group": "product",
+    "order": "valid_from"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_win",
+  "prompt": "For every price version of products 1 to 25 (product_id from 1 to 25, both included), show the list price of the same product's version before it. Within each product, versions follow each other by valid_from. Return product_id, valid_from, list_price_eur and prev_price_eur. A product's first version has no version before it: show its prev_price_eur as missing. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "valid_from",
+        "type_class": "temporal"
+      },
+      {
+        "name": "list_price_eur",
+        "type_class": "numeric"
+      },
+      {
+        "name": "prev_price_eur",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per product per price version"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "valid_from",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "list_price_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "prev_price_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "product_id",
+      "valid_from"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, add a column that reads the list price from the row before, within the same product.",
+    "The window needs a group for each product and an order by the start of each version inside it."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 46,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 47,
+      "to": 137,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 138,
+      "to": 156,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 157,
+      "to": 190,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "LAG reads the price of the row before within the same product, in valid_from order, and gives a missing value on each product's first version."
+}

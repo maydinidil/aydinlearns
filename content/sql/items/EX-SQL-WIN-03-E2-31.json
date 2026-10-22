@@ -1,0 +1,139 @@
+{
+  "id": "EX-SQL-WIN-03-E2-31",
+  "version": 1,
+  "kind": "fix",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "lag",
+    "products",
+    "wrong_order",
+    "fix"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-03"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-WIN-03",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-NULL-01",
+    "SQL-WIN-01",
+    "SQL-WIN-03"
+  ],
+  "template_id": "T-WIN-03-fix-order-column",
+  "template_params": {
+    "table": "products",
+    "group": "category",
+    "order": "launch_date"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_win",
+  "prompt": "The query in the editor has one mistake. Fix it so that it answers this question: for each product in categories 1 and 2 with a known launch date, how many days after the previous launch in its category was it launched? Within a category, products follow each other by launch_date; when two products of a category launched on the same day, the lower product_id comes first. Leave out products with a missing launch_date. Return product_id, category_id, launch_date and days_after_prev, this launch_date minus the previous product's, in days. A category's first product shows days_after_prev as missing. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "category_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "launch_date",
+        "type_class": "temporal"
+      },
+      {
+        "name": "days_after_prev",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "category_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "launch_date",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "days_after_prev",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "product_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, check what sets the sequence inside the window: which product counts as the one before?",
+    "Product IDs were not handed out in launch order, so the window must follow the launch date, with the product ID only to break ties."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 44,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 45,
+      "to": 161,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 162,
+      "to": 175,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 176,
+      "to": 233,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": "SELECT product_id, category_id, launch_date,\n  launch_date - LAG(launch_date) OVER (PARTITION BY category_id ORDER BY product_id) AS days_after_prev\nFROM products\nWHERE category_id IN (1, 2)\n  AND launch_date IS NOT NULL",
+  "starter_error_id": "ERR-LOG-41",
+  "time_target_ms": 180000,
+  "why_this_works": "Ordered by launch date, with product_id only for same-day launches, LAG reads the launch just before each product in its category."
+}

@@ -1,0 +1,186 @@
+{
+  "id": "EX-SQL-WIN-03-E1-41",
+  "version": 1,
+  "kind": "predict_result",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "predict_result",
+    "lag",
+    "ad_spend_daily"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-03"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pretest",
+  "target_concept_id": "SQL-WIN-03",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-WIN-01",
+    "SQL-WIN-03"
+  ],
+  "template_id": "T-WIN-03-predict-lag-first-row",
+  "template_params": {
+    "table": "ad_spend_daily"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "mailvora",
+  "schema": "mailvora",
+  "edge_schema": "mailvora_edge_win",
+  "prompt": "Campaign 25 spent on every day of July 2025. Which result does this query return?",
+  "output_contract": null,
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [],
+  "subgoals": [],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 90000,
+  "why_this_works": "",
+  "shown_sql": "SELECT spend_date, spend,\n  LAG(spend) OVER (ORDER BY spend_date) AS prev_spend\nFROM ad_spend_daily\nWHERE campaign_id = 25\n  AND spend_date BETWEEN DATE '2025-07-01' AND DATE '2025-07-03'",
+  "options": [
+    {
+      "oid": "o113350b",
+      "text": "The first day's prev_spend is 0.00",
+      "misconception_id": "ERR-LOG-17",
+      "table": {
+        "columns": [
+          "spend_date",
+          "spend",
+          "prev_spend"
+        ],
+        "rows": [
+          [
+            "2025-07-01",
+            "262.98",
+            "0.00"
+          ],
+          [
+            "2025-07-02",
+            "176.60",
+            "262.98"
+          ],
+          [
+            "2025-07-03",
+            "141.46",
+            "176.60"
+          ]
+        ]
+      }
+    },
+    {
+      "oid": "o0888073",
+      "text": "The first day's prev_spend is missing",
+      "misconception_id": null,
+      "table": {
+        "columns": [
+          "spend_date",
+          "spend",
+          "prev_spend"
+        ],
+        "rows": [
+          [
+            "2025-07-01",
+            "262.98",
+            null
+          ],
+          [
+            "2025-07-02",
+            "176.60",
+            "262.98"
+          ],
+          [
+            "2025-07-03",
+            "141.46",
+            "176.60"
+          ]
+        ]
+      }
+    },
+    {
+      "oid": "occb5139",
+      "text": "Each day shows the next day's spend",
+      "misconception_id": "ERR-LOG-18",
+      "table": {
+        "columns": [
+          "spend_date",
+          "spend",
+          "prev_spend"
+        ],
+        "rows": [
+          [
+            "2025-07-01",
+            "262.98",
+            "176.60"
+          ],
+          [
+            "2025-07-02",
+            "176.60",
+            "141.46"
+          ],
+          [
+            "2025-07-03",
+            "141.46",
+            null
+          ]
+        ]
+      }
+    },
+    {
+      "oid": "o094b2e3",
+      "text": "The first day shows the spend of 30 June",
+      "misconception_id": null,
+      "table": {
+        "columns": [
+          "spend_date",
+          "spend",
+          "prev_spend"
+        ],
+        "rows": [
+          [
+            "2025-07-01",
+            "262.98",
+            "207.70"
+          ],
+          [
+            "2025-07-02",
+            "176.60",
+            "262.98"
+          ],
+          [
+            "2025-07-03",
+            "141.46",
+            "176.60"
+          ]
+        ]
+      }
+    }
+  ]
+}

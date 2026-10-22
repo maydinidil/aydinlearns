@@ -1,0 +1,132 @@
+{
+  "id": "EX-SQL-WIN-02-E1-07",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "ranking",
+    "dense_rank",
+    "partition_by",
+    "products"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-WIN-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-WIN-01",
+    "SQL-WIN-02"
+  ],
+  "template_id": "T-WIN-02-rank-within-group",
+  "template_params": {
+    "table": "products",
+    "partition": "category",
+    "fn": "DENSE_RANK",
+    "order": "unit cost, cheapest first"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_win",
+  "prompt": "For every product in the Accessories categories, category_id 35 to 40, show its cost level within its category, the cheapest first. Products that tie on unit cost share a place, and the next higher cost takes the next place with no gap. Return four columns, in this order: product_id, category_id, unit_cost_eur and cost_level, 1 for the category's lowest cost. Return one row for each such product. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "category_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "unit_cost_eur",
+        "type_class": "numeric"
+      },
+      {
+        "name": "cost_level",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "category_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "unit_cost_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "cost_level",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "product_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the calculated column cost_level: a ranking that restarts in each category, the lowest cost first.",
+    "Tied costs share a level and the next cost follows with no gap, so pick the ranking function that never skips a number."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 135,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 136,
+      "to": 149,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 150,
+      "to": 185,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 90000,
+  "why_this_works": "DENSE_RANK gives products with the same cost one level and the next cost the next level, restarting in every category."
+}

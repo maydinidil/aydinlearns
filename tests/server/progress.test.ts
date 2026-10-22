@@ -135,7 +135,7 @@ const TITLES: Record<string, string> = { [A]: 'Tables, rows and your first SELEC
 const titleOf = (id: string): string => TITLES[id] ?? id;
 const fakeView = (states: Record<string, ConceptStateName>, over: Partial<GoalView> = {}): GoalView => ({
   conceptsOf: (section, max) => (section === 'sql' ? SQL_CONCEPTS.filter((c) => c.level <= max).map((c) => c.id) : []),
-  stateOf: (id) => states[id] ?? 'new', externals: [], mocksPassed: new Set(), casesSolved: [], realCasesAvailable: 0, liveReps: [], ...over,
+  stateOf: (id) => states[id] ?? 'new', externals: [], mocksPassed: new Map(), mocksAvailable: new Set(), casesSolved: [], realCasesAvailable: 0, liveReps: [], ...over,
 });
 const goalOf = (id: string, target_date: string, criteria: Goal['criteria'], stage: number | null = null): Goal => ({ id, title: `Goal ${id}`, target_date, stage, criteria });
 
@@ -198,7 +198,10 @@ test('the readiness board: G-STAGE-1 to G-STAGE-6 in stage order, the mocks "not
   assert.equal(some.ready, false);
   assert.deepEqual(board(fakeView({})).stages.map((s) => s.status),
     ['open', 'not_yet_available', 'not_yet_available', 'not_yet_available', 'not_yet_available', 'open'], 'no evidence yet');
-  const mocks = new Set(['screen', 'knowledge', 'case_round', 'take_home']);
+  // S7-04: a mock a start can take, not passed yet, leaves its stage open, not "not yet available".
+  assert.deepEqual(board(fakeView({}, { mocksAvailable: new Set(['screen', 'case_round']) })).stages.map((s) => s.status),
+    ['open', 'open', 'not_yet_available', 'open', 'not_yet_available', 'open']);
+  const mocks = new Map(['screen', 'knowledge', 'case_round', 'take_home'].map((m) => [m, TODAY]));
   assert.equal(board(fakeView({}, { externals, liveReps: reps, mocksPassed: mocks })).ready, true);
   assert.equal(board(fakeView({}, { externals, liveReps: reps.slice(1), mocksPassed: mocks })).ready, false, '3 reps: stage 6 is not passed');
 });

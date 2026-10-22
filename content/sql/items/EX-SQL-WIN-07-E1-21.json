@@ -1,0 +1,134 @@
+{
+  "id": "EX-SQL-WIN-07-E1-21",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "window",
+    "percent_rank",
+    "partition_by",
+    "products",
+    "drill"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-07"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-WIN-07",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-TYPE-01",
+    "SQL-WIN-01",
+    "SQL-WIN-07"
+  ],
+  "template_id": "T-WIN-07-percent-rank-within-group",
+  "template_params": {
+    "table": "products",
+    "group": "category_id",
+    "measure": "unit cost"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_win",
+  "prompt": "For each product of the TV & Video categories (category_id from 1 to 6, both included), what is its percent rank by unit cost within its category: the number of the category's products that cost less than it, divided by the number of products in the category minus one? The cheapest product of a category gets 0 and the most expensive 1, and products that tie on unit cost share the same value. Round to 3 decimals. Return four columns, in this order: category_id, product_id, unit_cost_eur and cost_pct_rank. Return one row for each such product. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "category_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "product_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "unit_cost_eur",
+        "type_class": "numeric"
+      },
+      {
+        "name": "cost_pct_rank",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "category_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "product_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "unit_cost_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "cost_pct_rank",
+        "type_class": "numeric",
+        "precision": "ratio",
+        "require_rounding": 3
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "product_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the calculated column cost_pct_rank: a value from 0 to 1 within each category, from the cheapest product up.",
+    "One window function gives (rank minus 1) divided by (rows minus 1) directly, with tied costs sharing a rank."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 150,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 151,
+      "to": 164,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 165,
+      "to": 198,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "PERCENT_RANK gives (rank minus 1) divided by (rows minus 1) within each category, so tied costs share a value and the range runs from 0 to 1."
+}

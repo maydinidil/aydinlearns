@@ -1,0 +1,135 @@
+{
+  "concept_id": "SQL-WIN-05",
+  "version": 1,
+  "reading_md": "## Moving averages: a window that slides\n\nA moving average smooths a noisy series. Each row gets the average of itself and a fixed number of rows before it, and the window slides one row at a time:\n\n```sql\nAVG(spend) OVER (ORDER BY spend_date ROWS BETWEEN 6 PRECEDING AND CURRENT ROW)\n```\n\nThe frame holds this row and the 6 before it: 7 rows. Add PARTITION BY for one series per campaign, store or product, as for a running total. Other frames work the same way: `ROWS BETWEEN 2 PRECEDING AND CURRENT ROW` for 3 months, or `ROWS BETWEEN 28 PRECEDING AND 1 PRECEDING` for the 28 days before a day, without the day itself.\n\n### The first rows hold fewer rows\n\nOn the first day the frame holds 1 row, on the third day 3. AVG still returns a number, and it reads like a real 7-day figure. Count the rows in the same frame, then do what the question asks:\n\n- **flag them**: `COUNT(*) OVER (...)` with the same frame, as a column such as days_in_window;\n- **show them as missing**: `CASE WHEN COUNT(*) OVER (...) = 7 THEN AVG(spend) OVER (...) END`;\n- **leave them out**: work the count out in a CTE and keep the rows where it is 7 in the outer query.\n\n### WHERE runs first\n\nWHERE removes rows before any window is worked out. Filter to July, and the window of 1 July cannot see June. When the window may read earlier rows, work it out in a CTE over all the rows, then keep July in the outer query.\n\n### Seven rows are not seven days\n\nROWS counts rows. If a campaign skipped a day, its last 7 rows reach back 8 days. Two ways out:\n\n- give every day a row first: LEFT JOIN the data to a full list of days, such as `calendar`, with `COALESCE(revenue, 0)` for a day with no orders;\n- let the frame count days: `RANGE BETWEEN INTERVAL 6 DAY PRECEDING AND CURRENT ROW` holds the rows dated up to 6 days before this one. A day with no row adds nothing, so AVG divides by the days that have rows; when a missing day counts as 0, divide the SUM by 7.\n\n### Rates: add up first, divide once\n\nA 7-day click-through rate is the window's clicks divided by its impressions:\n\n```sql\nSUM(clicks) OVER (ORDER BY spend_date ROWS BETWEEN 6 PRECEDING AND CURRENT ROW)\n  / SUM(impressions) OVER (ORDER BY spend_date ROWS BETWEEN 6 PRECEDING AND CURRENT ROW)\n```\n\n`AVG(clicks / impressions)` gives a quiet day with 500 impressions the same weight as a busy day with 5,000, so it is a different number.",
+  "syntax_md": "```sql\nSELECT campaign_id, spend_date, spend,                 -- metrics: every row stays\n  AVG(spend) OVER (\n    PARTITION BY campaign_id                           -- one series per campaign\n    ORDER BY spend_date                                -- the sequence\n    ROWS BETWEEN 6 PRECEDING AND CURRENT ROW           -- the frame: this row and the 6 before\n  ) AS avg_spend_7d,\n  COUNT(*) OVER (\n    PARTITION BY campaign_id ORDER BY spend_date\n    ROWS BETWEEN 6 PRECEDING AND CURRENT ROW           -- the same frame, counted\n  ) AS days_in_window\nFROM ad_spend_daily;                                   -- source: one row per campaign and day\n```\n\n- A short window at the start: flag it with the count, show it as missing with `CASE WHEN ... = 7`, or leave it out in an outer query.\n- 7 calendar days when some days have no row: give every day a row first, or use `RANGE BETWEEN INTERVAL 6 DAY PRECEDING AND CURRENT ROW`.\n- A rate over the window: `SUM(clicks) OVER (...) / SUM(impressions) OVER (...)`, not `AVG(clicks / impressions)`.",
+  "dialect_note": "ROWS BETWEEN n PRECEDING AND CURRENT ROW is standard SQL, and the same moving average runs in PostgreSQL. A RANGE frame with an interval, such as RANGE BETWEEN INTERVAL 6 DAY PRECEDING AND CURRENT ROW, needs exactly one sort column, a date or a number. PostgreSQL 11 and later accept it too, with the interval written as INTERVAL '6 days', which DuckDB also reads.",
+  "worked_examples": [
+    {
+      "title": "A 7-day moving average with a short-window flag",
+      "prompt": "For the campaign named 'Search | email marketing software | 2025', each UTC day of July 2025: the day's spend, the average spend of that day and the 6 days before it, and how many days the average covers. The campaign spent on every day of July, and only July's days count.",
+      "clauses": [
+        {
+          "text": "SELECT a.spend_date, a.spend,",
+          "subgoal": "metrics",
+          "why": "Every day stays in the result: a window adds columns, it never folds rows together."
+        },
+        {
+          "text": "  AVG(a.spend) OVER (ORDER BY a.spend_date ROWS BETWEEN 6 PRECEDING AND CURRENT ROW) AS avg_spend_7d,",
+          "subgoal": "metrics",
+          "why": "The frame holds the day and the 6 rows before it, so the average slides one day at a time."
+        },
+        {
+          "text": "  COUNT(*) OVER (ORDER BY a.spend_date ROWS BETWEEN 6 PRECEDING AND CURRENT ROW) AS days_in_window",
+          "subgoal": "metrics",
+          "why": "The same frame, counted: 1 on 1 July and 7 from 7 July, so a reader sees which averages are short."
+        },
+        {
+          "text": "FROM ad_spend_daily a\nJOIN campaigns c ON c.campaign_id = a.campaign_id",
+          "subgoal": "source_grain",
+          "why": "One row per campaign and day; the join gives the campaign its name."
+        },
+        {
+          "text": "WHERE c.campaign_name = 'Search | email marketing software | 2025'\n  AND a.spend_date BETWEEN DATE '2025-07-01' AND DATE '2025-07-31'",
+          "subgoal": "row_filter",
+          "why": "One campaign, so no PARTITION BY is needed; WHERE runs first, so the window of 1 July holds no June day."
+        }
+      ]
+    },
+    {
+      "title": "A 7-day click-through rate from rolling sums",
+      "prompt": "For the same campaign, each UTC day of July 2025: the click-through rate over the 7 days ending on that day, as a percentage rounded to 2 decimals. The campaign spent on every day of 2025, and the 7 days may reach back into June.",
+      "clauses": [
+        {
+          "text": "WITH daily AS (\n  -- one row per day with spend",
+          "subgoal": "source_grain",
+          "why": "The step works the window out over all of the campaign's days, so the first days of July can read June."
+        },
+        {
+          "text": "  SELECT a.spend_date,\n    ROUND(100.0 * SUM(a.clicks) OVER (ORDER BY a.spend_date ROWS BETWEEN 6 PRECEDING AND CURRENT ROW)\n      / SUM(a.impressions) OVER (ORDER BY a.spend_date ROWS BETWEEN 6 PRECEDING AND CURRENT ROW), 2) AS ctr_7d_pct",
+          "subgoal": "metrics",
+          "why": "Add up the clicks and the impressions of the same 7 rows, then divide once, so a busy day weighs more than a quiet one."
+        },
+        {
+          "text": "  FROM ad_spend_daily a\n  JOIN campaigns c ON c.campaign_id = a.campaign_id",
+          "subgoal": "source_grain",
+          "why": "One row per campaign and day."
+        },
+        {
+          "text": "  WHERE c.campaign_name = 'Search | email marketing software | 2025'\n)",
+          "subgoal": "row_filter",
+          "why": "Only the campaign, every date: no date filter yet."
+        },
+        {
+          "text": "SELECT spend_date, ctr_7d_pct",
+          "subgoal": "metrics",
+          "why": "The day and its 7-day rate."
+        },
+        {
+          "text": "FROM daily",
+          "subgoal": "source_grain",
+          "why": "One row per day with spend."
+        },
+        {
+          "text": "WHERE spend_date BETWEEN DATE '2025-07-01' AND DATE '2025-07-31'",
+          "subgoal": "row_filter",
+          "why": "The outer filter keeps July after the window has read the end of June."
+        }
+      ]
+    }
+  ],
+  "pretest_item_ids": [
+    "EX-SQL-WIN-05-E1-01",
+    "EX-SQL-WIN-05-E1-02"
+  ],
+  "lesson_item_ids": [
+    "EX-SQL-WIN-05-E1-03",
+    "EX-SQL-WIN-05-E1-04",
+    "EX-SQL-WIN-05-E2-01",
+    "EX-SQL-WIN-05-E2-02"
+  ],
+  "retest_item_id": "EX-SQL-WIN-05-E1-05",
+  "pool_item_ids": [
+    "EX-SQL-WIN-05-E1-06",
+    "EX-SQL-WIN-05-E1-07",
+    "EX-SQL-WIN-05-E2-03",
+    "EX-SQL-WIN-05-E2-04",
+    "EX-SQL-WIN-05-E2-05",
+    "EX-SQL-WIN-05-E2-06",
+    "EX-SQL-WIN-05-E3-01",
+    "EX-SQL-WIN-05-E3-02",
+    "EX-SQL-WIN-05-E2-31",
+    "EX-SQL-WIN-05-E2-32",
+    "EX-SQL-WIN-05-E2-33",
+    "EX-SQL-WIN-05-E1-42",
+    "EX-SQL-WIN-05-E2-41",
+    "EX-SQL-WIN-05-E2-42"
+  ],
+  "source_ids": [
+    "01:SQL-WIN-05"
+  ],
+  "why_clause": {
+    "clause": "  SELECT a.spend_date,\n    ROUND(100.0 * SUM(a.clicks) OVER (ORDER BY a.spend_date ROWS BETWEEN 6 PRECEDING AND CURRENT ROW)\n      / SUM(a.impressions) OVER (ORDER BY a.spend_date ROWS BETWEEN 6 PRECEDING AND CURRENT ROW), 2) AS ctr_7d_pct",
+    "stem": "Why does this column divide two rolling sums instead of averaging each day's click-through rate?",
+    "options": [
+      {
+        "id": "a",
+        "text": "So each day counts by its impressions: a busy day moves the 7-day rate more than a quiet one."
+      },
+      {
+        "id": "b",
+        "text": "Because AVG cannot run over a window frame."
+      },
+      {
+        "id": "c",
+        "text": "So the first six days of the series show a missing rate."
+      },
+      {
+        "id": "d",
+        "text": "Because dividing two sums rounds the result to 2 decimals by itself."
+      }
+    ],
+    "correct_id": "a",
+    "explanation": "AVG of the daily rates gives a day with 500 impressions the same weight as a day with 5,000, so it is not the rate of the 7 days. Adding up the clicks and the impressions over the same frame and dividing once gives that rate. AVG works over a frame too, and neither form leaves short windows missing or rounds anything by itself."
+  }
+}

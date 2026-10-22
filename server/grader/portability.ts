@@ -3,7 +3,8 @@
 // a fail, never a check. They read only the gated text and its parse tree, from the runner's parse_tree op (the gate, then
 // the prepared json_serialize_sql), and the integer division re-run is a gated display on the second locked runner; learner
 // text never reaches any other path here. GRADER_VERSION moved to 4b.1 with the new notes and screen mode (D41), and to 4c.1 with
-// the re-run's control run (D52). Sprint 6 (S6-10) adds the FROM subquery alias note, a note only.
+// the re-run's control run (D52). Sprint 6 (S6-10) adds the FROM subquery alias note, a note only. Sprint 7 (S7-20) words the QUALIFY
+// note as the ruling gives it, with GRADER_VERSION 7a.1.
 import type { RunnerClient } from '../runner/client.ts';
 import type { DisplayOk, ParseTreeOk } from '../runner/protocol.ts';
 import { maskSql } from '../runner/tables.ts';
@@ -35,7 +36,8 @@ export const CAST_NOTE = '`::` casts work in DuckDB and PostgreSQL, but not in S
 export const ILIKE_NOTE = "ILIKE works in DuckDB and PostgreSQL, but not in SQL Server or MySQL. LOWER(x) LIKE 'pattern' works everywhere.";
 export const COUNT_NOTE = 'count() with nothing inside works only in DuckDB. PostgreSQL, SQL Server and MySQL need count(*) to count rows.';
 export const EXCLUDE_NOTE = 'SELECT * EXCLUDE works only in DuckDB. PostgreSQL, SQL Server and MySQL need the columns you want listed.';
-export const QUALIFY_NOTE = 'QUALIFY works in DuckDB, but not in PostgreSQL, SQL Server or MySQL. Filter the window result in an outer query instead.';
+/** S7-20 (sprint 7, Task A1; DIALECT-04): the S4B-25 QUALIFY note, worded as the ruling gives it. GRADER_VERSION 7a.1 logs it. */
+export const QUALIFY_NOTE = 'PostgreSQL, MySQL and SQL Server have no QUALIFY: filter the window result in an outer query or a CTE.';
 /** S6-10 (sprint 6, Task A1): a subquery in FROM with no alias. PostgreSQL 16 dropped the rule; SQL Server keeps it. */
 export const SUBQUERY_ALIAS_NOTE = 'PostgreSQL before version 16 and SQL Server need an alias here: add `AS t`';
 /** S4B-24: after a pass, the integer division re-run gave another result. */

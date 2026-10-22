@@ -1,0 +1,36 @@
+{
+  "item_id": "EX-MOCK-SCREEN-B-03",
+  "item_version": 1,
+  "reference_sql": "SELECT CAST(date_trunc('month', timezone('Europe/Amsterdam', timezone('UTC', order_ts))) AS DATE) AS order_month,\n       COUNT(*) AS web_orders,\n       COUNT(*) FILTER (WHERE date_part('hour', timezone('Europe/Amsterdam', timezone('UTC', order_ts))) >= 22 OR date_part('hour', timezone('Europe/Amsterdam', timezone('UTC', order_ts))) < 6) AS night_orders,\n       ROUND(100.0 * COUNT(*) FILTER (WHERE date_part('hour', timezone('Europe/Amsterdam', timezone('UTC', order_ts))) >= 22 OR date_part('hour', timezone('Europe/Amsterdam', timezone('UTC', order_ts))) < 6) / COUNT(*), 1) AS night_pct\nFROM orders\nWHERE channel = 'web'\n  AND timezone('Europe/Amsterdam', timezone('UTC', order_ts)) >= TIMESTAMP '2025-07-01 00:00:00'\n  AND timezone('Europe/Amsterdam', timezone('UTC', order_ts)) < TIMESTAMP '2026-01-01 00:00:00'\nGROUP BY 1\nORDER BY order_month",
+  "alternatives": [
+    "SELECT CAST(date_trunc('month', ((order_ts AT TIME ZONE 'UTC') AT TIME ZONE 'Europe/Amsterdam')) AS DATE) AS order_month,\n       COUNT(*) AS web_orders,\n       SUM(CASE WHEN date_part('hour', ((order_ts AT TIME ZONE 'UTC') AT TIME ZONE 'Europe/Amsterdam')) BETWEEN 6 AND 21 THEN 0 ELSE 1 END) AS night_orders,\n       ROUND(100 * SUM(CASE WHEN date_part('hour', ((order_ts AT TIME ZONE 'UTC') AT TIME ZONE 'Europe/Amsterdam')) BETWEEN 6 AND 21 THEN 0 ELSE 1 END) / CAST(COUNT(*) AS DOUBLE), 1) AS night_pct\nFROM orders\nWHERE channel = 'web'\n  AND CAST(((order_ts AT TIME ZONE 'UTC') AT TIME ZONE 'Europe/Amsterdam') AS DATE) BETWEEN DATE '2025-07-01' AND DATE '2025-12-31'\nGROUP BY 1\nORDER BY 1",
+    "SELECT CAST(date_trunc('month', timezone('Europe/Amsterdam', timezone('UTC', order_ts))) AS DATE) AS order_month,\n       COUNT(order_id) AS web_orders,\n       COUNT(CASE WHEN date_part('hour', timezone('Europe/Amsterdam', timezone('UTC', order_ts))) >= 22 OR date_part('hour', timezone('Europe/Amsterdam', timezone('UTC', order_ts))) < 6 THEN order_id END) AS night_orders,\n       ROUND(COUNT(CASE WHEN date_part('hour', timezone('Europe/Amsterdam', timezone('UTC', order_ts))) >= 22 OR date_part('hour', timezone('Europe/Amsterdam', timezone('UTC', order_ts))) < 6 THEN order_id END) * 100.0 / COUNT(order_id), 1) AS night_pct\nFROM orders\nWHERE channel = 'web'\n  AND date_part('year', timezone('Europe/Amsterdam', timezone('UTC', order_ts))) = 2025\n  AND date_part('month', timezone('Europe/Amsterdam', timezone('UTC', order_ts))) >= 7\nGROUP BY CAST(date_trunc('month', timezone('Europe/Amsterdam', timezone('UTC', order_ts))) AS DATE)\nORDER BY order_month ASC"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-26",
+      "sql": "SELECT CAST(date_trunc('month', order_ts) AS DATE) AS order_month, COUNT(*) AS web_orders, COUNT(*) FILTER (WHERE date_part('hour', order_ts) >= 22 OR date_part('hour', order_ts) < 6) AS night_orders, ROUND(100.0 * COUNT(*) FILTER (WHERE date_part('hour', order_ts) >= 22 OR date_part('hour', order_ts) < 6) / COUNT(*), 1) AS night_pct FROM orders WHERE channel = 'web' AND order_ts >= TIMESTAMP '2025-07-01 00:00:00' AND order_ts < TIMESTAMP '2026-01-01 00:00:00' GROUP BY 1 ORDER BY order_month"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-05",
+      "sql": "SELECT CAST(date_trunc('month', timezone('Europe/Amsterdam', timezone('UTC', order_ts))) AS DATE) AS order_month, COUNT(*) AS web_orders, COUNT(*) FILTER (WHERE date_part('hour', timezone('Europe/Amsterdam', timezone('UTC', order_ts))) >= 22 OR date_part('hour', timezone('Europe/Amsterdam', timezone('UTC', order_ts))) < 6) AS night_orders, ROUND(100 * COUNT(*) FILTER (WHERE date_part('hour', timezone('Europe/Amsterdam', timezone('UTC', order_ts))) >= 22 OR date_part('hour', timezone('Europe/Amsterdam', timezone('UTC', order_ts))) < 6) // COUNT(*), 1) AS night_pct FROM orders WHERE channel = 'web' AND timezone('Europe/Amsterdam', timezone('UTC', order_ts)) >= TIMESTAMP '2025-07-01 00:00:00' AND timezone('Europe/Amsterdam', timezone('UTC', order_ts)) < TIMESTAMP '2026-01-01 00:00:00' GROUP BY 1 ORDER BY order_month"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-25",
+      "sql": "SELECT CAST(date_trunc('quarter', timezone('Europe/Amsterdam', timezone('UTC', order_ts))) AS DATE) AS order_month, COUNT(*) AS web_orders, COUNT(*) FILTER (WHERE date_part('hour', timezone('Europe/Amsterdam', timezone('UTC', order_ts))) >= 22 OR date_part('hour', timezone('Europe/Amsterdam', timezone('UTC', order_ts))) < 6) AS night_orders, ROUND(100.0 * COUNT(*) FILTER (WHERE date_part('hour', timezone('Europe/Amsterdam', timezone('UTC', order_ts))) >= 22 OR date_part('hour', timezone('Europe/Amsterdam', timezone('UTC', order_ts))) < 6) / COUNT(*), 1) AS night_pct FROM orders WHERE channel = 'web' AND timezone('Europe/Amsterdam', timezone('UTC', order_ts)) >= TIMESTAMP '2025-07-01 00:00:00' AND timezone('Europe/Amsterdam', timezone('UTC', order_ts)) < TIMESTAMP '2026-01-01 00:00:00' GROUP BY 1 ORDER BY order_month"
+    }
+  ],
+  "hint3_partial": "SELECT CAST(date_trunc('month', timezone('Europe/Amsterdam', timezone('UTC', order_ts))) AS DATE) AS order_month,\n       COUNT(*) AS web_orders,\n       COUNT(*) FILTER (WHERE ___) AS night_orders,\n       ROUND(___, 1) AS night_pct\nFROM orders\nWHERE channel = 'web'\n  AND ___\nGROUP BY 1\nORDER BY order_month",
+  "solver": {
+    "prompt_hash": "cd1fc9d84558c654",
+    "schema_version": "7ed366279088",
+    "dataset_version": "e7c58abf7e8f892e",
+    "grader_version": "7a.1",
+    "query": "WITH o AS (\n  SELECT order_id,\n         (order_ts AT TIME ZONE 'UTC') AT TIME ZONE 'Europe/Amsterdam' AS lts\n  FROM orders\n  WHERE channel = 'web'\n)\nSELECT CAST(date_trunc('month', lts) AS DATE) AS order_month,\n       COUNT(*) AS web_orders,\n       COUNT(*) FILTER (WHERE hour(lts) >= 22 OR hour(lts) < 6) AS night_orders,\n       ROUND(100.0 * COUNT(*) FILTER (WHERE hour(lts) >= 22 OR hour(lts) < 6) / COUNT(*), 1) AS night_pct\nFROM o\nWHERE CAST(lts AS DATE) >= DATE '2025-07-01' AND CAST(lts AS DATE) < DATE '2026-01-01'\nGROUP BY 1\nORDER BY order_month ASC\n",
+    "at": "2026-10-21T09:53:58.396Z"
+  }
+}

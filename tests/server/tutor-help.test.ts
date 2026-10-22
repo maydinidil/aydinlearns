@@ -36,6 +36,20 @@ test('Progress marks an instance helped when a tutor question came before its cl
   assert.equal(instanceFacts(run(failedLog), failedLog.attempts, failedLog.events).find((f) => f.instance_id === 'T-9')!.helped, false);
 });
 
+test("S7-33: Progress's help share leaves out a tutor question asked after the pass; one before it, or on an item never passed, counts", () => {
+  // Passed at 09:02, closed at 09:02:30: a question asked at 09:02:10 came after the pass, within the instance.
+  const passed = instance({ id: 'T-9', item: SQL_ITEM, concept: A, start: '2026-11-03T09:00:00.000Z', steps: [{ at: '2026-11-03T09:02:00.000Z', submit: 'pass' }], version: 2 });
+  const failed = instance({ id: 'T-9', item: SQL_ITEM, concept: A, start: '2026-11-03T09:00:00.000Z', steps: [{ at: '2026-11-03T09:02:00.000Z', submit: 'fail' }], version: 2 });
+  const helped = (attempts: object[]): boolean => instanceFacts(run({ attempts, events: [] }), attempts, []).find((f) => f.instance_id === 'T-9')!.helped;
+  const after = asked({ ts: '2026-11-03T09:02:10.000Z' });
+  assert.equal(helped([...passed, after]), false, 'asked after the pass: no help');
+  assert.equal(helped([asked(), ...passed]), true, 'asked before the pass: help');
+  assert.equal(helped([...failed, after]), true, 'never passed: a question before the close is help');
+  // A hint after the pass keeps its old reading: help before the close.
+  const hint = { record: 'hint_opened', schema_version: 2, ts: '2026-11-03T09:02:10.000Z', item_instance_id: 'T-9', level: 1, item_id: SQL_ITEM, target_concept_id: A, phase: 'free' };
+  assert.equal(helped([...passed, hint]), true);
+});
+
 test('the logger writes the record as version 6; the journey gets its counts and effort (block P), never text', async () => {
   const dir = await mkdtemp(join(tmpdir(), 'al-tutor-log-'));
   const jdir = await mkdtemp(join(tmpdir(), 'al-tutor-journey-'));
@@ -46,7 +60,7 @@ test('the logger writes the record as version 6; the journey gets its counts and
     await logger.tutorAsked(asked({ ts: new Date().toISOString() }));
     await stopJourney();
     const [file] = await readdir(dir);
-    assert.match(await readFile(join(dir, file!), 'utf8'), /"record":"tutor_asked","schema_version":6/);
+    assert.match(await readFile(join(dir, file!), 'utf8'), /"record":"tutor_asked","schema_version":7/);
     const events: JourneyRecord[] = [];
     for (const f of await readdir(jdir)) events.push(...(await readFile(join(jdir, f), 'utf8')).trim().split('\n').map((l) => JSON.parse(l) as JourneyRecord));
     const e = events.find((x) => x.event === 'tutor_asked')!;

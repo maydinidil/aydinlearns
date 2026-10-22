@@ -6,6 +6,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { api, type ConceptView, type CumulativeOffer, type DrillEnded, type DrillSpecView, type DrillStarted } from '../api.ts';
 import { ga4RunFromRefusal } from '../lib/run-flow.ts';
+import { mockHref, mockRunFromRefusal } from '../lib/mock-flow.ts';
 import { drillFocusKey, focusHeading, shouldFocusDrill } from '../lib/focus-flow.ts';
 import { liveRepStart, tickExplainedAloud } from '../lib/live-rep-api.ts';
 import type { Level } from '../../../schemas/concepts.ts';
@@ -19,7 +20,7 @@ import { useTutorClosed, useTutorPart } from '../tutor/TutorContext.tsx';
 import {
   CUMULATIVE_LABEL, cumulativeHeading, cumulativeRule, fillLines, overallLine, runTitle,
   EXPLAINED_ALOUD_LABEL, EndGuard, outcomeClass, questionLabel, reviewOutcomes, showsEditor, HELP_LINE, HISTORY_COLUMNS, LIVE_REP_HINT, LIVE_REP_LABEL, SCREEN_MODE_HINT, SCREEN_MODE_LABEL, TIME_UP, countdownText, endWithRetry, hiddenFlags, historyRows, levelRule, recallIndex,
-  isLiveRun, historyTickDisabled, historyTickSaves, liveRepLine, remainingSeconds, rememberIndex, runFromRefusal, scoreLine, startBody, tickFromHistory, unseenLine,
+  isLiveRun, passedInReview, REVIEW_HELP_LINE, historyTickDisabled, historyTickSaves, liveRepLine, remainingSeconds, rememberIndex, runFromRefusal, scoreLine, startBody, tickFromHistory, unseenLine,
   type DrillState, type HistoryRun,
 } from '../lib/drill-flow.ts';
 
@@ -139,7 +140,10 @@ export function DrillScreen() {
       resume(r);
     } catch (e) {
       const on = runFromRefusal(e);
-      if (ga4RunFromRefusal(e)) { setMessage('A GA4 timed run is on. Opening it.'); location.hash = '#/ga4/run'; }   // never resumed as an SQL drill
+      const mock = mockRunFromRefusal(e);
+      // Sprint 7 (S7-02): a recruiter mock is on: it is picked up on its own screen, never as an SQL drill.
+      if (mock) { setMessage('A recruiter mock is on. Opening it.'); location.hash = mockHref(mock.mock); }
+      else if (ga4RunFromRefusal(e)) { setMessage('A GA4 timed run is on. Opening it.'); location.hash = '#/ga4/run'; }   // never resumed as an SQL drill
       else if (on) resume(on);                 // a run is already on: pick it up instead of leaving it stranded
       else setMessage((e as Error).message);
     }   // the server's reason: a pool not written yet, or a drill already on
@@ -239,13 +243,13 @@ export function DrillScreen() {
             <p>{unseenLine(result.score, run)}</p>
           </>
         )}
-        <p className="muted">The review is open: hints and "show answer" work on every item and lower its rating.</p>
+        <p className="muted">{REVIEW_HELP_LINE}</p>
         {message && <p role="alert" className="notice">{message}</p>}
         {!live && questionNav}
         {run.servings.map((sv, i) => (
           <div key={sv.item_instance_id} data-question={i} hidden={hiddenFlags(run.servings.length, index)[i]}>
             <ExercisePanel itemId={sv.item_id} phase="drill" instanceId={sv.item_instance_id} heading={`Question ${i + 1} of ${run.servings.length}`}
-              labels reviewOnly inView={i === index} unanswered={!showsEditor(outcomes?.[i] ?? null)} onClosed={next} passedBefore={passedIds.has(sv.item_instance_id)} />
+              labels reviewOnly inView={i === index} unanswered={!showsEditor(outcomes?.[i] ?? null)} onClosed={next} passedBefore={passedInReview(outcomes?.[i] ?? null, passedIds.has(sv.item_instance_id))} />
           </div>
         ))}
         <p><button type="button" onClick={backToChoices}>Back to drills</button></p>

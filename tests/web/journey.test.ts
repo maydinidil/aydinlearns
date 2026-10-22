@@ -18,6 +18,8 @@ test('each route family names its screen, with an item, concept, case or lab ID 
     ['#/opener/CASE-OPEN-L2', { screen: 'opener', subject_id: 'CASE-OPEN-L2' }],
     ['#/portfolio', { screen: 'portfolio' }], ['#/progress', { screen: 'progress' }], ['#/explore', { screen: 'explore' }],
     ['#/item/SQL-SEL-01-W03?phase=retest', { screen: 'item', subject_id: 'SQL-SEL-01-W03' }],
+    ['#/mocks', { screen: 'mocks' }], ['#/mocks?stage=2', { screen: 'mocks' }], ['#/mock/screen', { screen: 'mock', subject_id: 'screen' }],
+    ['#/mock/review/mock-screen-1', { screen: 'mock_review', subject_id: 'mock-screen-1' }],
   ];
   for (const [hash, want] of cases) assert.deepEqual(screenOf(hash), want, hash);
 });
@@ -39,7 +41,8 @@ test('route words match as App.tsx matches them, undecoded; only the subject is 
 
 test('every screen the server accepts is one a route can show', () => {
   const shown = new Set(['#/', '#/setup', '#/map', '#/drill', '#/mistakes', '#/ga4/run', '#/ga4/labs', '#/ga4/lab/L', '#/ga4', '#/methodology',
-    '#/reading/ga4/C', '#/practice/ga4/C', '#/lesson/C', '#/inbox', '#/case/C', '#/opener/C', '#/portfolio', '#/progress', '#/explore', '#/item/I']
+    '#/reading/ga4/C', '#/practice/ga4/C', '#/lesson/C', '#/inbox', '#/case/C', '#/opener/C', '#/portfolio', '#/progress', '#/explore', '#/item/I',
+    '#/mocks', '#/mock/screen', '#/mock/review/B']
     .map((h) => screenOf(h).screen));
   assert.deepEqual([...shown].sort(), [...SCREENS].sort());
 });

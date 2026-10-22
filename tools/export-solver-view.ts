@@ -7,7 +7,8 @@
 // Only active write and fix items are exported, as only they are checked here (SQL choice items: export:choice-view); .json files from an earlier export are
 // removed first. It prints counts only, never SQL. A case's CP3 item (sprint 4b: use `case`, EX-CASE-<case tail>; an opener's,
 // use `opener`) is an SQL item like any other, so it is exported here with the same fields; the case's CP1, CP2, CP4 and CP5 are
-// in export:choice-view, and the case record, its key and its model texts are never exported.
+// in export:choice-view, and the case record, its key and its model texts are never exported. Sprint 7 (S7-08): a held-out mock item
+// (use `mock`) sits in the same folder and is exported the same way, so the mocks' items are solved blind like any item.
 // Usage: node tools/export-solver-view.ts [content-root] [out-dir]   (defaults: content/, tools/.solver-view/)
 import { mkdir, readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';

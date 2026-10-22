@@ -1,0 +1,130 @@
+{
+  "id": "EX-SQL-WIN-04-E1-06",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "running_total",
+    "signups",
+    "cte"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-04"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-WIN-04",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-CTE-01",
+    "SQL-WIN-01",
+    "SQL-WIN-04"
+  ],
+  "template_id": "T-WIN-04-running-total",
+  "template_params": {
+    "table": "signups",
+    "period": "day"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "mailvora",
+  "schema": "mailvora",
+  "edge_schema": "mailvora_edge_win",
+  "prompt": "For each UTC day from 1 July to 31 October 2025 on which at least one user signed up (signup_ts holds UTC time), show the number of signups that day and the cumulative number of signups from 1 July up to and including that day. Days with no signups are left out. Return signup_date, signups and cumulative_signups. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "signup_date",
+        "type_class": "temporal"
+      },
+      {
+        "name": "signups",
+        "type_class": "numeric"
+      },
+      {
+        "name": "cumulative_signups",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "signup_date",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "signups",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "cumulative_signups",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "signup_date"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, count the signups per UTC day in a first step, then add a running total over the days.",
+    "One row per day leaves no ties: order by the day and frame from the first row to the current one."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 289,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 290,
+      "to": 318,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 319,
+      "to": 432,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 433,
+      "to": 443,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 150000,
+  "why_this_works": "After counting signups per day, SUM over the days so far adds up the counts; COUNT would only count the days."
+}

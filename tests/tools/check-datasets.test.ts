@@ -122,10 +122,10 @@ test('the committed registry passes C51, with the case records as they are', asy
   assert.ok(ch.schemas.every((x, k) => x.page === `https://8weeksqlchallenge.com/case-study-${k + 1}/`));
 });
 
-test('P35 (Task H2): every real dataset in the committed registry has its manager questions, each <id>-Q<n> and unique', async () => {
+test('P35 (Task H2): every real dataset in the committed registry, whatever its ID, has its manager questions, each <id>-Q<n> and unique', async () => {
   const file = JSON.parse(await readFile('content/datasets/registry.json', 'utf8')) as { datasets: DatasetRecord[] };
   const real = file.datasets.filter((d) => d.real === true);
-  assert.deepEqual(real.map((d) => d.id), ['DS-RETAIL-02', 'DS-PRICE-101']);
+  assert.ok(real.length > 0, 'the registry holds real datasets');   // S7-30: every real record is asserted, whatever its ID, so a third one is covered too
   for (const d of real) {
     const ids = d.questions.map((q) => q.id);
     assert.ok(ids.length >= REAL_DATASET_QUESTIONS, `${d.id} has ${ids.length} questions; a real dataset needs at least ${REAL_DATASET_QUESTIONS}`);

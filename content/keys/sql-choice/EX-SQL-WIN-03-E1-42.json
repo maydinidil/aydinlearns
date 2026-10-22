@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-WIN-03-E1-42",
+  "item_version": 1,
+  "value": 40,
+  "explanation": "LAG has nothing to read only on the first row of each partition, so prev_product_id is missing once per category: 40 rows, one per category. Every other product has a product before it in its category.",
+  "solver": {
+    "prompt_hash": "57291186185fe15e",
+    "grader_version": "choice.3",
+    "chosen": null,
+    "typed": "40",
+    "at": "2026-10-20T20:50:48.346Z"
+  }
+}

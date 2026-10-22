@@ -1,0 +1,13 @@
+{
+  "item_id": "Q-GA4-257",
+  "item_version": 1,
+  "correct_oid": "o35936bd",
+  "explanation": "Auto-tagging adds the gclid, which GA4 uses for the Google Ads click details. A redirect that drops the gclid makes that traffic show as Direct or Referral, which matches the shift. UTM tags cannot override auto-tagged values, retention does not affect standard reports, and the personalized advertising setting concerns remarketing with GA4 audiences, not click attribution.",
+  "solver": {
+    "prompt_hash": "9f53f0469da02615",
+    "grader_version": "choice.3",
+    "chosen": "o35936bd",
+    "typed": null,
+    "at": "2026-10-22T11:25:43.907Z"
+  }
+}

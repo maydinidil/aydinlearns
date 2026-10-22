@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-WIN-01-E2-04",
+  "item_version": 1,
+  "reference_sql": "SELECT country_code, COUNT(*) AS signups,\n       ROUND(100.0 * COUNT(*) / SUM(COUNT(*)) OVER (), 2) AS share_pct\nFROM signups\nGROUP BY country_code",
+  "alternatives": [
+    "WITH country_signups AS (  -- one row per country with signups\n  SELECT country_code, COUNT(*) AS signups\n  FROM signups\n  GROUP BY country_code\n)\nSELECT country_code, signups,\n       ROUND(100.0 * signups / (SELECT COUNT(*) FROM signups), 2) AS share_pct\nFROM country_signups",
+    "WITH country_signups AS (  -- one row per country with signups\n  SELECT country_code, COUNT(*) AS signups\n  FROM signups\n  GROUP BY country_code\n)\nSELECT country_code, signups,\n       ROUND(100.0 * signups / SUM(signups) OVER (), 2) AS share_pct\nFROM country_signups"
+  ],
+  "other_way": {
+    "sql": "WITH country_signups AS (  -- one row per country with signups\n  SELECT country_code, COUNT(*) AS signups\n  FROM signups\n  GROUP BY country_code\n)\nSELECT country_code, signups,\n       ROUND(100.0 * signups / (SELECT COUNT(*) FROM signups), 2) AS share_pct\nFROM country_signups",
+    "tradeoff": "Dividing by a subquery that counts every signup needs no window, but it reads the signups table a second time."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-21",
+      "sql": "SELECT country_code, COUNT(*) AS signups, ROUND(COUNT(*) / SUM(COUNT(*)) OVER (), 2) AS share_pct FROM signups GROUP BY country_code"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-05",
+      "sql": "SELECT country_code, COUNT(*) AS signups, ROUND(100 * COUNT(*) // SUM(COUNT(*)) OVER (), 2) AS share_pct FROM signups GROUP BY country_code"
+    }
+  ],
+  "hint3_partial": "SELECT country_code, COUNT(*) AS signups,\n       ROUND(100.0 * COUNT(*) / SUM(___) OVER (), 2) AS share_pct\nFROM signups\nGROUP BY country_code",
+  "solver": {
+    "prompt_hash": "7e9c2244e64b4a41",
+    "schema_version": "bbce96780a2f",
+    "dataset_version": "e7c58abf7e8f892e",
+    "grader_version": "7a.1",
+    "query": "WITH c AS (\n  SELECT country_code, COUNT(*) AS signups\n  FROM signups\n  GROUP BY country_code\n)\nSELECT country_code, signups,\n       ROUND(100.0 * signups / SUM(signups) OVER (), 2) AS share_pct\nFROM c\n",
+    "at": "2026-10-21T09:05:05.475Z"
+  }
+}

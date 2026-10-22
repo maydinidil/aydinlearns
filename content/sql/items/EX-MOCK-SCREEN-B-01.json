@@ -1,0 +1,137 @@
+{
+  "id": "EX-MOCK-SCREEN-B-01",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-01",
+    "mock",
+    "screen",
+    "coalesce",
+    "is_not_null",
+    "order_by",
+    "promotions"
+  ],
+  "level": 1,
+  "source_ids": [
+    "01:SQL-NULL-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "mock",
+  "target_concept_id": "SQL-NULL-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-NULL-01"
+  ],
+  "template_id": "T-MOCK-SCREEN-coalesce-label-sorted",
+  "template_params": {
+    "table": "promotions",
+    "year": 2025
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_null",
+  "prompt": "Marketing is building an archive of the 2025 campaigns. For every promotion that started from 1 January 2025 to 31 December 2025, both days included, return three columns, in this order: promo_code; campaign_name, which is the promo_name, or the promo_code when the promo_name is missing; and discount_pct. Leave out the promotions whose discount_pct is missing. Sort the rows by discount_pct from highest to lowest, and when promotions share a discount, by promo_code from A to Z.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "promo_code",
+        "type_class": "text"
+      },
+      {
+        "name": "campaign_name",
+        "type_class": "text"
+      },
+      {
+        "name": "discount_pct",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per promotion"
+  },
+  "rules": {
+    "order_matters": true,
+    "sort_keys": [
+      {
+        "column": "discount_pct",
+        "desc": true
+      },
+      {
+        "column": "promo_code",
+        "desc": false
+      }
+    ],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "promo_code",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "campaign_name",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "discount_pct",
+        "type_class": "numeric",
+        "precision": "exact"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "promo_code"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the campaign_name column, which falls back to the promo_code when the name is missing.",
+    "Test for a missing discount with IS NOT NULL: an equals or not-equals sign never matches a missing value."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 82,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 83,
+      "to": 98,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 99,
+      "to": 194,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 195,
+      "to": 233,
+      "subgoal": "sort_limit"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 150000,
+  "why_this_works": "COALESCE returns its first value that is not missing, and IS NOT NULL drops the promotions with no discount before the sort."
+}

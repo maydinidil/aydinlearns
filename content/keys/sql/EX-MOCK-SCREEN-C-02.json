@@ -1,0 +1,36 @@
+{
+  "item_id": "EX-MOCK-SCREEN-C-02",
+  "item_version": 1,
+  "reference_sql": "SELECT brand,\n       CASE\n         WHEN unit_cost_eur IS NULL THEN 'unknown'\n         WHEN unit_cost_eur < 30 THEN 'budget'\n         WHEN unit_cost_eur < 150 THEN 'core'\n         ELSE 'flagship'\n       END AS cost_tier,\n       COUNT(*) AS n_products\nFROM products\nWHERE category_id BETWEEN 15 AND 20\nGROUP BY brand,\n         CASE\n           WHEN unit_cost_eur IS NULL THEN 'unknown'\n           WHEN unit_cost_eur < 30 THEN 'budget'\n           WHEN unit_cost_eur < 150 THEN 'core'\n           ELSE 'flagship'\n         END\nORDER BY brand, cost_tier",
+  "alternatives": [
+    "SELECT brand,\n       CASE\n         WHEN unit_cost_eur >= 150 THEN 'flagship'\n         WHEN unit_cost_eur >= 30 THEN 'core'\n         WHEN unit_cost_eur < 30 THEN 'budget'\n         ELSE 'unknown'\n       END AS cost_tier,\n       COUNT(*) AS n_products\nFROM products\nWHERE category_id IN (15, 16, 17, 18, 19, 20)\nGROUP BY 1, 2\nORDER BY 1, 2",
+    "SELECT brand,\n       CASE\n         WHEN unit_cost_eur < 30 THEN 'budget'\n         WHEN unit_cost_eur >= 30 AND unit_cost_eur < 150 THEN 'core'\n         WHEN unit_cost_eur >= 150 THEN 'flagship'\n         ELSE 'unknown'\n       END AS cost_tier,\n       COUNT(product_id) AS n_products\nFROM products\nWHERE category_id >= 15 AND category_id <= 20\nGROUP BY brand,\n         CASE\n           WHEN unit_cost_eur < 30 THEN 'budget'\n           WHEN unit_cost_eur >= 30 AND unit_cost_eur < 150 THEN 'core'\n           WHEN unit_cost_eur >= 150 THEN 'flagship'\n           ELSE 'unknown'\n         END\nORDER BY brand ASC, cost_tier ASC"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-29",
+      "sql": "SELECT brand, CASE WHEN unit_cost_eur >= 30 THEN 'core' WHEN unit_cost_eur >= 150 THEN 'flagship' WHEN unit_cost_eur < 30 THEN 'budget' ELSE 'unknown' END AS cost_tier, COUNT(*) AS n_products FROM products WHERE category_id BETWEEN 15 AND 20 GROUP BY 1, 2 ORDER BY 1, 2"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-03",
+      "sql": "SELECT brand, CASE WHEN unit_cost_eur < 30 THEN 'budget' WHEN unit_cost_eur < 150 THEN 'core' WHEN unit_cost_eur >= 150 THEN 'flagship' END AS cost_tier, COUNT(*) AS n_products FROM products WHERE category_id BETWEEN 15 AND 20 GROUP BY 1, 2 ORDER BY 1, 2"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-18",
+      "sql": "SELECT brand, CASE WHEN unit_cost_eur IS NULL THEN 'unknown' WHEN unit_cost_eur < 30 THEN 'budget' WHEN unit_cost_eur < 150 THEN 'core' ELSE 'flagship' END AS cost_tier, COUNT(*) AS n_products FROM products WHERE category_id BETWEEN 15 AND 20 GROUP BY 1, 2 ORDER BY 1 DESC, 2"
+    }
+  ],
+  "hint3_partial": "SELECT brand,\n       CASE\n         WHEN unit_cost_eur IS NULL THEN ___\n         WHEN unit_cost_eur < 30 THEN 'budget'\n         WHEN ___ THEN 'core'\n         ELSE ___\n       END AS cost_tier,\n       COUNT(*) AS n_products\nFROM products\nWHERE category_id BETWEEN 15 AND 20\nGROUP BY ___\nORDER BY brand, cost_tier",
+  "solver": {
+    "prompt_hash": "e41b777f8870ef3c",
+    "schema_version": "d77fe1c31a0e",
+    "dataset_version": "e7c58abf7e8f892e",
+    "grader_version": "7a.1",
+    "query": "SELECT p.brand,\n       CASE WHEN p.unit_cost_eur IS NULL THEN 'unknown'\n            WHEN p.unit_cost_eur < 30.00 THEN 'budget'\n            WHEN p.unit_cost_eur < 150.00 THEN 'core'\n            ELSE 'flagship' END AS cost_tier,\n       COUNT(*) AS n_products\nFROM products p\nWHERE p.category_id BETWEEN 15 AND 20\nGROUP BY 1, 2\nORDER BY brand ASC, cost_tier ASC\n",
+    "at": "2026-10-21T09:53:59.042Z"
+  }
+}

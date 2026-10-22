@@ -1,0 +1,36 @@
+{
+  "item_id": "EX-MOCK-SCREEN-C-04",
+  "item_version": 1,
+  "reference_sql": "SELECT country_code,\n       COUNT(*) AS signups,\n       COUNT(*) FILTER (WHERE split_part(email_domain, '.', -1) = lower(country_code)) AS local_signups,\n       ROUND(100.0 * COUNT(*) FILTER (WHERE split_part(email_domain, '.', -1) = lower(country_code)) / COUNT(*), 1) AS local_pct\nFROM signups\nWHERE signup_ts >= TIMESTAMPTZ '2025-07-01 00:00:00+00'\n  AND signup_ts < TIMESTAMPTZ '2025-10-01 00:00:00+00'\nGROUP BY country_code\nORDER BY country_code",
+  "alternatives": [
+    "SELECT country_code,\n       COUNT(*) AS signups,\n       SUM(CASE WHEN email_domain LIKE '%.' || lower(country_code) THEN 1 ELSE 0 END) AS local_signups,\n       ROUND(100.0 * SUM(CASE WHEN email_domain LIKE '%.' || lower(country_code) THEN 1 ELSE 0 END) / COUNT(*), 1) AS local_pct\nFROM signups\nWHERE CAST(signup_ts AS DATE) BETWEEN DATE '2025-07-01' AND DATE '2025-09-30'\nGROUP BY 1\nORDER BY 1",
+    "SELECT country_code,\n       COUNT(user_id) AS signups,\n       COUNT(CASE WHEN upper(split_part(email_domain, '.', -1)) = country_code THEN user_id END) AS local_signups,\n       ROUND(COUNT(CASE WHEN upper(split_part(email_domain, '.', -1)) = country_code THEN user_id END) * 100.0 / COUNT(user_id), 1) AS local_pct\nFROM signups\nWHERE signup_ts >= '2025-07-01 00:00:00+00' AND signup_ts < '2025-10-01 00:00:00+00'\nGROUP BY country_code\nORDER BY country_code ASC"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-32",
+      "sql": "SELECT country_code, COUNT(*) AS signups, COUNT(*) FILTER (WHERE split_part(email_domain, '.', -1) = country_code) AS local_signups, ROUND(100.0 * COUNT(*) FILTER (WHERE split_part(email_domain, '.', -1) = country_code) / COUNT(*), 1) AS local_pct FROM signups WHERE signup_ts >= TIMESTAMPTZ '2025-07-01 00:00:00+00' AND signup_ts < TIMESTAMPTZ '2025-10-01 00:00:00+00' GROUP BY country_code ORDER BY country_code"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-05",
+      "sql": "SELECT country_code, COUNT(*) AS signups, COUNT(*) FILTER (WHERE split_part(email_domain, '.', -1) = lower(country_code)) AS local_signups, ROUND(100 * COUNT(*) FILTER (WHERE split_part(email_domain, '.', -1) = lower(country_code)) // COUNT(*), 1) AS local_pct FROM signups WHERE signup_ts >= TIMESTAMPTZ '2025-07-01 00:00:00+00' AND signup_ts < TIMESTAMPTZ '2025-10-01 00:00:00+00' GROUP BY country_code ORDER BY country_code"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-21",
+      "sql": "SELECT country_code, COUNT(*) AS signups, COUNT(*) FILTER (WHERE split_part(email_domain, '.', -1) = lower(country_code)) AS local_signups, ROUND(1.0 * COUNT(*) FILTER (WHERE split_part(email_domain, '.', -1) = lower(country_code)) / COUNT(*), 1) AS local_pct FROM signups WHERE signup_ts >= TIMESTAMPTZ '2025-07-01 00:00:00+00' AND signup_ts < TIMESTAMPTZ '2025-10-01 00:00:00+00' GROUP BY country_code ORDER BY country_code"
+    }
+  ],
+  "hint3_partial": "SELECT country_code,\n       COUNT(*) AS signups,\n       COUNT(*) FILTER (WHERE ___) AS local_signups,\n       ROUND(___, 1) AS local_pct\nFROM signups\nWHERE signup_ts >= TIMESTAMPTZ '2025-07-01 00:00:00+00'\n  AND signup_ts < TIMESTAMPTZ '2025-10-01 00:00:00+00'\nGROUP BY country_code\nORDER BY country_code",
+  "solver": {
+    "prompt_hash": "804a10469c8fb160",
+    "schema_version": "bbce96780a2f",
+    "dataset_version": "e7c58abf7e8f892e",
+    "grader_version": "7a.1",
+    "query": "SELECT country_code,\n       COUNT(*) AS signups,\n       COUNT(*) FILTER (WHERE lower(regexp_extract(email_domain, '[^.]*$')) = lower(country_code)) AS local_signups,\n       ROUND(100.0 * COUNT(*) FILTER (WHERE lower(regexp_extract(email_domain, '[^.]*$')) = lower(country_code)) / COUNT(*), 1) AS local_pct\nFROM signups\nWHERE signup_ts >= TIMESTAMPTZ '2025-07-01 00:00:00+00' AND signup_ts < TIMESTAMPTZ '2025-10-01 00:00:00+00'\nGROUP BY country_code\nORDER BY country_code ASC\n",
+    "at": "2026-10-21T09:53:59.131Z"
+  }
+}

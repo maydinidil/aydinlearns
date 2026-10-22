@@ -8,9 +8,10 @@ import type { Screen } from '../../../schemas/journey.ts';
 import { ApiError } from '../api.ts';
 import { Markdown } from '../components/Markdown.tsx';
 import { ASK_KEYS_ID, ASK_KEYS_LINE, askDescribedBy, closesOnKey, HELP_NOTE_ID, PANEL_ID } from './panel-a11y.ts';
-import { composeSnapshot, itemOf } from './snapshot.ts';
+import { composeSnapshot, itemOf, type SnapshotItem } from './snapshot.ts';
+import { usePageInert, usePanelTop } from './page-inert.ts';
 import {
-  afterAsk, canSend, emptyThread, HELP_NOTE, helpNoteDue, newQuestion, NO_ANSWER, restoreQuestion, spendLine, thinking, threadFor, threadKey,
+  afterAsk, canSend, emptyThread, exchangeKey, HELP_NOTE, helpNoteDue, newQuestion, NO_ANSWER, restoreQuestion, spendLine, thinking, threadFor, threadKey,
   type AfterAsk, type AskEnd, type Asked, type LiveReply, type ThreadState,
 } from './thread.ts';
 import { useTutor } from './TutorContext.tsx';
@@ -30,6 +31,11 @@ export function TutorPanel({ screen, subject }: { screen: Screen; subject?: stri
   const inFlight = useRef<{ ac: AbortController; asked: Asked } | null>(null);
   const box = useRef<HTMLTextAreaElement>(null);
   const closeButton = useRef<HTMLButtonElement>(null);
+  const panel = useRef<HTMLElement>(null);
+  // S7-36: at 700px or less the open panel covers the page, so the page is inert; the panel starts under the top bar wherever the page has
+  // scrolled to. Declared before the focus effect below, so on closing the page is live again when focus goes back to it.
+  usePageInert(panel, t.open);
+  usePanelTop(panel, t.open);
 
   // Alt+T opens and closes the panel.
   useEffect(() => {
@@ -55,7 +61,10 @@ export function TutorPanel({ screen, subject }: { screen: Screen; subject?: stri
   // A quick prompt fills the question.
   useEffect(() => { if (t.prefill !== null) { setDraft(t.prefill); t.clearPrefill(); } }, [t.prefill]);
   // A new screen or item: the thread follows it (D96), whether the panel is open or not; leaving stops a reply in flight.
-  const item = itemOf(t.collect());
+  // S7-36: a closed panel reads no part (an editor's text can be long); it keeps the item it last had and reads the screen again when it opens.
+  const lastItem = useRef<SnapshotItem | null>(null);
+  const item = t.open ? itemOf(t.collect()) : lastItem.current;
+  if (t.open) lastItem.current = item;
   const key = threadKey(screen, subject, item);
   const shown = threadFor(thread, key);
   useEffect(() => { setThread((th) => threadFor(th, key)); setLive(null); setNote(null); }, [key]);
@@ -83,6 +92,7 @@ export function TutorPanel({ screen, subject }: { screen: Screen; subject?: stri
   async function send(): Promise<void> {
     if (!canSend({ enabled: t.enabled, busy, closedBy: t.closedBy, draft })) return;
     const question = draft.trim();
+    const askedAt = performance.now();                                   // S7-33: what an item panel compares its answer's time with
     const snap = composeSnapshot(t.collect(), document.querySelector('main')?.innerText ?? '');
     const asked: Asked = { thread: threadFor(thread, threadKey(screen, subject, snap.item)), question,
       instanceId: snap.item?.item_instance_id ?? null, note: snap.cut ? 'The screen was long, so the tutor sees a shortened copy.' : null };
@@ -107,7 +117,7 @@ export function TutorPanel({ screen, subject }: { screen: Screen; subject?: stri
     if (ac.signal.aborted) return;
     // Codex F34 (D95): a reply the server counted as help is help in the item panel too, so a lesson's pretest sees it.
     const helpedId = helpedInstance(asked, end);
-    if (helpedId !== null) t.helped(helpedId);
+    if (helpedId !== null) t.helped(helpedId, askedAt);
     if (end.kind === 'ended' && end.summary) {
       const s = end.summary;
       setStatus((v) => (v ? { ...v, spent_today_usd: s.spent_today_usd, cap_usd: s.cap_usd } : v));
@@ -118,7 +128,7 @@ export function TutorPanel({ screen, subject }: { screen: Screen; subject?: stri
   if (!t.open) return null;
   const helpShown = helpNoteDue(shown, item);
   return (
-    <aside id={PANEL_ID} className="tutor-panel" aria-label="Tutor" onKeyDown={onPanelKey}>
+    <aside id={PANEL_ID} ref={panel} className="tutor-panel" aria-label="Tutor" onKeyDown={onPanelKey}>
       <header>
         <h2>Tutor</h2>
         <button type="button" onClick={() => { setThread((th) => newQuestion(threadFor(th, key))); setLive(null); setNote(null); }} disabled={busy}>New question</button>
@@ -128,9 +138,9 @@ export function TutorPanel({ screen, subject }: { screen: Screen; subject?: stri
         <>
           <ol className="tutor-thread" aria-live="polite" aria-busy={busy}>
             {shown.exchanges.map((x, i) => (
-              <li key={i}><p className="tutor-q">{x.question}</p><Markdown text={x.reply} sql /></li>
+              <li key={exchangeKey(shown, i)}><p className="tutor-q">{x.question}</p><Markdown text={x.reply} sql /></li>
             ))}
-            {live && <li><p className="tutor-q">{live.question}</p>
+            {live && <li key={exchangeKey(shown, shown.exchanges.length)}><p className="tutor-q">{live.question}</p>
               {live.reply.trim() ? <Markdown text={live.reply} sql /> : thinking(live, busy) ? <p className="muted">Thinking...</p> : null}</li>}
           </ol>
           {note && <p role="status" className="notice">{note}</p>}

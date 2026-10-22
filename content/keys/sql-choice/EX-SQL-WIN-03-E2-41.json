@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-WIN-03-E2-41",
+  "item_version": 1,
+  "correct_oid": "ob0de2a4",
+  "explanation": "The right query gives every budget month a row, with 0 clicks where nothing was spent, then compares each month with the row before inside its own channel. Without the budget months, a month with no spend vanishes and the next month is compared with an older one. With no PARTITION BY, a channel's January reads December of the channel before. Ordered by clicks, LAG compares months that are not neighbours.",
+  "solver": {
+    "prompt_hash": "b43066480c1dd5bd",
+    "grader_version": "choice.3",
+    "chosen": "ob0de2a4",
+    "typed": null,
+    "at": "2026-10-20T20:50:48.350Z"
+  }
+}

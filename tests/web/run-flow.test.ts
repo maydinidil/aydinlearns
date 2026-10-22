@@ -188,6 +188,7 @@ test('the full mock: its labels, and its rules line on the runs card, the choose
   assert.equal(savedLine('exam', 'full_mock'), 'Answer saved. A full mock takes one answer per question.');
   assert.equal(savedLine('exam', 'half_mock'), 'Answer saved. A half-mock takes one answer per question.', 'row 2b-3 waits for this text');
   assert.equal(savedLine('practice', 'mini_drill'), 'Answer saved. You can change it until the run ends.');
+  assert.equal(savedLine('exam', 'knowledge_mock'), 'Answer saved. A knowledge mock takes one answer per question.', 'N1 M1: the knowledge mock names itself');
   assert.equal(entryDetail('full_mock', { questions: 50, minutes: 75, pass_pct: 80 }), FULL_LINE);
   assert.equal(entryDetail('full_mock', null), FULL_LINE, 'the shipped values when the server has not answered');
   assert.match(entryDetail('full_mock', { questions: 60, minutes: 90, pass_pct: 70 }), /^60 questions, 90 minutes, pass at 70%\. One question at a time/);

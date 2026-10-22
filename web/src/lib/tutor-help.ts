@@ -16,8 +16,9 @@ export function helpedInstance(asked: Pick<Asked, 'instanceId'>, end: AskEnd): s
 
 /**
  * Whether that help marks an item panel's instance helped: only the panel's own current instance, and only while it is open and not passed
- * (a choice question: not answered), as the server's replay judges D95. The panel asks at the reply's end, when the server records the
- * question, so an instance passed while the reply streamed gets nothing, and a reopened instance (a new ID) starts unhelped.
+ * (a choice question: not answered), as the server's replay judges D95 and D112. The panel decides when the reply ends, but by the time the
+ * question was asked (`askedAt`) against the time the answer was sent, not by whether the pass has landed by then: a pass that lands while the
+ * reply streams still leaves help on a question asked before the answer was sent. A reopened instance (a new ID) starts unhelped.
  */
 export function marksHelped(instanceId: string, current: { id: string; passed: boolean; closed: boolean }): boolean {
   return instanceId === current.id && !current.passed && !current.closed;

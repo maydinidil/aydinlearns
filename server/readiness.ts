@@ -11,6 +11,8 @@
 // - Ready: both parts.
 // countsForReadiness is the one test of whether a run counts: the mock part reads it, and so do the history row and the review
 // (server/run.ts historyRow, counts_for_readiness), so no screen can say a run the check counts does not count (F2 I1, ruling 24).
+// Sprint 7 Part 2 (S7-11): a knowledge mock's answers are neither a run nor a cold answer here. server/run.ts choiceRuns lists no knowledge
+// mock block, and routes/run.ts leaves its instances out of the cold answers before the check reads them.
 
 /** The mock part's pass mark and a topic's, in percent (D70). */
 export const READINESS_MOCK_PCT = 85;

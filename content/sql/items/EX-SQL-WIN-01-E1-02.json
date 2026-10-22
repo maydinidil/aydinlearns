@@ -1,0 +1,114 @@
+{
+  "id": "EX-SQL-WIN-01-E1-02",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "window",
+    "partition_by",
+    "count",
+    "campaigns"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pretest",
+  "target_concept_id": "SQL-WIN-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-AGG-01",
+    "SQL-WIN-01"
+  ],
+  "template_id": "T-WIN-01-row-beside-group-count",
+  "template_params": {
+    "table": "campaigns",
+    "partition": "channel"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "mailvora",
+  "schema": "mailvora",
+  "edge_schema": "mailvora_edge_win",
+  "prompt": "For every paid campaign, show how many campaigns its channel has in total, the campaign itself included. Return three columns, in this order: campaign_id, channel_id and channel_campaigns. Return one row for each campaign. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "campaign_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "channel_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "channel_campaigns",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per campaign"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "campaign_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "channel_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "channel_campaigns",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "campaign_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the calculated column: the number of campaigns of the same channel, written on each campaign row.",
+    "Count rows in a window that restarts for each channel; grouping would leave one row per channel instead of one per campaign."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 99,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 100,
+      "to": 114,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "COUNT(*) over a window for each channel counts that channel's campaigns and keeps one row per campaign."
+}

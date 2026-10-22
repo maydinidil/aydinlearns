@@ -179,6 +179,17 @@ test('K2 (S6-32, D80): an SQL item follows its case when it is a case or opener 
   assert.equal(sqlFunnel('L2').case_theme, 'pricing', 'a lesson passes no company');
 });
 
+test('S7-30: the company of an item matches the theme map exactly: a name an object inherits is no company', () => {
+  const none = { cases: () => [] };
+  const item = (extra: Record<string, unknown>) => ({ id: 'EX-X-01', use: 'pool', difficulty: 'E1', schema: 'voltmarkt', ...extra });
+  for (const name of ['constructor', 'toString', '__proto__', 'hasOwnProperty']) {
+    assert.equal(itemFunnel(none as never, item({ company: name }) as never).case_theme, 'pricing', `company ${name}`);
+    assert.equal(itemFunnel(none as never, item({ company: undefined, schema: `${name}_raw` }) as never).case_theme, 'pricing', `schema ${name}_raw`);
+    assert.equal(sqlFunnel('E1', name).case_theme, 'pricing', `sqlFunnel ${name}`);
+  }
+  assert.equal(itemFunnel(none as never, item({ company: 'constructor', schema: 'mailvora_raw' }) as never).case_theme, 'marketing', 'the schema still names the company');
+});
+
 test('a tutor question (D99, block P): the span, the question counter and the token histogram carry the effort; the item ID is on the span only', async () => {
   spans.reset();
   const a = { screen: 'item', provider: 'claude', model: 'claude-sonnet-5-5', effort: 'high', outcome: 'answered' };
@@ -192,4 +203,19 @@ test('a tutor question (D99, block P): the span, the question counter and the to
   assert.deepEqual(questions.dataPoints.map((p) => [p.value, p.attributes]), [[1, a]]);
   const tokens = all.find((m) => m.descriptor.name === 'aydinlearns.tutor.tokens')!;
   assert.deepEqual(tokens.dataPoints.map((p) => [(p.value as { sum: number }).sum, p.attributes]), [[1234, a]]);
+});
+
+test('K1 (T7 M9): neither tutor metric carries an item ID, and a question with no item puts none on the span', async () => {
+  spans.reset();
+  const a = { screen: 'item', provider: 'openai', model: 'gpt-test', effort: 'low', outcome: 'capped' };
+  trace.getTracer('test').startActiveSpan('POST /api/tutor/ask', (span) => { tutorObserved(span, a, null, 0); span.end(); });
+  const [s] = spans.getFinishedSpans();
+  assert.ok(!('item_id' in s!.attributes), 'no item, no item_id on the span');
+  trace.getTracer('test').startActiveSpan('POST /api/tutor/ask', (span) => { tutorObserved(span, a, 'EX-INV-03', 5); span.end(); });
+  await reader.forceFlush();
+  const all = points.getMetrics().at(-1)!.scopeMetrics.flatMap((m) => m.metrics);
+  for (const name of ['aydinlearns.tutor.questions', 'aydinlearns.tutor.tokens']) {
+    const metric = all.find((m) => m.descriptor.name === name)!;
+    for (const p of metric.dataPoints) assert.ok(!('item_id' in p.attributes), `${name} has no item_id`);
+  }
 });

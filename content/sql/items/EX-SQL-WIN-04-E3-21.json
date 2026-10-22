@@ -1,0 +1,128 @@
+{
+  "id": "EX-SQL-WIN-04-E3-21",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "running_total",
+    "cumulative_share",
+    "sales",
+    "cte",
+    "drill"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-04"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-WIN-04",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CTE-01",
+    "SQL-WIN-01",
+    "SQL-WIN-04"
+  ],
+  "template_id": "T-WIN-04-first-day-past-share",
+  "template_params": {
+    "table": "sales",
+    "group": "parent category",
+    "share": 50
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_win",
+  "prompt": "For each parent category with sales from 1 January to 30 June 2025 (UTC order dates, both days included), on which day did its cumulative units since 1 January first reach half of its units over that whole period? Return parent_category and half_units_date. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "parent_category",
+        "type_class": "text"
+      },
+      {
+        "name": "half_units_date",
+        "type_class": "temporal"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "parent_category",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "half_units_date",
+        "type_class": "temporal",
+        "precision": "exact"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "parent_category"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, give each parent category and day its cumulative units and the category's total for the period.",
+    "Keep the days at or past half the total and take the earliest one per parent category."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 572,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 573,
+      "to": 631,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 632,
+      "to": 644,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 645,
+      "to": 688,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 689,
+      "to": 713,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "The running total per category in date order passes half the total once; the earliest day at or past that point is the answer."
+}

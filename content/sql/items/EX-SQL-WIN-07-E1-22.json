@@ -1,0 +1,143 @@
+{
+  "id": "EX-SQL-WIN-07-E1-22",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "percentile",
+    "median",
+    "cte",
+    "subscriptions",
+    "payments",
+    "drill"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-07"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-WIN-07",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-WIN-07"
+  ],
+  "template_id": "T-WIN-07-median-per-group",
+  "template_params": {
+    "table": "payments",
+    "group": "plan_name",
+    "measure": "payments per subscription"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "mailvora",
+  "schema": "mailvora",
+  "edge_schema": "mailvora_edge_win",
+  "prompt": "For each plan, what is the median number of payments of the subscriptions that started from 1 July to 31 August 2025, both days included? Count every payment of a subscription, refunded or not. The median is the middle count once the plan's subscriptions are sorted by it; with an even number of subscriptions, it is the average of the two middle counts. Return two columns, in this order: plan_name and median_payments. Return one row for each plan with such subscriptions. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "plan_name",
+        "type_class": "text"
+      },
+      {
+        "name": "median_payments",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "plan_name",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "median_payments",
+        "type_class": "numeric",
+        "precision": "ratio"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "plan_name"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, count each subscription's payments in a first step, then take the median of those counts for each plan.",
+    "The median is over subscriptions, so the payments are counted per subscription before any percentile is taken."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 89,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 90,
+      "to": 153,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 154,
+      "to": 235,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 236,
+      "to": 304,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 305,
+      "to": 346,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 349,
+      "to": 448,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 449,
+      "to": 468,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 469,
+      "to": 487,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "The first step gives one row per subscription with its payment count, so the percentile in the second step is the median of those counts."
+}

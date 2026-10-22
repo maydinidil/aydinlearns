@@ -8,6 +8,7 @@ import { useEffect, useState } from 'react';
 import { ReadinessCheck } from '../components/Ga4Runs.tsx';
 import { criterionLine, type Titles } from '../lib/labels.ts';
 import { PROGRESS_READINESS_HEADING, PROGRESS_READINESS_NOTE } from '../lib/readiness-flow.ts';
+import { stageHref } from '../lib/mock-flow.ts';
 import {
   PROGRESS_HREF, PROGRESS_INTRO, PROGRESS_LINKS, PROGRESS_SECTIONS, PROGRESS_TITLE, SECTION_LABEL, STATE_LABEL, countsLine, gapFold, gapLine, goalChip, goalDateLine, jobReadyChip, jobReadyLines,
   progressApi, readyLine, revealLine, shareText, stageLabel, stateChipClass, titlesOf, topicLabel, trendRows, type ProgressGoal, type ProgressView,
@@ -18,7 +19,8 @@ function GoalRow(p: { g: ProgressGoal; today: string; titles: Titles; stage?: bo
   return (
     <li className="row" data-goal={p.g.goal.id} data-goal-status={p.g.status}>
       <div className="grow">
-        <strong>{p.stage ? stageLabel(p.g) : p.g.goal.title}</strong>
+        {/* S7-18: a stage row links to its card on the Recruiter mocks screen. */}
+        <strong>{p.stage && p.g.goal.stage !== null ? <a href={stageHref(p.g.goal.stage)}>{stageLabel(p.g)}</a> : p.g.goal.title}</strong>
         <p className="muted">{goalDateLine(p.g, p.today)}</p>
         <ul className="criteria">{p.g.criteria.map((c, i) => {
           const gap = gapLine(c);

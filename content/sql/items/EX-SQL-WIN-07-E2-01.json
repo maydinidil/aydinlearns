@@ -1,0 +1,136 @@
+{
+  "id": "EX-SQL-WIN-07-E2-01",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "window",
+    "last_value",
+    "frame",
+    "price_history"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-07"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "lesson",
+  "target_concept_id": "SQL-WIN-07",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-WIN-01",
+    "SQL-WIN-04",
+    "SQL-WIN-07"
+  ],
+  "template_id": "T-WIN-07-last-value-beside-row",
+  "template_params": {
+    "table": "price_history",
+    "group": "product_id"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_win",
+  "prompt": "For each price version of products 1 to 30 (product_id from 1 to 30, both included), show the product's current list price beside the version's own list price. The current list price is the list price of the product's latest version, the one with the latest valid_from. Return four columns, in this order: product_id, valid_from, list_price_eur and current_price_eur. Return one row for each such price version. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "valid_from",
+        "type_class": "temporal"
+      },
+      {
+        "name": "list_price_eur",
+        "type_class": "numeric"
+      },
+      {
+        "name": "current_price_eur",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per product and price version"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "valid_from",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "list_price_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "current_price_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "product_id",
+      "valid_from"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the calculated column current_price_eur: the list price of the product's last version in date order, on every one of its rows.",
+    "With an ORDER BY and no frame, the window stops at the current row, so the last value would be the row's own price; write a frame that runs to the end of the product's versions."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 249,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 250,
+      "to": 268,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 269,
+      "to": 302,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": {
+    "stage1": 54,
+    "stage2": 54
+  },
+  "faded_shape": "SELECT product_id, valid_from, list_price_eur,\n       ",
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "The frame runs from the product's first version to its last, so LAST_VALUE returns the latest version's price on every row, not the row's own.",
+  "faded_suffix": "\nFROM price_history\nWHERE product_id BETWEEN 1 AND 30"
+}

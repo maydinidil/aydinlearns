@@ -1,0 +1,141 @@
+{
+  "id": "EX-SQL-WIN-06-E2-31",
+  "version": 1,
+  "kind": "fix",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "window",
+    "row_number",
+    "window_in_where",
+    "top_n_per_group",
+    "products",
+    "fix"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-06"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-WIN-06",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-CTE-01",
+    "SQL-WIN-01",
+    "SQL-WIN-02",
+    "SQL-WIN-06"
+  ],
+  "template_id": "T-WIN-06-fix-window-in-where",
+  "template_params": {
+    "table": "products",
+    "group": "category_id",
+    "n": 2
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_win",
+  "prompt": "The query in the editor has one mistake. Fix it so that it answers this question: which two products of each category have the lowest unit cost? When products of a category tie on unit cost, the lower product_id comes first. Return three columns, in this order: category_id, product_id and unit_cost_eur. Return one row for each such product. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "category_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "product_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "unit_cost_eur",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "category_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "product_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "unit_cost_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "product_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, read the error: the window function sits in a clause that runs before any window is worked out.",
+    "Work the row number out in a CTE and give it a name; then the outer query can keep numbers 1 and 2."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 91,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 92,
+      "to": 235,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 236,
+      "to": 251,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 254,
+      "to": 299,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 300,
+      "to": 311,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 312,
+      "to": 325,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": "SELECT category_id, product_id, unit_cost_eur\nFROM products\nWHERE ROW_NUMBER() OVER (PARTITION BY category_id ORDER BY unit_cost_eur, product_id) <= 2",
+  "time_target_ms": 120000,
+  "why_this_works": "WHERE runs before any window, so the row number is worked out in a CTE first and filtered by the outer query.",
+  "starter_error_id": "ERR-SYN-08"
+}

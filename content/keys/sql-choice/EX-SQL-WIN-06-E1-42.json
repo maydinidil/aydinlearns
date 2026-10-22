@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-WIN-06-E1-42",
+  "item_version": 1,
+  "correct_oid": "obc7ac2d",
+  "explanation": "RANK gives the four campaigns that start on 1 January 2024 the same place, 1, and skips to place 5 for the next start date, so start_rank <= 2 keeps exactly those four. ROW_NUMBER would have kept two rows, and DENSE_RANK would have given the 2025 campaigns place 2 and kept all eight.",
+  "solver": {
+    "prompt_hash": "312d1d9e0b740391",
+    "grader_version": "choice.3",
+    "chosen": "obc7ac2d",
+    "typed": null,
+    "at": "2026-10-20T20:50:48.391Z"
+  }
+}

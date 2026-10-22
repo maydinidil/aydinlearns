@@ -1,7 +1,8 @@
 // tools/record-solver.ts: stores blind-solver records (design §12). The blind solver agent writes
 // one query per item into tools/.solver-out/<item_id>.sql (gitignored). This script grades each
 // one through the app's grader and, on a pass, stores the solver record in the item's key file.
-// It prints item IDs and PASS, FAIL or SKIP only, never SQL.
+// It prints item IDs and PASS, FAIL or SKIP only, never SQL. Sprint 7 (S7-08): a held-out mock item is found through the content store's
+// mock map, so the screen mock's forms and the case mocks' CP3 items are solved like any item.
 // Usage: node tools/record-solver.ts [content-root]   (default: content/)
 import { readdir, readFile, writeFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
@@ -10,7 +11,15 @@ import { startRunner } from '../server/runner/client.ts';
 import { grade, GRADER_VERSION } from '../server/grader/grade.ts';
 import type { SqlItem } from '../schemas/item.ts';
 import type { SqlKey } from '../schemas/keys.ts';
+import type { ContentStore } from '../server/content.ts';
 import { loadContentForCli, promptHash, referenceTables, schemaVersion, type CheckContext } from './check-content.ts';
+
+/** The item a solver query names and its key: a practice item, or a held-out mock item (S7-08). Null when either is missing. */
+export function solverTarget(store: ContentStore, id: string): { item: SqlItem; key: SqlKey } | null {
+  const item = store.item(id) ?? store.mockItem?.(id);
+  const key = store.key(id);
+  return item && key ? { item, key } : null;
+}
 
 export async function recordSolver(item: SqlItem, key: SqlKey, query: string, ctx: CheckContext): Promise<{ ok: boolean; key: SqlKey }> {
   let passed = false;
@@ -39,10 +48,9 @@ async function main(): Promise<void> {
   try {
     for (const f of files) {
       const id = f.replace(/\.sql$/, '');
-      const item = store.item(id);
-      const key = store.key(id);
-      if (!item || !key) { console.log(`SKIP ${id} (unknown item)`); continue; }
-      const r = await recordSolver(item, key, await readFile(at(`tools/.solver-out/${f}`), 'utf8'), ctx);
+      const target = solverTarget(store, id);
+      if (!target) { console.log(`SKIP ${id} (unknown item)`); continue; }
+      const r = await recordSolver(target.item, target.key, await readFile(at(`tools/.solver-out/${f}`), 'utf8'), ctx);
       if (r.ok) await writeFile(join(root, 'keys/sql', `${id}.json`), JSON.stringify(r.key, null, 2) + '\n');
       console.log(`${r.ok ? 'PASS' : 'FAIL'} ${id}`);
     }

@@ -6,6 +6,8 @@
 import { apiCall, type Served, type TypedView } from '../api.ts';
 import type { Phase } from '../../../core/envelope.ts';
 import type { SortKey } from '../../../schemas/item.ts';
+import type { CaseMockReview, MockRecorded } from './case-flow.ts';
+import type { MockHistoryRow } from './mock-flow.ts';
 
 export type CaseKind = 'opener' | 'inbox' | 'daily';
 export type CheckpointKind = 'CP1' | 'CP2' | 'CP3' | 'CP4' | 'CP5' | 'CP6';
@@ -82,4 +84,24 @@ export const casesApi = {
   sketch: (id: string, fields: Record<string, string>) => apiCall<OkReply>('POST', `${at(id)}/sketch`, { fields }),
   insight: (id: string, text: string) => apiCall<InsightReply>('POST', `${at(id)}/insight`, { text }),
   rubric: (id: string, ticked: string[]) => apiCall<OkReply>('POST', `${at(id)}/rubric`, { ticked }),
+};
+
+// ---- the case-round and take-home mocks' own routes (server/routes/mock-cases.ts; sprint 7 Part 2, Task N2; moved here in N3, N2 M7) ----------
+
+const mockPath = (block: string): string => `/api/mocks/${encodeURIComponent(block)}`;
+/**
+ * A case mock run's own routes. In the run every answer and self-check gets `{ recorded: true }` (S7-03); the review (once the run has
+ * ended) carries the answers, the model texts and the rubric (S7-07). CP3 goes through the shared mock serve and submit (mock-flow.ts mocksApi).
+ */
+export const caseMockApi = {
+  plan: (block: string, fields: Record<string, string>) => apiCall<MockRecorded>('POST', `${mockPath(block)}/plan`, { fields }),
+  serve: (block: string, cp: AnswerableKind) => apiCall<CaseCheckpointServed>('POST', `${mockPath(block)}/checkpoints/${cp}/serve`, {}),
+  answer: (block: string, cp: AnswerableKind, b: { item_instance_id: string; chosen?: string; shown_order?: string[]; typed?: string; active_ms: number }) =>
+    apiCall<MockRecorded>('POST', `${mockPath(block)}/checkpoints/${cp}/answer`, b),
+  insight: (block: string, text: string) => apiCall<MockRecorded>('POST', `${mockPath(block)}/insight`, { text }),
+  sayAloud: (block: string, ticked: string[]) => apiCall<OkReply>('POST', `${mockPath(block)}/say-aloud`, { ticked }),
+  rubric: (block: string, ticked: string[]) => apiCall<OkReply>('POST', `${mockPath(block)}/rubric`, { ticked }),
+  /** S7-15: ends the run now, as "Hand in" does; its history row comes back. */
+  giveUp: (block: string) => apiCall<MockHistoryRow>('POST', `${mockPath(block)}/give-up`, {}),
+  review: (block: string) => apiCall<CaseMockReview>('GET', `${mockPath(block)}/review`),
 };

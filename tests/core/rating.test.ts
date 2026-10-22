@@ -73,13 +73,14 @@ test('S2-08: a null target never gives Easy or the slow Hard', () => {
   assert.equal(ratingOf(facts([pass(30 * S, { active_ms: 1, target_ms: null })])), 3);
   assert.equal(ratingOf(facts([pass(30 * S, { active_ms: 10_000_000, target_ms: null })])), 3);
 });
-test('S2-09: Easy needs a rated card, the caller\'s easyAllowed, and a phase other than retest or drill', () => {
+test('S2-09: Easy needs a rated card, the caller\'s easyAllowed, and a phase other than retest, drill or mock', () => {
   const fast = (phase: InstanceFacts['phase']): InstanceFacts => facts([pass(30 * S, { active_ms: 10_000, target_ms: 120_000 })], { phase });
   assert.equal(ratingOf(fast('review')), 4);
   assert.equal(ratingOf(fast('mixed')), 4);
   assert.equal(ratingOf(fast('free')), 4);
   assert.equal(ratingOf(fast('retest')), 3);
   assert.equal(ratingOf(fast('drill')), 3, 'the drill row');
+  assert.equal(ratingOf(fast('mock')), 3, 'the screen mock takes the drill row (S7-06)');
   assert.equal(ratingOf(fast('review'), { ...REVIEW, easyAllowed: false }), 3);
   assert.equal(ratingOf(fast('review'), { ...REVIEW, cardRated: false }), 3);
 });
@@ -92,6 +93,18 @@ test('drill item: a fail or a time-out is Again; an item never reached closes wi
   assert.equal(ratingOf(facts([timeout(10 * S)], { phase: 'drill', block_id: 'B-1', close_reason: 'run_end' })), 1);
   const unreached = rate(facts([], { phase: 'drill', block_id: 'B-1', close_reason: 'run_end' }));
   assert.deepEqual([unreached.rating, unreached.countsAsPass], [null, false]);
+});
+test('S7-06 (ruling S7-C08): an SQL item in a screen mock is rated as a drill item: a pass is Good, never Easy; a fail is Again', () => {
+  const mock = { phase: 'mock' as const, block_id: 'mock-screen-1' };
+  const fastPass = rate(facts([pass(30 * S, { active_ms: 1_000, target_ms: 120_000 })], mock));
+  assert.deepEqual([fastPass.rating, fastPass.countsAsPass], [3, true], 'a fast first-try pass on a rated card is Good');
+  assert.equal(ratingOf(facts([fail(10 * S), fail(60 * S), fail(90 * S), pass(120 * S)], mock)), 3, 'a pass within the run, on any graded attempt (D9)');
+  assert.equal(ratingOf(facts([fail(10 * S)], { ...mock, close_reason: 'run_end' })), 1);
+  assert.equal(ratingOf(facts([timeout(10 * S)], { ...mock, close_reason: 'run_end' })), 1);
+  const unreached = rate(facts([], { ...mock, close_reason: 'run_end' }));
+  assert.deepEqual([unreached.rating, unreached.countsAsPass], [null, false], 'an item the run never reached rates nothing');
+  const first = fail(10 * S);
+  assert.equal(ratingOf(facts([first, overrideOf(first, 20 * S)], { ...mock, override: 'pending' })), 2, 'the override row comes first, as in a drill');
 });
 
 // ---- "I was right" (design §5 override row; S2-10, S2-19) --------------------------------------------------------

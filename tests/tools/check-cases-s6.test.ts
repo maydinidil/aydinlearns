@@ -74,7 +74,7 @@ test('B2-M2: a key file named after no case fails, by its file name; removed, ev
   const f = await makeCaseFixture(join2(real, { keys: (ks) => { ks.push({ ...structuredClone(ks[0]!), case_id: 'CASE-NOPE-01' }); } }));
   const store = await loadContent(f.root, { truthFile: f.truthFile });
   const r = (await checkCases(store)).find((x) => x.id === 'keys/cases/CASE-NOPE-01.json');
-  assert.deepEqual([r?.check, r?.ok, r?.detail], ['C41', false, 'a case key with no case of its name in content/sql/openers/ or content/sql/cases/']);
+  assert.deepEqual([r?.check, r?.ok, r?.detail], ['C41', false, 'a case key with no case of its name in content/sql/openers/, content/sql/cases/ or content/sql/mocks/']);
   await rm(join(f.root, 'keys/cases/CASE-NOPE-01.json'));
   assert.ok((await checkCases(await loadContent(f.root, { truthFile: f.truthFile }))).every((x) => x.ok));
 });

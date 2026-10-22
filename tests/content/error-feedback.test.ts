@@ -69,6 +69,48 @@ const NEW_IDS: Record<string, { concept: string; row: string; mistake: string; f
 };
 
 /**
+ * S7-24 (ERRATA E-200): level 5's four new IDs, in the same shape as S6-11's. Averaging a ratio instead of dividing rolling sums keeps
+ * ERR-LOG-20 (ruling S7-C02), so there is no ERR-LOG-44. Each fact behind the templates and the feedback was checked on DuckDB 1.5.6
+ * in memory (Task A2 report): RANK gives tied rows one number and skips the next, ROW_NUMBER numbers them apart; a window with no
+ * ORDER BY gives SUM the whole group's total; with an ORDER BY and no frame, LAST_VALUE returns the current row's value (or the last
+ * of its ties) and FIRST_VALUE the first row's; a ROWS frame on the third row of a series holds 3 rows.
+ */
+const LEVEL5_IDS: Record<string, { concept: string; row: string; mistake: string; fix: string; says: RegExp; model: RegExp }> = {
+  'ERR-LOG-40': { concept: 'SQL-WIN-02', row: 'E-200',
+    mistake: 'RANK and DENSE_RANK give tied rows the same number, so a filter on them can keep more than N rows, while ROW_NUMBER numbers tied rows apart and keeps only some of them.',
+    fix: 'Use ROW_NUMBER with the question\'s tie-break when it asks for exactly N rows, and RANK or DENSE_RANK when tied rows share a place.',
+    says: /tie/, model: /ROW_NUMBER\(\) OVER \(PARTITION BY [^)]*ORDER BY [^)]*, \w+\)/ },
+  'ERR-LOG-41': { concept: 'SQL-WIN-03', row: 'E-200',
+    mistake: 'A running total, LAG or LEAD reads the rows in the order of the ORDER BY inside OVER, so with none, or with the wrong column, it adds up or compares rows that are not neighbours.',
+    fix: 'Order the window by the column that sets the sequence, usually the date, and add a tie-break when two rows can share it.',
+    says: /ORDER BY/, model: /OVER \(PARTITION BY \w+ ORDER BY \w+/ },
+  'ERR-LOG-42': { concept: 'SQL-WIN-07', row: 'E-200',
+    mistake: 'With an ORDER BY and no frame, the window ends at the current row and the rows tied with it, so LAST_VALUE returns that row\'s value (or its last tie\'s), and the last value of the group only on the group\'s last row.',
+    fix: 'Write the frame ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING, or take FIRST_VALUE with the order reversed.',
+    says: /current row/, model: /ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING/ },
+  'ERR-LOG-43': { concept: 'SQL-WIN-05', row: 'E-200',
+    mistake: 'On the first rows of a series a moving average has fewer rows than its window, so a 7-day average on the third day is the average of 3 days.',
+    fix: 'Count the rows in the same frame with COUNT(*), and flag or leave out the rows where the count is below the window\'s size.',
+    says: /fewer|3 days|first/, model: /COUNT\(\*\) OVER \(/ },
+};
+
+/**
+ * The level 5 must-have traps by concept (the generator brief's level 5 table, S7-19 and S7-24): the four new IDs and the IDs S7-24
+ * maps to an existing mechanism (missing PARTITION BY, the default RANGE frame, date gaps, a window in WHERE, and averaging a ratio,
+ * ERR-LOG-20 by S7-C02). ERR-LOG-39's concept, SQL-PAT-04, is level 6: S7-24 names it for date gaps at level 5 all the same.
+ */
+const LEVEL5_TRAPS: Record<string, string[]> = {
+  'SQL-WIN-01': ['ERR-LOG-37', 'ERR-SYN-08'],
+  'SQL-WIN-02': ['ERR-LOG-40'],
+  'SQL-WIN-03': ['ERR-LOG-41', 'ERR-LOG-37', 'ERR-LOG-39'],
+  'SQL-WIN-04': ['ERR-LOG-38', 'ERR-LOG-41'],
+  'SQL-WIN-05': ['ERR-LOG-43', 'ERR-LOG-20', 'ERR-LOG-39'],
+  'SQL-WIN-06': ['ERR-SYN-08'],
+  'SQL-WIN-07': ['ERR-LOG-42'],
+};
+const LATER_BY_RULING = new Set(['ERR-LOG-39']);
+
+/**
  * IDs no check raises: 02 detects them only with CHK-STATIC-PATTERN or CHK-EMPTY, which no tool runs, so the grader never gives
  * them. Since sprint 6 (Task K6, backlog "Grader and check gaps from sprint 6") they have feedback in the house shape anyway, as
  * ERR-CMP-02 already had, so a check that raises them later finds its text.
@@ -225,4 +267,113 @@ test('every level 4 must-have trap is in the catalogue with feedback, under a co
       assert.ok(orderOf.get(e.concept_id)! <= orderOf.get(concept)!, `${id} (${e.concept_id}) comes at or before ${concept}`);
     }
   }
+});
+
+// ---- S7-24: the level 5 IDs -------------------------------------------------------------------------------------------------------
+
+test('S7-24: ERR-LOG-40 to ERR-LOG-43 carry the names ERRATA E-200 gives them, under their concepts, detected by a planted match', () => {
+  for (const [id, w] of Object.entries(LEVEL5_IDS)) {
+    const row = errata.match(new RegExp(`^\\| ${w.row} \\| fix \\|[^\\n]*`, 'm'))?.[0];
+    assert.ok(row, `${w.row} is in ERRATA`);
+    const name = row.match(new RegExp(`${id} "([^"]+)"`))?.[1];
+    assert.ok(name, `${w.row} names ${id}`);
+    const e = byId.get(id);
+    assert.ok(e, `${id} is in errors.json: run npm run extract`);
+    assert.deepEqual({ ...e, feedback_template: '' }, { id, category: 'LOG', name, detection_checks: ['CHK-MUTANT-MATCH'], feedback_template: '', concept_id: w.concept });
+    assert.equal(concepts[id], w.concept, `${id} in error-concepts.json`);
+    assert.equal(levelOf.get(w.concept), 5, `${w.concept} is a level 5 concept`);
+    assert.ok(NEW_ERRORS.some((x) => x.id === id), `${id} is one of the extract's NEW_ERRORS, so npm run extract keeps it`);
+  }
+  // S7-C02: averaging a ratio over a rolling window is ERR-LOG-20's mechanism, so S7-24's ERR-LOG-44 is not created.
+  assert.ok(!byId.has('ERR-LOG-44'), 'no ERR-LOG-44: ERR-LOG-20 names averaging ratios');
+  assert.match(byId.get('ERR-LOG-20')!.name, /Averaging ratios instead of dividing sums/);
+  assert.match(errata, /^\| E-200 \| fix \|[^\n]*ERR-LOG-20's mechanism/m, 'E-200 keeps ERR-LOG-20 for the rolling ratio');
+});
+
+test('S7-24: each level 5 ID\'s template is its whole line: the mistake, then its fix, in two sentences', () => {
+  for (const [id, w] of Object.entries(LEVEL5_IDS)) {
+    const t = byId.get(id)?.feedback_template ?? '';
+    assert.equal(t, `${w.mistake} ${w.fix}`, `${id}: the template names the mistake, then the fix`);
+    for (const s of [w.mistake, w.fix]) assert.equal(sentences(s), 1, `${id}: one sentence each`);
+    assert.doesNotMatch(t, /—|\{[a-z_]+\}/, `${id}: no em dash, no placeholder`);
+    assert.doesNotMatch(t, /\bqualify\b/i, `${id}: portable`);
+  }
+});
+
+test('S7-24: each level 5 ID has its own refutation feedback: what was assumed, why it fails, and the fix', () => {
+  const assumed = new Set<string>(Object.keys(NEW_IDS).map((id) => feedback[id]!.assumed));
+  for (const [id, w] of Object.entries(LEVEL5_IDS)) {
+    const f = feedback[id];
+    houseShape(id, f);
+    assert.notEqual(f!.assumed, feedback['ERR-LOG-00']!.assumed, `${id} is not the fallback text`);
+    assert.ok(!assumed.has(f!.assumed), `${id} repeats another ID's text`);
+    assumed.add(f!.assumed);
+    assert.match(`${f!.assumed} ${f!.why}`, w.says, `${id}: the feedback names the mistake`);
+    assert.match(f!.model, w.model, `${id}: the model names the fix`);
+    assert.doesNotMatch(f!.model, /\bqualify\b/i, `${id}: the model is portable (QUALIFY works only in some engines)`);
+    assert.doesNotMatch(JSON.stringify(f), /\{[a-z_]+\}/, `${id} needs no placeholder`);
+  }
+});
+
+test('the level 5 feedback wording teaches what DuckDB 1.5.6 does (wording only: it runs no model query)', () => {
+  const f = (id: string) => text(feedback[id]!);
+  // RANK over 10, 10, 8 gives 1, 1, 3; DENSE_RANK gives 1, 1, 2; ROW_NUMBER gives 1, 2, 3.
+  assert.match(f('ERR-LOG-40'), /1, 1, 3/);
+  assert.match(f('ERR-LOG-40'), /1, 1, 2/);
+  // A ROW_NUMBER top 3 holds fewer rows in a group of fewer than 3.
+  assert.match(f('ERR-LOG-40'), /at most 3 rows/);
+  assert.doesNotMatch(f('ERR-LOG-40'), /always holds/);
+  // SUM(x) OVER () is the whole group's total on every row; with no ORDER BY, LAG reads whatever row the engine puts first.
+  assert.match(f('ERR-LOG-41'), /whole group's total/);
+  // LAST_VALUE with ORDER BY and no frame returns the current row's value; FIRST_VALUE is right because the frame starts at the first row.
+  assert.match(f('ERR-LOG-42'), /RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW/);
+  assert.match(f('ERR-LOG-42'), /FIRST_VALUE/);
+  // On the group's last row, and the rows tied with it, that frame is the whole group, so LAST_VALUE is the group's last value there.
+  assert.match(f('ERR-LOG-42'), /the group's last value only on the group's last row/);
+  assert.doesNotMatch(f('ERR-LOG-42'), /never the group's last/);
+  // ROWS BETWEEN 6 PRECEDING AND CURRENT ROW holds 1 row on the first day and 3 on the third.
+  assert.match(f('ERR-LOG-43'), /ROWS BETWEEN 6 PRECEDING AND CURRENT ROW/);
+  assert.match(feedback['ERR-LOG-43']!.model, /below 7/);
+});
+
+test('ERR-LOG-41\'s model follows its own tie-break advice: a ROWS running total on sales ends its ORDER BY in order_line_id', () => {
+  // `sales` holds one row per order line, so many rows share a store and an order_date. Under a ROWS frame, a running total ordered
+  // by order_date alone gives tied rows totals that depend on the engine's row order (review A2, I2). order_line_id is unique there.
+  const model = feedback['ERR-LOG-41']!.model;
+  const framed = [...model.matchAll(/OVER \(([^)]*)\)/g)].map((m) => m[1]!).filter((w) => /\bROWS BETWEEN\b/.test(w));
+  assert.ok(framed.length > 0, 'the model shows a running total with a ROWS frame');
+  for (const w of framed) {
+    const keys = w.match(/ORDER BY (.+?) ROWS BETWEEN/)?.[1]?.split(',').map((k) => k.trim()) ?? [];
+    assert.ok(keys.length >= 2, `the window's ORDER BY has a tie-break after its sequence column: ${w}`);
+    assert.equal(keys.at(-1), 'order_line_id', `the last sort key is unique in sales: ${w}`);
+  }
+});
+
+test('every ranking window in a level 5 trap model (the ones a filter reads) ends its window ORDER BY in a tie-break (S7-22, review F2-5-1)', () => {
+  // A rank cutoff with no tie-break leaves the tied row at the edge to chance, which C53 refuses in a key. A model must not teach it.
+  let checked = 0;
+  for (const id of new Set(Object.values(LEVEL5_TRAPS).flat())) {
+    const model = feedback[id]!.model;
+    for (const m of model.matchAll(/\b(?:ROW_NUMBER|RANK|DENSE_RANK|NTILE)\([^)]*\)\s+OVER\s+\(([^)]*)\)/g)) {
+      const keys = m[1].match(/ORDER BY (.+)$/)?.[1]?.split(',').map((k) => k.trim()) ?? [];
+      assert.ok(keys.length >= 2, `${id}: the window's ORDER BY ends in a tie-break after its ranking key: ${m[1]}`);
+      checked += 1;
+    }
+  }
+  assert.ok(checked >= 2, 'the test reached the ERR-SYN-08 and ERR-LOG-40 models');
+  assert.match(feedback['ERR-SYN-08']!.model, /tie-break[^.]*last/i, "ERR-SYN-08 says the question's tie-break goes last");
+});
+
+test('every level 5 must-have trap is in the catalogue with feedback, under a concept at or before its own (ERR-LOG-39 by S7-24)', () => {
+  for (const [concept, ids] of Object.entries(LEVEL5_TRAPS)) {
+    assert.equal(levelOf.get(concept), 5, `${concept} is a level 5 concept`);
+    for (const id of ids) {
+      const e = byId.get(id);
+      assert.ok(e, `${id} is in errors.json`);
+      assert.ok(feedback[id], `${id} has feedback`);
+      if (LATER_BY_RULING.has(id)) assert.equal(levelOf.get(e.concept_id), 6, `${id} is the one later ID, by S7-24`);
+      else assert.ok(orderOf.get(e.concept_id)! <= orderOf.get(concept)!, `${id} (${e.concept_id}) comes at or before ${concept}`);
+    }
+  }
+  assert.deepEqual(Object.keys(LEVEL5_TRAPS), curriculum.concepts.filter((c) => c.level === 5).map((c) => c.id), 'every level 5 concept, in order');
 });

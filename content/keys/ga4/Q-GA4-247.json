@@ -1,0 +1,13 @@
+{
+  "item_id": "Q-GA4-247",
+  "item_version": 1,
+  "correct_oid": "of52862d",
+  "explanation": "A user ID unifies a signed-in person's devices and sessions, and Blended uses it first, then the device ID, then modeling. A customer who used a phone and a laptop now counts once, so Users falls while sessions and purchases stay. Google signals left reporting identity in February 2024, modeling comes last in Blended's order, and Device-based would ignore the user IDs rather than count them.",
+  "solver": {
+    "prompt_hash": "049e3ec1d6919910",
+    "grader_version": "choice.3",
+    "chosen": "of52862d",
+    "typed": null,
+    "at": "2026-10-22T11:25:43.898Z"
+  }
+}

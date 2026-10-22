@@ -33,5 +33,9 @@ export function screenOf(hash: string): { screen: Screen; subject_id?: string } 
   if (a === 'progress') return at('progress');
   if (a === 'explore') return at('explore');
   if (a === 'item') return at('item', b);
+  // Sprint 7 (S7-18): the Recruiter mocks screen, a mock's start screen and run (its kind as the subject), and an ended run's review.
+  if (a === 'mocks') return at('mocks');
+  if (a === 'mock' && b === 'review' && c) return at('mock_review', c);
+  if (a === 'mock' && b) return at('mock', b);
   return at('today');
 }

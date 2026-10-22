@@ -1,0 +1,93 @@
+{
+  "id": "EX-SQL-WIN-04-E2-41",
+  "version": 1,
+  "kind": "choose_query",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "choose_query",
+    "month_to_date",
+    "running_total"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-04"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-WIN-04",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CTE-01",
+    "SQL-WIN-01",
+    "SQL-WIN-04"
+  ],
+  "template_id": "T-WIN-04-choose-month-to-date",
+  "template_params": {
+    "table": "sales",
+    "store": "NL-02"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_win",
+  "prompt": "For store NL-02, a report needs each UTC day from January to June 2025 with orders, its net revenue, and the month-to-date revenue, which starts again on the first day with orders of each month. Which query returns that, with the columns order_date, revenue_eur and mtd_revenue_eur?",
+  "output_contract": null,
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [],
+  "subgoals": [],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 150000,
+  "why_this_works": "",
+  "options": [
+    {
+      "oid": "oe515610",
+      "text": "WITH daily AS (\n  -- one row per day with orders\n  SELECT order_month, order_date, SUM(net_revenue_eur) AS revenue_eur\n  FROM sales\n  WHERE store_code = 'NL-02'\n    AND order_date BETWEEN DATE '2025-01-01' AND DATE '2025-06-30'\n  GROUP BY order_month, order_date\n)\nSELECT order_date, revenue_eur,\n  SUM(revenue_eur) OVER (ORDER BY order_date ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS mtd_revenue_eur\nFROM daily",
+      "misconception_id": "ERR-LOG-37"
+    },
+    {
+      "oid": "o7b54490",
+      "text": "WITH daily AS (\n  -- one row per day with orders\n  SELECT order_month, order_date, SUM(net_revenue_eur) AS revenue_eur\n  FROM sales\n  WHERE store_code = 'NL-02'\n    AND order_date BETWEEN DATE '2025-01-01' AND DATE '2025-06-30'\n  GROUP BY order_month, order_date\n)\nSELECT order_date, revenue_eur,\n  SUM(revenue_eur) OVER (PARTITION BY order_month) AS mtd_revenue_eur\nFROM daily",
+      "misconception_id": "ERR-LOG-41"
+    },
+    {
+      "oid": "o909ba01",
+      "text": "WITH daily AS (\n  -- one row per day with orders\n  SELECT order_month, order_date, SUM(net_revenue_eur) AS revenue_eur\n  FROM sales\n  WHERE store_code = 'NL-02'\n    AND order_date BETWEEN DATE '2025-01-01' AND DATE '2025-06-30'\n  GROUP BY order_month, order_date\n)\nSELECT order_date, revenue_eur,\n  SUM(revenue_eur) OVER (PARTITION BY order_month ORDER BY revenue_eur ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS mtd_revenue_eur\nFROM daily",
+      "misconception_id": "ERR-LOG-41"
+    },
+    {
+      "oid": "o5f4473a",
+      "text": "WITH daily AS (\n  -- one row per day with orders\n  SELECT order_month, order_date, SUM(net_revenue_eur) AS revenue_eur\n  FROM sales\n  WHERE store_code = 'NL-02'\n    AND order_date BETWEEN DATE '2025-01-01' AND DATE '2025-06-30'\n  GROUP BY order_month, order_date\n)\nSELECT order_date, revenue_eur,\n  SUM(revenue_eur) OVER (PARTITION BY order_month ORDER BY order_date ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS mtd_revenue_eur\nFROM daily",
+      "misconception_id": null
+    }
+  ]
+}

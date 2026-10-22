@@ -1,0 +1,159 @@
+{
+  "id": "EX-SQL-WIN-07-E2-03",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "window",
+    "ntile",
+    "recency",
+    "filter_window_result",
+    "orders"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-07"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-WIN-07",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-CTE-01",
+    "SQL-WIN-01",
+    "SQL-WIN-07"
+  ],
+  "template_id": "T-WIN-07-ntile-filter",
+  "template_params": {
+    "table": "orders",
+    "key": "customer_id",
+    "n": 5,
+    "keep": 1
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_win",
+  "prompt": "Which customers with customer_id from 3001 to 3100 (both included) are in the most recent fifth by their last order day of January to June 2025? A customer's last order day is the UTC date of the latest order_ts from 1 January to 30 June 2025 (order_ts holds UTC time; both days included, in UTC). Sort the customers with an order in that period from the latest last order day down and split them into five groups whose sizes differ by at most one, the larger groups first; the most recent fifth is group 1. When customers tie on their last order day, the lower customer_id comes first. Return two columns, in this order: customer_id and last_order_date. Return one row for each customer in group 1. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "customer_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "last_order_date",
+        "type_class": "temporal"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "customer_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "last_order_date",
+        "type_class": "temporal",
+        "precision": "exact"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "customer_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, find each customer's last order day, split the customers into five groups from the most recent day, and keep group 1.",
+    "The group number exists only after the step that works it out, so keep group 1 in a later step; the tie-break goes last in the window's sort order."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 87,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 88,
+      "to": 156,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 157,
+      "to": 170,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 171,
+      "to": 293,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 294,
+      "to": 316,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 320,
+      "to": 381,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 382,
+      "to": 505,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 506,
+      "to": 524,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 527,
+      "to": 562,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 563,
+      "to": 575,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 576,
+      "to": 599,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "NTILE(5) splits the customers from the most recent last order day down, customer_id settling a tie, and the outer WHERE keeps group 1."
+}

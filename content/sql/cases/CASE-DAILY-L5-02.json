@@ -1,0 +1,87 @@
+{
+  "case_id": "CASE-DAILY-L5-02",
+  "kind": "daily",
+  "level": 5,
+  "world": "MKT",
+  "company_id": "mailvora",
+  "schema": "mailvora",
+  "title": "Each channel's leading campaign on clicks",
+  "persona": {
+    "name": "Aoife",
+    "role": "Performance marketing manager"
+  },
+  "brief": {
+    "decision": "Which campaign of each channel to look at first when the November budget is shared out",
+    "deadline": "Aoife's budget review on Friday"
+  },
+  "data_needed": [
+    "ad_spend_daily",
+    "campaigns"
+  ],
+  "expected_output": {
+    "columns": [
+      "channel_id",
+      "campaign_id",
+      "campaign_name",
+      "clicks"
+    ],
+    "grain": "one row per channel with spend from July to October 2025: its campaign with the most clicks",
+    "sort": [
+      {
+        "column": "channel_id",
+        "desc": false
+      }
+    ]
+  },
+  "checkpoints": [
+    {
+      "id": "CP3",
+      "kind": "CP3",
+      "prompt": "Write the query that answers Aoife's question.",
+      "credits_concepts": [
+        "SQL-WIN-06",
+        "SQL-WIN-02"
+      ],
+      "item_id": "EX-CASE-DAILY-L5-02"
+    },
+    {
+      "id": "CP4",
+      "kind": "CP4",
+      "prompt": "Aoife's headline: add up each campaign's clicks over its rows of ad_spend_daily with a spend_date from 2025-07-01 to 2025-10-31, both days included; spend_date is a day in UTC. In each channel, the leading campaign is the one with the most clicks over those days; when campaigns of a channel tie on clicks, the one with the lower campaign_id leads. What percentage of all the clicks over those days, all channels together, went to the leading campaigns of the channels? Type the percentage rounded to 1 decimal, for example 12.3.",
+      "credits_concepts": [],
+      "item_id": "CASE-DAILY-L5-02:CP4",
+      "typed": {
+        "precision": "ratio",
+        "scale": "percent",
+        "decimals": 1,
+        "unit_label": "%"
+      },
+      "truth_key": "CASE-DAILY-L5-02:CP4"
+    }
+  ],
+  "model_plan": "Metric formula: clicks, the sum of a campaign's daily clicks; a channel's leading campaign is the one with the most clicks.\nOutput grain: one row per channel with spend from July to October 2025: its leading campaign.\nTables and keys: ad_spend_daily joined to campaigns on campaign_id, in a step at one row per campaign; a window numbers each channel's campaigns from the most clicks down.\nFilters: spend_date from 2025-07-01 to 2025-10-31, both days included, days in UTC; then place 1, kept in an outer query.\nEdge cases: campaigns that tie on clicks take their places by campaign_id, so each channel keeps exactly one; a channel with one campaign keeps it; a campaign with no spend in the period is not placed.\nExpected row count: 7",
+  "model_answer_template": "From July to October 2025, the leading campaign of each channel took only {CP4} percent of all clicks, so in most channels the clicks are spread over many campaigns. Moving budget to the leaders alone would change little, and the brand search leader's clicks may come mostly from people who already know Mailvora, which the clicks alone do not show. Clicks are not signups or paid plans, and a campaign that ran longer had more days to collect them. Next, compare each leader's cost per click and its signups with the rest of its channel before moving budget.",
+  "follow_up_question": "Which channel's leading campaign had the lowest cost per click from July to October 2025?",
+  "data_source": {
+    "label": "Fictional, generated data: Mailvora",
+    "real": false,
+    "licence": null
+  },
+  "difficulty": 1,
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-WIN-01",
+    "SQL-WIN-02",
+    "SQL-WIN-06"
+  ],
+  "metric_ids": [],
+  "find_ids": [],
+  "uses_raw": false
+}

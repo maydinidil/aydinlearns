@@ -239,6 +239,41 @@ export function detectConstructs(sql: string, opts: DetectOptions = {}): string[
     .map(([name]) => name);
 }
 
+/** The concepts of a curriculum, as S7-21 reads them. */
+export interface ConceptOrder { concepts: readonly { id: string; order: number; prerequisites: readonly string[] }[] }
+
+/** S7-21: a concept's prerequisites, followed transitively. An unknown concept has none; a cycle ends. */
+export function prerequisitesOf(conceptId: string, curriculum: ConceptOrder): Set<string> {
+  const byId = new Map(curriculum.concepts.map((c) => [c.id, c]));
+  const found = new Set<string>();
+  const stack = [...(byId.get(conceptId)?.prerequisites ?? [])];
+  while (stack.length) {
+    const id = stack.pop()!;
+    if (found.has(id)) continue;
+    found.add(id);
+    stack.push(...(byId.get(id)?.prerequisites ?? []));
+  }
+  return found;
+}
+
+/**
+ * S7-21 (sprint 7, Task A1; the build record's Task 7 minor): the constructs a query fires that belong to a concept later in curriculum
+ * order than `conceptId` and not among its prerequisites (prerequisitesOf), in DETECTORS order. A construct's example may fire its
+ * own concept's and its prerequisites' constructs (the qualify example fires window: SQL-WIN-01 is SQL-WIN-06's prerequisite through
+ * SQL-WIN-02), never a later concept's, which would fail C09 on a correct key of the example's concept. A construct the map does not
+ * place, or a concept without an order, is never later.
+ */
+export function laterConstructs(sql: string, conceptId: string, constructs: readonly { construct: string; concept_id: string }[], curriculum: ConceptOrder): string[] {
+  const order = new Map(curriculum.concepts.map((c) => [c.id, c.order]));
+  const own = order.get(conceptId) ?? Infinity;
+  const before = prerequisitesOf(conceptId, curriculum);
+  const conceptOf = new Map(constructs.map((c) => [c.construct, c.concept_id]));
+  return detectConstructs(sql).filter((c) => {
+    const concept = conceptOf.get(c);
+    return concept !== undefined && (order.get(concept) ?? -Infinity) > own && !before.has(concept);
+  });
+}
+
 /** Every call of a helper construct in a query, as upper-case SQL names in text order; null when the construct has no helpers. */
 export function helperCalls(sql: string, construct: string): string[] | null {
   const re = HELPER_CALLS[construct];

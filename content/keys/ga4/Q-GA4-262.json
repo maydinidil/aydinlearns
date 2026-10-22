@@ -1,0 +1,13 @@
+{
+  "item_id": "Q-GA4-262",
+  "item_version": 1,
+  "correct_oid": "o0f9dc63",
+  "explanation": "Basic consent mode blocks tags until the user consents, so visitors who decline send nothing. Advanced consent mode loads tags with denied defaults and sends cookieless pings, which allows behavioural modeling, and you must choose the Blended identity to see modeled data; Observed has no modeling. Thresholds do not remove sessions from a channel report, and retention does not affect standard reports.",
+  "solver": {
+    "prompt_hash": "46944d3d667fb11a",
+    "grader_version": "choice.3",
+    "chosen": "o0f9dc63",
+    "typed": null,
+    "at": "2026-10-22T11:25:43.911Z"
+  }
+}

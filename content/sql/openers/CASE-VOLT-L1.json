@@ -52,7 +52,7 @@
     {
       "id": "CP4",
       "kind": "CP4",
-      "prompt": "Joost has a follow-up. Across the same promotions as before, what was the average price of the 400.00 euro tablet? Use the promotions whose promo_type is 'percent_off' or 'clearance' and whose start_date is from 2025-01-01 to 2025-06-30, both days included. A promotion's price is 400.00 euros minus discount_pct percent of 400.00, and a missing discount_pct means no discount. Every promotion counts once. Type the average price in euros, rounded to 2 decimals.",
+      "prompt": "Joost has a follow-up. Across the same promotions as before, what was the average price of the 400.00 euro tablet? Use the promotions whose promo_type is 'percent_off' or 'clearance' and whose start_date is from 2025-01-01 to 2025-06-30, both days included. A promotion's price is 400.00 euros minus discount_pct percent of 400.00, and a missing discount_pct means no discount, so that promotion's price is 400.00 euros and it stays in the average. Every promotion counts once. Type the average price in euros, rounded to 2 decimals.",
       "credits_concepts": [],
       "item_id": "CASE-VOLT-L1:CP4",
       "typed": {

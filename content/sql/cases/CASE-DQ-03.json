@@ -41,7 +41,7 @@
       "credits_concepts": [
         "SQL-STR-01"
       ],
-      "prompt": "Sanne says the category report and the supplier's sku file both miss products. How many products have a text key that is off? The products table may hold errors. A sku is off when it is not in standard form: upper case with no spaces anywhere in it. A category_raw is off when it does not equal the category_name of any category, exactly as stored. Count each product once, whether one or both of its keys are off. Type a whole number.",
+      "prompt": "Sanne says the category report and the supplier's sku file both miss products. How many products have a text key that is off? The products table may hold errors. A sku is off when it is not in standard form: upper case with no spaces anywhere in it (the skus hold no tabs or other whitespace, and every product has a sku and a category_raw). A category_raw is off when it does not equal the category_name of any category, exactly as stored. Count each product once, whether one or both of its keys are off. Type a whole number.",
       "typed": {
         "precision": "count",
         "scale": "plain",
@@ -68,7 +68,7 @@
       "credits_concepts": [
         "SQL-STR-01"
       ],
-      "prompt": "Sanne wants to know how much of the sales data these messy keys touch. How many order lines are of a product whose sku or category_raw is off? These tables may hold errors. A sku is off when it is not in standard form: upper case with no spaces anywhere in it. A category_raw is off when it does not equal the category_name of any category, exactly as stored. Count every order line of such a product, as stored. Type a whole number.",
+      "prompt": "Sanne wants to know how much of the sales data these messy keys touch. How many order lines are of a product whose sku or category_raw is off? These tables may hold errors. A sku is off when it is not in standard form: upper case with no spaces anywhere in it (the skus hold no tabs or other whitespace, and every product has a sku and a category_raw). A category_raw is off when it does not equal the category_name of any category, exactly as stored. Count every order line of such a product, as stored. Type a whole number.",
       "typed": {
         "precision": "count",
         "scale": "plain",

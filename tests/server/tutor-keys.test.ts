@@ -60,7 +60,7 @@ test('the file: AYDINLEARNS_KEYS_FILE, else tutor-keys.json in the app folder; a
   assert.equal(keysFileFrom({}, app), resolve(app, 'tutor-keys.json'));
   assert.equal(keysFileFrom({ AYDINLEARNS_KEYS_FILE: ' ', AYDINLEARNS_LOGS_DIR: '' }, app), resolve(app, 'tutor-keys.json'), 'blank is not set');
   assert.equal(keysFileFrom({ AYDINLEARNS_KEYS_FILE: ` ${join(tmpdir(), 'k.json')} ` }, app), resolve(tmpdir(), 'k.json'));
-  assert.equal(keysFileFrom({ AYDINLEARNS_LOGS_DIR: join(tmpdir(), 'logs') }, app), null, 'like the journey (release 1.3, B4): never the real file');
+  assert.equal(keysFileFrom({ AYDINLEARNS_LOGS_DIR: join(tmpdir(), 'logs') }, app), null, 'like the journey (release 0.5.3, B4): never the real file');
   assert.equal(keysFileFrom({ AYDINLEARNS_LOGS_DIR: join(tmpdir(), 'logs'), AYDINLEARNS_KEYS_FILE: join(tmpdir(), 'k.json') }, app), resolve(tmpdir(), 'k.json'));
 });
 

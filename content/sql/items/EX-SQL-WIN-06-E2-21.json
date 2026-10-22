@@ -1,0 +1,153 @@
+{
+  "id": "EX-SQL-WIN-06-E2-21",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "window",
+    "row_number",
+    "dedup",
+    "raw_data",
+    "FIND-01-13",
+    "order_lines",
+    "drill"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-06"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-WIN-06",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-AGG-03",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-CLEAN-01",
+    "SQL-WIN-01",
+    "SQL-WIN-02",
+    "SQL-WIN-06"
+  ],
+  "template_id": "T-WIN-06-dedup-keep-one",
+  "template_params": {
+    "table": "order_lines",
+    "store": "BE-14",
+    "grain": "product"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt_raw",
+  "edge_schema": "voltmarkt_edge_clean",
+  "uses_raw": true,
+  "prompt": "Which products had a resent line in store BE-14's orders of June 2024, and how many units of each did BE-14 sell that month once the copies are removed? These tables may hold errors. Some of store BE-14's order lines were resent under a new order_line_id: two lines are copies of one order line when order_id, product_id, quantity and unit_price_eur all match. Keep the copy with the lowest order_line_id. June 2024 means order_ts, as stored, from 1 June 2024 up to but not including 1 July 2024. Return two columns, in this order: product_id and units (the quantity summed over BE-14's June 2024 lines of the product, copies removed). Return one row for each product with at least one resent line in those orders. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "units",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "units",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "product_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, number and count the copies of each order line of BE-14 in June 2024, keep copy 1, then add up the units by product.",
+    "A product had a resent line when one of its lines has more than one copy; keep that copy count on the kept row so the group filter can test it."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 109,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 110,
+      "to": 394,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 395,
+      "to": 503,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 504,
+      "to": 619,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 622,
+      "to": 663,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 664,
+      "to": 677,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 678,
+      "to": 695,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 696,
+      "to": 715,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 716,
+      "to": 740,
+      "subgoal": "group_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "Keeping copy 1 counts each order line's units once, and the copy count carried on that row picks out the products that had a line resent."
+}

@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-WIN-01-E2-06",
+  "item_version": 1,
+  "reference_sql": "SELECT c.channel_id, date_trunc('month', a.spend_date) AS month, SUM(a.spend) AS spend,\n       ROUND(100.0 * SUM(a.spend) / SUM(SUM(a.spend)) OVER (PARTITION BY c.channel_id), 2) AS share_pct\nFROM ad_spend_daily a\nJOIN campaigns c ON c.campaign_id = a.campaign_id\nWHERE a.spend_date >= DATE '2025-07-01' AND a.spend_date <= DATE '2025-10-31'\nGROUP BY c.channel_id, date_trunc('month', a.spend_date)",
+  "alternatives": [
+    "WITH monthly AS (  -- one row per channel and month with spend\n  SELECT c.channel_id, date_trunc('month', a.spend_date) AS month, SUM(a.spend) AS spend\n  FROM ad_spend_daily a\n  JOIN campaigns c ON c.campaign_id = a.campaign_id\n  WHERE a.spend_date >= DATE '2025-07-01' AND a.spend_date <= DATE '2025-10-31'\n  GROUP BY c.channel_id, date_trunc('month', a.spend_date)\n),\nchannel_total AS (  -- one row per channel with spend\n  SELECT channel_id, SUM(spend) AS total_spend\n  FROM monthly\n  GROUP BY channel_id\n)\nSELECT m.channel_id, m.month, m.spend,\n       ROUND(100.0 * m.spend / ct.total_spend, 2) AS share_pct\nFROM monthly m\nJOIN channel_total ct ON ct.channel_id = m.channel_id",
+    "WITH monthly AS (  -- one row per channel and month with spend\n  SELECT c.channel_id, date_trunc('month', a.spend_date) AS month, SUM(a.spend) AS spend\n  FROM ad_spend_daily a\n  JOIN campaigns c ON c.campaign_id = a.campaign_id\n  WHERE a.spend_date >= DATE '2025-07-01' AND a.spend_date <= DATE '2025-10-31'\n  GROUP BY c.channel_id, date_trunc('month', a.spend_date)\n)\nSELECT channel_id, month, spend,\n       ROUND(100.0 * spend / SUM(spend) OVER (PARTITION BY channel_id), 2) AS share_pct\nFROM monthly"
+  ],
+  "other_way": {
+    "sql": "WITH monthly AS (  -- one row per channel and month with spend\n  SELECT c.channel_id, date_trunc('month', a.spend_date) AS month, SUM(a.spend) AS spend\n  FROM ad_spend_daily a\n  JOIN campaigns c ON c.campaign_id = a.campaign_id\n  WHERE a.spend_date >= DATE '2025-07-01' AND a.spend_date <= DATE '2025-10-31'\n  GROUP BY c.channel_id, date_trunc('month', a.spend_date)\n),\nchannel_total AS (  -- one row per channel with spend\n  SELECT channel_id, SUM(spend) AS total_spend\n  FROM monthly\n  GROUP BY channel_id\n)\nSELECT m.channel_id, m.month, m.spend,\n       ROUND(100.0 * m.spend / ct.total_spend, 2) AS share_pct\nFROM monthly m\nJOIN channel_total ct ON ct.channel_id = m.channel_id",
+    "tradeoff": "A step with each channel's total, joined back, gives the same shares without a window, at the cost of a join."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-37",
+      "sql": "SELECT c.channel_id, date_trunc('month', a.spend_date) AS month, SUM(a.spend) AS spend, ROUND(100.0 * SUM(a.spend) / SUM(SUM(a.spend)) OVER (), 2) AS share_pct FROM ad_spend_daily a JOIN campaigns c ON c.campaign_id = a.campaign_id WHERE a.spend_date >= DATE '2025-07-01' AND a.spend_date <= DATE '2025-10-31' GROUP BY c.channel_id, date_trunc('month', a.spend_date)"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-07",
+      "sql": "SELECT c.channel_id, date_trunc('month', a.spend_date) AS month, SUM(a.spend) AS spend, ROUND(100.0 * SUM(a.spend) / SUM(SUM(a.spend)) OVER (PARTITION BY date_trunc('month', a.spend_date)), 2) AS share_pct FROM ad_spend_daily a JOIN campaigns c ON c.campaign_id = a.campaign_id WHERE a.spend_date >= DATE '2025-07-01' AND a.spend_date <= DATE '2025-10-31' GROUP BY c.channel_id, date_trunc('month', a.spend_date)"
+    }
+  ],
+  "hint3_partial": "SELECT c.channel_id, date_trunc('month', a.spend_date) AS month, SUM(a.spend) AS spend,\n       ROUND(100.0 * SUM(a.spend) / SUM(SUM(a.spend)) OVER (PARTITION BY ___), 2) AS share_pct\nFROM ad_spend_daily a\nJOIN campaigns c ON c.campaign_id = a.campaign_id\nWHERE a.spend_date >= DATE '2025-07-01' AND a.spend_date <= DATE '2025-10-31'\nGROUP BY c.channel_id, date_trunc('month', a.spend_date)",
+  "solver": {
+    "prompt_hash": "fab7b4c64a0952e9",
+    "schema_version": "09f3a33d3123",
+    "dataset_version": "e7c58abf7e8f892e",
+    "grader_version": "7a.1",
+    "query": "WITH m AS (\n  SELECT c.channel_id, DATE_TRUNC('month', a.spend_date)::DATE AS month, SUM(a.spend) AS spend\n  FROM ad_spend_daily a\n  JOIN campaigns c ON c.campaign_id = a.campaign_id\n  WHERE a.spend_date >= DATE '2025-07-01' AND a.spend_date <= DATE '2025-10-31'\n  GROUP BY c.channel_id, DATE_TRUNC('month', a.spend_date)::DATE\n)\nSELECT channel_id, month, spend,\n       ROUND(100.0 * spend / SUM(spend) OVER (PARTITION BY channel_id), 2) AS share_pct\nFROM m\n",
+    "at": "2026-10-21T09:05:05.661Z"
+  }
+}

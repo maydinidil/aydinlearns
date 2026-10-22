@@ -1,0 +1,132 @@
+{
+  "id": "EX-SQL-WIN-01-E1-01",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "window",
+    "partition_by",
+    "avg",
+    "products"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pretest",
+  "target_concept_id": "SQL-WIN-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-AGG-01",
+    "SQL-TYPE-01",
+    "SQL-WIN-01"
+  ],
+  "template_id": "T-WIN-01-row-beside-group-average",
+  "template_params": {
+    "table": "products",
+    "partition": "category"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_win",
+  "prompt": "For every product in the Audio categories, category_id 15 to 20, show its unit cost next to the average unit cost of all the products in its category. Return four columns, in this order: product_id, category_id, unit_cost_eur and category_avg_cost, the category's average rounded to 2 decimals. Return one row for each such product. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "category_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "unit_cost_eur",
+        "type_class": "numeric"
+      },
+      {
+        "name": "category_avg_cost",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per product"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "category_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "unit_cost_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "category_avg_cost",
+        "type_class": "numeric",
+        "precision": "money",
+        "require_rounding": 2
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "product_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the calculated column: the average unit cost over the product's own category, on every product row.",
+    "A GROUP BY would fold the products into one row per category; a window keeps every product and names its group inside OVER."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 135,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 136,
+      "to": 149,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 150,
+      "to": 185,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "AVG with OVER (PARTITION BY category_id) works out each category's average and writes it on every product row, so no product is lost."
+}

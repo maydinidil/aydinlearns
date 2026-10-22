@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-WIN-03-E1-05",
+  "item_version": 1,
+  "reference_sql": "SELECT product_id, competitor, observed_ts, price_eur,\n  LAG(price_eur) OVER (PARTITION BY product_id, competitor ORDER BY observed_ts) AS prev_price_eur\nFROM competitor_prices\nWHERE product_id BETWEEN 1 AND 20\n  AND observed_ts >= TIMESTAMP '2025-01-01 00:00:00'\n  AND observed_ts < TIMESTAMP '2025-07-01 00:00:00'",
+  "alternatives": [
+    "WITH checks AS (\n  -- one row per price check in the period\n  SELECT product_id, competitor, observed_ts, price_eur\n  FROM competitor_prices\n  WHERE product_id BETWEEN 1 AND 20\n    AND observed_ts >= TIMESTAMP '2025-01-01 00:00:00'\n    AND observed_ts < TIMESTAMP '2025-07-01 00:00:00'\n), paired AS (\n  -- one row per price check in the period\n  SELECT c.product_id, c.competitor, c.observed_ts, c.price_eur,\n    (SELECT MAX(c2.observed_ts) FROM checks c2 WHERE c2.product_id = c.product_id AND c2.competitor = c.competitor AND c2.observed_ts < c.observed_ts) AS prev_ts\n  FROM checks c\n)\nSELECT p.product_id, p.competitor, p.observed_ts, p.price_eur, c3.price_eur AS prev_price_eur\nFROM paired p\nLEFT JOIN checks c3 ON c3.product_id = p.product_id AND c3.competitor = p.competitor AND c3.observed_ts = p.prev_ts",
+    "WITH checks AS (\n  -- one row per price check in the period\n  SELECT product_id, competitor, observed_ts, price_eur\n  FROM competitor_prices\n  WHERE product_id BETWEEN 1 AND 20\n    AND observed_ts >= TIMESTAMP '2025-01-01 00:00:00'\n    AND observed_ts < TIMESTAMP '2025-07-01 00:00:00'\n)\nSELECT product_id, competitor, observed_ts, price_eur,\n  LAG(price_eur) OVER (PARTITION BY product_id, competitor ORDER BY observed_ts) AS prev_price_eur\nFROM checks"
+  ],
+  "other_way": {
+    "sql": "WITH checks AS (\n  -- one row per price check in the period\n  SELECT product_id, competitor, observed_ts, price_eur\n  FROM competitor_prices\n  WHERE product_id BETWEEN 1 AND 20\n    AND observed_ts >= TIMESTAMP '2025-01-01 00:00:00'\n    AND observed_ts < TIMESTAMP '2025-07-01 00:00:00'\n), paired AS (\n  -- one row per price check in the period\n  SELECT c.product_id, c.competitor, c.observed_ts, c.price_eur,\n    (SELECT MAX(c2.observed_ts) FROM checks c2 WHERE c2.product_id = c.product_id AND c2.competitor = c.competitor AND c2.observed_ts < c.observed_ts) AS prev_ts\n  FROM checks c\n)\nSELECT p.product_id, p.competitor, p.observed_ts, p.price_eur, c3.price_eur AS prev_price_eur\nFROM paired p\nLEFT JOIN checks c3 ON c3.product_id = p.product_id AND c3.competitor = p.competitor AND c3.observed_ts = p.prev_ts",
+    "tradeoff": "Joining each check to the latest earlier one gives the same prices, but needs two steps and a three-column join."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-37",
+      "sql": "SELECT product_id, competitor, observed_ts, price_eur, LAG(price_eur) OVER (ORDER BY product_id, competitor, observed_ts) AS prev_price_eur FROM competitor_prices WHERE product_id BETWEEN 1 AND 20 AND observed_ts >= TIMESTAMP '2025-01-01 00:00:00' AND observed_ts < TIMESTAMP '2025-07-01 00:00:00'"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-41",
+      "sql": "SELECT product_id, competitor, observed_ts, price_eur, LAG(price_eur) OVER (PARTITION BY product_id, competitor ORDER BY price_eur, observed_ts) AS prev_price_eur FROM competitor_prices WHERE product_id BETWEEN 1 AND 20 AND observed_ts >= TIMESTAMP '2025-01-01 00:00:00' AND observed_ts < TIMESTAMP '2025-07-01 00:00:00'"
+    }
+  ],
+  "hint3_partial": "SELECT product_id, competitor, observed_ts, price_eur,\n  LAG(price_eur) OVER (PARTITION BY ___ ORDER BY observed_ts) AS prev_price_eur\nFROM competitor_prices\nWHERE product_id BETWEEN 1 AND 20\n  AND observed_ts >= TIMESTAMP '2025-01-01 00:00:00'\n  AND observed_ts < TIMESTAMP '2025-07-01 00:00:00'",
+  "solver": {
+    "prompt_hash": "73596da2b666f16e",
+    "schema_version": "ffc6be9b2fbc",
+    "dataset_version": "e7c58abf7e8f892e",
+    "grader_version": "7a.1",
+    "query": "SELECT product_id, competitor, observed_ts, price_eur,\n  LAG(price_eur) OVER (PARTITION BY product_id, competitor ORDER BY observed_ts) AS prev_price_eur\nFROM competitor_prices\nWHERE product_id BETWEEN 1 AND 20\n  AND CAST(observed_ts AS DATE) BETWEEN DATE '2025-01-01' AND DATE '2025-06-30'\n",
+    "at": "2026-10-21T09:05:07.192Z"
+  }
+}

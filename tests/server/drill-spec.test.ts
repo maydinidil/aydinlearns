@@ -70,14 +70,28 @@ test('the level entries keep their rules: a missing level, a repeated level and 
 test('the shipped drills.json: levels 1 to 3 as before, level 4 as Task C1 wrote it with its pool, and S6-19\'s cumulative entry exactly', async () => {
   const raw = JSON.parse(await readFile('content/sql/drills.json', 'utf8')) as { drills: Record<string, unknown>[] };
   const parsed = parseDrillFile(raw);
-  assert.deepEqual(parsed.levels.map((s) => s.level), [1, 2, 3, 4]);
+  assert.deepEqual(parsed.levels.map((s) => s.level), [1, 2, 3, 4, 5]);
   const LEVEL4 = ['SQL-SUBQ-01', 'SQL-SUBQ-02', 'SQL-STR-01', 'SQL-DATE-02', 'SQL-CLEAN-01'];
   const { pool_item_ids: pool4, ...spec4 } = raw.drills.find((d) => d.level === 4) as { pool_item_ids: string[] };
   assert.deepEqual(spec4, { level: 4, questions: 10, minutes: 25, pass_pct: 90, concepts: LEVEL4, unseen_min_pct: 70, mode: 'normal' });
   assert.deepEqual([...pool4].sort(), LEVEL4.flatMap((c) => ['E1-21', 'E1-22', 'E2-21', 'E2-22', 'E3-21', 'E3-22'].map((s) => `EX-${c}-${s}`)).sort());
   assert.deepEqual(parsed.cumulative, [CUMULATIVE]);
   assert.deepEqual(raw.drills.find((d) => d.id === 'cumulative-1-4'), CUMULATIVE, 'the file holds the entry with no other field');
-  assert.deepEqual((await loadDrills()).map((s) => s.level), [1, 2, 3, 4], 'the app\'s loader reads the shipped file and lists the level drills only');
+  assert.deepEqual((await loadDrills()).map((s) => s.level), [1, 2, 3, 4, 5], 'the app\'s loader reads the shipped file and lists the level drills only');
+});
+
+test('S7-19: the shipped drills.json holds the level 5 entry exactly, with the 7 level 5 concepts in order and the 35 drill items Task C1 wrote (5 per concept, S7-19)', async () => {
+  const raw = JSON.parse(await readFile('content/sql/drills.json', 'utf8')) as { drills: Record<string, unknown>[] };
+  const curriculum = JSON.parse(await readFile('content/sql/curriculum.json', 'utf8')) as { concepts: { id: string; level: number }[] };
+  const LEVEL5 = curriculum.concepts.filter((c) => c.level === 5).map((c) => c.id);
+  assert.deepEqual(LEVEL5, ['SQL-WIN-01', 'SQL-WIN-02', 'SQL-WIN-03', 'SQL-WIN-04', 'SQL-WIN-05', 'SQL-WIN-06', 'SQL-WIN-07']);
+  const POOL = LEVEL5.flatMap((c) => ['E1-21', 'E1-22', 'E2-21', 'E2-22', 'E3-21'].map((n) => `EX-${c}-${n}`));
+  const entry = { level: 5, questions: 10, minutes: 25, pass_pct: 90, concepts: LEVEL5, unseen_min_pct: 70, mode: 'normal', pool_item_ids: POOL };
+  assert.deepEqual(raw.drills.find((d) => d.level === 5), entry, 'S7-19\'s entry, with no other field');
+  assert.deepEqual(raw.drills.findIndex((d) => d.level === 5), raw.drills.findIndex((d) => d.level === 4) + 1, 'after level 4, before the cumulative entry');
+  const spec = (await loadDrills()).find((s) => s.level === 5);
+  assert.deepEqual(spec, entry, 'the app\'s loader reads it as written');
+  assert.deepEqual(parseDrillFile(raw).cumulative, [CUMULATIVE], 'the cumulative drill still spans levels 1 to 4');
 });
 
 test('K2 (S6-35): a level or cumulative entry whose mode is not normal or screen stops the file loading, naming the entry; normal and screen load', () => {

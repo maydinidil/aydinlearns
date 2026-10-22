@@ -5,8 +5,11 @@ import { HELP_WAITS } from '../drill.ts';
 /** The browser cuts its snapshot at 24,000 characters; more than this can only be a bug (spec §4). */
 export const SNAPSHOT_LIMIT = 32_000;
 export const QUESTION_LIMIT = 2_000;
-/** The screens of the timed runs: closed while a run's clock runs, open in the review after (D94). */
-export const TIMED_SCREENS: ReadonlySet<string> = new Set(['drill', 'ga4_run']);
+/**
+ * The screens of the timed runs: closed while a run's clock runs, open in the review after (D94). Sprint 7 (D108): a mock's run screen too;
+ * its review is a screen of its own (mock_review), open like hints.
+ */
+export const TIMED_SCREENS: ReadonlySet<string> = new Set(['drill', 'ga4_run', 'mock']);
 
 export interface GuardInput {
   enabled: boolean; offReason: string | null; screen: string;

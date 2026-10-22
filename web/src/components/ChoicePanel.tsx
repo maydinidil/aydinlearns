@@ -9,13 +9,13 @@ import type { OptionTable } from '../../../schemas/choice-types.ts';
 import { isClosedError } from '../lib/exercise.ts';
 import { ANSWER_FIRST, typedValueText } from '../lib/cp4-flow.ts';
 import { createBusyGate } from '../lib/busy-gate.ts';
-import { canSaveAnswer, classifyRunRefusal, modeRules, runMayBeGone, savedLine, shownAtAfter, type RunKind, type RunMode } from '../lib/run-flow.ts';
+import { canSaveAnswer, classifyRunRefusal, modeRules, runMayBeGone, savedLine, shownAtAfter, type RunMode, type SavedKind } from '../lib/run-flow.ts';
 import { itemBadges } from '../lib/choice-flow.ts';
 import { choicePhaseFor, optionTableView, sqlChoiceLayout } from '../lib/sql-choice.ts';
 import { choiceQuickPrompts, optionText } from '../lib/tutor-parts.ts';
 import { marksHelped } from '../lib/tutor-help.ts';
 import { choicePart } from '../tutor/snapshot.ts';
-import { useTutor, useTutorHelp, useTutorPart } from '../tutor/TutorContext.tsx';
+import { AVAILABLE, useTutorAsk, useTutorAvailable, useTutorHelp, useTutorPart } from '../tutor/TutorContext.tsx';
 import { SchemaPanel } from './SchemaPanel.tsx';
 import { SqlCode } from './SqlCode.tsx';
 import { ConfidenceRow, type Confidence } from './ConfidenceRow.tsx';
@@ -40,9 +40,9 @@ type Props = {
    * A timed GA4 run (Task B3): the answer is saved and nothing comes back, so there is no result, no "Show answer" and no
    * next button (S3-03). `confidence`: asked in a mini drill, never in a half-mock (S3-04). Practice takes a changed answer;
    * exam takes one. `onStopped`: the server says the run is over. `visible`: this question is the current one; its active time counts
-   * from then (B3 I1), and from each save, not from when the run began.
+   * from then (B3 I1), and from each save, not from when the run began. `kind`: a GA4 run's, or the knowledge mock's (N1 M1), for the saved line.
    */
-  run?: { mode: RunMode; kind: RunKind; confidence: boolean; answeredBefore?: boolean; visible?: boolean; onSaved: () => void; onStopped: (note?: string) => void };
+  run?: { mode: RunMode; kind: SavedKind; confidence: boolean; answeredBefore?: boolean; visible?: boolean; onSaved: () => void; onStopped: (note?: string) => void };
 };
 
 const REOPENED = 'Your session ended, so this question was opened again. The options may be in a new order: check your answer, then send it again.';
@@ -83,7 +83,9 @@ function ChoicePanelInner({ itemId, section, phase: asked, schemaNotes, instance
   const nextGate = useRef(createBusyGate());
   const sendGate = useRef(createBusyGate());       // one answer request per click burst, in a run
   const [saved, setSaved] = useState<string | null>(run?.answeredBefore ? EARLIER : null);   // what a run has saved for this question
-  const tutor = useTutor();
+  // S7-36: it reads only whether the tutor is available and how to ask a quick prompt, so opening the panel does not draw it again.
+  const tutorAvailable = useTutorAvailable();
+  const askTutor = useTutorAsk();
   // Sprint T (T-02): the question's IDs and status, its options in the order drawn below (top down, so the tutor can name one by its
   // place: seams review I1), the option picked and a typed value (an input's value is not in the screen's text). A run keeps hidden
   // questions mounted: only the one in view names its item (N3).
@@ -93,8 +95,13 @@ function ChoicePanelInner({ itemId, section, phase: asked, schemaNotes, instance
   // Codex F34 (D95): the instance a tutor answer the server counted as help was on, while this question was unanswered; next() adds it to
   // a shown answer. Kept by instance ID, so a reopened instance starts unhelped.
   const tutorHelpedOn = useRef<string | null>(null);
-  useTutorHelp((id) => {
-    if (marksHelped(id, { id: instance.current, passed: result !== null || saved !== null, closed: false })) tutorHelpedOn.current = id;
+  // S7-33 (block P review M8): when this instance's answer landed (or was saved), on performance.now()'s clock, set as it lands: React may
+  // not have drawn it when the reply's end comes, so the handler reads it here and never from the last render's `result`. Null: none yet.
+  const answeredAt = useRef<number | null>(run?.answeredBefore ? Number.NEGATIVE_INFINITY : null);
+  useTutorHelp((id, askedAt) => {
+    // Replay counts a question asked before the answer (tutor_asked.ts is the ask time, D112), even when its reply ends after it.
+    const answeredFirst = answeredAt.current !== null && answeredAt.current <= askedAt;
+    if (marksHelped(id, { id: instance.current, passed: answeredFirst, closed: false })) tutorHelpedOn.current = id;
   });
 
   function load(note: string | null) {
@@ -107,6 +114,7 @@ function ChoicePanelInner({ itemId, section, phase: asked, schemaNotes, instance
   function reopen() {
     if (onReopen) { onReopen(); return; }
     instance.current = crypto.randomUUID();
+    answeredAt.current = null;
     setRevealed(null);
     load(REOPENED);
   }
@@ -122,12 +130,13 @@ function ChoicePanelInner({ itemId, section, phase: asked, schemaNotes, instance
           item_id: itemId, item_instance_id: instance.current, confidence: run.confidence ? confidence : null, shown_order: data.shown_order, phase: data.phase,
           active_ms: Date.now() - shownAt.current, ...(data.item.kind === 'mcq' ? { chosen: value } : { typed: value }),
         });
+        answeredAt.current ??= performance.now();
         setSaved(value);
         shownAt.current = shownAtAfter(shownAt.current, 'saved', true, Date.now());     // a later change counts only its own time
         run.onSaved();
       } catch (e) {
         const why = classifyRunRefusal(e);
-        if (why === 'answered') { setSaved(EARLIER); run.onSaved(); setMessage((e as Error).message); }
+        if (why === 'answered') { answeredAt.current ??= performance.now(); setSaved(EARLIER); run.onSaved(); setMessage((e as Error).message); }
         else if (why === 'over') run.onStopped();
         else if (runMayBeGone(e)) run.onStopped((e as Error).message);       // S1: a 404, or a 409 with no code, may mean the run is gone
         else setMessage((e as Error).message);
@@ -140,11 +149,14 @@ function ChoicePanelInner({ itemId, section, phase: asked, schemaNotes, instance
     if (!data || busy || result) return;
     setBusy(true); setMessage(null);
     const phase: Phase = data.phase;
+    const sentAt = performance.now();               // the server dates the answer when it receives it, so the stamp is taken at the send
     try {
-      setResult(await api.choiceAnswer({
+      const r = await api.choiceAnswer({
         item_id: itemId, item_instance_id: instance.current, confidence, shown_order: data.shown_order, phase,
         active_ms: Date.now() - shownAt.current, ...(data.item.kind === 'mcq' ? { chosen: chosen ?? '' } : { typed }),
-      }));
+      });
+      answeredAt.current = sentAt;
+      setResult(r);
     } catch (e) {
       if (isClosedError(e)) reopen();
       else setMessage((e as Error).message);      // a typed answer the server cannot read says why, and nothing is logged
@@ -178,7 +190,7 @@ function ChoicePanelInner({ itemId, section, phase: asked, schemaNotes, instance
   const current = item.kind === 'mcq' ? chosen : typed;
   const sendable = run ? ready && !locked && saved !== current : !answered && ready;
   const right = result?.correct_oid ?? revealed?.correct_oid;
-  const quick = choiceQuickPrompts(tutor, result);       // sprint T: beside a wrong answer, while the tutor is on and open
+  const quick = choiceQuickPrompts(tutorAvailable ? AVAILABLE : null, result);       // sprint T: beside a wrong answer, while the tutor is on and open
   const badges = itemBadges(item);
   const sql = item.section === 'sql' ? sqlChoiceLayout(item) : null;
   const optionBody = (o: { text: string; table?: OptionTable }) => {
@@ -239,7 +251,7 @@ function ChoicePanelInner({ itemId, section, phase: asked, schemaNotes, instance
           {item.kind === 'typed' && !result.correct && <p>The answer is {withUnit(result.value, item.typed)}.</p>}
           {result.error_ids.includes(PERCENT_SCALE) && <p>Your answer is 100 times off. Check whether the question asks for a percentage or a share.</p>}
           <p>{result.explanation}</p>
-          {quick.length > 0 && <p className="toolbar tutor-quick">{quick.map((q) => <button key={q.label} type="button" onClick={() => tutor?.ask(q.question)}>{q.label}</button>)}</p>}
+          {quick.length > 0 && <p className="toolbar tutor-quick">{quick.map((q) => <button key={q.label} type="button" onClick={() => askTutor?.(q.question)}>{q.label}</button>)}</p>}
           {onDone && <button type="button" disabled={advancing} onClick={() => void next(result.correct)}>Next</button>}
         </div>
       )}

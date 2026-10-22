@@ -121,7 +121,7 @@ test('the data step runs when an output the app reads is missing, or pipeline/ i
     await utimes(join(d, 'content/keys/cases/CASE-X.json'), at(1000), at(1000));
     // F2 (triage "B3: launch.ts rebuild rule ignores content/sql/cases and openers"): a case's schema decides where its truths run
     // (S6-13), and it lives in the case record, in content/sql/cases/ or content/sql/openers/.
-    for (const folder of ['content/sql/cases', 'content/sql/openers']) {
+    for (const folder of ['content/sql/cases', 'content/sql/openers', 'content/sql/mocks']) {
       await mkdir(join(d, folder), { recursive: true });
       await writeFile(join(d, folder, 'CASE-Y.json'), 'x');
       await utimes(join(d, folder, 'CASE-Y.json'), at(1000), at(1000));

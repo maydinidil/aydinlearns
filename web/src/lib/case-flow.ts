@@ -1,10 +1,16 @@
 // web/src/lib/case-flow.ts: the inbox and case screens' text and shapes (sprint 4b, Task D2; design §7, §14; S4B-07, S4B-10 to
 // S4B-13). Pure, so tests/web/case-flow.test.ts checks the step order, which steps show as done, the countdown and the row count
 // line. Nothing here is locked: every step can be opened, skipped and reopened at any time; these helpers only pick where a visit
-// starts and what each step says.
-import type { TypedView } from '../api.ts';
+// starts and what each step says. Sprint 7 Part 2 (Task N2): the case-round and take-home mocks' shapes and lines (mock mode, at the
+// end), pinned by tests/web/case-mock-flow.test.ts; a mock is a test, so there its plan comes first (S7-13) and each checkpoint takes one answer.
+import type { SortKey } from '../../../schemas/item.ts';
+import type { ItemView, PublicGrade, TypedView } from '../api.ts';
 import { cp4Feedback } from './cp4-flow.ts';
-import type { CaseCheckpointResult, CaseCheckpointView, CaseKind, CaseListEntry, CaseStatusName, CaseView, CheckpointKind, InsightReply, PlanReply, Point } from './cases-api.ts';
+import type {
+  CaseCheckpointResult, CaseCheckpointView, CaseKind, CaseListEntry, CaseStatusName, CaseView, CheckpointKind, CheckpointOption,
+  DataSource, InsightReply, PlanReply, Point,
+} from './cases-api.ts';
+import type { MockHistoryRow, MockRunView } from './mock-flow.ts';
 
 export const INBOX_HREF = '#/inbox';
 export const INBOX_LINK = 'Case inbox';
@@ -248,3 +254,101 @@ export function countdown(startedAt: number | null, now: number, seconds = 60): 
   const remaining = Math.max(0, Math.min(seconds, Math.ceil((startedAt + seconds * 1000 - now) / 1000)));
   return remaining === 0 ? { state: 'done', remaining: 0, text: 'Time is up.' } : { state: 'running', remaining, text: clock(remaining) };
 }
+
+
+// ---- the case-round and take-home mocks (sprint 7 Part 2, Task N2; S7-03, S7-07, S7-13 to S7-16) ----------------------------------------
+// The shapes as server/routes/mock-cases.ts and routes/mocks.ts answer them (the server modules bring node types the browser build has not).
+// In mock mode nothing is shown right or wrong: every answer is recorded, one each, and the review shows the results (S7-03, S7-07). The
+// rules are schemas/mock.ts's, the rule and counts lines lib/mock-flow.ts's, the calls lib/cases-api.ts's (N2 M7).
+
+/**
+ * The two case mocks, and a route's mock kind that is one (#/mock/case_round, #/mock/take_home). They are schemas/case.ts's MockCaseKind and
+ * isMockCaseKind (N2 M5), which tests/web/case-mock-flow.test.ts keeps equal; that module brings node:crypto (through schemas/choice.ts), which
+ * the browser build cannot load, even for a type.
+ */
+export type CaseMockKind = 'case_round' | 'take_home';
+export const isCaseMockKind = (m: string): m is CaseMockKind => m === 'case_round' || m === 'take_home';
+/** A case mock run's block (mock-case_round-<uuid>, mock-take_home-<uuid>): its review is the case mock's review. */
+export const isCaseMockBlock = (blockId: string): boolean => /^mock-(case_round|take_home)-/.test(blockId);
+
+/** One checkpoint as the run shows it: its prompt, the run's instance of it, and whether its one answer is in (late: S7-15, S7-C30). */
+export interface MockCaseCheckpointView { id: string; kind: CheckpointKind; prompt: string; item_id: string | null; item_instance_id: string | null; answered: boolean; late: boolean }
+export interface MockCaseView {
+  case_id: string; title: string; level: number; persona: { name: string; role: string }; brief: { decision: string; deadline: string };
+  data_needed: string[]; expected_output: { columns: string[]; sort: SortKey[]; grain: string | null }; data_source: DataSource | null;
+  checkpoints: MockCaseCheckpointView[];
+  /** The latest plan, insight and "say it in 60 seconds" ticks of this run, or null. */
+  plan: Record<string, string> | null; insight: string | null; said: string[] | null;
+  plan_fields: readonly Point[]; say_points: readonly Point[];
+}
+/** A case mock's run, as its start and GET /api/mocks give it: `deadline_at` its minutes after it opened; `ends_at` when the server ends it. */
+export interface CaseMockRunView extends Omit<MockRunView, 'mock'> { mock: CaseMockKind; deadline_at: string; case: MockCaseView }
+/** S7-03: what every answer and self-check in the run gets back. */
+export interface MockRecorded { recorded: true }
+/** S7-07: one checkpoint of the review: the learner's one answer beside the correct one. */
+export interface MockCaseReviewCheckpoint {
+  id: string; kind: CheckpointKind; prompt: string; outcome: 'passed' | 'failed' | 'not_answered'; late: boolean; submitted_at: string | null;
+  options: CheckpointOption[] | null; chosen: string | null; correct_oid: string | null; explanation: string | null;
+  typed: TypedView | null; answer: string | null; value: number | null;
+  item_id: string | null; item_instance_id: string | null; query: string | null; item_prompt: string | null; output_contract: ItemView['output_contract'] | null;
+  grade: PublicGrade | null;
+}
+export interface CaseMockReview extends MockHistoryRow {
+  mock: CaseMockKind; items: [];
+  case: Omit<MockCaseView, 'checkpoints' | 'plan' | 'insight' | 'said' | 'plan_fields' | 'say_points'>;
+  checkpoints: MockCaseReviewCheckpoint[];
+  plan: Record<string, string> | null; plan_fields: readonly Point[]; model_plan: string;
+  insight: string | null; model_answer: string;
+  rubric: readonly Point[]; core_rubric: string[]; rubric_ticked: string[] | null;
+  said: string[] | null; say_points: readonly Point[]; deadline_at: string;
+}
+
+/** S7-13: the plan is the run's first step; the checkpoints open once it is saved. */
+export const PLAN_FIRST_LINE = 'Write your plan first. The checkpoints open once it is saved.';
+/** S7-03, D108: in mock mode nothing shows right or wrong, and help waits. */
+export const MOCK_CASE_HELP_LINE = 'Each checkpoint takes one answer. Results, the model plan and answer, and the tutor open in the review.';
+export const RECORDED_LINE = 'Answer recorded. Its result shows in the review.';
+/** A checkpoint whose one answer is in, as the run shows it. */
+export const ANSWERED_LINE = 'Answered. Its result shows in the review.';
+/** S7-15: a take-home past its minutes keeps taking answers, marked late. */
+export const LATE_LINE = 'Past the time limit: answers now are late, and the run cannot pass. Hand it in when you are done.';
+/** S7-15 (ruling S7-C30): CP6's memo saved after the take-home's minutes. */
+export const LATE_MEMO_LINE = 'It was saved after the time limit, so it came in late.';
+/** S7-14: "say it in 60 seconds" in a mock: spoken, not recorded; its four points are ticked. */
+export const SAY_TICKS_LEGEND = 'Tick each point you said.';
+/** S7-13, N2 M6: the plan step's line, naming the mock by its kind. */
+export const planFirstLine = (mock: CaseMockKind): string =>
+  `A ${mock === 'case_round' ? 'case-round' : 'take-home'} mock starts with the plan, before any SQL. Your expected row count is yours to check against your query.`;
+
+const MOCK_STEP: Record<'plan' | 'say', string> = { plan: 'Plan', say: 'Say it in 60 seconds' };
+/**
+ * S7-13: the steps in mock mode. Before the plan is saved, the plan alone; then every checkpoint in the case's order, and in a case-round
+ * "say it in 60 seconds" after CP6 (S7-14). No score step: the review gives it.
+ */
+export function mockSteps(v: Pick<MockCaseView, 'plan' | 'checkpoints'>, mock: CaseMockKind): CaseStep[] {
+  const plan: CaseStep = { id: 'plan', label: MOCK_STEP.plan };
+  if (v.plan === null) return [plan];
+  return [plan, ...v.checkpoints.map((c) => ({ id: c.kind, label: checkpointLabel(c.kind) })), ...(mock === 'case_round' ? [{ id: 'say' as const, label: MOCK_STEP.say }] : [])];
+}
+/** S7-03: a mock step is done once its plan, answer, insight or ticks are in; never passed or failed until the review. */
+export function mockStepState(id: StepId, v: Pick<MockCaseView, 'plan' | 'checkpoints' | 'insight' | 'said'>): 'done' | 'todo' {
+  if (id === 'plan') return v.plan ? 'done' : 'todo';
+  if (id === 'CP6') return v.insight ? 'done' : 'todo';
+  if (id === 'say') return v.said !== null ? 'done' : 'todo';
+  return v.checkpoints.find((c) => c.kind === id)?.answered ? 'done' : 'todo';
+}
+/**
+ * S7-14, S7-15: the run's clock at `now`: the whole seconds left to its deadline; a case-round has `ended` there (the server ends it); a
+ * take-home past it is `late` (it takes answers until it is handed in, or closes 24 hours after it opened).
+ */
+export function mockClock(now: number, run: Pick<CaseMockRunView, 'mock' | 'deadline_at'>): { left: number; late: boolean; ended: boolean } {
+  const left = Math.max(0, Math.ceil((Date.parse(run.deadline_at) - now) / 1000));
+  const over = left === 0;
+  return { left, late: over && run.mock === 'take_home', ended: over && run.mock !== 'take_home' };
+}
+/** S7-16: the review's score line: CP1 to CP5 on their one answer, plus CP6 once its rubric's core lines are ticked. */
+export function mockReviewScoreLine(r: Pick<CaseMockReview, 'correct' | 'total' | 'passed' | 'status'>): string {
+  const verdict = r.status === 'waiting_rubric' ? 'Waiting for your rubric: tick it below.' : r.passed ? 'Passed.' : 'Not passed.';
+  return `${r.correct} of ${r.total} checkpoints passed. ${verdict}`;
+}
+export const MOCK_OUTCOME: Readonly<Record<MockCaseReviewCheckpoint['outcome'], string>> = { passed: 'passed', failed: 'not passed', not_answered: 'not answered' };

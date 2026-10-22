@@ -1,0 +1,75 @@
+{
+  "id": "EX-SQL-WIN-07-E1-41",
+  "version": 1,
+  "kind": "predict_rows",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "predict_rows",
+    "ntile",
+    "campaigns"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-07"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pretest",
+  "target_concept_id": "SQL-WIN-07",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-CTE-01",
+    "SQL-WIN-01",
+    "SQL-WIN-07"
+  ],
+  "template_id": "T-WIN-07-predict-rows-ntile-sizes",
+  "template_params": {
+    "table": "campaigns",
+    "channel": 2,
+    "n": 3
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "mailvora",
+  "schema": "mailvora",
+  "edge_schema": "mailvora_edge_win",
+  "prompt": "Channel 2 (brand_search) has 8 campaigns. How many rows does this query return? Type the number.",
+  "output_contract": null,
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [],
+  "subgoals": [],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 60000,
+  "why_this_works": "",
+  "shown_sql": "WITH grouped AS (\n  SELECT campaign_id,\n         NTILE(3) OVER (ORDER BY start_date, campaign_id) AS start_group\n  FROM campaigns\n  WHERE channel_id = 2\n)\nSELECT campaign_id\nFROM grouped\nWHERE start_group = 1",
+  "typed": {
+    "precision": "count",
+    "scale": "plain",
+    "decimals": 0,
+    "unit_label": "rows"
+  }
+}

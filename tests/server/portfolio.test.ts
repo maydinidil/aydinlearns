@@ -412,6 +412,7 @@ test('S6-13: an unavailable case answers the export with 409 and its line, and w
     records: (r) => { patch.records?.(r); r.inbox.schema = 'mailvora'; r.inbox.data_source = { label: 'Fictional, generated data: Mailvora', real: false, licence: null }; },
     file: (x) => { x.schemas = ['voltmarkt', 'voltmarkt_edge_basics']; },
   });
+  made.push(f.root);                                       // S7-30: this fixture's folder is removed with the rest
   const store = await loadContent(f.root, { truthFile: f.truthFile });
   const { root, folder } = await tempRoot();
   const d = await deps({ attempts: solved(INBOX_ID, Q_MAIN) }, { portfolio_folder: folder }, store);

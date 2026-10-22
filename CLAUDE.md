@@ -27,9 +27,10 @@ holds the evidence behind those changes.
 
 ## The state you will find it in
 
-**Slices 0, 1a, 1b, 2a and 2b, sprints 4a, 4b, 4c, 5a, 5b, 6 and T are built: SQL levels 1 to 4,
+**Slices 0, 1a, 1b, 2a and 2b, sprints 4a, 4b, 4c, 5a, 5b, 6 and T, and sprint 7 (Parts 1 and 2) are built: SQL levels 1 to 5,
 all of GA4 (with full mocks, the readiness check and the interview labs) and all of Methodology can be studied, with the scheduler, Today, drills, the
-level openers, mistake cards, cases on Voltmarkt, Mailvora and real data, the portfolio export, the Progress screen and the opt-in AI tutor.** Slice 2b (GA4 lessons, timed
+level openers, mistake cards, cases on Voltmarkt, Mailvora and real data, the portfolio export, the Progress screen, the opt-in AI tutor and the
+four recruiter mocks (screen, knowledge, case-round and take-home) on the Recruiter mocks screen.** Slice 2b (GA4 lessons, timed
 GA4 mini drills and half-mocks, SQL choice items) reached `main` through PR #34. Sprint 3b gave
 every screen the direction C look (tokens, a top bar with section tabs, cards, a two-column
 Today), merged in PR #36; the spec is
@@ -42,11 +43,11 @@ built cases and the inbox, the level 3 opener, the portfolio export, the Progres
 dataset explorer, screen mode and live reps, merged in PR #40 (2026-10-08). Sprint 4c, a cleanup of
 the SQL learner-facing backlog, merged in PR #41 (2026-10-08). Open deferred work lives in
 [`docs/planning/backlog.md`](docs/planning/backlog.md). Sprint 5 is split: 5a (Methodology
-complete, polish, release 1.0) merged in PR #42 and was released as 1.0 (tag `v1.0.0` on the
+complete, polish, release 0.5.0) merged in PR #42 and was released as 0.5.0 (tag `v1.0.0` on the
 public repo, 2026-10-08), and 5b (GA4 complete) merged in PR #43, followed by a hygiene PR (PR #44, plan
 [`docs/superpowers/plans/2026-10-09-aydinlearns-hygiene-1-1.md`](docs/superpowers/plans/2026-10-09-aydinlearns-hygiene-1-1.md):
-Codex F27 and ten backlog rows), and was released as 1.1 (tag `v1.1.0` on the public repo,
-2026-10-09); read the roadmap first. Release 1.2 (2026-10-12, tag `v1.2.0`) added the optional OpenTelemetry (D75, D76; PRs #45 to #47). Release 1.3 (2026-10-13, tag `v1.3.0`) added the study journey (D77; PR #48; its rulings, reviews and deferred findings are in [`docs/planning/2026-10-13-release-1-3-record.md`](docs/planning/2026-10-13-release-1-3-record.md)). Sprint 6 Part 1 (2026-10-15, 1.4.0, no public release) added SQL level 4, `voltmarkt_raw` and the incident tickets; Part 2 (2026-10-16, 1.5.0, the public `v1.5.0`) added Mailvora, the dataset registry and the first real-data cases. Sprint T (2026-10-17, 1.6.0) added the opt-in AI tutor (D91 to D99). The app's version is in `package.json` (1.6.0); later sprints ship as 1.x releases (D63).
+Codex F27 and ten backlog rows), and was released as 0.5.1 (tag `v1.1.0` on the public repo,
+2026-10-09); read the roadmap first. Release 0.5.2 (2026-10-12, tag `v1.2.0`) added the optional OpenTelemetry (D75, D76; PRs #45 to #47). Release 0.5.3 (2026-10-13, tag `v1.3.0`) added the study journey (D77; PR #48; its rulings, reviews and deferred findings are in [`docs/planning/2026-10-13-release-1-3-record.md`](docs/planning/2026-10-13-release-1-3-record.md)). Sprint 6 Part 1 (2026-10-15, 0.6.0, no public release) added SQL level 4, `voltmarkt_raw` and the incident tickets; Part 2 (2026-10-16, 0.6.1, the public `v1.5.0`) added Mailvora, the dataset registry and the first real-data cases. Sprint T (2026-10-17, 0.6.2, the public `v1.6.0`; PR #51) added the opt-in AI tutor (D91 to D99). Sprint 7 Part 1 (2026-10-21, 0.7.0, no public release) added SQL level 5 and the screen mock; Part 2 (2026-10-22, 0.7.1, no public release yet) added the other three recruiter mocks. The app's version is in `package.json` (0.7.1); later sprints ship as 0.x releases (D63, D115).
 - Slice 0: the domain-free types in `core/`, the app schemas in `schemas/`, the curriculum and
   error catalogue extracted into `content/sql/`, and the adjudicated fixes in
   `knowledge/ERRATA.md`. `knowledge/` itself still holds the research bank: 12 files (00 to 11), plus an index and a
@@ -101,7 +102,7 @@ Codex F27 and ten backlog rows), and was released as 1.1 (tag `v1.1.0` on the pu
   `STAT-BASIC-NN`, `ECON-PRICE-NN` from knowledge file 11), the Voltmarkt A/B test tables
   (`ab_assignments`, `ab_conversions`) with three SQL items and CASE-DAILY-L3-03, the `concept_ids`
   goal criterion (`core/goals.ts`), the practice order after a reading (D59), Codex F26, a polish
-  pass over every screen, and version 1.0.0 (`server/version.ts`, shown in Settings). No log
+  pass over every screen, and version 0.5.0 (`server/version.ts`, shown in Settings). No log
   change. Its rulings and deferred findings are in
   [`docs/planning/2026-10-08-sprint-5a-record.md`](docs/planning/2026-10-08-sprint-5a-record.md).
 - Sprint 5b (plan
@@ -111,7 +112,7 @@ Codex F27 and ten backlog rows), and was released as 1.1 (tag `v1.1.0` on the pu
   `server/routes/labs.ts`, checks C42 to C45, `npm run export:lab-view` and `record:lab-solver`
   for the blind solve), full mocks on dated blueprints (`content/ga4/exam.json`, Codex F14, check
   C46), the readiness check (`server/readiness.ts`, `GET /api/ga4/readiness`, cold answers in
-  `server/progress.ts`), log format version 5 (`lab_answer`, `run_kind`), and version 1.1.0. Its
+  `server/progress.ts`), log format version 5 (`lab_answer`, `run_kind`), and version 0.5.1. Its
   rulings and deferred findings are in
   [`docs/planning/2026-10-08-sprint-5b-record.md`](docs/planning/2026-10-08-sprint-5b-record.md).
 - Sprint 6 Part 1 (plan
@@ -147,6 +148,31 @@ Codex F27 and ten backlog rows), and was released as 1.1 (tag `v1.1.0` on the pu
   (it spends the owner's key: run it only with the owner's go). Tests never call a provider: the fake model
   (`AYDINLEARNS_TUTOR_PROVIDER=fake`) or the SDKs' injectable fetch. Its rulings (T-01 to T-23) and deferred findings
   are in [`docs/planning/2026-10-16-sprint-t-record.md`](docs/planning/2026-10-16-sprint-t-record.md).
+- Sprint 7 Part 1 (plan
+  [`docs/superpowers/plans/2026-10-20-aydinlearns-sprint-7.md`](docs/superpowers/plans/2026-10-20-aydinlearns-sprint-7.md),
+  decisions D100 to D115): SQL level 5 (window functions, `SQL-WIN-01` to `-07`, the level 5 drill, error IDs
+  `ERR-LOG-40` to `-43`, the edge schemas `voltmarkt_edge_win` and `mailvora_edge_win`, CASE-VOLT-L5, CASE-DAILY-L5-01
+  and -02, CASE-RETAIL-05); GRADER_VERSION `7a.1` with the QUALIFY note (S7-20); checks C53 (rank cutoffs state their
+  tie rule), C54 and C55. The screen mock (S7-09): three held-out forms in `content/mocks.json`, served and graded by
+  `server/routes/mocks.ts`, `web/src/screens/MockScreen.tsx`. The mock store (S7-08, D114): mock items (`use: 'mock'`,
+  `EX-MOCK-*`) and mock cases (`content/sql/mocks/`, from Part 2) load only into the content store's mock maps
+  (`mockItem`, `mockCase`); no practice route, the tutor's course text or the portfolio can reach them, and only a
+  mock's own instance reaches its item, while its run is on and in its review. Log format version 7 (D112:
+  `mock_open`, `run_kind: 'knowledge_mock'`, `tutor_asked.ts` as the asking time); mock runs, their passes and the
+  stages they meet are derived by replay (`server/mocks.ts`). The Recruiter mocks screen (`#/mocks`, `web/src/screens/MocksScreen.tsx`, S7-18).
+  Render tests (D113): `npm test` loads `tests/helpers/register-tsx.ts` and draws components in happy-dom
+  (`tests/helpers/render.ts`, tests in `tests/web/render/`). The version numbers were renumbered (D115). Its rulings
+  as built (the plan's S7-NN where the build differs, and the controller's S7-C01 to S7-C19) and deferred findings are in
+  [`docs/planning/2026-10-21-sprint-7-record.md`](docs/planning/2026-10-21-sprint-7-record.md), which Part 2 extends.
+- Sprint 7 Part 2 (same plan, 0.7.1): the knowledge mock (20 Methodology questions from the held-out items and 10 GA4
+  from the 18-question pool `content/ga4/knowledge-pool.json`, 40 minutes, pass at 24 of 30; check C56, and C25 reading
+  the pool, S7-C26); the case-round and take-home mocks (the mock cases `CASE-MOCK-A`, `-B`, `CASE-TAKE-A` and `-B`
+  in `content/sql/mocks/`, held out by folder; `web/src/screens/CaseMockScreen.tsx`, `server/routes/mock-cases.ts`; the
+  take-home's wall clock and its 24-hour close, S7-15, S7-C25); the complete Recruiter mocks screen with all six stages
+  live; the tutor's second opinion in a case mock's review (S7-17, screen `mock_review`); `pass_correct` on
+  `mock_open` (S7-C34, additive); `mailvora_edge_clean`; `npm run check:content -- --only`. Its controller rulings
+  S7-C20 to S7-C36 and the F4 seams review are in the sprint 7 record. The owner's MET-MKT-05 swap (K3 Step 5) was
+  still to run when 0.7.1 was written: until it runs, the knowledge mock can draw `Q-MET-MKT-05-01`.
 - Every check in the README's "Run and ship" passes, and so does the browser smoke test,
   `npm run test:e2e`. It runs its own server on `AYDINLEARNS_PORT` (default 5174) against an
   empty temporary logs folder, set through `AYDINLEARNS_LOGS_DIR`, and a temporary journey folder,
@@ -278,7 +304,7 @@ Derived from design §3. The "why" is the part worth keeping.
 | Attempt log | Append-only JSONL under `logs/`, gitignored, with an automatic backup | Safe whatever the repo's visibility |
 | IDs | `SQL-*` (01) and the GA4 IDs (06) are the masters; Methodology IDs are minted in slice 0 | Review #4 |
 | Telemetry (D75, 2026-10-12) | Optional OpenTelemetry over OTLP/HTTP (`server/telemetry.ts`, `server/observe.ts`), on only when `.env` sets `DASH0_OTLP_ENDPOINT` and `DASH0_AUTH_TOKEN`. Funnel attributes `topic`, `case_theme`, `difficulty`; never a query, an answer or personal data; no host or process resource detectors. The runner never starts it. D76 (2026-10-12): each answer also sends its exercise ID, time spent and target, try, hints, answer shown, confidence and mode; the exercise ID goes on spans, logs and the `aydinlearns.answer.time` histogram, never on the step counter | A portfolio piece for observability roles. A clone without `.env` stays fully offline |
-| Study journey (D77, 2026-10-13) | `server/journey.ts` writes each event, `server/journey-tap.ts` turns the app's own log writes (and concept state changes) into events, `POST /api/journey` takes screen views only and never starts a study session, and `tools/journey.ts` (`npm run journey`) loads the files into DuckDB with twelve starter views. A visit starts at its first event and ends after 30 idle minutes or at app stop, apart from the study session (`server/session.ts`), which the journey never touches. `journey/` is on by default and gitignored; `AYDINLEARNS_JOURNEY=off` (or `false`, `0`, `no`) stops the file, `AYDINLEARNS_JOURNEY_DIR` moves it. Events carry IDs, counts, times and outcomes only, never text, a query, an answer, a note or a path. With telemetry on, each event is also a log record with `session.id`, and the request's span carries it; `session.id` goes on no metric, and neither journey metric (`aydinlearns.journey.events`, `aydinlearns.session.duration`) carries an item ID | Aydin analyses the study path in SQL without Dash0, and after the trial. Browsing leaves the replayed study history as it was. Outside `logs/`, an agent may read `journey/` (IDs only); `logs/` stays closed |
+| Study journey (D77, 2026-10-13) | `server/journey.ts` writes each event, `server/journey-tap.ts` turns the app's own log writes (and concept state changes) into events, `POST /api/journey` takes screen views only and never starts a study session, and `tools/journey.ts` (`npm run journey`) loads the files into DuckDB with thirteen starter views. A visit starts at its first event and ends after 30 idle minutes or at app stop, apart from the study session (`server/session.ts`), which the journey never touches. `journey/` is on by default and gitignored; `AYDINLEARNS_JOURNEY=off` (or `false`, `0`, `no`) stops the file, `AYDINLEARNS_JOURNEY_DIR` moves it. Events carry IDs, counts, times and outcomes only, never text, a query, an answer, a note or a path. With telemetry on, each event is also a log record with `session.id`, and the request's span carries it; `session.id` goes on no metric, and neither journey metric (`aydinlearns.journey.events`, `aydinlearns.session.duration`) carries an item ID | Aydin analyses the study path in SQL without Dash0, and after the trial. Browsing leaves the replayed study history as it was. Outside `logs/`, an agent may read `journey/` (IDs only); `logs/` stays closed |
 | AI tutor (D91 to D99, 2026-10-16; block P, 2026-10-17) | Opt-in: on only with a key, saved in Settings (`tutor-keys.json`, which wins) or in `.env`. Settings switches it on or off and picks the model (Claude Haiku 5.5 by default, Claude Sonnet 5.5, Claude Opus 5.5, GPT-6 Luna, GPT-6.1 Sol) and the effort (low, medium by default, or high); a key is never sent to the browser, logged or exported. Each screen sends a text snapshot of what it shows; the server adds public content by ID and never a key, a held-out item, a path or the logs. Teaches before a pass, explains after. Closed while a timed run's clock runs. A question on an unpassed item is help like hint 1 (log version 6, `tutor_asked`). One thread per item, kept for the session. A daily cap, $1 by default, or none. The journey and Dash0 get counts only, never text | The owner asked for a tutor that sees the screen; answers and keys stay where they are |
 
 ## Ask before

@@ -1,0 +1,165 @@
+{
+  "id": "EX-SQL-WIN-07-E3-02",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "window",
+    "first_value",
+    "last_value",
+    "frame",
+    "plan_change",
+    "subscriptions"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-07"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-WIN-07",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CTE-01",
+    "SQL-WIN-01",
+    "SQL-WIN-04",
+    "SQL-WIN-07"
+  ],
+  "template_id": "T-WIN-07-first-last-pair",
+  "template_params": {
+    "table": "subscriptions",
+    "key": "user_id",
+    "measure": "plan_name"
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "mailvora",
+  "schema": "mailvora",
+  "edge_schema": "mailvora_edge_win",
+  "prompt": "How did plans change for users whose first subscription started in 2025? For each such user, take the plan_name of the user's first subscription and the plan_name of the user's latest subscription, then count the users by that pair of plans. A user's subscriptions follow each other by start_date, and no user has two that start on the same day; a user with one subscription has the same first and latest plan. Started in 2025 means the first subscription's start_date is from 1 January to 31 December 2025, both days included. Return three columns, in this order: first_plan, latest_plan and users. Return one row for each pair of plans with users. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "first_plan",
+        "type_class": "text"
+      },
+      {
+        "name": "latest_plan",
+        "type_class": "text"
+      },
+      {
+        "name": "users",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "first_plan",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "latest_plan",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "users",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "first_plan",
+      "latest_plan"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, put each user's first start date, first plan and latest plan on every subscription row, keep one row per user, then count the users by the two plans.",
+    "The windows must see all of a user's subscriptions, so test the 2025 start only after they have run, and give the last value a frame that reaches the latest subscription."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 101,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 102,
+      "to": 566,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 567,
+      "to": 587,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 591,
+      "to": 622,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 623,
+      "to": 686,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 687,
+      "to": 699,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 702,
+      "to": 751,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 752,
+      "to": 762,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 763,
+      "to": 828,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 829,
+      "to": 861,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "Every window sees all of a user's subscriptions before the 2025 test runs, and the full frame lets LAST_VALUE reach the latest plan from any row."
+}

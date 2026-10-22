@@ -37,7 +37,7 @@
   "ERR-SYN-08": {
     "assumed": "You probably expected WHERE to filter on the result of a window function, such as a rank, a row number or a running total.",
     "why": "SQL works out window functions after WHERE has already picked the rows, so WHERE cannot test `ROW_NUMBER() OVER (...)` or any other window function.",
-    "model": "Work the window function out in a CTE or subquery, give it a name, and filter that name with WHERE in the outer query: `WITH ranked AS (SELECT product_id, ROW_NUMBER() OVER (ORDER BY units DESC) AS rn FROM t) SELECT product_id FROM ranked WHERE rn <= 3`."
+    "model": "Work the window function out in a CTE or subquery, give it a name, and filter that name with WHERE in the outer query: `WITH ranked AS (SELECT product_id, ROW_NUMBER() OVER (ORDER BY units DESC, product_id) AS rn FROM t) SELECT product_id FROM ranked WHERE rn <= 3`. End the ORDER BY with a tie-break, here `product_id`, so tied rows at the cutoff come out the same every time; if the question states a tie-break, it goes last."
   },
   "ERR-SEM-01": {
     "assumed": "You probably expected SQL to show a column next to your totals without being told how to combine its values in each group.",
@@ -263,6 +263,26 @@
     "assumed": "You probably expected a day, week or month with no rows to show up in your result with 0.",
     "why": "GROUP BY makes groups only from the rows that exist. A day with no orders has no row to group, so it does not appear at all rather than showing 0. A trend chart then skips the gap without a sign, and an average per day divides by too few days.",
     "model": "Start from a full list of periods, such as `calendar`, and LEFT JOIN the data to it, so every period keeps a row: `SELECT c.cal_date, COALESCE(SUM(s.units), 0) AS units FROM calendar c LEFT JOIN sales s ON s.order_date = c.cal_date WHERE c.cal_date >= '2025-03-01' AND c.cal_date < '2025-04-01' GROUP BY c.cal_date`. Filter the dates on the calendar side: a WHERE test on a column of `sales` would drop the days with no rows again."
+  },
+  "ERR-LOG-40": {
+    "assumed": "You probably expected ROW_NUMBER, RANK and DENSE_RANK to keep the same rows when you filter on them, such as `<= 3` for a top 3.",
+    "why": "They differ only where rows tie. On the values 10, 10 and 8, ROW_NUMBER gives 1, 2, 3, RANK gives 1, 1, 3 and DENSE_RANK gives 1, 1, 2. So a top 3 with ROW_NUMBER holds at most 3 rows, and with no tie-break which tied row it keeps is left to chance; with RANK or DENSE_RANK it keeps every tied row, so it can hold more than 3. On data with a tie at the cutoff, the wrong function keeps a row too many or too few.",
+    "model": "Read the tie rule in the question. For exactly N rows, use ROW_NUMBER with the question's tie-break as the last sort key: `ROW_NUMBER() OVER (PARTITION BY category_id ORDER BY revenue DESC, product_id)`. When tied rows share a place, use RANK, or DENSE_RANK when the places after a tie must not skip a number."
+  },
+  "ERR-LOG-41": {
+    "assumed": "You probably expected a running total or LAG to follow the order of the table, or the ORDER BY at the end of the query.",
+    "why": "A table has no order of its own, and the ORDER BY at the end sorts the result only after every window is worked out. A window function uses only the ORDER BY inside its OVER. With none, SUM gives every row the whole group's total instead of a running total, and LAG reads whichever row the engine happens to put before it. Ordered by the wrong column, such as an ID instead of the date, it adds up or compares rows that are not next to each other in time.",
+    "model": "Order the window by the column that sets the sequence, and add a tie-break when two rows can share it: `SUM(units) OVER (PARTITION BY store_code ORDER BY order_date, order_line_id ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)` for a running total, or `LAG(list_price_eur) OVER (PARTITION BY product_id ORDER BY valid_from)` for the price before each change."
+  },
+  "ERR-LOG-42": {
+    "assumed": "You probably expected LAST_VALUE to return the last value of the group, as FIRST_VALUE returns the first.",
+    "why": "With an ORDER BY and no frame, SQL uses `RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW`: the window starts at the group's first row and ends at the current row, together with any rows tied with it. So FIRST_VALUE gives the first row only because the frame starts there, and LAST_VALUE gives the current row's own value, or that of the last row tied with it. That is the group's last value only on the group's last row and the rows tied with it. A frame you write yourself, such as the last 3 rows, moves where FIRST_VALUE starts too.",
+    "model": "Write the frame that covers the whole group: `LAST_VALUE(list_price_eur) OVER (PARTITION BY product_id ORDER BY valid_from ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING)`. Or take FIRST_VALUE with the order reversed, `ORDER BY valid_from DESC`, which needs no frame."
+  },
+  "ERR-LOG-43": {
+    "assumed": "You probably expected a 7-day moving average to have no value until the series has 7 days of data.",
+    "why": "A frame such as `ROWS BETWEEN 6 PRECEDING AND CURRENT ROW` takes whatever rows exist. On the first day it holds 1 row and on the third day 3, so the average there is over fewer days and reads like a real 7-day figure. A chart then starts with values that swing more than the rest, and a rule such as 'below the 7-day average' fires on them.",
+    "model": "Count the rows in the same frame and use the count: `COUNT(*) OVER (ORDER BY spend_date ROWS BETWEEN 6 PRECEDING AND CURRENT ROW)` gives each day's number of rows, so flag a day as a short window when the count is below 7, or leave those days out, as the question says. When some days have no row, give every day a row first, or 7 rows can span more than 7 days."
   },
   "ERR-CMP-01": {
     "assumed": "You probably expected to need DISTINCT to stop the rows from repeating.",

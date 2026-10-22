@@ -1,0 +1,39 @@
+{
+  "item_id": "EX-SQL-WIN-07-E2-02",
+  "item_version": 1,
+  "reference_sql": "SELECT c.channel_id,\n       percentile_cont(0.25) WITHIN GROUP (ORDER BY a.impressions) AS p25_impressions,\n       percentile_cont(0.75) WITHIN GROUP (ORDER BY a.impressions) AS p75_impressions\nFROM ad_spend_daily a\nJOIN campaigns c ON c.campaign_id = a.campaign_id\nWHERE a.spend_date BETWEEN DATE '2025-07-01' AND DATE '2025-10-31'\nGROUP BY c.channel_id",
+  "alternatives": [
+    "SELECT DISTINCT c.channel_id,\n       quantile_cont(a.impressions, 0.25) OVER (PARTITION BY c.channel_id) AS p25_impressions,\n       quantile_cont(a.impressions, 0.75) OVER (PARTITION BY c.channel_id) AS p75_impressions\nFROM ad_spend_daily a\nJOIN campaigns c ON c.campaign_id = a.campaign_id\nWHERE a.spend_date BETWEEN DATE '2025-07-01' AND DATE '2025-10-31'",
+    "SELECT c.channel_id,\n       quantile_cont(a.impressions, 0.25) AS p25_impressions,\n       quantile_cont(a.impressions, 0.75) AS p75_impressions\nFROM ad_spend_daily a\nJOIN campaigns c ON c.campaign_id = a.campaign_id\nWHERE a.spend_date BETWEEN DATE '2025-07-01' AND DATE '2025-10-31'\nGROUP BY c.channel_id"
+  ],
+  "other_way": {
+    "sql": "SELECT DISTINCT c.channel_id,\n       quantile_cont(a.impressions, 0.25) OVER (PARTITION BY c.channel_id) AS p25_impressions,\n       quantile_cont(a.impressions, 0.75) OVER (PARTITION BY c.channel_id) AS p75_impressions\nFROM ad_spend_daily a\nJOIN campaigns c ON c.campaign_id = a.campaign_id\nWHERE a.spend_date BETWEEN DATE '2025-07-01' AND DATE '2025-10-31'",
+    "tradeoff": "quantile_cont over a window puts the same cut points on every row, so it needs DISTINCT to give one row per channel."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-18",
+      "sql": "SELECT c.channel_id, percentile_cont(0.25) WITHIN GROUP (ORDER BY a.impressions DESC) AS p25_impressions, percentile_cont(0.75) WITHIN GROUP (ORDER BY a.impressions DESC) AS p75_impressions FROM ad_spend_daily a JOIN campaigns c ON c.campaign_id = a.campaign_id WHERE a.spend_date BETWEEN DATE '2025-07-01' AND DATE '2025-10-31' GROUP BY c.channel_id"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-14",
+      "sql": "SELECT c.channel_id, percentile_disc(0.25) WITHIN GROUP (ORDER BY a.impressions) AS p25_impressions, percentile_disc(0.75) WITHIN GROUP (ORDER BY a.impressions) AS p75_impressions FROM ad_spend_daily a JOIN campaigns c ON c.campaign_id = a.campaign_id WHERE a.spend_date BETWEEN DATE '2025-07-01' AND DATE '2025-10-31' GROUP BY c.channel_id"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-07",
+      "sql": "WITH campaign_impressions AS (SELECT c.channel_id, a.campaign_id, SUM(a.impressions) AS impressions FROM ad_spend_daily a JOIN campaigns c ON c.campaign_id = a.campaign_id WHERE a.spend_date BETWEEN DATE '2025-07-01' AND DATE '2025-10-31' GROUP BY c.channel_id, a.campaign_id) SELECT channel_id, percentile_cont(0.25) WITHIN GROUP (ORDER BY impressions) AS p25_impressions, percentile_cont(0.75) WITHIN GROUP (ORDER BY impressions) AS p75_impressions FROM campaign_impressions GROUP BY channel_id"
+    }
+  ],
+  "hint3_partial": "SELECT c.channel_id,\n       percentile_cont(0.25) WITHIN GROUP (ORDER BY a.impressions) AS p25_impressions,\n       percentile_cont(___) WITHIN GROUP (ORDER BY ___) AS p75_impressions\nFROM ad_spend_daily a\nJOIN campaigns c ON c.campaign_id = a.campaign_id\nWHERE a.spend_date BETWEEN DATE '2025-07-01' AND DATE '2025-10-31'\nGROUP BY c.channel_id",
+  "solver": {
+    "prompt_hash": "299833b7c0ce3dde",
+    "schema_version": "09f3a33d3123",
+    "dataset_version": "e7c58abf7e8f892e",
+    "grader_version": "7a.1",
+    "query": "SELECT c.channel_id,\n       QUANTILE_CONT(s.impressions, 0.25) AS p25_impressions,\n       QUANTILE_CONT(s.impressions, 0.75) AS p75_impressions\nFROM ad_spend_daily s\nJOIN campaigns c ON c.campaign_id = s.campaign_id\nWHERE s.spend_date >= DATE '2025-07-01' AND s.spend_date <= DATE '2025-10-31'\nGROUP BY c.channel_id\n",
+    "at": "2026-10-21T09:05:11.005Z"
+  }
+}

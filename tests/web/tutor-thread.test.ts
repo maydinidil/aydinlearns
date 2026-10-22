@@ -5,7 +5,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import type { TutorSummary } from '../../schemas/tutor.ts';
 import {
-  addExchange, afterAsk, canSend, CUT_OFF, emptyThread, helpNoteDue, newQuestion, noteShown, restoreQuestion, spendLine, thinking, threadFor, threadKey,
+  addExchange, afterAsk, canSend, CUT_OFF, emptyThread, exchangeKey, helpNoteDue, newQuestion, noteShown, restoreQuestion, spendLine, thinking, threadFor, threadKey,
 } from '../../web/src/tutor/thread.ts';
 import { quickPrompts } from '../../web/src/tutor/quick-prompts.ts';
 import { choicePart, exercisePart } from '../../web/src/tutor/snapshot.ts';
@@ -124,4 +124,18 @@ test('I2: "Thinking..." shows only while the question is in flight and no text h
   assert.equal(thinking({ question: 'Why?', reply: '\n' }, true), true, 'a leading line break is not text yet');
   assert.equal(thinking({ question: 'Why?', reply: 'Look' }, true), false);
   assert.equal(thinking(null, true), false);
+});
+
+test('S7-36 (T8 M3): each exchange keeps its number while older ones drop off the front; a new thread starts again; the reply in flight has the next number', () => {
+  let t = emptyThread('item:a');
+  for (let i = 1; i <= 6; i++) t = addExchange(t, { question: `Q${i}`, reply: `R${i}` });
+  const keys = (th: typeof t): number[] => th.exchanges.map((_x, i) => exchangeKey(th, i));
+  assert.deepEqual(keys(t), [0, 1, 2, 3, 4, 5]);
+  assert.equal(exchangeKey(t, t.exchanges.length), 6, 'the reply being read gets the number its exchange will have');
+  const next = addExchange(t, { question: 'Q7', reply: 'R7' });
+  assert.deepEqual(next.exchanges.map((x) => x.question), ['Q2', 'Q3', 'Q4', 'Q5', 'Q6', 'Q7']);
+  assert.deepEqual(keys(next), [1, 2, 3, 4, 5, 6], 'Q2 to Q6 keep the numbers they had; Q7 has the one the live reply had');
+  assert.deepEqual(keys(newQuestion(next)), [], 'New question starts again');
+  assert.equal(exchangeKey(newQuestion(next), 0), 0);
+  assert.equal(threadFor(next, 'item:b').dropped, 0, 'so does another item');
 });

@@ -1,0 +1,167 @@
+{
+  "id": "EX-SQL-WIN-03-E2-33",
+  "version": 1,
+  "kind": "fix",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "lag",
+    "month_over_month",
+    "date_spine",
+    "sales",
+    "calendar",
+    "fix"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-03"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-WIN-03",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-WIN-01",
+    "SQL-WIN-03"
+  ],
+  "template_id": "T-WIN-03-fix-date-spine",
+  "template_params": {
+    "table": "sales",
+    "spine": "calendar",
+    "period": "month"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_win",
+  "prompt": "The query in the editor has one mistake. Fix it so that it answers this question: for each month from January to June 2025, what was the webshop's net revenue (store_code WEB-01, by UTC order date), and how did it change from the previous calendar month? Every month of the range has a row, and a month with no orders counts as 0. Return month (the first day of the month), revenue_eur and change_eur, this month's revenue minus the previous calendar month's. January's previous month is outside the range, so January shows change_eur as missing. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "month",
+        "type_class": "temporal"
+      },
+      {
+        "name": "revenue_eur",
+        "type_class": "numeric"
+      },
+      {
+        "name": "change_eur",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "month",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "revenue_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "change_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "month"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, ask what happens to a month in which the webshop had no orders at all.",
+    "Grouping the sales only makes rows for months with orders, so such a month vanishes and the next month is compared with the wrong one; start from a full list of the months and fill the gaps with 0."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 52,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 53,
+      "to": 91,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 92,
+      "to": 107,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 108,
+      "to": 175,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 176,
+      "to": 482,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 483,
+      "to": 542,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 543,
+      "to": 603,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 604,
+      "to": 630,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 631,
+      "to": 699,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 700,
+      "to": 711,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": "WITH monthly AS (\n  -- one row per month with webshop orders\n  SELECT order_month AS month, SUM(net_revenue_eur) AS revenue_eur\n  FROM sales\n  WHERE store_code = 'WEB-01'\n    AND order_date BETWEEN DATE '2025-01-01' AND DATE '2025-06-30'\n  GROUP BY order_month\n)\nSELECT month, revenue_eur,\n  revenue_eur - LAG(revenue_eur) OVER (ORDER BY month) AS change_eur\nFROM monthly",
+  "starter_error_id": "ERR-LOG-39",
+  "time_target_ms": 240000,
+  "why_this_works": "Starting from every month in calendar and filling a month with no orders with 0 keeps each month's row, so LAG compares with the calendar month before."
+}

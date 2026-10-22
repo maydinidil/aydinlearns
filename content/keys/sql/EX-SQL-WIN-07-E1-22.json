@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-WIN-07-E1-22",
+  "item_version": 1,
+  "reference_sql": "WITH payment_counts AS (  -- one row per subscription that started in July or August 2025\n  SELECT s.subscription_id, s.plan_name, COUNT(*) AS n_payments\n  FROM subscriptions s\n  JOIN payments p ON p.subscription_id = s.subscription_id\n  WHERE s.start_date BETWEEN DATE '2025-07-01' AND DATE '2025-08-31'\n  GROUP BY s.subscription_id, s.plan_name\n)\nSELECT plan_name,\n       percentile_cont(0.5) WITHIN GROUP (ORDER BY n_payments) AS median_payments\nFROM payment_counts\nGROUP BY plan_name",
+  "alternatives": [
+    "WITH payment_counts AS (  -- one row per subscription that started in July or August 2025\n  SELECT s.subscription_id, s.plan_name, COUNT(*) AS n_payments\n  FROM subscriptions s\n  JOIN payments p ON p.subscription_id = s.subscription_id\n  WHERE s.start_date BETWEEN DATE '2025-07-01' AND DATE '2025-08-31'\n  GROUP BY s.subscription_id, s.plan_name\n)\nSELECT DISTINCT plan_name,\n       MEDIAN(n_payments) OVER (PARTITION BY plan_name) AS median_payments\nFROM payment_counts",
+    "SELECT t.plan_name, MEDIAN(t.n_payments) AS median_payments\nFROM (\n  -- one row per subscription that started in July or August 2025\n  SELECT s.subscription_id, s.plan_name, COUNT(*) AS n_payments\n  FROM subscriptions s\n  JOIN payments p ON p.subscription_id = s.subscription_id\n  WHERE s.start_date BETWEEN DATE '2025-07-01' AND DATE '2025-08-31'\n  GROUP BY s.subscription_id, s.plan_name\n) AS t\nGROUP BY t.plan_name"
+  ],
+  "other_way": {
+    "sql": "WITH payment_counts AS (  -- one row per subscription that started in July or August 2025\n  SELECT s.subscription_id, s.plan_name, COUNT(*) AS n_payments\n  FROM subscriptions s\n  JOIN payments p ON p.subscription_id = s.subscription_id\n  WHERE s.start_date BETWEEN DATE '2025-07-01' AND DATE '2025-08-31'\n  GROUP BY s.subscription_id, s.plan_name\n)\nSELECT DISTINCT plan_name,\n       MEDIAN(n_payments) OVER (PARTITION BY plan_name) AS median_payments\nFROM payment_counts",
+    "tradeoff": "MEDIAN over a window puts the median on every subscription row, so it needs DISTINCT to give one row per plan."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-14",
+      "sql": "WITH payment_counts AS (SELECT s.subscription_id, s.plan_name, COUNT(*) AS n_payments FROM subscriptions s JOIN payments p ON p.subscription_id = s.subscription_id WHERE s.start_date BETWEEN DATE '2025-07-01' AND DATE '2025-08-31' GROUP BY s.subscription_id, s.plan_name) SELECT plan_name, AVG(n_payments) AS median_payments FROM payment_counts GROUP BY plan_name"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-14",
+      "sql": "WITH payment_counts AS (SELECT s.subscription_id, s.plan_name, COUNT(*) AS n_payments FROM subscriptions s JOIN payments p ON p.subscription_id = s.subscription_id WHERE s.start_date BETWEEN DATE '2025-07-01' AND DATE '2025-08-31' GROUP BY s.subscription_id, s.plan_name) SELECT plan_name, percentile_disc(0.5) WITHIN GROUP (ORDER BY n_payments) AS median_payments FROM payment_counts GROUP BY plan_name"
+    }
+  ],
+  "hint3_partial": "WITH payment_counts AS (  -- one row per subscription that started in July or August 2025\n  SELECT s.subscription_id, s.plan_name, COUNT(*) AS n_payments\n  FROM subscriptions s\n  JOIN payments p ON p.subscription_id = s.subscription_id\n  WHERE s.start_date BETWEEN DATE '2025-07-01' AND DATE '2025-08-31'\n  GROUP BY s.subscription_id, s.plan_name\n)\nSELECT plan_name,\n       ___ AS median_payments\nFROM payment_counts\nGROUP BY plan_name",
+  "solver": {
+    "prompt_hash": "42df36e7ad1c2f3b",
+    "schema_version": "8318987af50d",
+    "dataset_version": "e7c58abf7e8f892e",
+    "grader_version": "7a.1",
+    "query": "WITH pc AS (\n  SELECT s.subscription_id, s.plan_name, COUNT(p.payment_id) AS n_payments\n  FROM subscriptions s\n  LEFT JOIN payments p ON p.subscription_id = s.subscription_id\n  WHERE s.start_date >= DATE '2025-07-01' AND s.start_date <= DATE '2025-08-31'\n  GROUP BY s.subscription_id, s.plan_name\n)\nSELECT plan_name, MEDIAN(n_payments) AS median_payments\nFROM pc\nGROUP BY plan_name\n",
+    "at": "2026-10-21T09:05:10.961Z"
+  }
+}

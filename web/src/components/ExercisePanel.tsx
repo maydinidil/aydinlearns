@@ -2,13 +2,12 @@ import { useEffect, useRef, useState } from 'react';
 import { api, type ItemView, type PublicGrade } from '../api.ts';
 import type { TableNote } from '../../../schemas/schema-notes.ts';
 import type { Phase } from '../../../core/envelope.ts';
-import type { DisplayOk, RunnerError } from '../../../server/runner/protocol.ts';
-import { createSqlEditor, type SqlEditor } from '../editor/sql-editor.ts';
-import { completionSchema } from '../editor/completion-schema.ts';
+import type { DisplayOk } from '../../../server/runner/protocol.ts';
+import { useSqlEditor } from '../editor/use-sql-editor.ts';
 import { editorStart, type Stage } from '../lib/lesson-flow.ts';
-import { afterGrade, afterRun, beforeSubmit, canDispute, closeReason, closesOnUnmount, grainLine, isClosedError, keyFailed, newInstance, overrideOrReopen, retryIfClosed, rulesBadge, sessionEndsSeen, showsRunTable, type Instance, type ResultArea } from '../lib/exercise.ts';
+import { afterGrade, afterRun, beforeSubmit, canDispute, closeReason, closesOnUnmount, grainLine, isClosedError, keyFailed, newInstance, overrideOrReopen, retryIfClosed, rulesBadge, runErrorLine, sessionEndsSeen, showsRunTable, type Instance, type ResultArea } from '../lib/exercise.ts';
 import { FIX_INTRO, fixStarter, itemLabels, labelsVisible, loadTitles, type Titles } from '../lib/labels.ts';
-import { NOT_ANSWERED_LINE, SCREEN_BANNER, stopHandler } from '../lib/drill-flow.ts';
+import { NOT_ANSWERED_LINE, SCREEN_BANNER, panelHelpNote, showAnswerQuestion, stopHandler } from '../lib/drill-flow.ts';
 import { SchemaPanel } from './SchemaPanel.tsx';
 import { ResultTable } from './ResultTable.tsx';
 import { GradePanel } from './GradePanel.tsx';
@@ -60,7 +59,6 @@ type Props = {
 
 const REOPENED = 'Your session ended, so this exercise was reopened. Your query is kept.';
 const REOPENED_DISPUTE = 'Your session ended, so this exercise was reopened and "I was right" was not saved. Your query is kept: submit it again, then use "I was right" if you still think your answer is right.';
-const runError = (e: RunnerError): string => ('message' in e ? e.message : e.kind === 'timeout' ? 'Stopped: the query took too long. It may be multiplying rows.' : 'The query could not run.');
 
 /** One exercise. Keyed by item, stage, phase and served instance, so every item gets a fresh instance: its own id, flags and close. */
 export function ExercisePanel(props: Props) {
@@ -85,24 +83,27 @@ function ExercisePanelInner({ itemId, phase, stage = 3, onClosed, instanceId, hi
   const [disputing, setDisputing] = useState(false);
   const [overridden, setOverridden] = useState<string | null>(null);     // the attempt "I was right" was used on
   const editorHost = useRef<HTMLDivElement>(null);
-  const editor = useRef<SqlEditor | null>(null);
+  // A faded item opens as its locked prefix and suffix with the blank between them; Run and Submit send the whole text (lib's useSqlEditor).
+  const editor = useSqlEditor(editorHost, data, { stage, screenMode, run: () => void doRun(), submit: () => void doSubmit() });
   const instance = useRef<Instance>(instanceId ? { ...newInstance(), id: instanceId } : newInstance());
   // The page's session-end count when this instance opened: a session end after it closed the instance on the server.
   const endsWhenOpened = useRef(sessionEndsSeen());
   const grading = useRef<Promise<unknown>>(Promise.resolve());           // the submission in flight, if any
   const leaving = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-  // The editor keeps the callbacks it was created with, so it calls through a ref that always holds the latest ones.
-  const keys = useRef({ run: () => {}, submit: () => {} });
-  keys.current = { run: () => void doRun(), submit: () => void doSubmit() };
   // Sprint T (T-02): the exercise's IDs, status, hints opened and the editor's full text, read when a question is sent. Hint texts and a
   // shown answer are on the screen, so the visible text holds them.
   useTutorPart(() => exercisePanelPart({ loaded: data !== null, inView, unanswered, reviewOnly, startText: data ? editorStart(data.item, stage).text : '', itemId, instanceId: instance.current.id, phase,
     passed: instance.current.passed || passedBefore, answerShown: answer !== null, query: editor.current?.getText() ?? '', hintsShown: hints.length }));
-  // Codex F34 (D95): a tutor answer the server counted as help, on this panel's instance while it is open and not passed, is help as a hint
-  // is, so the lesson's pretest sees it.
-  useTutorHelp((id) => {
+  // S7-33 / F2 (FN2): when the latest submit on an instance was SENT, on performance.now()'s clock. The server dates an answer when it
+  // receives it, so the stamp is taken at the send, not when the reply lands.
+  const sentAt = useRef<{ id: string; at: number } | null>(null);
+  // Codex F34 (D95), D112: a tutor answer the server counted as help, on this panel's instance while it is open, is help as a hint is,
+  // unless the instance was already passed when the question was asked (the submit that passed it was sent before the question).
+  useTutorHelp((id, askedAt) => {
     const i = instance.current;
-    if (marksHelped(id, { id: i.id, passed: i.passed || passedBefore, closed: i.closed })) i.helped = true;
+    const s = sentAt.current;
+    const passedFirst = passedBefore || (i.passed && (s === null || s.id !== i.id || s.at <= askedAt));
+    if (marksHelped(id, { id: i.id, passed: passedFirst, closed: i.closed })) i.helped = true;
   });
 
   useEffect(() => {
@@ -127,19 +128,10 @@ function ExercisePanelInner({ itemId, phase, stage = 3, onClosed, instanceId, hi
   }, [itemId]);
 
   useEffect(() => {
-    if (!data || !editorHost.current) return;
-    // A faded item opens as its locked prefix and suffix with the blank between them; Run and Submit send the whole text.
-    const start = editorStart(data.item, stage);
-    const schema = completionSchema(data.schemaNotes, data.item.level);
-    editor.current = createSqlEditor({ parent: editorHost.current, text: start.text, locked: start.locked, schema, screenMode, onRun: () => keys.current.run(), onSubmit: () => keys.current.submit() });
-    return () => editor.current?.destroy();
-  }, [data, stage, screenMode]);
-
-  useEffect(() => {
     const sql = data ? fixStarter(data.item) : null;
     if (sql === null) return;
     let alive = true;
-    api.run(itemId, sql).then((r) => { if (alive) setStarter('error' in r ? { result: null, error: runError(r.error) } : { result: r, error: null }); },
+    api.run(itemId, sql).then((r) => { if (alive) setStarter('error' in r ? { result: null, error: runErrorLine(r.error) } : { result: r, error: null }); },
       (e: Error) => { if (alive) setStarter({ result: null, error: e.message }); });
     return () => { alive = false; };
   }, [data, itemId]);
@@ -174,7 +166,7 @@ function ExercisePanelInner({ itemId, phase, stage = 3, onClosed, instanceId, hi
     setBusy(true); setMessage(null);
     try {
       const r = await api.run(itemId, editor.current.getText());
-      if ('error' in r) { setResults((s) => afterRun(s, null)); setMessage(runError(r.error)); }
+      if ('error' in r) { setResults((s) => afterRun(s, null)); setMessage(runErrorLine(r.error)); }
       else setResults((s) => afterRun(s, r));
     } catch (e) { setMessage((e as Error).message); } finally { setBusy(false); }
   }
@@ -184,8 +176,12 @@ function ExercisePanelInner({ itemId, phase, stage = 3, onClosed, instanceId, hi
     setBusy(true); setMessage(null); setResults(beforeSubmit);
     const sql = editor.current.getText();
     // The grade is counted on the instance it was logged on, which a retry may have replaced.
-    const submitted = onInstance(async (i) => ({ i, g: await api.submit({ item_id: itemId, item_instance_id: i.id, sql, phase,
-      fading_stage: data?.item.fading ? stage : null, confidence, started_at: i.startedAt, active_ms: Date.now() - i.started }) }));
+    const sendTime = performance.now();
+    const submitted = onInstance(async (i) => {
+      sentAt.current = { id: i.id, at: sendTime };
+      return { i, g: await api.submit({ item_id: itemId, item_instance_id: i.id, sql, phase,
+        fading_stage: data?.item.fading ? stage : null, confidence, started_at: i.startedAt, active_ms: Date.now() - i.started }) };
+    });
     grading.current = submitted.catch(() => {});
     try {
       const { i, g } = await submitted;
@@ -212,7 +208,7 @@ function ExercisePanelInner({ itemId, phase, stage = 3, onClosed, instanceId, hi
   }
 
   async function showAnswer() {
-    if (!confirm('Show the answer? Using it lowers this item\'s rating. You can still try the item yourself.')) return;
+    if (!confirm(showAnswerQuestion(reviewOnly))) return;
     setAnswer(await onInstance((i) => { i.helped = true; return api.showAnswer(itemId, i.id, phase); }));
   }
 
@@ -249,6 +245,7 @@ function ExercisePanelInner({ itemId, phase, stage = 3, onClosed, instanceId, hi
   const shown = labels && labelsVisible(hideLabels, submitted) ? itemLabels(item, titles) : null;
   // When the exercise's own answer key failed, the report form opens right under the grade, so reporting it is the obvious next step.
   const keyFault = grade !== null && keyFailed(grade);
+  const helpNote = panelHelpNote(reviewOnly);
   const reportForm = (
     <details open={keyFault}>
       <summary>Report a content error</summary>
@@ -296,9 +293,9 @@ function ExercisePanelInner({ itemId, phase, stage = 3, onClosed, instanceId, hi
         {grade && <GradePanel grade={grade} onDispute={canDispute(grade, overridden) ? (r) => alertOnError(dispute(grade, r)) : null} disputing={disputing} otherWay={otherWay} />}
         {keyFault && reportForm}
         {showsRunTable(results) && <ResultTable result={results.run} caption="Your result" />}
-        {/* The drill's header shows the help line once (s3b:L35), so a run's panel shows none. */}
+        {/* The drill's header shows the help line once (s3b:L35), so a run's panel shows none, and the review's panel no note (S7-35). */}
         {run ? null : <div className="help">
-          <p className="muted">Help is always here. Using it lowers this item's rating.</p>
+          {helpNote && <p className="muted">{helpNote}</p>}
           {hints.map((h, i) => <p key={i}><strong>Hint {i + 1}:</strong> {i === 2 ? <code>{h}</code> : h}</p>)}
           {hints.length < 3 && <button type="button" className="link-quiet" onClick={() => alertOnError(nextHint())} disabled={hintBusy}>{hints.length === 2 ? 'Show part of the answer (hint 3)' : `Hint ${hints.length + 1}`}</button>}
           {!answer && <button type="button" className="link-quiet" onClick={() => alertOnError(showAnswer())}>Show answer</button>}

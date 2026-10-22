@@ -1,0 +1,115 @@
+{
+  "concept_id": "SQL-WIN-02",
+  "version": 1,
+  "reading_md": "## Ranking rows: ROW_NUMBER, RANK and DENSE_RANK\n\nThree window functions number the rows of each window in an order you choose:\n\n```sql\nSELECT category_id, product_id, unit_cost_eur,\n       ROW_NUMBER() OVER (PARTITION BY category_id ORDER BY unit_cost_eur DESC, product_id) AS rn,\n       RANK()       OVER (PARTITION BY category_id ORDER BY unit_cost_eur DESC) AS rnk,\n       DENSE_RANK() OVER (PARTITION BY category_id ORDER BY unit_cost_eur DESC) AS dense_rnk\nFROM products;\n```\n\n- PARTITION BY restarts the numbering in each group, as in the last lesson.\n- ORDER BY inside OVER decides who comes first: DESC for the highest first.\n- Nothing goes inside the brackets after the function.\n\n### They differ only on ties\n\nOn the costs 90, 90, 70, 70 and 50:\n\n| unit_cost_eur | ROW_NUMBER | RANK | DENSE_RANK |\n|---|---|---|---|\n| 90 | 1 | 1 | 1 |\n| 90 | 2 | 1 | 1 |\n| 70 | 3 | 3 | 2 |\n| 70 | 4 | 3 | 2 |\n| 50 | 5 | 5 | 3 |\n\n- ROW_NUMBER gives every row its own number. Tied rows still get different numbers, so the order needs a tie-break: a last sort key that is unique, such as product_id. Without one, which tied row gets 1 is left to chance and can change between runs.\n- RANK gives tied rows the same place and skips the places they use up.\n- DENSE_RANK gives tied rows the same place and skips nothing.\n\n### Let the question's tie rule choose\n\n- \"Exactly 3 products per category; when they tie, the lower product_id first\": ROW_NUMBER with that tie-break, kept where it is 3 or less.\n- \"The top 3, and tied products share a place\": RANK, kept where it is 3 or less. A tie for third keeps a fourth row.\n- \"The two highest different costs\": DENSE_RANK, kept where it is 2 or less.\n\nThe wrong function gives the same answer until the data holds a tie at the cutoff, so read the tie rule before you choose.\n\n### Filter in an outer query\n\nA ranking is worked out after WHERE, so filter it in the query that reads it:\n\n```sql\nWITH ranked AS (  -- one row per product\n  SELECT category_id, product_id, unit_cost_eur,\n         ROW_NUMBER() OVER (PARTITION BY category_id ORDER BY unit_cost_eur DESC, product_id) AS rn\n  FROM products\n)\nSELECT category_id, product_id, unit_cost_eur\nFROM ranked\nWHERE rn <= 3;\n```\n\nKept where rn = 1 with the newest first, the same pattern finds each customer's latest order.\n\n### Ranking totals\n\nTo rank totals, add them up first. After a GROUP BY, the window can sort by the aggregate itself: `RANK() OVER (ORDER BY COUNT(*) DESC)` ranks the groups by their counts.",
+  "syntax_md": "```sql\nROW_NUMBER() OVER (PARTITION BY category_id                 -- restart in each group\n                   ORDER BY unit_cost_eur DESC, product_id) -- order, then the tie-break\nRANK()       OVER (PARTITION BY category_id ORDER BY unit_cost_eur DESC)  -- ties share, gaps follow\nDENSE_RANK() OVER (PARTITION BY category_id ORDER BY unit_cost_eur DESC)  -- ties share, no gaps\n```\n\n- ROW_NUMBER: exactly N rows per group; end its ORDER BY with the stated tie-break.\n- RANK and DENSE_RANK: tied rows share a place; DENSE_RANK never skips a number.\n- Keep the ranks you want in an outer query: `WHERE rn <= 3`.",
+  "dialect_note": "ROW_NUMBER, RANK and DENSE_RANK are standard SQL and behave the same in PostgreSQL, SQL Server and BigQuery. Missing values sort last in DuckDB whatever the direction, so when the sort column can be missing, write NULLS FIRST or NULLS LAST to say where those rows go.",
+  "worked_examples": [
+    {
+      "title": "The three newest products of each brand",
+      "prompt": "Which are the 3 newest products of each brand, by launch_date? A product with a missing launch_date comes last in its brand. Keep exactly 3 per brand; when two products of a brand tie on launch_date, the lower product_id comes first. Return brand, product_id and launch_date.",
+      "clauses": [
+        {
+          "text": "WITH ranked AS (  -- one row per product",
+          "subgoal": "source_grain",
+          "why": "The step keeps every product and adds its number; the comment names that grain."
+        },
+        {
+          "text": "SELECT brand, product_id, launch_date, ROW_NUMBER() OVER (PARTITION BY brand ORDER BY launch_date DESC NULLS LAST, product_id) AS rn",
+          "subgoal": "metrics",
+          "why": "ROW_NUMBER restarts for each brand, the newest launch first with a missing date last, and product_id settles two launches on the same day."
+        },
+        {
+          "text": "FROM products)",
+          "subgoal": "source_grain",
+          "why": "One row per product."
+        },
+        {
+          "text": "SELECT brand, product_id, launch_date",
+          "subgoal": "metrics",
+          "why": "The columns the question asks for; rn has done its job."
+        },
+        {
+          "text": "FROM ranked",
+          "subgoal": "source_grain",
+          "why": "The outer query reads the numbered step."
+        },
+        {
+          "text": "WHERE rn <= 3",
+          "subgoal": "row_filter",
+          "why": "The filter on the number runs here, after the window, and keeps exactly 3 per brand."
+        }
+      ]
+    },
+    {
+      "title": "Each user's subscriptions, in order",
+      "prompt": "Number each user's subscriptions by start_date, the first one 1. When two subscriptions of a user tie on start_date, the lower subscription_id comes first. Return user_id, subscription_id, start_date and sub_number.",
+      "clauses": [
+        {
+          "text": "SELECT user_id, subscription_id, start_date, ROW_NUMBER() OVER (PARTITION BY user_id ORDER BY start_date, subscription_id) AS sub_number",
+          "subgoal": "metrics",
+          "why": "The number restarts for each user, the earliest start first, and subscription_id settles a shared start date."
+        },
+        {
+          "text": "FROM subscriptions",
+          "subgoal": "source_grain",
+          "why": "One row per subscription, and the window keeps them all."
+        }
+      ]
+    }
+  ],
+  "pretest_item_ids": [
+    "EX-SQL-WIN-02-E1-01",
+    "EX-SQL-WIN-02-E1-02"
+  ],
+  "lesson_item_ids": [
+    "EX-SQL-WIN-02-E1-03",
+    "EX-SQL-WIN-02-E1-04",
+    "EX-SQL-WIN-02-E2-01",
+    "EX-SQL-WIN-02-E2-02"
+  ],
+  "retest_item_id": "EX-SQL-WIN-02-E1-05",
+  "pool_item_ids": [
+    "EX-SQL-WIN-02-E1-06",
+    "EX-SQL-WIN-02-E1-07",
+    "EX-SQL-WIN-02-E2-03",
+    "EX-SQL-WIN-02-E2-04",
+    "EX-SQL-WIN-02-E2-05",
+    "EX-SQL-WIN-02-E2-06",
+    "EX-SQL-WIN-02-E2-07",
+    "EX-SQL-WIN-02-E2-08",
+    "EX-SQL-WIN-02-E3-01",
+    "EX-SQL-WIN-02-E3-02",
+    "EX-SQL-WIN-02-E2-31",
+    "EX-SQL-WIN-02-E1-42",
+    "EX-SQL-WIN-02-E2-41",
+    "EX-SQL-WIN-02-E2-42"
+  ],
+  "source_ids": [
+    "01:SQL-WIN-02"
+  ],
+  "why_clause": {
+    "clause": "SELECT brand, product_id, launch_date, ROW_NUMBER() OVER (PARTITION BY brand ORDER BY launch_date DESC NULLS LAST, product_id) AS rn",
+    "stem": "Why does the window's ORDER BY end in product_id?",
+    "options": [
+      {
+        "id": "a",
+        "text": "So two products of a brand launched on the same day always get the same numbers, and the same 3 are kept on every run."
+      },
+      {
+        "id": "b",
+        "text": "So the result comes out sorted by product_id."
+      },
+      {
+        "id": "c",
+        "text": "Because ROW_NUMBER needs a whole-number column in its ORDER BY."
+      },
+      {
+        "id": "d",
+        "text": "So two products launched on the same day share a number."
+      }
+    ],
+    "correct_id": "a",
+    "explanation": "ROW_NUMBER numbers tied rows apart, and without a last unique sort key the engine decides by chance which tied product comes first, so the top 3 could change between runs. product_id fixes that order. The window does not sort the result, ROW_NUMBER can sort by any column, and sharing a number on a tie is what RANK and DENSE_RANK do, not ROW_NUMBER."
+  }
+}

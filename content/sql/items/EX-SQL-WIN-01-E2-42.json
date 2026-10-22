@@ -1,0 +1,74 @@
+{
+  "id": "EX-SQL-WIN-01-E2-42",
+  "version": 1,
+  "kind": "predict_rows",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "predict_rows",
+    "window",
+    "group_by_then_window",
+    "products"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-WIN-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-WIN-01"
+  ],
+  "template_id": "T-WIN-01-predict-rows-window-after-group-by",
+  "template_params": {
+    "table": "products",
+    "group": "category"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_win",
+  "prompt": "How many rows does this query return? The products table holds 1,200 products in 40 categories. Type the number.",
+  "output_contract": null,
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [],
+  "subgoals": [],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 60000,
+  "why_this_works": "",
+  "shown_sql": "SELECT category_id, COUNT(*) AS n_products,\n       SUM(COUNT(*)) OVER () AS all_products\nFROM products\nGROUP BY category_id",
+  "typed": {
+    "precision": "count",
+    "scale": "plain",
+    "decimals": 0,
+    "unit_label": "rows"
+  }
+}

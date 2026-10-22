@@ -1,0 +1,135 @@
+{
+  "id": "EX-SQL-WIN-05-E2-33",
+  "version": 1,
+  "kind": "fix",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "moving_average",
+    "month_spine",
+    "calendar",
+    "sales",
+    "fix"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-05"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-WIN-05",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CASE-01",
+    "SQL-TYPE-01",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-WIN-01",
+    "SQL-WIN-04",
+    "SQL-WIN-05"
+  ],
+  "template_id": "T-WIN-05-fix-month-spine",
+  "template_params": {
+    "table": "sales",
+    "spine": "calendar",
+    "window": "3 months"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_win",
+  "prompt": "The query in the editor has one mistake. Fix it so that it answers this question: what were Voltmarkt's total units sold in each month from January to June 2025 (UTC order dates), and what was the 3-month moving average: the average of that month and the 2 months before it, rounded to 2 decimals? Every month of the range has a row, and a month with no sales counts as 0. Only January to June count, so January and February show avg_units_3m as missing. Return month (the first day of the month), units and avg_units_3m. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "month",
+        "type_class": "temporal"
+      },
+      {
+        "name": "units",
+        "type_class": "numeric"
+      },
+      {
+        "name": "avg_units_3m",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "month",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "units",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "avg_units_3m",
+        "type_class": "numeric",
+        "precision": "ratio",
+        "require_rounding": 2
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "month"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, give every month of the range a row, with its units or 0, before the moving average.",
+    "Sales has no row for a month with no sales, so take the months out of the calendar table and join the units to them."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 539,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 540,
+      "to": 766,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 767,
+      "to": 778,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": "WITH monthly AS (\n  -- one row per month with sales\n  SELECT order_month AS month, SUM(units) AS units\n  FROM sales\n  WHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-06-30'\n  GROUP BY order_month\n)\nSELECT month, units,\n  CASE WHEN COUNT(*) OVER (ORDER BY month ROWS BETWEEN 2 PRECEDING AND CURRENT ROW) = 3\n       THEN ROUND(AVG(units) OVER (ORDER BY month ROWS BETWEEN 2 PRECEDING AND CURRENT ROW), 2)\n  END AS avg_units_3m\nFROM monthly",
+  "time_target_ms": 210000,
+  "why_this_works": "The months come from calendar, so a month with no sales keeps a row with 0, and 3 rows are always 3 calendar months.",
+  "starter_error_id": "ERR-LOG-39"
+}

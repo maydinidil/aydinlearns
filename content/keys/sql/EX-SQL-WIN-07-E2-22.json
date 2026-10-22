@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-WIN-07-E2-22",
+  "item_version": 1,
+  "reference_sql": "WITH versions AS (  -- one row per price version, with the product's launch price, current price and number of versions\n  SELECT ph.product_id,\n         FIRST_VALUE(ph.list_price_eur) OVER (PARTITION BY ph.product_id ORDER BY ph.valid_from\n                                              ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS launch_price_eur,\n         LAST_VALUE(ph.list_price_eur) OVER (PARTITION BY ph.product_id ORDER BY ph.valid_from\n                                             ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS current_price_eur,\n         COUNT(*) OVER (PARTITION BY ph.product_id) AS n_versions\n  FROM price_history ph\n  JOIN products p ON p.product_id = ph.product_id\n  WHERE p.category_id BETWEEN 15 AND 20\n)\nSELECT DISTINCT product_id, launch_price_eur, current_price_eur,\n       ROUND(current_price_eur / launch_price_eur, 3) AS price_index\nFROM versions\nWHERE n_versions > 1",
+  "alternatives": [
+    "WITH bounds AS (  -- one row per Audio product with more than one price version: its first and latest valid_from\n  SELECT ph.product_id, MIN(ph.valid_from) AS first_from, MAX(ph.valid_from) AS last_from\n  FROM price_history ph\n  JOIN products p ON p.product_id = ph.product_id\n  WHERE p.category_id BETWEEN 15 AND 20\n  GROUP BY ph.product_id\n  HAVING COUNT(*) > 1\n)\nSELECT b.product_id, f.list_price_eur AS launch_price_eur, l.list_price_eur AS current_price_eur,\n       ROUND(l.list_price_eur / f.list_price_eur, 3) AS price_index\nFROM bounds b\nJOIN price_history f ON f.product_id = b.product_id AND f.valid_from = b.first_from\nJOIN price_history l ON l.product_id = b.product_id AND l.valid_from = b.last_from",
+    "SELECT DISTINCT v.product_id, v.launch_price_eur, v.current_price_eur,\n       ROUND(v.current_price_eur / v.launch_price_eur, 3) AS price_index\nFROM (\n  -- one row per price version, with the product's launch price, current price and number of versions\n  SELECT ph.product_id,\n         FIRST_VALUE(ph.list_price_eur) OVER (PARTITION BY ph.product_id ORDER BY ph.valid_from\n                                              ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS launch_price_eur,\n         FIRST_VALUE(ph.list_price_eur) OVER (PARTITION BY ph.product_id ORDER BY ph.valid_from DESC\n                                              ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS current_price_eur,\n         COUNT(*) OVER (PARTITION BY ph.product_id) AS n_versions\n  FROM price_history ph\n  JOIN products p ON p.product_id = ph.product_id\n  WHERE p.category_id BETWEEN 15 AND 20\n) AS v\nWHERE v.n_versions > 1"
+  ],
+  "other_way": {
+    "sql": "WITH bounds AS (  -- one row per Audio product with more than one price version: its first and latest valid_from\n  SELECT ph.product_id, MIN(ph.valid_from) AS first_from, MAX(ph.valid_from) AS last_from\n  FROM price_history ph\n  JOIN products p ON p.product_id = ph.product_id\n  WHERE p.category_id BETWEEN 15 AND 20\n  GROUP BY ph.product_id\n  HAVING COUNT(*) > 1\n)\nSELECT b.product_id, f.list_price_eur AS launch_price_eur, l.list_price_eur AS current_price_eur,\n       ROUND(l.list_price_eur / f.list_price_eur, 3) AS price_index\nFROM bounds b\nJOIN price_history f ON f.product_id = b.product_id AND f.valid_from = b.first_from\nJOIN price_history l ON l.product_id = b.product_id AND l.valid_from = b.last_from",
+    "tradeoff": "Joining the first and latest versions found with MIN and MAX works on any engine, but it reads price_history three times."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-42",
+      "sql": "WITH versions AS (SELECT ph.product_id, FIRST_VALUE(ph.list_price_eur) OVER (PARTITION BY ph.product_id ORDER BY ph.valid_from ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS launch_price_eur, LAST_VALUE(ph.list_price_eur) OVER (PARTITION BY ph.product_id ORDER BY ph.valid_from) AS current_price_eur, COUNT(*) OVER (PARTITION BY ph.product_id) AS n_versions FROM price_history ph JOIN products p ON p.product_id = ph.product_id WHERE p.category_id BETWEEN 15 AND 20) SELECT DISTINCT product_id, launch_price_eur, current_price_eur, ROUND(current_price_eur / launch_price_eur, 3) AS price_index FROM versions WHERE n_versions > 1"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-18",
+      "sql": "WITH versions AS (SELECT ph.product_id, FIRST_VALUE(ph.list_price_eur) OVER (PARTITION BY ph.product_id ORDER BY ph.valid_from DESC ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS launch_price_eur, LAST_VALUE(ph.list_price_eur) OVER (PARTITION BY ph.product_id ORDER BY ph.valid_from DESC ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS current_price_eur, COUNT(*) OVER (PARTITION BY ph.product_id) AS n_versions FROM price_history ph JOIN products p ON p.product_id = ph.product_id WHERE p.category_id BETWEEN 15 AND 20) SELECT DISTINCT product_id, launch_price_eur, current_price_eur, ROUND(current_price_eur / launch_price_eur, 3) AS price_index FROM versions WHERE n_versions > 1"
+    }
+  ],
+  "hint3_partial": "WITH versions AS (  -- one row per price version, with the product's launch price, current price and number of versions\n  SELECT ph.product_id,\n         FIRST_VALUE(ph.list_price_eur) OVER (PARTITION BY ph.product_id ORDER BY ph.valid_from\n                                              ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS launch_price_eur,\n         LAST_VALUE(ph.list_price_eur) OVER (PARTITION BY ph.product_id ORDER BY ph.valid_from\n                                             ROWS BETWEEN ___) AS current_price_eur,\n         COUNT(*) OVER (PARTITION BY ph.product_id) AS n_versions\n  FROM price_history ph\n  JOIN products p ON p.product_id = ph.product_id\n  WHERE p.category_id BETWEEN 15 AND 20\n)\nSELECT DISTINCT product_id, launch_price_eur, current_price_eur,\n       ROUND(___, 3) AS price_index\nFROM versions\nWHERE n_versions > 1",
+  "solver": {
+    "prompt_hash": "ed6839dfff452261",
+    "schema_version": "c41fcd8f0eee",
+    "dataset_version": "e7c58abf7e8f892e",
+    "grader_version": "7a.1",
+    "query": "SELECT ph.product_id,\n       ARG_MIN(ph.list_price_eur, ph.valid_from) AS launch_price_eur,\n       ARG_MAX(ph.list_price_eur, ph.valid_from) AS current_price_eur,\n       ROUND(ARG_MAX(ph.list_price_eur, ph.valid_from) / ARG_MIN(ph.list_price_eur, ph.valid_from), 3) AS price_index\nFROM price_history ph\nJOIN products p ON p.product_id = ph.product_id\nWHERE p.category_id BETWEEN 15 AND 20\nGROUP BY ph.product_id\nHAVING COUNT(*) > 1\n",
+    "at": "2026-10-21T09:05:11.204Z"
+  }
+}

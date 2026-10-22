@@ -1,0 +1,60 @@
+{
+  "schema": "mailvora_edge_win",
+  "mirrors": "mailvora",
+  "family": "win",
+  "contains": [
+    "two channels, nonbrand search and Meta, where two campaigns tie for first place and two tie for third, by spend and by clicks from July to October 2025",
+    "two channels, brand search and review sites, where two campaigns tie for second place, by spend and by clicks",
+    "two visitors whose first two sessions start at the same moment, from two channels",
+    "groups with one row: a channel with one campaign that spent on one day (LinkedIn), and visitors with one session",
+    "plans with a missing end date because they are still active, beside a user who moved from Lite to Pro",
+    "ad spend in July, August and October 2025 and none in September, while the monthly budgets still hold September",
+    "most channels spend on a few days only, weeks apart, so a channel's last 7 rows are not its last 7 days",
+    "a subscription paid in August and October 2025 but not in September",
+    "two campaigns of one channel with spend on the same day, and two signups on the same day",
+    "groups of three rows, fewer than NTILE(5) has buckets: a channel with three campaigns (YouTube) and a subscription with three payments",
+    "a campaign with ten days of spend in July 2025 and one day missing in between, whose daily click-through rates vary",
+    "a refunded payment"
+  ],
+  "tables": {
+    "channels": [
+      "two channels, nonbrand search and Meta, where two campaigns tie for first place and two tie for third, by spend and by clicks from July to October 2025",
+      "two channels, brand search and review sites, where two campaigns tie for second place, by spend and by clicks",
+      "groups with one row: a channel with one campaign that spent on one day (LinkedIn), and visitors with one session"
+    ],
+    "campaigns": [
+      "two channels, nonbrand search and Meta, where two campaigns tie for first place and two tie for third, by spend and by clicks from July to October 2025",
+      "two channels, brand search and review sites, where two campaigns tie for second place, by spend and by clicks",
+      "groups with one row: a channel with one campaign that spent on one day (LinkedIn), and visitors with one session",
+      "groups of three rows, fewer than NTILE(5) has buckets: a channel with three campaigns (YouTube) and a subscription with three payments"
+    ],
+    "ad_spend_daily": [
+      "two channels, nonbrand search and Meta, where two campaigns tie for first place and two tie for third, by spend and by clicks from July to October 2025",
+      "two channels, brand search and review sites, where two campaigns tie for second place, by spend and by clicks",
+      "groups with one row: a channel with one campaign that spent on one day (LinkedIn), and visitors with one session",
+      "ad spend in July, August and October 2025 and none in September, while the monthly budgets still hold September",
+      "most channels spend on a few days only, weeks apart, so a channel's last 7 rows are not its last 7 days",
+      "two campaigns of one channel with spend on the same day, and two signups on the same day",
+      "a campaign with ten days of spend in July 2025 and one day missing in between, whose daily click-through rates vary"
+    ],
+    "budget_monthly": [
+      "ad spend in July, August and October 2025 and none in September, while the monthly budgets still hold September"
+    ],
+    "sessions": [
+      "two visitors whose first two sessions start at the same moment, from two channels",
+      "groups with one row: a channel with one campaign that spent on one day (LinkedIn), and visitors with one session"
+    ],
+    "signups": [
+      "two campaigns of one channel with spend on the same day, and two signups on the same day"
+    ],
+    "subscriptions": [
+      "plans with a missing end date because they are still active, beside a user who moved from Lite to Pro",
+      "a subscription paid in August and October 2025 but not in September"
+    ],
+    "payments": [
+      "a subscription paid in August and October 2025 but not in September",
+      "groups of three rows, fewer than NTILE(5) has buckets: a channel with three campaigns (YouTube) and a subscription with three payments",
+      "a refunded payment"
+    ]
+  }
+}

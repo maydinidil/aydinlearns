@@ -1,0 +1,43 @@
+{
+  "case_id": "CASE-VOLT-L5",
+  "truths": {
+    "CP2": "SELECT COUNT(DISTINCT ol.product_id)\nFROM order_lines AS ol\nJOIN orders AS o ON o.order_id = ol.order_id\nWHERE o.order_ts >= TIMESTAMP '2025-01-01 00:00:00'\n  AND o.order_ts < TIMESTAMP '2025-07-01 00:00:00'",
+    "CP4": "WITH product_revenue AS (\n  -- one row per product that sold from January to June 2025\n  SELECT p.category_id, ol.product_id,\n         SUM(ol.quantity * ol.unit_price_eur - ol.line_discount_eur) AS net_revenue_eur\n  FROM order_lines AS ol\n  JOIN orders AS o ON o.order_id = ol.order_id\n  JOIN products AS p ON p.product_id = ol.product_id\n  WHERE o.order_ts >= TIMESTAMP '2025-01-01 00:00:00'\n    AND o.order_ts < TIMESTAMP '2025-07-01 00:00:00'\n  GROUP BY p.category_id, ol.product_id\n),\nranked AS (\n  -- one row per product, with its place in its category\n  SELECT net_revenue_eur,\n         ROW_NUMBER() OVER (PARTITION BY category_id ORDER BY net_revenue_eur DESC, product_id) AS revenue_rank\n  FROM product_revenue\n)\nSELECT ROUND(100.0 * SUM(CASE WHEN revenue_rank <= 3 THEN net_revenue_eur ELSE 0 END) / SUM(net_revenue_eur), 1)\nFROM ranked"
+  },
+  "choices": {
+    "CP1": {
+      "correct_oid": "o3044520",
+      "explanation": "Placing and totalling every product of a category in one window step, before the filter, keeps exactly 3 and divides by the whole category; dividing by the 3 kept gives a share of the top 3 only."
+    },
+    "CP5": {
+      "correct_oid": "oa03b4f4",
+      "explanation": "The result shows where revenue sat, which makes these products the ones to watch, but it holds no price test, so it cannot say they sold because they were cheaper or how sales would react to a price change."
+    }
+  },
+  "solver": {
+    "CP1": {
+      "pass": true,
+      "prompt_hash": "7d2637e698945950",
+      "key_hash": "87ed9accd98e1e27",
+      "at": "2026-10-21T09:54:07.303Z"
+    },
+    "CP2": {
+      "pass": true,
+      "prompt_hash": "df9205d3d5cf7386",
+      "key_hash": "4ad8a01d22ff6e9f",
+      "at": "2026-10-21T09:54:07.303Z"
+    },
+    "CP4": {
+      "pass": true,
+      "prompt_hash": "ae1e8c232c7ade20",
+      "key_hash": "2b19d3d1eea54137",
+      "at": "2026-10-21T09:54:07.303Z"
+    },
+    "CP5": {
+      "pass": true,
+      "prompt_hash": "61ec0fb2ad56b882",
+      "key_hash": "0694af01ab0159dd",
+      "at": "2026-10-21T09:54:07.303Z"
+    }
+  }
+}

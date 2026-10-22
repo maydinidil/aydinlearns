@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-WIN-02-E1-41",
+  "item_version": 1,
+  "correct_oid": "o8559a93",
+  "explanation": "DENSE_RANK gives the three categories with 29 products the same place, 2, and the next count, 28, takes the next place, 3, with no gap. RANK would skip to 5 after the three tied rows, and ROW_NUMBER would number the tied rows apart. DESC puts the most products first, so Consoles is 1.",
+  "solver": {
+    "prompt_hash": "f82ebae777ac007c",
+    "grader_version": "choice.3",
+    "chosen": "o8559a93",
+    "typed": null,
+    "at": "2026-10-20T20:50:48.325Z"
+  }
+}

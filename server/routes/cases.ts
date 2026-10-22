@@ -31,13 +31,19 @@
 // its dataset, and every route of it here, the opener CP4 alias included, answers 409 with that line. A case of level 4 or more
 // adds CRAFT-01's two ticks to the CP6 rubric (S6-15). The inbox and the view send only the persona, brief and data-source fields
 // the screens read (D1-M6).
+// Sprint 7 Part 2 (Task N2; S7-03, S7-13): the answer, plan, insight and rubric handlers take the case and a mock context ({ block_id }, or
+// null for a case route), so a case-round or take-home run (routes/mock-cases.ts) answers through the same engine. In a mock: the run's start
+// served each checkpoint's instance (phase mock, its block); an answer is graded and logged exactly as here, its reply is { recorded: true }
+// and its instance stays open until the run ends (one answer each, S7-03); a self-check names the block; nothing reveals a correct answer or
+// a model text, which wait for the review (S7-07).
 import { randomUUID } from 'node:crypto';
 import type { Context, Hono } from 'hono';
 import { HTTPException } from 'hono/http-exception';
 import { SCHEMA_VERSION, type Phase, type SelfCheck, type SelfCheckKind } from '../../core/envelope.ts';
+import { countsAsAttempt } from '../../core/rating.ts';
 import type { CaseStatus } from '../../core/replay.ts';
 import { amsterdamDate } from '../../core/time.ts';
-import type { CaseChoiceKey, CaseKind, CaseRecord, Checkpoint, CheckpointKind, CheckpointOption, DataSource } from '../../schemas/case.ts';
+import { isMockCaseKind, type CaseChoiceKey, type CaseKind, type CaseRecord, type Checkpoint, type CheckpointKind, type CheckpointOption, type DataSource } from '../../schemas/case.ts';
 import { caseUnavailable } from '../content.ts';
 import type { TypedSpec } from '../../schemas/choice.ts';
 import type { SortKey } from '../../schemas/item.ts';
@@ -46,6 +52,8 @@ import type { RouteDeps } from '../app.ts';
 import { CHOICE_GRADER_VERSION, gradeChoice, gradeTyped, parseTyped, TYPED_REFUSALS, type ChoiceGrade } from '../choice/grade.ts';
 import { journey } from '../journey.ts';
 import { answered, caseFunnel, levelName, type FunnelAttributes } from '../observe.ts';
+import { MOCK_ONE_ANSWER } from '../drill.ts';
+import { CODE_ONE_ANSWER } from '../run.ts';
 import { openerLevel } from '../session-composer.ts';
 import { shuffle } from './choice.ts';
 
@@ -136,6 +144,24 @@ export interface CaseCheckpoints {
   serve(q: CaseCheckpoint): CaseCheckpointServed;
   answer(q: CaseCheckpoint, body: Record<string, unknown>): Promise<CaseCheckpointResult>;
 }
+/** S7-13: a recruiter mock run's context: its block. A case route passes null. */
+export interface MockContext { block_id: string }
+/** S7-03: what every answer and self-check inside a mock run gets back: recorded, never a result, a correct answer or a model text. */
+export interface RecordedReply { recorded: true }
+/**
+ * The case engine: the checkpoint engine, and the answer, plan, insight and rubric handlers, each taking the case and a mock context (null
+ * for a case route). routes/mock-cases.ts runs a case-round or take-home through it (Task N2).
+ */
+export interface CaseEngine extends CaseCheckpoints {
+  /** S7-13: the question of a mock run's own instance (its start served it), phase mock; its options keep the order first shown for it. */
+  serveIn(q: CaseCheckpoint, mock: MockContext, itemInstanceId: string): CaseCheckpointServed;
+  answerCheckpoint(q: CaseCheckpoint, body: Record<string, unknown>, mock: MockContext | null): Promise<CaseCheckpointResult | RecordedReply>;
+  plan(r: CaseRecord, body: Record<string, unknown>, mock: MockContext | null): Promise<PlanReply | RecordedReply>;
+  insight(r: CaseRecord, body: Record<string, unknown>, mock: MockContext | null): Promise<InsightReply | RecordedReply>;
+  rubric(r: CaseRecord, body: Record<string, unknown>, mock: MockContext | null): Promise<OkReply>;
+  /** S7-14: a mock run's own self-check ("say it in 60 seconds"), naming the case and the block. */
+  selfCheck(r: CaseRecord, kind: SelfCheckKind, x: { ticked?: string[] }, mock: MockContext): Promise<void>;
+}
 
 const PHASE: Phase = 'case';
 const ANSWERABLE: readonly string[] = ['CP1', 'CP2', 'CP4', 'CP5'];
@@ -156,7 +182,9 @@ const PLACEHOLDER = /\{(CP2|CP4)\}/g;
 /** S6-35: the checkpoint whose answer opens a case's model plan: its CP1, else its CP2, else none (shown as before). */
 const planGate = (r: CaseRecord): 'CP1' | 'CP2' | null =>
   r.checkpoints.some((c) => c.kind === 'CP1') ? 'CP1' : r.checkpoints.some((c) => c.kind === 'CP2') ? 'CP2' : null;
-const refuse = (status: 400 | 404 | 409 | 503, message: string): HTTPException => new HTTPException(status, { message });
+/** A refusal; `code` is one a screen can match on (app.onError sends it), as a mock's ONE_ANSWER. */
+const refuse = (status: 400 | 404 | 409 | 503, message: string, code?: string): HTTPException =>
+  Object.assign(new HTTPException(status, { message }), code === undefined ? {} : { code });
 const isRecord = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object' && !Array.isArray(v);
 type Body = Record<string, unknown>;
 
@@ -198,10 +226,37 @@ function statusName(s: CaseStatus | undefined): CaseStatusName {
 const selfCheckView = (e: { ts: string; fields: Record<string, string> | null; text: string | null } | null): SelfCheckView | null =>
   (e ? { ts: e.ts, fields: e.fields, text: e.text } : null);
 /** D1-M6: only the persona's, the brief's and the data source's fields the screens read, never anything else a record holds. */
-const personaOf = (r: CaseRecord): CaseListEntry['persona'] => ({ name: r.persona?.name, role: r.persona?.role });
-const briefOf = (r: CaseRecord): CaseListEntry['brief'] => ({ decision: r.brief?.decision, deadline: r.brief?.deadline });
-const dataSourceOf = (r: CaseRecord): DataSource | null =>
+export const personaOf = (r: Pick<CaseRecord, 'persona'>): CaseListEntry['persona'] => ({ name: r.persona?.name, role: r.persona?.role });
+export const briefOf = (r: Pick<CaseRecord, 'brief'>): CaseListEntry['brief'] => ({ decision: r.brief?.decision, deadline: r.brief?.deadline });
+export const dataSourceOf = (r: Pick<CaseRecord, 'data_source'>): DataSource | null =>
   (r.data_source ? { label: r.data_source.label, real: r.data_source.real, licence: r.data_source.licence } : null);
+/**
+ * S2-50's fallback, the concept a checkpoint's answer names as its target when no error points elsewhere: the checkpoint's first credited
+ * concept, else its CP3's first, else the case's first concept (S2-106: a checkpoint may credit nothing).
+ */
+export const checkpointTarget = (r: Pick<CaseRecord, 'checkpoints' | 'concept_ids'>, cp: Pick<Checkpoint, 'credits_concepts'>): string | undefined =>
+  cp.credits_concepts[0] ?? r.checkpoints.find((c) => c.kind === 'CP3')?.credits_concepts[0] ?? r.concept_ids[0];
+/**
+ * S4B-10: a model answer with each placeholder filled: `valueOf` gives the checkpoint's value, or undefined for the plain note. The value
+ * is written with its typed spec's decimals.
+ */
+export function fillModelAnswer(r: Pick<CaseRecord, 'model_answer_template' | 'checkpoints'>, valueOf: (kind: 'CP2' | 'CP4', cp: Checkpoint | undefined) => number | undefined): string {
+  return String(r.model_answer_template ?? '').replace(PLACEHOLDER, (_m, kind: 'CP2' | 'CP4') => {
+    const cp = r.checkpoints.find((c) => c.kind === kind);
+    const value = valueOf(kind, cp);
+    return value === undefined ? `(answer ${kind} to see this number)` : value.toFixed(Math.max(0, Math.min(20, cp?.typed?.decimals ?? 0)));
+  });
+}
+/** S6-15: the CP6 rubric at a level: the five points, and CRAFT-01's two habits from level 4. */
+export const rubricAt = (level: number | null): readonly Point[] => ((level ?? 0) >= CRAFT_LEVEL ? [...RUBRIC, ...CRAFT_RUBRIC] : RUBRIC);
+/**
+ * S7-14 to S7-16: a mock case's rubric: its level's (rubricAt), plus any core line of its mock that the level's rubric lacks (the take-home's
+ * reconciliation line is CRAFT-01's, which below level 4 is not there), so every core line can be ticked.
+ */
+export function mockRubric(level: number | null, core: readonly string[]): readonly Point[] {
+  const base = rubricAt(level);
+  return [...base, ...CRAFT_RUBRIC.filter((p) => core.includes(p.id) && !base.some((b) => b.id === p.id))];
+}
 /**
  * Fix round 1: a model text waits for its gate to have an answer in the log: the model plan for CP1 (its grain line may answer a
  * grain CP1), the model answer and the rubric for CP5 (its caveat may answer CP5). A case that lists no such checkpoint has no wait.
@@ -209,9 +264,14 @@ const dataSourceOf = (r: CaseRecord): DataSource | null =>
 const gateOpen = (r: CaseRecord, s: CaseStatus | undefined, gate: 'CP1' | 'CP2' | 'CP5'): boolean =>
   !r.checkpoints.some((c) => c.kind === gate) || (s?.checkpoints.some((p) => p.kind === gate && p.latest !== null) ?? false);
 
-export function mountCases(app: Hono, d: RouteDeps): CaseCheckpoints {
-  /** The instances a serve handed out and not yet answered: their case and checkpoint, when they were served, and the order shown. */
-  const shown = new Map<string, { case_id: string; kind: AnswerableKind; item_id: string; at: number; order: string[] }>();
+export function mountCases(app: Hono, d: RouteDeps): CaseEngine {
+  /**
+   * The instances a serve handed out and not yet answered: their case and checkpoint, when they were served, the order shown, and the
+   * mock run's block (null for a case route's).
+   */
+  const shown = new Map<string, { case_id: string; kind: AnswerableKind; item_id: string; at: number; order: string[]; block_id: string | null }>();
+  /** S7-15: a mock's records are stamped by the run clock (a test's, AppDeps.runClock), as its mock_open is; a case route's by the real one. */
+  const clock = (mock: MockContext | null): number => (mock ? (d.runClock?.now ?? Date.now)() : Date.now());
 
   const all = (): CaseRecord[] => d.content.cases?.() ?? d.content.openers?.() ?? [];
   /** S6-13: a case whose schema the database does not hold answers 409 with its line on every route. */
@@ -251,36 +311,71 @@ export function mountCases(app: Hono, d: RouteDeps): CaseCheckpoints {
     return { record, kind, cp, item_id: cp.item_id, grading: { kind: 'typed', typed: cp.typed, truth } };
   };
 
-  const serve = (q: CaseCheckpoint): CaseCheckpointServed => {
-    // S2-60: the options in a shuffled order, which the answer's log records.
-    const order = q.grading.kind === 'choice' ? shuffle(q.grading.options.map((o) => o.oid)) : [];
-    const id = d.servings.serve({ phase: PHASE, block_id: null, repeat_exposure: false, section: 'sql', item_id: q.item_id });
-    shown.set(id, { case_id: q.record.case_id, kind: q.kind, item_id: q.item_id, at: Date.now(), order });
-    if (shown.size > SHOWN_LIMIT) shown.delete(shown.keys().next().value!);
+  /** What a serve sends for instance `id`: the question, its options in `order`, and how it is answered. Never its key, value or credits. */
+  const servedView = (q: CaseCheckpoint, id: string, order: string[], phase: Phase): CaseCheckpointServed => {
     const textOf = new Map(q.grading.kind === 'choice' ? q.grading.options.map((o) => [o.oid, o.text]) : []);
     // D77 (owner go N5): the checkpoint was sent, once its case and checkpoint resolved. Its ID and phase only: no prompt or option.
-    journey('item_viewed', { item_id: q.item_id, phase: PHASE, ...funnelOf(q.record) });
-    return { case_id: q.record.case_id, checkpoint: q.kind, item_id: q.item_id, item_instance_id: id, phase: PHASE, prompt: q.cp.prompt,
+    journey('item_viewed', { item_id: q.item_id, phase, ...funnelOf(q.record) });
+    return { case_id: q.record.case_id, checkpoint: q.kind, item_id: q.item_id, item_instance_id: id, phase, prompt: q.cp.prompt,
       typed: q.grading.kind === 'typed' ? q.grading.typed : null, options: q.grading.kind === 'choice' ? order.map((oid) => ({ oid, text: textOf.get(oid)! })) : null,
       shown_order: order };
   };
+  const remember = (id: string, entry: NonNullable<ReturnType<typeof shown.get>>): void => {
+    shown.set(id, entry);
+    if (shown.size > SHOWN_LIMIT) shown.delete(shown.keys().next().value!);
+  };
+  // S2-60: the options in a shuffled order, which the answer's log records.
+  const shuffled = (q: CaseCheckpoint): string[] => (q.grading.kind === 'choice' ? shuffle(q.grading.options.map((o) => o.oid)) : []);
 
-  // A session end forgets the servings made here, as Today's do: an instance nobody answered is not continued (S2-98).
+  const serve = (q: CaseCheckpoint): CaseCheckpointServed => {
+    const order = shuffled(q);
+    const id = d.servings.serve({ phase: PHASE, block_id: null, repeat_exposure: false, section: 'sql', item_id: q.item_id });
+    remember(id, { case_id: q.record.case_id, kind: q.kind, item_id: q.item_id, at: Date.now(), order, block_id: null });
+    return servedView(q, id, order, PHASE);
+  };
+  /**
+   * S7-13: a mock run's checkpoint: the instance its start served (phase mock, the run's block), so nothing is minted. A second serve of the
+   * instance (a reload) shows the options in the order first shown, which its answer is checked against.
+   */
+  const serveIn = (q: CaseCheckpoint, mock: MockContext, id: string): CaseCheckpointServed => {
+    const serving = d.servings.get(id);
+    if (!serving || serving.block_id !== mock.block_id || serving.item_id !== q.item_id) throw refuse(404, 'Unknown mock question.');
+    const kept = shown.get(id);
+    const order = kept?.order ?? shuffled(q);
+    remember(id, { case_id: q.record.case_id, kind: q.kind, item_id: q.item_id, at: kept?.at ?? clock(mock), order, block_id: mock.block_id });
+    return servedView(q, id, order, serving.phase);
+  };
+
+  // A session end forgets the servings made here, as Today's do: an instance nobody answered is not continued (S2-98). A mock run's
+  // servings are its run's (its start made them, its end forgets them), so they stay: a take-home outlives a session end (S7-15).
   d.endHooks.push(async () => {
-    for (const id of shown.keys()) d.servings.forget(id);
-    shown.clear();
+    for (const [id, s] of [...shown]) {
+      if (s.block_id !== null) continue;
+      d.servings.forget(id);
+      shown.delete(id);
+    }
   });
 
-  const answer = async (q: CaseCheckpoint, b: Body): Promise<CaseCheckpointResult> => {
+  /**
+   * One answer to a served checkpoint, graded (CHOICE_GRADER_VERSION) and logged with its funnel steps (D75, D76). A case route's (mock
+   * null) then closes its instance and reveals the correct option or the value. A mock run's (S7-03) is logged in phase mock with the run's
+   * block and no confidence (exam mode), stamped by the run clock (S7-15: a take-home answer after its minutes is late), and answered
+   * { recorded: true }; its instance stays open, so a second answer is the mock's 409, and the run's end closes it run_end.
+   */
+  const answerCheckpoint = async (q: CaseCheckpoint, b: Body, mock: MockContext | null): Promise<CaseCheckpointResult | RecordedReply> => {
+    // F4-3-1 (S7-15, D9): a mock answer is timed by the run clock when it arrives, before the attempt file is read, so one sent before a
+    // take-home's deadline is never late. A case route's answer is timed as before.
+    const arrived = mock ? clock(mock) : null;
     const { record, cp, item_id } = q;
     const id = b.item_instance_id;
     if (typeof id !== 'string' || id.trim() === '') throw refuse(400, 'item_instance_id is missing.');
     const s = shown.get(id);
     const serving = d.servings.get(id);
     if (!s || !serving) throw refuse(409, NOT_OPEN);
-    if (s.case_id !== record.case_id || s.kind !== q.kind || serving.item_id !== item_id) throw refuse(400, OTHER);
-    const confidence = b.confidence === 1 || b.confidence === 2 || b.confidence === 3 || b.confidence === 4 ? b.confidence : null;
-    if (confidence === null && b.confidence !== undefined && b.confidence !== null) throw refuse(400, 'confidence is 1, 2, 3 or 4, or left out.');
+    const block = mock?.block_id ?? null;
+    if (s.case_id !== record.case_id || s.kind !== q.kind || serving.item_id !== item_id || s.block_id !== block || serving.block_id !== block) throw refuse(400, OTHER);
+    const confidence = !mock && (b.confidence === 1 || b.confidence === 2 || b.confidence === 3 || b.confidence === 4) ? b.confidence : null;
+    if (!mock && confidence === null && b.confidence !== undefined && b.confidence !== null) throw refuse(400, 'confidence is 1, 2, 3 or 4, or left out.');
     // Graded before the instance opens: an answer that cannot be read is refused, never logged.
     let grade: ChoiceGrade;
     let reveal: Pick<CaseCheckpointResult, 'correct_oid' | 'explanation' | 'value'>;
@@ -305,25 +400,24 @@ export function mountCases(app: Hono, d: RouteDeps): CaseCheckpoints {
     // S2-50: the concept of the first error ID when the checkpoint credits it, otherwise the first credited concept. S2-106: a
     // checkpoint may credit nothing; its attempts then name the CP3's first concept as target, and no card is rated.
     const errConcept = grade.error_ids[0] === undefined ? null : d.content.errorConcepts[grade.error_ids[0]] ?? null;
-    const target = errConcept !== null && cp.credits_concepts.includes(errConcept) ? errConcept
-      : cp.credits_concepts[0] ?? record.checkpoints.find((c) => c.kind === 'CP3')?.credits_concepts[0] ?? record.concept_ids[0]!;
+    const target = errConcept !== null && cp.credits_concepts.includes(errConcept) ? errConcept : checkpointTarget(record, cp)!;
     // S2-105: a wrong answer showed this checkpoint's value or right option, so a later instance of it is assisted. A right answer
-    // shows nothing new.
+    // shows nothing new. (A mock form taken again is practice, and its earlier review showed the right answers.)
     const revealedBefore = ((await d.logger.readAll('attempts')) as { record?: string; item_id?: string; is_correct?: boolean; item_instance_id?: string }[])
       .some((r) => r.record === 'attempt' && r.item_id === item_id && r.is_correct === false && r.item_instance_id !== id);
     const i = d.openInstance(id, { item_id, target_concept_id: target, phase: PHASE, section: 'sql', started_at: new Date(s.at).toISOString() });
-    if (i.submitted > 0) throw refuse(409, 'This question already has an answer. Open it again to answer once more.');
+    if (i.submitted > 0) throw mock ? refuse(409, MOCK_ONE_ANSWER, CODE_ONE_ANSWER) : refuse(409, 'This question already has an answer. Open it again to answer once more.');
     i.noteSubmission(true, grade.correct);              // claimed before the first await: a second answer gets the 409 above
     // The reveal is logged before the first graded attempt, which is how rateCheckpoint and replay treat "answer shown": no Good,
     // no qualifying solve. S4B-08 still counts the pass toward the case.
     let helpAt = 0;
     if (revealedBefore) {
-      helpAt = Date.now();
+      helpAt = arrived ?? clock(mock);
       await d.logger.solutionOpened({ record: 'solution_opened', schema_version: SCHEMA_VERSION, ts: new Date(helpAt).toISOString(), item_instance_id: id,
         item_id, target_concept_id: target, phase: i.phase });
       i.noteSolution();
     }
-    const at = new Date(Math.max(Date.now(), helpAt + 1));
+    const at = new Date(Math.max(arrived ?? clock(mock), helpAt + 1));
     const activeMs = typeof b.active_ms === 'number' && Number.isFinite(b.active_ms) && b.active_ms >= 0 ? b.active_ms : Math.max(0, at.getTime() - i.started);
     const attempt: AydinAttempt = {
       record: 'attempt', schema_version: SCHEMA_VERSION, attempt_id: randomUUID(), app: 'aydinlearns', section: 'sql',
@@ -340,10 +434,15 @@ export function mountCases(app: Hono, d: RouteDeps): CaseCheckpoints {
     // D75, D76 (owner go N5): the funnel steps, as every other answer route sends them. The mode is the attempt's phase (case);
     // answered() reads no payload field but a run's kind, so the option chosen and the number typed stay in the log.
     answered(funnelOf(record), attempt, grade.correct ? 'passed' : 'failed');
+    if (mock) {
+      shown.delete(id);
+      return { recorded: true };                                 // S7-03: its instance closes at its run's end (run_end), as a drill's
+    }
     await d.writeClose(id, grade.correct ? 'pass' : 'left');     // one answer, then the instance closes
     shown.delete(id);
     return { correct: grade.correct, ...reveal, error_ids: grade.error_ids, attempt_id: attempt.attempt_id };
   };
+  const answer = async (q: CaseCheckpoint, b: Body): Promise<CaseCheckpointResult> => (await answerCheckpoint(q, b, null)) as CaseCheckpointResult;
 
   /** One row of the inbox. */
   const entry = (r: CaseRecord): CaseListEntry => {
@@ -392,15 +491,13 @@ export function mountCases(app: Hono, d: RouteDeps): CaseCheckpoints {
     };
   };
   /** S6-15: the CP6 rubric of a case: the five points, and CRAFT-01's two habits from level 4. */
-  const rubricOf = (r: CaseRecord): readonly Point[] => ((levelOf(r) ?? 0) >= CRAFT_LEVEL ? [...RUBRIC, ...CRAFT_RUBRIC] : RUBRIC);
+  const rubricOf = (r: CaseRecord): readonly Point[] => rubricAt(levelOf(r));
   /** S4B-10: each placeholder filled with its value once that checkpoint has an answer in the log, otherwise a plain note. */
   const filledModelAnswer = (r: CaseRecord): string => {
     const s = statusOf(r);
-    return String(r.model_answer_template ?? '').replace(PLACEHOLDER, (_m, kind: string) => {
-      const cp = r.checkpoints.find((c) => c.kind === kind);
+    return fillModelAnswer(r, (kind, cp) => {
       const hasAnswer = s?.checkpoints.some((p) => p.kind === kind && p.latest !== null) ?? false;
-      const value = hasAnswer && cp?.truth_key ? d.content.checkpointTruth?.(cp.truth_key) : undefined;
-      return value === undefined ? `(answer ${kind} to see this number)` : value.toFixed(Math.max(0, Math.min(20, cp?.typed?.decimals ?? 0)));
+      return hasAnswer && cp?.truth_key ? d.content.checkpointTruth?.(cp.truth_key) : undefined;
     });
   };
 
@@ -427,7 +524,7 @@ export function mountCases(app: Hono, d: RouteDeps): CaseCheckpoints {
     let grain = !grainGated;
     for (const x of (await d.logger.readAll('attempts')) as { record?: string; item_id?: string; grading_source?: string; outcome?: string; case_id?: string; kind?: string }[]) {
       // An answer as replay counts one: never an override's copy, a crash or a refused statement.
-      const counted = x.record === 'attempt' && x.grading_source !== 'override' && x.outcome !== 'crash' && x.outcome !== 'rejected';
+      const counted = x.record === 'attempt' && countsAsAttempt(x);
       if (counted && typeof gateId === 'string' && x.item_id === gateId) open = true;
       else if (counted && typeof cp3Id === 'string' && x.item_id === cp3Id) grain = true;
       else if (x.record === 'self_check' && x.case_id === r.case_id && x.kind === 'sketch') grain = true;
@@ -436,10 +533,65 @@ export function mountCases(app: Hono, d: RouteDeps): CaseCheckpoints {
     return false;
   };
 
-  const logSelfCheck = (r: CaseRecord, kind: SelfCheckKind, phase: Phase, x: { fields?: Record<string, string>; text?: string; ticked?: string[] }): Promise<void> => {
-    const record: SelfCheck = { record: 'self_check', schema_version: SCHEMA_VERSION, ts: new Date().toISOString(), session_id: d.session.currentId ?? '',
-      kind, phase, case_id: r.case_id, item_instance_id: null, block_id: null, text: x.text ?? null, fields: x.fields ?? null, ticked: x.ticked ?? [] };
+  /** A self-check of the case; inside a mock run (S7-01) it names the run's block, in phase mock, stamped by the run clock. */
+  const logSelfCheck = (r: CaseRecord, kind: SelfCheckKind, phase: Phase, x: { fields?: Record<string, string>; text?: string; ticked?: string[] },
+    mock: MockContext | null = null): Promise<void> => {
+    const record: SelfCheck = { record: 'self_check', schema_version: SCHEMA_VERSION, ts: new Date(clock(mock)).toISOString(), session_id: d.session.currentId ?? '',
+      kind, phase: mock ? 'mock' : phase, case_id: r.case_id, item_instance_id: null, block_id: mock?.block_id ?? null, text: x.text ?? null,
+      fields: x.fields ?? null, ticked: x.ticked ?? [] };
     return d.logger.selfCheck(record);
+  };
+
+  /**
+   * S4B-09, S4B-10: the plan (CRAFT-03's six fields), logged; a case route's reply is the model plan once its gates are open (planWait), or
+   * a note. S7-13: in a mock run the plan is its first step, and its reply is { recorded: true }: the model plan waits for the review.
+   */
+  const plan = async (r: CaseRecord, b: Body, mock: MockContext | null): Promise<PlanReply | RecordedReply> => {
+    const fields = fieldsOf(b, PLAN_FIELDS, 'plan');
+    await logSelfCheck(r, 'plan', PHASE, { fields }, mock);
+    if (mock) return { recorded: true };
+    // Writing a plan first is encouraged: before CP1 has an answer (and, for an opener, before its sketch or CP3) the reply is a
+    // note, and nothing is logged as shown, so the later CP1 is never assisted by it and the sketch is not spoiled. Sent again once
+    // they are done, the reply is the model plan.
+    const wait = planWait(r, statusOf(r));
+    return wait === null ? { model_plan: r.model_plan } : { note: wait };
+  };
+  /**
+   * S4B-10, S4B-11: CP6's insight, logged; a case route's reply is the filled model answer and the rubric once CP5 has an answer, or a note.
+   * S7-03: in a mock run its reply is { recorded: true }: the model answer and the rubric open in the review (S7-07).
+   */
+  const insight = async (r: CaseRecord, b: Body, mock: MockContext | null): Promise<InsightReply | RecordedReply> => {
+    const text = b.text;
+    if (typeof text !== 'string' || text.trim() === '') throw refuse(400, 'Write the insight first.');
+    if (text.length > MAX_TEXT) throw refuse(400, `Keep the insight under ${MAX_TEXT} characters.`);
+    await logSelfCheck(r, 'insight', PHASE, { text }, mock);
+    if (mock) return { recorded: true };
+    // As the plan: before CP5 has an answer the reply is a note; sent again once it has one, the filled model answer and the rubric.
+    return gateOpen(r, statusOf(r), 'CP5') ? { model_answer: filledModelAnswer(r), rubric: rubricOf(r) } : { note: INSIGHT_NOTE };
+  };
+  /**
+   * S4B-11: the rubric points ticked, once an insight reply has shown the model answer (M3). S7-16: a mock run's is ticked in its review,
+   * which shows the model answer, over its mock's rubric (mockRubric: its core lines included); its core lines decide CP6. Ruling S7-C30
+   * (N2 M3): as the inbox rubric waits for an insight, a run with nothing written takes only an empty rubric, which settles it.
+   */
+  const rubric = async (r: CaseRecord, b: Body, mock: MockContext | null): Promise<OkReply> => {
+    if (mock) {
+      const kind: unknown = r.kind;
+      const core = isMockCaseKind(kind) ? d.content.mocks?.[kind].core_rubric ?? [] : [];
+      const ticked = tickedOf(b, mockRubric(levelOf(r), core));
+      const wrote = (d.state.attemptRecords() as readonly { record?: unknown; kind?: unknown; block_id?: unknown }[])
+        .some((x) => x.record === 'self_check' && x.kind === 'insight' && x.block_id === mock.block_id);
+      if (ticked.length > 0 && !wrote) throw refuse(409, 'Nothing was written in this run, so nothing can be ticked. Save the rubric empty to close the run.');
+      await logSelfCheck(r, 'rubric', PHASE, { ticked }, mock);
+      return { ok: true };
+    }
+    const ticked = tickedOf(b, rubricOf(r));
+    if (!(await modelShown(r, 'insight', 'CP5'))) {
+      throw refuse(409, statusOf(r)?.insight ? 'Send your insight again once CP5 has an answer. The rubric scores it against the model answer.'
+        : 'Write the insight first. The rubric scores it.');
+    }
+    await logSelfCheck(r, 'rubric', PHASE, { ticked });
+    return { ok: true };
   };
 
   const answerableOf = (cp: string): AnswerableKind => {
@@ -464,14 +616,7 @@ export function mountCases(app: Hono, d: RouteDeps): CaseCheckpoints {
   // S4B-09 and S4B-10: the plan, then the model plan; the points ticked as matching it.
   app.post('/api/cases/:id/plan', async (c) => {
     const r = caseOf(c.req.param('id'));
-    const fields = fieldsOf(await readBody(c), PLAN_FIELDS, 'plan');
-    await logSelfCheck(r, 'plan', PHASE, { fields });
-    // Writing a plan first is encouraged: before CP1 has an answer (and, for an opener, before its sketch or CP3) the reply is a
-    // note, and nothing is logged as shown, so the later CP1 is never assisted by it and the sketch is not spoiled. Sent again once
-    // they are done, the reply is the model plan.
-    const wait = planWait(r, statusOf(r));
-    const body: PlanReply = wait === null ? { model_plan: r.model_plan } : { note: wait };
-    return c.json(body);
+    return c.json(await plan(r, await readBody(c), null));
   });
   app.post('/api/cases/:id/plan-check', async (c) => {
     const r = caseOf(c.req.param('id'));
@@ -497,24 +642,15 @@ export function mountCases(app: Hono, d: RouteDeps): CaseCheckpoints {
   // S4B-10 and S4B-11: CP6's insight, then the filled model answer and the rubric; the rubric points ticked.
   app.post('/api/cases/:id/insight', async (c) => {
     const r = caseOf(c.req.param('id'));
-    const text = (await readBody(c)).text;
-    if (typeof text !== 'string' || text.trim() === '') throw refuse(400, 'Write the insight first.');
-    if (text.length > MAX_TEXT) throw refuse(400, `Keep the insight under ${MAX_TEXT} characters.`);
-    await logSelfCheck(r, 'insight', PHASE, { text });
-    // As the plan: before CP5 has an answer the reply is a note; sent again once it has one, the filled model answer and the rubric.
-    const body: InsightReply = gateOpen(r, statusOf(r), 'CP5') ? { model_answer: filledModelAnswer(r), rubric: rubricOf(r) } : { note: INSIGHT_NOTE };
-    return c.json(body);
+    return c.json(await insight(r, await readBody(c), null));
   });
   app.post('/api/cases/:id/rubric', async (c) => {
     const r = caseOf(c.req.param('id'));
-    const ticked = tickedOf(await readBody(c), rubricOf(r));
-    if (!(await modelShown(r, 'insight', 'CP5'))) {
-      throw refuse(409, statusOf(r)?.insight ? 'Send your insight again once CP5 has an answer. The rubric scores it against the model answer.'
-        : 'Write the insight first. The rubric scores it.');
-    }
-    await logSelfCheck(r, 'rubric', PHASE, { ticked });
-    return c.json<OkReply>({ ok: true });
+    return c.json(await rubric(r, await readBody(c), null));
   });
 
-  return { resolve, serve, answer };
+  return {
+    resolve, serve, answer, serveIn, answerCheckpoint, plan, insight, rubric,
+    selfCheck: (r, kind, x, mock) => logSelfCheck(r, kind, PHASE, x, mock),
+  };
 }

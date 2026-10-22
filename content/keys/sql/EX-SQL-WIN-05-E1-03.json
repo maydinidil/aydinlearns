@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-WIN-05-E1-03",
+  "item_version": 1,
+  "reference_sql": "SELECT product_id, valid_from, list_price_eur,\n  CASE WHEN COUNT(*) OVER (PARTITION BY product_id ORDER BY valid_from ROWS BETWEEN 2 PRECEDING AND CURRENT ROW) = 3\n       THEN ROUND(AVG(list_price_eur) OVER (PARTITION BY product_id ORDER BY valid_from ROWS BETWEEN 2 PRECEDING AND CURRENT ROW), 2)\n  END AS avg_price_3v\nFROM price_history\nWHERE product_id BETWEEN 1 AND 25",
+  "alternatives": [
+    "SELECT product_id, valid_from, list_price_eur,\n  ROUND((list_price_eur\n    + LAG(list_price_eur, 1) OVER (PARTITION BY product_id ORDER BY valid_from)\n    + LAG(list_price_eur, 2) OVER (PARTITION BY product_id ORDER BY valid_from)) / 3, 2) AS avg_price_3v\nFROM price_history\nWHERE product_id BETWEEN 1 AND 25",
+    "WITH w AS (\n  -- one row per product per price version\n  SELECT product_id, valid_from, list_price_eur,\n    AVG(list_price_eur) OVER (PARTITION BY product_id ORDER BY valid_from ROWS BETWEEN 2 PRECEDING AND CURRENT ROW) AS avg_3,\n    COUNT(*) OVER (PARTITION BY product_id ORDER BY valid_from ROWS BETWEEN 2 PRECEDING AND CURRENT ROW) AS n\n  FROM price_history\n  WHERE product_id BETWEEN 1 AND 25\n)\nSELECT product_id, valid_from, list_price_eur, CASE WHEN n = 3 THEN ROUND(avg_3, 2) END AS avg_price_3v\nFROM w"
+  ],
+  "other_way": {
+    "sql": "SELECT product_id, valid_from, list_price_eur,\n  ROUND((list_price_eur\n    + LAG(list_price_eur, 1) OVER (PARTITION BY product_id ORDER BY valid_from)\n    + LAG(list_price_eur, 2) OVER (PARTITION BY product_id ORDER BY valid_from)) / 3, 2) AS avg_price_3v\nFROM price_history\nWHERE product_id BETWEEN 1 AND 25",
+    "tradeoff": "Adding the price and the two before it with LAG leaves short windows missing by itself, but it needs one more LAG for every extra version."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-43",
+      "sql": "SELECT product_id, valid_from, list_price_eur, ROUND(AVG(list_price_eur) OVER (PARTITION BY product_id ORDER BY valid_from ROWS BETWEEN 2 PRECEDING AND CURRENT ROW), 2) AS avg_price_3v FROM price_history WHERE product_id BETWEEN 1 AND 25"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-37",
+      "sql": "SELECT product_id, valid_from, list_price_eur, CASE WHEN COUNT(*) OVER (ORDER BY product_id, valid_from ROWS BETWEEN 2 PRECEDING AND CURRENT ROW) = 3 THEN ROUND(AVG(list_price_eur) OVER (ORDER BY product_id, valid_from ROWS BETWEEN 2 PRECEDING AND CURRENT ROW), 2) END AS avg_price_3v FROM price_history WHERE product_id BETWEEN 1 AND 25"
+    }
+  ],
+  "hint3_partial": "SELECT product_id, valid_from, list_price_eur,\n  CASE WHEN COUNT(*) OVER (PARTITION BY product_id ORDER BY valid_from ROWS BETWEEN 2 PRECEDING AND CURRENT ROW) = ___\n       THEN ROUND(AVG(list_price_eur) OVER (PARTITION BY product_id ORDER BY valid_from ROWS BETWEEN 2 PRECEDING AND CURRENT ROW), 2)\n  END AS avg_price_3v\nFROM price_history\nWHERE product_id BETWEEN 1 AND 25",
+  "solver": {
+    "prompt_hash": "cee4672da2634006",
+    "schema_version": "e8cea7c4eacc",
+    "dataset_version": "e7c58abf7e8f892e",
+    "grader_version": "7a.1",
+    "query": "SELECT product_id, valid_from, list_price_eur,\n  CASE WHEN COUNT(*) OVER (PARTITION BY product_id ORDER BY valid_from ROWS BETWEEN 2 PRECEDING AND CURRENT ROW) = 3\n    THEN ROUND(AVG(list_price_eur) OVER (PARTITION BY product_id ORDER BY valid_from ROWS BETWEEN 2 PRECEDING AND CURRENT ROW), 2) END AS avg_price_3v\nFROM price_history\nWHERE product_id BETWEEN 1 AND 25\n",
+    "at": "2026-10-21T09:05:09.061Z"
+  }
+}

@@ -1,0 +1,44 @@
+{
+  "item_id": "EX-SQL-WIN-06-E2-06",
+  "item_version": 1,
+  "reference_sql": "WITH ranked AS (  -- one row per order of a registered customer, numbered from the customer's latest\n  SELECT customer_id, channel,\n         ROW_NUMBER() OVER (PARTITION BY customer_id ORDER BY order_ts DESC, order_id) AS rn\n  FROM orders\n  WHERE customer_id IS NOT NULL\n    AND order_ts >= TIMESTAMP '2025-01-01' AND order_ts < TIMESTAMP '2025-07-01'\n)\nSELECT channel, COUNT(*) AS customers\nFROM ranked\nWHERE rn = 1\nGROUP BY channel",
+  "alternatives": [
+    "SELECT r.channel, COUNT(*) AS customers\nFROM (\n  -- one row per order of a registered customer, numbered from the customer's latest\n  SELECT customer_id, channel,\n         ROW_NUMBER() OVER (PARTITION BY customer_id ORDER BY order_ts DESC, order_id) AS rn\n  FROM orders\n  WHERE customer_id IS NOT NULL\n    AND order_ts >= TIMESTAMP '2025-01-01' AND order_ts < TIMESTAMP '2025-07-01'\n) AS r\nWHERE r.rn = 1\nGROUP BY r.channel",
+    "SELECT l.channel, COUNT(*) AS customers\nFROM (\n  -- one row per registered customer: the latest order\n  SELECT customer_id, channel\n  FROM orders\n  WHERE customer_id IS NOT NULL\n    AND order_ts >= TIMESTAMP '2025-01-01' AND order_ts < TIMESTAMP '2025-07-01'\n  QUALIFY ROW_NUMBER() OVER (PARTITION BY customer_id ORDER BY order_ts DESC, order_id) = 1\n) AS l\nGROUP BY l.channel"
+  ],
+  "other_way": {
+    "sql": "SELECT l.channel, COUNT(*) AS customers\nFROM (\n  -- one row per registered customer: the latest order\n  SELECT customer_id, channel\n  FROM orders\n  WHERE customer_id IS NOT NULL\n    AND order_ts >= TIMESTAMP '2025-01-01' AND order_ts < TIMESTAMP '2025-07-01'\n  QUALIFY ROW_NUMBER() OVER (PARTITION BY customer_id ORDER BY order_ts DESC, order_id) = 1\n) AS l\nGROUP BY l.channel",
+    "tradeoff": "QUALIFY filters the window result in the same query, which is shorter, but PostgreSQL, MySQL and SQL Server do not accept it."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-40",
+      "sql": "WITH ranked AS (SELECT customer_id, channel, RANK() OVER (PARTITION BY customer_id ORDER BY order_ts DESC) AS rn FROM orders WHERE customer_id IS NOT NULL AND order_ts >= TIMESTAMP '2025-01-01' AND order_ts < TIMESTAMP '2025-07-01') SELECT channel, COUNT(*) AS customers FROM ranked WHERE rn = 1 GROUP BY channel"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-18",
+      "sql": "WITH ranked AS (SELECT customer_id, channel, ROW_NUMBER() OVER (PARTITION BY customer_id ORDER BY order_ts, order_id) AS rn FROM orders WHERE customer_id IS NOT NULL AND order_ts >= TIMESTAMP '2025-01-01' AND order_ts < TIMESTAMP '2025-07-01') SELECT channel, COUNT(*) AS customers FROM ranked WHERE rn = 1 GROUP BY channel"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-03",
+      "sql": "WITH ranked AS (SELECT customer_id, channel, ROW_NUMBER() OVER (PARTITION BY customer_id ORDER BY order_ts DESC, order_id) AS rn FROM orders WHERE order_ts >= TIMESTAMP '2025-01-01' AND order_ts < TIMESTAMP '2025-07-01') SELECT channel, COUNT(*) AS customers FROM ranked WHERE rn = 1 GROUP BY channel"
+    },
+    {
+      "id": "PW4",
+      "error_id": "ERR-SYN-08",
+      "sql": "SELECT channel, COUNT(*) AS customers FROM orders WHERE customer_id IS NOT NULL AND order_ts >= TIMESTAMP '2025-01-01' AND order_ts < TIMESTAMP '2025-07-01' AND ROW_NUMBER() OVER (PARTITION BY customer_id ORDER BY order_ts DESC, order_id) = 1 GROUP BY channel"
+    }
+  ],
+  "hint3_partial": "WITH ranked AS (  -- one row per order of a registered customer, numbered from the customer's latest\n  SELECT customer_id, channel,\n         ROW_NUMBER() OVER (PARTITION BY customer_id ORDER BY order_ts DESC, order_id) AS rn\n  FROM orders\n  WHERE customer_id IS NOT NULL\n    AND order_ts >= TIMESTAMP '2025-01-01' AND order_ts < TIMESTAMP '2025-07-01'\n)\nSELECT channel, COUNT(*) AS customers\nFROM ranked\nWHERE ___\nGROUP BY channel",
+  "solver": {
+    "prompt_hash": "5589f7af2f4b853e",
+    "schema_version": "7ed366279088",
+    "dataset_version": "e7c58abf7e8f892e",
+    "grader_version": "7a.1",
+    "query": "WITH latest AS (\n  SELECT customer_id, channel\n  FROM orders\n  WHERE customer_id IS NOT NULL\n    AND order_ts >= TIMESTAMP '2025-01-01 00:00:00' AND order_ts < TIMESTAMP '2025-07-01 00:00:00'\n  QUALIFY ROW_NUMBER() OVER (PARTITION BY customer_id ORDER BY order_ts DESC, order_id ASC) = 1\n)\nSELECT channel, COUNT(*) AS customers\nFROM latest\nGROUP BY channel\n",
+    "at": "2026-10-21T09:05:10.487Z"
+  }
+}

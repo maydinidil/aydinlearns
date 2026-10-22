@@ -1,0 +1,163 @@
+{
+  "id": "EX-SQL-WIN-05-E2-02",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "rolling_rate",
+    "rolling_sums",
+    "range_interval",
+    "ad_spend_daily"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-05"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "lesson",
+  "target_concept_id": "SQL-WIN-05",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-TYPE-01",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-DATE-02",
+    "SQL-WIN-01",
+    "SQL-WIN-04",
+    "SQL-WIN-05"
+  ],
+  "template_id": "T-WIN-05-rolling-ctr",
+  "template_params": {
+    "table": "ad_spend_daily",
+    "campaign": "Search | email marketing software | 2025",
+    "window": "7 calendar days"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "mailvora",
+  "schema": "mailvora",
+  "edge_schema": "mailvora_edge_win",
+  "prompt": "For the campaign named 'Search | email marketing software | 2025', show each UTC day of July 2025 with spend, with that day's clicks and impressions and the 7-day click-through rate: the clicks of the 7 days ending on that day divided by the impressions of those days, as a percentage rounded to 2 decimals. The 7 days are calendar days, that day included, and may reach back into June; a day with no row adds no clicks and no impressions. Return spend_date, clicks, impressions and ctr_7d_pct. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "spend_date",
+        "type_class": "temporal"
+      },
+      {
+        "name": "clicks",
+        "type_class": "numeric"
+      },
+      {
+        "name": "impressions",
+        "type_class": "numeric"
+      },
+      {
+        "name": "ctr_7d_pct",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per day with spend"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "spend_date",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "clicks",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "impressions",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "ctr_7d_pct",
+        "type_class": "numeric",
+        "precision": "ratio",
+        "require_rounding": 2
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "spend_date"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the 7-day click-through rate: the clicks of the window divided by its impressions.",
+    "Add up clicks and impressions over a frame that counts calendar days, not rows, then divide once; the July filter belongs outside the step."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 47,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 48,
+      "to": 340,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 341,
+      "to": 416,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 417,
+      "to": 487,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 488,
+      "to": 538,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 539,
+      "to": 549,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 550,
+      "to": 614,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": {
+    "stage1": 100,
+    "stage2": 100
+  },
+  "faded_shape": "WITH daily AS (\n  -- one row per day with spend\n  SELECT a.spend_date, a.clicks, a.impressions,\n    ",
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "Two rolling sums over the same 7 calendar days, divided once, weight each day by its impressions; the window reads June because the July filter runs after it.",
+  "faded_suffix": "\n  FROM ad_spend_daily a\n  JOIN campaigns c ON c.campaign_id = a.campaign_id\n  WHERE c.campaign_name = 'Search | email marketing software | 2025'\n)\nSELECT spend_date, clicks, impressions, ctr_7d_pct\nFROM daily\nWHERE spend_date BETWEEN DATE '2025-07-01' AND DATE '2025-07-31'"
+}

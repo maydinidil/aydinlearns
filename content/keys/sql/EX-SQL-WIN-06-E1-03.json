@@ -1,0 +1,44 @@
+{
+  "item_id": "EX-SQL-WIN-06-E1-03",
+  "item_version": 1,
+  "reference_sql": "WITH ranked AS (  -- one row per check, numbered within its product from the latest\n  SELECT product_id, competitor, observed_ts, price_eur,\n         ROW_NUMBER() OVER (PARTITION BY product_id ORDER BY observed_ts DESC, competitor) AS rn\n  FROM competitor_prices\n  WHERE product_id BETWEEN 1 AND 20\n    AND observed_ts >= TIMESTAMP '2025-01-01' AND observed_ts < TIMESTAMP '2025-07-01'\n)\nSELECT product_id, competitor, observed_ts, price_eur\nFROM ranked\nWHERE rn = 1",
+  "alternatives": [
+    "SELECT r.product_id, r.competitor, r.observed_ts, r.price_eur\nFROM (\n  -- one row per check, numbered within its product from the latest\n  SELECT product_id, competitor, observed_ts, price_eur,\n         ROW_NUMBER() OVER (PARTITION BY product_id ORDER BY observed_ts DESC, competitor) AS rn\n  FROM competitor_prices\n  WHERE product_id BETWEEN 1 AND 20\n    AND observed_ts >= TIMESTAMP '2025-01-01' AND observed_ts < TIMESTAMP '2025-07-01'\n) AS r\nWHERE r.rn = 1",
+    "SELECT product_id, competitor, observed_ts, price_eur\nFROM competitor_prices\nWHERE product_id BETWEEN 1 AND 20\n  AND observed_ts >= TIMESTAMP '2025-01-01' AND observed_ts < TIMESTAMP '2025-07-01'\nQUALIFY ROW_NUMBER() OVER (PARTITION BY product_id ORDER BY observed_ts DESC, competitor) = 1"
+  ],
+  "other_way": {
+    "sql": "SELECT product_id, competitor, observed_ts, price_eur\nFROM competitor_prices\nWHERE product_id BETWEEN 1 AND 20\n  AND observed_ts >= TIMESTAMP '2025-01-01' AND observed_ts < TIMESTAMP '2025-07-01'\nQUALIFY ROW_NUMBER() OVER (PARTITION BY product_id ORDER BY observed_ts DESC, competitor) = 1",
+    "tradeoff": "QUALIFY filters the window result in the same query, which is shorter, but PostgreSQL, MySQL and SQL Server do not accept it."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-40",
+      "sql": "WITH ranked AS (SELECT product_id, competitor, observed_ts, price_eur, RANK() OVER (PARTITION BY product_id ORDER BY observed_ts DESC) AS rn FROM competitor_prices WHERE product_id BETWEEN 1 AND 20 AND observed_ts >= TIMESTAMP '2025-01-01' AND observed_ts < TIMESTAMP '2025-07-01') SELECT product_id, competitor, observed_ts, price_eur FROM ranked WHERE rn = 1"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-18",
+      "sql": "WITH ranked AS (SELECT product_id, competitor, observed_ts, price_eur, ROW_NUMBER() OVER (PARTITION BY product_id ORDER BY observed_ts, competitor) AS rn FROM competitor_prices WHERE product_id BETWEEN 1 AND 20 AND observed_ts >= TIMESTAMP '2025-01-01' AND observed_ts < TIMESTAMP '2025-07-01') SELECT product_id, competitor, observed_ts, price_eur FROM ranked WHERE rn = 1"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-37",
+      "sql": "WITH ranked AS (SELECT product_id, competitor, observed_ts, price_eur, ROW_NUMBER() OVER (ORDER BY observed_ts DESC, competitor) AS rn FROM competitor_prices WHERE product_id BETWEEN 1 AND 20 AND observed_ts >= TIMESTAMP '2025-01-01' AND observed_ts < TIMESTAMP '2025-07-01') SELECT product_id, competitor, observed_ts, price_eur FROM ranked WHERE rn = 1"
+    },
+    {
+      "id": "PW4",
+      "error_id": "ERR-SYN-08",
+      "sql": "SELECT product_id, competitor, observed_ts, price_eur FROM competitor_prices WHERE product_id BETWEEN 1 AND 20 AND observed_ts >= TIMESTAMP '2025-01-01' AND observed_ts < TIMESTAMP '2025-07-01' AND ROW_NUMBER() OVER (PARTITION BY product_id ORDER BY observed_ts DESC, competitor) = 1"
+    }
+  ],
+  "hint3_partial": "WITH ranked AS (  -- one row per check, numbered within its product from the latest\n  SELECT product_id, competitor, observed_ts, price_eur,\n         ROW_NUMBER() OVER (PARTITION BY product_id ORDER BY observed_ts DESC, competitor) AS rn\n  FROM competitor_prices\n  WHERE product_id BETWEEN 1 AND 20\n    AND observed_ts >= TIMESTAMP '2025-01-01' AND observed_ts < TIMESTAMP '2025-07-01'\n)\nSELECT product_id, competitor, observed_ts, price_eur\nFROM ranked\nWHERE rn = ___",
+  "solver": {
+    "prompt_hash": "e10682e7dc3131cf",
+    "schema_version": "ffc6be9b2fbc",
+    "dataset_version": "e7c58abf7e8f892e",
+    "grader_version": "7a.1",
+    "query": "SELECT product_id, competitor, observed_ts, price_eur\nFROM competitor_prices\nWHERE product_id BETWEEN 1 AND 20\n  AND observed_ts >= TIMESTAMP '2025-01-01 00:00:00' AND observed_ts < TIMESTAMP '2025-07-01 00:00:00'\nQUALIFY ROW_NUMBER() OVER (PARTITION BY product_id ORDER BY observed_ts DESC, competitor ASC) = 1\n",
+    "at": "2026-10-21T09:05:10.097Z"
+  }
+}

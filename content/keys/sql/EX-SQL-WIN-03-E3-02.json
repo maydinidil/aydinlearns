@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-WIN-03-E3-02",
+  "item_version": 1,
+  "reference_sql": "WITH gaps AS (\n  -- one row per payment that was not refunded\n  SELECT subscription_id,\n    CAST(paid_at AS DATE) - CAST(LAG(paid_at) OVER (PARTITION BY subscription_id ORDER BY paid_at) AS DATE) AS gap_days\n  FROM payments\n  WHERE NOT refunded\n)\nSELECT s.plan_name, MAX(g.gap_days) AS max_gap_days\nFROM gaps g\nJOIN subscriptions s ON s.subscription_id = g.subscription_id\nWHERE g.gap_days IS NOT NULL\nGROUP BY s.plan_name",
+  "alternatives": [
+    "WITH kept AS (\n  -- one row per payment that was not refunded\n  SELECT subscription_id, paid_at\n  FROM payments\n  WHERE NOT refunded\n), gaps AS (\n  -- one row per payment that was not refunded\n  SELECT k.subscription_id,\n    CAST(k.paid_at AS DATE) - CAST((SELECT MAX(k2.paid_at) FROM kept k2 WHERE k2.subscription_id = k.subscription_id AND k2.paid_at < k.paid_at) AS DATE) AS gap_days\n  FROM kept k\n)\nSELECT s.plan_name, MAX(g.gap_days) AS max_gap_days\nFROM gaps g\nJOIN subscriptions s ON s.subscription_id = g.subscription_id\nWHERE g.gap_days IS NOT NULL\nGROUP BY s.plan_name",
+    "WITH gaps AS (\n  -- one row per payment that was not refunded\n  SELECT p.subscription_id, s.plan_name,\n    CAST(p.paid_at AS DATE) - CAST(LAG(p.paid_at) OVER (PARTITION BY p.subscription_id ORDER BY p.paid_at) AS DATE) AS gap_days\n  FROM payments p\n  JOIN subscriptions s ON s.subscription_id = p.subscription_id\n  WHERE NOT p.refunded\n)\nSELECT plan_name, MAX(gap_days) AS max_gap_days\nFROM gaps\nGROUP BY plan_name\nHAVING MAX(gap_days) IS NOT NULL"
+  ],
+  "other_way": {
+    "sql": "WITH kept AS (\n  -- one row per payment that was not refunded\n  SELECT subscription_id, paid_at\n  FROM payments\n  WHERE NOT refunded\n), gaps AS (\n  -- one row per payment that was not refunded\n  SELECT k.subscription_id,\n    CAST(k.paid_at AS DATE) - CAST((SELECT MAX(k2.paid_at) FROM kept k2 WHERE k2.subscription_id = k.subscription_id AND k2.paid_at < k.paid_at) AS DATE) AS gap_days\n  FROM kept k\n)\nSELECT s.plan_name, MAX(g.gap_days) AS max_gap_days\nFROM gaps g\nJOIN subscriptions s ON s.subscription_id = g.subscription_id\nWHERE g.gap_days IS NOT NULL\nGROUP BY s.plan_name",
+    "tradeoff": "A subquery for each payment's latest earlier payment gives the same gaps without a window, but rereads the payments for every row."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-37",
+      "sql": "WITH gaps AS (SELECT subscription_id, CAST(paid_at AS DATE) - CAST(LAG(paid_at) OVER (ORDER BY subscription_id, paid_at) AS DATE) AS gap_days FROM payments WHERE NOT refunded) SELECT s.plan_name, MAX(g.gap_days) AS max_gap_days FROM gaps g JOIN subscriptions s ON s.subscription_id = g.subscription_id WHERE g.gap_days IS NOT NULL GROUP BY s.plan_name"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-14",
+      "sql": "WITH gaps AS (SELECT subscription_id, CAST(paid_at AS DATE) - CAST(LAG(paid_at) OVER (PARTITION BY subscription_id ORDER BY paid_at) AS DATE) AS gap_days FROM payments WHERE NOT refunded) SELECT s.plan_name, MIN(g.gap_days) AS max_gap_days FROM gaps g JOIN subscriptions s ON s.subscription_id = g.subscription_id WHERE g.gap_days IS NOT NULL GROUP BY s.plan_name"
+    }
+  ],
+  "hint3_partial": "WITH gaps AS (\n  -- one row per payment that was not refunded\n  SELECT subscription_id,\n    CAST(paid_at AS DATE) - CAST(LAG(paid_at) OVER (PARTITION BY ___ ORDER BY paid_at) AS DATE) AS gap_days\n  FROM payments\n  WHERE NOT refunded\n)\nSELECT s.plan_name, MAX(g.gap_days) AS max_gap_days\nFROM gaps g\nJOIN subscriptions s ON s.subscription_id = g.subscription_id\nWHERE g.gap_days IS NOT NULL\nGROUP BY s.plan_name",
+  "solver": {
+    "prompt_hash": "d4b7fb2bfc7d81fb",
+    "schema_version": "8318987af50d",
+    "dataset_version": "e7c58abf7e8f892e",
+    "grader_version": "7a.1",
+    "query": "WITH p AS (\n  SELECT s.plan_name, p.subscription_id, p.payment_id, p.paid_at, CAST(timezone('UTC', p.paid_at) AS DATE) AS d\n  FROM payments p JOIN subscriptions s ON s.subscription_id = p.subscription_id\n  WHERE NOT p.refunded\n), g AS (\n  SELECT plan_name,\n    d - LAG(d) OVER (PARTITION BY subscription_id ORDER BY paid_at, payment_id) AS gap\n  FROM p\n)\nSELECT plan_name, MAX(gap) AS max_gap_days\nFROM g\nWHERE gap IS NOT NULL\nGROUP BY plan_name\n",
+    "at": "2026-10-21T09:05:07.903Z"
+  }
+}

@@ -44,7 +44,12 @@ import { mountTutor, type TutorRuntime, type TutorTarget } from './routes/tutor.
 import { tutorSource } from './tutor-source.ts';
 import { isEffort, modelInfo } from './tutor/models.ts';
 import { isCap, NO_LIMIT } from './tutor/spend.ts';
-import { HELP_WAITS, NO_DRILLS, RUN_OVER, type DrillGate, type DrillRuns } from './drill.ts';
+import { HELP_WAITS, isMockPlan, isTakeHome, MOCK_ONE_ANSWER, MOCK_RUN_CHANGED, MOCK_RUN_OVER, NO_DRILLS, openTakeHomes, RUN_OVER, type DrillGate, type DrillRuns, type Schedule } from './drill.ts';
+import { isTakeHomeBlock, MOCK_BLOCK_PREFIX } from './mocks.ts';
+import { CODE_ONE_ANSWER, CODE_RUN_CHANGED, CODE_RUN_OVER } from './run.ts';
+import { mountMocks, type MockAnswerView } from './routes/mocks.ts';
+import { CODE_PLAN_FIRST } from './routes/mock-cases.ts';
+import { checkpointTarget } from './routes/cases.ts';
 import { answered, funnel, httpRoute, itemFunnel, levelName, markFailed, recordError, sqlFunnel } from './observe.ts';
 import { journey, journeyScreen } from './journey.ts';
 import { JOURNEY_PATH, SCREENS, SUBJECT_ID, type Screen } from '../schemas/journey.ts';
@@ -114,6 +119,11 @@ export interface AppDeps {
   servings?: Servings;
   /** Sprint T (D91, block P): the tutor's key store, test hook, model maker and spend ledger, made by server/main.ts. Absent: the tutor is off. */
   tutor?: TutorRuntime;
+  /**
+   * Sprint 7 (Task M2): the timed runs' clock (the time a run starts and ends by, S2-42's check on every request) and their timers, which a
+   * test injects. Absent (server/main.ts): the real clock and timers.
+   */
+  runClock?: { now: () => number; schedule?: Schedule };
 }
 
 /**
@@ -209,6 +219,10 @@ const isDate = (v: unknown): v is string => {
   return t.getUTCFullYear() === y && t.getUTCMonth() === m - 1 && t.getUTCDate() === d;
 };
 const isText = (v: unknown): v is string => typeof v === 'string' && v.trim() !== '';
+/** S7-01: a mock run's block (mock-<mock>-<uuid>). */
+const isMockBlock = (blockId: string | null): boolean => blockId !== null && blockId.startsWith(MOCK_BLOCK_PREFIX);
+/** S7-03: why a mock answer that was not graded (a crash) is no answer; the learner may send it again. */
+const MOCK_NOT_GRADED = 'The SQL runner restarted, so this answer was not graded. Submit it again.';
 
 async function readBody(c: Context): Promise<Body> {
   const b: unknown = await c.req.json().catch(() => null);
@@ -332,12 +346,36 @@ const isHelp = (r: LoggedRecord): boolean => r.record === 'hint_opened' || r.rec
  *   does. Version 1 help records name no item, so a help-only instance from before version 2 stays unrecoverable.
  * Each instance's attempts, hints and reveals are then replayed in log order through the same steps the routes use, and a
  * close never comes before the instance's own records.
+ * S7-15 (ruling S7-C25): the instances a take-home the log holds open answered (or, F4-3-2, tried with only a crash) are left open: the app
+ * rebuilds them in its run (createApp), whose end closes them, so their errors are noted at that end (S7-C16), never mid-run.
  */
 export function recoveredCloses(records: object[], sessionEnds: ReadonlyMap<string, string>, events: object[]): ItemClose[] {
-  const recs = records as LoggedRecord[];
   const sessions = (events as { event?: unknown; phase?: unknown; session_id?: unknown; ts?: unknown }[])
     .filter((e) => e.event === 'session' && e.phase === 'start' && typeof e.session_id === 'string' && typeof e.ts === 'string')
     .map((e) => ({ start: e.ts as string, end: sessionEnds.get(e.session_id as string) ?? null }));
+  const resumed = takeHomeInstances(records);
+  return [...unclosedInstances(records)].filter(([id]) => !resumed.has(id)).map(([id, o]) => {
+    const end = o.helpOnly ? sessionEndAt(sessions, o.last) ?? NaN : Date.parse(sessionEnds.get(o.session) ?? '');
+    // A drill run left open ended with its session (S2-16), so its items close as the run's end closes them (S2-42); a half-mock's
+    // too (S3-09).
+    const reason: CloseReason = (o.i.phase === 'drill' || o.i.phase === 'mock') && o.i.blockId !== null ? 'run_end' : 'session_end';
+    return closeRecord(id, o.i, reason, new Date(end >= o.last ? end : o.last));   // a close never comes before its own records
+  });
+}
+
+/**
+ * S7-15 (ruling S7-C25): the instances of the take-homes the log holds open that answered a question, or (F4-3-2) tried to with only a crash
+ * logged, which their rebuilt run takes back: none is closed before the run's end.
+ */
+const takeHomeInstances = (records: readonly object[]): Set<string> =>
+  new Set(openTakeHomes(records).flatMap((t) => [...t.answered.values(), ...t.attempted.values()]));
+
+/**
+ * Every instance the attempt files name with no item_close, rebuilt from its records through the routes' steps (recoveredCloses above),
+ * with the session its attempts belong to, the time of its last record, and whether it is help-only.
+ */
+function unclosedInstances(records: readonly object[]): Map<string, { i: Instance; session: string; last: number; helpOnly: boolean }> {
+  const recs = records as LoggedRecord[];
   const done = new Set(recs.filter((r) => r.record === 'item_close').map((r) => r.item_instance_id));
   const pending = new Map<string, { i: Instance; session: string; last: number; helpOnly: boolean }>();
   for (const r of recs) {
@@ -372,13 +410,7 @@ export function recoveredCloses(records: object[], sessionEnds: ReadonlyMap<stri
       else noteSubmission(o.i, r.outcome !== 'crash', r.outcome === 'pass');
     }
   }
-  return [...pending].map(([id, o]) => {
-    const end = o.helpOnly ? sessionEndAt(sessions, o.last) ?? NaN : Date.parse(sessionEnds.get(o.session) ?? '');
-    // A drill run left open ended with its session (S2-16), so its items close as the run's end closes them (S2-42); a half-mock's
-    // too (S3-09).
-    const reason: CloseReason = (o.i.phase === 'drill' || o.i.phase === 'mock') && o.i.blockId !== null ? 'run_end' : 'session_end';
-    return closeRecord(id, o.i, reason, new Date(end >= o.last ? end : o.last));   // a close never comes before its own records
-  });
+  return pending;
 }
 
 /**
@@ -404,12 +436,35 @@ function sessionEndAt(sessions: readonly { start: string; end: string | null }[]
 export function blockClosesDue(r: ReplayResult, at: Date | null): BlockClose[] {
   const out: BlockClose[] = [];
   for (const [block_id, b] of r.blocks) {
-    if (b.closed_at !== null) continue;
+    // S7-15 (ruling S7-C25): a take-home's clock is wall time, so neither a session end nor startup recovery closes its block: its run does.
+    if (b.closed_at !== null || isTakeHomeBlock(block_id)) continue;
     const closes = b.instance_ids.map((id) => Date.parse(r.instances.get(id)?.closed_at ?? '')).filter((t) => !Number.isNaN(t));
     if (!closes.length) continue;
     const last = Math.max(...closes);
     const ts = Math.max(last, (at ? at.getTime() : sessionEndAt(r.sessions, last)) ?? -Infinity);
     out.push({ record: 'block_close', schema_version: SCHEMA_VERSION, ts: new Date(ts).toISOString(), block_id, card_reviews: [] });
+  }
+  return out;
+}
+
+/**
+ * S7-06 (ruling S7-C18): the block_close of every mock run that a stop or a crash left with none and that no instance close names (a run with
+ * no answer, so replay does not know its block and blockClosesDue cannot close it). It is stamped at the end of the session whose window
+ * holds its mock_open (S2-85), never after the run's limit and never before its mock_open, so mockRuns never reads a dead run as on. A
+ * take-home is left as it is: its clock is wall time, which an app stop does not end (S7-15).
+ */
+export function mockBlockClosesDue(records: object[], r: ReplayResult): BlockClose[] {
+  const out: BlockClose[] = [];
+  const done = new Set<string>();
+  for (const o of records as Record<string, unknown>[]) {
+    const block = typeof o.block_id === 'string' ? o.block_id : null;
+    if (o.record !== 'mock_open' || block === null || o.mock === 'take_home' || done.has(block) || r.blocks.has(block)) continue;
+    const opened = Date.parse(typeof o.ts === 'string' ? o.ts : '');
+    if (Number.isNaN(opened)) continue;
+    const limit = opened + (typeof o.minutes === 'number' && o.minutes > 0 ? o.minutes : 0) * 60_000;
+    const ts = Math.max(opened, Math.min(sessionEndAt(r.sessions, opened) ?? opened, limit));
+    out.push({ record: 'block_close', schema_version: SCHEMA_VERSION, ts: new Date(ts).toISOString(), block_id: block, card_reviews: [] });
+    done.add(block);
   }
   return out;
 }
@@ -423,6 +478,15 @@ export function createApp(d: AppDeps): Hono {
   const app = new Hono();
   const instances = new Map<string, Instance>();
   const closed = new Set<string>(d.closedInstances);      // item_close is written once per instance (design §13)
+  // S7-15 (ruling S7-C25): a take-home the log holds open goes on after a restart (routes/mock-cases.ts rebuilds its run), so the instances
+  // it answered (or tried, F4-3-2: a crash only, which takes its answer again) are open again, rebuilt from their records as recovery would
+  // close them: its end closes them (S7-C16), and their one answer is counted (S7-03).
+  const resumed = takeHomeInstances(d.state.attemptRecords());
+  for (const [id, o] of unclosedInstances(d.state.attemptRecords())) {
+    if (!resumed.has(id)) continue;
+    closed.delete(id);
+    instances.set(id, o.i);
+  }
   /** I1 (T-16): the instances closed since start whose phase hides labels, so a tutor question on one still leaves them out. */
   const closedHidden = new Set<string>();
   const servings = d.servings ?? new Servings();
@@ -436,10 +500,46 @@ export function createApp(d: AppDeps): Hono {
   let drills: DrillGate = NO_DRILLS;
 
   const itemOf = (b: Body): SqlItem => {
-    const item = d.content.item(String(b.item_id));
+    const item = d.content.item(String(b.item_id)) ?? mockItemOf(b);
     if (!item) throw refuse(404, 'Unknown item.');
     return item;
   };
+  /**
+   * S7-01 (Task M2): a held-out mock item (content.mockItem) is found only through its own instance: one its mock run served, while that
+   * run is on or ending; or (S7-07) once the run has ended, its closed instance, whose review opens its answer. Undefined otherwise, so
+   * every route answers a mock item named any other way as an unknown item, as before.
+   */
+  const mockItemOf = (b: Body): SqlItem | undefined => {
+    const id = typeof b.item_instance_id === 'string' ? b.item_instance_id : '';
+    const itemId = String(b.item_id);
+    const run = drills.runOf(id);
+    if (run) return isMockPlan(run.plan) && run.servings.some((s) => s.item_instance_id === id && s.item_id === itemId) ? d.content.mockItem?.(itemId) : undefined;
+    const done = closed.has(id) ? d.state.current().instances.get(id) : undefined;
+    return done?.phase === 'mock' && done.item_id === itemId && isMockBlock(done.block_id) ? d.content.mockItem?.(itemId) : undefined;
+  };
+  /** A mock item: one the practice lookup does not hold, so itemOf reached it through its mock instance. */
+  const isMockItem = (item: SqlItem): boolean => d.content.item(item.id) === undefined;
+  /** S7-06, S7-13: the target concept of a mock run's item: a mock item's own, or a case mock checkpoint's (S2-50's fallback, cases.ts). */
+  const mockTargetOf = (itemId: string): string | undefined => {
+    const item = d.content.mockItem?.(itemId);
+    if (item) return item.target_concept_id;
+    for (const r of d.content.mockCases?.() ?? []) {
+      const cp = r.checkpoints.find((c) => c.item_id === itemId);
+      if (cp) return checkpointTarget(r, cp);
+    }
+    return undefined;
+  };
+  /**
+   * S7-C17: an instance served in phase mock: by its open instance or its serving while its run is on or ending, else by its replayed close
+   * (a run that ended, in this process or before a restart).
+   */
+  const servedInMock = (id: string): boolean => {
+    const phase = instances.get(id)?.phase ?? servings.get(id)?.phase ?? null;
+    if (phase !== null) return phase === 'mock';
+    return closed.has(id) && d.state.current().instances.get(id)?.phase === 'mock';
+  };
+  /** Mock instances whose one answer is being graded (S7-03): a second answer sent meanwhile is refused, as one sent after it is. */
+  const answering = new Set<string>();
   const keyOf = (item: SqlItem): SqlKey => {
     const key = d.content.key(item.id);
     if (!key) throw refuse(404, 'This item has no answer key.');
@@ -528,7 +628,8 @@ export function createApp(d: AppDeps): Hono {
     let i = instances.get(id);
     if (!i) {
       const served = servings.get(id);
-      const target = served ? targetOf(d.content, served.item_id) : undefined;
+      // S7-06: a mock run's end closes its items too, which only the mock store holds: a mock item, or a case mock's checkpoint (S2-50's target).
+      const target = served ? targetOf(d.content, served.item_id) ?? (served.phase === 'mock' ? mockTargetOf(served.item_id) : undefined) : undefined;
       if (!served || target === undefined) throw new Error(`There is no open or served item instance ${id}.`);
       i = newInstance(served.item_id, target, at.getTime());
       applyServing(i, served);
@@ -583,14 +684,16 @@ export function createApp(d: AppDeps): Hono {
    * Design §5 and S2-44: in a timed drill, help waits for the end-of-run review. On an item of a run that is still on, a hint or
    * "show answer" is refused (409). On a closed item of a drill run that has ended, it is answered and logged, and the item stays
    * closed: what the help record names comes from the logged close, and replay ignores help after a close. Null for any other item.
+   * S7-02 and S7-07 (Task M2): a mock run's item the same, in phase mock: help waits while its run is on, and its review opens it, free.
    */
   const reviewHelp = async (id: string, item: SqlItem): Promise<{ item_id: string; target_concept_id: string; phase: Phase } | null> => {
     if (await drills.running(id)) throw refuse(409, HELP_WAITS);
     if (!closed.has(id)) return null;
     const done = d.state.current().instances.get(id);
-    if (done?.phase !== 'drill' || done.block_id === null) return null;     // any other closed item: the usual 409 follows
+    if (done === undefined || done.block_id === null) return null;
+    if (done.phase !== 'drill' && !(done.phase === 'mock' && isMockBlock(done.block_id))) return null;   // any other closed item: the usual 409 follows
     if (done.item_id !== item.id) throw refuse(400, 'This item instance belongs to another item.');
-    return { item_id: done.item_id, target_concept_id: done.concept_id, phase: 'drill' };
+    return { item_id: done.item_id, target_concept_id: done.concept_id, phase: done.phase === 'mock' ? 'mock' : 'drill' };
   };
   /**
    * T-03 (D95): the instance a tutor question names. An SQL write or fix item's instance is opened as a hint opens it, so the session end
@@ -730,25 +833,51 @@ export function createApp(d: AppDeps): Hono {
   });
 
   app.post('/api/submit', async (c) => {
+    // F4-3-1 (S7-15, D9): a mock answer is timed by the run clock when it arrives, never after its grade, so one sent before a take-home's
+    // deadline is never late.
+    const arrived = (d.runClock?.now ?? Date.now)();
     const b = await readBody(c);
-    const item = itemOf(b);
+    const item = d.content.item(String(b.item_id)) ?? mockItemOf(b);
+    // S7-C18: a question of a mock run this process does not hold (unreached when a crash stopped the app) answers that its run is over.
+    if (!item) {
+      if (await mockRunOver(b.block_id, b.item_id)) throw refuse(409, MOCK_RUN_OVER, CODE_RUN_OVER);
+      if (staleInMock(b.block_id, b.item_instance_id, b.item_id)) throw refuse(404, MOCK_RUN_CHANGED, CODE_RUN_CHANGED);   // F4-2-1
+      throw refuse(404, 'Unknown item.');
+    }
     const key = keyOf(item);
     const runner = runnerOf();
     if (typeof b.sql !== 'string') throw refuse(400, 'sql is missing.');
     const sql = b.sql;
     const id = text(b, 'item_instance_id');
+    // S7-03 (Task M2): a mock item is reached only through its run's instance (itemOf), so its answer is an answer inside its mock run.
+    const mock = isMockItem(item);
+    // S7-06 (ruling S7-C18): a mock question closed by its run's end, here or before a restart (a session end, recovery), answers that its run
+    // is over, as one whose run ended in this process does below; never the generic CLOSED. A take-home's answered instance after a restart
+    // is open (S7-C25), so its second answer is the one-answer 409 below.
+    if (mock && closed.has(id)) throw refuse(409, MOCK_RUN_OVER, CODE_RUN_OVER);
+    // S7-13: a case mock's CP3 takes its answer, as its other checkpoints do, once the run's plan is logged.
+    const waits = mock ? planWait(drills.runOf(id)?.block_id ?? '') : null;
+    if (waits !== null) throw refuse(409, waits, CODE_PLAN_FIRST);
     // S2-42 and D9: a drill item takes answers until its run's stop; one sent in time holds the run's end until it is logged.
     const release = await drills.holdForSubmission(id);
-    if (!release) throw refuse(409, RUN_OVER);
+    if (!release) throw mock ? refuse(409, MOCK_RUN_OVER, CODE_RUN_OVER) : refuse(409, RUN_OVER);
     let logged: Date | null = null;
+    let claimed = false;
     try {
       const i = open(id, item, b);
       i.phase ??= 'free';                                        // an attempt always has a phase: 'free' when no request ever named one
+      if (mock) {
+        // S7-03: one graded answer per question; claimed before the first await, so one sent while it is graded is refused too.
+        if (i.graded > 0 || answering.has(id)) throw refuse(409, MOCK_ONE_ANSWER, CODE_ONE_ANSWER);
+        answering.add(id);
+        claimed = true;
+      }
       const watched = watchTableCheck(runner);
       // D41: the stricter checks only for an instance served in screen mode; every other one grades as before.
       const r = await grade({ item, key, sql, screenMode: i.screenMode }, { runner: watched.runner, edge: d.content.edge(item.edge_schema) ?? null, feedback: d.content.feedback, schemaNotes: d.schemaNotes });
       // Design §18: a rejected statement is neither logged nor graded; a crash is logged and not graded; everything else is graded.
-      if (r.outcome === 'rejected') return c.json({ ...r, attempt_id: null });
+      // S7-03: in a mock, neither is the question's answer, and the reply says only why (the gate's reason), never a result.
+      if (r.outcome === 'rejected') return c.json(mock ? { recorded: false, message: r.rejectMessage ?? MOCK_NOT_GRADED } satisfies MockAnswerView : { ...r, attempt_id: null });
       // An override being written may still be given back: count this submission against what the log will hold.
       const pending = overriding.get(id);
       if (pending) await pending;
@@ -756,7 +885,8 @@ export function createApp(d: AppDeps): Hono {
       const checks = r.notes.filter((n) => n.startsWith('CHK-')).map((n) => n.split(':')[0]!);
       // The declared mode covers every outcome; a gate reply that reports 'text' is caught as well.
       if (d.tableCheck === 'text' || watched.sawText()) checks.push('CHK-TABLE-CHECK-TEXT');
-      const at = new Date();
+      // F4-3-1: a mock answer's time is its arrival (never before its instance's start); any other answer's, as before, once graded.
+      const at = mock ? new Date(Math.max(arrived, i.started)) : new Date();
       const attempt: AydinAttempt = {
         record: 'attempt', schema_version: SCHEMA_VERSION, attempt_id: randomUUID(), app: 'aydinlearns', section: 'sql',
         session_id: d.session.currentId ?? '', item_instance_id: id, started_at: new Date(i.started).toISOString(),
@@ -767,7 +897,8 @@ export function createApp(d: AppDeps): Hono {
         active_ms: Math.max(0, Number(b.active_ms) || 0), target_ms: item.time_target_ms, outcome: r.outcome, is_correct: r.outcome === 'pass',
         partial_score: r.outcome === 'pass' ? 100 : r.partial?.total ?? null, error_ids: r.diagnosis ? [r.diagnosis.errorId] : [],
         checks, grading_source: 'auto',
-        confidence: b.confidence === 1 || b.confidence === 2 || b.confidence === 3 || b.confidence === 4 ? b.confidence : null,
+        // S7-03: a mock runs in exam mode, which asks no confidence (null), as a GA4 exam-mode run does.
+        confidence: !mock && (b.confidence === 1 || b.confidence === 2 || b.confidence === 3 || b.confidence === 4) ? b.confidence : null,
         content_version: d.content.contentVersion, grader_version: GRADER_VERSION,
         world: 'pricing', difficulty: item.difficulty, sub_skill: item.sub_skill, dataset_version: d.manifest.dataset_version, duckdb_version: d.manifest.library_version,
         ...(i.cardId === null ? {} : { card_id: i.cardId }),        // D28: a mistake-card review; the override copies it with the rest
@@ -782,8 +913,11 @@ export function createApp(d: AppDeps): Hono {
       answered(itemFunnel(d.content, item), attempt, r.outcome === 'pass' ? 'passed' : r.graded ? 'failed' : 'not graded');
       if (r.outcome === 'crash') markFailed(r.notes[0] ?? 'grading crashed');   // a fixed note, never the runner's own message
       if (r.graded) i.lastGraded = attempt;
+      // S7-03: every answer reply inside a mock run is { recorded: true }: no correctness, no value, no diff. The review shows them.
+      if (mock) return c.json((r.graded ? { recorded: true } : { recorded: false, message: r.rejectMessage ?? MOCK_NOT_GRADED }) satisfies MockAnswerView);
       return c.json({ ...r, attempt_id: attempt.attempt_id });
     } finally {
+      if (claimed) answering.delete(id);
       release(logged);
     }
   });
@@ -843,6 +977,9 @@ export function createApp(d: AppDeps): Hono {
   app.post('/api/override', async (c) => {
     const b = await readBody(c);
     const id = text(b, 'item_instance_id');
+    // S7-03, S7-09 (ruling S7-C17): a mock question has one graded answer and its screens never offer "I was right". An instance served in
+    // phase mock is refused first, in the run and after it, the same for a right and a wrong answer, so the reply never tells them apart.
+    if (servedInMock(id)) throw refuse(409, MOCK_ONE_ANSWER, CODE_ONE_ANSWER);
     // A session end (or a restart) closed it: the same 409 as every other request on a closed instance, so the
     // screen reopens the exercise. The disputed attempt can no longer be overridden.
     if (closed.has(id)) throw refuse(409, CLOSED);
@@ -975,17 +1112,71 @@ export function createApp(d: AppDeps): Hono {
   // routes mount, after Today's, so Today asks this at request time: the open servings of the run that is on (one at a time
   // across sections, S3-08; its items stay open until its end), each at the run's start.
   let timed: DrillRuns | null = null;
+  /** S7-13: why a case mock's question waits for its plan, or null; the mock routes set it when they mount (routes/mock-cases.ts). */
+  let planWait: (blockId: string) => string | null = () => null;
+  /**
+   * S7-06 (ruling S7-C18): whether `block` names a mock run that is over though this process may not hold it: a mock block that is not a run
+   * on or ending here, and that a mock_open in the log names. With `itemId`, that item must be a mock item too.
+   */
+  const mockRunOver = async (block: unknown, itemId?: unknown): Promise<boolean> => {
+    if (typeof block !== 'string' || !isMockBlock(block) || timed?.get(block)) return false;
+    if (itemId !== undefined && d.content.mockItem?.(String(itemId)) === undefined) return false;
+    return (await d.logger.readAll('attempts') as Record<string, unknown>[]).some((r) => r.record === 'mock_open' && r.block_id === block);
+  };
+  /**
+   * F4-2-1: `block` names a mock run that is on, and `id` an instance this process does not know at all (no run, serving, open instance or close
+   * holds it): one served before an app restart, which the rebuilt run (a take-home, S7-C25) replaced. With `itemId`, that item must be one of
+   * the run's. Its refusal carries CODE_RUN_CHANGED, so the screen reads the run again and opens the question on its new instance.
+   */
+  const staleInMock = (block: unknown, id: unknown, itemId?: unknown): boolean => {
+    const run = typeof block === 'string' ? timed?.get(block) : undefined;
+    if (!run || !isMockPlan(run.plan) || typeof id !== 'string' || id === '') return false;
+    if (itemId !== undefined && !run.servings.some((s) => s.item_id === itemId)) return false;
+    return drills.runOf(id) === undefined && !instances.has(id) && servings.get(id) === undefined && !closed.has(id);
+  };
   const liveRunItems = (): { item_id: string; started_at: string }[] => {
     const run = timed?.current();
     return run ? run.servings.map((s) => ({ item_id: s.item_id, started_at: new Date(run.started_at).toISOString() })) : [];
   };
+  /**
+   * S7-01 (Task M2): POST /api/serve purpose mock serves a question of a mock run: the item of an instance its start served, only while the
+   * run is on, as /api/items shows an item (publicItem) with its tables' notes, in screen mode. It mints nothing, since the start served the
+   * run's items. Every other purpose goes on to Today's /api/serve (routes/today.ts), mounted next; Hono keeps the parsed body for it.
+   */
+  app.post('/api/serve', async (c, next) => {
+    const b: unknown = await c.req.json().catch(() => null);
+    if (!isRecord(b) || b.purpose !== 'mock') { await next(); return; }
+    const block = typeof b.block_id === 'string' ? b.block_id : '';
+    const id = typeof b.item_instance_id === 'string' ? b.item_instance_id : '';
+    const run = timed?.get(block);
+    const s = run && isMockPlan(run.plan) ? run.servings.find((x) => x.item_instance_id === id) : undefined;
+    const item = s ? d.content.mockItem?.(s.item_id) : undefined;
+    // S7-C18: a run this process does not hold that the log does (it ended, or a stop or a crash ended it before a restart) is over.
+    if (!run && await mockRunOver(block)) throw refuse(409, MOCK_RUN_OVER, CODE_RUN_OVER);
+    if (!s && staleInMock(block, id)) throw refuse(404, MOCK_RUN_CHANGED, CODE_RUN_CHANGED);     // F4-2-1: served before an app restart
+    if (!run || !s || !item) throw refuse(404, 'Unknown mock question.');
+    if (!(await drills.running(id))) throw refuse(409, MOCK_RUN_OVER, CODE_RUN_OVER);
+    // S7-13: a case mock's CP3 opens, as its other checkpoints do, once its plan is logged.
+    const waits = planWait(block);
+    if (waits !== null) throw refuse(409, waits, CODE_PLAN_FIRST);
+    journey('item_viewed', { item_id: item.id, phase: 'mock', ...itemFunnel(d.content, item) });   // D77 (F2-2-3): the question was sent; IDs only
+    const serving = servings.get(id);
+    return c.json({ item_id: item.id, item_instance_id: id, phase: 'mock' as const, block_id: block, repeat_exposure: serving?.repeat_exposure ?? false, hide_labels: true,
+      screen_mode: serving?.screen_mode === true, item: publicItem(item, undefined), schemaNotes: d.schemaNotes.filter((n) => n.schema === item.schema) });
+  });
   const today = mountToday(app, routeDeps, liveRunItems);
   const runs = mountDrill(app, routeDeps);
   drills = runs;
   timed = runs;
+  // S7-06 (ruling S7-C19): the idle end waits while a mock run is on before its deadline; its own deadline ends it. S7-15: not for a
+  // take-home, whose wall clock a session end never stops, so the idle end may end the session while it runs.
+  d.session.setHoldsIdle((at) => { const on = runs.current(); return on !== undefined && isMockPlan(on.plan) && !isTakeHome(on) && at.getTime() < on.ends_at; });
+  const cases = mountCases(app, routeDeps);                // sprint 4b (Task D1): the case routes; the case mocks answer through their engine (Task N2)
+  // Sprint 7 (Task M2): the recruiter mocks, on the shared run clock (S7-02); Task N2: the case mocks with them, and a take-home rebuilt (S7-C25).
+  planWait = mountMocks(app, routeDeps, runs, cases).planWait;
   mountChoice(app, routeDeps, runs);                       // Task B2: the choice routes ask the run clock (S3-03, S3-12)
   mountRun(app, routeDeps, runs);                          // the GA4 runs share the SQL drills' clock (S3-08)
-  mountCp4(app, routeDeps, mountCases(app, routeDeps));    // sprint 4b (Task D1): the case routes; the opener CP4 path aliases theirs
+  mountCp4(app, routeDeps, cases);                         // the opener CP4 path aliases the case routes'
   mountSections(app, routeDeps);
   mountMistakes(app, routeDeps, today);                    // Task C2: serves through Today's serving (S4-08, S4-13, S4-15)
   mountPortfolio(app, routeDeps);                          // sprint 4b (Task D4): the portfolio export and its screen's data (S4B-16 to S4B-19)
@@ -993,9 +1184,10 @@ export function createApp(d: AppDeps): Hono {
   mountProgress(app, routeDeps);                           // sprint 4b (Task E1): GET /api/progress, read only (S4B-27)
   mountLabs(app, routeDeps);                               // sprint 5b (Task B2): the GA4 labs, graded and stated by server/labs.ts (D69)
   mountTutor(app, routeDeps, { runtime: d.tutor ?? null, runs, target: tutorTarget, hides: tutorHides, course: tutorSource(d.content, d.schemaNotes) });   // sprint T (D91)
-  // Writes through the logger only: this runs inside the session tracker's queue.
+  // Writes through the logger only: this runs inside the session tracker's queue. S7-15: the run clock's own end hook (routes/drill.ts) has
+  // ended every run but a take-home, whose questions stay open: its run's end closes them run_end (and its block, which blockClosesDue skips).
   d.endHooks.push(async (at) => {
-    for (const [id, i] of [...instances]) await writeClose(id, i, 'session_end', at);
+    for (const [id, i] of [...instances]) if (i.blockId === null || !runs.get(i.blockId)) await writeClose(id, i, 'session_end', at);
     await closeOpenBlocks(at);
     await writePendingResets();
     endBackup = await backup();

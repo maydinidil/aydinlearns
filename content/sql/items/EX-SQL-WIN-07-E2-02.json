@@ -1,0 +1,137 @@
+{
+  "id": "EX-SQL-WIN-07-E2-02",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "percentile",
+    "quartile_cut",
+    "group_by",
+    "ad_spend_daily",
+    "campaigns"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-07"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "lesson",
+  "target_concept_id": "SQL-WIN-07",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-AGG-02",
+    "SQL-JOIN-01",
+    "SQL-WIN-07"
+  ],
+  "template_id": "T-WIN-07-percentiles-per-group",
+  "template_params": {
+    "table": "ad_spend_daily",
+    "group": "channel",
+    "measure": "impressions",
+    "p": [
+      0.25,
+      0.75
+    ]
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "mailvora",
+  "schema": "mailvora",
+  "edge_schema": "mailvora_edge_win",
+  "prompt": "For each channel, what are the 25th and the 75th percentile of its campaigns' daily impressions from 1 July to 31 October 2025, both days included? spend_date is a UTC day, and each row of ad_spend_daily in that period is one value. Use continuous percentiles: a percentile that falls between two sorted values lies between them in proportion, as the median of an even number of values does. Return three columns, in this order: channel_id, p25_impressions and p75_impressions. Return one row for each channel with rows in that period. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "channel_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "p25_impressions",
+        "type_class": "numeric"
+      },
+      {
+        "name": "p75_impressions",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per channel with rows in the period"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "channel_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "p25_impressions",
+        "type_class": "numeric",
+        "precision": "ratio"
+      },
+      {
+        "name": "p75_impressions",
+        "type_class": "numeric",
+        "precision": "ratio"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "channel_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the two percentile columns: each one sorts the channel's daily impressions and reads the value a quarter, or three quarters, of the way up.",
+    "The percentile function takes the share as a number from 0 to 1 and the values to sort in its WITHIN GROUP part."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 193,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 194,
+      "to": 265,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 266,
+      "to": 332,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 333,
+      "to": 354,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": {
+    "stage1": 28,
+    "stage2": 28
+  },
+  "faded_shape": "SELECT c.channel_id,\n       ",
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "percentile_cont sorts each channel's daily impressions and reads the value at 25% and at 75% of the way up, between two values when it falls between them.",
+  "faded_suffix": "\nFROM ad_spend_daily a\nJOIN campaigns c ON c.campaign_id = a.campaign_id\nWHERE a.spend_date BETWEEN DATE '2025-07-01' AND DATE '2025-10-31'\nGROUP BY c.channel_id"
+}

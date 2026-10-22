@@ -1,0 +1,97 @@
+{
+  "id": "EX-SQL-WIN-05-E2-41",
+  "version": 1,
+  "kind": "choose_query",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "rolling_rate",
+    "choose_query",
+    "range_interval"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-05"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-WIN-05",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-WIN-01",
+    "SQL-WIN-04",
+    "SQL-WIN-05"
+  ],
+  "template_id": "T-WIN-05-choose-rolling-rate",
+  "template_params": {
+    "table": "ad_spend_daily",
+    "channel": "nonbrand_search",
+    "window": "7 calendar days"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "mailvora",
+  "schema": "mailvora",
+  "edge_schema": "mailvora_edge_win",
+  "prompt": "For the nonbrand_search channel (channel_id 1), a report needs each UTC day of July 2025 with spend and the channel's 7-day click-through rate: the clicks of the 7 calendar days ending on that day divided by their impressions, as a percentage rounded to 2 decimals. A day with no spend adds nothing, and the 7 days may reach back into June. Which query returns that, with the columns spend_date and ctr_7d_pct?",
+  "output_contract": null,
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [],
+  "subgoals": [],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 150000,
+  "why_this_works": "",
+  "options": [
+    {
+      "oid": "ob051e53",
+      "text": "WITH daily AS (\n  -- one row per day with spend\n  SELECT a.spend_date, SUM(a.clicks) AS clicks, SUM(a.impressions) AS impressions\n  FROM ad_spend_daily a\n  JOIN campaigns c ON c.campaign_id = a.campaign_id\n  WHERE c.channel_id = 1\n  GROUP BY a.spend_date\n), rates AS (\n  SELECT spend_date,\n    AVG(100.0 * clicks / impressions) OVER (ORDER BY spend_date RANGE BETWEEN INTERVAL 6 DAY PRECEDING AND CURRENT ROW) AS ctr_7d\n  FROM daily\n)\nSELECT spend_date, ROUND(ctr_7d, 2) AS ctr_7d_pct\nFROM rates\nWHERE spend_date BETWEEN DATE '2025-07-01' AND DATE '2025-07-31'",
+      "misconception_id": "ERR-LOG-20"
+    },
+    {
+      "oid": "o0070700",
+      "text": "WITH daily AS (\n  -- one row per day with spend\n  SELECT a.spend_date, SUM(a.clicks) AS clicks, SUM(a.impressions) AS impressions\n  FROM ad_spend_daily a\n  JOIN campaigns c ON c.campaign_id = a.campaign_id\n  WHERE c.channel_id = 1\n  GROUP BY a.spend_date\n), rates AS (\n  SELECT spend_date,\n    100.0 * SUM(clicks) OVER (ORDER BY spend_date ROWS BETWEEN 6 PRECEDING AND CURRENT ROW)\n      / SUM(impressions) OVER (ORDER BY spend_date ROWS BETWEEN 6 PRECEDING AND CURRENT ROW) AS ctr_7d\n  FROM daily\n)\nSELECT spend_date, ROUND(ctr_7d, 2) AS ctr_7d_pct\nFROM rates\nWHERE spend_date BETWEEN DATE '2025-07-01' AND DATE '2025-07-31'",
+      "misconception_id": "ERR-LOG-38"
+    },
+    {
+      "oid": "oe6bad0b",
+      "text": "WITH daily AS (\n  -- one row per day with spend\n  SELECT a.spend_date, SUM(a.clicks) AS clicks, SUM(a.impressions) AS impressions\n  FROM ad_spend_daily a\n  JOIN campaigns c ON c.campaign_id = a.campaign_id\n  WHERE c.channel_id = 1\n  GROUP BY a.spend_date\n), rates AS (\n  SELECT spend_date,\n    100.0 * SUM(clicks) OVER (ORDER BY spend_date RANGE BETWEEN INTERVAL 6 DAY PRECEDING AND CURRENT ROW)\n      / SUM(impressions) OVER (ORDER BY spend_date RANGE BETWEEN INTERVAL 6 DAY PRECEDING AND CURRENT ROW) AS ctr_7d\n  FROM daily\n)\nSELECT spend_date, ROUND(ctr_7d, 2) AS ctr_7d_pct\nFROM rates\nWHERE spend_date BETWEEN DATE '2025-07-01' AND DATE '2025-07-31'",
+      "misconception_id": null
+    },
+    {
+      "oid": "o2faac6c",
+      "text": "WITH daily AS (\n  -- one row per day with spend\n  SELECT a.spend_date, SUM(a.clicks) AS clicks, SUM(a.impressions) AS impressions\n  FROM ad_spend_daily a\n  JOIN campaigns c ON c.campaign_id = a.campaign_id\n  WHERE c.channel_id = 1\n    AND a.spend_date BETWEEN DATE '2025-07-01' AND DATE '2025-07-31'\n  GROUP BY a.spend_date\n)\nSELECT spend_date,\n  ROUND(100.0 * SUM(clicks) OVER (ORDER BY spend_date RANGE BETWEEN INTERVAL 6 DAY PRECEDING AND CURRENT ROW)\n    / SUM(impressions) OVER (ORDER BY spend_date RANGE BETWEEN INTERVAL 6 DAY PRECEDING AND CURRENT ROW), 2) AS ctr_7d_pct\nFROM daily",
+      "misconception_id": "ERR-LOG-43"
+    }
+  ]
+}

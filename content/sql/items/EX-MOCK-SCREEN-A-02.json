@@ -1,0 +1,150 @@
+{
+  "id": "EX-MOCK-SCREEN-A-02",
+  "version": 2,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-02",
+    "mock",
+    "screen",
+    "count_distinct",
+    "group_by",
+    "having",
+    "sales"
+  ],
+  "level": 2,
+  "source_ids": [
+    "01:SQL-AGG-03"
+  ],
+  "verified": true,
+  "as_of": "2026-10-21",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "mock",
+  "target_concept_id": "SQL-AGG-03",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-AGG-03"
+  ],
+  "template_id": "T-MOCK-SCREEN-count-distinct-having-sorted",
+  "template_params": {
+    "table": "sales",
+    "from": "2024-07-01",
+    "to": "2024-12-31",
+    "max_products": 850
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_agg",
+  "prompt": "The range team wants to know which stores carried a narrow range in the second half of 2024. Using the order lines with an order_date from 1 July 2024 to 31 December 2024, both days included, which stores sold 850 different products or fewer? Count only the stores with at least one order line in that period. Return three columns, in this order: store_code; n_products, the number of different products the store sold; and n_orders, the number of different orders it took (an order with several lines counts once). Sort by n_products from lowest to highest, and when stores tie, by store_code from A to Z.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "store_code",
+        "type_class": "text"
+      },
+      {
+        "name": "n_products",
+        "type_class": "numeric"
+      },
+      {
+        "name": "n_orders",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per store"
+  },
+  "rules": {
+    "order_matters": true,
+    "sort_keys": [
+      {
+        "column": "n_products",
+        "desc": false
+      },
+      {
+        "column": "store_code",
+        "desc": false
+      }
+    ],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "store_code",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "n_products",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "n_orders",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "store_code"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the group filter that keeps the stores with 850 different products or fewer.",
+    "A condition on a count of each store belongs after the grouping, in HAVING, and \"different products\" counts each product once."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 97,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 98,
+      "to": 108,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 109,
+      "to": 173,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 174,
+      "to": 193,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 194,
+      "to": 234,
+      "subgoal": "group_filter"
+    },
+    {
+      "from": 235,
+      "to": 266,
+      "subgoal": "sort_limit"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "COUNT(DISTINCT) counts each product and order once per store, and HAVING keeps the stores whose product count is 850 or less after grouping."
+}

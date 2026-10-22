@@ -1,0 +1,143 @@
+{
+  "id": "EX-SQL-WIN-01-E2-06",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "window",
+    "partition_by",
+    "group_by_then_window",
+    "share_of_total",
+    "ad_spend_daily"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-WIN-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-DATE-01",
+    "SQL-JOIN-01",
+    "SQL-WIN-01"
+  ],
+  "template_id": "T-WIN-01-share-of-group-total",
+  "template_params": {
+    "table": "ad_spend_daily",
+    "step": "channel and month",
+    "partition": "channel",
+    "period": "July to October 2025"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "mailvora",
+  "schema": "mailvora",
+  "edge_schema": "mailvora_edge_win",
+  "prompt": "For each channel, how was its ad spend from July to October 2025 spread over those months? Use the rows of ad_spend_daily whose spend_date, a UTC day, falls from 1 July to 31 October 2025, both days included. Return four columns, in this order: channel_id, month (the first day of the month), spend (the channel's spend that month) and share_pct, that spend as a percentage of the channel's spend over the four months, rounded to 2 decimals. Return one row for each channel and month with spend. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "channel_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "month",
+        "type_class": "temporal"
+      },
+      {
+        "name": "spend",
+        "type_class": "numeric"
+      },
+      {
+        "name": "share_pct",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "channel_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "month",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "spend",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "share_pct",
+        "type_class": "numeric",
+        "precision": "ratio",
+        "require_rounding": 2
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "channel_id",
+      "month"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the calculated column share_pct: the month's spend over the channel's spend for the whole period.",
+    "GROUP BY leaves one row per channel and month; a window over those rows that restarts for each channel adds up the months."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 191,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 192,
+      "to": 263,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 264,
+      "to": 341,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 342,
+      "to": 398,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "GROUP BY gives each channel's monthly spend, and the window adds up those months for each channel, so every month is divided by its own channel's total."
+}

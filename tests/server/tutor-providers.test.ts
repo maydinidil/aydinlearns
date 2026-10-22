@@ -14,6 +14,7 @@ import { join, resolve } from 'node:path';
 import { anthropicModel } from '../../server/tutor/providers/anthropic.ts';
 import { openaiModel } from '../../server/tutor/providers/openai.ts';
 import { TUTOR_LINES } from '../../server/tutor/providers/errors.ts';
+import { costOf, PRICES } from '../../server/tutor/prices.ts';
 import { TutorFailure, type Effort, type TutorDone, type TutorModel, type TutorModelInput } from '../../server/tutor/types.ts';
 
 const KEY = 'sk-test-not-a-real-key';
@@ -168,6 +169,66 @@ test('OpenAI: a failed response before any text gives the line for its code', as
   assert.deepEqual(await before('invalid_prompt'), ['refused_request', TUTOR_LINES.refused_request]);
 });
 
+// ---- S7-31: the OpenAI path ---------------------------------------------------------------------------------------------------
+test('S7-31: OpenAI usage with cache writes: the written tokens come out of input_tokens and are priced at the cache-write rate', async () => {
+  const usage = { input_tokens: 900, input_tokens_details: { cached_tokens: 300, cache_write_tokens: 500 }, output_tokens: 40, output_tokens_details: { reasoning_tokens: 0 }, total_tokens: 940 };
+  const { done } = await drain(gpt(fakeFetch(() => streamed(sse([oaCreated, oaDelta(1, 'Hi'), oaDone(2, 'completed', { usage })]))).f));
+  assert.deepEqual(done.usage, { input_tokens: 100, cache_write_tokens: 500, cached_input_tokens: 300, output_tokens: 40 });
+  // GPT-6.1 Sol: 100 x $2 + 500 x $2.5 + 300 x $0.10 + 40 x $10 per million tokens, so the written tokens are not priced as plain input.
+  assert.equal(costOf(PRICES['gpt-6.1-sol']!, done.usage), 0.00188);
+});
+
+test('S7-31: OpenAI insufficient_quota (no credit left) gives the refused line, not "busy"; a policy code gives "could not answer this one"', async () => {
+  const quota = await failure(gpt(fakeFetch(() => failed(429, { error: { message: 'You exceeded your current quota.', type: 'insufficient_quota', code: 'insufficient_quota', param: null } })).f, 0));
+  assert.deepEqual([quota.kind, quota.message], ['refused_request', TUTOR_LINES.refused_request]);
+  for (const code of ['bio_policy', 'misalignment_policy_violation']) {
+    const e = await failure(gpt(fakeFetch(() => streamed(sse([oaCreated, oaFailed(1, code)]))).f));
+    assert.deepEqual([e.kind, e.message], ['declined', 'The tutor could not answer this one.'], code);
+  }
+  // The same code thrown as an `error` event (an APIError with no status) reads the same.
+  const event: [string, object] = ['error', { type: 'error', sequence_number: 1, code: 'bio_policy', message: 'x', param: null }];
+  const thrown = await failure(gpt(fakeFetch(() => streamed(sse([oaCreated, event]))).f));
+  assert.deepEqual([thrown.kind, thrown.message], ['declined', TUTOR_LINES.declined]);
+});
+
+// ---- S7-32: the route and provider details ----------------------------------------------------------------------------------
+test('S7-32: a stream that breaks after the provider\'s first event, before any text, reads "stopped mid-reply", never "can\'t reach"', async () => {
+  const claudeCut = await failure(claude(fakeFetch(() => broken(sse([claudeStart]))).f));
+  assert.deepEqual([claudeCut.kind, claudeCut.message], ['cut_off', 'The tutor stopped mid-reply.']);
+  const gptCut = await failure(gpt(fakeFetch(() => broken(sse([oaCreated]))).f));
+  assert.deepEqual([gptCut.kind, gptCut.message], ['cut_off', 'The tutor stopped mid-reply.']);
+  // Before any event, a connection that never answered is still "can't reach".
+  const never = await failure(claude((async () => { throw new TypeError('fetch failed'); }) as typeof fetch, 0));
+  assert.equal(never.kind, 'offline');
+});
+
+test("S7-32: a Claude call cut after message_start carries the input the provider reported; one cut before it carries none", async () => {
+  const after = await failure(claude(fakeFetch(() => broken(sse([claudeStart, claudeBlock, claudeDelta('Look at ')]))).f));
+  assert.deepEqual([after.kind, after.usage], ['cut_off', { input_tokens: 120, cache_write_tokens: 800, cached_input_tokens: 0, output_tokens: 0 }]);
+  const before = await failure(claude((async () => { throw new TypeError('fetch failed'); }) as typeof fetch, 0));
+  assert.equal(before.usage, null);
+  // OpenAI reports no usage before its final event, so its cut carries none.
+  const gptCut = await failure(gpt(fakeFetch(() => broken(sse([oaCreated, oaDelta(1, 'Part')]))).f));
+  assert.equal(gptCut.usage, null);
+});
+
+test("S7-32: both SDKs log at 'warn' whatever ANTHROPIC_LOG and OPENAI_LOG say, so a request's body (the question, the snapshot) is never printed", async () => {
+  const keep = { a: process.env.ANTHROPIC_LOG, o: process.env.OPENAI_LOG };
+  const out: unknown[] = [];
+  const shown = { log: console.log, info: console.info, debug: console.debug, warn: console.warn, error: console.error };
+  process.env.ANTHROPIC_LOG = 'debug';
+  process.env.OPENAI_LOG = 'debug';
+  for (const k of ['log', 'info', 'debug'] as const) console[k] = (...a: unknown[]) => { out.push(a); };
+  try {
+    await drain(claude(fakeFetch(() => streamed(claudeReply())).f));
+    await drain(gpt(fakeFetch(() => streamed(sse([oaCreated, oaDelta(1, 'Hi'), oaDone(2)]))).f));
+  } finally {
+    Object.assign(console, shown);
+    for (const [k, v] of [['ANTHROPIC_LOG', keep.a], ['OPENAI_LOG', keep.o]] as const) { if (v === undefined) delete process.env[k]; else process.env[k] = v; }
+  }
+  assert.deepEqual(out, [], 'nothing was printed below warn');
+});
+
 // ---- the effort (T-21) ------------------------------------------------------------------------------------------------------
 test("the effort chosen in Settings reaches each provider's request: Claude's output_config.effort, OpenAI's reasoning.effort", async () => {
   for (const effort of ['low', 'medium', 'high'] as const) {
@@ -270,4 +331,52 @@ test('with a gateway set in the environment, startup and both providers still ca
     { url: 'https://api.anthropic.com/v1/messages', key: true, extra: [] },
     { url: 'https://api.openai.com/v1/responses', key: true, extra: [] },
   ] });
+});
+
+// ---- Sprint 7 K1: sprint T's test gaps for the providers (T7 M8, M9) ---------------------------------------------------------------
+test('K1: Claude: a stream that opens with a thinking block yields only the text, and the text block after it', async () => {
+  const thinkingBlock: [string, object] = ['content_block_start', { type: 'content_block_start', index: 0, content_block: { type: 'thinking', thinking: '', signature: '' } }];
+  const thought: [string, object] = ['content_block_delta', { type: 'content_block_delta', index: 0, delta: { type: 'thinking_delta', thinking: 'PRIVATE THOUGHT' } }];
+  const signed: [string, object] = ['content_block_delta', { type: 'content_block_delta', index: 0, delta: { type: 'signature_delta', signature: 'sig' } }];
+  const stopThinking: [string, object] = ['content_block_stop', { type: 'content_block_stop', index: 0 }];
+  const textBlock: [string, object] = ['content_block_start', { type: 'content_block_start', index: 1, content_block: { type: 'text', text: '' } }];
+  const textDelta = (text: string): [string, object] => ['content_block_delta', { type: 'content_block_delta', index: 1, delta: { type: 'text_delta', text } }];
+  const stopText: [string, object][] = [['content_block_stop', { type: 'content_block_stop', index: 1 }],
+    ['message_delta', { type: 'message_delta', delta: { stop_reason: 'end_turn', stop_sequence: null }, usage: { output_tokens: 60 } }], ['message_stop', { type: 'message_stop' }]];
+  const { text, done } = await drain(claude(fakeFetch(() => streamed(sse([claudeStart, thinkingBlock, thought, signed, stopThinking, textBlock, textDelta('Look at '),
+    textDelta('the WHERE clause.'), ...stopText]))).f));
+  assert.equal(text, 'Look at the WHERE clause.', 'the thinking is never shown');
+  assert.ok(!text.includes('PRIVATE THOUGHT'));
+  assert.equal(done.end, 'done');
+  assert.equal(done.usage.output_tokens, 60);
+});
+
+test('K1: OpenAI: a busy provider is tried once more, then reads busy; a busy answer followed by a good one succeeds', async () => {
+  const busy = fakeFetch(() => failed(503, { error: { message: 'The server is overloaded', type: 'server_error', code: null, param: null } }));
+  const e = await failure(gpt(busy.f));
+  assert.deepEqual([e.kind, e.message, busy.sent.length], ['busy', TUTOR_LINES.busy, 2], 'one retry, then the busy line');
+  let calls = 0;
+  const again = fakeFetch(() => (++calls === 1
+    ? failed(503, { error: { message: 'The server is overloaded', type: 'server_error', code: null, param: null } })
+    : streamed(sse([oaCreated, oaDelta(1, 'Look at '), oaDelta(2, 'the WHERE clause.'), oaDone(3)]))));
+  const { text, done } = await drain(gpt(again.f));
+  assert.equal(text, 'Look at the WHERE clause.');
+  assert.equal(done.end, 'done');
+  assert.equal(again.sent.length, 2);
+});
+
+test('K1: OpenAI: the key is never in a request body, whatever the question holds', async () => {
+  const { f, sent } = fakeFetch(() => streamed(sse([oaCreated, oaDelta(1, 'Hi'), oaDone(2)])));
+  await drain(gpt(f));
+  assert.equal(sent.length, 1);
+  assert.ok(!JSON.stringify(sent[0]!.body).includes(KEY), 'the key goes in a header, never the body');
+  assert.ok(!sent[0]!.url.includes(KEY), 'and never in the address');
+});
+
+test('K1: OpenAI: a socket that breaks after some text is cut off with the line for it; one that breaks before any event cannot be reached', async () => {
+  const cut = await failure(gpt(fakeFetch(() => broken(sse([oaCreated, oaDelta(1, 'Look at ')]))).f));
+  assert.deepEqual([cut.kind, cut.message], ['cut_off', TUTOR_LINES.cut_off]);
+  const never = await failure(gpt(fakeFetch(() => broken('')).f));
+  assert.equal(never.kind, 'offline');
+  assert.equal(never.message, "The tutor can't reach OpenAI right now. Everything else works.");
 });

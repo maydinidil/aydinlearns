@@ -6,7 +6,7 @@ import { amsterdamMidnightAfter, replay, type ReplayResult } from '../../core/re
 import { PRESETS } from '../../schemas/presets.ts';
 import {
   A, B, C, GA4, blockClose, card, cardReset, configChange, examDate, exposure, golden, growLeech, instance, item, options, override,
-  plus, primed, reviewsOf, run, sessionEnd, sessionStart, snapshot, type Log, type Step,
+  plus, primed, reviewsOf, run, sessionEnd, sessionStart, snapshot, testCatalog, type Log, type Step,
 } from '../helpers/replay-fixture.ts';
 
 const at = (day: string, hms: string): string => `${day}T${hms}Z`;
@@ -496,4 +496,106 @@ test('S2-97: an untouched close with any reason but run_end keeps its pre-B14 me
     assert.deepEqual([r.concepts.get(c)?.state, r.concepts.get(c)?.firstExposureAt], ['learning', new Date(at(day, '10:00:00')).toISOString()], c);
   }
   assert.deepEqual([...r.instances.values()].map((i) => i.unreached), [false, false, false]);
+});
+
+// S7-06 (ruling S7-C08): an SQL item served in a screen mock (phase mock) takes the drill rules. The knowledge mock's choice items and
+// the case mocks' checkpoints are Part 2's (N1, N2) and keep their own rules here.
+const SIX = [A, B, C, 'SQL-FILTER-02', 'SQL-SORT-01', 'SQL-NULL-01'];
+/** One screen mock question: an SQL write item served in phase mock in `block`, answered once 30 s in, in 10 s of its 120 s target. */
+const mockQuestion = (id: string, concept: string, n: number, block: string, start: string, submit: 'pass' | 'fail'): object[] =>
+  instance({ id, item: `EX-MOCK-SCREEN-A-${String(n).padStart(2, '0')}`, concept, phase: 'mock', block, start,
+    steps: [{ at: plus(start, 30), submit, activeMs: 10_000 }] });
+
+test('S7-06 (S7-C08): a screen mock rates its SQL items as a drill does: a fast first-try pass on a rated card is Good, never Easy; a fail is Again', () => {
+  const d1 = '2026-10-12', d2 = '2026-10-13';
+  const block = 'mock-screen-00000000-0000-4000-8000-000000000001';
+  const r = run({ attempts: [...SIX.flatMap((c) => primed(c, d1)),
+    ...SIX.flatMap((c, i) => mockQuestion(`MK-${i + 1}`, c, i + 1, block, at(d2, `09:0${i}:00`), i < 5 ? 'pass' : 'fail')),
+    blockClose(block, at(d2, '09:45:00'))], events: [] });
+  assert.deepEqual(SIX.map((_, i) => ratingOf(r, `MK-${i + 1}`)), [3, 3, 3, 3, 3, 1]);
+  assert.deepEqual(r.blocks.get(block)!.card_reviews.map((c) => [c.card_id, c.rating]), SIX.map((c, i) => [card(c), i < 5 ? 3 : 1]),
+    'one review per card, written at the block close');
+});
+
+test('S7-06 (S7-C08): a screen mock block of six concepts is a mixed set for mastery, as a drill block is; one reached concept is not (S2-24, S2-109)', () => {
+  const d1 = '2026-10-12';
+  const block = 'mock-screen-00000000-0000-4000-8000-000000000002';
+  const review = (id: string, n: string, start: string) =>
+    instance({ id, item: item(A, n), phase: 'review', start, steps: [{ at: plus(start, 30), submit: 'pass', activeMs: 100_000 }] });
+  const r = run({ attempts: [...SIX.flatMap((c) => primed(c, d1)),
+    ...review('Q1', 'E1-01', '2026-10-13T09:00:00Z'), ...review('Q2', 'E1-02', '2026-10-14T09:00:00Z'),
+    ...SIX.flatMap((c, i) => mockQuestion(`MX-${i + 1}`, c, i + 1, block, `2026-11-10T09:0${i}:00Z`, 'pass')),
+    blockClose(block, '2026-11-10T09:45:00Z')], events: [] });
+  assert.deepEqual(SIX.map((_, i) => r.instances.get(`MX-${i + 1}`)!.qualifying), [true, true, true, true, true, true]);
+  assert.deepEqual([r.concepts.get(A)!.state, r.concepts.get(A)!.masteredAt], ['mastered', '2026-11-10T09:45:00.000Z'],
+    'the third qualifying solve, stamped at the block close (S2-81)');
+  const lone = 'mock-screen-00000000-0000-4000-8000-000000000003';
+  const one = run({ attempts: [...primed(A, d1), ...primed(C, d1), ...mockQuestion('M1-A', A, 1, lone, '2026-10-13T09:00:00Z', 'pass'),
+    ...instance({ id: 'M1-C', item: 'EX-MOCK-SCREEN-A-02', concept: C, phase: 'mock', block: lone, version: 2, start: '2026-10-13T09:00:00Z',
+      steps: [], close: { at: '2026-10-13T09:45:00Z', reason: 'run_end' } }),
+    blockClose(lone, '2026-10-13T09:45:00Z')], events: [] });
+  assert.equal(one.instances.get('M1-C')!.unreached, true);
+  assert.equal(one.instances.get('M1-A')!.qualifying, false, 'only one reached concept: not a mixed-set solve');
+});
+
+test('S7-C08: a case checkpoint served in phase mock keeps the case-checkpoint rule, and its block does not make it a mixed-set solve (N2 rules the case mocks)', () => {
+  const d1 = '2026-10-12', d2 = '2026-10-13';
+  const block = 'mock-case_round-00000000-0000-4000-8000-000000000004';
+  const checkpoint = (id: string, concept: string, n: string, start: string) => instance({ id, item: `EX-OPENER-${n}`, concept, phase: 'mock', block, start,
+    steps: [{ at: plus(start, 30), submit: 'pass', activeMs: 10_000 }] });
+  const r = run({ attempts: [...primed(A, d1), ...primed(C, d1), ...checkpoint('CP-A', A, '91', at(d2, '09:00:00')),
+    ...checkpoint('CP-C', C, '92', at(d2, '09:05:00')), blockClose(block, at(d2, '09:45:00'))], events: [] });
+  assert.deepEqual([ratingOf(r, 'CP-A'), ratingOf(r, 'CP-C')], [3, 3], 'an unassisted first-attempt pass is Good for each credited concept');
+  assert.deepEqual([r.instances.get('CP-A')!.qualifying, r.instances.get('CP-C')!.qualifying], [false, false]);
+});
+
+// L124 (Task N2): the mock tests above write version 1 records with no mock_open. A real mock writes version 7 records after its mock_open
+// (S7-01, D112); stamped so, with the block's mock_open first, the same logs rate the same way.
+const asVersion7 = (records: object[], block: string, mock: 'screen' | 'case_round', ts: string): object[] => [
+  { record: 'mock_open', schema_version: 7, ts, session_id: 'S-1', block_id: block, mock, form_id: mock === 'screen' ? 'SCREEN-A' : 'CASE-ROUND-A', minutes: 45, on_unseen: true },
+  ...records.map((r) => ({ ...r, schema_version: 7 })),
+];
+
+test('S7-06 (L124): stamped as version 7 and led by their mock_open, the mock logs above rate the same: drill rules for a screen mock, the checkpoint rule for a case mock', () => {
+  const d1 = '2026-10-12', d2 = '2026-10-13';
+  const block = 'mock-screen-00000000-0000-4000-8000-000000000011';
+  const rated = run({ attempts: [...SIX.flatMap((c) => primed(c, d1)), ...asVersion7([
+    ...SIX.flatMap((c, i) => mockQuestion(`MK-${i + 1}`, c, i + 1, block, at(d2, `09:0${i}:00`), i < 5 ? 'pass' : 'fail')),
+    blockClose(block, at(d2, '09:45:00'))], block, 'screen', at(d2, '08:59:00'))], events: [] });
+  assert.deepEqual(SIX.map((_, i) => ratingOf(rated, `MK-${i + 1}`)), [3, 3, 3, 3, 3, 1]);
+  assert.deepEqual(rated.blocks.get(block)!.card_reviews.map((c) => [c.card_id, c.rating]), SIX.map((c, i) => [card(c), i < 5 ? 3 : 1]));
+  const mixed = 'mock-screen-00000000-0000-4000-8000-000000000012';
+  const review = (id: string, n: string, start: string) =>
+    instance({ id, item: item(A, n), phase: 'review', start, steps: [{ at: plus(start, 30), submit: 'pass', activeMs: 100_000 }] });
+  const m = run({ attempts: [...SIX.flatMap((c) => primed(c, d1)), ...review('Q1', 'E1-01', '2026-10-13T09:00:00Z'), ...review('Q2', 'E1-02', '2026-10-14T09:00:00Z'),
+    ...asVersion7([...SIX.flatMap((c, i) => mockQuestion(`MX-${i + 1}`, c, i + 1, mixed, `2026-11-10T09:0${i}:00Z`, 'pass')), blockClose(mixed, '2026-11-10T09:45:00Z')],
+      mixed, 'screen', '2026-11-10T08:59:00Z')], events: [] });
+  assert.deepEqual(SIX.map((_, i) => m.instances.get(`MX-${i + 1}`)!.qualifying), [true, true, true, true, true, true]);
+  assert.deepEqual([m.concepts.get(A)!.state, m.concepts.get(A)!.masteredAt], ['mastered', '2026-11-10T09:45:00.000Z']);
+  const caseBlock = 'mock-case_round-00000000-0000-4000-8000-000000000014';
+  const checkpoint = (id: string, concept: string, n: string, start: string) => instance({ id, item: `EX-OPENER-${n}`, concept, phase: 'mock', block: caseBlock, start,
+    steps: [{ at: plus(start, 30), submit: 'pass', activeMs: 10_000 }] });
+  const c = run({ attempts: [...primed(A, d1), ...primed(C, d1), ...asVersion7([...checkpoint('CP-A', A, '91', at(d2, '09:00:00')),
+    ...checkpoint('CP-C', C, '92', at(d2, '09:05:00')), blockClose(caseBlock, at(d2, '09:45:00'))], caseBlock, 'case_round', at(d2, '08:59:00'))], events: [] });
+  assert.deepEqual([ratingOf(c, 'CP-A'), ratingOf(c, 'CP-C')], [3, 3]);
+  assert.deepEqual([c.instances.get('CP-A')!.qualifying, c.instances.get('CP-C')!.qualifying], [false, false]);
+});
+
+// S7-03 (ruling S7-C16): a phase-mock answer's errors are noted when its instance closes (the run's end), never while it is open, so no
+// mistake card, Today review step or "Try again" appears mid-run. A drill grades in the open, so its card is made at the answer.
+test('S7-C16: a failed screen-mock answer makes no mistake card while its instance is open; its run_end close notes the error and makes the card there', () => {
+  const traps = { catalog: { ...testCatalog, trapItemsFor: () => true } };
+  const block = 'mock-screen-00000000-0000-4000-8000-000000000005';
+  const start = '2026-10-13T09:00:00Z', end = '2026-10-13T09:45:00Z';
+  const question = (close: { at: string; reason: 'run_end' } | null) => instance({ id: 'MM-1', item: 'EX-MOCK-SCREEN-A-01', concept: A, phase: 'mock', block, start,
+    version: 2, steps: [{ at: plus(start, 30), submit: 'fail', errors: ['ERR-LOG-14'] }], close });
+  const open = run({ attempts: question(null), events: [] }, { ...traps, now: new Date(plus(start, 60)) });
+  assert.deepEqual([...open.mistakeCards.keys()], [], 'no card while the run is on');
+  const closed = run({ attempts: [...question({ at: end, reason: 'run_end' }), blockClose(block, end)], events: [] }, { ...traps, now: new Date(plus(end, 60)) });
+  const made = closed.mistakeCards.get(`CARD-${A}~ERR-LOG-14`);
+  assert.deepEqual([made?.created_at, made?.attempt_ids], [new Date(end).toISOString(), ['MM-1-1']], 'the card is made at the close, from the answer');
+  // A drill's failed answer is unchanged: its card is made at the answer, its instance still open.
+  const drill = run({ attempts: instance({ id: 'DR-1', item: item(A, 'E1-01'), phase: 'drill', block: 'drill-1', start, version: 2,
+    steps: [{ at: plus(start, 30), submit: 'fail', errors: ['ERR-LOG-14'] }], close: null }), events: [] }, { ...traps, now: new Date(plus(start, 60)) });
+  assert.equal(drill.mistakeCards.get(`CARD-${A}~ERR-LOG-14`)?.created_at, plus(start, 30));
 });

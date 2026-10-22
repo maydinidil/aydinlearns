@@ -19,6 +19,8 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
 from mailvora import generate as mv  # noqa: E402
 from mailvora import notes as mv_notes  # noqa: E402
 from mailvora import raw as mv_raw  # noqa: E402
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+import mailvora_once  # noqa: E402
 
 NO_NETWORK = {"autoinstall_known_extensions": False, "autoload_known_extensions": False}   # ruling R17
 DDL = pathlib.Path(mv.__file__).resolve().parent / "ddl.sql"
@@ -97,9 +99,8 @@ def generated():
     """One generation shared by the test classes, with the build's validation run once."""
     global _GENERATED
     if _GENERATED is None:
-        tables, truth = mv.generate()
-        truth["findings"] = mv.validate(tables, truth)
-        _GENERATED = (tables, truth)
+        tables, truth, findings = mailvora_once.generated()      # S7-30: the one generation the builds share too
+        _GENERATED = (tables, {**truth, "findings": findings})
     return _GENERATED
 
 

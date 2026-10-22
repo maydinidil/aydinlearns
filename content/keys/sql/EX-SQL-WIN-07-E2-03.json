@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-WIN-07-E2-03",
+  "item_version": 1,
+  "reference_sql": "WITH last_orders AS (  -- one row per customer in the range with an order in the period\n  SELECT customer_id, CAST(MAX(order_ts) AS DATE) AS last_order_date\n  FROM orders\n  WHERE customer_id BETWEEN 3001 AND 3100\n    AND order_ts >= TIMESTAMP '2025-01-01' AND order_ts < TIMESTAMP '2025-07-01'\n  GROUP BY customer_id\n),\ngrouped AS (  -- one row per customer, with its recency group\n  SELECT customer_id, last_order_date,\n         NTILE(5) OVER (ORDER BY last_order_date DESC, customer_id) AS recency_group\n  FROM last_orders\n)\nSELECT customer_id, last_order_date\nFROM grouped\nWHERE recency_group = 1",
+  "alternatives": [
+    "WITH last_orders AS (  -- one row per customer in the range with an order in the period\n  SELECT customer_id, CAST(MAX(order_ts) AS DATE) AS last_order_date\n  FROM orders\n  WHERE customer_id BETWEEN 3001 AND 3100\n    AND order_ts >= TIMESTAMP '2025-01-01' AND order_ts < TIMESTAMP '2025-07-01'\n  GROUP BY customer_id\n)\nSELECT g.customer_id, g.last_order_date\nFROM (\n  -- one row per customer, with its recency group\n  SELECT customer_id, last_order_date,\n         NTILE(5) OVER (ORDER BY last_order_date DESC, customer_id) AS recency_group\n  FROM last_orders\n) AS g\nWHERE g.recency_group = 1",
+    "SELECT g.customer_id, g.last_order_date\nFROM (\n  -- one row per customer, with its recency group\n  SELECT customer_id, CAST(MAX(order_ts) AS DATE) AS last_order_date,\n         NTILE(5) OVER (ORDER BY CAST(MAX(order_ts) AS DATE) DESC, customer_id) AS recency_group\n  FROM orders\n  WHERE customer_id BETWEEN 3001 AND 3100\n    AND order_ts >= TIMESTAMP '2025-01-01' AND order_ts < TIMESTAMP '2025-07-01'\n  GROUP BY customer_id\n) AS g\nWHERE g.recency_group = 1"
+  ],
+  "other_way": {
+    "sql": "WITH last_orders AS (  -- one row per customer in the range with an order in the period\n  SELECT customer_id, CAST(MAX(order_ts) AS DATE) AS last_order_date\n  FROM orders\n  WHERE customer_id BETWEEN 3001 AND 3100\n    AND order_ts >= TIMESTAMP '2025-01-01' AND order_ts < TIMESTAMP '2025-07-01'\n  GROUP BY customer_id\n)\nSELECT g.customer_id, g.last_order_date\nFROM (\n  -- one row per customer, with its recency group\n  SELECT customer_id, last_order_date,\n         NTILE(5) OVER (ORDER BY last_order_date DESC, customer_id) AS recency_group\n  FROM last_orders\n) AS g\nWHERE g.recency_group = 1",
+    "tradeoff": "A derived table keeps the steps in one query, but a second CTE names each step and reads from top to bottom."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-18",
+      "sql": "WITH last_orders AS (SELECT customer_id, CAST(MAX(order_ts) AS DATE) AS last_order_date FROM orders WHERE customer_id BETWEEN 3001 AND 3100 AND order_ts >= TIMESTAMP '2025-01-01' AND order_ts < TIMESTAMP '2025-07-01' GROUP BY customer_id), grouped AS (SELECT customer_id, last_order_date, NTILE(5) OVER (ORDER BY last_order_date, customer_id) AS recency_group FROM last_orders) SELECT customer_id, last_order_date FROM grouped WHERE recency_group = 1"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-07",
+      "sql": "WITH grouped AS (SELECT customer_id, CAST(order_ts AS DATE) AS last_order_date, NTILE(5) OVER (ORDER BY order_ts DESC, order_id) AS recency_group FROM orders WHERE customer_id BETWEEN 3001 AND 3100 AND order_ts >= TIMESTAMP '2025-01-01' AND order_ts < TIMESTAMP '2025-07-01') SELECT DISTINCT customer_id, last_order_date FROM grouped WHERE recency_group = 1"
+    }
+  ],
+  "hint3_partial": "WITH last_orders AS (  -- one row per customer in the range with an order in the period\n  SELECT customer_id, CAST(MAX(order_ts) AS DATE) AS last_order_date\n  FROM orders\n  WHERE customer_id BETWEEN 3001 AND 3100\n    AND order_ts >= TIMESTAMP '2025-01-01' AND order_ts < TIMESTAMP '2025-07-01'\n  GROUP BY customer_id\n),\ngrouped AS (  -- one row per customer, with its recency group\n  SELECT customer_id, last_order_date,\n         NTILE(5) OVER (ORDER BY ___) AS recency_group\n  FROM last_orders\n)\nSELECT customer_id, last_order_date\nFROM grouped\nWHERE ___",
+  "solver": {
+    "prompt_hash": "2cf14fc8a1c3279b",
+    "schema_version": "7ed366279088",
+    "dataset_version": "e7c58abf7e8f892e",
+    "grader_version": "7a.1",
+    "query": "WITH last_day AS (\n  SELECT customer_id, CAST(MAX(order_ts) AS DATE) AS last_order_date\n  FROM orders\n  WHERE customer_id BETWEEN 3001 AND 3100\n    AND order_ts >= TIMESTAMP '2025-01-01 00:00:00' AND order_ts < TIMESTAMP '2025-07-01 00:00:00'\n  GROUP BY customer_id\n), g AS (\n  SELECT customer_id, last_order_date,\n         NTILE(5) OVER (ORDER BY last_order_date DESC, customer_id ASC) AS fifth\n  FROM last_day\n)\nSELECT customer_id, last_order_date\nFROM g\nWHERE fifth = 1\n",
+    "at": "2026-10-21T09:05:11.025Z"
+  }
+}

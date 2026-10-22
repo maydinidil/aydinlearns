@@ -1,0 +1,163 @@
+{
+  "id": "EX-SQL-WIN-05-E2-03",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "moving_average",
+    "short_window_left_out",
+    "tie_break",
+    "orders"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-05"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-WIN-05",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-WIN-01",
+    "SQL-WIN-04",
+    "SQL-WIN-05"
+  ],
+  "template_id": "T-WIN-05-moving-average-left-out",
+  "template_params": {
+    "table": "orders",
+    "group": "customer",
+    "window": "3 orders"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_win",
+  "prompt": "For customers with customer_id from 3001 to 4000 (both included), take their orders placed from 1 January to 30 June 2025 (order_ts holds UTC time; both days included, in UTC), each with its net revenue (net_revenue_eur in sales, over its lines). For each order, show the customer's average order value over that order and the 2 orders before it, rounded to 2 decimals. A customer's orders follow each other by order_ts; when two orders share a moment, the lower order_id comes first. Only orders in the period count, and an order with fewer than 3 orders in its window is left out. Return customer_id, order_id, order_ts, revenue_eur and avg_order_value_3. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "customer_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "order_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "order_ts",
+        "type_class": "temporal"
+      },
+      {
+        "name": "revenue_eur",
+        "type_class": "numeric"
+      },
+      {
+        "name": "avg_order_value_3",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "customer_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "order_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "order_ts",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "revenue_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "avg_order_value_3",
+        "type_class": "numeric",
+        "precision": "money",
+        "require_rounding": 2
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "order_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, in a step of its own, give each order its 3-order average and the number of orders in its window.",
+    "Order each customer's orders by time with the order ID as the tie-break; the outer query keeps only the windows that hold 3 orders."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 426,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 427,
+      "to": 747,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 748,
+      "to": 766,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 767,
+      "to": 856,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 857,
+      "to": 870,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 871,
+      "to": 897,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 210000,
+  "why_this_works": "The step gives each order its 3-order average in time order, with order_id breaking ties, and the outer filter drops the short windows."
+}

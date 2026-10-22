@@ -1,0 +1,36 @@
+{
+  "item_id": "EX-MOCK-SCREEN-A-02",
+  "item_version": 2,
+  "reference_sql": "SELECT store_code, COUNT(DISTINCT product_id) AS n_products, COUNT(DISTINCT order_id) AS n_orders\nFROM sales\nWHERE order_date BETWEEN DATE '2024-07-01' AND DATE '2024-12-31'\nGROUP BY store_code\nHAVING COUNT(DISTINCT product_id) <= 850\nORDER BY n_products, store_code",
+  "alternatives": [
+    "SELECT store_code, COUNT(DISTINCT product_id) AS n_products, COUNT(DISTINCT order_id) AS n_orders\nFROM sales\nWHERE order_date >= DATE '2024-07-01' AND order_date <= DATE '2024-12-31'\nGROUP BY store_code\nHAVING COUNT(DISTINCT product_id) < 851\nORDER BY 2, 1",
+    "SELECT store_code, COUNT(DISTINCT product_id) AS n_products, COUNT(DISTINCT order_id) AS n_orders\nFROM sales\nWHERE order_date >= '2024-07-01' AND order_date < '2025-01-01'\nGROUP BY 1\nHAVING NOT COUNT(DISTINCT product_id) > 850\nORDER BY n_products ASC, store_code ASC"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-04",
+      "sql": "SELECT store_code, COUNT(product_id) AS n_products, COUNT(order_id) AS n_orders FROM sales WHERE order_date BETWEEN DATE '2024-07-01' AND DATE '2024-12-31' GROUP BY store_code HAVING COUNT(product_id) <= 850 ORDER BY n_products, store_code"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-15",
+      "sql": "SELECT store_code, COUNT(DISTINCT product_id) AS n_products, COUNT(DISTINCT order_id) AS n_orders FROM sales WHERE order_date BETWEEN DATE '2024-07-01' AND DATE '2024-12-31' GROUP BY store_code HAVING COUNT(DISTINCT product_id) < 850 ORDER BY n_products, store_code"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-SYN-05",
+      "sql": "SELECT store_code, COUNT(DISTINCT product_id) AS n_products, COUNT(DISTINCT order_id) AS n_orders FROM sales WHERE order_date BETWEEN DATE '2024-07-01' AND DATE '2024-12-31' AND COUNT(DISTINCT product_id) <= 850 GROUP BY store_code ORDER BY n_products, store_code"
+    }
+  ],
+  "hint3_partial": "SELECT store_code, COUNT(DISTINCT product_id) AS n_products, COUNT(DISTINCT order_id) AS n_orders\nFROM sales\nWHERE order_date BETWEEN DATE '2024-07-01' AND DATE '2024-12-31'\nGROUP BY store_code\nHAVING ___\nORDER BY ___",
+  "solver": {
+    "prompt_hash": "aa9ae7861d539a3a",
+    "schema_version": "cebf75df442f",
+    "dataset_version": "e7c58abf7e8f892e",
+    "grader_version": "7a.1",
+    "query": "SELECT store_code,\n       COUNT(DISTINCT product_id) AS n_products,\n       COUNT(DISTINCT order_id) AS n_orders\nFROM sales\nWHERE order_date >= DATE '2024-07-01' AND order_date <= DATE '2024-12-31'\nGROUP BY store_code\nHAVING COUNT(DISTINCT product_id) <= 850\nORDER BY n_products ASC, store_code ASC\n",
+    "at": "2026-10-21T10:46:58.785Z"
+  }
+}

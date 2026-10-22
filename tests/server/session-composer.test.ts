@@ -29,15 +29,21 @@ const store = (withContent: string[]): ContentStore => ({
 });
 
 // ---- the confusable-pairs registry (design §5) ---------------------------------------------------
-test('the registry holds the four level 1-2 pairs of design §5, the four level 3 pairs of Task B3 and the four level 4 pairs of sprint 6 Task B2, each applying from its later concept\'s level', async () => {
+test('the registry holds the four level 1-2 pairs of design §5, the four level 3 pairs of Task B3, the four level 4 pairs of sprint 6 Task B2 and the three level 5 pairs of sprint 7 Task A2, each applying from its later concept\'s level', async () => {
   const pairs = await loadPairs();
   assert.deepEqual(pairs.map((p) => p.concepts), [['SQL-FILTER-01', 'SQL-AGG-03'], ['SQL-SORT-01', 'SQL-AGG-02'], ['SQL-FILTER-01', 'SQL-CASE-01'], ['SQL-CASE-01', 'SQL-AGG-04'],
     ['SQL-JOIN-01', 'SQL-JOIN-02'], ['SQL-SET-01', 'SQL-JOIN-02'], ['SQL-JOIN-01', 'SQL-JOIN-03'], ['SQL-AGG-02', 'SQL-CTE-01'],
-    ['SQL-JOIN-01', 'SQL-SUBQ-01'], ['SQL-SUBQ-01', 'SQL-SUBQ-02'], ['SQL-DATE-01', 'SQL-DATE-02'], ['SQL-NULL-01', 'SQL-CLEAN-01']]);
+    ['SQL-JOIN-01', 'SQL-SUBQ-01'], ['SQL-SUBQ-01', 'SQL-SUBQ-02'], ['SQL-DATE-01', 'SQL-DATE-02'], ['SQL-NULL-01', 'SQL-CLEAN-01'],
+    ['SQL-AGG-02', 'SQL-WIN-01'], ['SQL-JOIN-04', 'SQL-WIN-03'], ['SQL-FILTER-01', 'SQL-WIN-06']]);
   // Task B2: each level 4 pair carries the look-alike the plan names (IN versus EXISTS, subquery in WHERE versus derived table,
   // date_diff versus -, COALESCE versus NULLIF) in its note; a pair always spans two concepts (design §5).
-  assert.deepEqual(pairs.slice(8).map((p) => p.from_level), [4, 4, 4, 4]);
+  assert.deepEqual(pairs.slice(8, 12).map((p) => p.from_level), [4, 4, 4, 4]);
   for (const [n, re] of [/IN or EXISTS/, /subquery in WHERE vs a derived table/, /date_diff and -/, /COALESCE vs NULLIF/].entries()) assert.match(pairs[8 + n]!.note, re);
+  // Sprint 7 Task A2: the three level 5 look-alikes design §5 names for later levels (GROUP BY vs PARTITION BY, a self-join vs LAG,
+  // WHERE vs filtering a window result in a CTE or with QUALIFY). ROW_NUMBER vs RANK and ROWS vs RANGE sit inside one concept, so
+  // they are trap items and mistake cards, not pairs (design §5).
+  assert.deepEqual(pairs.slice(12).map((p) => p.from_level), [5, 5, 5]);
+  for (const [n, re] of [/GROUP BY vs PARTITION BY/, /self-join vs LAG/, /WHERE vs filtering a window result/].entries()) assert.match(pairs[12 + n]!.note, re);
   for (const p of pairs) {
     assert.ok(p.concepts.every((c) => levelOf.has(c)), `${p.concepts.join(' / ')} names a curriculum concept`);
     assert.equal(p.from_level, Math.max(...p.concepts.map((c) => levelOf.get(c)!)));

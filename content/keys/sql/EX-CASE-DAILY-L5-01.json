@@ -1,0 +1,44 @@
+{
+  "item_id": "EX-CASE-DAILY-L5-01",
+  "item_version": 1,
+  "reference_sql": "WITH store_revenue AS (\n  -- one row per physical store with an order from January to June 2025\n  SELECT s.store_code, s.country_code,\n         SUM(ol.quantity * ol.unit_price_eur - ol.line_discount_eur) AS net_revenue_eur\n  FROM order_lines AS ol\n  JOIN orders AS o ON o.order_id = ol.order_id\n  JOIN stores AS s ON s.store_id = o.store_id\n  WHERE o.order_ts >= TIMESTAMP '2025-01-01 00:00:00'\n    AND o.order_ts < TIMESTAMP '2025-07-01 00:00:00'\n    AND s.store_type <> 'web'\n  GROUP BY s.store_code, s.country_code\n)\nSELECT store_code, country_code, net_revenue_eur,\n       ROUND(100.0 * net_revenue_eur / SUM(net_revenue_eur) OVER (PARTITION BY country_code), 1) AS country_share_pct\nFROM store_revenue\nORDER BY store_code",
+  "alternatives": [
+    "WITH store_revenue AS (\n  -- one row per physical store with an order from January to June 2025\n  SELECT s.store_code, s.country_code,\n         SUM(ol.quantity * ol.unit_price_eur - ol.line_discount_eur) AS net_revenue_eur\n  FROM order_lines AS ol\n  JOIN orders AS o ON o.order_id = ol.order_id\n  JOIN stores AS s ON s.store_id = o.store_id\n  WHERE o.order_ts >= TIMESTAMP '2025-01-01 00:00:00'\n    AND o.order_ts < TIMESTAMP '2025-07-01 00:00:00'\n    AND s.store_type <> 'web'\n  GROUP BY s.store_code, s.country_code\n),\ncountry_revenue AS (\n  -- one row per country\n  SELECT country_code, SUM(net_revenue_eur) AS country_revenue_eur\n  FROM store_revenue\n  GROUP BY country_code\n)\nSELECT sr.store_code, sr.country_code, sr.net_revenue_eur,\n       ROUND(100.0 * sr.net_revenue_eur / cr.country_revenue_eur, 1) AS country_share_pct\nFROM store_revenue AS sr\nJOIN country_revenue AS cr ON cr.country_code = sr.country_code\nORDER BY sr.store_code",
+    "SELECT DISTINCT s.store_code, s.country_code,\n       SUM(ol.quantity * ol.unit_price_eur - ol.line_discount_eur) OVER (PARTITION BY s.store_code) AS net_revenue_eur,\n       ROUND(100.0 * SUM(ol.quantity * ol.unit_price_eur - ol.line_discount_eur) OVER (PARTITION BY s.store_code)\n             / SUM(ol.quantity * ol.unit_price_eur - ol.line_discount_eur) OVER (PARTITION BY s.country_code), 1) AS country_share_pct\nFROM order_lines AS ol\nJOIN orders AS o ON o.order_id = ol.order_id\nJOIN stores AS s ON s.store_id = o.store_id\nWHERE o.order_ts >= TIMESTAMP '2025-01-01 00:00:00'\n  AND o.order_ts < TIMESTAMP '2025-07-01 00:00:00'\n  AND s.store_type <> 'web'\nORDER BY s.store_code"
+  ],
+  "other_way": {
+    "sql": "WITH store_revenue AS (\n  -- one row per physical store with an order from January to June 2025\n  SELECT s.store_code, s.country_code,\n         SUM(ol.quantity * ol.unit_price_eur - ol.line_discount_eur) AS net_revenue_eur\n  FROM order_lines AS ol\n  JOIN orders AS o ON o.order_id = ol.order_id\n  JOIN stores AS s ON s.store_id = o.store_id\n  WHERE o.order_ts >= TIMESTAMP '2025-01-01 00:00:00'\n    AND o.order_ts < TIMESTAMP '2025-07-01 00:00:00'\n    AND s.store_type <> 'web'\n  GROUP BY s.store_code, s.country_code\n),\ncountry_revenue AS (\n  -- one row per country\n  SELECT country_code, SUM(net_revenue_eur) AS country_revenue_eur\n  FROM store_revenue\n  GROUP BY country_code\n)\nSELECT sr.store_code, sr.country_code, sr.net_revenue_eur,\n       ROUND(100.0 * sr.net_revenue_eur / cr.country_revenue_eur, 1) AS country_share_pct\nFROM store_revenue AS sr\nJOIN country_revenue AS cr ON cr.country_code = sr.country_code\nORDER BY sr.store_code",
+    "tradeoff": "A second step with each country's total, joined back, gives the same share, but the window total needs no extra join."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-37",
+      "sql": "WITH store_revenue AS (\n  SELECT s.store_code, s.country_code,\n         SUM(ol.quantity * ol.unit_price_eur - ol.line_discount_eur) AS net_revenue_eur\n  FROM order_lines AS ol\n  JOIN orders AS o ON o.order_id = ol.order_id\n  JOIN stores AS s ON s.store_id = o.store_id\n  WHERE o.order_ts >= TIMESTAMP '2025-01-01 00:00:00'\n    AND o.order_ts < TIMESTAMP '2025-07-01 00:00:00'\n    AND s.store_type <> 'web'\n  GROUP BY s.store_code, s.country_code\n)\nSELECT store_code, country_code, net_revenue_eur,\n       ROUND(100.0 * net_revenue_eur / SUM(net_revenue_eur) OVER (), 1) AS country_share_pct\nFROM store_revenue\nORDER BY store_code"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-21",
+      "sql": "WITH store_revenue AS (\n  SELECT s.store_code, s.country_code,\n         SUM(ol.quantity * ol.unit_price_eur - ol.line_discount_eur) AS net_revenue_eur\n  FROM order_lines AS ol\n  JOIN orders AS o ON o.order_id = ol.order_id\n  JOIN stores AS s ON s.store_id = o.store_id\n  WHERE o.order_ts >= TIMESTAMP '2025-01-01 00:00:00'\n    AND o.order_ts < TIMESTAMP '2025-07-01 00:00:00'\n    AND s.store_type <> 'web'\n  GROUP BY s.store_code, s.country_code\n)\nSELECT store_code, country_code, net_revenue_eur,\n       ROUND(net_revenue_eur / SUM(net_revenue_eur) OVER (PARTITION BY country_code), 1) AS country_share_pct\nFROM store_revenue\nORDER BY store_code"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-06",
+      "sql": "WITH store_revenue AS (\n  SELECT s.store_code, s.country_code,\n         SUM(ol.quantity * ol.unit_price_eur - ol.line_discount_eur) AS net_revenue_eur\n  FROM order_lines AS ol\n  JOIN orders AS o ON o.order_id = ol.order_id\n  JOIN stores AS s ON s.store_id = o.store_id\n  WHERE o.order_ts BETWEEN TIMESTAMP '2025-01-01 00:00:00' AND TIMESTAMP '2025-06-30 00:00:00'\n    AND s.store_type <> 'web'\n  GROUP BY s.store_code, s.country_code\n)\nSELECT store_code, country_code, net_revenue_eur,\n       ROUND(100.0 * net_revenue_eur / SUM(net_revenue_eur) OVER (PARTITION BY country_code), 1) AS country_share_pct\nFROM store_revenue\nORDER BY store_code"
+    },
+    {
+      "id": "PW4",
+      "error_id": "ERR-LOG-07",
+      "sql": "WITH store_revenue AS (\n  SELECT s.store_code, s.country_code,\n         SUM(ol.quantity * ol.unit_price_eur - ol.line_discount_eur) AS net_revenue_eur\n  FROM order_lines AS ol\n  JOIN orders AS o ON o.order_id = ol.order_id\n  JOIN stores AS s ON s.store_id = o.store_id\n  WHERE o.order_ts >= TIMESTAMP '2025-01-01 00:00:00'\n    AND o.order_ts < TIMESTAMP '2025-07-01 00:00:00'\n    AND s.store_type <> 'web'\n  GROUP BY s.store_code, s.country_code\n)\nSELECT store_code, country_code, net_revenue_eur,\n       ROUND(100.0 * net_revenue_eur / SUM(net_revenue_eur) OVER (PARTITION BY store_code), 1) AS country_share_pct\nFROM store_revenue\nORDER BY store_code"
+    }
+  ],
+  "hint3_partial": "WITH store_revenue AS (\n  -- one row per physical store with an order from January to June 2025\n  SELECT s.store_code, s.country_code,\n         SUM(ol.quantity * ol.unit_price_eur - ol.line_discount_eur) AS net_revenue_eur\n  FROM order_lines AS ol\n  JOIN orders AS o ON o.order_id = ol.order_id\n  JOIN stores AS s ON s.store_id = o.store_id\n  WHERE ___\n  GROUP BY s.store_code, s.country_code\n)\nSELECT store_code, country_code, net_revenue_eur,\n       ROUND(100.0 * net_revenue_eur / SUM(net_revenue_eur) OVER (___), 1) AS country_share_pct\nFROM store_revenue\nORDER BY store_code",
+  "solver": {
+    "prompt_hash": "382a37cee1c39313",
+    "schema_version": "6ef9ff4e4ad1",
+    "dataset_version": "e7c58abf7e8f892e",
+    "grader_version": "7a.1",
+    "query": "WITH rev AS (\n  SELECT s.store_code, s.country_code,\n         SUM(ol.quantity * ol.unit_price_eur - ol.line_discount_eur) AS net_revenue_eur\n  FROM order_lines ol\n  JOIN orders o ON o.order_id = ol.order_id\n  JOIN stores s ON s.store_id = o.store_id\n  WHERE s.store_type <> 'web'\n    AND o.order_ts >= TIMESTAMP '2025-01-01 00:00:00' AND o.order_ts < TIMESTAMP '2025-07-01 00:00:00'\n  GROUP BY s.store_code, s.country_code\n)\nSELECT store_code, country_code, net_revenue_eur,\n       ROUND(100.0 * net_revenue_eur / SUM(net_revenue_eur) OVER (PARTITION BY country_code), 1) AS country_share_pct\nFROM rev\nORDER BY store_code ASC\n",
+    "at": "2026-10-21T09:53:57.195Z"
+  }
+}

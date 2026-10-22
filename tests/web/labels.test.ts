@@ -177,3 +177,10 @@ test('the titles load once, and a failed load is tried again next time', async (
   await loadTitles(ok);
   assert.equal(calls, 2, 'the failure is not kept, and a success is reused');
 });
+
+test('F2-4-1: a mock stage met on a date reads the date as the history rows do, with no trailing "done"', () => {
+  const met = { label: 'Screen mock passed on 2026-11-03', met: true, available: true, done: null, total: null };
+  assert.equal(criterionLine(met, titles, '2026-10-21'), 'Screen mock passed on 3 November');
+  assert.equal(criterionLine(met, titles, '2027-01-05'), 'Screen mock passed on 3 November 2026');
+  assert.equal(criterionLine({ ...met, label: 'Screen mock passed', met: false }, titles, '2026-10-21'), 'Screen mock passed: not yet');
+});

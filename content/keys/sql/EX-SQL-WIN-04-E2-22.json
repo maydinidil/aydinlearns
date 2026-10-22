@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-WIN-04-E2-22",
+  "item_version": 1,
+  "reference_sql": "SELECT channel_id, month, budget_eur,\n  ROUND(100.0 * SUM(budget_eur) OVER (PARTITION BY channel_id ORDER BY month ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)\n    / SUM(budget_eur) OVER (PARTITION BY channel_id), 1) AS cumulative_share_pct\nFROM budget_monthly\nWHERE month BETWEEN DATE '2025-01-01' AND DATE '2025-12-01'",
+  "alternatives": [
+    "SELECT b.channel_id, b.month, b.budget_eur,\n  ROUND(100.0 * (SELECT SUM(b2.budget_eur) FROM budget_monthly b2\n                 WHERE b2.channel_id = b.channel_id AND b2.month BETWEEN DATE '2025-01-01' AND b.month)\n    / (SELECT SUM(b3.budget_eur) FROM budget_monthly b3\n       WHERE b3.channel_id = b.channel_id AND b3.month BETWEEN DATE '2025-01-01' AND DATE '2025-12-01'), 1) AS cumulative_share_pct\nFROM budget_monthly b\nWHERE b.month BETWEEN DATE '2025-01-01' AND DATE '2025-12-01'",
+    "WITH y AS (\n  -- one row per paid channel and month of 2025\n  SELECT channel_id, month, budget_eur\n  FROM budget_monthly\n  WHERE month BETWEEN DATE '2025-01-01' AND DATE '2025-12-01'\n)\nSELECT channel_id, month, budget_eur,\n  ROUND(100.0 * SUM(budget_eur) OVER (PARTITION BY channel_id ORDER BY month ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)\n    / SUM(budget_eur) OVER (PARTITION BY channel_id ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING), 1) AS cumulative_share_pct\nFROM y"
+  ],
+  "other_way": {
+    "sql": "SELECT b.channel_id, b.month, b.budget_eur,\n  ROUND(100.0 * (SELECT SUM(b2.budget_eur) FROM budget_monthly b2\n                 WHERE b2.channel_id = b.channel_id AND b2.month BETWEEN DATE '2025-01-01' AND b.month)\n    / (SELECT SUM(b3.budget_eur) FROM budget_monthly b3\n       WHERE b3.channel_id = b.channel_id AND b3.month BETWEEN DATE '2025-01-01' AND DATE '2025-12-01'), 1) AS cumulative_share_pct\nFROM budget_monthly b\nWHERE b.month BETWEEN DATE '2025-01-01' AND DATE '2025-12-01'",
+    "tradeoff": "Two subqueries for the running and the yearly budget work without windows, but repeat the 2025 filter and reread the table."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-37",
+      "sql": "SELECT channel_id, month, budget_eur, ROUND(100.0 * SUM(budget_eur) OVER (ORDER BY channel_id, month ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) / SUM(budget_eur) OVER (PARTITION BY channel_id), 1) AS cumulative_share_pct FROM budget_monthly WHERE month BETWEEN DATE '2025-01-01' AND DATE '2025-12-01'"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-41",
+      "sql": "SELECT channel_id, month, budget_eur, ROUND(100.0 * SUM(budget_eur) OVER (PARTITION BY channel_id ORDER BY budget_eur, month ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) / SUM(budget_eur) OVER (PARTITION BY channel_id), 1) AS cumulative_share_pct FROM budget_monthly WHERE month BETWEEN DATE '2025-01-01' AND DATE '2025-12-01'"
+    }
+  ],
+  "hint3_partial": "SELECT channel_id, month, budget_eur,\n  ROUND(100.0 * SUM(budget_eur) OVER (PARTITION BY channel_id ORDER BY month ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)\n    / SUM(budget_eur) OVER (___), 1) AS cumulative_share_pct\nFROM budget_monthly\nWHERE month BETWEEN DATE '2025-01-01' AND DATE '2025-12-01'",
+  "solver": {
+    "prompt_hash": "cbb27998f7a9f216",
+    "schema_version": "1ea1a0f5ae04",
+    "dataset_version": "e7c58abf7e8f892e",
+    "grader_version": "7a.1",
+    "query": "SELECT channel_id, month, budget_eur,\n  ROUND(100.0 * SUM(budget_eur) OVER (PARTITION BY channel_id ORDER BY month ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)\n    / SUM(budget_eur) OVER (PARTITION BY channel_id), 1) AS cumulative_share_pct\nFROM budget_monthly\nWHERE month BETWEEN DATE '2025-01-01' AND DATE '2025-12-01'\n",
+    "at": "2026-10-21T09:05:08.770Z"
+  }
+}

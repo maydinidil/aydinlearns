@@ -1,0 +1,178 @@
+{
+  "id": "EX-SQL-WIN-06-E1-42",
+  "version": 1,
+  "kind": "predict_result",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "predict_result",
+    "rank",
+    "ties_share",
+    "campaigns"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-06"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-WIN-06",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-CTE-01",
+    "SQL-WIN-01",
+    "SQL-WIN-02",
+    "SQL-WIN-06"
+  ],
+  "template_id": "T-WIN-06-predict-result-rank-ties",
+  "template_params": {
+    "table": "campaigns",
+    "channel": 2
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "mailvora",
+  "schema": "mailvora",
+  "edge_schema": "mailvora_edge_win",
+  "prompt": "Channel 2 (brand_search) has 8 campaigns: campaigns 49 to 52 start on 1 January 2024, and campaigns 53 to 56 on 1 January 2025. Which result does this query return?",
+  "output_contract": null,
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [],
+  "subgoals": [],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 90000,
+  "why_this_works": "",
+  "shown_sql": "WITH ranked AS (\n  SELECT campaign_id,\n         RANK() OVER (ORDER BY start_date) AS start_rank\n  FROM campaigns\n  WHERE channel_id = 2\n)\nSELECT campaign_id, start_rank\nFROM ranked\nWHERE start_rank <= 2",
+  "options": [
+    {
+      "oid": "o195e06a",
+      "text": "Two rows: 49 and 50, places 1 and 2",
+      "misconception_id": "ERR-LOG-40",
+      "table": {
+        "columns": [
+          "campaign_id",
+          "start_rank"
+        ],
+        "rows": [
+          [
+            49,
+            1
+          ],
+          [
+            50,
+            2
+          ]
+        ]
+      }
+    },
+    {
+      "oid": "obc7ac2d",
+      "text": "Four rows: 49 to 52, all in place 1",
+      "misconception_id": null,
+      "table": {
+        "columns": [
+          "campaign_id",
+          "start_rank"
+        ],
+        "rows": [
+          [
+            49,
+            1
+          ],
+          [
+            50,
+            1
+          ],
+          [
+            51,
+            1
+          ],
+          [
+            52,
+            1
+          ]
+        ]
+      }
+    },
+    {
+      "oid": "o6778d06",
+      "text": "Eight rows: 49 to 52 in place 1, 53 to 56 in place 2",
+      "misconception_id": "ERR-LOG-40",
+      "table": {
+        "columns": [
+          "campaign_id",
+          "start_rank"
+        ],
+        "rows": [
+          [
+            49,
+            1
+          ],
+          [
+            50,
+            1
+          ],
+          [
+            51,
+            1
+          ],
+          [
+            52,
+            1
+          ],
+          [
+            53,
+            2
+          ],
+          [
+            54,
+            2
+          ],
+          [
+            55,
+            2
+          ],
+          [
+            56,
+            2
+          ]
+        ]
+      }
+    },
+    {
+      "oid": "o094f0fb",
+      "text": "No rows",
+      "misconception_id": null,
+      "table": {
+        "columns": [
+          "campaign_id",
+          "start_rank"
+        ],
+        "rows": []
+      }
+    }
+  ]
+}

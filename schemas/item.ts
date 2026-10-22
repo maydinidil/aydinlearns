@@ -6,8 +6,12 @@ import type { ChoiceOption, TypedSpec } from './choice-types.ts';
 /** S3-13: the SQL choice kinds, graded by the choice grader and rated by the multiple-choice map (S3-14, S3-15). */
 export type SqlChoiceKind = 'predict_rows' | 'predict_result' | 'choose_query' | 'which_table' | 'is_unique';
 export type ItemKind = 'write' | 'fix' | SqlChoiceKind;
-/** `case` (S4B-02): an inbox or daily case's CP3 item, with the ID EX-CASE-<case tail>. */
-export type ItemUse = 'pretest' | 'lesson' | 'retest' | 'pool' | 'drill' | 'opener' | 'case';
+/**
+ * `case` (S4B-02): an inbox or daily case's CP3 item, with the ID EX-CASE-<case tail>. `mock` (S7-08): a held-out recruiter mock item, a
+ * screen form's EX-MOCK-<form>-NN or a case mock's CP3 (EX-MOCK-CASE-<letter>, EX-MOCK-TAKE-<letter>); the content store keeps it in its
+ * mock map, never with the practice items (D114).
+ */
+export type ItemUse = 'pretest' | 'lesson' | 'retest' | 'pool' | 'drill' | 'opener' | 'case' | 'mock';
 export type Difficulty = 'E1' | 'E2' | 'E3';
 export type TypeClass = 'numeric' | 'temporal' | 'boolean' | 'text';
 export type PrecisionClass = 'money' | 'ratio' | 'count' | 'exact';
@@ -89,7 +93,7 @@ export const isSqlChoiceKind = (kind: unknown): kind is SqlChoiceKind => SQL_CHO
 /** S3-17: the kinds a predict pretest item has. */
 export const PREDICT_KINDS: readonly SqlChoiceKind[] = ['predict_rows', 'predict_result'];
 const KINDS: ItemKind[] = ['write', 'fix', ...SQL_CHOICE_KINDS];
-const USES: ItemUse[] = ['pretest', 'lesson', 'retest', 'pool', 'drill', 'opener', 'case'];
+const USES: ItemUse[] = ['pretest', 'lesson', 'retest', 'pool', 'drill', 'opener', 'case', 'mock'];
 const TYPE_CLASSES: TypeClass[] = ['numeric', 'temporal', 'boolean', 'text'];
 const PRECISIONS: PrecisionClass[] = ['money', 'ratio', 'count', 'exact'];
 /** The error catalogue's ID shape, as planted wrong queries use it (schemas/keys.ts). */
@@ -109,6 +113,18 @@ function checkCaseItemId(o: Record<string, unknown>, e: string[]): void {
   const isForm = /^EX-CASE-[A-Z0-9]+(-[A-Z0-9]+)*$/.test(o.id);
   if (o.use === 'case' && !isForm) e.push('a case item ID must look like EX-CASE-PRICE-01');
   else if (o.use !== 'case' && o.id.startsWith('EX-CASE-')) e.push('only a case item may use an EX-CASE- ID');
+}
+
+/** S7-08: a mock item's ID: a screen form's EX-MOCK-SCREEN-<letter>-NN, or a case mock's CP3, EX-MOCK-CASE-<letter> or EX-MOCK-TAKE-<letter>. */
+export const MOCK_ITEM_ID = /^EX-MOCK-(SCREEN-[A-Z]-\d{2}|CASE-[A-Z]|TAKE-[A-Z])$/;
+/** S7-08: the ID prefix only a mock item uses. The content store holds an item with it out of practice whatever its use says (D114). */
+export const MOCK_ITEM_PREFIX = 'EX-MOCK-';
+
+// S7-08: a mock item carries an EX-MOCK- ID, and no other item does.
+function checkMockItemId(o: Record<string, unknown>, e: string[]): void {
+  if (typeof o.id !== 'string') return;   // the envelope reports a missing ID
+  if (o.use === 'mock' && !MOCK_ITEM_ID.test(o.id)) e.push('a mock item ID must look like EX-MOCK-SCREEN-A-01, EX-MOCK-CASE-A or EX-MOCK-TAKE-A');
+  else if (o.use !== 'mock' && o.id.startsWith(MOCK_ITEM_PREFIX)) e.push('only a mock item may use an EX-MOCK- ID');
 }
 
 // S2-48: a fix item names the one error its starter makes. Other kinds need neither field; one that is there is checked.
@@ -267,6 +283,7 @@ export function validateSqlItem(x: unknown): string[] {
   if (!choice && (!Array.isArray(o.hints) || (o.hints as unknown[]).length !== 2)) e.push('hints must hold exactly 2 entries (hint 3 lives in the key)');
   checkOpenerId(o, e);
   checkCaseItemId(o, e);
+  checkMockItemId(o, e);
   checkStarter(o, e);
   checkFading(o, e);
   checkChoiceFields(o, e);

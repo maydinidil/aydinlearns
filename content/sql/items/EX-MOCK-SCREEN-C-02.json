@@ -1,0 +1,146 @@
+{
+  "id": "EX-MOCK-SCREEN-C-02",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-02",
+    "mock",
+    "screen",
+    "case",
+    "group_by",
+    "bands",
+    "products"
+  ],
+  "level": 2,
+  "source_ids": [
+    "01:SQL-CASE-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-21",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "mock",
+  "target_concept_id": "SQL-CASE-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CASE-01"
+  ],
+  "template_id": "T-MOCK-SCREEN-case-tiers-per-brand",
+  "template_params": {
+    "table": "products",
+    "categories": "15-20",
+    "tiers": "budget <30, core <150, flagship, unknown"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_case",
+  "prompt": "The audio buyer wants to see how each brand's Audio range is priced. Take the products in the Audio categories, category_id from 15 to 20, and give each a cost_tier from its unit_cost_eur: 'budget' when it is under 30.00 euros, 'core' when it is 30.00 or more but under 150.00, 'flagship' when it is 150.00 or more, and 'unknown' when unit_cost_eur is missing. Return three columns, in this order: brand, cost_tier and n_products, the number of products of that brand in that tier. Return one row for each brand and tier that has at least one product. Sort by brand from A to Z, then by cost_tier from A to Z.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "brand",
+        "type_class": "text"
+      },
+      {
+        "name": "cost_tier",
+        "type_class": "text"
+      },
+      {
+        "name": "n_products",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per brand and cost tier"
+  },
+  "rules": {
+    "order_matters": true,
+    "sort_keys": [
+      {
+        "column": "brand",
+        "desc": false
+      },
+      {
+        "column": "cost_tier",
+        "desc": false
+      }
+    ],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "brand",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "cost_tier",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "n_products",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "brand",
+      "cost_tier"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the CASE that gives each product its cost tier, with a branch for a missing cost.",
+    "CASE stops at the first true branch, so test the missing cost and the lower limits first, then group by the brand and the same CASE."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 249,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 250,
+      "to": 263,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 264,
+      "to": 299,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 300,
+      "to": 519,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 520,
+      "to": 545,
+      "subgoal": "sort_limit"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "CASE gives each product one tier, the first branch that fits, and grouping by the brand and that CASE counts the products in each tier."
+}

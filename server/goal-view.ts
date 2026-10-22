@@ -1,22 +1,31 @@
 // server/goal-view.ts: the one goal view (core/goal-eval.ts GoalView) that Today's next goal, GET /api/goals/progress and the Progress
 // screen (Task E1) evaluate goals on (design §2; S2-38, D12, S4B-08, S4B-20, S4B-26; sprint 4b, Task D3). Built from replay and the
-// logs: each concept's state, the solved cases with whether a case_export event names them, the live reps (server/drill.ts), and the
-// external results. No mock is built yet, so none has passed. It only reads.
+// logs: each concept's state, the solved cases with whether a case_export event names them, the live reps (server/drill.ts), the
+// external results, and (sprint 7, S7-05) each mock's first counting pass (server/mocks.ts). It only reads.
+import type { AttemptFileRecord } from '../core/envelope.ts';
 import { caseUnavailable } from './content.ts';
 import { effectiveDate, evaluateGoal, EVERY_LEVEL, type CriterionResult, type GoalView } from '../core/goal-eval.ts';
 import type { Goal } from '../core/goals.ts';
 import type { ReplayResult } from '../core/replay.ts';
 import type { ContentStore } from './content.ts';
 import { liveReps } from './drill.ts';
+import { mockRuns, mocksAvailable, stagesMet } from './mocks.ts';
+import { knowledgePools, knowledgeReady } from './run.ts';
 
-/** What the goal view is built from: the content, the current replay, and the two log files as read. */
-export interface GoalViewSource { content: ContentStore; replay: ReplayResult; attempts: readonly object[]; events: readonly object[] }
+/**
+ * What the goal view is built from: the content, the current replay, and the two log files as read. `now` (default: now) only decides
+ * whether a mock run with no block_close is still on (server/mocks.ts).
+ */
+export interface GoalViewSource { content: ContentStore; replay: ReplayResult; attempts: readonly object[]; events: readonly object[]; now?: Date }
 
 /**
  * The goal view. `conceptsOf`: SQL's curriculum concepts of levels 1 to `maxLevel`; GA4's and Methodology's concepts with a level at or
  * below it (D12, D13: level 1 only; a level-less concept only when every level is asked for, D58; a section with no concepts file has none, so its criteria are "not yet available"). `casesSolved`
  * (S4B-08, S4B-20): every solved case in the store's case order, with its record's level and `exported` when a case_export event names
  * it. `liveReps` (S4B-26): one per closed `live-` block, with its Amsterdam date. `externals`: the GA4 exam and portfolio results.
+ * `mocksPassed` (S7-05): each mock's stage met by its first counting pass, with that run's Amsterdam date; none without content/mocks.json.
+ * `mocksAvailable` (S7-04): the mocks a start can take now (server/mocks.ts mocksAvailable; the knowledge mock once its pools can fill a
+ * draw, S7-C21); none without content/mocks.json.
  */
 export function goalView(s: GoalViewSource): GoalView {
   const { content, replay } = s;
@@ -36,7 +45,8 @@ export function goalView(s: GoalViewSource): GoalView {
       : (content.choiceConcepts?.(section) ?? []).filter((c) => (c.level === null ? maxLevel === EVERY_LEVEL : c.level <= maxLevel)).map((c) => c.id)),
     stateOf: (id) => replay.concepts.get(id)?.state ?? 'new',
     externals,
-    mocksPassed: new Set(),
+    mocksPassed: content.mocks ? stagesMet(mockRuns(s.attempts as readonly AttemptFileRecord[], content.mocks, s.now ?? new Date())) : new Map(),
+    mocksAvailable: content.mocks ? mocksAvailable(content.mocks, knowledgeReady(knowledgePools(content), content.mocks.knowledge)) : new Set(),
     casesSolved,
     realCasesAvailable,
     liveReps: liveReps([...s.attempts], [...s.events]),

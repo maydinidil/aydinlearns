@@ -1,29 +1,29 @@
 {
   "id": "Q-MET-RETAIL-04-01",
-  "version": 1,
+  "version": 2,
   "kind": "mcq",
   "section": "methodology",
   "concept_id": "MET-RETAIL-04",
-  "stem": "Voltmarkt's retail operations manager asks: \"On what share of days last month were our bestselling laptops out of stock, store by store?\" Which metric answers this question?",
+  "stem": "Voltmarkt's retail operations manager asks: \"On what share of days last month were our bestselling laptops out of stock, store by store?\" Which calculation answers this question?",
   "options": [
     {
       "oid": "o4aed274",
-      "text": "Lost sales estimate",
+      "text": "Days at 0 units × units sold per in-stock day",
       "misconception_id": null
     },
     {
       "oid": "od18a295",
-      "text": "Stock cover (weeks)",
+      "text": "Units on hand / average weekly units sold",
       "misconception_id": null
     },
     {
       "oid": "ob0f113c",
-      "text": "Stockout rate",
+      "text": "100 × days that closed at 0 units / all days, per store",
       "misconception_id": null
     },
     {
       "oid": "obd2e565",
-      "text": "Sell-through rate",
+      "text": "100 × (units sold - returns) / units received, per store",
       "misconception_id": null
     }
   ],

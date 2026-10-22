@@ -1,0 +1,15 @@
+{
+  "case_id": "CASE-DAILY-L5-01",
+  "truths": {
+    "CP4": "SELECT ROUND(100.0 * SUM(CASE WHEN s.store_code = 'NL-01' THEN ol.quantity * ol.unit_price_eur - ol.line_discount_eur ELSE 0 END)\n             / SUM(ol.quantity * ol.unit_price_eur - ol.line_discount_eur), 1)\nFROM order_lines AS ol\nJOIN orders AS o ON o.order_id = ol.order_id\nJOIN stores AS s ON s.store_id = o.store_id\nWHERE o.order_ts >= TIMESTAMP '2025-01-01 00:00:00'\n  AND o.order_ts < TIMESTAMP '2025-07-01 00:00:00'\n  AND s.country_code = 'NL'\n  AND s.store_type <> 'web'"
+  },
+  "choices": {},
+  "solver": {
+    "CP4": {
+      "pass": true,
+      "prompt_hash": "d52b7c06850c47f8",
+      "key_hash": "15242f354a3d45ec",
+      "at": "2026-10-21T09:54:07.303Z"
+    }
+  }
+}

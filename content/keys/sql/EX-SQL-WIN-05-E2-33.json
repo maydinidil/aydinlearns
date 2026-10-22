@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-WIN-05-E2-33",
+  "item_version": 1,
+  "reference_sql": "WITH monthly AS (\n  -- one row per month with sales\n  SELECT order_month AS month, SUM(units) AS units\n  FROM sales\n  WHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-06-30'\n  GROUP BY order_month\n), months AS (\n  -- one row per month of the range\n  SELECT DISTINCT month_start AS month\n  FROM calendar\n  WHERE cal_date BETWEEN DATE '2025-01-01' AND DATE '2025-06-30'\n), filled AS (\n  -- one row per month of the range\n  SELECT ms.month, COALESCE(m.units, 0) AS units\n  FROM months ms\n  LEFT JOIN monthly m ON m.month = ms.month\n)\nSELECT month, units,\n  CASE WHEN COUNT(*) OVER (ORDER BY month ROWS BETWEEN 2 PRECEDING AND CURRENT ROW) = 3\n       THEN ROUND(AVG(units) OVER (ORDER BY month ROWS BETWEEN 2 PRECEDING AND CURRENT ROW), 2)\n  END AS avg_units_3m\nFROM filled",
+  "alternatives": [
+    "WITH monthly AS (\n  -- one row per month with sales\n  SELECT order_month AS month, SUM(units) AS units\n  FROM sales\n  WHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-06-30'\n  GROUP BY order_month\n), months AS (\n  -- one row per month of the range\n  SELECT DISTINCT month_start AS month\n  FROM calendar\n  WHERE cal_date BETWEEN DATE '2025-01-01' AND DATE '2025-06-30'\n), filled AS (\n  -- one row per month of the range\n  SELECT ms.month, COALESCE(m.units, 0) AS units\n  FROM months ms\n  LEFT JOIN monthly m ON m.month = ms.month\n)\nSELECT f.month, f.units, CASE WHEN COUNT(*) = 3 THEN ROUND(AVG(p.units), 2) END AS avg_units_3m\nFROM filled f\nJOIN filled p ON p.month BETWEEN f.month - INTERVAL 2 MONTH AND f.month\nGROUP BY f.month, f.units",
+    "WITH filled AS (\n  -- one row per month of the range\n  SELECT c.month_start AS month, COALESCE(SUM(s.units), 0) AS units\n  FROM calendar c\n  LEFT JOIN sales s ON s.order_date = c.cal_date\n  WHERE c.cal_date BETWEEN DATE '2025-01-01' AND DATE '2025-06-30'\n  GROUP BY c.month_start\n)\nSELECT month, units,\n  CASE WHEN COUNT(*) OVER (ORDER BY month ROWS BETWEEN 2 PRECEDING AND CURRENT ROW) = 3\n       THEN ROUND(AVG(units) OVER (ORDER BY month ROWS BETWEEN 2 PRECEDING AND CURRENT ROW), 2)\n  END AS avg_units_3m\nFROM filled"
+  ],
+  "other_way": {
+    "sql": "WITH monthly AS (\n  -- one row per month with sales\n  SELECT order_month AS month, SUM(units) AS units\n  FROM sales\n  WHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-06-30'\n  GROUP BY order_month\n), months AS (\n  -- one row per month of the range\n  SELECT DISTINCT month_start AS month\n  FROM calendar\n  WHERE cal_date BETWEEN DATE '2025-01-01' AND DATE '2025-06-30'\n), filled AS (\n  -- one row per month of the range\n  SELECT ms.month, COALESCE(m.units, 0) AS units\n  FROM months ms\n  LEFT JOIN monthly m ON m.month = ms.month\n)\nSELECT f.month, f.units, CASE WHEN COUNT(*) = 3 THEN ROUND(AVG(p.units), 2) END AS avg_units_3m\nFROM filled f\nJOIN filled p ON p.month BETWEEN f.month - INTERVAL 2 MONTH AND f.month\nGROUP BY f.month, f.units",
+    "tradeoff": "Joining each month to the 2 months before it gives the same averages without a window, but it needs a self-join on the filled months."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-39",
+      "sql": "WITH monthly AS (SELECT order_month AS month, SUM(units) AS units FROM sales WHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-06-30' GROUP BY order_month) SELECT month, units, CASE WHEN COUNT(*) OVER (ORDER BY month ROWS BETWEEN 2 PRECEDING AND CURRENT ROW) = 3 THEN ROUND(AVG(units) OVER (ORDER BY month ROWS BETWEEN 2 PRECEDING AND CURRENT ROW), 2) END AS avg_units_3m FROM monthly"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-43",
+      "sql": "WITH monthly AS (SELECT order_month AS month, SUM(units) AS units FROM sales WHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-06-30' GROUP BY order_month), months AS (SELECT DISTINCT month_start AS month FROM calendar WHERE cal_date BETWEEN DATE '2025-01-01' AND DATE '2025-06-30'), filled AS (SELECT ms.month, COALESCE(m.units, 0) AS units FROM months ms LEFT JOIN monthly m ON m.month = ms.month) SELECT month, units, ROUND(AVG(units) OVER (ORDER BY month ROWS BETWEEN 2 PRECEDING AND CURRENT ROW), 2) AS avg_units_3m FROM filled"
+    }
+  ],
+  "hint3_partial": "WITH monthly AS (\n  -- one row per month with sales\n  SELECT order_month AS month, SUM(units) AS units\n  FROM sales\n  WHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-06-30'\n  GROUP BY order_month\n), months AS (\n  -- one row per month of the range\n  SELECT DISTINCT month_start AS month\n  FROM calendar\n  WHERE cal_date BETWEEN DATE '2025-01-01' AND DATE '2025-06-30'\n), filled AS (\n  -- one row per month of the range\n  SELECT ms.month, COALESCE(m.units, 0) AS units\n  FROM months ms\n  LEFT JOIN ___\n)\nSELECT month, units,\n  CASE WHEN COUNT(*) OVER (ORDER BY month ROWS BETWEEN 2 PRECEDING AND CURRENT ROW) = 3\n       THEN ROUND(AVG(units) OVER (ORDER BY month ROWS BETWEEN 2 PRECEDING AND CURRENT ROW), 2)\n  END AS avg_units_3m\nFROM filled",
+  "solver": {
+    "prompt_hash": "e4114d4ca26f2414",
+    "schema_version": "bfa72b600579",
+    "dataset_version": "e7c58abf7e8f892e",
+    "grader_version": "7a.1",
+    "query": "WITH grid AS (\n  SELECT CAST(mo AS DATE) AS month\n  FROM generate_series(DATE '2025-01-01', DATE '2025-06-01', INTERVAL 1 MONTH) AS g(mo)\n), monthly AS (\n  SELECT CAST(order_month AS DATE) AS month, SUM(units) AS units\n  FROM sales\n  WHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-06-30'\n  GROUP BY CAST(order_month AS DATE)\n), j AS (\n  SELECT g.month, COALESCE(m.units, 0) AS units\n  FROM grid g LEFT JOIN monthly m ON m.month = g.month\n)\nSELECT month, units,\n  CASE WHEN COUNT(*) OVER (ORDER BY month ROWS BETWEEN 2 PRECEDING AND CURRENT ROW) = 3\n    THEN ROUND(AVG(units) OVER (ORDER BY month ROWS BETWEEN 2 PRECEDING AND CURRENT ROW), 2) END AS avg_units_3m\nFROM j\n",
+    "at": "2026-10-21T09:05:09.888Z"
+  }
+}

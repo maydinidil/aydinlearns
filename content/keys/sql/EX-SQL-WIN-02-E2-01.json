@@ -1,0 +1,39 @@
+{
+  "item_id": "EX-SQL-WIN-02-E2-01",
+  "item_version": 1,
+  "reference_sql": "WITH ranked AS (  -- one row per product\n  SELECT category_id, product_id, unit_cost_eur,\n         ROW_NUMBER() OVER (PARTITION BY category_id ORDER BY unit_cost_eur DESC, product_id) AS rn\n  FROM products\n)\nSELECT category_id, product_id, unit_cost_eur\nFROM ranked\nWHERE rn <= 3",
+  "alternatives": [
+    "SELECT p.category_id, p.product_id, p.unit_cost_eur\nFROM products p\nWHERE (SELECT COUNT(*) FROM products p2\n       WHERE p2.category_id = p.category_id\n         AND (p2.unit_cost_eur > p.unit_cost_eur OR (p2.unit_cost_eur = p.unit_cost_eur AND p2.product_id < p.product_id))) < 3",
+    "SELECT t.category_id, t.product_id, t.unit_cost_eur\nFROM (\n  -- one row per product\n  SELECT category_id, product_id, unit_cost_eur,\n         ROW_NUMBER() OVER (PARTITION BY category_id ORDER BY unit_cost_eur DESC, product_id) AS rn\n  FROM products\n) AS t\nWHERE t.rn <= 3"
+  ],
+  "other_way": {
+    "sql": "SELECT p.category_id, p.product_id, p.unit_cost_eur\nFROM products p\nWHERE (SELECT COUNT(*) FROM products p2\n       WHERE p2.category_id = p.category_id\n         AND (p2.unit_cost_eur > p.unit_cost_eur OR (p2.unit_cost_eur = p.unit_cost_eur AND p2.product_id < p.product_id))) < 3",
+    "tradeoff": "Counting the products ranked above each one keeps the same 3 without a window, but it reads the table again for every product."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-40",
+      "sql": "WITH ranked AS (SELECT category_id, product_id, unit_cost_eur, RANK() OVER (PARTITION BY category_id ORDER BY unit_cost_eur DESC) AS rn FROM products) SELECT category_id, product_id, unit_cost_eur FROM ranked WHERE rn <= 3"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-18",
+      "sql": "WITH ranked AS (SELECT category_id, product_id, unit_cost_eur, ROW_NUMBER() OVER (PARTITION BY category_id ORDER BY unit_cost_eur, product_id) AS rn FROM products) SELECT category_id, product_id, unit_cost_eur FROM ranked WHERE rn <= 3"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-37",
+      "sql": "WITH ranked AS (SELECT category_id, product_id, unit_cost_eur, ROW_NUMBER() OVER (ORDER BY unit_cost_eur DESC, product_id) AS rn FROM products) SELECT category_id, product_id, unit_cost_eur FROM ranked WHERE rn <= 3"
+    }
+  ],
+  "hint3_partial": "WITH ranked AS (  -- one row per product\n  SELECT category_id, product_id, unit_cost_eur,\n         ROW_NUMBER() OVER (PARTITION BY category_id ORDER BY unit_cost_eur DESC, ___) AS rn\n  FROM products\n)\nSELECT category_id, product_id, unit_cost_eur\nFROM ranked\nWHERE ___",
+  "solver": {
+    "prompt_hash": "c8808da584b925af",
+    "schema_version": "d77fe1c31a0e",
+    "dataset_version": "e7c58abf7e8f892e",
+    "grader_version": "7a.1",
+    "query": "WITH r AS (\n  SELECT category_id, product_id, unit_cost_eur,\n         ROW_NUMBER() OVER (PARTITION BY category_id ORDER BY unit_cost_eur DESC, product_id) AS rn\n  FROM products\n)\nSELECT category_id, product_id, unit_cost_eur\nFROM r\nWHERE rn <= 3\n",
+    "at": "2026-10-21T09:05:06.324Z"
+  }
+}

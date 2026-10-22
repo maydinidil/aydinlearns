@@ -1,0 +1,139 @@
+{
+  "id": "EX-SQL-WIN-03-E2-03",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "lag",
+    "orders",
+    "date_difference",
+    "tie_break"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-03"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-WIN-03",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-TYPE-01",
+    "SQL-DATE-02",
+    "SQL-WIN-01",
+    "SQL-WIN-03"
+  ],
+  "template_id": "T-WIN-03-lag-days-between",
+  "template_params": {
+    "table": "orders",
+    "group": "customer",
+    "order": "order_ts, order_id"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_win",
+  "prompt": "For each order that a customer with customer_id from 3001 to 3100 (both included) placed from 1 January to 30 June 2025 (order_ts holds UTC time; both days included, in UTC), show how many days passed since the same customer's previous order in that period: the UTC date of the order minus the UTC date of the previous order. A customer's orders follow each other by order_ts; when two orders share a moment, the lower order_id comes first. A customer's first order in the period shows days_since_prev as missing. Return order_id, customer_id, order_ts and days_since_prev. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "order_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "customer_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "order_ts",
+        "type_class": "temporal"
+      },
+      {
+        "name": "days_since_prev",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "order_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "customer_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "order_ts",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "days_since_prev",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "order_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, take the previous order's time with a window and subtract its date from this order's date.",
+    "The window runs per customer in time order, with the order ID last for orders at the same moment; turn both times into dates before subtracting."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 39,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 40,
+      "to": 173,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 174,
+      "to": 185,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 186,
+      "to": 324,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "LAG per customer in time order, with order_id breaking ties, gives the previous order; subtracting the two UTC dates counts the days between."
+}

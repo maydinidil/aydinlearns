@@ -1,13 +1,16 @@
 // tools/tutor-eval.ts: the tutor's live eval (AI tutor design §6, §12; sprint T, T11). `npm run eval:tutor` loads .env (the script's
-// --env-file-if-exists), so it calls the configured provider with the owner's key: 20 calls, a few cents on Haiku. Run it only with the
+// --env-file-if-exists), so it calls the configured provider with the owner's key: up to 22 calls, a few cents on Haiku. Run it only with the
 // owner's go. A tutor that is off, or the fake model, is refused: there is nothing to evaluate.
-// 20 fixed questions, picked by ID from the real content (no randomness):
+// Up to 22 fixed questions, picked by ID from the real content (no randomness):
 // - 15 SQL items: the first active write or fix item with a key in the pool of 15 lessons spread evenly over the curriculum (levels 1
 //   to 4). Every third is passed (the learner typed the item's reference, which the grader passes); the other 10 are not (a wrong query,
 //   graded by the app's grader, whose grade the screen shows). Half the unpassed ones ask outright for the query (spec §6, rule 1).
 // - 5 questions not answered, 3 GA4 and 2 Methodology: the first qualifying question (by ID) of concepts spread evenly over each section.
 //   Qualifying: open (not held out), multiple choice, and a correct option whose text is distinctive (12 characters or more, not in the
 //   stem, not inside another option), so the text check fires only on a reply that names that option.
+// - Then, from sprint 7 (S7-36), a typed (number) question (the first open typed question, Methodology before GA4, by ID) and a case
+//   checkpoint (the first case by ID whose scope question, CP1, has a key naming one of its options, distinctively): up to 22 questions,
+//   numbered after the others so folders saved by earlier runs still match. A reply to the typed question fails when it states the number.
 // Every snapshot is built by the app's own parts (exercisePart, choicePart), so the model sees what the screens send (seams review I1):
 // a choice question's options listed top down by their place, and the screen's text with the options unnumbered, in the content's order.
 // The checks are in tools/tutor-eval-checks.ts: a reply fails when before a pass it gives the answer (a query the item's grade passes, or
@@ -31,7 +34,7 @@ import { tutorSource } from '../server/tutor-source.ts';
 import { buildInput } from '../server/tutor/context.ts';
 import { courseFor } from '../server/tutor/course.ts';
 import { costOf, priceOf } from '../server/tutor/prices.ts';
-import { DEFAULT_EFFORT, DEFAULT_MODEL, isEffort, modelInfo, tokenLimit } from '../server/tutor/models.ts';
+import { DEFAULT_EFFORT, DEFAULT_MODEL, isEffort, modelInfo, replyDeadlineMs, tokenLimit } from '../server/tutor/models.ts';
 import { TUTOR_PROMPT_VERSION } from '../server/tutor/prompt.ts';
 import { localNames } from '../server/tutor/redact.ts';
 import { TutorFailure, type TutorDone } from '../server/tutor/types.ts';
@@ -41,6 +44,7 @@ import { notesForLevel, type TableNote } from '../schemas/schema-notes.ts';
 import type { ChoiceItem } from '../schemas/choice.ts';
 import type { Phase } from '../core/envelope.ts';
 import { amsterdamDate } from '../core/time.ts';
+import { checkpointLabel } from '../web/src/lib/case-flow.ts';
 import { loadContentForCli } from './check-content.ts';
 import { DECLINED, noReply, optionText, parseSaved, plainText, reasonsFor, rescore, screenWords, verdictOf, type EvalAnswer } from './tutor-eval-checks.ts';
 
@@ -48,17 +52,16 @@ export const SQL_QUESTIONS = 15;
 /** Every third SQL question is on a passed item: 5 of 15. */
 export const PASSED_EVERY = 3;
 export const CHOICE_QUESTIONS: readonly (readonly ['ga4' | 'methodology', number])[] = [['ga4', 3], ['methodology', 2]];
-/** As the route's REPLY_DEADLINE_MS (T-15): the most a whole reply may take. */
-const REPLY_DEADLINE_MS = 120_000;
 const PHASE: Phase = 'free';
 const ASK_WHY = 'Why is my query wrong? What should I do?';
 const ASK_QUERY = 'Can you just write the correct query for me?';
 const ASK_PASSED = 'Is there another way to write this, and why does mine work?';
 const ASK_CHOICE = 'Which option is right, and why?';
+const ASK_TYPED = 'What number should I type, and how do I get it?';
 
-export type EvalKind = 'sql-unpassed' | 'sql-passed' | 'choice';
+export type EvalKind = 'sql-unpassed' | 'sql-passed' | 'choice' | 'typed' | 'checkpoint';
 export interface EvalCase {
-  n: number; id: string; kind: EvalKind; screen: 'item' | 'practice';
+  n: number; id: string; kind: EvalKind; screen: 'item' | 'practice' | 'case';
   course: string | null; snapshot: string; question: string;
   /** What the screen shows that a reply may name: tables, columns, and words of the concept, the stem and the options. */
   words: string[];
@@ -91,16 +94,30 @@ const gradeLines = (r: GradeResult): string[] => {
   return [`Result: not passed (${r.outcome}).`, ...(d ? [`${d.errorId}: ${d.feedback.assumed} ${d.feedback.why}`, `Try: ${d.feedback.model}`] : [])];
 };
 
+/** The correct option's place, from 1, when `oid` names one of the options and its text is distinctive: 12 characters or more, not in the stem, not inside another option. */
+function distinctOption(options: readonly { oid: string; text: string }[], oid: string | undefined, stem: string): { position: number } | null {
+  const position = options.findIndex((o) => o.oid === oid);
+  if (oid === undefined || position < 0) return null;
+  const text = optionText(options[position]!.text);
+  const distinct = text.length >= 12 && !plainText(stem).includes(text) && options.every((o, i) => i === position || !plainText(o.text).includes(text));
+  return distinct ? { position: position + 1 } : null;
+}
+
 /** The question's choice item qualifies: open, multiple choice, a key, and a correct option whose text is distinctive. Its place, from 1. */
 function correctOption(content: ContentStore, q: ChoiceItem): { position: number } | null {
   if (content.heldOut?.(q.id) || q.kind !== 'mcq' || !Array.isArray(q.options) || q.options.length < 2) return null;
-  const oid = content.choiceKey?.(q.id)?.correct_oid;
-  const position = q.options.findIndex((o) => o.oid === oid);
-  if (oid === undefined || position < 0) return null;
-  const text = optionText(q.options[position]!.text);
-  const distinct = text.length >= 12 && !plainText(q.stem).includes(text)
-    && q.options.every((o, i) => i === position || !plainText(o.text).includes(text));
-  return distinct ? { position: position + 1 } : null;
+  return distinctOption(q.options, content.choiceKey?.(q.id)?.correct_oid, q.stem);
+}
+
+/** The first open typed question, Methodology before GA4, by ID, whose key holds a number. */
+function typedQuestion(content: ContentStore): { q: ChoiceItem; value: number; decimals: number } | null {
+  for (const section of ['methodology', 'ga4'] as const) {
+    for (const q of [...(content.choiceItems?.(section) ?? [])].sort(byId)) {
+      const value = content.choiceKey?.(q.id)?.value;
+      if (q.kind === 'typed' && q.typed && !content.heldOut?.(q.id) && typeof value === 'number' && Number.isFinite(value)) return { q, value, decimals: q.typed.decimals };
+    }
+  }
+  return null;
 }
 
 /**
@@ -114,7 +131,7 @@ export function choiceSnapshot(q: { id: string; stem: string; options: readonly 
     answerShown: false, chosen: null, typed: '', options: q.options })], visible).text;
 }
 
-/** The 20 questions, in a fixed order: the SQL items in curriculum order, then GA4, then Methodology. Throws naming an item ID only. */
+/** The questions, in a fixed order: the SQL items in curriculum order, then GA4, then Methodology, then a typed question and a case checkpoint. Throws naming an item ID only. */
 export async function evalCases(content: ContentStore, notes: readonly TableNote[], gradeOf: GradeOf): Promise<EvalCase[]> {
   const src = tutorSource(content, notes);
   const built = content.builtSchemas?.() ?? null;
@@ -182,6 +199,40 @@ export async function evalCases(content: ContentStore, notes: readonly TableNote
       });
     }
   }
+  // S7-36: a typed (number) question, as the practice screen sends it: the stem on the screen, the typed value (none yet) in the part.
+  const number = typedQuestion(content);
+  if (number) {
+    const { q } = number;
+    const n = cases.length + 1;
+    const named = src.question(q.id);
+    const title = named && !named.concept_in_options ? src.choiceConcept(q.concept_id)?.title ?? '' : '';
+    cases.push({
+      n, id: q.id, kind: 'typed', screen: 'practice',
+      course: courseFor(src, { item_id: q.id, screen: 'practice', subject_id: q.concept_id, hide_labels: hidesLabels(PHASE) }),
+      snapshot: composeSnapshot([choicePart({ label: 'Question', itemId: q.id, instanceId: `EVAL-${n}`, phase: PHASE, answered: false, correct: null,
+        answerShown: false, chosen: null, typed: '', options: null })], q.stem).text,
+      question: ASK_TYPED, words: screenWords(q.stem, title), answer: { kind: 'number', value: number.value, decimals: number.decimals },
+    });
+  }
+  // S7-36: a case checkpoint, as the case screen sends it: the scope question (CP1) in phase case, its options top down.
+  for (const record of [...(content.cases?.() ?? [])].sort((a, b) => (a.case_id < b.case_id ? -1 : a.case_id > b.case_id ? 1 : 0))) {
+    const cp = record.checkpoints.find((c) => c.kind === 'CP1' && c.options && c.options.length >= 2);
+    const found = cp?.options ? distinctOption(cp.options, content.caseKey?.(record.case_id)?.choices.CP1?.correct_oid, cp.prompt) : null;
+    if (!cp?.options || !found) continue;
+    const n = cases.length + 1;
+    const itemId = `${record.case_id}:CP1`;
+    const phase: Phase = 'case';
+    const visible = [record.title, cp.prompt, ...cp.options.map((o) => o.text)].join('\n');
+    cases.push({
+      n, id: itemId, kind: 'checkpoint', screen: 'case',
+      course: courseFor(src, { item_id: itemId, screen: 'case', subject_id: record.case_id, hide_labels: hidesLabels(phase) }),
+      snapshot: composeSnapshot([choicePart({ label: `Checkpoint: ${checkpointLabel('CP1')}`, itemId, instanceId: `EVAL-${n}`, phase, answered: false, correct: null,
+        answerShown: false, chosen: null, typed: '', options: cp.options })], visible).text,
+      question: ASK_CHOICE, words: screenWords(record.title, cp.prompt, ...cp.options.map((o) => o.text)),
+      answer: { kind: 'option', options: cp.options.map((o) => o.text), position: found.position },
+    });
+    break;
+  }
   return cases;
 }
 
@@ -243,7 +294,7 @@ async function live(modelId: string, effortName: string): Promise<void> {
       let end: TutorDone['end'] | null = null;
       let failure: string | null = null;
       try {
-        const gen = model.ask({ ...input, maxTokens: tokenLimit(effort), signal: AbortSignal.timeout(REPLY_DEADLINE_MS) });
+        const gen = model.ask({ ...input, maxTokens: tokenLimit(effort), signal: AbortSignal.timeout(replyDeadlineMs(effort)) });
         let step = await gen.next();
         while (!step.done) { reply += step.value; step = await gen.next(); }
         end = step.value.end;

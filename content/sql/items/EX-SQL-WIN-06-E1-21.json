@@ -1,0 +1,171 @@
+{
+  "id": "EX-SQL-WIN-06-E1-21",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "window",
+    "row_number",
+    "top_n_per_group",
+    "filter_window_result",
+    "ad_spend_daily",
+    "campaigns",
+    "drill"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-06"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-WIN-06",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-WIN-01",
+    "SQL-WIN-02",
+    "SQL-WIN-06"
+  ],
+  "template_id": "T-WIN-06-top-1-per-group",
+  "template_params": {
+    "table": "ad_spend_daily",
+    "group": "channel",
+    "measure": "clicks",
+    "direction": "fewest"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "mailvora",
+  "schema": "mailvora",
+  "edge_schema": "mailvora_edge_win",
+  "prompt": "For each channel, which campaign had the fewest clicks from 1 July to 31 October 2025, both days included? spend_date is a UTC day, a campaign's clicks are the sum of its clicks in ad_spend_daily over those days, and only campaigns with rows in that period count. When two campaigns of a channel tie on clicks, keep the one with the lower campaign_id. Return three columns, in this order: channel_id, campaign_id and clicks. Return one row for each channel with rows in that period. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "channel_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "campaign_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "clicks",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "channel_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "campaign_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "clicks",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "channel_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, total each campaign's clicks in the period, number each channel's campaigns from the fewest clicks, and keep number 1.",
+    "The tie-break goes last in the window's sort order, and the filter on the number goes in the outer query."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 80,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 81,
+      "to": 142,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 143,
+      "to": 218,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 219,
+      "to": 287,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 288,
+      "to": 326,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 330,
+      "to": 418,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 419,
+      "to": 548,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 549,
+      "to": 571,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 574,
+      "to": 612,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 613,
+      "to": 624,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 625,
+      "to": 637,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "ROW_NUMBER numbers each channel's campaigns from the fewest clicks with campaign_id breaking ties, so number 1 is one campaign per channel."
+}

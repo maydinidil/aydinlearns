@@ -1,0 +1,131 @@
+{
+  "id": "EX-SQL-WIN-03-E2-02",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "lag",
+    "ad_spend_daily",
+    "campaigns"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-03"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "lesson",
+  "target_concept_id": "SQL-WIN-03",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-JOIN-01",
+    "SQL-WIN-01",
+    "SQL-WIN-03"
+  ],
+  "template_id": "T-WIN-03-lag-change",
+  "template_params": {
+    "table": "ad_spend_daily",
+    "order": "spend_date"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "mailvora",
+  "schema": "mailvora",
+  "edge_schema": "mailvora_edge_win",
+  "prompt": "For the campaign named 'Search | email marketing software | 2025', show each day with spend from 1 to 31 July 2025 (spend_date is a UTC day) and the change in spend from the previous day with spend. Return spend_date, spend and change_eur, the day's spend minus the previous day's. A day with no row is skipped, so the previous day with spend can be more than one day back. Only July's days count: the first one shows change_eur as missing. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "spend_date",
+        "type_class": "temporal"
+      },
+      {
+        "name": "spend",
+        "type_class": "numeric"
+      },
+      {
+        "name": "change_eur",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per day with spend"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "spend_date",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "spend",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "change_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "spend_date"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the change: the day's spend minus the spend LAG reads from the day before.",
+    "Only one campaign is left after the filter, so the window needs only an order: by the day, earliest first."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 29,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 30,
+      "to": 97,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 98,
+      "to": 169,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 170,
+      "to": 303,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": {
+    "stage1": 30,
+    "stage2": 30
+  },
+  "faded_shape": "SELECT a.spend_date, a.spend,\n",
+  "faded_suffix": "\nFROM ad_spend_daily a\nJOIN campaigns c ON c.campaign_id = a.campaign_id\nWHERE c.campaign_name = 'Search | email marketing software | 2025'\n  AND a.spend_date BETWEEN DATE '2025-07-01' AND DATE '2025-07-31'",
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "After the filter only this campaign's July days remain, so LAG in spend_date order reads the previous day with spend, and the first July day has none."
+}

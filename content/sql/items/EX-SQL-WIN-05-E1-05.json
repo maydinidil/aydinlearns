@@ -1,0 +1,137 @@
+{
+  "id": "EX-SQL-WIN-05-E1-05",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "moving_average",
+    "short_window_missing",
+    "weekly_units"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-05"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "retest",
+  "target_concept_id": "SQL-WIN-05",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-CASE-01",
+    "SQL-TYPE-01",
+    "SQL-WIN-01",
+    "SQL-WIN-04",
+    "SQL-WIN-05"
+  ],
+  "template_id": "T-WIN-05-moving-average-missing",
+  "template_params": {
+    "table": "weekly_units",
+    "group": "product",
+    "window": "3 weeks"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_win",
+  "prompt": "For each of products 21 to 40 (product_id from 21 to 40, both included) and each week starting from 6 January to 30 June 2025 (week_start, both days included), show the units sold that week and the 3-week moving average of units: the average of that week and the 2 weeks before it, rounded to 2 decimals. weekly_units holds a row for every product and week, with 0 when nothing sold. Within each product, weeks follow each other by week_start. Only weeks in that range count: a product's first two weeks have fewer than 3 weeks to average, so show their avg_units_3w as missing. Return product_id, week_start, units and avg_units_3w. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "week_start",
+        "type_class": "temporal"
+      },
+      {
+        "name": "units",
+        "type_class": "numeric"
+      },
+      {
+        "name": "avg_units_3w",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "week_start",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "units",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "avg_units_3w",
+        "type_class": "numeric",
+        "precision": "ratio",
+        "require_rounding": 2
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "product_id",
+      "week_start"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the 3-week average for each product, kept only when its window holds 3 weeks.",
+    "One series per product in week order; count the rows of the same frame to find the short windows."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 301,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 302,
+      "to": 319,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 320,
+      "to": 419,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "The count over the same frame is 3 only from a product's third week, so the CASE leaves the two short windows missing."
+}

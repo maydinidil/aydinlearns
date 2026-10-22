@@ -1,0 +1,52 @@
+{
+  "id": "Q-GA4-254",
+  "version": 1,
+  "kind": "mcq",
+  "section": "ga4",
+  "concept_id": "GA4-EXPLORE-01",
+  "parent_id": null,
+  "topic_id": "T-GA4-02",
+  "legacy_id": null,
+  "stem": "A colleague builds an exploration with a segment that leaves out sessions from the office network. The manager worries that the office sessions are now gone from the standard reports for everyone. What do you tell them?",
+  "options": [
+    {
+      "oid": "oabfc3dd",
+      "text": "They are gone for good: a segment that is applied works like an active data filter from then on",
+      "misconception_id": null
+    },
+    {
+      "oid": "o5e76f0a",
+      "text": "Nothing changed outside that analysis: an exploration and its segments do not change the data",
+      "misconception_id": null
+    },
+    {
+      "oid": "o27fc053",
+      "text": "They are gone only for the date range the segment covers, and come back once that range ends",
+      "misconception_id": null
+    },
+    {
+      "oid": "ob86e14f",
+      "text": "They stay hidden in the standard reports until the colleague shares the exploration with others",
+      "misconception_id": null
+    }
+  ],
+  "typed": null,
+  "exam_relevance": "core",
+  "held_out": true,
+  "enemy_group": null,
+  "status": "active",
+  "verified": true,
+  "level": null,
+  "tags": [
+    "ga4",
+    "T-GA4-02"
+  ],
+  "source_ids": [
+    "06:GA4-EXPLORE-01",
+    "06:GA4-ADMIN-01",
+    "ERRATA:E-205"
+  ],
+  "as_of": "2026-09-30",
+  "review_after": null,
+  "supersedes": []
+}

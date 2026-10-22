@@ -14,7 +14,7 @@ import type { SqlItem } from '../../schemas/item.ts';
 import type { RouteDeps } from '../app.ts';
 import type { ContentStore } from '../content.ts';
 import {
-  chosenPlan, CUMULATIVE_PREFIX, cumulativeOverall, cumulativePlan, drillRuns, DrillRuns, EXPLAINED_ALOUD, isDrillPlan, levelPlan, liveRepTiers, liveRuns, LIVE_PREFIX, livePlan,
+  chosenPlan, CUMULATIVE_PREFIX, cumulativeOverall, cumulativePlan, drillRuns, DrillRuns, EXPLAINED_ALOUD, isDrillPlan, isMockPlan, levelPlan, liveRepTiers, liveRuns, LIVE_PREFIX, livePlan,
   drillSpecLoader, pickLiveRepTiered, sampleCumulative, sampleDrill, type CumulativeSpec, type DrillFile, type DrillPlan, type DrillRun, type DrillSpec, type LiveRun,
   type RunEntry,
 } from '../drill.ts';
@@ -74,9 +74,11 @@ export function mountDrill(app: Hono, d: RouteDeps): DrillRuns {
       for (const s of run.servings) d.servings.forget(s.item_instance_id);
       await sendRunFinished(run);                                      // K10: after the block_close, unless the browser's end sends it
     },
+    ...d.runClock,                                                     // sprint 7 (Task M2): a test's clock and timers; absent, the real ones
   });
   /** K10: the `run_finished` of a run the app ends (its timer, a request after the limit, a session end), with the browser end's fields. */
   async function sendRunFinished(run: RunEntry): Promise<void> {
+    if (isMockPlan(run.plan)) return;                                  // sprint 7: a mock's run_finished is the mock routes' (routes/mocks.ts)
     try {
       if (isDrillPlan(run.plan)) {
         const r = (await history()).find((x) => x.block_id === run.block_id);

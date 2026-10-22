@@ -1,0 +1,54 @@
+{
+  "id": "Q-GA4-259",
+  "version": 1,
+  "kind": "mcq",
+  "section": "ga4",
+  "concept_id": "GA4-INTEG-22",
+  "parent_id": "GA4-INTEG-02",
+  "topic_id": "T-GA4-04",
+  "legacy_id": null,
+  "stem": "A standard property now logs about 3 million events a day, and the daily BigQuery export may be paused for going well over its limit. The data team needs every event in BigQuery without moving to Analytics 360. What do you recommend?",
+  "options": [
+    {
+      "oid": "o5c29907",
+      "text": "Switch to the Fresh Daily export, which lifts the daily limit on standard properties",
+      "misconception_id": null
+    },
+    {
+      "oid": "o7e3341c",
+      "text": "Turn on the streaming export, which has no event limit on standard properties",
+      "misconception_id": null
+    },
+    {
+      "oid": "od892927",
+      "text": "Raise the daily export limit to 10 million events in the BigQuery link settings",
+      "misconception_id": null
+    },
+    {
+      "oid": "o47a908d",
+      "text": "Create two subproperties, so that each one's export stays under the daily limit",
+      "misconception_id": null
+    }
+  ],
+  "typed": null,
+  "exam_relevance": "core",
+  "held_out": true,
+  "enemy_group": null,
+  "status": "active",
+  "verified": true,
+  "level": null,
+  "tags": [
+    "ga4",
+    "T-GA4-04"
+  ],
+  "source_ids": [
+    "10:GA4-INTEG-22",
+    "10:§5",
+    "10:§6",
+    "ERRATA:E-031",
+    "ERRATA:E-205"
+  ],
+  "as_of": "2026-09-30",
+  "review_after": null,
+  "supersedes": []
+}

@@ -1,0 +1,141 @@
+{
+  "id": "EX-SQL-WIN-04-E1-03",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "running_total",
+    "weekly_units"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-04"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "lesson",
+  "target_concept_id": "SQL-WIN-04",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-WIN-01",
+    "SQL-WIN-04"
+  ],
+  "template_id": "T-WIN-04-running-total",
+  "template_params": {
+    "table": "weekly_units",
+    "group": "product",
+    "period": "week"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_win",
+  "prompt": "For each of products 1 to 20 (product_id from 1 to 20, both included) and each week starting from 6 January to 23 June 2025 (week_start, both days included), show the units sold that week and the product's cumulative units from the week of 6 January up to and including that week. weekly_units holds a row for every product and week, with 0 when nothing sold. Return product_id, week_start, units and cumulative_units. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "week_start",
+        "type_class": "temporal"
+      },
+      {
+        "name": "units",
+        "type_class": "numeric"
+      },
+      {
+        "name": "cumulative_units",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per product and week"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "week_start",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "units",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "cumulative_units",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "product_id",
+      "week_start"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the running total of units for each product.",
+    "One series per product, in week_start order, with a frame from the first row to the current one."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 37,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 38,
+      "to": 170,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 171,
+      "to": 188,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 189,
+      "to": 287,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": {
+    "stage1": 38,
+    "stage2": 38
+  },
+  "faded_shape": "SELECT product_id, week_start, units,\n",
+  "faded_suffix": "\nFROM weekly_units\nWHERE product_id BETWEEN 1 AND 20\n  AND week_start BETWEEN DATE '2025-01-06' AND DATE '2025-06-23'",
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "SUM per product in week order, with a frame from the first week to this one, adds up the weeks so far; every week has one row, so no ties arise."
+}

@@ -1,0 +1,167 @@
+{
+  "id": "EX-SQL-WIN-02-E2-31",
+  "version": 1,
+  "kind": "fix",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "ranking",
+    "rank_vs_row_number",
+    "top_n_per_group",
+    "sales",
+    "fix"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-WIN-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CTE-01",
+    "SQL-WIN-01",
+    "SQL-WIN-02"
+  ],
+  "template_id": "T-WIN-02-fix-rank-for-exactly-n",
+  "template_params": {
+    "table": "sales",
+    "step": "product",
+    "partition": "category",
+    "n": 3
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_win",
+  "prompt": "The query in the editor has one mistake. Fix it so that it answers this question: which are the 3 best-selling products of each category by 2025 net revenue? Use the sales rows whose order_date falls in 2025. Keep exactly 3 products per category, or all of them when a category has fewer than 3 with sales; when products tie on revenue, the lower product_id comes first. Return three columns, in this order: category_name, product_id and revenue, the product's 2025 net revenue. Return one row for each product kept. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "category_name",
+        "type_class": "text"
+      },
+      {
+        "name": "product_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "revenue",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "category_name",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "product_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "revenue",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "product_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, check which ranking function the filter reads: the question wants exactly 3 products per category.",
+    "A function that gives tied rows the same number can keep a fourth product; one that numbers every row apart needs the stated tie-break as its last sort key."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 61,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 62,
+      "to": 129,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 130,
+      "to": 142,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 143,
+      "to": 217,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 218,
+      "to": 254,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 258,
+      "to": 309,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 310,
+      "to": 450,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 451,
+      "to": 469,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 472,
+      "to": 513,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 514,
+      "to": 525,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 526,
+      "to": 539,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": "WITH product_rev AS (  -- one row per product with 2025 sales\n  SELECT category_name, product_id, SUM(net_revenue_eur) AS revenue\n  FROM sales\n  WHERE order_date >= DATE '2025-01-01' AND order_date < DATE '2026-01-01'\n  GROUP BY category_name, product_id\n),\nranked AS (  -- one row per product with 2025 sales\n  SELECT category_name, product_id, revenue,\n         RANK() OVER (PARTITION BY category_name ORDER BY revenue DESC) AS rn\n  FROM product_rev\n)\nSELECT category_name, product_id, revenue\nFROM ranked\nWHERE rn <= 3",
+  "time_target_ms": 180000,
+  "why_this_works": "ROW_NUMBER with product_id after the revenue numbers tied products apart, so rn <= 3 keeps exactly 3 per category.",
+  "starter_error_id": "ERR-LOG-40"
+}

@@ -1,0 +1,210 @@
+{
+  "id": "EX-MOCK-SCREEN-A-05",
+  "version": 2,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "mock",
+    "screen",
+    "rank",
+    "top_n_per_group",
+    "ties_share",
+    "share_of_partition",
+    "sales"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-21",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "mock",
+  "target_concept_id": "SQL-WIN-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-CTE-01",
+    "SQL-WIN-01",
+    "SQL-WIN-02"
+  ],
+  "template_id": "T-MOCK-SCREEN-top-n-per-category-with-share",
+  "template_params": {
+    "table": "sales",
+    "parent_category": "TV & Video",
+    "from": "2025-01-01",
+    "to": "2025-06-30",
+    "fn": "RANK",
+    "n": 3,
+    "order": "revenue, highest first"
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_win",
+  "prompt": "The TV & Video buyers are preparing a range review and want each category's best sellers of the first half of 2025. Use the sales rows whose parent_category is 'TV & Video' and whose order_date falls from 1 January 2025 to 30 June 2025, both days included. A product's revenue is the total net_revenue_eur of its rows in that period; only products with at least one such row count. Within each category (category_name), rank the products by revenue from the highest down, and keep the products ranked 1 to 3. Products that tie on revenue share the same place, and the place after a tie is skipped: two products tied for first are both 1 and the next product is 3, and a tie for third keeps every tied product. Return six columns, in this order: category_name; product_id; product_name; revenue_eur, the product's revenue; category_share_pct, the product's revenue as a percentage of the revenue of all the products of its category in that period (every product counted, not only the top 3), rounded to 1 decimal; and revenue_rank, the product's place. Sort by category_name from A to Z, then by revenue_rank from low to high, then by product_id from low to high.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "category_name",
+        "type_class": "text"
+      },
+      {
+        "name": "product_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "product_name",
+        "type_class": "text"
+      },
+      {
+        "name": "revenue_eur",
+        "type_class": "numeric"
+      },
+      {
+        "name": "category_share_pct",
+        "type_class": "numeric"
+      },
+      {
+        "name": "revenue_rank",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": true,
+    "sort_keys": [
+      {
+        "column": "category_name",
+        "desc": false
+      },
+      {
+        "column": "revenue_rank",
+        "desc": false
+      },
+      {
+        "column": "product_id",
+        "desc": false
+      }
+    ],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "category_name",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "product_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "product_name",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "revenue_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "category_share_pct",
+        "type_class": "numeric",
+        "precision": "ratio",
+        "require_rounding": 1
+      },
+      {
+        "name": "revenue_rank",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "product_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write each product's revenue for the period, then its place within its category and its category's total beside it.",
+    "Tied products share a place and the next place is skipped, and the category total must count every product, so take it before you keep the top 3."
+  ],
+  "subgoals": [
+    {
+      "from": 98,
+      "to": 181,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 184,
+      "to": 194,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 197,
+      "to": 300,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 303,
+      "to": 351,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 450,
+      "to": 687,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 690,
+      "to": 710,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 713,
+      "to": 876,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 877,
+      "to": 888,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 889,
+      "to": 912,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 913,
+      "to": 961,
+      "subgoal": "sort_limit"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "RANK gives tied products the same place and skips the next one, and a window total over the whole category is taken before the top 3 are kept."
+}

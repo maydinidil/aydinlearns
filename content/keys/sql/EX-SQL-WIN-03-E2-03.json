@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-WIN-03-E2-03",
+  "item_version": 1,
+  "reference_sql": "SELECT order_id, customer_id, order_ts,\n  CAST(order_ts AS DATE) - CAST(LAG(order_ts) OVER (PARTITION BY customer_id ORDER BY order_ts, order_id) AS DATE) AS days_since_prev\nFROM orders\nWHERE customer_id BETWEEN 3001 AND 3100\n  AND order_ts >= TIMESTAMP '2025-01-01 00:00:00'\n  AND order_ts < TIMESTAMP '2025-07-01 00:00:00'",
+  "alternatives": [
+    "WITH period AS (\n  -- one row per registered customer's order in the period\n  SELECT order_id, customer_id, order_ts\n  FROM orders\n  WHERE customer_id BETWEEN 3001 AND 3100\n    AND order_ts >= TIMESTAMP '2025-01-01 00:00:00'\n    AND order_ts < TIMESTAMP '2025-07-01 00:00:00'\n)\nSELECT o.order_id, o.customer_id, o.order_ts,\n  CAST(o.order_ts AS DATE) - CAST((SELECT MAX(o2.order_ts) FROM period o2\n    WHERE o2.customer_id = o.customer_id\n      AND (o2.order_ts < o.order_ts OR (o2.order_ts = o.order_ts AND o2.order_id < o.order_id))) AS DATE) AS days_since_prev\nFROM period o",
+    "SELECT order_id, customer_id, order_ts,\n  date_diff('day', LAG(order_ts) OVER (PARTITION BY customer_id ORDER BY order_ts, order_id), order_ts) AS days_since_prev\nFROM orders\nWHERE customer_id BETWEEN 3001 AND 3100\n  AND order_ts >= TIMESTAMP '2025-01-01 00:00:00'\n  AND order_ts < TIMESTAMP '2025-07-01 00:00:00'"
+  ],
+  "other_way": {
+    "sql": "WITH period AS (\n  -- one row per registered customer's order in the period\n  SELECT order_id, customer_id, order_ts\n  FROM orders\n  WHERE customer_id BETWEEN 3001 AND 3100\n    AND order_ts >= TIMESTAMP '2025-01-01 00:00:00'\n    AND order_ts < TIMESTAMP '2025-07-01 00:00:00'\n)\nSELECT o.order_id, o.customer_id, o.order_ts,\n  CAST(o.order_ts AS DATE) - CAST((SELECT MAX(o2.order_ts) FROM period o2\n    WHERE o2.customer_id = o.customer_id\n      AND (o2.order_ts < o.order_ts OR (o2.order_ts = o.order_ts AND o2.order_id < o.order_id))) AS DATE) AS days_since_prev\nFROM period o",
+    "tradeoff": "A subquery for the latest earlier order gives the same days, but it repeats the tie rule by hand and reads the orders again."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-37",
+      "sql": "SELECT order_id, customer_id, order_ts, CAST(order_ts AS DATE) - CAST(LAG(order_ts) OVER (ORDER BY customer_id, order_ts, order_id) AS DATE) AS days_since_prev FROM orders WHERE customer_id BETWEEN 3001 AND 3100 AND order_ts >= TIMESTAMP '2025-01-01 00:00:00' AND order_ts < TIMESTAMP '2025-07-01 00:00:00'"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-18",
+      "sql": "SELECT order_id, customer_id, order_ts, CAST(order_ts AS DATE) - CAST(LAG(order_ts) OVER (PARTITION BY customer_id ORDER BY order_ts DESC, order_id DESC) AS DATE) AS days_since_prev FROM orders WHERE customer_id BETWEEN 3001 AND 3100 AND order_ts >= TIMESTAMP '2025-01-01 00:00:00' AND order_ts < TIMESTAMP '2025-07-01 00:00:00'"
+    }
+  ],
+  "hint3_partial": "SELECT order_id, customer_id, order_ts,\n  CAST(order_ts AS DATE) - CAST(LAG(order_ts) OVER (PARTITION BY customer_id ORDER BY ___) AS DATE) AS days_since_prev\nFROM orders\nWHERE customer_id BETWEEN 3001 AND 3100\n  AND order_ts >= TIMESTAMP '2025-01-01 00:00:00'\n  AND order_ts < TIMESTAMP '2025-07-01 00:00:00'",
+  "solver": {
+    "prompt_hash": "907572dcb87df268",
+    "schema_version": "7ed366279088",
+    "dataset_version": "e7c58abf7e8f892e",
+    "grader_version": "7a.1",
+    "query": "WITH o AS (\n  SELECT order_id, customer_id, order_ts, CAST(order_ts AS DATE) AS d\n  FROM orders\n  WHERE customer_id BETWEEN 3001 AND 3100\n    AND CAST(order_ts AS DATE) BETWEEN DATE '2025-01-01' AND DATE '2025-06-30'\n)\nSELECT order_id, customer_id, order_ts,\n  d - LAG(d) OVER (PARTITION BY customer_id ORDER BY order_ts, order_id) AS days_since_prev\nFROM o\n",
+    "at": "2026-10-21T09:05:07.423Z"
+  }
+}

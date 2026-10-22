@@ -1,0 +1,108 @@
+{
+  "id": "EX-SQL-WIN-03-E3-01",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "lag",
+    "orders",
+    "reorder_rate",
+    "cte"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-03"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-WIN-03",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-SORT-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-04",
+    "SQL-TYPE-01",
+    "SQL-CTE-01",
+    "SQL-DATE-02",
+    "SQL-WIN-01",
+    "SQL-WIN-03"
+  ],
+  "template_id": "T-WIN-03-reorder-share",
+  "template_params": {
+    "table": "orders",
+    "window_days": 30
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_win",
+  "prompt": "Of the orders registered customers placed from 1 January to 30 June 2025 (order_ts holds UTC time; both days included, in UTC), what percentage came at most 30 days after the same customer's previous order in that period? Count the days as the UTC date of the order minus the UTC date of the previous order. Only orders that have a previous order in the period count, in the top and the bottom of the percentage. A customer's orders follow each other by order_ts; when two orders share a moment, the lower order_id comes first. Guest orders have a missing customer_id and do not count. Return one column, pct_within_30, rounded to 1 decimal. The result is a single row. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "pct_within_30",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "pct_within_30",
+        "type_class": "numeric",
+        "precision": "ratio",
+        "require_rounding": 1
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, in a first step, work out each order's days since the customer's previous order in the period.",
+    "Orders with no previous one have a missing gap: leave them out of both counts, then divide the orders with a gap of 30 days or less by the orders with a gap."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 379,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 380,
+      "to": 492,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 493,
+      "to": 502,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "LAG gives each order its gap to the customer's previous order; COUNT of the gap skips first orders, so the share runs over orders with a previous one."
+}

@@ -20,6 +20,13 @@
 // - Sprint 5b Task B4 (D68, log version 5): every answer to a run's item logs the run's kind as its payload's run_kind, from the run
 //   clock's entry for the instance, so the log tells a full mock cut short by a crash from a half-mock.
 // - Show-answer inside a run waits (409, S3-03). After a mini drill ends, it opens on the run's closed items, logged (S2-44).
+//
+// Sprint 7 Part 2 (Task N1; S7-03, S7-10, S7-11), a knowledge mock's questions: held-out Methodology items and knowledge-pool GA4 items.
+// - S3-12 widened to Methodology: a held-out question is served, and answered, only through its own knowledge mock instance while that run
+//   is on; once the run is over, an open or an answer of that instance is the mock's run-over 409 (S7-C18), and every other request the
+//   usual 404. Show-answer is always a 404 (S3-12), in the run and after it.
+// - An answer is graded and logged with run_kind knowledge_mock and no confidence, leaves the instance open (the run's end closes it), and
+//   answers { recorded: true } only; a second answer is the mock's 409 (S7-03).
 import { randomInt, randomUUID } from 'node:crypto';
 import type { Context, Hono } from 'hono';
 import { HTTPException } from 'hono/http-exception';
@@ -27,12 +34,12 @@ import { SCHEMA_VERSION, type Phase, type Section } from '../../core/envelope.ts
 import { amsterdamDate } from '../../core/time.ts';
 import { choiceTarget, sqlChoiceShape, type ChoiceItem, type ChoiceKey, type ChoiceSection, type ChoiceShape, type OptionTable, type TypedSpec } from '../../schemas/choice.ts';
 import { isSqlChoiceKind, type SqlChoiceKind, type SqlItem, type UniqueCheck } from '../../schemas/item.ts';
-import type { AydinAttempt, LoggedRunKind } from '../../schemas/log-ext.ts';
+import type { AydinAttempt, KnowledgeMockRunKind, LoggedRunKind } from '../../schemas/log-ext.ts';
 import type { ContentStore } from '../content.ts';
 import type { OpenInstance, RouteDeps } from '../app.ts';
 import { CHOICE_GRADER_VERSION, gradeChoice, gradeTyped, parseTyped, TYPED_REFUSALS, type ChoiceGrade } from '../choice/grade.ts';
-import { HELP_WAITS, NO_DRILLS, type DrillGate } from '../drill.ts';
-import { CHOICE_RUN_OVER, CODE_ONE_ANSWER, CODE_RUN_OVER, isChoicePlan, oneAnswer } from '../run.ts';
+import { HELP_WAITS, isMockPlan, MOCK_ONE_ANSWER, MOCK_RUN_OVER, NO_DRILLS, type DrillGate } from '../drill.ts';
+import { CHOICE_RUN_OVER, CODE_ONE_ANSWER, CODE_RUN_OVER, isChoicePlan, KNOWLEDGE_BLOCK_PREFIX, oneAnswer } from '../run.ts';
 import { answered, choiceFunnel, companyOf, levelName, sqlFunnel, type FunnelAttributes } from '../observe.ts';
 import { journey } from '../journey.ts';
 
@@ -117,8 +124,8 @@ export function servableChoiceItem(content: ContentStore, id: string): ChoiceIte
 }
 
 /**
- * S3-12: an active GA4 or Methodology item, held out or not. Only a mock's own instance (half or full), while its run is on, reaches a held-out
- * item through it; every other request goes through servableChoiceItem.
+ * S3-12: an active GA4 or Methodology item, held out or not. Only a mock's own instance (a GA4 half or full mock's, or a knowledge mock's,
+ * S7-11), while its run is on, reaches a held-out item through it; every other request goes through servableChoiceItem.
  */
 function activeChoiceItem(content: ContentStore, id: string): ChoiceItem | undefined {
   const item = content.choiceItem?.(id);
@@ -162,11 +169,12 @@ export function mountChoice(app: Hono, d: RouteDeps, runs: DrillGate = NO_DRILLS
   /**
    * The question with this ID in this section (any section when none is named), or undefined: unknown, held out, not active, or
    * of another section. A GA4 or Methodology item comes first; an SQL choice item's ID never takes that form (EX-SQL-*).
-   * `inHalfMock` (S3-12): the request names this held-out item's own mock instance (a half-mock's or a full mock's), and that run is on.
+   * `inMock` (S3-12, S7-11): the request names this held-out item's own mock instance (a GA4 half or full mock's, or a knowledge
+   * mock's), and that run is on.
    */
-  const question = (id: string, section?: Section, inHalfMock = false): Question | undefined | 'no key' => {
+  const question = (id: string, section?: Section, inMock = false): Question | undefined | 'no key' => {
     const choice = section === undefined || section === 'ga4' || section === 'methodology'
-      ? (inHalfMock ? activeChoiceItem(d.content, id) : servableChoiceItem(d.content, id)) : undefined;
+      ? (inMock ? activeChoiceItem(d.content, id) : servableChoiceItem(d.content, id)) : undefined;
     if (choice && (section === undefined || choice.section === section)) {
       const key = d.content.choiceKey?.(choice.id);
       if (!key) return 'no key';
@@ -183,20 +191,30 @@ export function mountChoice(app: Hono, d: RouteDeps, runs: DrillGate = NO_DRILLS
       company: companyOf(sql.schema) };
   };
   /** The question and its key; a 404 for an unknown or held-out ID, before anything else happens (S2-64, S3-12). */
-  const servable = (id: unknown, inHalfMock = false): Question => {
-    const q = typeof id === 'string' ? question(id, undefined, inHalfMock) : undefined;
+  const servable = (id: unknown, inMock = false): Question => {
+    const q = typeof id === 'string' ? question(id, undefined, inMock) : undefined;
     if (q === undefined) throw refuse(404, UNKNOWN);
     if (q === 'no key') throw refuse(404, 'This question has no answer key.');
     return q;
   };
   /**
-   * S3-12: the instance is this held-out item's own serving in a mock (half or full), and `on` says that run is on. A serving is forgotten
-   * when its run ends and at a restart, so after the run every request for the item is the usual 404.
+   * S3-12, widened to Methodology by S7-11: the instance is this held-out item's own serving in a mock (a GA4 half or full mock's, or a
+   * knowledge mock's), and `on` says that run is on. A serving is forgotten when its run ends and at a restart, so after the run every
+   * request for the item is the usual 404 (but see knowledgeOver).
    */
-  const servedInHalfMock = (itemId: unknown, instanceId: unknown, on: boolean): boolean => {
+  const servedInMock = (itemId: unknown, instanceId: unknown, on: boolean): boolean => {
     if (!on || typeof itemId !== 'string' || typeof instanceId !== 'string' || !d.content.heldOut?.(itemId)) return false;
     const s = d.servings.get(instanceId);
-    return s?.phase === 'mock' && s.section === 'ga4' && s.item_id === itemId;
+    return s?.phase === 'mock' && (s.section === 'ga4' || s.section === 'methodology') && s.item_id === itemId;
+  };
+  /**
+   * S7-06 (ruling S7-C18): the instance is this item's own question of a knowledge mock run that is over: its close, written by the run's
+   * end here or before a restart (a session end, recovery), names a knowledge mock block. An open or an answer of it is the mock's run-over
+   * 409, which carries nothing of the question: the answer path ends the run on the screen and opens its review; an open shows the message.
+   */
+  const knowledgeOver = (itemId: unknown, instanceId: string): boolean => {
+    const done = d.state.current().instances.get(instanceId);
+    return done !== undefined && done.phase === 'mock' && done.item_id === itemId && (done.block_id ?? '').startsWith(KNOWLEDGE_BLOCK_PREFIX);
   };
   /** The instance a GET showed this item in. An instance never shown here (or forgotten by a restart) is a 409: the screen opens the question again. */
   const shownFor = (id: string, q: Question): Shown => {
@@ -221,10 +239,11 @@ export function mountChoice(app: Hono, d: RouteDeps, runs: DrillGate = NO_DRILLS
     phase: s.phase, section: q.section, started_at: new Date(s.at).toISOString() });
   /**
    * The logged answer: graded on the server, with the order shown (S2-60) and the instance's phase, block and repeat flag. `runKind`:
-   * the kind of the timed GA4 run the item belongs to (D68), left out of the payload for any other answer.
+   * the kind of the timed GA4 run the item belongs to (D68), or knowledge_mock for a knowledge mock's question (D112), left out of the
+   * payload for any other answer.
    */
   const attemptOf = (a: { id: string; q: Question; s: Shown; i: OpenInstance; b: Body; at: Date; grade: ChoiceGrade; chosen: string | null;
-    typed: string | undefined; confidence: AydinAttempt['confidence']; runKind?: LoggedRunKind }): AydinAttempt => {
+    typed: string | undefined; confidence: AydinAttempt['confidence']; runKind?: LoggedRunKind | KnowledgeMockRunKind }): AydinAttempt => {
     const { id, q, s, i, b, at, grade } = a;
     const activeMs = typeof b.active_ms === 'number' && Number.isFinite(b.active_ms) && b.active_ms >= 0 ? b.active_ms : Math.max(0, at.getTime() - i.started);
     return {
@@ -246,10 +265,12 @@ export function mountChoice(app: Hono, d: RouteDeps, runs: DrillGate = NO_DRILLS
     const section = c.req.query('section');
     if (section !== 'ga4' && section !== 'methodology' && section !== 'sql') throw refuse(400, 'section must be ga4, methodology or sql.');
     const asked = c.req.query('instance');
-    // S3-12: a held-out item only through its own mock instance (half or full) while the run is on (running() ends a run past its limit first).
-    const inHalfMock = section === 'ga4' && d.content.heldOut?.(c.req.param('id')) === true && asked !== undefined
-      && servedInHalfMock(c.req.param('id'), asked, await runs.running(asked));
-    const q = question(c.req.param('id'), section, inHalfMock);
+    // S3-12, S7-11: a held-out item only through its own mock instance (a GA4 half or full mock's, or a knowledge mock's) while the run is
+    // on (running() ends a run past its limit first). S7-C18: the instance of a knowledge mock run that is over answers the run-over 409.
+    const held = (section === 'ga4' || section === 'methodology') && d.content.heldOut?.(c.req.param('id')) === true && asked !== undefined;
+    const inMock = held && servedInMock(c.req.param('id'), asked, await runs.running(asked));
+    if (held && !inMock && knowledgeOver(c.req.param('id'), asked)) throw refuse(409, MOCK_RUN_OVER, CODE_RUN_OVER);
+    const q = question(c.req.param('id'), section, inMock);
     if (q === undefined || q === 'no key') throw refuse(404, UNKNOWN);
     // S3-17: an SQL choice instance no serving gave a phase may be named a pretest one; GA4 and Methodology take none from the browser.
     const named = section === 'sql' ? c.req.query('phase') : undefined;
@@ -274,7 +295,7 @@ export function mountChoice(app: Hono, d: RouteDeps, runs: DrillGate = NO_DRILLS
         options: s.order.map((oid) => { const o = byOid.get(oid)!; return o.table ? { oid, text: o.text, table: o.table } : { oid, text: o.text }; }) };
       return c.json(body);
     }
-    const choice = (inHalfMock ? activeChoiceItem(d.content, item.id) : servableChoiceItem(d.content, item.id))!;
+    const choice = (inMock ? activeChoiceItem(d.content, item.id) : servableChoiceItem(d.content, item.id))!;
     const textOf = new Map(item.options.map((o) => [o.oid, o.text]));
     const body: ChoiceServedView = { item: publicItem(choice), options: s.order.map((oid) => ({ oid, text: textOf.get(oid)! })),
       shown_order: s.order, item_instance_id: id, phase };
@@ -290,7 +311,9 @@ export function mountChoice(app: Hono, d: RouteDeps, runs: DrillGate = NO_DRILLS
     let logged: Date | null = null;
     try {
       const run = release && asked !== null ? runs.runOf(asked) : undefined;      // its run is on: holdForSubmission waited for an ending one
-      const q = servable(b.item_id, servedInHalfMock(b.item_id, asked, run !== undefined));
+      // S7-C18: an answer to a knowledge mock question whose run is over (here, or before a restart) is the mock's run-over 409.
+      if (asked !== null && run === undefined && knowledgeOver(b.item_id, asked)) throw refuse(409, MOCK_RUN_OVER, CODE_RUN_OVER);
+      const q = servable(b.item_id, servedInMock(b.item_id, asked, run !== undefined));
       const { shape: item, key } = q;
       const id = text(b, 'item_instance_id');
       if (!release) throw refuse(409, CHOICE_RUN_OVER, CODE_RUN_OVER);
@@ -331,6 +354,18 @@ export function mountChoice(app: Hono, d: RouteDeps, runs: DrillGate = NO_DRILLS
         funnelAnswer(q, attempt, grade.correct);                  // telemetry only: the learner sees nothing until the run's end
         const body: ChoiceSavedView = { saved: true, attempt_id: attempt.attempt_id };   // help waits: no correctness, key or explanation
         return c.json(body);
+      }
+      if (run && isMockPlan(run.plan)) {
+        // S7-03, S7-10: a knowledge mock's question takes one answer and asks no confidence; it stays open until the run's end. Its answer
+        // is logged with run_kind knowledge_mock (D112), so no GA4 run path reads it (S7-11), and the reply says only that it is recorded.
+        if (i.submitted > 0) throw refuse(409, MOCK_ONE_ANSWER, CODE_ONE_ANSWER);
+        i.noteSubmission(true, grade.correct);           // claimed before the first await: a second answer gets the 409 above
+        const at = new Date();
+        const attempt = attemptOf({ id, q, s, i, b, at, grade, chosen, typed, confidence: null, runKind: run.plan.mock === 'knowledge' ? 'knowledge_mock' : undefined });
+        await d.logger.attempt(attempt);
+        logged = at;
+        funnelAnswer(q, attempt, grade.correct);                  // telemetry only: the learner sees nothing until the run's end
+        return c.json({ recorded: true as const });
       }
       if (i.submitted > 0) throw refuse(409, 'This question already has an answer. Open it again to answer once more.');
       i.noteSubmission(true, grade.correct);             // claimed before the first await: a second answer gets the 409 above

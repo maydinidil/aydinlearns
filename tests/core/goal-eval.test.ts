@@ -16,7 +16,7 @@ function view(states: Record<string, ConceptStateName> = {}, over: Partial<GoalV
   return {
     conceptsOf: (section: Section, maxLevel: number) => (section !== 'sql' ? [] : [...SQL_L1, ...(maxLevel >= 2 ? SQL_L2 : [])]),
     stateOf: (id) => states[id] ?? 'new',
-    externals: [], mocksPassed: new Set(), casesSolved: [], realCasesAvailable: 0, liveReps: [], ...over,
+    externals: [], mocksPassed: new Map(), mocksAvailable: new Set(), casesSolved: [], realCasesAvailable: 0, liveReps: [], ...over,
   };
 }
 const goal = (id: string, target_date: string, criteria: Goal['criteria'] = []): Goal => ({ id, title: `Goal ${id}`, target_date, stage: null, criteria });
@@ -48,7 +48,13 @@ test('"not yet available": GA4 and Methodology level 1 until their content exist
     { label: 'Screen mock passed', met: false, available: false, done: null, total: null },
     // S4B-26 (Task B1): live reps are counted from the view now, so a learner with none has 0 of 4, not "not yet available".
     { label: 'Live SQL: 4 sessions logged in 4 weeks, 3 passed', met: false, available: true, done: 0, total: 4 }]);
-  assert.deepEqual(evaluateGoal(later, view({}, { mocksPassed: new Set(['screen']) })).criteria[0], { label: 'Screen mock passed', met: true, available: true, done: null, total: null });
+  // S7-05: a passed mock is met, and its label names the Amsterdam date of the first counting pass, which the readiness board shows.
+  assert.deepEqual(evaluateGoal(later, view({}, { mocksPassed: new Map([['screen', '2026-11-20']]) })).criteria[0],
+    { label: 'Screen mock passed on 2026-11-20', met: true, available: true, done: null, total: null });
+  // A mock a start can take (it has a form) but with no counting pass is open: available, not met. Another mock's form does not count.
+  assert.deepEqual(evaluateGoal(later, view({}, { mocksAvailable: new Set(['screen']) })).criteria[0],
+    { label: 'Screen mock passed', met: false, available: true, done: null, total: null });
+  assert.equal(evaluateGoal(later, view({}, { mocksAvailable: new Set(['case_round']) })).criteria[0]!.available, false);
   // Once the content exists (C8), the same criterion counts.
   const ga4 = view({ 'GA4-SETUP-01': 'practised' }, { conceptsOf: (s, n) => (s === 'ga4' ? ['GA4-SETUP-01', 'GA4-EVENTS-01'] : view().conceptsOf(s, n)) });
   assert.deepEqual(evaluateGoal(g, ga4).criteria[1], { label: 'GA4 level 1 at practised', met: false, available: true, done: 1, total: 2 });

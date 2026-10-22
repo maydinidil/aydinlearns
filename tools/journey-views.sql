@@ -161,3 +161,17 @@ SELECT section, run_kind, started_at, finished_at,
        score_pct, run_passed, block_id
 FROM started LEFT JOIN finished USING (block_id)
 ORDER BY started_at;
+
+-- The tutor's questions (D99) by screen and outcome: how many, and the tokens and dollars they used. A question that was capped or failed
+-- before the provider answered carries no counts, so it adds none.
+CREATE OR REPLACE VIEW tutor_questions AS
+SELECT screen, outcome,
+       count(*) AS questions,
+       CAST(coalesce(sum(input_tokens), 0) AS BIGINT) AS input_tokens,
+       CAST(coalesce(sum(cached_input_tokens), 0) AS BIGINT) AS cached_input_tokens,
+       CAST(coalesce(sum(output_tokens), 0) AS BIGINT) AS output_tokens,
+       round(coalesce(sum(cost_usd), 0), 6) AS cost_usd
+FROM events
+WHERE event = 'tutor_asked'
+GROUP BY ALL
+ORDER BY screen, outcome;

@@ -1,0 +1,153 @@
+{
+  "id": "EX-SQL-WIN-06-E1-06",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "window",
+    "lag",
+    "filter_window_result",
+    "price_history"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-06"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-WIN-06",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-CTE-01",
+    "SQL-WIN-01",
+    "SQL-WIN-03",
+    "SQL-WIN-06"
+  ],
+  "template_id": "T-WIN-06-filter-lag-result",
+  "template_params": {
+    "table": "price_history",
+    "test": "price fell"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_win",
+  "prompt": "Which price versions of products 1 to 25 (product_id from 1 to 25, both included) lowered the product's list price? Compare each version with the same product's version just before it; within a product, versions follow each other by valid_from. A product's first version has no version before it and is never listed. Return four columns, in this order: product_id, valid_from, prev_price_eur (the list price of the version before) and list_price_eur. Return one row for each such version. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "valid_from",
+        "type_class": "temporal"
+      },
+      {
+        "name": "prev_price_eur",
+        "type_class": "numeric"
+      },
+      {
+        "name": "list_price_eur",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "valid_from",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "prev_price_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "list_price_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "product_id",
+      "valid_from"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, put the price of the version before beside each version, then keep the versions whose price is lower.",
+    "LAG gives the earlier price, but only after the step that works it out has run, so compare the two prices in an outer query."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 86,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 87,
+      "to": 233,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 234,
+      "to": 254,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 255,
+      "to": 290,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 293,
+      "to": 354,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 355,
+      "to": 368,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 369,
+      "to": 406,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "LAG puts the earlier price beside each version in the CTE, and the outer WHERE compares the two once both exist; a first version has a missing earlier price and drops out."
+}

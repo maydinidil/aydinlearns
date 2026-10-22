@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-WIN-06-E2-41",
+  "item_version": 1,
+  "correct_oid": "o1cf3405",
+  "explanation": "The right query numbers each category's products from the highest unit cost with ROW_NUMBER, product_id settling a tie, and keeps number 1 in the outer query. RANK gives tied products the same place 1, so a category with a tie keeps two rows. Without PARTITION BY the numbering runs over all products and keeps one row in total. The QUALIFY query is written correctly for DuckDB, but it sorts from the lowest cost, so it keeps the cheapest product.",
+  "solver": {
+    "prompt_hash": "60c7465ebc830e13",
+    "grader_version": "choice.3",
+    "chosen": "o1cf3405",
+    "typed": null,
+    "at": "2026-10-20T20:50:48.395Z"
+  }
+}

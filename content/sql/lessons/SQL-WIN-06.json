@@ -1,0 +1,143 @@
+{
+  "concept_id": "SQL-WIN-06",
+  "version": 1,
+  "reading_md": "## Filtering a window's result\n\nA window function is worked out after WHERE, GROUP BY and HAVING have run. So WHERE cannot test it: DuckDB stops with \"WHERE clause cannot contain window functions\", and other engines refuse it too.\n\nThe portable fix has two steps. Work the window out in a CTE or a derived table, where it gets a name, then filter that name in the outer query:\n\n```sql\nWITH ranked AS (  -- one row per order, numbered within its customer\n  SELECT customer_id, order_id, order_ts,\n         ROW_NUMBER() OVER (PARTITION BY customer_id\n                            ORDER BY order_ts DESC, order_id) AS rn\n  FROM orders\n  WHERE customer_id IS NOT NULL\n)\nSELECT customer_id, order_id, order_ts\nFROM ranked\nWHERE rn = 1;\n```\n\n### Latest row and top N\n\n`rn = 1` keeps one row per partition: here, each customer's latest order. `rn <= 3` keeps a top 3. A WHERE inside the CTE runs before the numbering, so it decides which rows take part; the outer WHERE runs after it.\n\n### Say what happens to ties\n\nTwo orders at the same moment need a rule, or the answer can change from run to run.\n\n- ROW_NUMBER gives every row its own number. End its ORDER BY with a tie-break, such as order_id, and say which row wins.\n- RANK gives tied rows the same place and skips the places after them, so `<= 3` can keep more than three rows. DENSE_RANK also shares places but skips none. Use them when tied rows should share a place.\n\n### Any window result can be filtered\n\nThe same two steps filter any window value: price versions lower than the version before (LAG), rows above their group's average (AVG OVER), or the first day a running total reaches a target.\n\n### QUALIFY\n\nDuckDB and BigQuery have QUALIFY, a clause that filters window results in the same query, after WHERE, GROUP BY and HAVING:\n\n```sql\nSELECT customer_id, order_id, order_ts\nFROM orders\nWHERE customer_id IS NOT NULL\nQUALIFY ROW_NUMBER() OVER (PARTITION BY customer_id\n                           ORDER BY order_ts DESC, order_id) = 1;\n```\n\nIt is shorter, but PostgreSQL, MySQL and SQL Server have no QUALIFY. Write the CTE form first: it runs everywhere. A QUALIFY answer still passes here, with a note.\n\n### Removing resent copies\n\nRaw data can hold one record twice. In the raw Voltmarkt tables, about 0.8% of store BE-14's order lines were sent again under a new order_line_id. Number the copies within the columns that make a line the same line, then keep copy 1:\n\n```sql\nROW_NUMBER() OVER (PARTITION BY order_id, product_id, quantity, unit_price_eur\n                   ORDER BY order_line_id) AS copy_no\n```\n\n`copy_no = 1` keeps the copy with the lowest order_line_id. The copies are one fact, so which one you keep changes no count or total, but name it so the result is repeatable.",
+  "syntax_md": "```sql\nWITH ranked AS (                                  -- step 1: work the window out\n  SELECT customer_id, order_id,\n         ROW_NUMBER() OVER (PARTITION BY customer_id\n                            ORDER BY order_ts DESC, order_id) AS rn\n  FROM orders\n)\nSELECT customer_id, order_id                      -- step 2: filter its result\nFROM ranked\nWHERE rn = 1;\n```\n\n- A window function never goes in WHERE: name it in a CTE or a derived table, then filter it outside.\n- `rn = 1` keeps one row per partition; `rn <= N` keeps N with ROW_NUMBER. End its ORDER BY with a tie-break.\n- With RANK or DENSE_RANK, tied rows share a place, so `<= N` can keep more than N rows.\n- DuckDB and BigQuery only: `QUALIFY ROW_NUMBER() OVER (...) = 1` after WHERE, GROUP BY and HAVING.",
+  "dialect_note": "QUALIFY (01 DIALECT-04) works in DuckDB and BigQuery, but not in PostgreSQL, MySQL, SQL Server or SQLite. A graded query that uses it passes here and gets the note \"PostgreSQL, MySQL and SQL Server have no QUALIFY: filter the window result in an outer query or a CTE.\" Every answer key here filters in an outer query or a CTE, and shows the QUALIFY form under other ways to write it.",
+  "worked_examples": [
+    {
+      "title": "Each customer's latest order",
+      "prompt": "For each registered customer, which order was the latest? When two orders of a customer tie on order_ts, keep the one with the lower order_id. Return customer_id, order_id and order_ts.",
+      "clauses": [
+        {
+          "text": "WITH ranked AS (  -- one row per order, numbered within its customer",
+          "subgoal": "source_grain",
+          "why": "Step 1 works the window out in a CTE, where its result gets a name the next step can test."
+        },
+        {
+          "text": "SELECT customer_id, order_id, order_ts, ROW_NUMBER() OVER (PARTITION BY customer_id ORDER BY order_ts DESC, order_id) AS rn",
+          "subgoal": "metrics",
+          "why": "Each customer's orders are numbered from the latest; order_id breaks a tie, so every row gets one fixed number."
+        },
+        {
+          "text": "FROM orders",
+          "subgoal": "source_grain",
+          "why": "One row per order."
+        },
+        {
+          "text": "WHERE customer_id IS NOT NULL )",
+          "subgoal": "row_filter",
+          "why": "Guest orders have no customer, so they leave before the numbering starts."
+        },
+        {
+          "text": "SELECT customer_id, order_id, order_ts",
+          "subgoal": "metrics",
+          "why": "The outer step returns the columns asked for, without rn."
+        },
+        {
+          "text": "FROM ranked",
+          "subgoal": "source_grain",
+          "why": "The outer step reads the CTE, where rn now exists."
+        },
+        {
+          "text": "WHERE rn = 1",
+          "subgoal": "row_filter",
+          "why": "This WHERE runs after the numbering, so it can keep number 1: the latest order."
+        }
+      ]
+    },
+    {
+      "title": "BE-14's lines once resent copies are removed",
+      "prompt": "How many of store BE-14's order lines of June 2024 remain once resent copies are removed? These tables may hold errors. June 2024 means order_ts, as stored, from 1 June 2024 up to but not including 1 July 2024. Two lines are copies when order_id, product_id, quantity and unit_price_eur all match. Keep the copy with the lowest order_line_id. Return n_lines.",
+      "clauses": [
+        {
+          "text": "WITH numbered AS (  -- one row per stored BE-14 line of June 2024",
+          "subgoal": "source_grain",
+          "why": "Step 1 numbers the copies; the comment names its grain: every stored line, copies included."
+        },
+        {
+          "text": "SELECT ROW_NUMBER() OVER (PARTITION BY ol.order_id, ol.product_id, ol.quantity, ol.unit_price_eur ORDER BY ol.order_line_id) AS copy_no",
+          "subgoal": "metrics",
+          "why": "Copies match on all four columns, so they share a partition, and the lowest order_line_id gets number 1."
+        },
+        {
+          "text": "FROM order_lines ol JOIN orders o ON o.order_id = ol.order_id JOIN stores s ON s.store_id = o.store_id",
+          "subgoal": "source_grain",
+          "why": "Each line meets its order and store, so the filter can find BE-14 and June."
+        },
+        {
+          "text": "WHERE s.store_code = 'BE-14' AND o.order_ts >= TIMESTAMP '2024-06-01' AND o.order_ts < TIMESTAMP '2024-07-01' )",
+          "subgoal": "row_filter",
+          "why": "Only BE-14's June lines take part in the numbering."
+        },
+        {
+          "text": "SELECT COUNT(*) AS n_lines",
+          "subgoal": "metrics",
+          "why": "After the filter, each order line is one row, so COUNT counts lines."
+        },
+        {
+          "text": "FROM numbered",
+          "subgoal": "source_grain",
+          "why": "The outer step reads the numbered lines."
+        },
+        {
+          "text": "WHERE copy_no = 1",
+          "subgoal": "row_filter",
+          "why": "Copy 1 of each set stays and the resent copies go."
+        }
+      ]
+    }
+  ],
+  "pretest_item_ids": [
+    "EX-SQL-WIN-06-E1-01",
+    "EX-SQL-WIN-06-E1-02"
+  ],
+  "lesson_item_ids": [
+    "EX-SQL-WIN-06-E1-03",
+    "EX-SQL-WIN-06-E1-04",
+    "EX-SQL-WIN-06-E2-01",
+    "EX-SQL-WIN-06-E2-02"
+  ],
+  "retest_item_id": "EX-SQL-WIN-06-E1-05",
+  "pool_item_ids": [
+    "EX-SQL-WIN-06-E1-06",
+    "EX-SQL-WIN-06-E1-07",
+    "EX-SQL-WIN-06-E2-03",
+    "EX-SQL-WIN-06-E2-04",
+    "EX-SQL-WIN-06-E2-05",
+    "EX-SQL-WIN-06-E2-06",
+    "EX-SQL-WIN-06-E3-01",
+    "EX-SQL-WIN-06-E3-02",
+    "EX-SQL-WIN-06-E2-31",
+    "EX-SQL-WIN-06-E1-42",
+    "EX-SQL-WIN-06-E2-41",
+    "EX-SQL-WIN-06-E2-42"
+  ],
+  "source_ids": [
+    "01:SQL-WIN-06"
+  ],
+  "why_clause": {
+    "clause": "WHERE rn = 1",
+    "stem": "Why is rn = 1 tested in the outer query, and not in the WHERE inside the CTE?",
+    "options": [
+      {
+        "id": "a",
+        "text": "The WHERE inside the CTE runs before the window, so rn does not exist there yet."
+      },
+      {
+        "id": "b",
+        "text": "The outer query is faster, because it reads fewer columns."
+      },
+      {
+        "id": "c",
+        "text": "A CTE cannot have a WHERE clause of its own."
+      },
+      {
+        "id": "d",
+        "text": "Inside the CTE, rn = 1 would keep each customer's first order instead of the latest."
+      }
+    ],
+    "correct_id": "a",
+    "explanation": "A query works out its WHERE before its window functions, so the CTE's WHERE cannot see rn; DuckDB stops with \"WHERE clause cannot contain window functions\". The outer query reads the CTE's finished rows, rn included. A CTE can have a WHERE, as this one does for guest orders, and the sort order inside OVER, not the place of the filter, decides that number 1 is the latest order."
+  }
+}

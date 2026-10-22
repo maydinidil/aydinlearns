@@ -1,0 +1,157 @@
+{
+  "id": "EX-SQL-WIN-05-E2-32",
+  "version": 1,
+  "kind": "fix",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "rolling_rate",
+    "rolling_sums",
+    "range_interval",
+    "average_of_ratios",
+    "fix"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-05"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-WIN-05",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-DATE-02",
+    "SQL-WIN-01",
+    "SQL-WIN-04",
+    "SQL-WIN-05"
+  ],
+  "template_id": "T-WIN-05-fix-average-of-ratios",
+  "template_params": {
+    "table": "ad_spend_daily",
+    "channel": "meta",
+    "window": "7 calendar days"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "mailvora",
+  "schema": "mailvora",
+  "edge_schema": "mailvora_edge_win",
+  "prompt": "The query in the editor has one mistake. Fix it so that it answers this question: for the meta channel (channel_id 3), what was the 7-day click-through rate on each UTC day of August 2025 with spend? The rate is the channel's clicks over its impressions across the 7 calendar days ending on that day, that day included, as a percentage rounded to 2 decimals. A day with no spend adds no clicks and no impressions, and the 7 days may reach back into July. Return spend_date, clicks, impressions and ctr_7d_pct, with the channel's clicks and impressions of that day. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "spend_date",
+        "type_class": "temporal"
+      },
+      {
+        "name": "clicks",
+        "type_class": "numeric"
+      },
+      {
+        "name": "impressions",
+        "type_class": "numeric"
+      },
+      {
+        "name": "ctr_7d_pct",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "spend_date",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "clicks",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "impressions",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "ctr_7d_pct",
+        "type_class": "numeric",
+        "precision": "ratio",
+        "require_rounding": 2
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "spend_date"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, change how the 7-day rate is worked out: add up the clicks and the impressions of the window first, then divide once.",
+    "An average of the daily rates gives a quiet day the same weight as a busy one; two sums over the same frame do not."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 300,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 301,
+      "to": 565,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 566,
+      "to": 580,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 581,
+      "to": 651,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 652,
+      "to": 662,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 663,
+      "to": 727,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": "WITH daily AS (\n  -- one row per day with spend\n  SELECT a.spend_date, SUM(a.clicks) AS clicks, SUM(a.impressions) AS impressions\n  FROM ad_spend_daily a\n  JOIN campaigns c ON c.campaign_id = a.campaign_id\n  WHERE c.channel_id = 3\n  GROUP BY a.spend_date\n), rates AS (\n  -- one row per day with spend\n  SELECT spend_date, clicks, impressions,\n    AVG(100.0 * clicks / impressions) OVER (ORDER BY spend_date RANGE BETWEEN INTERVAL 6 DAY PRECEDING AND CURRENT ROW) AS ctr_7d\n  FROM daily\n)\nSELECT spend_date, clicks, impressions, ROUND(ctr_7d, 2) AS ctr_7d_pct\nFROM rates\nWHERE spend_date BETWEEN DATE '2025-08-01' AND DATE '2025-08-31'",
+  "time_target_ms": 180000,
+  "why_this_works": "Dividing the window's clicks by its impressions weights each day by its impressions, which an average of daily rates does not.",
+  "starter_error_id": "ERR-LOG-20"
+}

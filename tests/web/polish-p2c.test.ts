@@ -1,6 +1,6 @@
 // tests/web/polish-p2c.test.ts: sprint 5a, Task P2c: the small screen fixes on Today, Progress, the case inbox and case screen, GA4 timed
-// runs and Practice (P1 findings 19 to 36, and the Practice half of 37). Pure helpers, plus source checks where a screen holds the text.
-// The pure helpers' own cases are in progress, labels, case-flow, cp4-flow, run-flow tests; this file checks the wiring and the new ones.
+// runs and Practice (P1 findings 19 to 36, and the Practice half of 37). Pure helpers and style rules. What the screens draw is in tests/web/render/ (S7-28).
+// The pure helpers' own cases are in progress, labels, case-flow, cp4-flow, run-flow tests; this file checks the new ones.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
@@ -30,18 +30,7 @@ test('finding 32: a run of reviews says "Review 1 of 2", counting from the cards
   assert.deepEqual(startReviews({ ...plan([reviews(5)]), minimumDay: [reviews(2)] }, 'minimum'), { n: 1, total: 2 });
 });
 
-test('finding 21: Progress has a link row to its sections, and the jump never leaves the screen', async () => {
-  const s = await src('web/src/screens/ProgressScreen.tsx');
-  assert.ok(s.includes('PROGRESS_SECTIONS.map') && s.includes('aria-label="On this page"'));
-  assert.ok(s.includes('preventDefault'), 'the link must not change the hash route');
-  for (const id of ['progress-goals', 'progress-board', 'progress-skills', 'progress-trends', 'progress-reveal', 'progress-topics', 'progress-job-ready']) {
-    assert.ok(s.includes(`id="${id}"`), `${id} is a heading id`);
-  }
-});
-
-test('findings 22 and 23: the inbox puts the deadline on its own line, and its CSS stacks the chip column on a narrow screen', async () => {
-  const s = await src('web/src/screens/InboxScreen.tsx');
-  assert.ok(/<p>\{r\.decision\}<\/p>\s*<p className="muted">\{r\.deadline\}<\/p>/.test(s));
+test('finding 23: the inbox CSS stacks the chip column on a narrow screen (the deadline line is in tests/web/render/case.test.ts)', async () => {
   const css = await src('web/src/styles/components.css');
   assert.ok(/@media \(max-width: 600px\)[^}]*\.inbox-list \.row \{ display: grid/.test(css));
 });
@@ -50,32 +39,6 @@ test('finding 23: CASE-DAILY-L3-03 says "webshop" in its brief (the checkpoint p
   const c = JSON.parse(await src('content/sql/cases/CASE-DAILY-L3-03.json')) as { brief: { decision: string; deadline: string } };
   assert.ok(!/web shop/.test(c.brief.decision + c.brief.deadline));
   assert.match(c.brief.decision, /webshop/);
-});
-
-test('findings 24 to 26: the case screen shows the sort columns as code, the data line from its helper, and the rule without codes', async () => {
-  const s = await src('web/src/screens/CaseScreen.tsx');
-  assert.ok(s.includes('<code>{k.column}</code>'));
-  assert.ok(s.includes('dataSourceLine(view.data_source)') && s.includes('{SCORE_RULE}'));
-  assert.ok(!/CP1 to CP5/.test(s) && !s.includes('at CP3'));
-  assert.ok(s.includes('cp4HintFor(served.prompt, served.typed)'));
-});
-
-test('finding 25: "Answer again" is the main button only until the step has passed, and "Next" is main once it has', async () => {
-  const s = await src('web/src/screens/CaseScreen.tsx');
-  assert.ok(s.includes("className={mainIsAnswer(cp) ? 'btn-main' : undefined} data-serve={cp.kind}"));
-  assert.ok(s.includes("className={shownState === 'passed' || shownState === 'done' ? 'btn-main' : undefined} data-next-step"));
-});
-
-test('finding 27: the half-mock review marks each result, and the unseen line is plain', async () => {
-  const s = await src('web/src/screens/ChoiceRunScreen.tsx');
-  assert.ok(s.includes('<td className={verdictClass(r.verdict)}>{r.verdict}</td>'));
-});
-
-test('finding 28: the runs screen says "Start a ...", and the runs card links name the run kind', async () => {
-  const run = await src('web/src/screens/ChoiceRunScreen.tsx');
-  const card = await src('web/src/components/Ga4Runs.tsx');
-  assert.ok(run.includes('{startLabel(k)}</button>') && !run.includes('entryLabel'));
-  assert.ok(card.includes('{kindLabel(k)}</a>') && !card.includes('startLabel') && card.includes('entryDetail(k,') && !card.includes('entryLabel'));
 });
 
 test('findings 29 and 30: a narrow screen stacks the run bar under a sticky timer, and a question keeps the reading width', async () => {
@@ -91,20 +54,3 @@ test('findings 31, 33 and 34: Today\'s side card, step links and corrected query
   assert.ok(/\.corrected-query pre \{ white-space: pre-wrap;/.test(css));
 });
 
-test('finding 32: Today shows the review position on a served review', async () => {
-  const s = await src('web/src/screens/TodayScreen.tsx');
-  assert.ok(s.includes('reviewHeading(reviewPos, exercise.heading)') && s.includes('reviewHeading(reviewPos, running.heading)'));
-  assert.ok(s.includes('startReviews(view.plan, mode)'));
-});
-
-test('finding 35 and 36: the choice panel says what to do first, and shows a revealed value through typedValueText', async () => {
-  const s = await src('web/src/components/ChoicePanel.tsx');
-  assert.ok(s.includes('ANSWER_FIRST.typed') && s.includes('ANSWER_FIRST.mcq'));
-  assert.ok(s.includes('const withUnit = typedValueText;'));
-});
-
-test('finding 37 (Practice): the crumb and title come first, then the links, with a dot between them', async () => {
-  const s = await src('web/src/screens/PracticeScreen.tsx');
-  assert.ok(s.indexOf('<PageHead') < s.indexOf('page-links'));
-  assert.ok(s.includes("{' · '}<a href={readingHref"));
-});

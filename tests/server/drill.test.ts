@@ -143,9 +143,9 @@ const reviewsOf = (b: any): [string, number][] => b.card_reviews.map((c: any) =>
 
 // ---- the specs, the sampling, the score and the history (pure) --------------------------------------------------
 
-test('the shipped drills.json: level 1 is 10 questions in 20 minutes at 90%, level 2 the same shape in 25 (D10), both 70% unseen; level 3 the same shape as level 1; level 4 the same shape as level 2 over 5 concepts; a malformed file names itself', async () => {
+test('the shipped drills.json: level 1 is 10 questions in 20 minutes at 90%, level 2 the same shape in 25 (D10), both 70% unseen; level 3 the same shape as level 1; level 4 the same shape as level 2 over 5 concepts, level 5 over 7 (S7-19); a malformed file names itself', async () => {
   const shipped = await loadDrills();
-  assert.deepEqual(shipped.map((s) => [s.level, s.questions, s.minutes, s.pass_pct, s.unseen_min_pct, s.concepts.length]), [[1, 10, 20, 90, 70, 6], [2, 10, 25, 90, 70, 6], [3, 10, 20, 90, 70, 8], [4, 10, 25, 90, 70, 5]]);
+  assert.deepEqual(shipped.map((s) => [s.level, s.questions, s.minutes, s.pass_pct, s.unseen_min_pct, s.concepts.length]), [[1, 10, 20, 90, 70, 6], [2, 10, 25, 90, 70, 6], [3, 10, 20, 90, 70, 8], [4, 10, 25, 90, 70, 5], [5, 10, 25, 90, 70, 7]]);
   assert.ok(shipped.every((s) => Array.isArray(s.pool_item_ids)), 'a drill with no pool list yet has an empty pool (Task B12 fills it)');
   assert.throws(() => parseDrills({}), /content\/sql\/drills\.json: "drills" must be a list/);
   assert.throws(() => parseDrills({ drills: [{ ...SPEC1, questions: 0 }] }), /content\/sql\/drills\.json: drill 1 .*questions/);

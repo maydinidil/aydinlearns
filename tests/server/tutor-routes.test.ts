@@ -25,6 +25,8 @@ import { LearnerState } from '../../server/state.ts';
 import { SUMMARY_MARK, TUTOR_KEY_PATH, type TutorStatusView } from '../../schemas/tutor.ts';
 import type { TutorRuntime } from '../../server/routes/tutor.ts';
 import { TutorKeys } from '../../server/tutor/keys.ts';
+import { PRICES, worstCost } from '../../server/tutor/prices.ts';
+import { anthropicModel } from '../../server/tutor/providers/anthropic.ts';
 import { offlineLine } from '../../server/tutor/providers/errors.ts';
 import { fakeModel } from '../../server/tutor/providers/fake.ts';
 import { TUTOR_PROMPT_VERSION } from '../../server/tutor/prompt.ts';
@@ -47,6 +49,8 @@ const ask = (over: object = {}) => ({ screen: 'item', subject_id: ITEM, snapshot
 /** A stream test that regresses fails here instead of hanging the suite. */
 const STREAM = { timeout: 10_000 };
 const USAGE = { input_tokens: 1000, cache_write_tokens: 0, cached_input_tokens: 0, output_tokens: 200 };
+/** Nothing is held any more: the rest of the cap, after what today's records spent (a cut call is counted, S7-32), can be reserved. */
+const released = (ledger: SpendLedger, cap: number): boolean => ledger.reserve(cap - ledger.spentOn(new Date()) - 1e-9, cap, new Date()) !== null;
 
 /** The fixture store with a level 1 drill whose one exercise is ITEM served as a drill item, so a live rep can start (as journey-routes). */
 const drillItem = { ...content.item(ITEM)!, use: 'drill' as const };
@@ -192,7 +196,7 @@ test('a question streams its reply and a summary, writes one record with counts 
   const recs = await records(dir);
   const asked = recs.filter((r) => r.record === 'tutor_asked');
   assert.equal(asked.length, 1);
-  assert.deepEqual({ ...asked[0], ts: 'T', session_id: 'S' }, { record: 'tutor_asked', schema_version: 6, ts: 'T', session_id: 'S', screen: 'item',
+  assert.deepEqual({ ...asked[0], ts: 'T', session_id: 'S' }, { record: 'tutor_asked', schema_version: 7, ts: 'T', session_id: 'S', screen: 'item',
     item_instance_id: 'I-1', item_id: ITEM, target_concept_id: content.item(ITEM)!.target_concept_id, phase: 'free', provider: 'claude', model: 'claude-haiku-5-5',
     effort: 'medium', prompt_version: TUTOR_PROMPT_VERSION, input_tokens: 1000, cached_input_tokens: 0, output_tokens: 200, cost_usd: 0.0002, outcome: 'answered' });
   assert.ok(!JSON.stringify(recs).includes('invented question marker'), 'no question text in the log');
@@ -268,9 +272,11 @@ test('Review Focus 2: the learner leaves mid-reply: the call is cancelled, one r
   await reader.read();
   await reader.cancel();
   await written;
+  // K1 (T3 M5): the release comes right after the record is written, in the same `finally`; give it a turn before checking it.
+  await new Promise<void>((done) => setImmediate(done));
   assert.equal(seen[0]!.signal!.aborted, true, 'the call was cancelled');
   assert.deepEqual((await records(dir)).filter((r) => r.record === 'tutor_asked').map((r) => r.outcome), ['error']);
-  assert.ok(ledger.reserve(0.05, 0.05, new Date()), 'the whole cap is free again: the reservation was released');
+  assert.ok(released(ledger, 0.05), 'the reservation was released (the cut call itself is counted, S7-32)');
 });
 
 test('T-15: a reply that runs past the whole-reply deadline is cut: an error summary, one record, the reservation released', STREAM, async () => {
@@ -282,7 +288,7 @@ test('T-15: a reply that runs past the whole-reply deadline is cut: an error sum
   // Review T3 M4: the deadline cut a reply that had started, so the line is the cut-off one, not the provider's "can't reach".
   assert.deepEqual([summary.outcome, summary.message, summary.counted], ['error', 'The reply was cut off.', false]);
   assert.deepEqual((await records(dir)).filter((r) => r.record === 'tutor_asked').map((r) => r.outcome), ['error']);
-  assert.ok(ledger.reserve(0.05, 0.05, new Date()), "today's reserved spend is back to what it was");
+  assert.ok(released(ledger, 0.05), "today's reserved spend is back to what it was");
 });
 
 test('a model that returns normally after its signal aborts (the fake) is still logged as error, never answered (T10 smoke tu-4)', STREAM, async () => {
@@ -313,7 +319,7 @@ test('review T3 M4: the deadline before any text shows the busy line, after text
     assert.deepEqual([got.summary.outcome, got.summary.message, got.summary.counted], ['error', message, false], name);
     assert.notEqual(got.summary.message, offlineLine('claude'), name);
     assert.deepEqual((await records(dir)).filter((r) => r.record === 'tutor_asked').map((r) => r.outcome), ['error'], name);
-    assert.ok(ledger.reserve(0.05, 0.05, new Date()), `${name}: the reservation is released`);
+    assert.ok(released(ledger, 0.05), `${name}: the reservation is released`);
   }
 });
 
@@ -429,7 +435,9 @@ test("D94: while a timed run's clock runs, its screen and its items are refused;
     assert.deepEqual([res.status, await res.json()], [409, { error: 'Help opens in the end-of-run review.', code: 'help_waits' }]);
   }
   assert.equal(seen.length, 0);
-  assert.equal((await post(app, '/api/tutor/ask', ask({ screen: 'today', item: null }))).status, 200);
+  const open = await post(app, '/api/tutor/ask', ask({ screen: 'today', item: null }));
+  assert.equal(open.status, 200);
+  assert.equal(split(await open.text()).summary.outcome, 'answered', 'K1 (T9 M7): the reply is read to its end, so its record is written before the next call');
   assert.equal((await post(app, '/api/drill/end', { block_id: run.block_id })).status, 200);
   assert.equal((await (await get(app, '/api/tutor/status')).json()).run_on, false);
   const review = await post(app, '/api/tutor/ask', ask({ screen: 'drill', item: onItem }));
@@ -500,7 +508,7 @@ test('T-22: Settings takes the switch, the model and the effort, each checked, l
   assert.deepEqual([s.switched_on, s.enabled, s.provider, s.model, s.effort], [true, true, 'claude', 'claude-haiku-5-5', 'medium']);
   const events = await logger.readAll('events') as Partial<SettingChange>[];
   assert.deepEqual(events.filter((e) => e.event === 'setting_change').map((e) => [e.key, e.value, e.schema_version]), [
-    ['tutor_model', 'gpt-6.1-sol', 6], ['tutor_effort', 'high', 6], ['tutor_enabled', false, 6], ['tutor_model', null, 6], ['tutor_effort', null, 6], ['tutor_enabled', null, 6]]);
+    ['tutor_model', 'gpt-6.1-sol', 7], ['tutor_effort', 'high', 7], ['tutor_enabled', false, 7], ['tutor_model', null, 7], ['tutor_effort', null, 7], ['tutor_enabled', null, 7]]);   // log version 7 since D112
   const restarted = settingsFromEvents(events.filter((e) => e.event === 'setting_change').slice(0, 3));
   assert.deepEqual([restarted.tutor_model, restarted.tutor_effort, restarted.tutor_enabled], ['gpt-6.1-sol', 'high', false], 'a restart reads them');
 });
@@ -706,8 +714,247 @@ test('review P M5: a reply that stops at its token limit before any text is an e
   }
 });
 
+// ---- sprint 7, Task H3 (S7-31, S7-32, S7-33, S7-35) ---------------------------------------------------------------------------
+/** The characters a model input holds, as the route sizes its reservation. */
+const charsOf = (i: TutorModelInput): number => i.system.length + i.question.length + i.turns.reduce((n, x) => n + x.text.length, 0);
+/** The call's reservation as the record counts it: its worst cost, to a millionth of a dollar. */
+const reservationOf = (i: TutorModelInput, model = 'claude-haiku-5-5'): number => Math.round(worstCost(PRICES[model]!, charsOf(i), i.maxTokens) * 1e6) / 1e6;
+const askedRecords = async (dir: string) => (await records(dir)).filter((r) => r.record === 'tutor_asked');
+
+test('S7-33 (D112): tutor_asked.ts is the time the question was asked, not the end of its reply', STREAM, async () => {
+  let releasedAt = 0;
+  const { model } = scripted(['Part one. ', 'Part two.'], { gate: async () => { await new Promise((r) => setTimeout(r, 60)); releasedAt = Date.now(); } });
+  const { d, dir } = await deps(runtime(model));
+  const before = Date.now();
+  await (await post(createApp(d), '/api/tutor/ask', ask())).text();
+  const [rec] = await askedRecords(dir);
+  const ts = Date.parse(String(rec!.ts));
+  assert.ok(ts >= before && ts < releasedAt, `stamped when the route took the question (${rec!.ts}), before the reply went on`);
+});
+
+test('S7-32: a Claude reply cut after message_start counts the input it reported and the characters received over 4, rounded up', STREAM, async () => {
+  /** message_start and 8 characters of text, then nothing until the call is aborted. */
+  const hanging = (async (_input: string | URL | Request, init?: RequestInit) => {
+    const sse = [['message_start', { type: 'message_start', message: { id: 'msg_1', type: 'message', role: 'assistant', model: 'claude-haiku-5-5', content: [],
+      stop_reason: null, stop_sequence: null, usage: { input_tokens: 120, cache_creation_input_tokens: 800, cache_read_input_tokens: 30, output_tokens: 1 } } }],
+    ['content_block_start', { type: 'content_block_start', index: 0, content_block: { type: 'text', text: '' } }],
+    ['content_block_delta', { type: 'content_block_delta', index: 0, delta: { type: 'text_delta', text: 'Look at ' } }]] as const;
+    const body = new ReadableStream<Uint8Array>({ start(c) {
+      c.enqueue(new TextEncoder().encode(sse.map(([e, x]) => `event: ${e}\ndata: ${JSON.stringify(x)}\n\n`).join('')));
+      init?.signal?.addEventListener('abort', () => c.error(new DOMException('The operation was aborted.', 'AbortError')), { once: true });
+    } });
+    return new Response(body, { status: 200, headers: { 'content-type': 'text/event-stream' } });
+  }) as typeof fetch;
+  const model = anthropicModel({ apiKey: CLAUDE_KEY, model: 'claude-haiku-5-5', effort: 'medium', fetch: hanging, maxRetries: 0 });
+  const ledger = new SpendLedger();
+  const { d, dir } = await deps(runtime(model, ledger, { replyDeadlineMs: 80 }));
+  const { reply, summary } = split(await (await post(createApp(d), '/api/tutor/ask', ask())).text());
+  assert.equal(reply, 'Look at ');
+  // Haiku 5.5: 120 x $0.10 + 800 x $0.125 + 30 x $0.01 + 2 x $0.50 per million tokens.
+  // That is 113.3 millionths of a dollar, rounded to 113 as every cost is.
+  assert.deepEqual([summary.outcome, summary.message, summary.cost_usd], ['error', 'The reply was cut off.', 0.000113]);
+  assert.deepEqual((await askedRecords(dir)).map((r) => [r.outcome, r.input_tokens, r.cached_input_tokens, r.output_tokens, r.cost_usd]), [['error', 920, 30, 2, 0.000113]]);
+  assert.equal(ledger.spentOn(new Date()), 0.000113, "the day's spend counts it");
+});
+
+test("S7-32: a reply cut before the provider reported any usage counts the call's reservation: the deadline, Close and leaving alike", STREAM, async () => {
+  // The deadline, before any text and after some.
+  for (const pieces of [[], ['Part ']]) {
+    const ledger = new SpendLedger();
+    const { model, seen } = untilAborted(pieces);
+    const { d, dir } = await deps(runtime(model, ledger, { replyDeadlineMs: 50 }));
+    const { summary } = split(await (await post(createApp(d), '/api/tutor/ask', ask())).text());
+    const held = reservationOf(seen[0]!);
+    assert.ok(held > 0.004, `medium effort holds about $0.004 on Haiku (${held})`);
+    assert.deepEqual([summary.outcome, summary.cost_usd], ['error', held], `${pieces.length} pieces`);
+    assert.deepEqual((await askedRecords(dir)).map((r) => [r.outcome, r.cost_usd]), [['error', held]]);
+    assert.equal(ledger.spentOn(new Date()), held);
+  }
+  // The learner leaves (Close, Alt+T, another screen): the call is cancelled, and counted all the same.
+  const ledger = new SpendLedger();
+  const { model, seen } = untilAborted(['Part ']);
+  const { d, dir, logger } = await deps(runtime(model, ledger));
+  const written = new Promise<void>((done) => logger.onWrite((_f, r) => { if ((r as { record?: string }).record === 'tutor_asked') done(); }));
+  const reader = (await post(createApp(d), '/api/tutor/ask', ask())).body!.getReader();
+  await reader.read();
+  await reader.cancel();
+  await written;
+  assert.deepEqual((await askedRecords(dir)).map((r) => [r.outcome, r.cost_usd]), [['error', reservationOf(seen[0]!)]]);
+});
+
+test('S7-32: a failure before the provider answered (a refused key, busy, no network) costs nothing', async () => {
+  for (const kind of ['key_refused', 'busy', 'offline', 'refused_request'] as const) {
+    const { d, dir } = await deps(runtime(scripted([], { fail: new TutorFailure(kind, 'x') }).model));
+    const { summary } = split(await (await post(createApp(d), '/api/tutor/ask', ask())).text());
+    assert.deepEqual([summary.outcome, summary.cost_usd], ['error', 0], kind);
+    assert.deepEqual((await askedRecords(dir)).map((r) => r.cost_usd), [0], kind);
+  }
+});
+
+test('S7-32: the whole-reply deadline scales with the effort: 1 minute low, 2 medium, 4 high', async (t) => {
+  const timeout = t.mock.method(AbortSignal, 'timeout');
+  const { d } = await deps(runtime(scripted(['ok']).model));
+  const app = createApp(d);
+  const deadlines: number[] = [];
+  for (const effort of ['low', 'medium', 'high']) {
+    await post(app, '/api/settings', { key: 'tutor_effort', value: effort });
+    const from = timeout.mock.callCount();
+    await (await post(app, '/api/tutor/ask', ask())).text();
+    deadlines.push(...timeout.mock.calls.slice(from).map((c) => c.arguments[0] as number));
+  }
+  assert.deepEqual(deadlines, [60_000, 120_000, 240_000]);
+});
+
+test('S7-32: a request dropped before its stream starts cancels the call, writes its record and releases its reservation', STREAM, async () => {
+  let drop = (): void => {};
+  const built = new Promise<void>((done) => { drop = done; });
+  const request = new AbortController();
+  const ledger = new SpendLedger();
+  const { model, seen } = untilAborted([]);
+  const rt = await runtime(model, ledger);
+  // The browser goes away while the model is being built, before the handler returns its stream; nobody ever reads the body.
+  const slow: TutorRuntime = { ...rt, modelFor: async (c) => { const m = await rt.modelFor(c); request.abort(); drop(); return m; } };
+  const { d, dir, logger } = await deps(slow, { tutor_daily_cap_usd: 0.05 });
+  const written = new Promise<void>((done) => logger.onWrite((_f, r) => { if ((r as { record?: string }).record === 'tutor_asked') done(); }));
+  await createApp(d).request('http://127.0.0.1:5174/api/tutor/ask', { method: 'POST', headers: P, body: JSON.stringify(ask()), signal: request.signal });
+  await built;
+  const timer = new Promise<'stuck'>((done) => setTimeout(() => done('stuck'), 2_000).unref());
+  assert.equal(await Promise.race([written.then(() => 'written' as const), timer]), 'written', 'the record was written without anyone reading the stream');
+  assert.equal(seen[0]!.signal!.aborted, true, 'the call was cancelled');
+  await new Promise((r) => setImmediate(r));
+  const spent = ledger.spentOn(new Date());
+  assert.ok(ledger.reserve(0.05 - spent, 0.05, new Date()), 'the reservation was released');
+  assert.deepEqual((await askedRecords(dir)).map((r) => r.outcome), ['error']);
+});
+
+test('S7-32: a record that cannot be written still sends the summary, not counted, and releases the reservation', STREAM, async () => {
+  const ledger = new SpendLedger();
+  const { d } = await deps(runtime(scripted(['Look at the WHERE clause.']).model, ledger), { tutor_daily_cap_usd: 0.05 });
+  d.logger.tutorAsked = () => Promise.reject(new Error('EACCES: the test refuses this write'));
+  const { reply, summary } = split(await (await post(createApp(d), '/api/tutor/ask', ask())).text());
+  assert.equal(reply, 'Look at the WHERE clause.');
+  assert.deepEqual([summary.outcome, summary.counted, summary.message], ['answered', false, 'The question could not be written to the log, so grading is paused. See the setup screen.']);
+  assert.ok(ledger.reserve(0.05, 0.05, new Date()), 'the reservation was released');
+});
+
+test('S7-32: the daily limit is decided before the item is resolved: a capped question opens no instance and names none', async () => {
+  const ledger = new SpendLedger([{ record: 'tutor_asked', ts: new Date().toISOString(), cost_usd: 0.05 }]);
+  const { model, seen } = scripted(['x']);
+  const { d, dir } = await deps(runtime(model, ledger), { tutor_daily_cap_usd: 0.05 });
+  const app = createApp(d);
+  assert.equal((await post(app, '/api/tutor/ask', ask())).status, 429);
+  assert.equal(seen.length, 0);
+  assert.equal((await post(app, '/api/session-end', {})).status, 200);
+  const recs = await records(dir);
+  assert.deepEqual(recs.filter((r) => r.record === 'tutor_asked').map((r) => [r.outcome, r.item_instance_id]), [['capped', null]]);
+  assert.equal(recs.filter((r) => r.record === 'item_close').length, 0, 'the capped question opened nothing for the session end to close');
+});
+
+test('S7-32: the reservation, sized before the item is resolved, covers the input the call sends when the course comes from the subject', STREAM, async () => {
+  // An item ID that names nothing resolves to no target, so the course text is the screen subject's (the exercise on the item screen).
+  const { model, seen } = untilAborted([]);
+  const { d } = await deps(runtime(model, new SpendLedger(), { replyDeadlineMs: 50 }));
+  const { summary } = split(await (await post(createApp(d), '/api/tutor/ask', ask({ item: { item_id: 'EX-NOT-AN-ITEM-01', item_instance_id: 'I-7', phase: 'free' } }))).text());
+  assert.ok(courseOf(seen[0]!).includes('Task: '), "the subject's course text was sent");
+  assert.equal(summary.cost_usd, reservationOf(seen[0]!), 'the reservation is the worst cost of what was sent');
+});
+
+test('S7-31: a provider that declines on policy reads "could not answer this one" and logs refused, never help', async () => {
+  const { d, dir } = await deps(runtime(scripted([], { fail: new TutorFailure('declined', 'The tutor could not answer this one.') }).model));
+  const { summary } = split(await (await post(createApp(d), '/api/tutor/ask', ask())).text());
+  assert.deepEqual([summary.outcome, summary.message, summary.counted, summary.cost_usd], ['refused', 'The tutor could not answer this one.', false, 0]);
+  assert.deepEqual((await askedRecords(dir)).map((r) => r.outcome), ['refused']);
+});
+
+test("S7-35: in a drill's review, a question on a closed instance gets the item's course text by its ID, with the labels hidden; no record names it", async () => {
+  const { model, seen } = scripted(['ok']);
+  const { d, dir } = await deps(runtime(model), {}, { content: withDrill });
+  const app = createApp(d);
+  const run = await (await post(app, '/api/drill/live/start', {})).json() as { block_id: string; servings: { item_id: string; item_instance_id: string }[] };
+  const s = run.servings[0]!;
+  assert.equal((await post(app, '/api/drill/end', { block_id: run.block_id })).status, 200);
+  await (await post(app, '/api/tutor/ask', ask({ screen: 'drill', subject_id: undefined, item: { item_id: s.item_id, item_instance_id: s.item_instance_id, phase: 'free' } }))).text();
+  const course = courseOf(seen[0]!);
+  assert.ok(course.includes('Task: '), 'the task is there');
+  assert.deepEqual(labelsIn(course), [], 'no concept, summary, level or item ID');
+  assert.deepEqual((await askedRecords(dir)).map((r) => [r.screen, r.item_instance_id, r.item_id]), [['drill', null, null]]);
+  // Outside a run's review, a closed instance gets no course text by the body's ID, as before.
+  const plain = scripted(['ok']);
+  const p = createApp((await deps(runtime(plain.model))).d);
+  await (await post(p, '/api/tutor/ask', ask())).text();                                              // opens I-1
+  assert.equal((await post(p, '/api/session-end', {})).status, 200);                                 // closes it
+  await (await post(p, '/api/tutor/ask', ask({ screen: 'today', subject_id: undefined }))).text();
+  assert.ok(courseOf(plain.seen[0]!).includes('Task: '));
+  assert.equal(courseOf(plain.seen[1]!), '', 'no course text for the closed instance');
+});
+
 test('POST /api/tutor/keys without a tutor runtime is refused as off', async () => {
   const res = await post(createApp((await deps()).d), TUTOR_KEY_PATH, { provider: 'claude', key: CLAUDE_KEY });
   const text = await res.text();
   assert.deepEqual([res.status, JSON.parse(text)], [404, { error: 'The tutor is off.', code: 'tutor_off' }]);
+});
+
+// ---- Sprint 7 K1: sprint T's test gaps for the route (T3 M5, T7 M8, M9) ------------------------------------------------------------
+test('K1: a question on a held-out or an unknown choice question gets no course text; the stem never reaches the model', async () => {
+  const HELD = 'GA4-HELD-901';
+  const heldContent = { ...content, heldOut: (id: string) => id === HELD, choiceConcept: () => undefined,
+    choiceItem: (id: string) => (id === HELD ? { id, section: 'ga4', concept_id: 'GA4-X-01', stem: 'An invented held-out stem marker', options: [{ oid: 'o1', text: 'one' }] } : undefined) } as unknown as ContentStore;
+  const { model, seen } = scripted(['ok']);
+  const { d } = await deps(runtime(model), {}, { content: heldContent });
+  const app = createApp(d);
+  for (const id of [HELD, 'GA4-NOPE-902']) {
+    await (await post(app, '/api/tutor/ask', ask({ screen: 'practice', subject_id: undefined, item: { item_id: id, item_instance_id: 'I-9', phase: 'free' } }))).text();
+  }
+  assert.equal(seen.length, 2);
+  for (const s of seen) {
+    assert.equal(courseOf(s), '', 'no course text for either');
+    assert.ok(!s.question.includes('held-out stem marker'), 'the held-out stem is not sent');
+  }
+});
+
+test('K1: the status shows the spend a question just made, as the summary does', async () => {
+  const { model } = scripted(['ok']);
+  const { d } = await deps(runtime(model));
+  const app = createApp(d);
+  assert.equal((await (await get(app, '/api/tutor/status')).json()).spent_today_usd, 0);
+  const { summary } = split(await (await post(app, '/api/tutor/ask', ask())).text());
+  const status = await (await get(app, '/api/tutor/status')).json() as TutorStatusView;
+  assert.equal(summary.spent_today_usd, 0.0002);
+  assert.deepEqual([status.spent_today_usd, status.cap_usd], [summary.spent_today_usd, summary.cap_usd]);
+});
+
+test('K1: the cap\'s edge: a question whose worst cost leaves a hair of room is asked; one that overshoots by a hair is capped', async () => {
+  const probe = scripted(['x']);
+  const first = await deps(runtime(probe.model), { tutor_daily_cap_usd: 0.05 });
+  await (await post(createApp(first.d), '/api/tutor/ask', ask())).text();
+  const worst = reservationOf(probe.seen[0]!);
+  assert.ok(worst > 0 && worst < 0.05, 'the probe: the worst cost fits under the smallest cap');
+  for (const [spent, outcome] of [[0.05 - worst - 1e-6, 'answered'], [0.05 - worst + 1e-6, 'capped']] as const) {
+    const { model, seen } = scripted(['x']);
+    const { d, dir } = await deps(runtime(model, new SpendLedger([{ record: 'tutor_asked', ts: new Date().toISOString(), cost_usd: spent }])), { tutor_daily_cap_usd: 0.05 });
+    const res = await post(createApp(d), '/api/tutor/ask', ask());
+    await res.text();
+    assert.equal(res.status, outcome === 'capped' ? 429 : 200, outcome);
+    assert.equal(seen.length, outcome === 'capped' ? 0 : 1);
+    assert.deepEqual((await askedRecords(dir)).map((r) => r.outcome), [outcome]);
+  }
+});
+
+test("K1 (L59, S7-35): in a GA4 run's review, a question on a closed instance gets the question's stem by its ID, with the concept and the ID hidden", async () => {
+  const QID = 'GA4-REV-903';
+  const title = 'An invented concept title';
+  const store = { ...content, heldOut: () => false, choiceConcept: () => ({ title }),
+    choiceItem: (id: string) => (id === QID ? { id, section: 'ga4', concept_id: 'GA4-X-01', stem: 'An invented review stem marker', options: [{ oid: 'o1', text: 'one' }, { oid: 'o2', text: 'two' }] } : undefined) } as unknown as ContentStore;
+  const { model, seen } = scripted(['ok']);
+  const { d, dir } = await deps(runtime(model), {}, { content: store, closedInstances: ['I-closed'] });
+  const app = createApp(d);
+  const body = (screen: string) => ask({ screen, subject_id: 'GA4-X-01', item: { item_id: QID, item_instance_id: 'I-closed', phase: 'free' } });
+  await (await post(app, '/api/tutor/ask', body('ga4_run'))).text();
+  const review = courseOf(seen[0]!);
+  assert.ok(review.includes('An invented review stem marker'), 'the stem is there');
+  assert.ok(!review.includes(QID) && !review.includes(title) && !review.includes('GA4-X-01'), 'no item ID, concept title or concept ID');
+  // On a screen that is not a timed run's, the same closed instance gets the subject's course text instead, with the labels.
+  await (await post(app, '/api/tutor/ask', body('practice'))).text();
+  assert.ok(!courseOf(seen[1]!).includes('An invented review stem marker'), 'the body\'s item ID gives no course text outside a run review');
+  assert.deepEqual((await askedRecords(dir)).map((r) => [r.screen, r.item_instance_id, r.item_id]), [['ga4_run', null, null], ['practice', null, null]], 'no record names it');
 });

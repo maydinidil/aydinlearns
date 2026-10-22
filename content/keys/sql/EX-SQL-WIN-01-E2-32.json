@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-WIN-01-E2-32",
+  "item_version": 1,
+  "reference_sql": "WITH campaign_spend AS (  -- one row per campaign with spend\n  SELECT c.campaign_id, c.channel_id, SUM(a.spend) AS spend\n  FROM ad_spend_daily a\n  JOIN campaigns c ON c.campaign_id = a.campaign_id\n  GROUP BY c.campaign_id, c.channel_id\n),\nwith_avg AS (  -- one row per campaign with spend\n  SELECT campaign_id, channel_id, spend,\n         AVG(spend) OVER (PARTITION BY channel_id) AS avg_spend\n  FROM campaign_spend\n)\nSELECT campaign_id, channel_id, spend, ROUND(avg_spend, 2) AS channel_avg\nFROM with_avg\nWHERE spend > avg_spend",
+  "alternatives": [
+    "WITH campaign_spend AS (  -- one row per campaign with spend\n  SELECT c.campaign_id, c.channel_id, SUM(a.spend) AS spend\n  FROM ad_spend_daily a\n  JOIN campaigns c ON c.campaign_id = a.campaign_id\n  GROUP BY c.campaign_id, c.channel_id\n),\nchannel_avg AS (  -- one row per channel with spend\n  SELECT channel_id, AVG(spend) AS avg_spend\n  FROM campaign_spend\n  GROUP BY channel_id\n)\nSELECT cs.campaign_id, cs.channel_id, cs.spend, ROUND(ca.avg_spend, 2) AS channel_avg\nFROM campaign_spend cs\nJOIN channel_avg ca ON ca.channel_id = cs.channel_id\nWHERE cs.spend > ca.avg_spend",
+    "WITH campaign_spend AS (  -- one row per campaign with spend\n  SELECT c.campaign_id, c.channel_id, SUM(a.spend) AS spend\n  FROM ad_spend_daily a\n  JOIN campaigns c ON c.campaign_id = a.campaign_id\n  GROUP BY c.campaign_id, c.channel_id\n)\nSELECT t.campaign_id, t.channel_id, t.spend, ROUND(t.avg_spend, 2) AS channel_avg\nFROM (\n  -- one row per campaign with spend\n  SELECT campaign_id, channel_id, spend,\n         AVG(spend) OVER (PARTITION BY channel_id) AS avg_spend\n  FROM campaign_spend\n) AS t\nWHERE t.spend > t.avg_spend"
+  ],
+  "other_way": {
+    "sql": "WITH campaign_spend AS (  -- one row per campaign with spend\n  SELECT c.campaign_id, c.channel_id, SUM(a.spend) AS spend\n  FROM ad_spend_daily a\n  JOIN campaigns c ON c.campaign_id = a.campaign_id\n  GROUP BY c.campaign_id, c.channel_id\n),\nchannel_avg AS (  -- one row per channel with spend\n  SELECT channel_id, AVG(spend) AS avg_spend\n  FROM campaign_spend\n  GROUP BY channel_id\n)\nSELECT cs.campaign_id, cs.channel_id, cs.spend, ROUND(ca.avg_spend, 2) AS channel_avg\nFROM campaign_spend cs\nJOIN channel_avg ca ON ca.channel_id = cs.channel_id\nWHERE cs.spend > ca.avg_spend",
+    "tradeoff": "A per-channel average step joined back needs no window at all, but it adds a step and a join."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-SYN-08",
+      "sql": "WITH campaign_spend AS (  -- one row per campaign with spend\n  SELECT c.campaign_id, c.channel_id, SUM(a.spend) AS spend\n  FROM ad_spend_daily a\n  JOIN campaigns c ON c.campaign_id = a.campaign_id\n  GROUP BY c.campaign_id, c.channel_id\n)\nSELECT campaign_id, channel_id, spend, ROUND(AVG(spend) OVER (PARTITION BY channel_id), 2) AS channel_avg\nFROM campaign_spend\nWHERE spend > AVG(spend) OVER (PARTITION BY channel_id)"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-37",
+      "sql": "WITH campaign_spend AS (SELECT c.campaign_id, c.channel_id, SUM(a.spend) AS spend FROM ad_spend_daily a JOIN campaigns c ON c.campaign_id = a.campaign_id GROUP BY c.campaign_id, c.channel_id), with_avg AS (SELECT campaign_id, channel_id, spend, AVG(spend) OVER () AS avg_spend FROM campaign_spend) SELECT campaign_id, channel_id, spend, ROUND(avg_spend, 2) AS channel_avg FROM with_avg WHERE spend > avg_spend"
+    }
+  ],
+  "hint3_partial": "WITH campaign_spend AS (  -- one row per campaign with spend\n  SELECT c.campaign_id, c.channel_id, SUM(a.spend) AS spend\n  FROM ad_spend_daily a\n  JOIN campaigns c ON c.campaign_id = a.campaign_id\n  GROUP BY c.campaign_id, c.channel_id\n),\nwith_avg AS (  -- one row per campaign with spend\n  SELECT campaign_id, channel_id, spend,\n         AVG(spend) OVER (PARTITION BY channel_id) AS avg_spend\n  FROM campaign_spend\n)\nSELECT campaign_id, channel_id, spend, ROUND(avg_spend, 2) AS channel_avg\nFROM with_avg\nWHERE ___",
+  "solver": {
+    "prompt_hash": "170ae5c4e5edcfd8",
+    "schema_version": "09f3a33d3123",
+    "dataset_version": "e7c58abf7e8f892e",
+    "grader_version": "7a.1",
+    "query": "WITH campaign_spend AS (  -- one row per campaign with spend\n  SELECT c.campaign_id, c.channel_id, SUM(a.spend) AS spend\n  FROM ad_spend_daily a\n  JOIN campaigns c ON c.campaign_id = a.campaign_id\n  GROUP BY c.campaign_id, c.channel_id\n),\nx AS (\n  SELECT campaign_id, channel_id, spend,\n         AVG(spend) OVER (PARTITION BY channel_id) AS avg_exact\n  FROM campaign_spend\n)\nSELECT campaign_id, channel_id, spend, ROUND(avg_exact, 2) AS channel_avg\nFROM x\nWHERE spend > avg_exact\n",
+    "at": "2026-10-21T09:05:05.878Z"
+  }
+}

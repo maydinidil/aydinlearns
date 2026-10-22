@@ -27,7 +27,7 @@ ROOT = pathlib.Path(__file__).resolve().parent.parent
 DDL = ROOT / "pipeline" / "voltmarkt" / "ddl.sql"
 CASE_KEYS = ROOT / "content" / "keys" / "cases"
 # S6-13: the case records, whose `schema` says where their truth queries run (absent means voltmarkt).
-CASE_DIRS = (ROOT / "content" / "sql" / "openers", ROOT / "content" / "sql" / "cases")
+CASE_DIRS = (ROOT / "content" / "sql" / "openers", ROOT / "content" / "sql" / "cases", ROOT / "content" / "sql" / "mocks")
 DEFAULT_CASE_SCHEMA = "voltmarkt"
 # The schemas DuckDB holds in every database: never a dataset, so never listed as built.
 SYSTEM_SCHEMAS = ("main", "information_schema", "pg_catalog")
@@ -43,9 +43,11 @@ MAILVORA_RAW_SCHEMA = "mailvora_raw"
 MANIFEST_PREFIXES = ("voltmarkt", "mailvora")
 # Sprint 6 Part 2 (S6-21, S6-23): the dataset registry, and where the prep wrote each prepared dataset (data/real/<schema>/).
 REGISTRY = ROOT / "content" / "datasets" / "registry.json"
-# S6-04: an edge schema mirrors voltmarkt unless named here; voltmarkt_edge_clean mirrors voltmarkt_raw, which has no view,
-# so it gets none of voltmarkt's views.
-RAW_EDGE_SCHEMAS = ("voltmarkt_edge_clean",)
+# S6-04: an edge schema mirrors its company's clean schema unless named here. Each one here mirrors a raw schema, which has no
+# view, so it gets none of the clean schema's views: voltmarkt_edge_clean mirrors voltmarkt_raw, and mailvora_edge_clean (sprint 7
+# Part 2, Task G1, S7-15: the take-home on raw Mailvora data) mirrors mailvora_raw. Mailvora has no view, so for
+# mailvora_edge_clean the entry only records what it mirrors.
+RAW_EDGE_SCHEMAS = ("voltmarkt_edge_clean", "mailvora_edge_clean")
 # Ruling R17: DuckDB must never download an extension. TimeZone is SET after opening, because a
 # TimeZone given at creation is rejected once autoloading is off.
 NO_NETWORK = {"autoinstall_known_extensions": False, "autoload_known_extensions": False}
@@ -116,8 +118,9 @@ GROUP BY product_id, isoyear(observed_ts), week(observed_ts)"""
 # edge schemas that mirror it (F2 C1: the schema panel shows it to every level 4 item, P11, so their hidden runs need it too).
 # Built here, like competitor_price_weekly, because ddl.sql's views go to every edge schema that mirrors voltmarkt, the level 1
 # to 3 ones included. A week is the Monday of the order's UTC date, as the sales view's order_week; the ISO year and week come from
-# the calendar. The one number in the body is the 0 of the zero-fill, which holds no data.
-WEEKLY_UNITS_SCHEMAS = ("voltmarkt", "voltmarkt_edge_subq", "voltmarkt_edge_interval", "voltmarkt_edge_promo")
+# the calendar. The one number in the body is the 0 of the zero-fill, which holds no data. Sprint 7 (S7-25): the level 5 window edge
+# schema mirrors voltmarkt too, and the panel shows its items weekly_units, so it has the view as well.
+WEEKLY_UNITS_SCHEMAS = ("voltmarkt", "voltmarkt_edge_subq", "voltmarkt_edge_interval", "voltmarkt_edge_promo", "voltmarkt_edge_win")
 WEEKLY_UNITS_SQL = """CREATE VIEW {schema}.weekly_units AS
 SELECT
     p.product_id,
@@ -150,7 +153,7 @@ def truth_source(schema: str, query: str) -> str:
 
 
 def case_schemas(case_dirs) -> dict:
-    """S6-13: each case record's schema by case ID, from the openers and content/sql/cases/ (absent means voltmarkt)."""
+    """S6-13: each case record's schema by case ID, from the openers, content/sql/cases/ and content/sql/mocks/ (absent means voltmarkt)."""
     schemas = {}
     for folder in case_dirs:
         for path in sorted(pathlib.Path(folder).glob("*.json")) if pathlib.Path(folder).is_dir() else []:

@@ -1,0 +1,52 @@
+{
+  "id": "Q-GA4-249",
+  "version": 1,
+  "kind": "mcq",
+  "section": "ga4",
+  "concept_id": "GA4-SETUP-21",
+  "parent_id": "GA4-SETUP-01",
+  "topic_id": "T-GA4-01",
+  "legacy_id": null,
+  "stem": "The paid media lead wants to switch on user-provided data collection for enhanced conversions, and asks whether the site can then stop sending its user ID for signed-in customers. What is the accurate answer?",
+  "options": [
+    {
+      "oid": "o7c25c06",
+      "text": "Yes: user-provided data collection only starts once the user ID has been switched off",
+      "misconception_id": null
+    },
+    {
+      "oid": "o718685f",
+      "text": "No: the user ID has to stay, because user-provided data works only in the Health category",
+      "misconception_id": null
+    },
+    {
+      "oid": "o6fd2933",
+      "text": "Yes: enhanced conversions read the CRM directly, so neither of the two is needed any more",
+      "misconception_id": null
+    },
+    {
+      "oid": "o3090f9e",
+      "text": "No: Google recommends sending the two together, not one of them in place of the other",
+      "misconception_id": null
+    }
+  ],
+  "typed": null,
+  "exam_relevance": "core",
+  "held_out": true,
+  "enemy_group": null,
+  "status": "active",
+  "verified": true,
+  "level": 1,
+  "tags": [
+    "ga4",
+    "T-GA4-01"
+  ],
+  "source_ids": [
+    "10:GA4-SETUP-21",
+    "10:§5",
+    "ERRATA:E-205"
+  ],
+  "as_of": "2026-09-30",
+  "review_after": null,
+  "supersedes": []
+}

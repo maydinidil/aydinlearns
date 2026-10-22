@@ -1,0 +1,153 @@
+{
+  "id": "EX-MOCK-SCREEN-C-04",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-04",
+    "mock",
+    "screen",
+    "split_part",
+    "lower",
+    "share",
+    "mailvora",
+    "signups"
+  ],
+  "level": 4,
+  "source_ids": [
+    "01:SQL-STR-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "mock",
+  "target_concept_id": "SQL-STR-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-AGG-04",
+    "SQL-TYPE-01",
+    "SQL-STR-01"
+  ],
+  "template_id": "T-MOCK-SCREEN-text-part-match-share",
+  "template_params": {
+    "table": "signups",
+    "column": "email_domain",
+    "signups": "2025-07-01 to 2025-09-30"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "mailvora",
+  "schema": "mailvora",
+  "edge_schema": "mailvora_edge_case",
+  "prompt": "Marketing suspects that users who sign up with a local email domain behave differently. A signup has a local domain when the part of its email_domain after the last full stop (the top-level domain, such as de in gmx.de) is the signup's country_code, ignoring letter case, as de is for DE. Take the users whose signup_ts, a UTC moment, is from 1 July 2025 00:00 up to but not including 1 October 2025 00:00. For each country_code, return four columns, in this order: country_code; signups, the number of those users; local_signups, the number of them with a local domain; and local_pct, 100 times local_signups divided by signups, rounded to 1 decimal. Sort by country_code from A to Z.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "country_code",
+        "type_class": "text"
+      },
+      {
+        "name": "signups",
+        "type_class": "numeric"
+      },
+      {
+        "name": "local_signups",
+        "type_class": "numeric"
+      },
+      {
+        "name": "local_pct",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": true,
+    "sort_keys": [
+      {
+        "column": "country_code",
+        "desc": false
+      }
+    ],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "country_code",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "signups",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "local_signups",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "local_pct",
+        "type_class": "numeric",
+        "precision": "ratio",
+        "require_rounding": 1
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "country_code"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the test for a local domain: the text after the last full stop of email_domain, compared with the country code.",
+    "The domains are in lower case and the country codes in upper case, so bring both to one case before comparing them."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 282,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 283,
+      "to": 295,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 296,
+      "to": 406,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 407,
+      "to": 428,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 429,
+      "to": 450,
+      "subgoal": "sort_limit"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 210000,
+  "why_this_works": "split_part with -1 takes the text after the last full stop, and LOWER puts the country code in the domain's letter case before the comparison."
+}

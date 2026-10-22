@@ -54,7 +54,7 @@ export function buildCurriculum(j: { concepts: any[]; levels: any[] }): Curricul
 }
 
 // New error IDs for levels 1-3 (design §12), recorded in ERRATA (E-142, E-143, E-152, E-153, E-162, E-163, E-164, E-168, E-171, E-172; templates E-173),
-// and from sprint 6 (E-189).
+// from sprint 6 (E-188, E-189) and from sprint 7 (E-200).
 export const NEW_ERRORS: Omit<ErrorType, 'concept_id'>[] = [
   { id: 'ERR-LOG-20', category: 'LOG', name: 'Averaging ratios instead of dividing sums', detection_checks: ['CHK-MUTANT-MATCH'], feedback_template: '' },
   { id: 'ERR-LOG-21', category: 'LOG', name: 'Percent scale (0.15 vs 15)', detection_checks: ['CHK-MUTANT-MATCH'], feedback_template: '' },
@@ -98,6 +98,16 @@ export const NEW_ERRORS: Omit<ErrorType, 'concept_id'>[] = [
     feedback_template: 'ROWS counts rows and RANGE counts values of the sort column, so ties and days with no row change what the frame holds. Write the frame you mean, such as ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW for a running total.' },
   { id: 'ERR-LOG-39', category: 'LOG', name: 'No date spine: periods with no rows vanish', detection_checks: ['CHK-MUTANT-MATCH'],
     feedback_template: 'Grouping only the rows that exist leaves out every period with no rows, so it does not appear instead of showing 0. Start from a full list of periods, such as the calendar table, and LEFT JOIN the data to it.' },
+  // Sprint 7 Task A2 (ERRATA E-200, S7-24): level 5's window mistakes that no ID held. Names as E-200 gives them. Averaging a ratio over
+  // a rolling window keeps ERR-LOG-20 (ruling S7-C02), so there is no ERR-LOG-44.
+  { id: 'ERR-LOG-40', category: 'LOG', name: 'RANK where exactly N rows were asked, or ROW_NUMBER where ties must share a place', detection_checks: ['CHK-MUTANT-MATCH'],
+    feedback_template: 'RANK and DENSE_RANK give tied rows the same number, so a filter on them can keep more than N rows, while ROW_NUMBER numbers tied rows apart and keeps only some of them. Use ROW_NUMBER with the question\'s tie-break when it asks for exactly N rows, and RANK or DENSE_RANK when tied rows share a place.' },
+  { id: 'ERR-LOG-41', category: 'LOG', name: 'A running total or LAG over rows in no stated order, or ordered by the wrong column', detection_checks: ['CHK-MUTANT-MATCH'],
+    feedback_template: 'A running total, LAG or LEAD reads the rows in the order of the ORDER BY inside OVER, so with none, or with the wrong column, it adds up or compares rows that are not neighbours. Order the window by the column that sets the sequence, usually the date, and add a tie-break when two rows can share it.' },
+  { id: 'ERR-LOG-42', category: 'LOG', name: 'LAST_VALUE or FIRST_VALUE with the default frame', detection_checks: ['CHK-MUTANT-MATCH'],
+    feedback_template: 'With an ORDER BY and no frame, the window ends at the current row and the rows tied with it, so LAST_VALUE returns that row\'s value (or its last tie\'s), and the last value of the group only on the group\'s last row. Write the frame ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING, or take FIRST_VALUE with the order reversed.' },
+  { id: 'ERR-LOG-43', category: 'LOG', name: 'A moving average over a partial early window with no flag or filter', detection_checks: ['CHK-MUTANT-MATCH'],
+    feedback_template: 'On the first rows of a series a moving average has fewer rows than its window, so a 7-day average on the third day is the average of 3 days. Count the rows in the same frame with COUNT(*), and flag or leave out the rows where the count is below the window\'s size.' },
 ];
 
 /**

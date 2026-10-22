@@ -1,0 +1,131 @@
+{
+  "id": "EX-SQL-WIN-07-E2-42",
+  "version": 1,
+  "kind": "predict_result",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "predict_result",
+    "percentile",
+    "median",
+    "products"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-07"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-WIN-07",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-WIN-07"
+  ],
+  "template_id": "T-WIN-07-predict-result-median-even",
+  "template_params": {
+    "table": "products",
+    "category": 17,
+    "n": 4
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_win",
+  "prompt": "The four products in this query cost 72.52, 75.80, 89.12 and 99.39. Which result does it return?",
+  "output_contract": null,
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [],
+  "subgoals": [],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 90000,
+  "why_this_works": "",
+  "shown_sql": "SELECT percentile_cont(0.5) WITHIN GROUP (ORDER BY unit_cost_eur) AS median_cost\nFROM products\nWHERE product_id IN (447, 489, 603, 615)",
+  "options": [
+    {
+      "oid": "oe0cfedc",
+      "text": "75.80, the lower of the two middle costs",
+      "misconception_id": null,
+      "table": {
+        "columns": [
+          "median_cost"
+        ],
+        "rows": [
+          [
+            "75.80"
+          ]
+        ]
+      }
+    },
+    {
+      "oid": "of930426",
+      "text": "82.46, halfway between the two middle costs",
+      "misconception_id": null,
+      "table": {
+        "columns": [
+          "median_cost"
+        ],
+        "rows": [
+          [
+            "82.46"
+          ]
+        ]
+      }
+    },
+    {
+      "oid": "o6a79820",
+      "text": "84.2075, the average of all four costs",
+      "misconception_id": "ERR-LOG-14",
+      "table": {
+        "columns": [
+          "median_cost"
+        ],
+        "rows": [
+          [
+            84.2075
+          ]
+        ]
+      }
+    },
+    {
+      "oid": "o9949d81",
+      "text": "89.12, the higher of the two middle costs",
+      "misconception_id": null,
+      "table": {
+        "columns": [
+          "median_cost"
+        ],
+        "rows": [
+          [
+            "89.12"
+          ]
+        ]
+      }
+    }
+  ]
+}

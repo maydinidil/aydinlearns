@@ -1,0 +1,142 @@
+{
+  "id": "EX-SQL-WIN-04-E1-04",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "running_total",
+    "year_to_date",
+    "budget_monthly"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-04"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "lesson",
+  "target_concept_id": "SQL-WIN-04",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-WIN-01",
+    "SQL-WIN-04"
+  ],
+  "template_id": "T-WIN-04-running-total",
+  "template_params": {
+    "table": "budget_monthly",
+    "group": "channel",
+    "period": "month"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "mailvora",
+  "schema": "mailvora",
+  "edge_schema": "mailvora_edge_win",
+  "prompt": "For each paid channel and each month of 2025 in budget_monthly, show the month's budget and the channel's year-to-date budget: the budgets of 2025 up to and including that month. Within each channel, months follow each other by month. Return channel_id, month, budget_eur and ytd_budget_eur. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "channel_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "month",
+        "type_class": "temporal"
+      },
+      {
+        "name": "budget_eur",
+        "type_class": "numeric"
+      },
+      {
+        "name": "ytd_budget_eur",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per paid channel and month of 2025"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "channel_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "month",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "budget_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "ytd_budget_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "channel_id",
+      "month"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the year-to-date budget: a running total for each channel.",
+    "One series per channel in month order, with a frame from the first row to the current one; the 2025 filter runs first."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 37,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 38,
+      "to": 168,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 169,
+      "to": 188,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 189,
+      "to": 248,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": {
+    "stage1": 38,
+    "stage2": 38
+  },
+  "faded_shape": "SELECT channel_id, month, budget_eur,\n",
+  "faded_suffix": "\nFROM budget_monthly\nWHERE month BETWEEN DATE '2025-01-01' AND DATE '2025-12-01'",
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "The filter keeps 2025 only, and SUM per channel in month order with a frame from the first row adds the year's budgets so far."
+}

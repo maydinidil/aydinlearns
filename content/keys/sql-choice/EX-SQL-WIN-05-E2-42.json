@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-WIN-05-E2-42",
+  "item_version": 1,
+  "correct_oid": "o51667b3",
+  "explanation": "GROUP BY makes rows only for months with spend, so July has no row and the frame of 1 row before reaches back to June: August's average is of June and August. July never appears with 0. June has no row before it, so its average is of June alone, not missing.",
+  "solver": {
+    "prompt_hash": "0c384882d590e0e2",
+    "grader_version": "choice.3",
+    "chosen": "o51667b3",
+    "typed": null,
+    "at": "2026-10-20T20:50:48.383Z"
+  }
+}

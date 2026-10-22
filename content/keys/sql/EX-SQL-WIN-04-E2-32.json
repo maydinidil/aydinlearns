@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-WIN-04-E2-32",
+  "item_version": 1,
+  "reference_sql": "WITH daily AS (\n  -- one row per day with webshop orders\n  SELECT order_date, SUM(net_revenue_eur) AS revenue_eur\n  FROM sales\n  WHERE store_code = 'WEB-01'\n    AND order_date BETWEEN DATE '2025-03-01' AND DATE '2025-03-31'\n  GROUP BY order_date\n)\nSELECT order_date, revenue_eur,\n  SUM(revenue_eur) OVER (ORDER BY order_date ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS cumulative_revenue_eur\nFROM daily",
+  "alternatives": [
+    "WITH daily AS (\n  -- one row per day with webshop orders\n  SELECT order_date, SUM(net_revenue_eur) AS revenue_eur\n  FROM sales\n  WHERE store_code = 'WEB-01'\n    AND order_date BETWEEN DATE '2025-03-01' AND DATE '2025-03-31'\n  GROUP BY order_date\n)\nSELECT d.order_date, d.revenue_eur,\n  (SELECT SUM(d2.revenue_eur) FROM daily d2 WHERE d2.order_date <= d.order_date) AS cumulative_revenue_eur\nFROM daily d",
+    "WITH daily AS (\n  -- one row per day with webshop orders\n  SELECT order_date, SUM(net_revenue_eur) AS revenue_eur\n  FROM sales\n  WHERE store_code = 'WEB-01'\n    AND order_date BETWEEN DATE '2025-03-01' AND DATE '2025-03-31'\n  GROUP BY order_date\n)\nSELECT d.order_date, d.revenue_eur, SUM(e.revenue_eur) AS cumulative_revenue_eur\nFROM daily d\nJOIN daily e ON e.order_date <= d.order_date\nGROUP BY d.order_date, d.revenue_eur"
+  ],
+  "other_way": {
+    "sql": "WITH daily AS (\n  -- one row per day with webshop orders\n  SELECT order_date, SUM(net_revenue_eur) AS revenue_eur\n  FROM sales\n  WHERE store_code = 'WEB-01'\n    AND order_date BETWEEN DATE '2025-03-01' AND DATE '2025-03-31'\n  GROUP BY order_date\n)\nSELECT d.order_date, d.revenue_eur,\n  (SELECT SUM(d2.revenue_eur) FROM daily d2 WHERE d2.order_date <= d.order_date) AS cumulative_revenue_eur\nFROM daily d",
+    "tradeoff": "A subquery adding up the earlier days gives the same total without a window, but rereads the days for every row."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-41",
+      "sql": "WITH daily AS (\n  -- one row per day with webshop orders\n  SELECT order_date, SUM(net_revenue_eur) AS revenue_eur\n  FROM sales\n  WHERE store_code = 'WEB-01'\n    AND order_date BETWEEN DATE '2025-03-01' AND DATE '2025-03-31'\n  GROUP BY order_date\n)\nSELECT order_date, revenue_eur,\n  SUM(revenue_eur) OVER (ORDER BY revenue_eur ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS cumulative_revenue_eur\nFROM daily"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-18",
+      "sql": "WITH daily AS (\n  -- one row per day with webshop orders\n  SELECT order_date, SUM(net_revenue_eur) AS revenue_eur\n  FROM sales\n  WHERE store_code = 'WEB-01'\n    AND order_date BETWEEN DATE '2025-03-01' AND DATE '2025-03-31'\n  GROUP BY order_date\n) SELECT order_date, revenue_eur, SUM(revenue_eur) OVER (ORDER BY order_date DESC ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS cumulative_revenue_eur FROM daily"
+    }
+  ],
+  "hint3_partial": "WITH daily AS (\n  -- one row per day with webshop orders\n  SELECT order_date, SUM(net_revenue_eur) AS revenue_eur\n  FROM sales\n  WHERE store_code = 'WEB-01'\n    AND order_date BETWEEN DATE '2025-03-01' AND DATE '2025-03-31'\n  GROUP BY order_date\n)\nSELECT order_date, revenue_eur,\n  SUM(revenue_eur) OVER (ORDER BY ___ ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS cumulative_revenue_eur\nFROM daily",
+  "solver": {
+    "prompt_hash": "ca9f2adbc6c633a8",
+    "schema_version": "cebf75df442f",
+    "dataset_version": "e7c58abf7e8f892e",
+    "grader_version": "7a.1",
+    "query": "WITH daily AS (\n  SELECT order_date, SUM(net_revenue_eur) AS revenue_eur\n  FROM sales\n  WHERE store_code = 'WEB-01'\n    AND order_date BETWEEN DATE '2025-03-01' AND DATE '2025-03-31'\n  GROUP BY order_date\n)\nSELECT order_date, revenue_eur,\n  SUM(revenue_eur) OVER (ORDER BY order_date ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS cumulative_revenue_eur\nFROM daily\n",
+    "at": "2026-10-21T09:05:08.826Z"
+  }
+}

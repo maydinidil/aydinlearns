@@ -1,0 +1,156 @@
+{
+  "id": "EX-MOCK-SCREEN-A-03",
+  "version": 2,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-03",
+    "mock",
+    "screen",
+    "left_join",
+    "keep_zero",
+    "condition_in_on",
+    "competitor_prices"
+  ],
+  "level": 3,
+  "source_ids": [
+    "01:SQL-JOIN-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-21",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "mock",
+  "target_concept_id": "SQL-JOIN-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02"
+  ],
+  "template_id": "T-MOCK-SCREEN-keep-zero-count-and-min-in-window",
+  "template_params": {
+    "left": "products",
+    "right": "competitor_prices",
+    "category_id": 17,
+    "from": "2025-03-10",
+    "to": "2025-03-16"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_join",
+  "prompt": "The pricing team is checking how closely the competitors watched the Soundbars range in the week of 10 to 16 March 2025. For each product in the Soundbars category (category_id 17), how many competitor price checks were made from 10 March 2025 to 16 March 2025, and what was the lowest price_eur any of those checks found? observed_ts holds the time of a check in UTC: count the checks on those UTC days, both days included. Include every Soundbars product: a product with no check that week shows 0 checks and a missing lowest price. Return four columns, in this order: product_id, product_name, n_checks, lowest_price_eur. Sort by n_checks from lowest to highest, then by product_id from low to high.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "product_name",
+        "type_class": "text"
+      },
+      {
+        "name": "n_checks",
+        "type_class": "numeric"
+      },
+      {
+        "name": "lowest_price_eur",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": true,
+    "sort_keys": [
+      {
+        "column": "n_checks",
+        "desc": false
+      },
+      {
+        "column": "product_id",
+        "desc": false
+      }
+    ],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "product_name",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "n_checks",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "lowest_price_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "product_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, choose the tables: every Soundbars product, joined to its checks of that week where it has any.",
+    "Put the week's time condition in the join condition, so a product with no check keeps its row, and count a column of the checks."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 108,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 109,
+      "to": 298,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 299,
+      "to": 323,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 324,
+      "to": 361,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 362,
+      "to": 393,
+      "subgoal": "sort_limit"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 210000,
+  "why_this_works": "With the week in the ON condition, the LEFT JOIN keeps every Soundbars product, and COUNT of a check column gives 0 where no check matched."
+}

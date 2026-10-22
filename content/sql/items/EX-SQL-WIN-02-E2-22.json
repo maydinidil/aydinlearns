@@ -1,0 +1,165 @@
+{
+  "id": "EX-SQL-WIN-02-E2-22",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "ranking",
+    "row_number",
+    "top_n_per_group",
+    "tie_break",
+    "ad_spend_daily",
+    "drill"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-WIN-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-WIN-01",
+    "SQL-WIN-02"
+  ],
+  "template_id": "T-WIN-02-top-n-per-group",
+  "template_params": {
+    "table": "ad_spend_daily",
+    "step": "campaign",
+    "partition": "channel",
+    "fn": "ROW_NUMBER",
+    "n": 3,
+    "order": "spend, highest first"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "mailvora",
+  "schema": "mailvora",
+  "edge_schema": "mailvora_edge_win",
+  "prompt": "Which are the 3 biggest campaigns of each channel by total spend? Count all the spend in ad_spend_daily. Keep exactly 3 campaigns per channel, or all of them when a channel has fewer than 3; when campaigns tie on spend, the lower campaign_id comes first. Return three columns, in this order: channel_id, campaign_id and spend. Return one row for each campaign kept. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "channel_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "campaign_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "spend",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "channel_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "campaign_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "spend",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "campaign_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the step that numbers each channel's campaigns from the biggest spend; the outer query keeps the first 3.",
+    "Exactly 3 per channel needs every campaign numbered apart, with the stated tie-break after the spend."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 60,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 61,
+      "to": 120,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 121,
+      "to": 196,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 197,
+      "to": 235,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 239,
+      "to": 286,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 287,
+      "to": 419,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 420,
+      "to": 441,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 444,
+      "to": 481,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 482,
+      "to": 493,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 494,
+      "to": 507,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "ROW_NUMBER numbers each channel's campaigns apart, with campaign_id settling ties, so rn <= 3 keeps exactly 3."
+}

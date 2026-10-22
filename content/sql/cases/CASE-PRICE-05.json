@@ -90,7 +90,7 @@
       "kind": "CP4",
       "item_id": "CASE-PRICE-05:CP4",
       "credits_concepts": [],
-      "prompt": "Marieke's headline is the cost rise. Compare Q2 2025 (2025-04-01 to 2025-06-30) with Q3 2025 (2025-07-01 to 2025-09-30), both ends included, with each order line in the quarter of its UTC order date. A line's cost is its units times the product's unit cost on the line's order date, from the cost version valid that day (valid_from to valid_to, both days included; valid_to is missing for the current cost). For each product sold in both quarters, its cost per unit in a quarter is its total cost there divided by its units there. How many euros of margin did higher unit costs take away in Q3: the sum, over those products, of (Q3 cost per unit minus Q2 cost per unit) times the product's Q3 units? Type the amount in euros, rounded to 2 decimals.",
+      "prompt": "Marieke's headline is the cost rise. Compare Q2 2025 (2025-04-01 to 2025-06-30) with Q3 2025 (2025-07-01 to 2025-09-30), both ends included, with each order line in the quarter of its UTC order date. A line's cost is its units times the product's unit cost on the line's order date, from the cost version valid that day (valid_from to valid_to, both days included; valid_to is missing for the current cost; every line's order date has exactly one cost version). For each product sold in both quarters, its cost per unit in a quarter is its total cost there divided by its units there. How many euros of margin did higher unit costs take away in Q3: the sum, over those products, of (Q3 cost per unit minus Q2 cost per unit) times the product's Q3 units? Type the amount in euros, rounded to 2 decimals.",
       "typed": {
         "precision": "money",
         "scale": "eur",

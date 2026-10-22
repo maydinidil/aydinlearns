@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-WIN-01-E1-21",
+  "item_version": 1,
+  "reference_sql": "SELECT promo_id, promo_type,\n       COUNT(*) OVER (PARTITION BY promo_type) AS type_promotions\nFROM promotions",
+  "alternatives": [
+    "WITH type_counts AS (  -- one row per promo_type\n  SELECT promo_type, COUNT(*) AS n_promos\n  FROM promotions\n  GROUP BY promo_type\n)\nSELECT p.promo_id, p.promo_type, tc.n_promos AS type_promotions\nFROM promotions p\nJOIN type_counts tc ON tc.promo_type = p.promo_type",
+    "SELECT p.promo_id, p.promo_type,\n       (SELECT COUNT(*) FROM promotions p2 WHERE p2.promo_type = p.promo_type) AS type_promotions\nFROM promotions p"
+  ],
+  "other_way": {
+    "sql": "WITH type_counts AS (  -- one row per promo_type\n  SELECT promo_type, COUNT(*) AS n_promos\n  FROM promotions\n  GROUP BY promo_type\n)\nSELECT p.promo_id, p.promo_type, tc.n_promos AS type_promotions\nFROM promotions p\nJOIN type_counts tc ON tc.promo_type = p.promo_type",
+    "tradeoff": "Counting per type in a step of its own and joining back is portable, but it reads the table twice."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-37",
+      "sql": "SELECT promo_id, promo_type, COUNT(*) OVER () AS type_promotions FROM promotions"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-07",
+      "sql": "SELECT promo_id, promo_type, COUNT(*) AS type_promotions FROM promotions GROUP BY promo_id, promo_type"
+    }
+  ],
+  "hint3_partial": "SELECT promo_id, promo_type,\n       COUNT(*) OVER (PARTITION BY ___) AS type_promotions\nFROM promotions",
+  "solver": {
+    "prompt_hash": "77a50bcc5560a92d",
+    "schema_version": "f0340f71a1f5",
+    "dataset_version": "e7c58abf7e8f892e",
+    "grader_version": "7a.1",
+    "query": "SELECT promo_id, promo_type,\n       COUNT(*) OVER (PARTITION BY promo_type) AS type_promotions\nFROM promotions\n",
+    "at": "2026-10-21T09:05:05.130Z"
+  }
+}

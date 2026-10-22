@@ -1,0 +1,134 @@
+{
+  "id": "EX-SQL-WIN-07-E2-04",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "window",
+    "last_value",
+    "frame",
+    "last_touch",
+    "signups",
+    "sessions"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-07"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-WIN-07",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-WIN-01",
+    "SQL-WIN-04",
+    "SQL-WIN-07"
+  ],
+  "template_id": "T-WIN-07-last-value-per-key",
+  "template_params": {
+    "table": "sessions",
+    "key": "user_id",
+    "measure": "utm_source"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "mailvora",
+  "schema": "mailvora",
+  "edge_schema": "mailvora_edge_win",
+  "prompt": "Which source brought each German July 2025 signup to the site last before signing up? For each user with country_code 'DE' who signed up in July 2025 (signup_ts holds UTC time; 1 to 31 July, both days included, in UTC), look at the sessions of the user's visitor_id that started at or before signup_ts, and take the utm_source of the latest of them. When two of those sessions tie on session_start, the one with the higher session_id counts as the later one. A missing utm_source stays missing. Return two columns, in this order: user_id and last_touch_source. Return one row for each such user with a session at or before signing up. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "user_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "last_touch_source",
+        "type_class": "text"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "user_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "last_touch_source",
+        "type_class": "text",
+        "precision": "exact"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "user_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, collect each July signup's sessions up to the moment of signing up, then put the source of the latest one on each of the user's rows.",
+    "The window must see all of a user's sessions, the first to the last, on every row; then keep one row per user."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 109,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 110,
+      "to": 176,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 177,
+      "to": 244,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 245,
+      "to": 425,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 428,
+      "to": 659,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 660,
+      "to": 672,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "The frame covers all of a user's sessions, so LAST_VALUE gives the latest session's source on every row, and DISTINCT keeps one row per user."
+}

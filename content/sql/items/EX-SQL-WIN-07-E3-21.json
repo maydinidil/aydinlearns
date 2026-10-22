@@ -1,0 +1,171 @@
+{
+  "id": "EX-SQL-WIN-07-E3-21",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "window",
+    "ntile",
+    "quartile",
+    "share_of_total",
+    "payments",
+    "subscriptions",
+    "drill"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-07"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-WIN-07",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-WIN-01",
+    "SQL-WIN-07"
+  ],
+  "template_id": "T-WIN-07-ntile-share",
+  "template_params": {
+    "table": "payments",
+    "key": "user_id",
+    "n": 4,
+    "measure": "amount paid"
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "mailvora",
+  "schema": "mailvora",
+  "edge_schema": "mailvora_edge_win",
+  "prompt": "How much of what users paid in 2025 came from each quarter of the paying users? Take the payments with paid_at from 1 January to 31 December 2025 (paid_at holds UTC time; both days included, in UTC) that were not refunded, and add them up for each user (a payment belongs to the user of its subscription). Sort the users from the highest total down and split them into four groups whose sizes differ by at most one, the larger groups first: quartile 1 holds the top payers. When users tie on their total, the lower user_id comes first. Return three columns, in this order: quartile, users (the number of users in the quartile) and paid_share_pct, the quartile's total as a percentage of all these users' totals, rounded to 1 decimal. Return one row for each quartile. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "quartile",
+        "type_class": "numeric"
+      },
+      {
+        "name": "users",
+        "type_class": "numeric"
+      },
+      {
+        "name": "paid_share_pct",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "quartile",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "users",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "paid_share_pct",
+        "type_class": "numeric",
+        "precision": "ratio",
+        "require_rounding": 1
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "quartile"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, total each user's payments of 2025 that were not refunded, split the users into four groups from the highest total, then add up each group's share.",
+    "The groups hold the same number of users, not the same amount; the share needs the total over all quartiles, which a window over the grouped rows can give."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 85,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 86,
+      "to": 135,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 136,
+      "to": 217,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 218,
+      "to": 351,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 352,
+      "to": 372,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 376,
+      "to": 430,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 431,
+      "to": 527,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 528,
+      "to": 544,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 547,
+      "to": 668,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 669,
+      "to": 683,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 684,
+      "to": 701,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "NTILE(4) puts the same number of users in each quartile, and the window total over the grouped rows turns each quartile's amount into a share."
+}

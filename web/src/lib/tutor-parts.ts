@@ -1,7 +1,8 @@
 // web/src/lib/tutor-parts.ts: what the screens give the tutor beyond their visible text (AI tutor design §5; sprint T, T9, T-02), and when
 // the quick prompts show. Pure functions over what a screen already holds: the learner's own work, the item's IDs and status, the option
 // picked, a mark only a square's colour shows. Never a key, a held-out item or anything the screen does not have. A panel that is not in
-// view (another drill question, a case step not shown) names no item, so the question's item is the one on the screen (N3).
+// view (another drill question, a case step not shown) names no item, so the question's item is the one on the screen (N3). Sprint 7 Part 2
+// (Task N3, S7-17): a case mock review's CP6 part and its second-opinion prompt, which name no item.
 import type { DrillQuestionOutcome } from '../api.ts';
 import type { LabPart } from '../../../schemas/lab.ts';
 import { quickPrompts, type QuickPrompt } from '../tutor/quick-prompts.ts';
@@ -76,4 +77,26 @@ const WHY: QuickPrompt = { label: 'Why is this wrong?', question: 'Why is this w
 /** Beside a wrong choice answer, where its explanation shows. */
 export function choiceQuickPrompts(t: { enabled: boolean; closedBy: string | null } | null, result: { correct: boolean } | null): QuickPrompt[] {
   return tutorAvailable(t) && result !== null && !result.correct ? [WHY] : [];
+}
+
+/** S7-17 (D101): the tutor's second opinion on a case mock's written answer, in its review's CP6 panel. */
+export const SECOND_OPINION: QuickPrompt = {
+  label: 'Ask the tutor for a second opinion',
+  question: 'Grade my written answer against each rubric line: met or not, with one reason each.',
+};
+/** S7-17: in a case-round's or take-home's review, while the tutor is on and something was written in the run. The review has no run's clock. */
+export function secondOpinionPrompts(t: { enabled: boolean; closedBy: string | null } | null, wrote: boolean): QuickPrompt[] {
+  return tutorAvailable(t) && wrote ? [SECOND_OPINION] : [];
+}
+/**
+ * S7-17: what a case mock review's CP6 panel shows, for the second opinion: the learner's insight or memo, the model answer and the rubric
+ * lines, core ones marked. It names no item, so the question is logged with no item instance: it is not help and changes no pass.
+ */
+export function mockReviewPart(r: { memo: boolean; written: string | null; modelAnswer: string; rubric: readonly { id: string; label: string }[]; core: readonly string[] }): SnapshotPart {
+  const written = r.written?.trim() ? r.written.trim() : '(nothing written)';
+  return {
+    label: `${r.memo ? 'Take-home' : 'Case-round'} review: CP6, the written answer`,
+    text: [`The learner's ${r.memo ? 'memo' : 'insight'}:`, written, '', 'The model answer:', r.modelAnswer.trim(), '',
+      'The rubric lines (the core lines decide the checkpoint):', ...r.rubric.map((p) => `- ${p.label}${r.core.includes(p.id) ? ' (core)' : ''}`)].join('\n'),
+  };
 }

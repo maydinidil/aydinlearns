@@ -1,0 +1,160 @@
+{
+  "id": "EX-SQL-WIN-03-E2-01",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "lag",
+    "pct_change",
+    "price_history",
+    "cte"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-03"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "lesson",
+  "target_concept_id": "SQL-WIN-03",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-TYPE-01",
+    "SQL-CTE-01",
+    "SQL-WIN-01",
+    "SQL-WIN-03"
+  ],
+  "template_id": "T-WIN-03-lag-pct-change",
+  "template_params": {
+    "table": "price_history",
+    "group": "product",
+    "order": "valid_from"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_win",
+  "prompt": "For every price version of products 1 to 25 (product_id from 1 to 25, both included), show how much the list price changed from the same product's version before it, as a percentage of that earlier price, rounded to 1 decimal. Within each product, versions follow each other by valid_from. Return product_id, valid_from, list_price_eur and pct_change. A product's first version shows pct_change as missing. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "valid_from",
+        "type_class": "temporal"
+      },
+      {
+        "name": "list_price_eur",
+        "type_class": "numeric"
+      },
+      {
+        "name": "pct_change",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per product per price version"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "valid_from",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "list_price_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "pct_change",
+        "type_class": "numeric",
+        "precision": "ratio",
+        "require_rounding": 1
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "product_id",
+      "valid_from"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, in the first step, bring the previous version's price onto each row.",
+    "The step needs a window with one group per product in valid_from order; the outer query then divides the change by that earlier price."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 61,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 62,
+      "to": 110,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 111,
+      "to": 199,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 200,
+      "to": 258,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 259,
+      "to": 305,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 306,
+      "to": 382,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 383,
+      "to": 396,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": {
+    "stage1": 111,
+    "stage2": 111
+  },
+  "faded_shape": "WITH versions AS (\n  -- one row per product per price version\n  SELECT product_id, valid_from, list_price_eur,\n",
+  "faded_suffix": "\n  FROM price_history\n  WHERE product_id BETWEEN 1 AND 25\n)\nSELECT product_id, valid_from, list_price_eur,\n  ROUND(100.0 * (list_price_eur - prev_price) / prev_price, 1) AS pct_change\nFROM versions",
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "The CTE puts the previous version's price on each row with LAG, so the outer query divides the change by it once; the first version stays missing."
+}

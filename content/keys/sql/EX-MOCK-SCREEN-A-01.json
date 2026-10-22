@@ -1,0 +1,36 @@
+{
+  "item_id": "EX-MOCK-SCREEN-A-01",
+  "item_version": 2,
+  "reference_sql": "SELECT product_id, product_name, category_id, launch_date\nFROM products\nWHERE category_id IN (15, 16, 24)\n  AND product_name ILIKE '%pro%'\n  AND launch_date BETWEEN DATE '2024-03-01' AND DATE '2024-12-31'",
+  "alternatives": [
+    "SELECT product_id, product_name, category_id, launch_date\nFROM products\nWHERE (category_id = 15 OR category_id = 16 OR category_id = 24)\n  AND product_name ILIKE '%pro%'\n  AND launch_date >= DATE '2024-03-01'\n  AND launch_date <= DATE '2024-12-31'",
+    "SELECT product_id, product_name, category_id, launch_date\nFROM products\nWHERE category_id IN (15, 16, 24)\n  AND (product_name LIKE '%Pro%' OR product_name LIKE '%PRO%' OR product_name LIKE '%pro%')\n  AND launch_date BETWEEN '2024-03-01' AND '2024-12-31'"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-22",
+      "sql": "SELECT product_id, product_name, category_id, launch_date FROM products WHERE category_id IN (15, 16, 24) AND product_name LIKE '%Pro%' AND launch_date BETWEEN DATE '2024-03-01' AND DATE '2024-12-31'"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-06",
+      "sql": "SELECT product_id, product_name, category_id, launch_date FROM products WHERE category_id IN (15, 16, 24) AND product_name ILIKE '%pro%' AND launch_date >= DATE '2024-03-01' AND launch_date < DATE '2024-12-31'"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-13",
+      "sql": "SELECT product_id, product_name, category_id, launch_date FROM products WHERE category_id = 15 OR category_id = 16 OR category_id = 24 AND product_name ILIKE '%pro%' AND launch_date BETWEEN DATE '2024-03-01' AND DATE '2024-12-31'"
+    }
+  ],
+  "hint3_partial": "SELECT product_id, product_name, category_id, launch_date\nFROM products\nWHERE category_id IN (15, 16, 24)\n  AND product_name ___ '%pro%'\n  AND launch_date BETWEEN ___",
+  "solver": {
+    "prompt_hash": "0bb3a9f7187e2127",
+    "schema_version": "d77fe1c31a0e",
+    "dataset_version": "e7c58abf7e8f892e",
+    "grader_version": "7a.1",
+    "query": "SELECT product_id, product_name, category_id, launch_date\nFROM products\nWHERE category_id IN (15, 16, 24)\n  AND product_name ILIKE '%pro%'\n  AND launch_date >= DATE '2024-03-01'\n  AND launch_date <= DATE '2024-12-31'\n",
+    "at": "2026-10-21T10:46:58.694Z"
+  }
+}

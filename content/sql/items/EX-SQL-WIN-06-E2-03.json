@@ -1,0 +1,149 @@
+{
+  "id": "EX-SQL-WIN-06-E2-03",
+  "version": 2,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "window",
+    "dense_rank",
+    "top_n_per_group",
+    "ties_share",
+    "filter_window_result",
+    "products"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-06"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-WIN-06",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-CTE-01",
+    "SQL-WIN-01",
+    "SQL-WIN-02",
+    "SQL-WIN-06"
+  ],
+  "template_id": "T-WIN-06-top-n-distinct-values",
+  "template_params": {
+    "table": "products",
+    "group": "category_id",
+    "n": 2
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_win",
+  "prompt": "Which products have one of the two highest unit costs in their category? Products that tie on unit cost share a place, and the next lower cost takes the next place number with no gap, so a category can have more than two such products. Return four columns, in this order: category_id, product_id, unit_cost_eur and cost_place, the product's place in its category, 1 or 2. Return one row for each such product. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "category_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "product_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "unit_cost_eur",
+        "type_class": "numeric"
+      },
+      {
+        "name": "cost_place",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "category_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "product_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "unit_cost_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "cost_place",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "product_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, place each category's products by unit cost so that equal costs share a place and no place is skipped.",
+    "Keep places 1 and 2 in the outer query; a function that skips places after a tie would leave out the second cost."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 81,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 82,
+      "to": 226,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 227,
+      "to": 242,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 245,
+      "to": 302,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 303,
+      "to": 314,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 315,
+      "to": 336,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "DENSE_RANK gives equal costs one place and the next cost the next place, so cost_place <= 2 keeps every product at the two highest costs of its category."
+}

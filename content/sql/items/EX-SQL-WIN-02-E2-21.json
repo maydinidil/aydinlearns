@@ -1,0 +1,155 @@
+{
+  "id": "EX-SQL-WIN-02-E2-21",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "ranking",
+    "row_number",
+    "latest_row",
+    "tie_break",
+    "competitor_prices",
+    "drill"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-WIN-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-WIN-01",
+    "SQL-WIN-02"
+  ],
+  "template_id": "T-WIN-02-latest-row-per-group",
+  "template_params": {
+    "table": "competitor_prices",
+    "partition": "product",
+    "fn": "ROW_NUMBER",
+    "category": "Earbuds"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_win",
+  "prompt": "For each product of the Earbuds category, category_id 16, what was its latest competitor price check? observed_ts holds a UTC moment. When a product's two latest checks tie on observed_ts, the check of the competitor whose name comes first in alphabetical order counts as the latest. Return four columns, in this order: product_id, competitor, observed_ts and price_eur. Return one row for each Earbuds product with at least one check. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "competitor",
+        "type_class": "text"
+      },
+      {
+        "name": "observed_ts",
+        "type_class": "temporal"
+      },
+      {
+        "name": "price_eur",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "competitor",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "observed_ts",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "price_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "product_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the step that numbers each product's checks from the latest; the outer query keeps the first.",
+    "Each product needs exactly one latest check, so number the checks apart, the latest first, with the stated tie-break after the time."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 77,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 78,
+      "to": 252,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 253,
+      "to": 330,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 331,
+      "to": 357,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 360,
+      "to": 413,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 414,
+      "to": 425,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 426,
+      "to": 438,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "ROW_NUMBER marks one latest check per product, and the competitor name settles two checks made at the same moment."
+}

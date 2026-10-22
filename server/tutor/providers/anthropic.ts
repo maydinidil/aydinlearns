@@ -4,19 +4,22 @@
 // or kept: only text deltas are yielded (T-07). `fetch` is the SDK's own option; the tests
 // pass a recorded stream through it. `authToken: null` keeps the SDK from also sending an ANTHROPIC_AUTH_TOKEN it would otherwise read
 // from the environment, and the host set here keeps ANTHROPIC_BASE_URL from sending the key elsewhere: the tutor uses the one key from
-// the key store, at Anthropic (spec §9). Startup removes ANTHROPIC_CUSTOM_HEADERS, which the SDK has no option to ignore.
+// the key store, at Anthropic (spec §9). Startup removes ANTHROPIC_CUSTOM_HEADERS, which the SDK has no option to ignore. `logLevel:
+// 'warn'` keeps a request's body (the question, the snapshot) out of the console whatever ANTHROPIC_LOG says (S7-32).
+// S7-32: a failure carries the input message_start reported, so the route can count a reply cut after it.
 import Anthropic from '@anthropic-ai/sdk';
-import type { Effort, TutorDone, TutorModel, TutorModelInput } from '../types.ts';
+import type { Effort, TutorDone, TutorModel, TutorModelInput, TutorUsage } from '../types.ts';
 import { failureOf } from './errors.ts';
 
 export function anthropicModel(o: { apiKey: string; model: string; effort: Effort; fetch?: typeof fetch; maxRetries?: number }): TutorModel {
   const client = new Anthropic({ apiKey: o.apiKey, authToken: null, baseURL: 'https://api.anthropic.com', maxRetries: o.maxRetries ?? 1, timeout: 60_000,
-    ...(o.fetch ? { fetch: o.fetch } : {}) });
+    logLevel: 'warn', ...(o.fetch ? { fetch: o.fetch } : {}) });
   return {
     provider: 'claude',
     model: o.model,
     async *ask(input: TutorModelInput): AsyncGenerator<string, TutorDone, void> {
-      let started = false;
+      const at = { connected: false, started: false };
+      let reported: TutorUsage | null = null;
       try {
         const stream = client.messages.stream({
           model: o.model,
@@ -26,8 +29,12 @@ export function anthropicModel(o: { apiKey: string; model: string; effort: Effor
           messages: [...input.turns.map((t) => ({ role: t.role, content: t.text })), { role: 'user' as const, content: input.question }],
         }, { signal: input.signal });
         for await (const event of stream) {
-          if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
-            started = true;
+          at.connected = true;
+          if (event.type === 'message_start') {
+            const u = event.message.usage;
+            reported = { input_tokens: u.input_tokens, cache_write_tokens: u.cache_creation_input_tokens ?? 0, cached_input_tokens: u.cache_read_input_tokens ?? 0, output_tokens: 0 };
+          } else if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
+            at.started = true;
             yield event.delta.text;
           }
         }
@@ -39,7 +46,7 @@ export function anthropicModel(o: { apiKey: string; model: string; effort: Effor
           usage: { input_tokens: u.input_tokens, cache_write_tokens: u.cache_creation_input_tokens ?? 0, cached_input_tokens: u.cache_read_input_tokens ?? 0, output_tokens: u.output_tokens },
         };
       } catch (e) {
-        throw failureOf(e, 'claude', started);
+        throw failureOf(e, 'claude', at, reported);
       }
     },
   };

@@ -1,5 +1,5 @@
 // web/src/screens/SetupScreen.tsx: settings and setup (design §14, minimal in 1a). In setup mode it is the only screen.
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { api, type StatusView } from '../api.ts';
 import { versionLine } from '../lib/version.ts';
 import type { Goal } from '../../../core/goals.ts';
@@ -251,18 +251,24 @@ export function SetupScreen({ onTutorStatus }: { onTutorStatus?: (s: TutorStatus
 }
 
 /**
- * One provider's key (T-20): a password field that is never filled in, Save, Remove for a key saved in the app, and where the key comes
+ * S7-34 (block P review M4): a key field is a text input masked with -webkit-text-security, not a password field, so Chrome and Edge do
+ * not offer to save the key as a password (they ignore autocomplete="off" on a password field).
+ */
+const KEY_FIELD_STYLE = { WebkitTextSecurity: 'disc', width: 'min(24rem, 100%)' } as CSSProperties;
+
+/**
+ * One provider's key (T-20): a masked field that is never filled in, Save, Remove for a key saved in the app, and where the key comes
  * from. What is typed lives only in this row's field; Save empties the field before the key is sent, worked or not, and the key goes only
  * in the request's body. The server's refusal line comes back through `onSend` as it came.
  */
-function TutorKeyRow({ view, busy, onSend }: { view: TutorKeyView; busy: boolean; onSend: (request: () => Promise<unknown>, done: string) => void }) {
+export function TutorKeyRow({ view, busy, onSend }: { view: TutorKeyView; busy: boolean; onSend: (request: () => Promise<unknown>, done: string) => void }) {
   const [draft, setDraft] = useState('');
   const name = keyName(view.provider);
   const sourceId = `tutor-key-source-${view.provider}`;
   const body = keyToSave(view.provider, draft);
   return (
     <div className="tutor-key">
-      <p><label>{name} <input type="password" autoComplete="off" spellCheck={false} value={draft} aria-describedby={sourceId}
+      <p><label>{name} <input type="text" style={KEY_FIELD_STYLE} autoComplete="off" spellCheck={false} value={draft} aria-describedby={sourceId}
         onChange={(e) => setDraft(e.target.value)} /></label>{' '}
         <button type="button" aria-label={`Save ${name}`} disabled={busy || body === null}
           onClick={() => { if (body === null) return; setDraft(''); onSend(() => saveTutorKey(body), keyNotice(view.provider, true)); }}>Save</button>

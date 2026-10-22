@@ -1,0 +1,157 @@
+{
+  "id": "EX-SQL-WIN-04-E1-41",
+  "version": 1,
+  "kind": "predict_result",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "predict_result",
+    "running_total",
+    "default_frame"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-04"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pretest",
+  "target_concept_id": "SQL-WIN-04",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-WIN-01",
+    "SQL-WIN-04"
+  ],
+  "template_id": "T-WIN-04-predict-default-frame",
+  "template_params": {
+    "table": "sales"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_win",
+  "prompt": "Order 346444 has three lines, all on the same UTC order date. Which result does this query return? Rows may be in any order.",
+  "output_contract": null,
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [],
+  "subgoals": [],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 90000,
+  "why_this_works": "",
+  "shown_sql": "SELECT order_line_id, net_revenue_eur,\n  SUM(net_revenue_eur) OVER (ORDER BY order_date) AS running_eur\nFROM sales\nWHERE order_id = 346444",
+  "options": [
+    {
+      "oid": "o6868376",
+      "text": "Each line adds to the total one at a time",
+      "misconception_id": "ERR-LOG-38",
+      "table": {
+        "columns": [
+          "order_line_id",
+          "net_revenue_eur",
+          "running_eur"
+        ],
+        "rows": [
+          [
+            553412,
+            "15.57",
+            "15.57"
+          ],
+          [
+            553413,
+            "138.99",
+            "154.56"
+          ],
+          [
+            553414,
+            "151.99",
+            "306.55"
+          ]
+        ]
+      }
+    },
+    {
+      "oid": "ob55ae23",
+      "text": "Every line shows the order's full total",
+      "misconception_id": null,
+      "table": {
+        "columns": [
+          "order_line_id",
+          "net_revenue_eur",
+          "running_eur"
+        ],
+        "rows": [
+          [
+            553412,
+            "15.57",
+            "306.55"
+          ],
+          [
+            553413,
+            "138.99",
+            "306.55"
+          ],
+          [
+            553414,
+            "151.99",
+            "306.55"
+          ]
+        ]
+      }
+    },
+    {
+      "oid": "od91c8e4",
+      "text": "Every line shows its own revenue",
+      "misconception_id": null,
+      "table": {
+        "columns": [
+          "order_line_id",
+          "net_revenue_eur",
+          "running_eur"
+        ],
+        "rows": [
+          [
+            553412,
+            "15.57",
+            "15.57"
+          ],
+          [
+            553413,
+            "138.99",
+            "138.99"
+          ],
+          [
+            553414,
+            "151.99",
+            "151.99"
+          ]
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,95 @@
+{
+  "id": "EX-SQL-WIN-02-E2-42",
+  "version": 1,
+  "kind": "choose_query",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "choose_query",
+    "ranking",
+    "rank",
+    "ties_share",
+    "ad_spend_daily"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-WIN-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-WIN-01",
+    "SQL-WIN-02"
+  ],
+  "template_id": "T-WIN-02-choose-ties-share-first",
+  "template_params": {
+    "table": "ad_spend_daily",
+    "step": "campaign",
+    "partition": "channel"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "mailvora",
+  "schema": "mailvora",
+  "edge_schema": "mailvora_edge_win",
+  "prompt": "Which query keeps, for each channel, every campaign tied for the most total clicks, in the columns channel_id, campaign_id and clicks? Count all the rows of ad_spend_daily.",
+  "output_contract": null,
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [],
+  "subgoals": [],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "",
+  "options": [
+    {
+      "oid": "o4d6cf25",
+      "text": "WITH campaign_clicks AS (  -- one row per campaign with spend\n  SELECT c.channel_id, c.campaign_id, SUM(a.clicks) AS clicks\n  FROM ad_spend_daily a\n  JOIN campaigns c ON c.campaign_id = a.campaign_id\n  GROUP BY c.channel_id, c.campaign_id\n),\nranked AS (  -- one row per campaign with spend\n  SELECT channel_id, campaign_id, clicks,\n         ROW_NUMBER() OVER (PARTITION BY channel_id ORDER BY clicks DESC, campaign_id) AS r\n  FROM campaign_clicks\n)\nSELECT channel_id, campaign_id, clicks\nFROM ranked\nWHERE r = 1",
+      "misconception_id": "ERR-LOG-40"
+    },
+    {
+      "oid": "od819c7c",
+      "text": "WITH campaign_clicks AS (  -- one row per campaign with spend\n  SELECT c.channel_id, c.campaign_id, SUM(a.clicks) AS clicks\n  FROM ad_spend_daily a\n  JOIN campaigns c ON c.campaign_id = a.campaign_id\n  GROUP BY c.channel_id, c.campaign_id\n),\nranked AS (  -- one row per campaign with spend\n  SELECT channel_id, campaign_id, clicks,\n         RANK() OVER (PARTITION BY channel_id ORDER BY clicks DESC) AS r\n  FROM campaign_clicks\n)\nSELECT channel_id, campaign_id, clicks\nFROM ranked\nWHERE r = 1",
+      "misconception_id": null
+    },
+    {
+      "oid": "o4b4fdac",
+      "text": "WITH campaign_clicks AS (  -- one row per campaign with spend\n  SELECT c.channel_id, c.campaign_id, SUM(a.clicks) AS clicks\n  FROM ad_spend_daily a\n  JOIN campaigns c ON c.campaign_id = a.campaign_id\n  GROUP BY c.channel_id, c.campaign_id\n),\nranked AS (  -- one row per campaign with spend\n  SELECT channel_id, campaign_id, clicks,\n         RANK() OVER (ORDER BY clicks DESC) AS r\n  FROM campaign_clicks\n)\nSELECT channel_id, campaign_id, clicks\nFROM ranked\nWHERE r = 1",
+      "misconception_id": "ERR-LOG-37"
+    },
+    {
+      "oid": "o2240d93",
+      "text": "WITH campaign_clicks AS (  -- one row per campaign with spend\n  SELECT c.channel_id, c.campaign_id, SUM(a.clicks) AS clicks\n  FROM ad_spend_daily a\n  JOIN campaigns c ON c.campaign_id = a.campaign_id\n  GROUP BY c.channel_id, c.campaign_id\n),\nranked AS (  -- one row per campaign with spend\n  SELECT channel_id, campaign_id, clicks,\n         RANK() OVER (PARTITION BY channel_id ORDER BY clicks) AS r\n  FROM campaign_clicks\n)\nSELECT channel_id, campaign_id, clicks\nFROM ranked\nWHERE r = 1",
+      "misconception_id": "ERR-LOG-18"
+    }
+  ]
+}

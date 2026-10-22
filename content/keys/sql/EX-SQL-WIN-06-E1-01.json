@@ -1,0 +1,44 @@
+{
+  "item_id": "EX-SQL-WIN-06-E1-01",
+  "item_version": 1,
+  "reference_sql": "WITH ranked AS (  -- one row per order, numbered within its customer from the latest\n  SELECT customer_id, order_id, order_ts,\n         ROW_NUMBER() OVER (PARTITION BY customer_id ORDER BY order_ts DESC, order_id) AS rn\n  FROM orders\n  WHERE customer_id BETWEEN 3001 AND 3100\n    AND order_ts >= TIMESTAMP '2025-01-01' AND order_ts < TIMESTAMP '2025-07-01'\n)\nSELECT customer_id, order_id, order_ts\nFROM ranked\nWHERE rn = 1",
+  "alternatives": [
+    "SELECT r.customer_id, r.order_id, r.order_ts\nFROM (\n  -- one row per order, numbered within its customer from the latest\n  SELECT customer_id, order_id, order_ts,\n         ROW_NUMBER() OVER (PARTITION BY customer_id ORDER BY order_ts DESC, order_id) AS rn\n  FROM orders\n  WHERE customer_id BETWEEN 3001 AND 3100\n    AND order_ts >= TIMESTAMP '2025-01-01' AND order_ts < TIMESTAMP '2025-07-01'\n) AS r\nWHERE r.rn = 1",
+    "SELECT customer_id, order_id, order_ts\nFROM orders\nWHERE customer_id BETWEEN 3001 AND 3100\n  AND order_ts >= TIMESTAMP '2025-01-01' AND order_ts < TIMESTAMP '2025-07-01'\nQUALIFY ROW_NUMBER() OVER (PARTITION BY customer_id ORDER BY order_ts DESC, order_id) = 1"
+  ],
+  "other_way": {
+    "sql": "SELECT customer_id, order_id, order_ts\nFROM orders\nWHERE customer_id BETWEEN 3001 AND 3100\n  AND order_ts >= TIMESTAMP '2025-01-01' AND order_ts < TIMESTAMP '2025-07-01'\nQUALIFY ROW_NUMBER() OVER (PARTITION BY customer_id ORDER BY order_ts DESC, order_id) = 1",
+    "tradeoff": "QUALIFY filters the window result in the same query, which is shorter, but PostgreSQL, MySQL and SQL Server do not accept it."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-40",
+      "sql": "WITH ranked AS (SELECT customer_id, order_id, order_ts, RANK() OVER (PARTITION BY customer_id ORDER BY order_ts DESC) AS rn FROM orders WHERE customer_id BETWEEN 3001 AND 3100 AND order_ts >= TIMESTAMP '2025-01-01' AND order_ts < TIMESTAMP '2025-07-01') SELECT customer_id, order_id, order_ts FROM ranked WHERE rn = 1"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-18",
+      "sql": "WITH ranked AS (SELECT customer_id, order_id, order_ts, ROW_NUMBER() OVER (PARTITION BY customer_id ORDER BY order_ts, order_id) AS rn FROM orders WHERE customer_id BETWEEN 3001 AND 3100 AND order_ts >= TIMESTAMP '2025-01-01' AND order_ts < TIMESTAMP '2025-07-01') SELECT customer_id, order_id, order_ts FROM ranked WHERE rn = 1"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-37",
+      "sql": "WITH ranked AS (SELECT customer_id, order_id, order_ts, ROW_NUMBER() OVER (ORDER BY order_ts DESC, order_id) AS rn FROM orders WHERE customer_id BETWEEN 3001 AND 3100 AND order_ts >= TIMESTAMP '2025-01-01' AND order_ts < TIMESTAMP '2025-07-01') SELECT customer_id, order_id, order_ts FROM ranked WHERE rn = 1"
+    },
+    {
+      "id": "PW4",
+      "error_id": "ERR-SYN-08",
+      "sql": "SELECT customer_id, order_id, order_ts FROM orders WHERE customer_id BETWEEN 3001 AND 3100 AND order_ts >= TIMESTAMP '2025-01-01' AND order_ts < TIMESTAMP '2025-07-01' AND ROW_NUMBER() OVER (PARTITION BY customer_id ORDER BY order_ts DESC, order_id) = 1"
+    }
+  ],
+  "hint3_partial": "WITH ranked AS (  -- one row per order, numbered within its customer from the latest\n  SELECT customer_id, order_id, order_ts,\n         ROW_NUMBER() OVER (PARTITION BY customer_id ORDER BY order_ts DESC, order_id) AS rn\n  FROM orders\n  WHERE customer_id BETWEEN 3001 AND 3100\n    AND order_ts >= TIMESTAMP '2025-01-01' AND order_ts < TIMESTAMP '2025-07-01'\n)\nSELECT customer_id, order_id, order_ts\nFROM ranked\nWHERE ___",
+  "solver": {
+    "prompt_hash": "274b1dc17e4f91b8",
+    "schema_version": "7ed366279088",
+    "dataset_version": "e7c58abf7e8f892e",
+    "grader_version": "7a.1",
+    "query": "SELECT customer_id, order_id, order_ts\nFROM orders\nWHERE customer_id BETWEEN 3001 AND 3100\n  AND order_ts >= TIMESTAMP '2025-01-01 00:00:00' AND order_ts < TIMESTAMP '2025-07-01 00:00:00'\nQUALIFY ROW_NUMBER() OVER (PARTITION BY customer_id ORDER BY order_ts DESC, order_id ASC) = 1\n",
+    "at": "2026-10-21T09:05:10.052Z"
+  }
+}

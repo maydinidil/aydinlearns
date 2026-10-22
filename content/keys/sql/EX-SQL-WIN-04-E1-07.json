@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-WIN-04-E1-07",
+  "item_version": 1,
+  "reference_sql": "SELECT product_id, category_id, launch_date,\n  COUNT(*) OVER (PARTITION BY category_id ORDER BY launch_date RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS launched_so_far\nFROM products\nWHERE category_id IN (1, 13, 17)\n  AND launch_date IS NOT NULL",
+  "alternatives": [
+    "SELECT p.product_id, p.category_id, p.launch_date,\n  (SELECT COUNT(*) FROM products p2\n   WHERE p2.category_id = p.category_id\n     AND p2.launch_date <= p.launch_date) AS launched_so_far\nFROM products p\nWHERE p.category_id IN (1, 13, 17)\n  AND p.launch_date IS NOT NULL",
+    "SELECT p.product_id, p.category_id, p.launch_date, COUNT(*) AS launched_so_far\nFROM products p\nJOIN products e ON e.category_id = p.category_id AND e.launch_date <= p.launch_date\nWHERE p.category_id IN (1, 13, 17)\n  AND p.launch_date IS NOT NULL\nGROUP BY p.product_id, p.category_id, p.launch_date"
+  ],
+  "other_way": {
+    "sql": "SELECT p.product_id, p.category_id, p.launch_date,\n  (SELECT COUNT(*) FROM products p2\n   WHERE p2.category_id = p.category_id\n     AND p2.launch_date <= p.launch_date) AS launched_so_far\nFROM products p\nWHERE p.category_id IN (1, 13, 17)\n  AND p.launch_date IS NOT NULL",
+    "tradeoff": "A subquery counting the category's launches up to that date treats same-day launches alike without a frame, but rereads products."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-38",
+      "sql": "SELECT product_id, category_id, launch_date, COUNT(*) OVER (PARTITION BY category_id ORDER BY launch_date, product_id ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS launched_so_far FROM products WHERE category_id IN (1, 13, 17) AND launch_date IS NOT NULL"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-37",
+      "sql": "SELECT product_id, category_id, launch_date, COUNT(*) OVER (ORDER BY launch_date RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS launched_so_far FROM products WHERE category_id IN (1, 13, 17) AND launch_date IS NOT NULL"
+    }
+  ],
+  "hint3_partial": "SELECT product_id, category_id, launch_date,\n  COUNT(*) OVER (PARTITION BY category_id ORDER BY launch_date ___ BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS launched_so_far\nFROM products\nWHERE category_id IN (1, 13, 17)\n  AND launch_date IS NOT NULL",
+  "solver": {
+    "prompt_hash": "71d7e682d094f52a",
+    "schema_version": "d77fe1c31a0e",
+    "dataset_version": "e7c58abf7e8f892e",
+    "grader_version": "7a.1",
+    "query": "SELECT product_id, category_id, launch_date,\n  COUNT(*) OVER (PARTITION BY category_id ORDER BY launch_date RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS launched_so_far\nFROM products\nWHERE category_id IN (1, 13, 17) AND launch_date IS NOT NULL\n",
+    "at": "2026-10-21T09:05:08.209Z"
+  }
+}

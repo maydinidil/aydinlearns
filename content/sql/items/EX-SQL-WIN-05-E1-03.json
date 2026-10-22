@@ -1,0 +1,146 @@
+{
+  "id": "EX-SQL-WIN-05-E1-03",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "moving_average",
+    "short_window_missing",
+    "price_history"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-05"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "lesson",
+  "target_concept_id": "SQL-WIN-05",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-CASE-01",
+    "SQL-TYPE-01",
+    "SQL-WIN-01",
+    "SQL-WIN-04",
+    "SQL-WIN-05"
+  ],
+  "template_id": "T-WIN-05-moving-average-missing",
+  "template_params": {
+    "table": "price_history",
+    "group": "product",
+    "window": "3 versions"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_win",
+  "prompt": "For every price version of products 1 to 25 (product_id from 1 to 25, both included), show the average list price of that version and the 2 versions before it of the same product, rounded to 2 decimals. Within each product, versions follow each other by valid_from. A product's first two versions have fewer than 3 versions to average: show their avg_price_3v as missing. Return product_id, valid_from, list_price_eur and avg_price_3v. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "valid_from",
+        "type_class": "temporal"
+      },
+      {
+        "name": "list_price_eur",
+        "type_class": "numeric"
+      },
+      {
+        "name": "avg_price_3v",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per product per price version"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "valid_from",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "list_price_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "avg_price_3v",
+        "type_class": "numeric",
+        "precision": "money",
+        "require_rounding": 2
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "product_id",
+      "valid_from"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the calculated column: the 3-version average, kept only when its window holds 3 versions.",
+    "Count the rows in the same frame as the average; when the count is below 3, the column stays missing."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 46,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 47,
+      "to": 319,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 320,
+      "to": 338,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 339,
+      "to": 372,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": {
+    "stage1": 49,
+    "stage2": 49
+  },
+  "faded_shape": "SELECT product_id, valid_from, list_price_eur,\n  ",
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "COUNT over the same frame shows how many versions the average covers, so the CASE keeps the average only when all 3 are there.",
+  "faded_suffix": "\nFROM price_history\nWHERE product_id BETWEEN 1 AND 25"
+}

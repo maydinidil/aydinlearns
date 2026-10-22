@@ -1,0 +1,128 @@
+{
+  "id": "EX-SQL-WIN-03-E3-21",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "lag",
+    "sales",
+    "date_difference",
+    "cte",
+    "drill"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-03"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-WIN-03",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CTE-01",
+    "SQL-WIN-01",
+    "SQL-WIN-03"
+  ],
+  "template_id": "T-WIN-03-max-gap",
+  "template_params": {
+    "table": "sales",
+    "group": "store"
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_win",
+  "prompt": "For each store with orders on at least two different days from 1 January to 30 June 2025 (UTC order dates, both days included), find the longest gap between two consecutive days with orders, in days: a day with orders minus the store's previous day with orders. Several orders on one day make one day. Return store_code and max_gap_days. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "store_code",
+        "type_class": "text"
+      },
+      {
+        "name": "max_gap_days",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "store_code",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "max_gap_days",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "store_code"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, turn the sales into one row per store and day with orders, then give each day its gap to the store's day before.",
+    "Each store is its own series of days; the first day has no gap, and the longest gap comes from grouping the gaps per store."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 365,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 366,
+      "to": 414,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 415,
+      "to": 424,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 425,
+      "to": 451,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 452,
+      "to": 471,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "One row per store and day, then LAG per store in date order gives each day its gap; the longest gap per store is the MAX of those gaps."
+}

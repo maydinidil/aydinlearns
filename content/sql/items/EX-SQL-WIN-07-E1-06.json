@@ -1,0 +1,158 @@
+{
+  "id": "EX-SQL-WIN-07-E1-06",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "window",
+    "ntile",
+    "halves",
+    "partition_by",
+    "ad_spend_daily",
+    "campaigns"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-07"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-WIN-07",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-WIN-01",
+    "SQL-WIN-07"
+  ],
+  "template_id": "T-WIN-07-ntile-within-group",
+  "template_params": {
+    "table": "ad_spend_daily",
+    "group": "channel",
+    "n": 2,
+    "order": "spend, highest first"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "mailvora",
+  "schema": "mailvora",
+  "edge_schema": "mailvora_edge_win",
+  "prompt": "Split the campaigns of each channel into two halves by their spend from 1 July to 31 October 2025, both days included: half 1 holds the campaigns that spent the most. spend_date is a UTC day, a campaign's spend is the sum of its spend in ad_spend_daily over those days, and only campaigns with rows in that period count. When a channel has an odd number of such campaigns, half 1 holds one more. When campaigns of a channel tie on spend, the lower campaign_id comes first. Return four columns, in this order: channel_id, campaign_id, spend and spend_half. Return one row for each such campaign. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "channel_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "campaign_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "spend",
+        "type_class": "numeric"
+      },
+      {
+        "name": "spend_half",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "channel_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "campaign_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "spend",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "spend_half",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "campaign_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, total each campaign's spend in the period, then split each channel's campaigns into two groups from the highest spend.",
+    "The split counts rows, not money, so a tie on spend needs the tie-break at the end of the window's sort order."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 79,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 80,
+      "to": 139,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 140,
+      "to": 215,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 216,
+      "to": 284,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 285,
+      "to": 323,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 326,
+      "to": 458,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 459,
+      "to": 478,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "NTILE(2) splits each channel's campaigns, from the highest spend down with campaign_id settling a tie, into two halves whose sizes differ by at most one."
+}

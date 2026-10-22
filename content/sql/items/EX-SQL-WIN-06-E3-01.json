@@ -1,0 +1,166 @@
+{
+  "id": "EX-SQL-WIN-06-E3-01",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "window",
+    "running_total",
+    "frame",
+    "filter_window_result",
+    "ad_spend_daily"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-06"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-WIN-06",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-AGG-01",
+    "SQL-CTE-01",
+    "SQL-SUBQ-01",
+    "SQL-WIN-01",
+    "SQL-WIN-04",
+    "SQL-WIN-06"
+  ],
+  "template_id": "T-WIN-06-first-day-running-total-reached",
+  "template_params": {
+    "table": "ad_spend_daily",
+    "target": 500
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "mailvora",
+  "schema": "mailvora",
+  "edge_schema": "mailvora_edge_win",
+  "prompt": "On which day did each campaign's spend since 1 July 2025 first reach 500 euros? Add up each campaign's spend in ad_spend_daily day by day, from 1 July to 31 October 2025, both days included (spend_date is a UTC day), and find the first day on which that running total is 500 or more. Campaigns that never reach 500 in that period are left out. Return three columns, in this order: campaign_id, reached_on (that day) and spend_to_date (the running total on that day). Return one row for each such campaign. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "campaign_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "reached_on",
+        "type_class": "temporal"
+      },
+      {
+        "name": "spend_to_date",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "campaign_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "reached_on",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "spend_to_date",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "campaign_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, work out each campaign's running total of spend day by day, then keep the days at or above 500 and take the first of them.",
+    "The running total exists only after the step that works it out; filter it in a later step, then pick each campaign's earliest remaining day."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 85,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 86,
+      "to": 283,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 284,
+      "to": 305,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 306,
+      "to": 372,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 376,
+      "to": 457,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 458,
+      "to": 505,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 506,
+      "to": 520,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 521,
+      "to": 549,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 552,
+      "to": 617,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 618,
+      "to": 632,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 633,
+      "to": 734,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "The running total is worked out in one step and filtered in the next, and the earliest remaining day of each campaign is the day the total first reached 500."
+}

@@ -48,7 +48,7 @@
     {
       "id": "CP4",
       "kind": "CP4",
-      "prompt": "Marieke has a follow-up. Among the parent categories you listed, what percentage of their combined net revenue came from TV & Video? Use the order lines with an order_date from 2025-01-01 to 2025-12-31, both days included, in the parent categories whose average net revenue per order line is above 150 euros (that average leaves out lines with a missing net_revenue_eur, and a missing net_revenue_eur adds nothing to a total). Divide the net revenue of the TV & Video lines by the net revenue of all those categories together and multiply by 100. Type the percentage with 1 decimal, for example 12.5.",
+      "prompt": "Marieke has a follow-up. Among the parent categories you listed, what percentage of their combined net revenue came from TV & Video? Use the order lines with an order_date from 2025-01-01 to 2025-12-31, both days included, in the parent categories whose average net revenue per order line, over those same 2025 lines, is above 150 euros (that average leaves out lines with a missing net_revenue_eur, and a missing net_revenue_eur adds nothing to a total). Divide the net revenue of the TV & Video lines by the net revenue of all those categories together and multiply by 100. Type the percentage with 1 decimal, for example 12.5.",
       "credits_concepts": [
         "SQL-AGG-01"
       ],

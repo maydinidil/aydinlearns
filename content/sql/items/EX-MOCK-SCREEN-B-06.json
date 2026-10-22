@@ -1,0 +1,182 @@
+{
+  "id": "EX-MOCK-SCREEN-B-06",
+  "version": 2,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "mock",
+    "screen",
+    "running_total",
+    "rows_frame",
+    "threshold_crossing",
+    "orders",
+    "sales"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-04"
+  ],
+  "verified": true,
+  "as_of": "2026-10-21",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "mock",
+  "target_concept_id": "SQL-WIN-04",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-SORT-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-WIN-01",
+    "SQL-WIN-04"
+  ],
+  "template_id": "T-MOCK-SCREEN-running-spend-threshold-order",
+  "template_params": {
+    "tables": "orders, sales",
+    "from": "2025-01-01",
+    "to": "2025-06-30",
+    "threshold_eur": 4000,
+    "tie_break": "order_id"
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_win",
+  "prompt": "The loyalty team gives a registered customer gold status on the order that takes the customer's spend in the first half of 2025 to 4,000 euros or more. Use the orders with a customer_id (guest orders have a missing customer_id) whose order_ts, a moment in UTC, is from 1 January 2025 00:00 up to but not including 1 July 2025 00:00. An order's value is the total net_revenue_eur of its lines in sales. Add up each customer's order values one order at a time, in order of order_ts. Orders of a customer that tie on order_ts are added one at a time too: the order with the lower order_id comes first. For each customer whose running spend reaches 4,000 or more, return four columns, in this order: customer_id; order_id, the order on which the running spend first reached 4,000 or more; gold_date, the UTC date of that order's order_ts; and spend_to_date_eur, the running spend up to and including that order. Leave out the customers who never reach 4,000. Sort by customer_id from low to high.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "customer_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "order_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "gold_date",
+        "type_class": "temporal"
+      },
+      {
+        "name": "spend_to_date_eur",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": true,
+    "sort_keys": [
+      {
+        "column": "customer_id",
+        "desc": false
+      }
+    ],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "customer_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "order_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "gold_date",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "spend_to_date_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "customer_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write each order's value, then each customer's running spend in order of order_ts and order_id.",
+    "Write the frame out so orders with the same order_ts get running totals of their own, then keep the order whose running spend reaches 4,000 while the spend before it was below 4,000."
+  ],
+  "subgoals": [
+    {
+      "from": 96,
+      "to": 183,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 186,
+      "to": 241,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 244,
+      "to": 382,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 385,
+      "to": 431,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 522,
+      "to": 774,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 777,
+      "to": 794,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 797,
+      "to": 881,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 882,
+      "to": 894,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 895,
+      "to": 975,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 976,
+      "to": 996,
+      "subgoal": "sort_limit"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "A ROWS frame ordered by order_ts and then order_id adds tied orders one at a time, and the crossing order is the one whose spend before it was still below 4,000."
+}

@@ -1,0 +1,144 @@
+{
+  "id": "EX-MOCK-SCREEN-A-04",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-04",
+    "mock",
+    "screen",
+    "scalar_subquery",
+    "ratio_of_sums",
+    "mailvora",
+    "ad_spend_daily"
+  ],
+  "level": 4,
+  "source_ids": [
+    "01:SQL-SUBQ-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "mock",
+  "target_concept_id": "SQL-SUBQ-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-SUBQ-01"
+  ],
+  "template_id": "T-MOCK-SCREEN-rate-above-overall-scalar-subquery",
+  "template_params": {
+    "table": "ad_spend_daily",
+    "month": "2025-09",
+    "rate": "clicks / impressions"
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "mailvora",
+  "schema": "mailvora",
+  "edge_schema": "mailvora_edge_case",
+  "prompt": "The paid media team wants to know which campaigns beat the overall click-through rate in September 2025. A click-through rate is clicks divided by impressions. Use the ad spend rows whose spend_date, a UTC day, is from 1 September 2025 to 30 September 2025, both days included. The overall rate is the total clicks of all those rows divided by their total impressions; a campaign's rate is its own total clicks in those rows divided by its own total impressions. Which campaigns had a rate above the overall rate? Return three columns, in this order: campaign_id, campaign_name, and ctr_pct, the campaign's rate times 100, rounded to 2 decimals. Return one row for each such campaign. Sort by ctr_pct from highest to lowest; when campaigns tie on ctr_pct, the lower campaign_id comes first.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "campaign_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "campaign_name",
+        "type_class": "text"
+      },
+      {
+        "name": "ctr_pct",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": true,
+    "sort_keys": [
+      {
+        "column": "ctr_pct",
+        "desc": true
+      },
+      {
+        "column": "campaign_id",
+        "desc": false
+      }
+    ],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "campaign_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "campaign_name",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "ctr_pct",
+        "type_class": "numeric",
+        "precision": "ratio",
+        "require_rounding": 2
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "campaign_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write each campaign's September totals, then compare its rate with one number for the whole month.",
+    "The overall rate is one value: the sum of clicks over the sum of impressions, from a subquery that returns a single row, not an average of rates."
+  ],
+  "subgoals": [
+    {
+      "from": 277,
+      "to": 369,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 370,
+      "to": 431,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 432,
+      "to": 616,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 617,
+      "to": 653,
+      "subgoal": "sort_limit"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "A subquery that returns one row gives the overall rate as total clicks over total impressions, and each campaign is compared with that one number."
+}

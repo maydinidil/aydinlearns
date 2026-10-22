@@ -4,7 +4,8 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 /**
- * Builds a read-write fixture database; the runner then opens it READ_ONLY.
+ * Builds a read-write fixture database; the runner then opens it READ_ONLY. The session runs in UTC (SET after opening), so a statement
+ * that renders a TIMESTAMPTZ writes the same text on every laptop.
  * Autoinstall and autoload stay off and TimeZone is never a creation option, so DuckDB never
  * downloads an extension (ruling R17; spike A, "For Tasks 11-17", item 17).
  */
@@ -12,6 +13,7 @@ export async function makeFixtureDb(statements: string[]): Promise<string> {
   const path = join(await mkdtemp(join(tmpdir(), 'al-test-')), 'fixture.duckdb');
   const inst = await DuckDBInstance.create(path, { autoinstall_known_extensions: 'false', autoload_known_extensions: 'false' });
   const c = await inst.connect();
+  await c.run("SET TimeZone = 'UTC'");   // ruling R17: with SET after opening, never as a creation option
   for (const s of statements) await c.run(s);
   c.disconnectSync();
   inst.closeSync();

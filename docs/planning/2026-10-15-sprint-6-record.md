@@ -1,15 +1,15 @@
-# Sprint 6 record: SQL level 4, the data-quality arc, Mailvora and real data (releases 1.4 and 1.5)
+# Sprint 6 record: SQL level 4, the data-quality arc, Mailvora and real data (releases 0.6.0 and 0.6.1)
 
 Copied on 2026-10-15 from sprint 6's build ledger and its review files, which live in a git-ignored
 scratch workspace. The plan is `docs/superpowers/plans/2026-10-14-aydinlearns-sprint-6.md` and the spec
 is `docs/superpowers/specs/2026-10-01-aydinlearns-v1-design.md`. Paths are relative to the project folder.
 No key text, option text or truth value appears here: items, cases and findings are named by ID only.
-Part 2 (Mailvora, the dataset registry and real data, the public 1.5.0) extends this record.
+Part 2 (Mailvora, the dataset registry and real data, the public 0.6.1) extends this record.
 
 What Part 1 did: SQL level 4 (five concepts, their drill, eleven error IDs), Voltmarkt's raw schema with
 its quirks, `cost_history`, `weekly_units` and four edge schemas, cases on any schema, twelve new cases
 including five incident tickets, the cumulative drill over levels 1 to 4, a wording batch, and eight
-backlog rows (D79). Version 1.4.0, no public release (D78).
+backlog rows (D79). Version 0.6.0, no public release (D78).
 
 ## Owner decisions
 
@@ -34,7 +34,7 @@ with `cost_history`) and D86 (the incident tickets). D84, D85 and D87 are Part 2
 | C1 | `9877f7e` | Level 4 content: 5 lessons, 147 items (127 write and fix, 20 choice), the level 4 drill entry |
 | C2 | `0af3070` | 12 cases with their CP3 items: CASE-VOLT-L4, CASE-DAILY-L4-01 and -02, CASE-PRICE-03 to -05, CASE-RETAIL-03, CASE-DQ-01 to -05 |
 | F1 | `88045be` | Smoke rows 6a-1 to 6a-5 and the Part 1 gate |
-| F2 | this PR | The seams fix round, the docs, version 1.4.0 |
+| F2 | this PR | The seams fix round, the docs, version 0.6.0 |
 
 Blind solves: all 147 level 4 items PASS (one fresh retry on EX-SQL-DATE-02-E1-41, where the first
 solver picked the distractor the pretest is built to catch), all 12 case CP3 items and 32 case
@@ -134,14 +134,14 @@ The backlog rows this sprint added are in `docs/planning/backlog.md`. In short:
 | Step | Status |
 |---|---|
 | Merge | Done, `235c53a` (2026-10-15, at the owner's word) |
-| The owner's checkout | `C:\zehirlab` fast-forwarded from `7c77330` to `235c53a` with the app closed. The uncommitted `CLAUDE.md` trims of the 2026-10-12 cleanup were set aside and put back; `aydinlearns/CLAUDE.md`'s trim met the merge's new state lines, so the trim was kept with its version facts brought to 1.4.0. The launcher rebuilds the data and the screens at the next start (the manifest is older than `pipeline/`) |
-| Public copy | None: 1.4.0 is local; Part 2 is published as 1.5.0 |
+| The owner's checkout | `C:\zehirlab` fast-forwarded from `7c77330` to `235c53a` with the app closed. The uncommitted `CLAUDE.md` trims of the 2026-10-12 cleanup were set aside and put back; `aydinlearns/CLAUDE.md`'s trim met the merge's new state lines, so the trim was kept with its version facts brought to 0.6.0. The launcher rebuilds the data and the screens at the next start (the manifest is older than `pipeline/`) |
+| Public copy | None: 0.6.0 is local; Part 2 is published as 0.6.1 |
 | Codex | One P2 line comment on `a4e3b11`, confirmed: aydinlearns F32, fixed in Part 2's block K (D88) |
 
 ## Block K: Codex F32 and the backlog fold-ins (Part 2, 2026-10-16)
 
 Block K ran on `feat/aydinlearns-sprint-6b` after G0 (`4982590`) and before G1, by the owner's
-decisions D88 to D90 and the plan's rulings S6-29 to S6-38. It reaches `main` in Part 2's PR (1.5.0).
+decisions D88 to D90 and the plan's rulings S6-29 to S6-38. It reaches `main` in Part 2's PR (0.6.1).
 
 | Task | Commit | What it did | Review |
 |---|---|---|---|
@@ -201,7 +201,7 @@ Part 2 (D90).
   (three overlapping windows), CASE-PRICE-04 and -05 CP4; EX-SQL-CLEAN-01-E2-04 (nested windows),
   Q-ECON-PRICE-04-02, -05-01 and Q-MET-SAAS-09-02.
 
-## Part 2: Mailvora, the dataset registry and real data (release 1.5, 2026-10-16)
+## Part 2: Mailvora, the dataset registry and real data (release 0.6.1, 2026-10-16)
 
 After block K, Part 2 built jobs 4 to 6 of the plan on `feat/aydinlearns-sprint-6b`. The owner's downloads
 (Online Retail II, Breakfast at the Frat and the eight 8 Week SQL Challenge scripts) were prepared on the
@@ -270,7 +270,7 @@ and H1's MKT-02 "no spend rows" wording (both readings agree on the data).
 |---|---|
 | Merge | Done, `d36a0c1` (PR #50, 2026-10-17, at the owner's word) |
 | Codex | One P2 line comment on `2b0c13b`: aydinlearns F33, refuted (the content store's case list holds the openers); logged in sprint T's first commit |
-| The owner's checkout | `C:\zehirlab` fast-forwarded from `235c53a` to `d36a0c1` with the app closed. The `CLAUDE.md` trims were set aside and put back; `aydinlearns/CLAUDE.md`'s trim met the merge's state lines again, so the trim was kept with its version facts brought to 1.5.0. The launcher rebuilds the data and the screens at the next start. The owner runs `npm run prep:datasets -- --from <your downloads folder>` once for the real-data cases |
+| The owner's checkout | `C:\zehirlab` fast-forwarded from `235c53a` to `d36a0c1` with the app closed. The `CLAUDE.md` trims were set aside and put back; `aydinlearns/CLAUDE.md`'s trim met the merge's state lines again, so the trim was kept with its version facts brought to 0.6.1. The launcher rebuilds the data and the screens at the next start. The owner runs `npm run prep:datasets -- --from <your downloads folder>` once for the real-data cases |
 | Public copy | `tools/export-public.sh <clone> origin/main` exported `d36a0c1` as `8eafb70` (654 files changed). The clone's path must be written the POSIX way (`/c/...`): `tar` reads `C:` as a remote host. The scan found no token, no `.env`, `journey/`, `logs/`, `data/` or database files, no email address, session link or personal path, and none of the 8 Week SQL Challenge's questions, rows or scripts (only schema names, titles and page links in the registry; the test fixtures are invented). Pushed `9609eb6..8eafb70` |
-| Fresh-install test | The public tree in a clean folder, started with the launcher (`node tools/launch.ts --no-browser`, `AYDINLEARNS_PORT=5194`, temporary logs and journey folders, telemetry off, no real data). Setup ran end to end (packages, Python, the course database, the screens). Version 1.5.0 with 9 of 9 checks; Today answered for SQL, GA4 and Methodology; 10 labs; EX-SQL-BASICS-01-E1-01 graded a pass and was logged to the temporary folder; the inbox listed CASE-REAL-01 and -02 as needing Online Retail II and Breakfast at the Frat, with the prep command; the explorer listed `mailvora` and ran a query on it. The journey file held session_started, study_session_started, exercise_submitted, exercise_passed and concept_state_changed, and no `journey/` or `logs/` appeared in the tree. The server was stopped, nothing listened on 5194, and the folder was deleted |
-| Tag and release | `v1.5.0` on `8eafb70`, release "aydinlearns 1.5": what 1.4 and 1.5 add, how to prepare the real datasets, what is never written or sent |
+| Fresh-install test | The public tree in a clean folder, started with the launcher (`node tools/launch.ts --no-browser`, `AYDINLEARNS_PORT=5194`, temporary logs and journey folders, telemetry off, no real data). Setup ran end to end (packages, Python, the course database, the screens). Version 0.6.1 with 9 of 9 checks; Today answered for SQL, GA4 and Methodology; 10 labs; EX-SQL-BASICS-01-E1-01 graded a pass and was logged to the temporary folder; the inbox listed CASE-REAL-01 and -02 as needing Online Retail II and Breakfast at the Frat, with the prep command; the explorer listed `mailvora` and ran a query on it. The journey file held session_started, study_session_started, exercise_submitted, exercise_passed and concept_state_changed, and no `journey/` or `logs/` appeared in the tree. The server was stopped, nothing listened on 5194, and the folder was deleted |
+| Tag and release | `v1.5.0` on `8eafb70`, release "aydinlearns 0.6.1": what 0.6.0 and 0.6.1 add, how to prepare the real datasets, what is never written or sent |

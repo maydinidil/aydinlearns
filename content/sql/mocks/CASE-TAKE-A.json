@@ -1,0 +1,179 @@
+{
+  "case_id": "CASE-TAKE-A",
+  "kind": "take_home",
+  "level": 5,
+  "world": "PRICE",
+  "company_id": "voltmarkt",
+  "title": "Discount depth from the raw tills, 2024",
+  "schema": "voltmarkt_raw",
+  "persona": {
+    "name": "Joost",
+    "role": "Pricing lead"
+  },
+  "brief": {
+    "decision": "How deep Voltmarkt's discounts went in each month of 2024, store and web together, measured on the raw till and webshop tables for the board's price review",
+    "deadline": "Thursday's board pre-read"
+  },
+  "data_needed": [
+    "orders",
+    "order_lines",
+    "products"
+  ],
+  "expected_output": {
+    "columns": [
+      "month_start",
+      "gross_eur",
+      "discount_eur",
+      "depth_pct",
+      "depth_as_stored_pct",
+      "change_pts"
+    ],
+    "grain": "one row per month of 2024",
+    "sort": [
+      {
+        "column": "month_start",
+        "desc": false
+      }
+    ]
+  },
+  "checkpoints": [
+    {
+      "id": "CP1",
+      "kind": "CP1",
+      "item_id": "CASE-TAKE-A:CP1",
+      "credits_concepts": [],
+      "prompt": "Joost wants the discount depth of each month of 2024 from Voltmarkt's raw till and webshop tables. These tables hold resent copies of some order lines, some unit prices logged in cents, and store order times in local time beside web order times in UTC. Which lines should a month's depth be built from?",
+      "options": [
+        {
+          "oid": "o6d4de45",
+          "text": "Every line of the orders whose order_ts, as stored, falls in the month, each line counted as stored, since the tills and the webshop record what was really sold that month"
+        },
+        {
+          "oid": "o0429dd7",
+          "text": "Every line of the orders whose order_ts, as stored, falls in the month, since both systems log the order time, with each set of copies counted once and prices in cents turned into euros"
+        },
+        {
+          "oid": "oe763b92",
+          "text": "Every line of the orders placed in the month on Amsterdam's clock, a web order's time turned from UTC, with each set of copies counted once and prices in cents turned into euros"
+        },
+        {
+          "oid": "o610eaa2",
+          "text": "Only the lines with a promo_id, dated on Amsterdam's clock, each set of copies counted once and cents turned into euros, since a line with no promotion gives no discount"
+        }
+      ]
+    },
+    {
+      "id": "CP2",
+      "kind": "CP2",
+      "item_id": "CASE-TAKE-A:CP2",
+      "credits_concepts": [
+        "SQL-CLEAN-01"
+      ],
+      "prompt": "Before the price review, Joost wants to know how many order lines in the raw tables need a fix. Of the lines of the orders placed from 1 January to 31 December 2024, both included, how many are a resent copy or priced in cents? These tables may hold errors. Date every order by its day on Amsterdam's clock: a store order's order_ts holds the store's local time, which in every Voltmarkt country is Amsterdam's clock, so take its date as stored; a web order's order_ts holds UTC, so turn it into Amsterdam time first, then take the date. Two lines are copies of one order line when order_id, product_id, quantity, unit_price_eur, promo_id and line_discount_eur all match, with a missing promo_id matching a missing one; in each set of copies, the line with the lowest order_line_id is the original and every other line is a resent copy. A line is priced in cents when its unit_price_eur is more than 10 times its product's unit_cost_eur. Count each line once, even when it is both. Type a whole number.",
+      "typed": {
+        "precision": "count",
+        "scale": "plain",
+        "decimals": 0,
+        "unit_label": "lines"
+      },
+      "truth_key": "CASE-TAKE-A:CP2"
+    },
+    {
+      "id": "CP3",
+      "kind": "CP3",
+      "item_id": "EX-MOCK-TAKE-A",
+      "credits_concepts": [
+        "SQL-WIN-06",
+        "SQL-WIN-03",
+        "SQL-CLEAN-01",
+        "SQL-DATE-01",
+        "SQL-CTE-01",
+        "SQL-JOIN-01"
+      ],
+      "prompt": "Write the query that answers Joost's question."
+    },
+    {
+      "id": "CP4",
+      "kind": "CP4",
+      "item_id": "CASE-TAKE-A:CP4",
+      "credits_concepts": [
+        "SQL-CLEAN-01"
+      ],
+      "prompt": "Joost's headline is Voltmarkt's discount depth for the whole of 2024, store and web together. These tables may hold errors. Take the orders placed from 1 January to 31 December 2024, both included, dating every order by its day on Amsterdam's clock: a store order's order_ts holds the store's local time, which in every Voltmarkt country is Amsterdam's clock, so take its date as stored; a web order's order_ts holds UTC, so turn it into Amsterdam time first, then take the date. Two lines are copies of one order line when order_id, product_id, quantity, unit_price_eur, promo_id and line_discount_eur all match, with a missing promo_id matching a missing one: count each set of copies once. A line is priced in cents when its unit_price_eur is more than 10 times its product's unit_cost_eur; its unit price in euros is then unit_price_eur divided by 100, while line_discount_eur is in euros already. A line's gross value is quantity times its unit price in euros. What is 100 times the line_discount_eur of all those lines divided by their gross value? Type the percentage rounded to 2 decimals, for example 1.23.",
+      "typed": {
+        "precision": "ratio",
+        "scale": "percent",
+        "decimals": 2,
+        "unit_label": "%"
+      },
+      "truth_key": "CASE-TAKE-A:CP4"
+    },
+    {
+      "id": "CP5",
+      "kind": "CP5",
+      "item_id": "CASE-TAKE-A:CP5",
+      "credits_concepts": [],
+      "prompt": "Joost's cleaned table gives Voltmarkt's discount depth for each month of 2024: 100 times the month's line discounts divided by the gross value of all its sales. A board member reads a month with a depth of 3% as 'the average promotion took 3% off the price'. Joost asks whether that reading is right.",
+      "options": [
+        {
+          "oid": "o7f71d40",
+          "text": "Yes. The depth is the average of each line's discount percentage over the month's cleaned lines, so it reads directly as the size of a typical promotion in that month."
+        },
+        {
+          "oid": "o9962617",
+          "text": "No. The depth counts only the lines that had a promotion, and a few deep clearance discounts pull it up, so a typical promotion took off less than 3%."
+        },
+        {
+          "oid": "o53a5429",
+          "text": "No. The depth is the share of all the month's gross value given away, full-price sales included, so it mixes how many sales had a promotion with how deep each went."
+        },
+        {
+          "oid": "ob9df13a",
+          "text": "Yes, as long as each set of resent copies is counted once and the cents are turned into euros, since every sale then counts once, at its real price, in the average."
+        }
+      ]
+    },
+    {
+      "id": "CP6",
+      "kind": "CP6",
+      "credits_concepts": [],
+      "prompt": "Write a memo of 4 to 8 sentences for Joost: the discount depth of 2024 and how it moved through the year, one caveat, one next step for the price review, and the reconciliation: how the cleaned figures differ from the figures as stored, and which data errors explain the gap."
+    }
+  ],
+  "model_plan": "Metric formula: per month, the discount depth is 100 times the line discounts divided by the gross value, quantity times the unit price in euros; a second depth from every line as stored; the change is this month's depth minus the previous month's, from the unrounded depths.\nOutput grain: one row per month of 2024.\nTables and keys: order_lines joined to orders on order_id, for the day and the channel, and to products on product_id, for unit_cost_eur.\nFilters: orders placed in 2024 on Amsterdam's clock: a store order's order_ts as stored, a web order's turned from UTC into Amsterdam time.\nEdge cases: resent copies match on order_id, product_id, quantity, unit_price_eur, promo_id and line_discount_eur, with a missing promo_id matching a missing one, so number each set by order_line_id and keep the first; a unit price above 10 times the unit cost is in cents, so divide it by 100 and leave the discount as it is; a web order late in the evening in UTC can fall in the next month in Amsterdam; the first month has no month before it, so its change is missing.\nExpected row count: 12",
+  "model_answer_template": "Voltmarkt gave away {CP4} percent of its 2024 gross store and web value as line discounts. Depth was highest in the first two months, with the January clearance sales, rose again in November with Black Week, and fell to nothing in September, when no promotion ran. Before any of this could be measured, {CP2} lines of the raw tables needed a fix: resent copies of till lines at store BE-14, which count one sale twice, and store BE-07's June prices logged in cents, which make each of those lines a hundred times too large and swell June's gross value several times over. That explains the gap between the two depth columns: June's depth as stored looks far shallower than it was, the copies move the depth very little but still add sales that never happened, and web orders had to move from UTC to Amsterdam's clock so that late-evening orders land in the right month. Depth shows how much was given away, not what the discounts bought, so it cannot yet say whether the promotions paid off. As a next step, I would set each 2024 promotion's units against its baseline weeks and its margin, so the review weighs what each euro of discount earned.",
+  "follow_up_question": "Which promotions gave away the most in November 2024, and how many extra units did each one sell?",
+  "data_source": {
+    "label": "Fictional, generated data: Voltmarkt",
+    "real": false,
+    "licence": null
+  },
+  "difficulty": 3,
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-SORT-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CASE-01",
+    "SQL-TYPE-01",
+    "SQL-DATE-01",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-CLEAN-01",
+    "SQL-WIN-01",
+    "SQL-WIN-02",
+    "SQL-WIN-03",
+    "SQL-WIN-06"
+  ],
+  "metric_ids": [
+    "MET-PRICE-03"
+  ],
+  "find_ids": [
+    "FIND-01-13",
+    "FIND-01-14"
+  ],
+  "uses_raw": true
+}

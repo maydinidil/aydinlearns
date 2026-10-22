@@ -51,6 +51,14 @@
 // data/truth/checkpoints.json and, when its database lacks Online Retail II, a small fixture in its own database give each row its state, so the rows
 // pass whether this tree has the real datasets prepared or not. The tree's data/ is only read.
 //
+// Rows 7a-1 to 7a-6 (sprint 7 Part 1, Task F1) run after the tutor rows, on a server of their own with the fake tutor model: an SQL-WIN-06 item passed with its QUALIFY
+// other way and S7-20's note, the level 5 drill's 10 questions, the Recruiter mocks screen and a screen mock run (a recorded submit, a hint refused with the help line, the
+// tutor's closed line, "Hand in" and its 6 results), a 5-of-6 pass that stage 2 on Progress dates, a 404 for the mock items on /api/items, and Settings' key fields.
+// Mock answers are read from content/keys/ in this process and only typed into the page. Task F1 also made 4b-2's positive control run on the real exported files.
+//
+// Rows 7b-1 to 7b-5 (sprint 7 Part 2, Task F3) run after the 7a rows, on a server of their own with the fake tutor model: the knowledge mock (30 questions, no labels, a saved answer, a review
+// by section), the case-round (plan first, CP1 to CP6, the 60-second step, a review with the right answers and the rubric), the take-home across a server restart on the same logs, the
+// review's tutor second opinion (no change to the pass), and stages 3 to 5 live on the Recruiter mocks screen. Mock answers are read from the keys and the truth file here and typed only.
 // Rows tu-1 to tu-8 (sprint T) check the AI tutor: off by default on every server here (the keys are set blank, and each server keeps
 // the keys saved in Settings in a file of its own in the temporary folder, AYDINLEARNS_KEYS_FILE, T-20), then on a server of its own with
 // the fake model (AYDINLEARNS_TUTOR_PROVIDER=fake, T-23), which calls nothing and answers for every model. That server spaces the fake
@@ -61,7 +69,7 @@
 // real key is ever used, and the invented one is never printed. Row tu-9 (Codex F34) runs on the fake model's server after tu-7: a lesson
 // pretest passed after a tutor answer on one of its items goes to the reading, not to practice.
 //
-// Row JN (release 1.3, D77) runs after them all, beside row G: every server writes its study journey to one temporary folder
+// Row JN (release 0.5.3, D77) runs after them all, beside row G: every server writes its study journey to one temporary folder
 // (AYDINLEARNS_JOURNEY_DIR), never the real journey/, and the row checks that the rows' screens, exercises, help, runs, case, lab and
 // concept state changes are in it, and that a server's stop ended its visit (session_ended, reason app_stop). Row G also checks that
 // the real journey/ is unchanged. The folder is removed at the end, unless --keep keeps it.
@@ -96,6 +104,7 @@ import type { ExploreView } from '../../server/routes/explore.ts';
 import { buildCsv } from '../../server/routes/portfolio.ts';
 import { LearnerState } from '../../server/state.ts';
 import type { DrillHistoryRow, DrillStarted, MixedBlock, RunStarted, Served, TodayView } from '../../web/src/api.ts';
+import { formatDate } from '../../web/src/lib/labels.ts';
 import { HISTORY, seedHistory } from '../helpers/history-fixture.ts';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
@@ -2246,14 +2255,21 @@ async function main(): Promise<number> {
         const material = [cp3Key.reference_sql, ...cp3Key.alternatives, cp3Key.hint3_partial, ...cp3Key.planted_wrong.map((x) => x.sql), ...(cp3Key.other_way ? [cp3Key.other_way.sql] : []),
           ...Object.values(caseKey.truths), ...Object.values(caseKey.choices).map((c) => c.explanation)].map(squash).filter((t) => t.length >= 12);
         const own = squash(cp3Typed);
-        // Positive control: the scan flags a file that holds the reference answer.
-        expect(typedIsReference || material.some((t) => `${own} ${refSquashed}`.split(own).join(' ').includes(t)), `${CASE_PRICE}: the scan does not flag a file that holds the reference answer`);
+        // F1 (sprint 7): the positive control runs on the real thing. Each real exported file, with the item's actual reference text added to it (read in
+        // this process, never printed), goes through the same scan as the check below, and the scan must flag it. When the learner typed the reference
+        // itself the scan removes it with the learner's own query, so the control then adds the longest other piece of key material the item has.
+        const planted = typedIsReference ? [...material].filter((t) => !own.includes(t) && !t.includes(own)).sort((a, b) => b.length - a.length)[0] : refSquashed;
+        expect(planted !== undefined, `${CASE_PRICE}: the item has no key text besides the typed query to plant in a file`);
+        const leaks = (text: string): boolean => material.some((t) => text.split(own).join(' ').includes(t));
+        for (const [k, n] of names.entries()) {
+          const real = squash(await readFile(join(folder, n), 'utf8'));
+          expect(leaks(`${real} ${planted}`), `${CASE_PRICE}: the scan does not flag exported file ${k + 1} of ${names.length} with the item's key text added to it`);
+        }
         let sawOwn = 0;
         for (const [k, n] of names.entries()) {
           const text = squash(await readFile(join(folder, n), 'utf8'));
           if (text.includes(own)) sawOwn++;
-          const rest = text.split(own).join(' ');
-          expect(!material.some((t) => rest.includes(t)), `${CASE_PRICE}: exported file ${k + 1} of ${names.length} holds key text beyond the learner's own query`);
+          expect(!leaks(text), `${CASE_PRICE}: exported file ${k + 1} of ${names.length} holds key text beyond the learner's own query`);
         }
         expect(sawOwn > 0, `${CASE_PRICE}: no exported file holds the learner's passing query, so the scan proves nothing`);
         const ev = (await events(dir)).filter((e) => e.event === 'case_export');
@@ -2280,7 +2296,12 @@ async function main(): Promise<number> {
         const stageCount = apiProgress.board.stages.length;
         expect(new RegExp(`^Recruitment-ready when every stage test is passed: \\d of ${stageCount} so far\\.$`).test(ready), `the board's readiness line reads "${ready}" (the API lists ${stageCount} stages)`);
         for (let n = 1; n <= stageCount; n++) expect((await board.locator(`li[data-goal="G-STAGE-${n}"]`).count()) === 1, `the board has no row for G-STAGE-${n}`);
-        for (const n of [2, 3, 4, 5]) expect((await board.locator(`li[data-goal="G-STAGE-${n}"]`).getByText('Not yet available').count()) > 0, `G-STAGE-${n} is not marked "Not yet available"`);
+        // Sprint 7 (F1, F3): every recruiter mock can start (the screen mock in Part 1, the knowledge, case-round and take-home mocks in Part 2), so stages 2 to 5 are open ("Not yet"), none unavailable.
+        for (const n of [2, 3, 4, 5]) {
+          expect((await board.locator(`li[data-goal="G-STAGE-${n}"]`).getByText('Not yet available').count()) === 0, `G-STAGE-${n} is still marked "Not yet available"`);
+          const chip = (await board.locator(`li[data-goal="G-STAGE-${n}"] > span.chip`).innerText()).trim();
+          expect(chip === 'Not yet', `G-STAGE-${n}'s chip reads "${chip}", not "Not yet"`);
+        }
         const jr = p.locator('[data-progress="job-ready"] li[data-jr]');
         const n = await jr.count();
         const jrCount = apiProgress.job_ready.length;
@@ -2293,7 +2314,7 @@ async function main(): Promise<number> {
         const statuses = await jr.evaluateAll((els) => els.map((e) => e.getAttribute('data-jr-status')));
         const links = await p.locator('p.progress-links a').allInnerTexts();
         expect(['Case inbox', 'Portfolio', 'Dataset explorer'].every((l) => links.includes(l)), `the Progress links are ${links.join(', ')}`);
-        return `G-SQL-LEVEL-3's case criterion reads "${exported} case${exported === 1 ? '' : 's'} solved and exported: done" (the API's count); the board: "${ready}", stages 2 to 5 not yet available; the job-ready list has ${jrCount} rows, as many as the API lists (${[...new Set(statuses)].join(', ')}); links to the inbox, portfolio and explorer`;
+        return `G-SQL-LEVEL-3's case criterion reads "${exported} case${exported === 1 ? '' : 's'} solved and exported: done" (the API's count); the board: "${ready}", stage 2 not yet met, stages 3 to 5 not yet available; the job-ready list has ${jrCount} rows, as many as the API lists (${[...new Set(statuses)].join(', ')}); links to the inbox, portfolio and explorer`;
       });
 
       await row('4c-3', 'an export\'s CSV starts with the UTF-8 BOM once and holds no raw formula cell', async () => {
@@ -2627,11 +2648,11 @@ async function main(): Promise<number> {
         return 'G-GA4-CERT shows its named-concepts line at "0 of 12" with nothing practised';
       });
 
-      await row('5a-5', 'Settings shows version 1.6.0', async () => {
+      await row('5a-5', 'Settings shows version 0.7.1', async () => {
         await p.goto(`${BASE}/#/setup`);
         await p.getByRole('heading', { name: 'Settings and setup', level: 1 }).waitFor();
-        await p.getByText('Version 1.6.0', { exact: true }).waitFor();
-        return 'Settings and setup shows "Version 1.6.0"';
+        await p.getByText('Version 0.7.1', { exact: true }).waitFor();
+        return 'Settings and setup shows "Version 0.7.1"';
       });
 
       await row('5a-3', 'an A/B SQL item passes with its reference query', async () => {
@@ -3999,6 +4020,474 @@ async function main(): Promise<number> {
       await browser.close();
       browser = null;
       await stopServer(server);
+      server = null;
+    }
+
+    // ---- sprint 7 Part 1 rows (Task F1): level 5, QUALIFY's note, the screen mock, Settings' key fields ----
+    // One server over an empty logs folder, with the fake tutor model (it calls nothing), so the tutor is ON and Alt+T opening nothing in a mock run
+    // means something. A right answer is read from content/keys/ in this process and only typed into the page; messages name rows, steps and IDs,
+    // never a query, a prompt or a key. Mock item IDs are the only mock content the report may hold.
+    {
+      const QUALIFY_NOTE_TEXT = 'PostgreSQL, MySQL and SQL Server have no QUALIFY: filter the window result in an outer query or a CTE.';   // S7-20
+      const HELP_LINE = 'Help opens in the end-of-run review.';                                                                              // server/drill.ts HELP_WAITS
+      const dir = join(tmp, 'logs-7a');
+      await mkdir(dir);
+      server = await startServer(ROOT, dir, { env: { AYDINLEARNS_TUTOR_PROVIDER: 'fake' } });
+      browser = await chromium.launch();
+      const p = await newPage(browser, dialogs);
+      p.on('pageerror', () => { pageErrors++; });
+      const screenMock = (await readJson<{ screen: { questions: number; minutes: number; pass_correct: number; forms: { id: string; item_ids: string[] }[] } }>(join(ROOT, 'content/mocks.json'))).screen;
+      interface MockStarted { block_id: string; mock: string; servings: { item_id: string; item_instance_id: string }[] }
+      const tutorPanel = p.getByRole('complementary', { name: 'Tutor' });
+      /** Starts the screen mock from its start screen and gives the run, as the start reply has it. */
+      async function startScreenMock(): Promise<MockStarted> {
+        await p.goto(`${BASE}/#/mock/screen`);
+        await p.getByRole('heading', { name: 'Screen mock', level: 1, exact: true }).waitFor();
+        const startedP = p.waitForResponse((r) => r.url().endsWith('/api/mocks/start') && r.request().method() === 'POST');
+        startedP.catch(() => {});                                          // a click that fails must not leave this promise rejected, unhandled
+        await p.getByRole('button', { name: 'Start the screen mock', exact: true }).click();
+        const started = await startedP;
+        expect(started.status() === 200, `the screen mock's start answered ${started.status()}`);
+        const run = (await started.json()) as MockStarted;
+        await p.locator('[role="timer"]').waitFor();
+        return run;
+      }
+      /** Opens question `i` (0-based) of the run on screen from the strip and types the query into its editor. */
+      async function typeMock(i: number, sql: string) {
+        await p.getByRole('navigation', { name: 'Questions' }).getByRole('button', { name: new RegExp(`^Question ${i + 1}(:|$)`) }).click();
+        const q = p.locator(`[data-question="${i}"]`);
+        await q.locator('.cm-content').click();
+        await p.keyboard.press('Control+A');
+        await p.keyboard.insertText(sql);
+        await p.keyboard.press('Escape');
+        return q;
+      }
+      /** Answers question `i`: types the query, then Submit and "Send" in the question it asks (F2-3-6): the one answer. */
+      async function answerMock(i: number, sql: string): Promise<void> {
+        const q = await typeMock(i, sql);
+        await q.getByRole('button', { name: 'Submit', exact: true }).click();
+        await q.getByRole('button', { name: 'Send', exact: true }).click();
+        await q.getByText('Answer recorded.', { exact: false }).waitFor();
+      }
+
+      await row('7a-1', 'an SQL-WIN-06 item graded with its QUALIFY other way passes and shows the portability note', async () => {
+        let id = '';
+        for (const k of [...keys.values()].filter((x) => x.item_id.startsWith('EX-SQL-WIN-06-')).sort((a, b) => a.item_id.localeCompare(b.item_id))) {
+          const it = await item(k.item_id).catch(() => null);
+          if (it && it.kind === 'write' && it.use === 'pool' && k.other_way && /\bQUALIFY\b/i.test(k.other_way.sql)) { id = k.item_id; break; }
+        }
+        expect(id !== '', 'no SQL-WIN-06 pool write item has a QUALIFY other way');
+        await openItem(p, id);
+        await replaceSql(p, keys.get(id)!.other_way!.sql);
+        await submit(p);
+        await outcome(p, 'Correct');
+        const note = p.locator('section.grade .portability li').filter({ hasText: QUALIFY_NOTE_TEXT });
+        await note.first().waitFor();
+        expect((await note.count()) === 1, `${id}: the QUALIFY note shows ${await note.count()} times, not once`);
+        const att = await waitFor(`${id}'s attempt`, async () => (await attempts(dir)).find((r) => r.record === 'attempt' && r.item_id === id));
+        expect(att.outcome === 'pass', `${id}'s attempt is logged as ${String(att.outcome)}, not pass`);
+        return `${id}: its QUALIFY other way was graded Correct and logged as a pass, and the grade shows S7-20's note once`;
+      });
+
+      await row('7a-2', 'the level 5 drill starts with 10 questions', async () => {
+        await p.goto(`${BASE}/#/drill`);
+        await p.getByRole('heading', { name: 'Drill', level: 1, exact: true }).waitFor();
+        const startedP = p.waitForResponse((r) => r.url().endsWith('/api/drill/start') && r.request().method() === 'POST');
+        await p.getByRole('button', { name: 'Start drill: level 5' }).click();
+        const started = await startedP;
+        expect(started.status() === 200, `the level 5 drill start answered ${started.status()}`);
+        const run = (await started.json()) as DrillStarted;
+        expect(run.kind === 'level' && run.questions === 10 && run.servings.length === 10, `the level 5 run has ${run.servings.length} servings (${run.questions} questions)`);
+        await p.getByRole('heading', { name: 'Level 5 drill', level: 1, exact: true }).waitFor();
+        await p.getByRole('navigation', { name: 'Questions' }).getByRole('button', { name: 'Question 10', exact: true }).waitFor();
+        const endedP = p.waitForResponse((r) => r.url().endsWith('/api/drill/end') && r.request().method() === 'POST');
+        await p.getByRole('button', { name: 'End the drill and see the review' }).click();
+        await endedP;
+        await p.getByRole('heading', { name: 'Level 5 drill: review', level: 1 }).waitFor();
+        return 'the level 5 drill started with 10 questions and was ended to its review (so the mock rows can start)';
+      });
+
+      await row('7a-3', 'the Recruiter mocks screen shows six stage cards; the screen mock starts; Submit asks in the page and Send records the one answer, a hint gets the help line, Alt+T opens no question box; "Hand in" opens the review with 6 results', async () => {
+        await p.goto(`${BASE}/#/mocks`);
+        await p.getByRole('heading', { name: 'Recruiter mocks', level: 1, exact: true }).waitFor();
+        await p.locator('section.mocks li[data-stage]').first().waitFor();
+        const stages = await p.locator('section.mocks li[data-stage]').evaluateAll((els) => els.map((e) => e.getAttribute('data-stage')));
+        expect(stages.join(',') === '1,2,3,4,5,6', `the mocks screen shows the stage cards ${stages.join(',')}`);
+        // The control: Alt+T opens the tutor here (the fake model is on) with its question box, so the closed panel in the run below is the run's doing.
+        await p.keyboard.press('Alt+t');
+        await tutorPanel.waitFor();
+        await tutorPanel.getByLabel('Your question').waitFor();
+        await p.keyboard.press('Alt+t');
+        await tutorPanel.waitFor({ state: 'detached' });
+
+        const run = await startScreenMock();
+        expect(run.mock === 'screen' && run.servings.length === screenMock.questions, `the run has ${run.servings.length} servings, not ${screenMock.questions}`);
+        const first = run.servings[0]!;
+        // F2-3-6: Ctrl+Shift+Enter sends nothing in a mock; Submit asks in the page first, and "Keep editing" sends nothing either.
+        const answersOf = async () => (await attempts(dir)).filter((r) => r.record === 'attempt' && r.item_id === first.item_id).length;
+        const dialogsBefore = dialogs.length;
+        const q0 = await typeMock(0, 'SELECT 1');
+        await q0.locator('.cm-content').click();
+        await p.keyboard.press('Control+Shift+Enter');
+        await q0.getByRole('button', { name: 'Submit', exact: true }).click();
+        await q0.getByText('Send this as your one answer?', { exact: true }).waitFor();
+        expect(dialogs.length === dialogsBefore, `a browser dialog opened: ${dialogs.slice(dialogsBefore).join(' | ')}`);
+        await q0.getByRole('button', { name: 'Keep editing', exact: true }).click();
+        await q0.getByRole('button', { name: 'Submit', exact: true }).waitFor();
+        expect((await answersOf()) === 0, 'Ctrl+Shift+Enter or "Keep editing" sent an answer');
+        await answerMock(0, 'SELECT 1');                                   // any query: the answer is recorded, and never shown a result
+        expect((await answersOf()) === 1, `${first.item_id} has ${await answersOf()} logged answers after one Send`);
+        await p.locator('[data-question="0"]').getByRole('button', { name: 'Answered', exact: true }).waitFor();
+        const hint = await postJson<{ error?: string }>('/api/hint', { item_id: first.item_id, item_instance_id: first.item_instance_id, level: 1 });
+        expect(hint.status === 409 && hint.body.error === HELP_LINE, `a hint in the run answered ${hint.status} ${String(hint.body.error)}, not the 409 help line`);
+        // D94: while the clock runs the button is disabled and Alt+T shows the closed line, with no question box (as a drill's run does, tu-4).
+        await p.getByRole('button', { name: 'The tutor waits for the review' }).waitFor();
+        expect(await p.getByRole('button', { name: 'The tutor waits for the review' }).isDisabled(), 'the tutor button is enabled during the mock');
+        await p.getByRole('heading', { name: 'Screen mock', level: 1, exact: true }).focus();
+        await p.keyboard.press('Alt+t');
+        await tutorPanel.getByText('The tutor waits for the review.', { exact: true }).waitFor();
+        expect((await tutorPanel.getByLabel('Your question').count()) === 0, 'the tutor panel takes a question while the mock ran');
+        await p.keyboard.press('Alt+t');
+        await tutorPanel.waitFor({ state: 'detached' });
+        // FN11: the countdown reads "Time left m:ss", above 0 and at most the screen mock's minutes.
+        const timer = (await p.locator('[role="timer"]').innerText()).trim();
+        const left = /^Time left (\d+):([0-5]\d)$/.exec(timer);
+        const seconds = left ? Number(left[1]) * 60 + Number(left[2]) : NaN;
+        expect(seconds > 0 && seconds <= screenMock.minutes * 60, `the run's clock reads "${timer}", not a time left above 0 and at most ${screenMock.minutes} minutes`);
+
+        await p.getByRole('button', { name: 'Hand in', exact: true }).click();
+        await p.getByRole('heading', { name: 'Screen mock: review', level: 1, exact: true }).waitFor();
+        await p.locator('ol.review-items > li').first().waitFor();
+        const results = await p.locator('ol.review-items > li').count();
+        expect(results === screenMock.questions, `the review lists ${results} results, not ${screenMock.questions}`);
+        expect((await p.getByRole('status').filter({ hasText: /^\d of 6 exactly right\. (Passed|Not passed)\.$/ }).count()) === 1, 'the review shows no score line');
+        const view = (await getJson<{ run: unknown }>('/api/mocks')).body;
+        expect(view.run === null, 'a mock run is still on after "Hand in"');
+        return `the mocks screen shows stage cards 1 to 6; Alt+T opened the tutor with its question box there, and only the closed line in the run; the screen mock started with ${run.servings.length} questions; Ctrl+Shift+Enter and "Keep editing" sent nothing, Submit asked "Send this as your one answer?" in the page (no dialog), and Send logged one answer, which read "Answer recorded"; the clock read "${timer}"; a hint got the 409 help line, "Hand in" opened the review with ${results} results`;
+      });
+
+      await row('7a-4', 'the screen mock on 5 correct answers passes, and Progress\'s stage 2 shows its date', async () => {
+        const run = await startScreenMock();
+        const correct = run.servings.slice(0, screenMock.pass_correct);
+        for (const [i, s] of correct.entries()) {
+          const key = keys.get(s.item_id);
+          expect(key !== undefined, `${s.item_id} has no answer key`);
+          await answerMock(i, key.reference_sql);
+        }
+        await p.getByRole('button', { name: 'Hand in', exact: true }).click();
+        await p.getByRole('heading', { name: 'Screen mock: review', level: 1, exact: true }).waitFor();
+        await p.locator('ol.review-items > li').first().waitFor();
+        const line = (await p.getByRole('status').filter({ hasText: /exactly right/ }).innerText()).trim();
+        const passedRows = await p.locator('ol.review-items > li[data-outcome="passed"]').count();
+        expect(line === `${screenMock.pass_correct} of ${screenMock.questions} exactly right. Passed.`, `the review reads "${line}": ${passedRows} rows read passed; answered with their keys: ${correct.map((s) => s.item_id).join(', ')}`);
+        const today = (await getJson<{ today: string }>('/api/mocks')).body.today;
+        await p.goto(`${BASE}/#/progress`);
+        await p.locator('section.progress').waitFor();
+        const stage = p.locator('[data-progress="board"] li[data-goal="G-STAGE-2"]');
+        await stage.waitFor();
+        expect((await stage.getAttribute('data-goal-status')) === 'met', 'Progress does not show stage 2 as met');
+        // F2-4-1: the stage line reads its date as the history rows do ("2 November").
+        const passedOn = `Screen mock passed on ${formatDate(today, today)}`;
+        await stage.locator('[data-criterion-met="true"]').filter({ hasText: passedOn }).waitFor();
+        return `the screen mock passed at ${line.replace(/ exactly right\. Passed\.$/, '')} on ${correct.length} reference answers; Progress's stage 2 row is met and its criterion line reads "${passedOn}"`;
+      });
+
+      await row('7a-5', 'a mock item is a 404 on /api/items outside the mock', async () => {
+        const ids = screenMock.forms.flatMap((f) => f.item_ids);
+        expect(ids.length > 0 && ids.includes('EX-MOCK-SCREEN-A-01'), 'the screen mock forms do not hold EX-MOCK-SCREEN-A-01');
+        for (const id of ids) {
+          expect(keys.has(id), `${id} has no answer key, so a 404 would prove nothing`);
+          const r = await getJson<{ error?: string }>(`/api/items/${id}`);
+          expect(r.status === 404, `GET /api/items/${id} answered ${r.status}`);
+        }
+        return `GET /api/items/<id> is a 404 for all ${ids.length} screen mock items, EX-MOCK-SCREEN-A-01 among them`;
+      });
+
+      await row('7a-6', 'Settings\' key fields are text inputs with autocomplete off', async () => {
+        await p.goto(`${BASE}/#/setup`);
+        await p.getByRole('heading', { name: 'Settings and setup', level: 1 }).waitFor();
+        for (const name of ['Claude API key', 'OpenAI API key']) {
+          const f = p.getByLabel(name, { exact: true });
+          await f.waitFor();
+          expect((await f.getAttribute('type')) === 'text' && (await f.getAttribute('autocomplete')) === 'off', `${name}: the field is not a text input with autocomplete="off"`);
+        }
+        return 'the Claude and OpenAI key fields are type="text" with autocomplete="off"';
+      });
+
+      await browser.close();
+      browser = null;
+      await stopServer(server);
+      server = null;
+    }
+
+    // ---- sprint 7 Part 2 rows (Task F3): the knowledge mock, the case-round, the take-home across a restart, the tutor's second opinion, the mocks screen ----
+    // One server over an empty logs folder with the fake tutor model (it calls nothing). A right answer is read from content/keys/ and the truth file in this
+    // process and only typed into the page; the knowledge mock's questions are held out, so a row names counts, IDs and sections, never a question or an option.
+    {
+      const dir = join(tmp, 'logs-7b');
+      await mkdir(dir);
+      server = await startServer(ROOT, dir, { env: { AYDINLEARNS_TUTOR_PROVIDER: 'fake' } });
+      browser = await chromium.launch();
+      const p = await newPage(browser, dialogs);
+      p.on('pageerror', () => { pageErrors++; });
+      interface MockCaseFile { checkpoints: { id: string; kind: string; item_id?: string; typed?: { decimals: number } }[] }
+      interface MockFile {
+        knowledge: { questions: number; minutes: number; per_section: { methodology: number; ga4: number } };
+        case_round: { minutes: number; forms: { id: string; case_id: string }[] }; take_home: { minutes: number; forms: { id: string; case_id: string }[] };
+      }
+      const mocksFile = await readJson<MockFile>(join(ROOT, 'content/mocks.json'));
+      const mockCase = (id: string) => readJson<MockCaseFile>(join(ROOT, 'content/sql/mocks', `${id}.json`));
+      interface CaseRun { block_id: string; mock: string; deadline_at: string; case: { plan: unknown; insight: unknown; checkpoints: { kind: string; answered: boolean }[] } }
+      const liveRun = async () => (await getJson<{ run: CaseRun | null }>('/api/mocks')).body.run;
+      /** Starts a mock from its start screen and gives the reply. A refusal names its status and the screen's own line only. */
+      async function startMock(kind: string, label: string): Promise<{ block_id: string; servings?: unknown[] }> {
+        const earlier = await liveRun();                                                           // a run an earlier row left on would refuse this start
+        if (earlier) await postJson('/api/mocks/end', { block_id: earlier.block_id });
+        await p.goto(`${BASE}/#/mock/${kind}`);
+        await p.getByRole('button', { name: `Start the ${label}`, exact: true }).waitFor();
+        const startedP = p.waitForResponse((r) => r.url().endsWith('/api/mocks/start') && r.request().method() === 'POST');
+        startedP.catch(() => {});
+        await p.getByRole('button', { name: `Start the ${label}`, exact: true }).click();
+        const started = await startedP;
+        if (started.status() !== 200) {
+          const refusal = ((await started.json().catch(() => ({}))) as { error?: string }).error ?? '';
+          throw new Error(`the ${label}'s start answered ${started.status()}: ${refusal}`);
+        }
+        await p.locator('[role="timer"]').first().waitFor();
+        return (await started.json()) as { block_id: string; servings?: unknown[] };
+      }
+      const stepButton = (id: string) => p.locator(`button[data-step-button="${id}"]`);
+      const stepOf = (id: string) => p.locator(`[data-step="${id}"]`);
+      /** The plan, the run's first step: every field, saved. */
+      async function savePlan(expectedFields: number): Promise<void> {
+        const fields = stepOf('plan').locator('textarea');
+        expect((await fields.count()) === expectedFields, `the plan step has ${await fields.count()} fields, not ${expectedFields}`);
+        for (let i = 0; i < expectedFields; i++) await fields.nth(i).fill(`Smoke plan note ${i + 1} (fictional).`);
+        await stepOf('plan').getByRole('button', { name: /^Save the plan/ }).click();
+        await stepOf('plan').getByText('Plan saved.', { exact: false }).waitFor();
+        await stepButton('CP1').waitFor();
+      }
+      async function mockTyped(caseId: string, cp: 'CP2' | 'CP4'): Promise<string> {
+        const value = truthFile.checkpoints[`${caseId}:${cp}`];
+        const spec = (await mockCase(caseId)).checkpoints.find((c) => c.kind === cp)?.typed;
+        if (value === undefined || !spec) throw new Error(`${caseId} ${cp} has no true value or no typed spec`);
+        return value.toFixed(spec.decimals);
+      }
+      /** CP1 or CP5 (an option), CP2 or CP4 (a typed number): Submit, Send, and the reply says the answer is recorded. */
+      async function answerCp(caseId: string, cp: 'CP1' | 'CP2' | 'CP4' | 'CP5'): Promise<void> {
+        await stepButton(cp).click();
+        const step = stepOf(cp);
+        if (cp === 'CP1' || cp === 'CP5') await step.locator(`input[type="radio"][value="${await caseOid(caseId, cp)}"]`).check();
+        else await step.getByLabel('Your answer').fill(await mockTyped(caseId, cp));
+        const sent = p.waitForResponse((r) => r.url().includes(`/checkpoints/${cp}/answer`) && r.request().method() === 'POST');
+        await step.getByRole('button', { name: 'Submit', exact: true }).click();
+        await step.getByRole('button', { name: 'Send', exact: true }).click();
+        const reply = await sent;
+        expect(reply.status() === 200 && ((await reply.json()) as { recorded?: boolean }).recorded === true, `${caseId} ${cp}: the answer's reply was ${reply.status()}, not recorded`);
+        await step.getByText(/^(Answer recorded|Answered)\./).waitFor();
+      }
+      /** CP3: the shared mock question: the key's query typed into the editor, then Submit and Send. */
+      async function answerCp3(caseId: string): Promise<void> {
+        const itemId = (await mockCase(caseId)).checkpoints.find((c) => c.kind === 'CP3')?.item_id;
+        const key = itemId ? keys.get(itemId) : undefined;
+        if (!itemId || !key) throw new Error(`${caseId}: CP3 has no answer key`);
+        await stepButton('CP3').click();
+        const step = stepOf('CP3');
+        await step.locator('.cm-content').click();
+        await p.keyboard.press('Control+A');
+        await p.keyboard.insertText(key.reference_sql);
+        await p.keyboard.press('Escape');
+        await step.getByRole('button', { name: 'Submit', exact: true }).click();
+        await step.getByRole('button', { name: 'Send', exact: true }).click();
+        await step.getByText(/^(Answer recorded|Answered)\./).first().waitFor();
+      }
+      async function saveInsight(memo: boolean): Promise<void> {
+        await stepButton('CP6').click();
+        const step = stepOf('CP6');
+        const text = memo ? 'The fictional shop grew in the period. The gain came from one region. The raw data held duplicate lines that were removed first. '
+          + 'The caveat is a short window. The next step is to check the region with a longer window.' : 'The fictional number rose, mostly in one region. Check a longer window next.';
+        await step.getByLabel(memo ? 'Your memo' : 'Your insight').fill(text);
+        await step.getByRole('button', { name: /^Save (the memo|the insight|it again)$/ }).click();
+        await step.getByText('Saved.', { exact: false }).waitFor();
+      }
+      const handIn = async (): Promise<void> => {
+        await p.getByRole('button', { name: 'Hand in', exact: true }).click();
+        await p.locator('section h1').filter({ hasText: /: review$/ }).waitFor();
+      };
+
+      await row('7b-1', 'the knowledge mock starts with 30 questions and no labels; an answer is saved with no result; "Hand in" opens a review with the score per section and no question text', async () => {
+        const k = mocksFile.knowledge;
+        const run = await startMock('knowledge', 'knowledge mock');
+        expect(run.servings?.length === k.questions, `the knowledge mock has ${run.servings?.length} servings, not ${k.questions}`);
+        await p.getByRole('heading', { name: `Question 1 of ${k.questions}`, level: 2, exact: true }).waitFor();
+        const panel = p.locator('.q-card section.choice');
+        await panel.waitFor();
+        expect((await panel.locator('.badge').count()) === 0, 'a label (a badge) shows on a knowledge mock question');
+        // Answer question 1: the first option, or a typed number; the run has no confidence row, so "Save answer".
+        const box = panel.getByLabel('Your answer');
+        const radio = panel.locator('fieldset input[type="radio"]').first();
+        await radio.or(box).first().waitFor();
+        if ((await box.count()) > 0) await box.fill('1'); else await radio.check();
+        await panel.getByRole('button', { name: 'Save answer', exact: true }).click();
+        await panel.getByRole('status').filter({ hasText: /^Answer saved\./ }).waitFor();
+        expect((await panel.locator('.grade').count()) === 0, 'a result shows inside the knowledge mock');
+        await p.getByRole('button', { name: 'Hand in', exact: true }).click();
+        await p.getByRole('heading', { name: 'Knowledge mock: review', level: 1, exact: true }).waitFor();
+        const table = p.locator('table').first();
+        await table.waitFor();
+        const rowsText = (await table.locator('tbody tr').allInnerTexts()).map((t) => t.replace(/\s+/g, ' ').trim());
+        const m = rowsText.find((t) => t.startsWith('Methodology '));
+        const g = rowsText.find((t) => t.startsWith('GA4 '));
+        expect(m !== undefined && g !== undefined && m.endsWith(`of ${k.per_section.methodology}`) && g.endsWith(`of ${k.per_section.ga4}`),
+          `the review's sections read "${rowsText.join(' | ')}"`);
+        expect((await p.locator('.prompt, fieldset, ol.review-items').count()) === 0, 'the knowledge review shows a question');
+        expect((await liveRun()) === null, 'the knowledge mock is still on after "Hand in"');
+        return `the knowledge mock started with ${k.questions} questions and no label badge; question 1's reply read "Answer saved" with no result; "Hand in" opened the review with the score per section (Methodology of ${k.per_section.methodology}, GA4 of ${k.per_section.ga4}) and no question`;
+      });
+
+      await row('7b-2', 'the case-round runs plan, CP1 to CP6 and the 60-second step; replies say recorded; "Hand in" opens the review with the correct answers and the rubric', async () => {
+        const form = mocksFile.case_round.forms[0]!;
+        const c = await mockCase(form.case_id);
+        const run = await startMock('case_round', 'case-round mock');
+        await p.getByText('Write your plan first.', { exact: false }).first().waitFor();
+        // S7-13: a checkpoint asked for before the plan is refused, and the screen shows no checkpoint step yet.
+        const early = await postJson<{ error?: string }>(`/api/mocks/${run.block_id}/checkpoints/CP1/serve`, {});
+        expect(early.status === 409, `CP1 served before the plan answered ${early.status}, not 409`);
+        expect((await stepButton('CP1').count()) === 0, 'a checkpoint step shows before the plan is saved');
+        await savePlan(6);
+        await answerCp(form.case_id, 'CP1');
+        await answerCp(form.case_id, 'CP2');
+        await answerCp3(form.case_id);
+        await answerCp(form.case_id, 'CP4');
+        await answerCp(form.case_id, 'CP5');
+        await saveInsight(false);
+        await stepButton('say').click();
+        const say = stepOf('say');
+        await say.getByRole('button', { name: 'Start the 60 seconds', exact: true }).click();
+        await say.getByRole('timer', { name: 'Time left' }).waitFor();
+        const ticks = say.locator('fieldset.case-ticks input[type="checkbox"]');
+        expect((await ticks.count()) === 4, `the 60-second step has ${await ticks.count()} points, not 4`);
+        for (let i = 0; i < 4; i++) await ticks.nth(i).check();
+        await say.getByRole('button', { name: 'Save the ticks', exact: true }).click();
+        await say.getByText('Ticks saved.', { exact: true }).waitFor();
+        const kinds = c.checkpoints.map((x) => x.kind);
+        expect(kinds.join(',') === 'CP1,CP2,CP3,CP4,CP5,CP6', `${form.case_id} lists ${kinds.join(',')}`);
+        await handIn();
+        await p.getByRole('heading', { name: 'Case-round mock: review', level: 1, exact: true }).waitFor();
+        const shown = await p.locator('ol.review-items > li[data-review]').evaluateAll((els) => els.map((e) => e.getAttribute('data-review')));
+        expect(shown.join(',') === 'CP1,CP2,CP3,CP4,CP5', `the review lists the checkpoints ${shown.join(',')}`);
+        expect((await p.locator('[data-review="CP1"]').getByText('(right answer)', { exact: false }).count()) > 0, 'CP1 shows no right answer in the review');
+        expect((await p.locator('[data-review="CP2"]').getByText('The value:', { exact: false }).count()) === 1, 'CP2 shows no value in the review');
+        expect((await p.locator('[data-review="CP3"]').getByRole('button', { name: 'Show answer', exact: true }).count()) === 1, 'CP3 has no Show answer in the review');
+        expect((await p.locator('[data-review="CP5"]').getByText('(right answer)', { exact: false }).count()) > 0, 'CP5 shows no right answer in the review');
+        const rubric = p.locator('[data-review-insight] [data-rubric] input[type="checkbox"]');
+        const rubricLines = await rubric.count();
+        expect(rubricLines >= 4, `the review's rubric has ${rubricLines} lines`);
+        expect((await p.locator('[data-review-insight]').getByText('The model answer', { exact: true }).count()) === 1, 'the review shows no model answer');
+        expect((await liveRun()) === null, 'the case-round is still on after "Hand in"');
+        return `${form.case_id}: the plan came first (CP1 served before it was a 409, no checkpoint step until it was saved, 6 fields); CP1 to CP5 each replied recorded, CP6 and the 60-second step (4 points) were saved; "Hand in" opened the review with ${shown.length} checkpoints beside the right answers, the model answer and ${rubricLines} rubric lines`;
+      });
+
+      let takeBlock = '';
+      await row('7b-3', 'the take-home starts and keeps its answer and clock across a server restart on the same logs', async () => {
+        const form = mocksFile.take_home.forms[0]!;
+        const run = await startMock('take_home', 'take-home mock');
+        takeBlock = run.block_id;
+        await savePlan(6);
+        await answerCp(form.case_id, 'CP2');
+        const before = await liveRun();
+        expect(before !== null && before.block_id === run.block_id && before.mock === 'take_home', 'the take-home is not on after its first answer');
+        const leftBefore = Date.parse(before.deadline_at) - Date.now();
+        expect(leftBefore > 0 && leftBefore <= mocksFile.take_home.minutes * 60_000, 'the take-home\'s clock is not inside its minutes');
+        await p.goto('about:blank');
+        const stopCode = await stopServer(server!);
+        server = null;
+        expect(stopCode === 0, `the first server stopped with code ${String(stopCode)}`);
+        await sleep(1_500);                                                                      // the clock moves on while the app is off
+        server = await startServer(ROOT, dir, { env: { AYDINLEARNS_TUTOR_PROVIDER: 'fake' } });
+        const after = await liveRun();
+        expect(after !== null && after.block_id === run.block_id, 'the take-home is not on after the restart');
+        expect(after.deadline_at === before.deadline_at, 'the take-home\'s deadline changed across the restart');
+        const leftAfter = Date.parse(after.deadline_at) - Date.now();
+        expect(leftAfter < leftBefore, 'the time left did not go down across the restart');
+        expect(after.case.checkpoints.find((x) => x.kind === 'CP2')?.answered === true, 'CP2 is not answered after the restart');
+        expect(after.case.plan !== null, 'the plan is gone after the restart');
+        await p.goto(`${BASE}/#/mock/take_home`);
+        await p.getByRole('heading', { name: 'Take-home mock', level: 1, exact: true }).waitFor();
+        await p.locator('[role="timer"]').first().waitFor();
+        await stepButton('CP2').click();
+        await stepOf('CP2').getByText(/^Answered\./).waitFor();
+        return `${form.case_id}: after the stop and a new server on the same logs the take-home is still on (same block), its deadline is unchanged, ${Math.round((leftBefore - leftAfter) / 1000)} s less time is left, and CP2 reads Answered with the plan kept`;
+      });
+
+      await row('7b-4', 'on the fake model the take-home review\'s second opinion asks the tutor and the pass does not change', async () => {
+        let on = await liveRun();
+        if (!on || on.mock !== 'take_home') {                                                       // its own set-up when 7b-3 did not leave one
+          await startMock('take_home', 'take-home mock');
+          await savePlan(6);
+          on = await liveRun();
+        } else await p.goto(`${BASE}/#/mock/take_home`);
+        expect(on !== null, 'no take-home is on');
+        const block = on.block_id;
+        await p.locator('[role="timer"]').first().waitFor();
+        if (on.case.insight === null) await saveInsight(true);                                      // S7-C35: the prompt shows only when a CP6 answer exists
+        await handIn();
+        await p.getByRole('heading', { name: 'Take-home mock: review', level: 1, exact: true }).waitFor();
+        const reviewState = async () => {
+          const r = await getJson<{ passed: boolean; status: string; correct: number }>(`/api/mocks/${block}/review`);
+          expect(r.status === 200, `the review answered ${r.status}`);
+          return `${r.body.passed}|${r.body.status}|${r.body.correct}`;
+        };
+        const stateBefore = await reviewState();
+        const askedBefore = (await attempts(dir)).filter((r) => r.record === 'tutor_asked').length;
+        const quick = p.locator('[data-review-insight]').getByRole('button', { name: 'Ask the tutor for a second opinion', exact: true });
+        await quick.waitFor();
+        await quick.click();
+        // The quick prompt opens the panel with the question in the box (S7-36); Send asks it.
+        const panel = p.getByRole('complementary', { name: 'Tutor' });
+        const box = panel.getByLabel('Your question');
+        await box.waitFor();
+        await waitFor('the second-opinion question in the box', async () => (await box.inputValue()).startsWith('Grade my written answer against each rubric line'), 5_000);
+        await panel.getByRole('button', { name: 'Send', exact: true }).click();
+        await panel.getByText(/Fake tutor:/).first().waitFor();
+        const rec = await waitFor('the tutor_asked record', async () => {
+          const all = (await attempts(dir)).filter((r) => r.record === 'tutor_asked');
+          return all.length > askedBefore ? all.at(-1) : null;
+        });
+        expect(rec.screen === 'mock_review', `the tutor_asked record's screen is ${String(rec.screen)}, not mock_review`);
+        expect(rec.item_instance_id === undefined || rec.item_instance_id === null, 'the tutor_asked record names an item instance');
+        const stateAfter = await reviewState();
+        expect(stateBefore === stateAfter, `the run's passed state changed from ${stateBefore} to ${stateAfter}`);
+        return `the take-home review's second-opinion prompt asked the fake tutor and an answer appeared; one tutor_asked record with screen mock_review and no item instance; the run's passed state is the same before and after (${stateBefore.split('|')[0]})`;
+      });
+
+      await row('7b-5', 'the Recruiter mocks screen shows stages 3 to 5 live: names, rules and a start or the forms line, with no "Coming in 0.7.1"', async () => {
+        await p.goto(`${BASE}/#/mocks`);
+        await p.getByRole('heading', { name: 'Recruiter mocks', level: 1, exact: true }).waitFor();
+        await p.locator('section.mocks li[data-stage]').first().waitFor();
+        const want: [number, string, string][] = [
+          [3, 'Knowledge mock', `${mocksFile.knowledge.questions} questions`],
+          [4, 'Case-round mock', `${mocksFile.case_round.minutes} minutes`],
+          [5, 'Take-home mock', `${mocksFile.take_home.minutes} minutes`],
+        ];
+        for (const [n, name, rule] of want) {
+          const card = p.locator(`section.mocks li[data-stage="${n}"]`);
+          await card.waitFor();
+          const text = (await card.innerText()).replace(/\s+/g, ' ');
+          expect((await card.getByRole('heading', { level: 2 }).innerText()).startsWith(name), `stage ${n}'s card is not named ${name}`);
+          expect(text.includes(`Stage ${n}:`) && text.includes(rule), `stage ${n}'s card does not hold its rules (${rule})`);
+          const start = card.getByRole('link', { name: `Start the ${name.toLowerCase()}`, exact: true });
+          expect((await start.count()) === 1 || /unseen|practice|Every form|No .* yet|runs? yet/i.test(text), `stage ${n}'s card has no start and no forms line`);
+          expect(!text.includes('Coming in 0.7.1'), `stage ${n}'s card still reads "Coming in 0.7.1"`);
+        }
+        expect(!(await p.locator('main').innerText()).includes('Coming in 0.7.1'), 'the mocks screen still reads "Coming in 0.7.1"');
+        expect(takeBlock === '' || (await p.locator('section.mocks li[data-stage="5"] a[href*="#/mock/review/"]').count()) >= 1, 'stage 5 has no review link for its run');
+        return 'stages 3, 4 and 5 show their names, rules (questions or minutes), a start or the forms line and their history; "Coming in 0.7.1" is nowhere on the screen';
+      });
+
+      await browser.close();
+      browser = null;
+      await stopServer(server!);
       server = null;
     }
   } catch (e) {

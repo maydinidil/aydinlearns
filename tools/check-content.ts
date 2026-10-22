@@ -14,20 +14,26 @@
 // drill pool and the cumulative entry) and C50 (each case CP1, CP2, CP4 and CP5's blind-solve record). The F2 seams fix round adds C52
 // (every table the schema panel shows an item is in its edge schema; C51 is Part 2's) and fails C41 once when the schemas cannot be read.
 // Sprint 6 Part 2 (Task G2) adds C51: the dataset registry, its prep scripts and the cases on its data (checkDatasets), and skips by
-// name an item whose registry dataset is not prepared (unbuiltItems), as C41 skips its case.
-// Usage: node tools/check-content.ts [content-root]   (default: content/)
+// name an item whose registry dataset is not prepared (unbuiltItems), as C41 skips its case. Sprint 7 (Task A1) adds C53, the tie rule
+// of a rank cutoff (S7-22), and stops C11 flagging QUALIFY in an SQL-WIN-06 key's other way (S7-20); Task A2b lets C53 accept
+// FIND-01-13's keep-one dedup on raw data when the prompt says which copy is kept (S7-C06). Sprint 7 (Task M1) adds C54, the
+// mocks file and its forms, and C55, the mock cases (S7-08); the held-out mock items take the item checks, and C41 and C50 check the mock
+// cases as they check every case. Sprint 7 Part 2 (Task N1) adds C56, the knowledge pool (S7-10, S7-11, S7-C21), and C46 counts the GA4
+// exam pool without it (server/run.ts ga4ExamPool).
+// Usage: node tools/check-content.ts [content-root] [--only C14,C25]   (default: content/, every check)
 import { createHash } from 'node:crypto';
 import { existsSync } from 'node:fs';
 import { readdir, readFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { startRunner, type RunnerClient } from '../server/runner/client.ts';
-import type { DisplayOk, GateOk, RowsOk } from '../server/runner/protocol.ts';
+import type { DisplayOk, GateOk, ParseTreeOk, RowsOk } from '../server/runner/protocol.ts';
 import { maskSql, stripTrailing } from '../server/runner/tables.ts';
 import { grade, type Feedback } from '../server/grader/grade.ts';
 import type { GradeResult } from '../server/grader/types.ts';
-import { caseUnavailable, ContentFileError, LAB_GUIDE_FILE, LAB_KEY_DIR, loadContent, truthSourceHash, type ContentStore, type LoadOptions } from '../server/content.ts';
+import { caseUnavailable, ContentFileError, KNOWLEDGE_POOL_FILE, LAB_GUIDE_FILE, LAB_KEY_DIR, loadContent, truthSourceHash, type ContentStore, type LoadOptions } from '../server/content.ts';
 import { parseDrillFile, type DrillFile } from '../server/drill.ts';
+import { ga4ExamPool } from '../server/run.ts';
 import { EM_DASH, sameStructuralAnswer, validateLab, validateLabKey, type Lab, type LabKey } from '../schemas/lab.ts';
 import { readingWords } from '../schemas/reading.ts';
 import { amsterdamDate } from '../core/time.ts';
@@ -35,7 +41,8 @@ import { openerLevel } from '../server/session-composer.ts';
 import { isSqlChoiceKind, validateSqlItem, type SqlItem } from '../schemas/item.ts';
 import { validateSqlKey, type SqlKey } from '../schemas/keys.ts';
 import { validateLesson, type Lesson } from '../schemas/lesson.ts';
-import { caseSchema, SOLVED_KINDS, validateCaseKey, validateCaseRecord, type CaseRecord, type SolvedKind } from '../schemas/case.ts';
+import { caseSchema, isMockCaseKind, SOLVED_KINDS, validateCaseKey, validateCaseRecord, type CaseRecord, type SolvedKind } from '../schemas/case.ts';
+import { validateMocksFile } from '../schemas/mock.ts';
 import type { Curriculum } from '../schemas/concepts.ts';
 import type { EdgeDescription } from '../schemas/edge.ts';
 import { validateDataset, type DatasetRecord } from '../schemas/dataset.ts';
@@ -331,8 +338,14 @@ export async function checkItem(item: SqlItem, key: SqlKey, ctx: CheckContext): 
     add('C10', !inKeys && !inData, [inKeys ? 'a key uses the reserved __al_ prefix' : '', inData ? 'the dataset uses the reserved __al_ prefix, or could not be checked' : ''].filter(Boolean).join('; '));
   });
 
+  // S7-20 (sprint 7, Task A1): an SQL-WIN-06 key's reference is the portable form and its other way the QUALIFY form, so QUALIFY is
+  // not flagged in that other way, nor in the alternative it repeats (C39). Everything else is flagged as before.
   await check('C11', () => {
-    const found = new Set(keys().flatMap((k) => { const t = maskSql(k); return DUCKDB_ONLY.filter(([, re]) => re.test(t)).map(([name]) => name); }));
+    const qualifyAllowed = (k: string): boolean => item.target_concept_id === 'SQL-WIN-06' && otherWay().some((ow) => sameQuery(ow, k));
+    const found = new Set(keys().flatMap((k) => {
+      const t = maskSql(k);
+      return DUCKDB_ONLY.filter(([name, re]) => re.test(t) && !(name === 'QUALIFY' && qualifyAllowed(k))).map(([name]) => name);
+    }));
     add('C11', found.size === 0, found.size ? `DuckDB-only syntax: ${[...found].join(', ')}` : '', found.size > 0);
   });
 
@@ -501,11 +514,18 @@ export async function checkItem(item: SqlItem, key: SqlKey, ctx: CheckContext): 
     add('C40', problems.length === 0, problems.join('; '));
   });
 
-  // C47 (sprint 6, S6-01, Review Focus 2): a raw-data item is on voltmarkt_raw with the clean edge schema, names no schema and finds the
-  // quirk; a clean item's key reads no raw table.
+  // C47 (sprint 6, S6-01, Review Focus 2): a raw-data item is on a raw schema (voltmarkt_raw or mailvora_raw) with its clean edge schema, names no
+  // schema and finds the quirk; a clean item's key reads no raw table.
   await check('C47', async () => {
     const problems = await rawDataProblems(item, key, ctx.runner);
     add('C47', problems.length === 0, problems.join('; '));
+  });
+
+  // C53 (sprint 7, S7-22, E-204): a key that filters a ranking function's result states its tie rule, and the edge schema holds a tie
+  // at the cutoff, so a query with the other tie rule fails there. A keep-one dedup on raw data states which copy it keeps (S7-C06).
+  await check('C53', async () => {
+    const problems = await rankCutoffProblems(item, key, ctx);
+    add('C53', problems.length === 0, problems.join('; '));
   });
 
   return out.map((r) => (r.ok ? { ...r, detail: '' } : r));
@@ -748,10 +768,11 @@ async function truthQueryProblems(db: CaseDb, cp: string, truthKey: string, sql:
  * rules; this check adds, for every case:
  * - the record validates (validateCaseRecord, a daily case's CP3 and CP4 only included); a malformed record fails on those
  *   messages alone, and the check finishes;
- * - an opener sits in content/sql/openers/, an inbox or daily case in content/sql/cases/; no case ID and no checkpoint item is
- *   used by two case files (the store keeps one credit list per item);
- * - its CP3 item exists with use `opener` (an opener) or `case` (otherwise), no grain line and the case's schema (S6-13), and the
- *   expected output is that item's output columns and sort keys;
+ * - an opener sits in content/sql/openers/, an inbox or daily case in content/sql/cases/, and a case-round or take-home mock in
+ *   content/sql/mocks/, which holds nothing else (sprint 7, S7-08: the store holds the mock cases out of the case list by that folder);
+ *   no case ID and no checkpoint item is used by two case files (the store keeps one credit list per item);
+ * - its CP3 item exists with use `opener` (an opener), `mock` (a mock case) or `case` (otherwise), no grain line and the case's schema
+ *   (S6-13), and the expected output is that item's output columns and sort keys;
  * - an opener's level is openerLevel's; a daily case's level is its highest credited concept's (B2-M3); every credited concept is
  *   an SQL curriculum concept at or below the case's level;
  * - every `{CP2}` or `{CP4}` in the model answer names a checkpoint the case lists (S4B-10);
@@ -767,9 +788,11 @@ async function truthQueryProblems(db: CaseDb, cp: string, truthKey: string, sql:
  * A detail names case IDs, item IDs, checkpoints, schemas and fields: never a truth query, a value, a correct oid or an explanation.
  */
 export async function checkCases(store: ContentStore, options: CaseCheckOptions = {}): Promise<CheckResult[]> {
-  const all = store.cases?.() ?? [];
+  // Sprint 7 (S7-08): the mock cases, held out in content/sql/mocks/, after the rest.
+  const mocks = new Set<unknown>(store.mockCases?.() ?? []);
+  const all = [...(store.cases?.() ?? []), ...(store.mockCases?.() ?? [])];
   const openers = new Set<unknown>(store.openers?.() ?? []);
-  const idOf = (rec: CaseRecord, n: number): string => (typeof rec?.case_id === 'string' ? rec.case_id : `case file #${n + 1}`);
+  const idOf = (rec: { case_id?: unknown } | null | undefined, n: number): string => (typeof rec?.case_id === 'string' ? rec.case_id : `case file #${n + 1}`);
   const files = new Map<string, number>();
   const itemOwners = new Map<string, number>();
   for (const [n, rec] of all.entries()) {
@@ -786,6 +809,9 @@ export async function checkCases(store: ContentStore, options: CaseCheckOptions 
     const warns: string[] = [];
     const isOpener = openers.has(rec);
     if ((files.get(id) ?? 0) > 1) why.push(`the case ID ${id} is used by ${files.get(id)} case files`);
+    // S7-08: a mock case is held out by where it is stored, so its folder is checked whatever else the record holds.
+    if (mocks.has(rec) && !isMockCaseKind(rec?.kind)) why.push('content/sql/mocks/ holds the mock cases only: kind case_round or take_home');
+    if (!mocks.has(rec) && isMockCaseKind(rec?.kind)) why.push('a case-round or take-home mock goes in content/sql/mocks/');
     // Codex F22's lesson: the checks below read the record's fields, so they run only on a record that validated.
     if (invalid.length) { out.push({ id, check: 'C41', ok: false, detail: why.join('; ') }); continue; }
     const schema = caseSchema(rec);
@@ -795,8 +821,8 @@ export async function checkCases(store: ContentStore, options: CaseCheckOptions 
     for (const c of rec.checkpoints) if (c.item_id !== undefined && (itemOwners.get(c.item_id) ?? 0) > 1) why.push(`${c.item_id} is also a checkpoint item of another case`);
     // The CP3 item: its use, no grain line, the case's schema, and the expected output it promises.
     const cp3 = rec.checkpoints.find((c) => c.kind === 'CP3')!;
-    const item = store.item(cp3.item_id!);
-    const use = rec.kind === 'opener' ? 'opener' : 'case';
+    const item = store.item(cp3.item_id!) ?? store.mockItem?.(cp3.item_id!);
+    const use = rec.kind === 'opener' ? 'opener' : isMockCaseKind(rec.kind) ? 'mock' : 'case';
     if (!item) why.push(`${cp3.item_id} is missing`);
     else {
       if (item.use !== use) why.push(`${cp3.item_id} must have use ${use}`);
@@ -883,38 +909,44 @@ export async function checkCases(store: ContentStore, options: CaseCheckOptions 
   // A key file named after no case is a key nobody grades with (the store finds a key by its file's name).
   const ids = new Set(all.map((r) => (typeof r?.case_id === 'string' ? r.case_id : '')));
   for (const name of store.caseKeyIds?.() ?? []) {
-    if (!ids.has(name)) out.push({ id: `keys/cases/${name}.json`, check: 'C41', ok: false, detail: 'a case key with no case of its name in content/sql/openers/ or content/sql/cases/' });
+    if (!ids.has(name)) out.push({ id: `keys/cases/${name}.json`, check: 'C41', ok: false, detail: 'a case key with no case of its name in content/sql/openers/, content/sql/cases/ or content/sql/mocks/' });
   }
   return out;
 }
 
 // ---- sprint 6 (Task B3): C47 raw data, C48 level 4 traps, C49 the level 4 drill and the cumulative entry, C50 case solves --------
 
-/** S6-01: the raw schema, its clean edge schema, and the clean schema a raw key must give another result on. */
-export const RAW_SCHEMA = 'voltmarkt_raw';
-export const RAW_EDGE_SCHEMA = 'voltmarkt_edge_clean';
-const CLEAN_SCHEMA = 'voltmarkt';
-/** `voltmarkt_raw.` with or without quotes, in key text with its strings and comments masked. */
-const NAMES_RAW = /(?:\bvoltmarkt_raw|"voltmarkt_raw")\s*\./i;
-/** Any Voltmarkt schema written before a dot: a qualified name in a partial query the gate cannot read (hint 3). */
-const NAMES_SCHEMA = /(?:\bvoltmarkt[a-z0-9_]*|"voltmarkt[a-z0-9_]*")\s*\./i;
+/** S6-01, S7-C33: a raw schema, the clean schema a raw key must give another result on, and the clean edge schema a raw item uses. */
+export interface RawSchemaSet { raw: string; clean: string; edge: string }
+export const RAW_SCHEMAS: readonly RawSchemaSet[] = [
+  { raw: 'voltmarkt_raw', clean: 'voltmarkt', edge: 'voltmarkt_edge_clean' },
+  { raw: 'mailvora_raw', clean: 'mailvora', edge: 'mailvora_edge_clean' },
+];
+/** `<raw schema>.` with or without quotes, in key text with its strings and comments masked. */
+const namesRaw = (sql: string, set: RawSchemaSet): boolean => new RegExp(`(?:\\b${set.raw}|"${set.raw}")\\s*\\.`, 'i').test(sql);
+/** Any Voltmarkt or Mailvora schema written before a dot: a qualified name in a partial query the gate cannot read (hint 3). */
+const NAMES_SCHEMA = /(?:\b(?:voltmarkt|mailvora)[a-z0-9_]*|"(?:voltmarkt|mailvora)[a-z0-9_]*")\s*\./i;
 
-/** S6-01: an item reads raw data when it says so (`uses_raw`), names the raw schema, or names the raw data's edge schema. */
+/** S6-01: an item reads raw data when it says so (`uses_raw`), names a raw schema, or names a raw schema's edge schema. */
 const isRawItem = (item: SqlItem): boolean =>
-  (item as { uses_raw?: unknown }).uses_raw === true || item.schema === RAW_SCHEMA || item.edge_schema === RAW_EDGE_SCHEMA;
+  (item as { uses_raw?: unknown }).uses_raw === true || RAW_SCHEMAS.some((s) => item.schema === s.raw || item.edge_schema === s.edge);
+
+/** The raw schema set an item or case is on: by its raw schema, else its raw edge schema, else its clean schema (Voltmarkt when none). */
+const rawSetOf = (schema: unknown, edge: unknown): RawSchemaSet =>
+  RAW_SCHEMAS.find((s) => s.raw === schema) ?? RAW_SCHEMAS.find((s) => s.edge === edge) ?? RAW_SCHEMAS.find((s) => s.clean === schema) ?? RAW_SCHEMAS[0]!;
 
 /** Whether a complete query names a schema, by the gate's parse on the raw schema (it lists a qualified table with its schema). */
-async function namesSchema(runner: RunnerClient, sql: string): Promise<boolean> {
-  const g = await runner.request<GateOk>({ op: 'gate', schema: RAW_SCHEMA, allowedSchemas: [], sql });
+async function namesSchema(runner: RunnerClient, schema: string, sql: string): Promise<boolean> {
+  const g = await runner.request<GateOk>({ op: 'gate', schema, allowedSchemas: [], sql });
   if (!g.ok) return g.error.kind === 'gate' && g.error.reason === 'qualified_schema';
   return g.data.tables.some((t) => t.schema !== null);
 }
 
 /**
- * C47 (S6-01, Review Focus 2) for one item: a raw-data item is on `voltmarkt_raw` with the edge schema `voltmarkt_edge_clean`, its
- * key names no schema (graded runs swap unqualified names only), and its reference gives another result on the clean `voltmarkt`
- * than on `voltmarkt_raw` (the quirk is what it finds). A clean item's key, hint 3 included, reads no raw table. Returns the
- * problems, naming the key's parts, never their text.
+ * C47 (S6-01, Review Focus 2) for one item: a raw-data item is on a raw schema (`voltmarkt_raw`, `mailvora_raw`) with that schema's
+ * clean edge schema, its key names no schema (graded runs swap unqualified names only), and its reference gives another result on
+ * the raw schema's clean schema than on the raw one (the quirk is what it finds). A clean item's key, hint 3 included, reads no raw
+ * table of either company. Returns the problems, naming the key's parts, never their text.
  */
 export async function rawDataProblems(item: SqlItem, key: SqlKey, runner: RunnerClient): Promise<string[]> {
   const complete: [string, string][] = [['the reference', key.reference_sql],
@@ -922,53 +954,59 @@ export async function rawDataProblems(item: SqlItem, key: SqlKey, runner: Runner
     ...(typeof key.other_way?.sql === 'string' ? [['the other way', key.other_way.sql] as [string, string]] : [])];
   const all: [string, string][] = [...complete, ...(typeof key.hint3_partial === 'string' ? [['hint 3', key.hint3_partial] as [string, string]] : [])];
   if (!isRawItem(item)) {
-    return all.filter(([, sql]) => typeof sql === 'string' && NAMES_RAW.test(maskSql(sql)))
-      .map(([label]) => `${label} reads a raw table (voltmarkt_raw.): a clean item reads its own schema only (S6-01)`);
+    const out: string[] = [];
+    for (const [label, sql] of all) {
+      const hit = typeof sql === 'string' ? RAW_SCHEMAS.find((s) => namesRaw(maskSql(sql), s)) : undefined;
+      if (hit) out.push(`${label} reads a raw table (${hit.raw}.): a clean item reads its own schema only (S6-01)`);
+    }
+    return out;
   }
+  const set = rawSetOf(item.schema, item.edge_schema);
   const out: string[] = [];
-  if (item.schema !== RAW_SCHEMA) out.push('a raw-data item has the schema voltmarkt_raw');
-  if (item.edge_schema !== RAW_EDGE_SCHEMA) out.push('a raw-data item has the edge schema voltmarkt_edge_clean');
-  for (const [label, sql] of complete) if (typeof sql === 'string' && (await namesSchema(runner, sql))) out.push(`${label} names a schema: a raw-data key reads its tables by name only (S6-01)`);
+  if (item.schema !== set.raw) out.push(`a raw-data item has the schema ${set.raw}`);
+  if (item.edge_schema !== set.edge) out.push(`a raw-data item has the edge schema ${set.edge}`);
+  for (const [label, sql] of complete) if (typeof sql === 'string' && (await namesSchema(runner, set.raw, sql))) out.push(`${label} names a schema: a raw-data key reads its tables by name only (S6-01)`);
   if (typeof key.hint3_partial === 'string' && NAMES_SCHEMA.test(maskSql(key.hint3_partial))) out.push('hint 3 names a schema: a raw-data key reads its tables by name only (S6-01)');
   const timeout = item.rules?.timeout_ms ?? 5000;
-  const [clean, raw] = [await rowBag(runner, CLEAN_SCHEMA, key.reference_sql, timeout), await rowBag(runner, RAW_SCHEMA, key.reference_sql, timeout)];
-  if (clean !== null && raw !== null && clean === raw) out.push('the key gives the same result on voltmarkt as on voltmarkt_raw, so it finds no quirk (Review Focus 2)');
+  const [clean, raw] = [await rowBag(runner, set.clean, key.reference_sql, timeout), await rowBag(runner, set.raw, key.reference_sql, timeout)];
+  if (clean !== null && raw !== null && clean === raw) out.push(`the key gives the same result on ${set.clean} as on ${set.raw}, so it finds no quirk (Review Focus 2)`);
   return out;
 }
 
 /**
- * C47 (S6-01, S6-14, Review Focus 2) for every case, one result each, named by case ID. A case on raw data (`uses_raw`, or the schema
- * `voltmarkt_raw`) has both; its CP3 item is on `voltmarkt_raw` with the edge schema `voltmarkt_edge_clean` and its key finds the
- * quirk (another result on the clean `voltmarkt`); no truth query names a schema. A clean case passes. A record that does not
- * validate is C41's.
+ * C47 (S6-01, S6-14, S7-C33, Review Focus 2) for every case and every mock case, one result each, named by case ID. A case on raw
+ * data (`uses_raw`, or a raw schema) has both; its CP3 item (a mock case's is a mock item) is on that raw schema with its edge
+ * schema and its key finds the quirk (another result on the clean schema); no truth query names a schema. A clean case passes. A
+ * record that does not validate is C41's.
  */
 export async function checkRawCases(store: ContentStore, runner: RunnerClient): Promise<CheckResult[]> {
   const out: CheckResult[] = [];
-  for (const [n, rec] of (store.cases?.() ?? []).entries()) {
+  for (const records of [store.cases?.() ?? [], store.mockCases?.() ?? []]) for (const [n, rec] of records.entries()) {
     const id = typeof rec?.case_id === 'string' ? rec.case_id : `case file #${n + 1}`;
     if (validateCaseRecord(rec).length) { out.push({ id, check: 'C47', ok: false, detail: 'the record is not valid; see C41' }); continue; }
-    const raw = rec.uses_raw === true || caseSchema(rec) === RAW_SCHEMA;
+    const cp3 = rec.checkpoints.find((c) => c.kind === 'CP3')!.item_id!;
+    const item = store.item(cp3) ?? store.mockItem?.(cp3);
+    const raw = rec.uses_raw === true || RAW_SCHEMAS.some((s) => s.raw === caseSchema(rec));
     const why: string[] = [];
     if (raw) {
-      if (rec.uses_raw !== true) why.push('a case on voltmarkt_raw has uses_raw true');
-      if (caseSchema(rec) !== RAW_SCHEMA) why.push('a case with uses_raw has the schema voltmarkt_raw');
-      const cp3 = rec.checkpoints.find((c) => c.kind === 'CP3')!.item_id!;
-      const item = store.item(cp3);
+      const set = rawSetOf(caseSchema(rec), item?.edge_schema);
       const key = store.key(cp3);
+      if (rec.uses_raw !== true) why.push(`a case on ${set.raw} has uses_raw true`);
+      if (caseSchema(rec) !== set.raw) why.push(`a case with uses_raw has the schema ${set.raw}`);
       if (item) {
-        if (item.schema !== RAW_SCHEMA) why.push(`${cp3} has the schema voltmarkt_raw`);
-        if (item.edge_schema !== RAW_EDGE_SCHEMA) why.push(`${cp3} has the edge schema voltmarkt_edge_clean`);
+        if (item.schema !== set.raw) why.push(`${cp3} has the schema ${set.raw}`);
+        if (item.edge_schema !== set.edge) why.push(`${cp3} has the edge schema ${set.edge}`);
       }
       if (item && key) {
         const timeout = item.rules?.timeout_ms ?? 5000;
-        const [clean, dirty] = [await rowBag(runner, CLEAN_SCHEMA, key.reference_sql, timeout), await rowBag(runner, RAW_SCHEMA, key.reference_sql, timeout)];
-        if (clean !== null && dirty !== null && clean === dirty) why.push(`${cp3}'s key gives the same result on voltmarkt as on voltmarkt_raw, so it finds no quirk (Review Focus 2)`);
+        const [clean, dirty] = [await rowBag(runner, set.clean, key.reference_sql, timeout), await rowBag(runner, set.raw, key.reference_sql, timeout)];
+        if (clean !== null && dirty !== null && clean === dirty) why.push(`${cp3}'s key gives the same result on ${set.clean} as on ${set.raw}, so it finds no quirk (Review Focus 2)`);
       }
       const caseKey = store.caseKey?.(rec.case_id);
       const truths = caseKey && validateCaseKey(caseKey).length === 0 ? caseKey.truths : {};
       for (const k of CASE_TRUTHS) {
         const q = truths[k];
-        if (typeof q === 'string' && (await namesSchema(runner, q))) why.push(`the truth query for ${k} names a schema: it reads its tables by name only (S6-01)`);
+        if (typeof q === 'string' && (await namesSchema(runner, set.raw, q))) why.push(`the truth query for ${k} names a schema: it reads its tables by name only (S6-01)`);
       }
     }
     out.push({ id, check: 'C47', ok: why.length === 0, detail: why.join('; ') });
@@ -1069,10 +1107,10 @@ export function checkCumulativeDrills(file: DrillFile, curriculum: Curriculum): 
  * checkpoint as it is now (casePromptHash: its prompt, options or typed spec, and the case's title, brief and schema). One result per
  * case, named by case ID; the detail names checkpoints, never an answer. A record that does not validate is C41's.
  * A case on a schema the build did not hold (S6-13, Review Focus 3) has no built CP2 or CP4 value to compare: once every record is
- * there and current, it is skipped with a warning naming those checkpoints, as C41 skips the case.
+ * there and current, it is skipped with a warning naming those checkpoints, as C41 skips the case. Sprint 7: the mock cases too (S7-08).
  */
 export function checkCaseSolvers(store: ContentStore): CheckResult[] {
-  return (store.cases?.() ?? []).map((rec, n) => {
+  return [...(store.cases?.() ?? []), ...(store.mockCases?.() ?? [])].map((rec, n) => {
     const id = typeof rec?.case_id === 'string' ? rec.case_id : `case file #${n + 1}`;
     if (validateCaseRecord(rec).length) return { id, check: 'C50', ok: false, detail: 'the record is not valid; see C41' };
     const key = store.caseKey?.(rec.case_id);
@@ -1266,6 +1304,383 @@ export function unbuiltItems(items: readonly SqlItem[], schemas: ReadonlySet<str
   return out;
 }
 
+// ---- sprint 7 (Task A1): C53, rank cutoffs (S7-22, E-204) ---------------------------------------------------------------------
+
+export type RankingFn = 'ROW_NUMBER' | 'RANK' | 'DENSE_RANK' | 'NTILE';
+/** The ranking functions S7-22 names, by their window type in json_serialize_sql's tree. */
+const RANKING_TYPES: Readonly<Record<string, RankingFn>> = { WINDOW_ROW_NUMBER: 'ROW_NUMBER', WINDOW_RANK: 'RANK', WINDOW_RANK_DENSE: 'DENSE_RANK', WINDOW_NTILE: 'NTILE' };
+/** A cheap look at the text first: a key with no ranking call has no ranking result to filter, and needs no parse tree. */
+const RANKING_CALL = /\b(?:row_number|rank|dense_rank|ntile)"?\s*\(/i;
+
+/** One ranking window whose result a filter compares (C53). */
+export interface RankCutoff {
+  fn: RankingFn;
+  /**
+   * ROW_NUMBER and NTILE: the plain column, lower case, that ends the window's sort order after at least one other key; else null
+   * (RANK and DENSE_RANK have no tie-break, and a window whose sort order is a single key has none either).
+   */
+  tieBreak: string | null;
+  /**
+   * The query with the other tie rule: ROW_NUMBER becomes RANK without its tie-break (ties share a place), RANK and DENSE_RANK
+   * become ROW_NUMBER (one row a place), and NTILE keeps its tie-break in the other direction. Null when it cannot be written: no
+   * tie-break, or the window cannot be found in the text.
+   */
+  otherRule: string | null;
+  /** Every comparison that filters the result keeps place 1 alone: `= 1`, `< 2` or `<= 1`, with the result on either side (S7-C06). */
+  firstPlaceOnly: boolean;
+  /** The plain column, lower case, when it is the window's whole sort order (a single key); else null (S7-C06). */
+  soleKey: string | null;
+}
+
+type TreeObj = Record<string, unknown>;
+const isTreeObj = (x: unknown): x is TreeObj => typeof x === 'object' && x !== null && !Array.isArray(x);
+const treeList = (x: unknown): unknown[] => (Array.isArray(x) ? x : []);
+
+/** Visits every object in a parse-tree value depth first, with an explicit stack; `enter` returns false to skip an object's children. */
+function walkTree(value: unknown, enter: (o: TreeObj) => boolean): void {
+  const stack: unknown[] = [value];
+  while (stack.length) {
+    const x = stack.pop();
+    if (!x || typeof x !== 'object') continue;
+    if (!Array.isArray(x) && !enter(x as TreeObj)) continue;
+    const children = Array.isArray(x) ? x : Object.values(x);
+    for (let i = children.length - 1; i >= 0; i--) stack.push(children[i]);
+  }
+}
+
+const rankingFn = (o: TreeObj): RankingFn | null => (o.class === 'WINDOW' ? RANKING_TYPES[String(o.type)] ?? null : null);
+/** A column reference's last name part, lower case: `t.rn` is `rn`. */
+const refName = (o: TreeObj): string => String(treeList(o.column_names).at(-1) ?? '').toLowerCase();
+
+/** The operands a comparison, a BETWEEN or an IN list compares; none for anything else. */
+function comparedOperands(o: TreeObj): unknown[] {
+  if (o.class === 'COMPARISON') return [o.left, o.right];
+  if (o.class === 'BETWEEN') return [o.input, o.lower, o.upper];
+  if (o.class === 'OPERATOR' && (o.type === 'COMPARE_IN' || o.type === 'COMPARE_NOT_IN')) return treeList(o.children);
+  return [];
+}
+
+/** ROW_NUMBER's and NTILE's tie-break (RankCutoff.tieBreak). */
+function tieBreakOf(w: TreeObj): string | null {
+  const fn = rankingFn(w);
+  const orders = treeList(w.orders).filter(isTreeObj);
+  const last = orders.at(-1)?.expression;
+  if ((fn !== 'ROW_NUMBER' && fn !== 'NTILE') || orders.length < 2 || !isTreeObj(last) || last.class !== 'COLUMN_REF') return null;
+  return refName(last) || null;
+}
+
+/** A window's single sort key, when it is a plain column (RankCutoff.soleKey). */
+function soleKeyOf(w: TreeObj): string | null {
+  const orders = treeList(w.orders).filter(isTreeObj);
+  const only = orders[0]?.expression;
+  return orders.length === 1 && isTreeObj(only) && only.class === 'COLUMN_REF' ? refName(only) || null : null;
+}
+
+/** A comparison's type with its two sides swapped: `2 > rn` reads as `rn < 2`. Equality reads the same both ways. */
+const SWAPPED: Readonly<Record<string, string>> = { COMPARE_LESSTHAN: 'COMPARE_GREATERTHAN', COMPARE_GREATERTHAN: 'COMPARE_LESSTHAN',
+  COMPARE_LESSTHANOREQUALTO: 'COMPARE_GREATERTHANOREQUALTO', COMPARE_GREATERTHANOREQUALTO: 'COMPARE_LESSTHANOREQUALTO' };
+/** S7-C06: the whole-number bound that keeps place 1 alone, by comparison type with the ranking result on the left: `= 1`, `< 2`, `<= 1`. */
+const FIRST_PLACE_BOUND: Readonly<Record<string, number>> = { COMPARE_EQUAL: 1, COMPARE_LESSTHAN: 2, COMPARE_LESSTHANOREQUALTO: 1 };
+
+/** Whether filter `o`, which compares the ranking result `x`, keeps place 1 alone (RankCutoff.firstPlaceOnly). */
+function keepsFirstPlace(o: TreeObj, x: TreeObj): boolean {
+  if (o.class !== 'COMPARISON') return false;
+  const onLeft = o.left === x;
+  const type = onLeft ? String(o.type) : SWAPPED[String(o.type)] ?? String(o.type);
+  const other = onLeft ? o.right : o.left;
+  const v = isTreeObj(other) && other.class === 'CONSTANT' && isTreeObj(other.value) ? other.value : null;
+  return v !== null && isTreeObj(v.type) && v.type.id === 'INTEGER' && v.is_null === false && v.value === FIRST_PLACE_BOUND[type];
+}
+
+/** A parse-tree location, a byte offset into the UTF-8 text, as a character index into `sql`; -1 when there is none. */
+function charIndex(sql: string, location: unknown): number {
+  if (typeof location !== 'number' || !Number.isSafeInteger(location) || location < 0) return -1;
+  const bytes = Buffer.from(sql, 'utf8');
+  return location > bytes.length ? -1 : bytes.subarray(0, location).toString('utf8').length;
+}
+
+/**
+ * The sort term around character `at` in a window's ORDER BY: its [from, to) span between the commas (or the ORDER BY, the frame or the
+ * closing bracket that end the list), and whether it is the list's first term. The window spec is the innermost bracket around `at`
+ * with an ORDER BY of its own before `at`, so a named window (`WINDOW w AS (...)`) is found as an inline one is. `bare` is the text
+ * with strings, comments and quoted names blanked. Null when there is no such bracket.
+ */
+function sortTermAt(bare: string, at: number): { from: number; to: number; first: boolean } | null {
+  if (at < 0) return null;
+  const open: number[] = [];
+  for (let i = 0; i < at; i++) {
+    if (bare[i] === '(') open.push(i);
+    else if (bare[i] === ')') open.pop();
+  }
+  for (let k = open.length - 1; k >= 0; k--) {
+    let orderBy = -1;
+    let end = -1;
+    const commas: number[] = [];
+    for (let i = open[k]! + 1, depth = 0; i < bare.length && end < 0; i++) {
+      const ch = bare[i]!;
+      if (ch === '(') depth++;
+      else if (ch === ')') { if (depth === 0) end = i; else depth--; }
+      else if (depth > 0) continue;
+      else if (ch === ',') commas.push(i);
+      else if (/[a-z]/i.test(ch) && !/[\w$]/.test(bare[i - 1] ?? ' ')) {
+        const word = /^(?:order\s+by|rows|range|groups)\b/i.exec(bare.slice(i))?.[0];
+        if (!word) continue;
+        if (/^order/i.test(word)) { if (i < at) orderBy = i + word.length; }
+        else if (orderBy >= 0 && i > at) end = i;            // the frame ends the sort order
+        i += word.length - 1;
+      }
+    }
+    if (orderBy < 0 || end < at) continue;
+    const cuts = commas.filter((c) => c > orderBy && c < end);
+    const before = cuts.filter((c) => c < at);
+    const after = cuts.find((c) => c >= at);
+    return { from: before.length ? before.at(-1)! + 1 : orderBy, to: after ?? end, first: before.length === 0 };
+  }
+  return null;
+}
+
+/** RankCutoff.otherRule for window `w` of `sql`; `bare` is `sql` with strings, comments and quoted names blanked. */
+function otherRuleSql(sql: string, bare: string, w: TreeObj): string | null {
+  const fn = rankingFn(w);
+  const at = charIndex(sql, w.query_location);
+  if (!fn || at < 0 || /^[a-z_]+/i.exec(bare.slice(at))?.[0].toLowerCase() !== fn.toLowerCase()) return null;
+  const edits: { from: number; to: number; text: string }[] = [];
+  if (fn !== 'NTILE') edits.push({ from: at, to: at + fn.length, text: fn === 'ROW_NUMBER' ? 'rank' : 'row_number' });
+  if (fn === 'ROW_NUMBER' || fn === 'NTILE') {
+    const last = treeList(w.orders).filter(isTreeObj).at(-1)?.expression;
+    const term = tieBreakOf(w) !== null && isTreeObj(last) ? sortTermAt(bare, charIndex(sql, last.query_location)) : null;
+    if (!term || term.first) return null;
+    const text = bare.slice(term.from, term.to);
+    if (fn === 'ROW_NUMBER') {
+      // The comma before the tie-break, and the tie-break with its direction; what follows it (a space, the frame) stays.
+      edits.push({ from: term.from - 1, to: term.to - /\s*$/.exec(text)![0].length, text: '' });
+    } else {
+      const m = /^(\s*)([\s\S]*?)(?:\s+(?:asc|desc))?(?:\s+nulls\s+(?:first|last))?\s*$/i.exec(text)!;
+      const exprTo = term.from + m[1]!.length + m[2]!.length;
+      const dir = /\b(?:asc|desc)\b/i.exec(bare.slice(exprTo, term.to));
+      edits.push(dir ? { from: exprTo + dir.index, to: exprTo + dir.index + dir[0].length, text: dir[0].toLowerCase() === 'asc' ? 'DESC' : 'ASC' }
+        : { from: exprTo, to: exprTo, text: ' DESC' });
+    }
+  }
+  return edits.sort((a, b) => b.from - a.from).reduce((s, e) => s.slice(0, e.from) + e.text + s.slice(e.to), sql);
+}
+
+/**
+ * C53's reading of one key query (S7-22): each ranking window (ROW_NUMBER, RANK, DENSE_RANK, NTILE) whose result a filter compares,
+ * in a WHERE, HAVING, QUALIFY or JOIN condition, with `=`, `<`, `<=`, `>`, `>=`, `<>`, BETWEEN or IN. The result is compared directly
+ * (`QUALIFY rank() OVER (...) <= 3`) or through its alias in any SELECT list of the statement (an outer query reading a subquery or a
+ * CTE, or QUALIFY in the same query). A ranking result compared in a SELECT list is shown, not filtered. `tree` is json_serialize_sql's
+ * reply for `sql`.
+ */
+export function rankCutoffs(tree: unknown, sql: string): RankCutoff[] {
+  const byAlias = new Map<string, TreeObj[]>();
+  const filters: unknown[] = [];
+  walkTree(tree, (o) => {
+    if (Array.isArray(o.select_list)) {
+      for (const e of o.select_list) {
+        const alias = isTreeObj(e) && rankingFn(e) && typeof e.alias === 'string' ? e.alias.toLowerCase() : '';
+        if (alias) byAlias.set(alias, [...(byAlias.get(alias) ?? []), e as TreeObj]);
+      }
+      filters.push(o.where_clause, o.having, o.qualify);
+    }
+    if (o.type === 'JOIN') filters.push(o.condition);
+    return true;
+  });
+  const windows: TreeObj[] = [];
+  const firstOnly = new Map<TreeObj, boolean>();
+  const found = (w: TreeObj, first: boolean): void => {
+    if (!windows.includes(w)) windows.push(w);
+    firstOnly.set(w, (firstOnly.get(w) ?? true) && first);
+  };
+  for (const f of filters) {
+    walkTree(f, (o) => {
+      if (isTreeObj(o.node) && String(o.node.type).endsWith('_NODE')) return false;   // a nested query: its own filters are read above
+      for (const x of comparedOperands(o)) {
+        if (!isTreeObj(x)) continue;
+        const first = keepsFirstPlace(o, x);
+        if (rankingFn(x)) found(x, first);
+        else if (x.class === 'COLUMN_REF') for (const w of byAlias.get(refName(x)) ?? []) found(w, first);
+      }
+      return true;
+    });
+  }
+  const bare = maskSql(sql).replace(/"(?:[^"]|"")*"/g, (m) => 'x'.repeat(m.length));
+  return windows.map((w) => ({ fn: rankingFn(w)!, tieBreak: tieBreakOf(w), otherRule: otherRuleSql(sql, bare, w),
+    firstPlaceOnly: firstOnly.get(w) === true, soleKey: soleKeyOf(w) }));
+}
+
+/** Words that make a sentence of the prompt one about ties. */
+const TIE_WORD = /\b(?:ties?|tied|tying|tie-?break(?:s|er|ers)?)\b/i;
+/** Words that make a sentence of the prompt one about which copy a keep-one dedup keeps (S7-C06). */
+const KEEP_WORD = /\b(?:keep|keeps|kept)\b/i;
+const promptSentences = (prompt: string): string[] => prompt.split(/(?<=[.?!])\s+/);
+const tieSentences = (prompt: string): string[] => promptSentences(prompt).filter((s) => TIE_WORD.test(s));
+
+/** `column` as a whole name, as written or with spaces for its underscores, in any case; null for an empty name. */
+function columnName(column: string): RegExp | null {
+  const words = column.split('_').filter(Boolean).map((w) => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+  return words.length ? new RegExp(`(?<![\\w$])${words.join('[_ ]')}(?![\\w$])`, 'i') : null;
+}
+
+/** S7-22: the prompt names `column` as the tie-break: a sentence about ties names it, as written or with spaces for its underscores. */
+export function namesTieBreak(prompt: string, column: string): boolean {
+  const name = columnName(column);
+  return name !== null && tieSentences(prompt).some((s) => name.test(s));
+}
+
+/** S7-C06: the prompt says which copy a keep-one dedup keeps: a sentence with keep, kept or keeps names `column`, as namesTieBreak does. */
+export function namesKeptCopy(prompt: string, column: string): boolean {
+  const name = columnName(column);
+  return name !== null && promptSentences(prompt).some((s) => KEEP_WORD.test(s) && name.test(s));
+}
+
+/** S7-22: the prompt says that ties share a place: a sentence about ties says they share it, or the same place, rank or position. */
+export function saysTiesShare(prompt: string): boolean {
+  return tieSentences(prompt).some((s) => /\bshar(?:e|es|ing)\b|\bsame\s+(?:place|rank|position)\b/i.test(s));
+}
+
+/**
+ * C53 (S7-22, E-204, Review Focus 7): every complete key query (the reference, the alternatives and the other way) that filters a
+ * ranking function's result (rankCutoffs) states its tie rule. With ROW_NUMBER (and NTILE, which splits ties as ROW_NUMBER does,
+ * E-007), the window's sort order ends in a tie-break column the prompt names in a sentence about ties. With RANK or DENSE_RANK, the
+ * prompt says that ties share a place. Then the query with the other tie rule (RankCutoff.otherRule), graded against the reference,
+ * must fail on the item's edge schema: a tie there at the cutoff is what tells the two rules apart. Details name the key query, the
+ * function, the tie-break column and the edge schema, never SQL.
+ *
+ * S7-C06 (FIND-01-13): a keep-one dedup, a ROW_NUMBER filtered to place 1 alone (RankCutoff.firstPlaceOnly) in an item with `uses_raw`
+ * true, whose sort order is a single plain column, instead needs a sentence of the prompt with keep, kept or keeps that names that
+ * column (namesKeptCopy), and its other tie rule is not graded: the resent copies are one fact with a new ID (Q-01-01), so which copy is
+ * kept changes no count or total. Every other cutoff keeps the rules above.
+ */
+export async function rankCutoffProblems(item: SqlItem, key: SqlKey, ctx: CheckContext): Promise<string[]> {
+  const named: [string, unknown][] = [['the reference', key.reference_sql], ...treeList(key.alternatives).map((s, i): [string, unknown] => [`alternative ${i + 1}`, s]),
+    ['the other way', key.other_way?.sql]];
+  const usesRaw = (item as { uses_raw?: unknown }).uses_raw === true;
+  const problems: string[] = [];
+  const read: string[] = [];
+  for (const [label, sql] of named) {
+    // The other way repeats an alternative (C39): each query is read once, under its first name.
+    if (typeof sql !== 'string' || read.some((s) => sameQuery(s, sql))) continue;
+    read.push(sql);
+    if (!RANKING_CALL.test(maskSql(sql))) continue;
+    const t = await ctx.runner.request<ParseTreeOk>({ op: 'parse_tree', schema: item.schema, allowedSchemas: [], sql });
+    if (!t.ok || t.data.tree === null) { problems.push(`${label} could not be read (see C03 and C04)`); continue; }
+    for (const cut of rankCutoffs(t.data.tree, sql)) {
+      if (usesRaw && cut.fn === 'ROW_NUMBER' && cut.firstPlaceOnly && cut.soleKey !== null) {
+        if (!namesKeptCopy(item.prompt, cut.soleKey)) {
+          problems.push(`${label} keeps one copy with ROW_NUMBER (a keep-one dedup on raw data), but the prompt does not say which copy is kept: a sentence of the prompt with keep, kept or keeps must name ${cut.soleKey} (S7-C06)`);
+        }
+        continue;
+      }
+      const keeps = `${label} keeps ${cut.fn}'s result by a comparison`;
+      if (cut.fn === 'ROW_NUMBER' || cut.fn === 'NTILE') {
+        if (cut.tieBreak === null) { problems.push(`${keeps}, but no tie-break ends its window's sort order (S7-22)`); continue; }
+        if (!namesTieBreak(item.prompt, cut.tieBreak)) { problems.push(`${keeps}, but no tie-break is stated: no sentence of the prompt about ties names ${cut.tieBreak} (S7-22)`); continue; }
+      } else if (!saysTiesShare(item.prompt)) { problems.push(`${keeps}, but the prompt does not say that ties share a place (S7-22)`); continue; }
+      const whose = `${label}'s ${cut.fn} cutoff`;
+      if (cut.otherRule === null) { problems.push(`with the other tie rule, ${whose} could not be written, so the tie at the cutoff cannot be tested`); continue; }
+      const g = await tryGrade(item, { ...key, alternatives: [] }, cut.otherRule, ctx);
+      if (g?.outcome === 'pass') problems.push(`with the other tie rule, ${whose} still passes: ${item.edge_schema} holds no tie at the cutoff`);
+      else if (!g || g.datasets.length < 2) problems.push(`with the other tie rule, ${whose} could not be graded`);
+      else if (g.datasets[1]!.passed) problems.push(`with the other tie rule, ${whose} gives the same rows on ${item.edge_schema}: it holds no tie at the cutoff`);
+    }
+  }
+  return problems;
+}
+
+// ---- sprint 7 (Task M1): C54 the mocks file and its forms, C55 the mock cases (S7-08 to S7-16) -----------------------------------
+
+/** S7-09: a screen form's items in serving order: one of each of levels 1 to 4, then two of level 5. */
+const SCREEN_LEVELS = [1, 2, 3, 4, 5, 5];
+/** The case mocks and the kind of case each form runs (S7-14, S7-15). */
+const CASE_MOCKS = ['case_round', 'take_home'] as const;
+
+/**
+ * C54 (S7-08, S7-09; D114). One result for content/mocks.json, named `mocks.json`: the file is there and validates (validateMocksFile;
+ * the store refuses a malformed one before this runs), every screen form's item is a mock item with use `mock`, each form holds one item
+ * of each of levels 1 to 4, then two of level 5, in that order (the target concept's curriculum level), and every case form's case is a
+ * mock case of the form's kind. Then one result per mock item, named by its ID: it is in exactly one form (a screen form's items, or the
+ * CP3 of the case a case form runs), and no level drill pool (`drills`), case or lesson names it, nor does its key hold an other way
+ * ("other ways" never shows a mock item). With every forms empty and no mock item, the one result passes. Names IDs only.
+ */
+export function checkMocks(store: ContentStore, drills: DrillFile | null): CheckResult[] {
+  const file = store.mocks;
+  const why: string[] = [];
+  const formsOf = new Map<string, string[]>();
+  const inForm = (itemId: string, formId: string): void => { formsOf.set(itemId, [...(formsOf.get(itemId) ?? []), formId]); };
+  if (!file) why.push('content/mocks.json is missing');
+  else {
+    why.push(...validateMocksFile(file));
+    if (why.length === 0) {
+      for (const form of file.screen.forms) {
+        const levels: number[] = [];
+        for (const id of form.item_ids) {
+          inForm(id, form.id);
+          const item = store.mockItem?.(id);
+          if (!item) { why.push(`${form.id}: ${id} is missing`); continue; }
+          if (item.use !== 'mock') why.push(`${form.id}: ${id} must have use mock`);
+          levels.push(conceptLevel(item, store.curriculum));
+        }
+        if (levels.length === form.item_ids.length && levels.join() !== SCREEN_LEVELS.join()) {
+          why.push(`${form.id} must hold one item of each of levels 1 to 4, then two of level 5, in that order (S7-09)`);
+        }
+      }
+      for (const kind of CASE_MOCKS) for (const form of file[kind].forms) {
+        const rec = store.mockCase?.(form.case_id);
+        if (!rec) { why.push(`${form.id}: ${form.case_id} is missing from content/sql/mocks/`); continue; }
+        if (rec.kind !== kind) why.push(`${form.id}: ${form.case_id} must have kind ${kind}`);
+        const cp3 = Array.isArray(rec.checkpoints) ? rec.checkpoints.find((c) => c?.kind === 'CP3')?.item_id : undefined;
+        if (typeof cp3 === 'string') inForm(cp3, form.id);
+      }
+    }
+  }
+  const out: CheckResult[] = [{ id: 'mocks.json', check: 'C54', ok: why.length === 0, detail: why.join('; ') }];
+  // Where practice content names an item: the level drill pools, every case's checkpoints and every lesson's items.
+  const namedBy = new Map<string, string[]>();
+  const named = (itemId: unknown, where: string): void => { if (typeof itemId === 'string') namedBy.set(itemId, [...(namedBy.get(itemId) ?? []), where]); };
+  for (const d of drills?.levels ?? []) for (const id of d.pool_item_ids) named(id, `the level ${d.level} drill pool`);
+  for (const rec of [...(store.cases?.() ?? []), ...(store.openers?.() ?? [])]) for (const c of Array.isArray(rec?.checkpoints) ? rec.checkpoints : []) named(c?.item_id, String(rec.case_id));
+  for (const conceptId of store.conceptsWithContent()) {
+    const lesson = store.lesson(conceptId);
+    for (const id of lesson ? lessonItemIds(lesson) : []) named(id, `the ${conceptId} lesson`);
+  }
+  for (const item of store.mockItems?.() ?? []) {
+    const fault: string[] = [];
+    const forms = formsOf.get(item.id) ?? [];
+    if (forms.length === 0) fault.push('it is in no form of content/mocks.json');
+    else if (forms.length > 1) fault.push(`it is in ${forms.length} forms (${forms.join(', ')}): a mock item is in exactly one`);
+    for (const where of [...new Set(namedBy.get(item.id) ?? [])]) fault.push(`${where} names it: a mock item is held out of practice (S7-08)`);
+    if (store.key(item.id)?.other_way) fault.push('its key has an other way: set other_way to null, as "other ways" never shows a mock item (S7-08)');
+    out.push({ id: item.id, check: 'C54', ok: fault.length === 0, detail: fault.join('; ') });
+  }
+  return out;
+}
+
+/**
+ * C55 (S7-08, S7-13 to S7-15): each case in content/sql/mocks/, one result per case, named by case ID: it is a case-round or a take-home
+ * (the folder holds nothing else), it lists CP1 to CP6, its CP3 item is a mock item with use `mock`, and a take-home reads raw data
+ * (`uses_raw`). A record that does not validate is C41's. None when there is no mock case. Names IDs and fields only.
+ */
+export function checkMockCases(store: ContentStore): CheckResult[] {
+  return (store.mockCases?.() ?? []).map((rec, n) => {
+    const id = typeof rec?.case_id === 'string' ? rec.case_id : `sql/mocks case file #${n + 1}`;
+    const why: string[] = [];
+    if (!isMockCaseKind(rec?.kind)) why.push('content/sql/mocks/ holds the mock cases only: kind case_round or take_home');
+    if (validateCaseRecord(rec).length) return { id, check: 'C55', ok: false, detail: [...why, 'the record is not valid; see C41'].join('; ') };
+    const kinds = new Set<string>(rec.checkpoints.map((c) => c.kind));
+    const missing = ['CP1', 'CP2', 'CP3', 'CP4', 'CP5', 'CP6'].filter((k) => !kinds.has(k));
+    if (missing.length) why.push(`a mock case lists CP1 to CP6: it has no ${missing.join(', ')}`);
+    const cp3 = rec.checkpoints.find((c) => c.kind === 'CP3')?.item_id;
+    if (typeof cp3 === 'string') {
+      const item = store.mockItem?.(cp3);
+      if (!item) why.push(`${cp3} is missing`);
+      else if (item.use !== 'mock') why.push(`${cp3} must have use mock`);
+    }
+    if (rec.kind === 'take_home' && rec.uses_raw !== true) why.push('a take-home has uses_raw true (S7-15)');
+    return { id, check: 'C55', ok: why.length === 0, detail: why.join('; ') };
+  });
+}
+
 /**
  * C30 (Task C8): every reading file of GA4 and Methodology passes schemas/reading.ts (the store leaves a failing one out and
  * names it), and every level 1 concept (D12, D13) has a reading. One result per concept, named by concept ID; a failing file is
@@ -1380,19 +1795,51 @@ export async function checkLabs(store: ContentStore, root: string): Promise<Chec
 /**
  * C46 (sprint 5b, Task B4 fix; ruling 8): the full mock of the entry in force on `today` (the latest entry dated on or before it, or
  * the first when all are later) and of every later-dated entry asks no more questions than the held-out pool, the active, core,
- * keyed GA4 items held out (routes/run.ts poolOf draws from the same set). An older entry only scores older runs, so it is not
- * checked; a later entry is, so a future one cannot hide a pool too short for it. One result; none when there is no
- * content/ga4/exam.json. The detail names each failing entry by its `from` date and gives counts only.
+ * keyed GA4 items held out and not in the knowledge pool (server/run.ts ga4ExamPool, which routes/run.ts draws from; S7-11). An older
+ * entry only scores older runs, so it is not checked; a later entry is, so a future one cannot hide a pool too short for it. One result;
+ * none when there is no content/ga4/exam.json. The detail names each failing entry by its `from` date and gives counts only.
  */
 export function checkFullMockPool(store: ContentStore, today: string = amsterdamDate(new Date())): CheckResult[] {
   const cfg = store.ga4Exam?.();
   if (!cfg) return [];
-  const pool = (store.choiceItems?.('ga4') ?? []).filter((i) => i.section === 'ga4' && (store.heldOut?.(i.id) ?? false) && i.status === 'active'
-    && i.exam_relevance === 'core' && store.choiceKey?.(i.id) !== undefined).length;
+  const pool = ga4ExamPool(store).length;
   const inForce = Math.max(0, cfg.dated.findLastIndex((d) => d.from <= today));
   const why = cfg.dated.slice(inForce).filter((d) => d.full_mock.questions > pool)
     .map((d) => `the full mock from ${d.from} asks ${d.full_mock.questions} questions, more than the ${pool} of the held-out pool (active core GA4 items held out, with a key)`);
   return [{ id: 'ga4/exam.json', check: 'C46', ok: why.length === 0, detail: why.join('; ') }];
+}
+
+/**
+ * C56 (sprint 7 Part 2, Task N1; S7-10, S7-11, ruling S7-C21): content/ga4/knowledge-pool.json, the knowledge mock's GA4 questions. One
+ * result named for the file: no item listed twice, no two of one enemy group, and, once it lists any item, at least per_section.ga4 of
+ * them (an empty pool passes until Task P1 fills it). Then one result per item it lists, named by its ID: a GA4 item, held out by its own
+ * flag (practice never serves it), and not in `examPool` (ga4/held-out.json: the GA4 half and full mock pool). Names IDs only.
+ */
+export function checkKnowledgePool(store: ContentStore, examPool: readonly string[]): CheckResult[] {
+  const listed = store.knowledgePool?.() ?? [];
+  const ids = [...new Set(listed)];
+  const why = ids.filter((id) => listed.indexOf(id) !== listed.lastIndexOf(id)).map((id) => `${id} is listed twice`);
+  const need = store.mocks?.knowledge.per_section.ga4 ?? 0;
+  if (ids.length > 0 && ids.length < need) why.push(`the pool lists ${ids.length} items; the knowledge mock asks ${need} GA4 questions (per_section.ga4), so it needs at least ${need}`);
+  const groups = new Map<string, string[]>();
+  for (const id of ids) {
+    const g = store.choiceItem?.(id)?.enemy_group;
+    if (g) groups.set(g, [...(groups.get(g) ?? []), id]);
+  }
+  for (const [g, members] of [...groups].sort(([a], [b]) => a.localeCompare(b))) {
+    if (members.length > 1) why.push(`${g} holds ${members.length} pool items (${members.join(', ')}); at most 1 may be`);
+  }
+  const exam = new Set(examPool);
+  return [{ id: KNOWLEDGE_POOL_FILE, check: 'C56', ok: why.length === 0, detail: why.join('; ') }, ...ids.map((id): CheckResult => {
+    const item = store.choiceItem?.(id);
+    const fault: string[] = [];
+    if (item?.section !== 'ga4') fault.push('it is not a GA4 item');
+    else {
+      if (item.held_out !== true) fault.push('held_out must be true: practice never serves a pool item');
+      if (exam.has(id)) fault.push('ga4/held-out.json lists it: a pool item is not in the GA4 half or full mock pool');
+    }
+    return { id, check: 'C56', ok: fault.length === 0, detail: fault.join('; ') };
+  })];
 }
 
 /** The line check:content prints for the lab checks, or null when there are none. */
@@ -1458,15 +1905,57 @@ async function itemFiles(dir: string): Promise<{ ids: string[]; unreadable: stri
   return { ids, unreadable };
 }
 
+/** Every check ID the check tools define, C01 to C56 (a test keeps this list whole when a check is added). */
+export const CHECK_IDS: readonly string[] = Array.from({ length: 56 }, (_, i) => `C${String(i + 1).padStart(2, '0')}`);
+
+/**
+ * The checks that run on the built database (the runner): item checks, the case checks C41 and C47, C51 to C53, the SQL choice checks.
+ * This list and CHOICE_CHECK_IDS decide which stages a partial run skips; tests/tools/check-content-only.test.ts reads the code each
+ * `wants(<list>)` guards in main and fails when it can write a check ID its list lacks.
+ */
+export const DB_CHECK_IDS: ReadonlySet<string> = new Set([...CHECK_IDS.filter((id) => id <= 'C18'), 'C29', 'C30', ...CHECK_IDS.filter((id) => id >= 'C31' && id <= 'C41'),
+  'C47', 'C51', 'C52', 'C53']);
+/** The choice checks (tools/check-choice.ts); the full list of IDs those files write. */
+export const CHOICE_CHECK_IDS: readonly string[] = ['C01', 'C14', ...CHECK_IDS.filter((id) => id >= 'C20' && id <= 'C28'), ...CHECK_IDS.filter((id) => id >= 'C31' && id <= 'C37')];
+
+/**
+ * S7-C27: the command line, `[content-root] [--only <IDs>]` (also `--only=<IDs>`). `only` is the listed check IDs, or null for the full
+ * run. An unknown ID, a missing list or any other flag is an error, returned before anything runs.
+ */
+export function parseCheckArgs(args: readonly string[]): { root: string | undefined; only: string[] | null } | { error: string } {
+  let root: string | undefined;
+  let list: string | undefined;
+  for (let i = 0; i < args.length; i++) {
+    const a = args[i]!;
+    if (a === '--only') { list = args[++i] ?? ''; continue; }
+    if (a.startsWith('--only=')) { list = a.slice('--only='.length); continue; }
+    if (a.startsWith('--')) return { error: `unknown option: ${a}` };
+    root ??= a;
+  }
+  if (list === undefined) return { root, only: null };
+  const only = list.split(',').map((x) => x.trim()).filter(Boolean);
+  if (only.length === 0) return { error: '--only needs a comma-separated list of check IDs, such as --only C14,C25' };
+  const unknown = only.filter((id) => !CHECK_IDS.includes(id));
+  if (unknown.length) return { error: `unknown check ID${unknown.length === 1 ? '' : 's'}: ${unknown.join(', ')}` };
+  return { root, only: [...new Set(only)] };
+}
+
 async function main(): Promise<void> {
   const at = (p: string) => fileURLToPath(new URL(`../${p}`, import.meta.url));
-  const root = process.argv[2] ? resolve(process.argv[2]) : at('content');
+  const parsed = parseCheckArgs(process.argv.slice(2));
+  if ('error' in parsed) { console.error(parsed.error); process.exitCode = 1; return; }
+  const onlySet = parsed.only ? new Set(parsed.only) : null;
+  /** Whether any listed check could come from a family of these IDs (always, on a full run): lets a partial run skip the work. */
+  const wants = (ids: Iterable<string>): boolean => !onlySet || [...ids].some((id) => onlySet.has(id));
+  const root = parsed.root ? resolve(parsed.root) : at('content');
   // C41 reads every CP2 and CP4 value from the truth file the build wrote (S6-13: checkpoints.json, or an older build's voltmarkt.json),
   // beside the database the item checks run on.
   const store = await loadContentForCli(root, { checkpointsFile: at('data/truth/checkpoints.json'), truthFile: at('data/truth/voltmarkt.json') });
   if (!store) return;
   const results: CheckResult[] = [];
   const ids: string[] = [];
+  // S7-08: a held-out mock item is not in item(), but it takes every item check like any other (only the checks read the mock map).
+  const sqlItemOf = (id: string): SqlItem | undefined => store.item(id) ?? store.mockItem?.(id);
   for (const conceptId of store.conceptsWithContent()) {
     const lesson = store.lesson(conceptId)!;
     results.push(...checkLesson(lesson, store));
@@ -1491,8 +1980,15 @@ async function main(): Promise<void> {
   // C51: the dataset registry, its prep scripts (paths from the project root) and the cases on its data.
   results.push(...checkDatasets(store, (p) => existsSync(at(p))));
   results.push(...checkReadings(store));
-  results.push(...(await checkLabs(store, root)));
+  if (wants(LAB_CHECK_IDS)) results.push(...(await checkLabs(store, root)));
   results.push(...checkFullMockPool(store));
+  // C56 (sprint 7 Part 2): the knowledge pool, against the GA4 exam pool ga4/held-out.json lists (an unreadable file is C25's to name).
+  let examPool: string[] = [];
+  try {
+    const ids = (JSON.parse(await readFile(join(root, 'ga4/held-out.json'), 'utf8')) as { item_ids?: unknown } | null)?.item_ids;
+    if (Array.isArray(ids)) examPool = ids.filter((x): x is string => typeof x === 'string');
+  } catch { /* none */ }
+  results.push(...checkKnowledgePool(store, examPool));
   // C19 and C49 read content/sql/drills.json through the app's own parser (server/drill.ts, which knows the cumulative entry's shape,
   // P12); a missing file means no drills yet, one the parser refuses is one failure, named by its message (fields, never content).
   const allItems = files.ids.map((i) => store.item(i)).filter((i): i is SqlItem => !!i);
@@ -1507,12 +2003,14 @@ async function main(): Promise<void> {
     results.push(...checkDrillPools(drillFile.levels, allItems), ...checkCumulativeDrills(drillFile, store.curriculum));
     results.push(...checkLevel4Drills(drillFile, allItems, store.curriculum));
   }
+  // C54 and C55 (sprint 7): the mocks file and its forms, and the mock cases.
+  results.push(...checkMocks(store, drillFile), ...checkMockCases(store));
   // C48: the level 4 traps, on every SQL item and its key.
   results.push(...checkLevel4Traps(allItems, (id) => store.key(id)));
   for (const n of files.unreadable) results.push({ id: `sql/items/${n}`, check: 'C01', ok: false, detail: 'not valid JSON, or has no id' });
-  const active = [...new Set(ids)].filter((id) => store.item(id)?.status === 'active');
-  const hasCases = (store.cases?.() ?? []).length > 0;
-  if (active.length || hasCases) {
+  const active = [...new Set(ids)].filter((id) => sqlItemOf(id)?.status === 'active');
+  const hasCases = (store.cases?.() ?? []).length > 0 || (store.mockCases?.() ?? []).length > 0;
+  if ((active.length || hasCases) && wants(DB_CHECK_IDS)) {
     // The runner and the built data are needed only when there is an item or a case to check.
     const manifest = JSON.parse(await readFile(at('data/manifest.json'), 'utf8'));
     const constructs = JSON.parse(await readFile(join(root, 'sql/constructs.json'), 'utf8'));
@@ -1526,15 +2024,15 @@ async function main(): Promise<void> {
       results.push(...(await checkRawCases(store, runner)));
       // C51 (the backlog row "Case build and inbox details"): an item on a registry dataset that is not prepared is skipped by name, as
       // C41 skips its case; the checks below run on the rest.
-      const skips = unbuiltItems(active.map((id) => store.item(id)!), await schemasIn(runner), store);
+      const skips = unbuiltItems(active.map((id) => sqlItemOf(id)!), await schemasIn(runner), store);
       results.push(...skips);
       const waiting = new Set(skips.map((r) => r.id));
       const checkable = active.filter((id) => !waiting.has(id));
       // C52 (F2): every table the schema panel shows an item at its level is in the item's edge schema, from the notes the build wrote.
       const notes = JSON.parse(await readFile(at('data/schema-notes.json'), 'utf8')) as TableNote[];
-      results.push(...(await checkEdgePanelsOnDb(checkable.map((id) => store.item(id)!), notes, runner)));
+      results.push(...(await checkEdgePanelsOnDb(checkable.map((id) => sqlItemOf(id)!), notes, runner)));
       for (const id of checkable) {
-        const item = store.item(id)!;
+        const item = sqlItemOf(id)!;
         // S3-13: an SQL choice item has a choice key and its own checks (tools/check-sql-choice.ts), never the write checks.
         if (isSqlChoiceKind(item.kind)) { results.push(...(await checkSqlChoiceItem(item, store.sqlChoiceKey?.(id), ctx))); continue; }
         const key = store.key(id);
@@ -1545,15 +2043,19 @@ async function main(): Promise<void> {
       await runner.close();
     }
   }
-  results.push(...(await checkChoice(root)));
+  if (wants(CHOICE_CHECK_IDS)) results.push(...(await checkChoice(root)));
+  // A partial run keeps only the listed checks' results (S7-C27), so what prints and counts is theirs alone.
+  if (onlySet) results.splice(0, results.length, ...results.filter((r) => onlySet.has(r.check)));
   for (const r of results.filter((x) => !x.ok)) console.log(`${r.warn ? 'WARN' : 'FAIL'} ${r.check} ${r.id} ${r.detail}`);
   const tally = tallyLine(results);
   if (tally) console.log(tally);
-  console.log(sqlChoiceTallyLine(results));
+  if (wants(['C31', 'C32', 'C33', 'C34', 'C35', 'C36', 'C37'])) console.log(sqlChoiceTallyLine(results));
   const labTally = labTallyLine(results);
   if (labTally) console.log(labTally);
   const failed = results.filter((r) => !r.ok && !r.warn);
-  console.log(`${results.length - failed.length}/${results.length} checks passed, ${new Set(results.map((r) => r.id)).size} items and lessons`);
+  const partial = parsed.only ? ` (only ${parsed.only.join(', ')})` : '';
+  for (const id of parsed.only ?? []) if (!results.some((r) => r.check === id)) console.log(`NOTE no results for ${id}`);
+  console.log(`${results.length - failed.length}/${results.length} checks passed${partial}, ${new Set(results.map((r) => r.id)).size} items and lessons`);
   if (failed.length) process.exitCode = 1;
 }
 

@@ -1,0 +1,188 @@
+{
+  "id": "EX-MOCK-SCREEN-C-05",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "mock",
+    "screen",
+    "ntile",
+    "quartiles",
+    "top_quarter_per_group",
+    "sales"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-07"
+  ],
+  "verified": true,
+  "as_of": "2026-10-21",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "mock",
+  "target_concept_id": "SQL-WIN-07",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CTE-01",
+    "SQL-WIN-01",
+    "SQL-WIN-07"
+  ],
+  "template_id": "T-MOCK-SCREEN-top-quarter-per-parent-category",
+  "template_params": {
+    "table": "sales",
+    "from": "2025-01-01",
+    "to": "2025-06-30",
+    "fn": "NTILE",
+    "buckets": 4,
+    "keep": 1,
+    "order": "units, highest first"
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_win",
+  "prompt": "The buying team wants the fastest movers of each parent category in the first half of 2025. Use the sales rows whose order_date falls from 1 January 2025 to 30 June 2025, both days included. A product's units_sold is the total of its units in those rows; only products with at least one such row count. Within each parent category, line the products up by units_sold from the highest down and split them into four quarters of as equal a size as possible, in that order: when the number of products does not divide by four, each of the first quarters takes one product more than the later ones. When products tie on units_sold, the product with the lower product_id comes first. Which products are in the first quarter of their parent category? Return four columns, in this order: parent_category, product_id, product_name and units_sold. Sort by parent_category from A to Z, then by units_sold from highest to lowest, then by product_id from low to high.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "parent_category",
+        "type_class": "text"
+      },
+      {
+        "name": "product_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "product_name",
+        "type_class": "text"
+      },
+      {
+        "name": "units_sold",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": true,
+    "sort_keys": [
+      {
+        "column": "parent_category",
+        "desc": false
+      },
+      {
+        "column": "units_sold",
+        "desc": true
+      },
+      {
+        "column": "product_id",
+        "desc": false
+      }
+    ],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "parent_category",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "product_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "product_name",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "units_sold",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "product_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write each product's units for the period, then split the products of each parent category into four quarters from the most units down.",
+    "The split needs the tie-break as a second sort key inside the window, and the filter on the quarter goes in an outer query."
+  ],
+  "subgoals": [
+    {
+      "from": 85,
+      "to": 159,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 162,
+      "to": 172,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 175,
+      "to": 239,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 242,
+      "to": 292,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 378,
+      "to": 547,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 550,
+      "to": 568,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 571,
+      "to": 631,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 632,
+      "to": 646,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 647,
+      "to": 670,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 671,
+      "to": 724,
+      "subgoal": "sort_limit"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "NTILE(4) over each parent category, ordered by units and then product_id, puts the products into four quarters the same way on every run."
+}

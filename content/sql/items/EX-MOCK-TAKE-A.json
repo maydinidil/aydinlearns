@@ -1,0 +1,236 @@
+{
+  "id": "EX-MOCK-TAKE-A",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "mock",
+    "take_home",
+    "pricing",
+    "data_quality",
+    "orders",
+    "order_lines",
+    "products"
+  ],
+  "level": 5,
+  "source_ids": [
+    "04:MET-PRICE-03",
+    "05:Q-01-01",
+    "05:Q-01-02",
+    "05:Q-01-05",
+    "ERRATA:E-202"
+  ],
+  "verified": true,
+  "as_of": "2026-10-22",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "mock",
+  "target_concept_id": "SQL-WIN-06",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-SORT-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CASE-01",
+    "SQL-TYPE-01",
+    "SQL-DATE-01",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-CLEAN-01",
+    "SQL-WIN-01",
+    "SQL-WIN-02",
+    "SQL-WIN-03",
+    "SQL-WIN-06"
+  ],
+  "template_id": "T-MOCK-TAKE-A-discount-depth",
+  "template_params": {
+    "year": 2024,
+    "quirks": "Q-01-01,Q-01-02,Q-01-05",
+    "grain": "month"
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "voltmarkt",
+  "schema": "voltmarkt_raw",
+  "edge_schema": "voltmarkt_edge_clean",
+  "uses_raw": true,
+  "prompt": "Joost, the pricing lead, is preparing the 2024 price review for the board and asks how deep Voltmarkt's discounts went in each month of 2024, store and web together, measured on the raw till and webshop tables. These tables may hold errors. Date every order by its day on Amsterdam's clock: a store order's order_ts holds the store's local time, which in every Voltmarkt country is Amsterdam's clock, so take its date as stored; a web order's order_ts holds UTC, so turn it into Amsterdam time first, then take the date. Count the orders placed from 1 January to 31 December 2024, both included, by that day. Two lines are copies of one order line when order_id, product_id, quantity, unit_price_eur, promo_id and line_discount_eur all match, with a missing promo_id matching a missing one. In each set of copies, keep the line with the lowest order_line_id and drop the others. A line is priced in cents when its unit_price_eur is more than 10 times its product's unit_cost_eur; its unit price in euros is then unit_price_eur divided by 100, while line_discount_eur is in euros already. A line's gross value is quantity times its unit price in euros, and a month's discount depth is 100 times the line_discount_eur of its lines divided by their gross value. Return one row for each month of 2024, with six columns in this order: month_start, the first day of the month; gross_eur, the month's gross value once the copies are dropped and the prices in cents are turned into euros; discount_eur, the month's line_discount_eur once the copies are dropped; depth_pct, the month's discount depth from those cleaned lines, rounded to 2 decimals; depth_as_stored_pct, the same depth from every line of the month's orders exactly as stored, copies and prices in cents included, rounded to 2 decimals; and change_pts, depth_pct minus the depth of the previous month of the result, in percentage points, worked out from the unrounded depths and then rounded to 2 decimals, which is missing for the first month. Do not round gross_eur or discount_eur. Sort by month_start from early to late.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "month_start",
+        "type_class": "temporal"
+      },
+      {
+        "name": "gross_eur",
+        "type_class": "numeric"
+      },
+      {
+        "name": "discount_eur",
+        "type_class": "numeric"
+      },
+      {
+        "name": "depth_pct",
+        "type_class": "numeric"
+      },
+      {
+        "name": "depth_as_stored_pct",
+        "type_class": "numeric"
+      },
+      {
+        "name": "change_pts",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": true,
+    "sort_keys": [
+      {
+        "column": "month_start",
+        "desc": false
+      }
+    ],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "month_start",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "gross_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "discount_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "depth_pct",
+        "type_class": "numeric",
+        "precision": "ratio",
+        "require_rounding": 2
+      },
+      {
+        "name": "depth_as_stored_pct",
+        "type_class": "numeric",
+        "precision": "ratio",
+        "require_rounding": 2
+      },
+      {
+        "name": "change_pts",
+        "type_class": "numeric",
+        "precision": "ratio",
+        "require_rounding": 2
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "month_start"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, give each order its day on Amsterdam's clock, then keep the lines of the orders placed in 2024.",
+    "Number the lines in each set of copies by order_line_id and keep the first, turn a unit price above 10 times the unit cost into euros, add up each month twice, cleaned and as stored, then set each cleaned depth against the previous month."
+  ],
+  "subgoals": [
+    {
+      "from": 81,
+      "to": 280,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 283,
+      "to": 294,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 407,
+      "to": 757,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 760,
+      "to": 886,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 889,
+      "to": 967,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 1048,
+      "to": 1156,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 1159,
+      "to": 1169,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 1172,
+      "to": 1192,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 1294,
+      "to": 1497,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 1500,
+      "to": 1510,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 1513,
+      "to": 1530,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 1533,
+      "to": 1553,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 1585,
+      "to": 1928,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 1929,
+      "to": 1999,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 2000,
+      "to": 2022,
+      "subgoal": "sort_limit"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "Each set of copies counts once, cents become euros and every order sits on Amsterdam's clock, so each month's depth divides real discounts by real gross value."
+}

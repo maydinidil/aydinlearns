@@ -7,7 +7,8 @@ import type { LabPart } from '../../schemas/lab.ts';
 import { NOTE_LABEL, SELF_MATCH, SELF_NO_MATCH } from '../../web/src/lib/lab-flow.ts';
 import { TUTOR_WAITS } from '../../web/src/tutor/snapshot.ts';
 import {
-  choiceQuickPrompts, drillMarkPart, exercisePanelPart, explorerPart, gradeQuickPrompts, labAnswersPart, labelledFieldsPart, optionText, textPart, tutorAvailable,
+  choiceQuickPrompts, drillMarkPart, exercisePanelPart, explorerPart, gradeQuickPrompts, labAnswersPart, labelledFieldsPart, mockReviewPart, optionText,
+  SECOND_OPINION, secondOpinionPrompts, textPart, tutorAvailable,
 } from '../../web/src/lib/tutor-parts.ts';
 
 const panel = { itemId: 'SQL-AGG-01-03', instanceId: 'I-1', phase: 'free', passed: false, answerShown: false, query: 'SELECT 1', hintsShown: 2, loaded: true, inView: true, unanswered: false };
@@ -126,4 +127,25 @@ test('the quick prompts show only while the tutor is on and no run\'s clock clos
   assert.deepEqual(choiceQuickPrompts(on, { correct: true }), []);
   assert.deepEqual(choiceQuickPrompts(on, null), [], 'not answered yet');
   assert.deepEqual(choiceQuickPrompts(closed, { correct: false }), []);
+});
+
+test('S7-17: a case mock review\'s CP6 offers the second opinion while the tutor is on and something was written; never while a run\'s clock closes it', () => {
+  assert.deepEqual(SECOND_OPINION.question, 'Grade my written answer against each rubric line: met or not, with one reason each.');
+  assert.deepEqual(secondOpinionPrompts({ enabled: true, closedBy: null }, true), [SECOND_OPINION]);
+  assert.deepEqual(secondOpinionPrompts({ enabled: true, closedBy: null }, false), [], 'nothing written: nothing to grade');
+  assert.deepEqual(secondOpinionPrompts({ enabled: false, closedBy: null }, true), [], 'the tutor off');
+  assert.deepEqual(secondOpinionPrompts({ enabled: true, closedBy: TUTOR_WAITS }, true), [], 'a run on');
+  assert.deepEqual(secondOpinionPrompts(null, true), []);
+});
+
+test('S7-17: the review\'s part holds the learner\'s text, the model answer and the rubric lines, core lines marked, and names no item', () => {
+  const rubric = [{ id: 'number', label: 'States the number' }, { id: 'driver', label: 'Names what drives it' }];
+  const p = mockReviewPart({ memo: true, written: '  My invented memo.  ', modelAnswer: 'The invented model answer.', rubric, core: ['number'] });
+  assert.equal(p.label, 'Take-home review: CP6, the written answer');
+  assert.equal(p.text, ['The learner\'s memo:', 'My invented memo.', '', 'The model answer:', 'The invented model answer.', '',
+    'The rubric lines (the core lines decide the checkpoint):', '- States the number (core)', '- Names what drives it'].join('\n'));
+  assert.equal(p.item, undefined, 'no item instance: a second opinion is not help (S7-17)');
+  const none = mockReviewPart({ memo: false, written: null, modelAnswer: 'M.', rubric, core: [] });
+  assert.equal(none.label, 'Case-round review: CP6, the written answer');
+  assert.match(none.text, /^The learner's insight:\n\(nothing written\)\n/);
 });

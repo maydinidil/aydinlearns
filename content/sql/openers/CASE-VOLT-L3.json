@@ -62,7 +62,7 @@
         },
         {
           "oid": "o1efb5e7",
-          "text": "Join order_lines to promotion_products on product_id to find each promotion's lines, then group by promotion and add them up."
+          "text": "Join order_lines to promotion_products on product_id, so each promotion gets every line of its products, then group by promotion and add them up."
         }
       ]
     },
@@ -98,7 +98,7 @@
     {
       "id": "CP4",
       "kind": "CP4",
-      "prompt": "Fleur's headline: across all order lines that carried a promotion with a start_date from 2025-01-01 to 2025-12-31, both days included, and a discount_pct of 30 or more, what was the gross margin as a percentage of net revenue? A line's net revenue is quantity times unit_price_eur minus line_discount_eur, and its gross margin is that net revenue minus quantity times the product's unit_cost_eur. Add up the margin and the net revenue over all those lines, counting each order line once, then divide the margin by the net revenue and multiply by 100. Type the percentage with 1 decimal, for example -12.5.",
+      "prompt": "Fleur's headline: across all order lines that carried a promotion with a start_date from 2025-01-01 to 2025-12-31, both days included, and a discount_pct of 30 or more, what was the gross margin as a percentage of net revenue? A line's net revenue is quantity times unit_price_eur minus line_discount_eur, and its gross margin is that net revenue minus quantity times the product's unit_cost_eur in products. Add up the margin and the net revenue over all those lines, counting each order line once, then divide the margin by the net revenue and multiply by 100. Type the percentage with 1 decimal, for example -12.5.",
       "credits_concepts": [],
       "item_id": "CASE-VOLT-L3:CP4",
       "typed": {

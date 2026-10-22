@@ -4,21 +4,26 @@ import { readFile, readdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { Curriculum } from '../schemas/concepts.ts';
 import type { Lesson } from '../schemas/lesson.ts';
-import type { SqlItem } from '../schemas/item.ts';
+import { MOCK_ITEM_PREFIX, type SqlItem } from '../schemas/item.ts';
 import type { SqlKey } from '../schemas/keys.ts';
 import type { EdgeDescription } from '../schemas/edge.ts';
-import { caseSchema, type CaseKey, type CaseRecord } from '../schemas/case.ts';
+import { caseSchema, type CaseKey, type CaseRecord, type MockCaseRecord } from '../schemas/case.ts';
 import type { Goal } from '../core/goals.ts';
 import { choiceTarget, type ChoiceConcept, type ChoiceConceptFile, type ChoiceItem, type ChoiceKey, type ChoiceSection, type HeldOutFile } from '../schemas/choice.ts';
 import { validateReading, type Reading } from '../schemas/reading.ts';
 import { GA4_EXAM_FILE, parseGa4Exam, type Ga4ExamConfig } from '../schemas/ga4-exam.ts';
 import { validateLab, validateLabGuide, validateLabKey, type Lab, type LabGuide, type LabKey } from '../schemas/lab.ts';
 import { REGISTRY_FILE, registryRecords, validateDataset, type DatasetRecord } from '../schemas/dataset.ts';
+import { MOCKS_FILE, validateMocksFile, type MocksFile } from '../schemas/mock.ts';
 
 /** Sprint 5b (Task B1): where the GA4 labs, their keys and their guide sit under the content root. */
 export const LAB_DIR = 'ga4/labs';
 export const LAB_KEY_DIR = 'keys/ga4/labs';
 export const LAB_GUIDE_FILE = 'ga4/lab-guide.json';
+/** Sprint 7 (S7-08): where the held-out mock cases sit under the content root, one file per case (<case_id>.json). */
+export const MOCK_CASE_DIR = 'sql/mocks';
+/** Sprint 7 Part 2 (S7-10, S7-11): the knowledge mock's GA4 questions, `{ "item_ids": [...] }`, under the content root. */
+export const KNOWLEDGE_POOL_FILE = 'ga4/knowledge-pool.json';
 
 /**
  * A content file that parsed but failed its validator (sprint 5b: a lab or the lab guide). The load stops, and the message starts
@@ -92,8 +97,16 @@ export interface ContentStore {
    */
   choiceItem?(id: string): ChoiceItem | undefined;
   choiceKey?(id: string): ChoiceKey | undefined;
-  /** S2-64: held out by the item's own flag or by content/<section>/held-out.json. No practice route serves it. */
+  /**
+   * S2-64: held out by the item's own flag or by content/<section>/held-out.json, and (S7-11) by content/ga4/knowledge-pool.json. No
+   * practice route serves it.
+   */
   heldOut?(id: string): boolean;
+  /**
+   * Sprint 7 Part 2 (S7-10, S7-11): content/ga4/knowledge-pool.json's item IDs, in file order: the knowledge mock's GA4 questions, held
+   * out (heldOut) and never in the GA4 half or full mock pool (server/run.ts ga4ExamPool). Empty with no file; content check C56 checks it.
+   */
+  knowledgePool?(): string[];
   /** Task C5: a GA4 or Methodology section's concepts in their file's order (06's index for GA4), 10 concepts included. */
   choiceConcepts?(section: ChoiceSection): ChoiceConcept[];
   /** Task C5: a section's items in file order, held-out ones included: a practice draw goes through servableChoiceItem. */
@@ -142,6 +155,24 @@ export interface ContentStore {
   dataset?(idOrAlias: string): DatasetRecord | undefined;
   /** Sprint 6 Part 2: the valid record whose schemas include `schema` (foodie_fi finds CH-01); undefined for any other schema. */
   datasetOfSchema?(schema: string): DatasetRecord | undefined;
+  /**
+   * Sprint 7 (S7-08, D114): the held-out mock content, held out by where it is stored. An SQL item with `use: 'mock'` (or an EX-MOCK- ID,
+   * whatever its use says) loads here and never into item() or sqlItems(), so no practice route, drill pool or lesson reaches it; a case
+   * in content/sql/mocks/ loads here and never into cases() or case(). Only the mock routes, check:content and the solver tools read
+   * these. Their keys stay where every key is (key(), caseKey()), server-side. Optional, like the lookups above, so a store with no mock
+   * content still fits.
+   */
+  mockItem?(id: string): SqlItem | undefined;
+  /** Sprint 7: every mock item, in file-name order (C54). */
+  mockItems?(): SqlItem[];
+  mockCase?(caseId: string): MockCaseRecord | undefined;
+  /** Sprint 7: every case in content/sql/mocks/, in case ID order, as loaded: C41, C50 and C55 check them. */
+  mockCases?(): MockCaseRecord[];
+  /**
+   * Sprint 7: content/mocks.json, the four mocks' rules and forms (S7-09, S7-10, S7-14, S7-15), validated at load: a malformed file stops
+   * the load with an error that names it. Undefined when the file does not exist: no mock can start.
+   */
+  mocks?: MocksFile;
 }
 
 /**
@@ -213,7 +244,7 @@ export const unavailableLine = (dataset: string): string =>
  * label is a whole sentence with its source and licence), else the case's data source label ("Fictional, generated data: Mailvora"
  * reads as Mailvora), or its schema when it has none.
  */
-export function caseUnavailable(store: Pick<ContentStore, 'builtSchemas' | 'datasetOfSchema'>, r: CaseRecord): string | null {
+export function caseUnavailable(store: Pick<ContentStore, 'builtSchemas' | 'datasetOfSchema'>, r: Pick<CaseRecord, 'schema' | 'data_source'>): string | null {
   const built = store.builtSchemas?.() ?? null;
   if (built === null || built.has(caseSchema(r))) return null;
   const registered = store.datasetOfSchema?.(caseSchema(r))?.name;
@@ -256,14 +287,21 @@ export async function loadContent(root: string, options: LoadOptions = {}): Prom
     (e: NodeJS.ErrnoException) => { if (e.code === 'ENOENT') return {} as Record<string, string>; throw e; },
   );
   const lessons = new Map((await readDir<Lesson>('sql/lessons')).map((l) => [l.concept_id, l]));
-  const items = new Map((await readDir<SqlItem>('sql/items')).map((i) => [i.id, i]));
+  // S7-08 (D114): a mock item is held out by where it is stored: in the mock map, never beside the practice items. An EX-MOCK- ID is held
+  // out whatever its use says, so a mislabelled mock item never reaches practice (C01 names the mismatch).
+  const isMockItem = (i: SqlItem): boolean => i?.use === 'mock' || (typeof i?.id === 'string' && i.id.startsWith(MOCK_ITEM_PREFIX));
+  const allItems = await readDir<SqlItem>('sql/items');
+  const items = new Map(allItems.filter((i) => !isMockItem(i)).map((i) => [i.id, i]));
+  const mockItems = new Map(allItems.filter(isMockItem).map((i) => [i.id, i]));
   const keys = new Map((await readDir<SqlKey>('keys/sql')).map((k) => [k.item_id, k]));
   // Task C4: the SQL choice keys (S3-13), hashed with the rest. A folder that does not exist yet is no keys.
   const sqlChoiceKeys = new Map((await readDir<ChoiceKey>('keys/sql-choice')).map((k) => [k.item_id, k]));
-  const byCaseId = (a: CaseRecord, b: CaseRecord): number => String(a.case_id).localeCompare(String(b.case_id));
+  const byCaseId = (a: { case_id: string }, b: { case_id: string }): number => String(a.case_id).localeCompare(String(b.case_id));
   const openers = (await readDir<CaseRecord>('sql/openers')).sort(byCaseId);
   // Sprint 4b (S4B-01): the inbox and daily cases sit beside the openers. Every case's checkpoints credit through one map.
   const cases = [...openers, ...(await readDir<CaseRecord>('sql/cases'))].sort(byCaseId);
+  // S7-08: the mock cases, held out in their own folder. Their checkpoints credit nothing through the practice map below.
+  const mockCases = (await readDir<MockCaseRecord>(MOCK_CASE_DIR)).sort(byCaseId);
   const credits = new Map<string, string[]>();
   for (const o of cases) for (const c of Array.isArray(o?.checkpoints) ? o.checkpoints : []) {
     if (typeof c?.item_id === 'string' && Array.isArray(c.credits_concepts)) credits.set(c.item_id, c.credits_concepts);
@@ -310,6 +348,13 @@ export async function loadContent(root: string, options: LoadOptions = {}): Prom
     }
     readings.set(section, concepts.map((c) => byId.get(c.id)).filter((r): r is Reading => r !== undefined));
   }
+  // Sprint 7 Part 2 (S7-11): the knowledge pool, hashed with the rest. A missing file is an empty pool (S7-C21); one that is not
+  // { "item_ids": [...] } stops the load naming the file. Its items are held out by the listing too, so practice never serves one.
+  const poolFile = await optional<unknown>(KNOWLEDGE_POOL_FILE, { item_ids: [] });
+  const poolIds = (poolFile as { item_ids?: unknown } | null)?.item_ids;
+  if (!Array.isArray(poolIds) || !poolIds.every((x) => typeof x === 'string')) throw new ContentFileError(KNOWLEDGE_POOL_FILE, ['"item_ids" must be a list of item IDs']);
+  const knowledgePool = [...poolIds as string[]];
+  for (const id of knowledgePool) heldOut.add(id);
   // Task B2: the GA4 run blueprints. Hashed with the rest; a missing file means no GA4 runs, a malformed one is a fault naming it.
   // A full mock longer than its held-out pool is content check C46, not a load fault (sprint 5b B4 fix, ruling 8).
   const examFile = await optional<unknown>(GA4_EXAM_FILE, undefined);
@@ -345,6 +390,11 @@ export async function loadContent(root: string, options: LoadOptions = {}): Prom
   const registry = registryFile === undefined ? [] : registryRecords(registryFile);
   if (registry === null) throw new ContentFileError(REGISTRY_FILE, ['"datasets" must be a list']);
   const datasets = registry.filter((r) => validateDataset(r).length === 0) as DatasetRecord[];
+  // Sprint 7 (S7-09 to S7-16): the mocks' rules and forms, hashed with the rest. A missing file means no mocks; a malformed one stops the
+  // load naming the file, as the lab guide does.
+  const mocksFile = await optional<unknown>(MOCKS_FILE, undefined);
+  const mockProblems = mocksFile === undefined ? [] : validateMocksFile(mocksFile);
+  if (mockProblems.length) throw new ContentFileError(MOCKS_FILE, mockProblems);
   return {
     curriculum, feedback, goals, errorConcepts,
     lesson: (c) => lessons.get(c),
@@ -366,6 +416,7 @@ export async function loadContent(root: string, options: LoadOptions = {}): Prom
     choiceItem: (id) => choiceItems.get(id),
     choiceKey: (id) => choiceKeys.get(id),
     heldOut: (id) => heldOut.has(id),
+    knowledgePool: () => [...knowledgePool],
     choiceConcepts: (section) => [...(sectionConcepts.get(section) ?? [])],
     choiceItems: (section) => [...(sectionItems.get(section) ?? [])],
     reading: (section, id) => readings.get(section)?.find((r) => r.concept_id === id),
@@ -382,6 +433,11 @@ export async function loadContent(root: string, options: LoadOptions = {}): Prom
     datasetRecords: () => [...registry],
     dataset: (idOrAlias) => datasets.find((d) => d.id === idOrAlias) ?? datasets.find((d) => d.aliases.includes(idOrAlias)),
     datasetOfSchema: (schema) => datasets.find((d) => d.schemas.some((s) => s.name === schema)),
+    mockItem: (id) => mockItems.get(id),
+    mockItems: () => [...mockItems.values()],
+    mockCase: (caseId) => mockCases.find((c) => c.case_id === caseId),
+    mockCases: () => [...mockCases],
+    mocks: mocksFile as MocksFile | undefined,
     contentVersion: hash.digest('hex').slice(0, 12),
   };
 }

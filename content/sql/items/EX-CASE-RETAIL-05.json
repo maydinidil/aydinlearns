@@ -1,0 +1,207 @@
+{
+  "id": "EX-CASE-RETAIL-05",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "case",
+    "inbox",
+    "retail",
+    "rfm",
+    "ntile",
+    "orders",
+    "order_lines"
+  ],
+  "level": 5,
+  "source_ids": [
+    "04:CASE-RETAIL-05",
+    "ERRATA:E-203"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "case",
+  "target_concept_id": "SQL-WIN-07",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-SORT-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CASE-01",
+    "SQL-TYPE-01",
+    "SQL-DATE-01",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-JOIN-03",
+    "SQL-DATE-02",
+    "SQL-WIN-01",
+    "SQL-WIN-07"
+  ],
+  "template_id": "T-CASE-RETAIL-05-rfm-segments",
+  "template_params": {
+    "as_of": "2025-12-31",
+    "window_start": "2025-01-01",
+    "f_bands": "1,2,3,4-5,6+",
+    "grain": "segment"
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_win",
+  "prompt": "Fleur, in trade marketing, is briefing a win-back email campaign on Monday and asks how Voltmarkt's customers split into RFM segments, with the number of customers and the revenue in each. Score every customer with a customer_id who placed at least one order from 1 January to 31 December 2025, both included, by the UTC date of order_ts (the column holds UTC time); guest orders, which have a missing customer_id, stay out. For each customer, recency is the number of days from the date of the customer's last order in 2025 to 31 December 2025, so an order on 31 December gives 0; frequency is the number of orders; and revenue is the sum of quantity times unit_price_eur minus line_discount_eur over the lines of those orders. R score: list the customers from the most days of recency to the fewest and split that list into five groups that differ in size by at most one customer, with the larger groups first, so the first group scores 1 and the last group scores 5. M score: list them from the lowest revenue to the highest and split that list the same way, so the highest spenders score 5. When customers tie on recency or on revenue, the lower customer_id comes first. F score uses fixed bands on the number of orders: 1 order scores 1, 2 orders score 2, 3 orders score 3, 4 to 5 orders score 4, and 6 or more orders score 5. Give each customer the first segment that fits, in this order: champions (R, F and M all 4 or more), loyal (F 4 or more), at_risk (R 2 or less and F 3 or more), new (R 4 or more and F exactly 1), hibernating (R 2 or less) and others (every other customer); write the segment names exactly as shown. Return one row for each segment that has at least one customer, with five columns in this order: segment; n_customers; revenue_eur, the segment's total revenue in euros, unrounded; avg_recency_days, the segment's average recency in days, rounded to 1 decimal; and revenue_share_pct, 100 times the segment's revenue divided by the revenue of every scored customer, rounded to 1 decimal. Sort by segment name from A to Z.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "segment",
+        "type_class": "text"
+      },
+      {
+        "name": "n_customers",
+        "type_class": "numeric"
+      },
+      {
+        "name": "revenue_eur",
+        "type_class": "numeric"
+      },
+      {
+        "name": "avg_recency_days",
+        "type_class": "numeric"
+      },
+      {
+        "name": "revenue_share_pct",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": true,
+    "sort_keys": [
+      {
+        "column": "segment",
+        "desc": false
+      }
+    ],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "segment",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "n_customers",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "revenue_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "avg_recency_days",
+        "type_class": "numeric",
+        "precision": "ratio",
+        "require_rounding": 1
+      },
+      {
+        "name": "revenue_share_pct",
+        "type_class": "numeric",
+        "precision": "ratio",
+        "require_rounding": 1
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "segment"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, build one row per customer with the days since the last 2025 order, the number of orders and the revenue.",
+    "Score R and M with the five-group split and the customer_id tie-break, set F from the bands, then label each customer with the first segment rule that fits before you add up per segment."
+  ],
+  "subgoals": [
+    {
+      "from": 92,
+      "to": 322,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 325,
+      "to": 394,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 397,
+      "to": 535,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 538,
+      "to": 560,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 632,
+      "to": 1020,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 1023,
+      "to": 1043,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 1107,
+      "to": 1498,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 1501,
+      "to": 1512,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 1538,
+      "to": 1776,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 1777,
+      "to": 1790,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 1791,
+      "to": 1807,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 1808,
+      "to": 1824,
+      "subgoal": "sort_limit"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "Counting each order once after the join keeps F right, and the customer_id tie-break puts customers who tie on recency or revenue in one fixed group."
+}

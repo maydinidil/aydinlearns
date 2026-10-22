@@ -1,29 +1,29 @@
 {
   "id": "Q-MET-PRICE-02-01",
-  "version": 1,
+  "version": 2,
   "kind": "mcq",
   "section": "methodology",
   "concept_id": "MET-PRICE-02",
-  "stem": "A Voltmarkt buyer asks: \"What did one pair of headphones sell for on average last month, after discounts, across everything we sold?\" Which metric answers this question?",
+  "stem": "A Voltmarkt buyer asks: \"What did one pair of headphones sell for on average last month, after discounts, across everything we sold?\" Which calculation answers this question?",
   "options": [
     {
       "oid": "o546b967",
-      "text": "Average order value (AOV)",
+      "text": "Net revenue / number of orders with headphones",
       "misconception_id": null
     },
     {
       "oid": "ocf7855f",
-      "text": "Price index vs competitors",
+      "text": "100 × our headphone price / rivals' average price",
       "misconception_id": null
     },
     {
       "oid": "o20fc8ae",
-      "text": "Average selling price (ASP)",
+      "text": "Headphone net revenue / headphone units sold",
       "misconception_id": null
     },
     {
       "oid": "ob766feb",
-      "text": "Discount depth vs list price",
+      "text": "100 × (1 - headphone net revenue / list value)",
       "misconception_id": null
     }
   ],

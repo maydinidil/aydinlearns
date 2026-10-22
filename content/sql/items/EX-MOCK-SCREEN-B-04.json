@@ -1,0 +1,154 @@
+{
+  "id": "EX-MOCK-SCREEN-B-04",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-04",
+    "mock",
+    "screen",
+    "date_arithmetic",
+    "days_between",
+    "first_event",
+    "mailvora",
+    "signups",
+    "payments"
+  ],
+  "level": 4,
+  "source_ids": [
+    "01:SQL-DATE-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "mock",
+  "target_concept_id": "SQL-DATE-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-DATE-02"
+  ],
+  "template_id": "T-MOCK-SCREEN-days-from-signup-to-first-payment",
+  "template_params": {
+    "signups": "2025-07-01 to 2025-09-30",
+    "per": "country_code"
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "mailvora",
+  "schema": "mailvora",
+  "edge_schema": "mailvora_edge_case",
+  "prompt": "Finance wants to know how quickly new users start paying, by country. Take the users whose signup_ts, a UTC moment, is from 1 July 2025 00:00 up to but not including 1 October 2025 00:00, and who have at least one payment that was not refunded. A user's first payment is the earliest paid_at among the payments, not refunded (refunded is false), of any of the user's subscriptions. A user's days to pay is the UTC date of that first payment minus the UTC date of signup_ts, in whole days, so a first payment on the signup day gives 0. For each country_code of the signups, return four columns, in this order: country_code; paying_users, the number of those users; avg_days_to_pay, their average days to pay, rounded to 1 decimal; and max_days_to_pay, the longest days to pay among them. Return one row for each country with at least one such user. Sort by country_code from A to Z.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "country_code",
+        "type_class": "text"
+      },
+      {
+        "name": "paying_users",
+        "type_class": "numeric"
+      },
+      {
+        "name": "avg_days_to_pay",
+        "type_class": "numeric"
+      },
+      {
+        "name": "max_days_to_pay",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": true,
+    "sort_keys": [
+      {
+        "column": "country_code",
+        "desc": false
+      }
+    ],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "country_code",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "paying_users",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "avg_days_to_pay",
+        "type_class": "numeric",
+        "precision": "ratio",
+        "require_rounding": 1
+      },
+      {
+        "name": "max_days_to_pay",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "country_code"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write each user's first payment that was not refunded, one row per user, before you join it to the signups.",
+    "Count whole days between the two UTC dates, not the full 24-hour periods between the two moments."
+  ],
+  "subgoals": [
+    {
+      "from": 262,
+      "to": 506,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 507,
+      "to": 563,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 564,
+      "to": 676,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 677,
+      "to": 700,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 701,
+      "to": 724,
+      "subgoal": "sort_limit"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "Taking each user's earliest payment that was not refunded keeps one row per user, and a date minus a date counts the calendar days between them."
+}

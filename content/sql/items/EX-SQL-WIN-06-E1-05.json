@@ -1,0 +1,167 @@
+{
+  "id": "EX-SQL-WIN-06-E1-05",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "window",
+    "row_number",
+    "top_n_per_group",
+    "filter_window_result",
+    "sales"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-06"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "retest",
+  "target_concept_id": "SQL-WIN-06",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CTE-01",
+    "SQL-WIN-01",
+    "SQL-WIN-02",
+    "SQL-WIN-06"
+  ],
+  "template_id": "T-WIN-06-top-1-per-group",
+  "template_params": {
+    "table": "sales",
+    "group": "category_name",
+    "measure": "revenue"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_win",
+  "prompt": "For each category, which product earned the most net revenue from January to June 2025? Use the sales rows whose order_date falls from 1 January to 30 June 2025, both days included (order_date is a UTC day). When products of a category tie on revenue, keep the one with the lower product_id. Return three columns, in this order: category_name, product_id and revenue. Return one row for each category with sales in that period. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "category_name",
+        "type_class": "text"
+      },
+      {
+        "name": "product_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "revenue",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "category_name",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "product_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "revenue",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "category_name"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, total each product's revenue in the period, then number the products of each category from the highest revenue.",
+    "Keep number 1 in the outer query, after the numbering; the tie-break goes last in the window's sort order."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 74,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 75,
+      "to": 142,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 143,
+      "to": 155,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 156,
+      "to": 222,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 223,
+      "to": 259,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 263,
+      "to": 353,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 354,
+      "to": 494,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 495,
+      "to": 517,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 520,
+      "to": 561,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 562,
+      "to": 573,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 574,
+      "to": 586,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "Revenue is totalled per product first, then ROW_NUMBER numbers each category's products from the highest revenue with product_id breaking ties, and the outer WHERE keeps number 1."
+}

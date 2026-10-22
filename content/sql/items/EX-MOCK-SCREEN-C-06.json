@@ -1,0 +1,219 @@
+{
+  "id": "EX-MOCK-SCREEN-C-06",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "mock",
+    "screen",
+    "running_total",
+    "budget_pacing",
+    "month_spine",
+    "mailvora",
+    "budget_monthly",
+    "ad_spend_daily"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-04"
+  ],
+  "verified": true,
+  "as_of": "2026-10-21",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "mock",
+  "target_concept_id": "SQL-WIN-04",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-DATE-01",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-CLEAN-01",
+    "SQL-WIN-01",
+    "SQL-WIN-04"
+  ],
+  "template_id": "T-MOCK-SCREEN-budget-pacing-running-totals",
+  "template_params": {
+    "tables": "budget_monthly, ad_spend_daily, campaigns, channels",
+    "from": "2025-07",
+    "to": "2025-10",
+    "spine": "budget_monthly"
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "mailvora",
+  "schema": "mailvora",
+  "edge_schema": "mailvora_edge_win",
+  "prompt": "The paid media team tracks budget pacing: the share of the budget planned so far that has been spent so far. Take each paid channel and month in budget_monthly from July 2025 to October 2025 (month holds the first day of the month). A channel's spend in a month is the total spend of the ad_spend_daily rows of its campaigns whose spend_date, a UTC day, falls in that month; a month with no spend counts as 0. The running totals start in July 2025 and add each channel's months in order of month. Return six columns, in this order: channel_name; month; spend_eur, the channel's spend in that month; spend_to_date_eur, the channel's spend from July 2025 up to and including that month; budget_to_date_eur, the channel's budget_eur from July 2025 up to and including that month; and pacing_pct, 100 times spend_to_date_eur divided by budget_to_date_eur, rounded to 1 decimal, or missing when budget_to_date_eur is 0. Return one row for each channel and month in budget_monthly in that period. Sort by channel_name from A to Z, then by month from earliest to latest.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "channel_name",
+        "type_class": "text"
+      },
+      {
+        "name": "month",
+        "type_class": "temporal"
+      },
+      {
+        "name": "spend_eur",
+        "type_class": "numeric"
+      },
+      {
+        "name": "spend_to_date_eur",
+        "type_class": "numeric"
+      },
+      {
+        "name": "budget_to_date_eur",
+        "type_class": "numeric"
+      },
+      {
+        "name": "pacing_pct",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": true,
+    "sort_keys": [
+      {
+        "column": "channel_name",
+        "desc": false
+      },
+      {
+        "column": "month",
+        "desc": false
+      }
+    ],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "channel_name",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "month",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "spend_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "spend_to_date_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "budget_to_date_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "pacing_pct",
+        "type_class": "numeric",
+        "precision": "ratio",
+        "require_rounding": 1
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "channel_name",
+      "month"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write one row for each channel and month of the budget with that month's spend beside it, then the two running totals.",
+    "Start from the budget rows so that a month with no spend keeps its row, give each running total its own channel, and guard the division when the budget so far is 0."
+  ],
+  "subgoals": [
+    {
+      "from": 100,
+      "to": 204,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 207,
+      "to": 280,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 283,
+      "to": 349,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 352,
+      "to": 422,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 525,
+      "to": 609,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 612,
+      "to": 765,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 768,
+      "to": 829,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 915,
+      "to": 1301,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 1304,
+      "to": 1322,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 1325,
+      "to": 1491,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 1492,
+      "to": 1504,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 1505,
+      "to": 1533,
+      "subgoal": "sort_limit"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "Starting from the budget months keeps a month with no spend, and running totals per channel in month order give the spend and the budget so far."
+}

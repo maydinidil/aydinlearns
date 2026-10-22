@@ -1,0 +1,44 @@
+{
+  "item_id": "EX-SQL-WIN-06-E1-04",
+  "item_version": 1,
+  "reference_sql": "WITH ranked AS (  -- one row per campaign, numbered within its channel from the earliest start\n  SELECT channel_id, campaign_id, start_date,\n         ROW_NUMBER() OVER (PARTITION BY channel_id ORDER BY start_date, campaign_id) AS rn\n  FROM campaigns\n)\nSELECT channel_id, campaign_id, start_date\nFROM ranked\nWHERE rn = 1",
+  "alternatives": [
+    "SELECT r.channel_id, r.campaign_id, r.start_date\nFROM (\n  -- one row per campaign, numbered within its channel from the earliest start\n  SELECT channel_id, campaign_id, start_date,\n         ROW_NUMBER() OVER (PARTITION BY channel_id ORDER BY start_date, campaign_id) AS rn\n  FROM campaigns\n) AS r\nWHERE r.rn = 1",
+    "SELECT channel_id, campaign_id, start_date\nFROM campaigns\nQUALIFY ROW_NUMBER() OVER (PARTITION BY channel_id ORDER BY start_date, campaign_id) = 1"
+  ],
+  "other_way": {
+    "sql": "SELECT channel_id, campaign_id, start_date\nFROM campaigns\nQUALIFY ROW_NUMBER() OVER (PARTITION BY channel_id ORDER BY start_date, campaign_id) = 1",
+    "tradeoff": "QUALIFY filters the window result in the same query, which is shorter, but PostgreSQL, MySQL and SQL Server do not accept it."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-40",
+      "sql": "WITH ranked AS (SELECT channel_id, campaign_id, start_date, RANK() OVER (PARTITION BY channel_id ORDER BY start_date) AS rn FROM campaigns) SELECT channel_id, campaign_id, start_date FROM ranked WHERE rn = 1"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-18",
+      "sql": "WITH ranked AS (SELECT channel_id, campaign_id, start_date, ROW_NUMBER() OVER (PARTITION BY channel_id ORDER BY start_date DESC, campaign_id) AS rn FROM campaigns) SELECT channel_id, campaign_id, start_date FROM ranked WHERE rn = 1"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-37",
+      "sql": "WITH ranked AS (SELECT channel_id, campaign_id, start_date, ROW_NUMBER() OVER (ORDER BY start_date, campaign_id) AS rn FROM campaigns) SELECT channel_id, campaign_id, start_date FROM ranked WHERE rn = 1"
+    },
+    {
+      "id": "PW4",
+      "error_id": "ERR-SYN-08",
+      "sql": "SELECT channel_id, campaign_id, start_date FROM campaigns WHERE ROW_NUMBER() OVER (PARTITION BY channel_id ORDER BY start_date, campaign_id) = 1"
+    }
+  ],
+  "hint3_partial": "WITH ranked AS (  -- one row per campaign, numbered within its channel from the earliest start\n  SELECT channel_id, campaign_id, start_date,\n         ROW_NUMBER() OVER (PARTITION BY channel_id ORDER BY start_date, campaign_id) AS rn\n  FROM campaigns\n)\nSELECT channel_id, campaign_id, start_date\nFROM ranked\nWHERE ___ = 1",
+  "solver": {
+    "prompt_hash": "0663253f3e6e52cc",
+    "schema_version": "487f49df0fcd",
+    "dataset_version": "e7c58abf7e8f892e",
+    "grader_version": "7a.1",
+    "query": "SELECT channel_id, campaign_id, start_date\nFROM campaigns\nQUALIFY ROW_NUMBER() OVER (PARTITION BY channel_id ORDER BY start_date ASC, campaign_id ASC) = 1\n",
+    "at": "2026-10-21T09:05:10.114Z"
+  }
+}

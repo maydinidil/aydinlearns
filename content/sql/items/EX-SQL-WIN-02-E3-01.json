@@ -1,0 +1,130 @@
+{
+  "id": "EX-SQL-WIN-02-E3-01",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "ranking",
+    "dense_rank",
+    "nth_highest",
+    "products"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-WIN-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-SORT-01",
+    "SQL-CTE-01",
+    "SQL-WIN-01",
+    "SQL-WIN-02"
+  ],
+  "template_id": "T-WIN-02-nth-highest-distinct",
+  "template_params": {
+    "table": "products",
+    "partition": "category",
+    "fn": "DENSE_RANK",
+    "n": 2
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_win",
+  "prompt": "What is the second-highest unit cost in each category? Count different costs: products that tie on unit cost share a place, and the next lower cost takes the next place with no gap, so in a category whose two most expensive products both cost 500 euros, the second-highest cost is the next cost below 500. Leave out a category with fewer than two different unit costs. Return two columns, in this order: category_id and second_cost. Return one row for each category kept. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "category_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "second_cost",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "category_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "second_cost",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "category_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the step that gives each product its cost level within its category, the highest cost first.",
+    "Tied costs must share a level with no gap after it; then keep level 2, once per category, in the outer query."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 40,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 41,
+      "to": 173,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 174,
+      "to": 189,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 192,
+      "to": 249,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 250,
+      "to": 261,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 262,
+      "to": 282,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "DENSE_RANK gives every tied product at the top cost level 1, so level 2 is always the next different cost."
+}

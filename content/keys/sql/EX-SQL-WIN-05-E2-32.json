@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-WIN-05-E2-32",
+  "item_version": 1,
+  "reference_sql": "WITH daily AS (\n  -- one row per day with spend\n  SELECT a.spend_date, SUM(a.clicks) AS clicks, SUM(a.impressions) AS impressions\n  FROM ad_spend_daily a\n  JOIN campaigns c ON c.campaign_id = a.campaign_id\n  WHERE c.channel_id = 3\n  GROUP BY a.spend_date\n), rates AS (\n  -- one row per day with spend\n  SELECT spend_date, clicks, impressions,\n    100.0 * SUM(clicks) OVER (ORDER BY spend_date RANGE BETWEEN INTERVAL 6 DAY PRECEDING AND CURRENT ROW)\n      / SUM(impressions) OVER (ORDER BY spend_date RANGE BETWEEN INTERVAL 6 DAY PRECEDING AND CURRENT ROW) AS ctr_7d\n  FROM daily\n)\nSELECT spend_date, clicks, impressions, ROUND(ctr_7d, 2) AS ctr_7d_pct\nFROM rates\nWHERE spend_date BETWEEN DATE '2025-08-01' AND DATE '2025-08-31'",
+  "alternatives": [
+    "WITH daily AS (\n  -- one row per day with spend\n  SELECT a.spend_date, SUM(a.clicks) AS clicks, SUM(a.impressions) AS impressions\n  FROM ad_spend_daily a\n  JOIN campaigns c ON c.campaign_id = a.campaign_id\n  WHERE c.channel_id = 3\n  GROUP BY a.spend_date\n)\nSELECT d.spend_date, d.clicks, d.impressions, ROUND(100.0 * SUM(p.clicks) / SUM(p.impressions), 2) AS ctr_7d_pct\nFROM daily d\nJOIN daily p ON p.spend_date BETWEEN d.spend_date - INTERVAL 6 DAY AND d.spend_date\nWHERE d.spend_date BETWEEN DATE '2025-08-01' AND DATE '2025-08-31'\nGROUP BY d.spend_date, d.clicks, d.impressions",
+    "WITH daily AS (\n  -- one row per day with spend\n  SELECT a.spend_date, SUM(a.clicks) AS clicks, SUM(a.impressions) AS impressions\n  FROM ad_spend_daily a\n  JOIN campaigns c ON c.campaign_id = a.campaign_id\n  WHERE c.channel_id = 3\n  GROUP BY a.spend_date\n), sums AS (\n  -- one row per day with spend\n  SELECT spend_date, clicks, impressions,\n    SUM(clicks) OVER (ORDER BY spend_date RANGE BETWEEN INTERVAL 6 DAY PRECEDING AND CURRENT ROW) AS clicks_7d,\n    SUM(impressions) OVER (ORDER BY spend_date RANGE BETWEEN INTERVAL 6 DAY PRECEDING AND CURRENT ROW) AS impressions_7d\n  FROM daily\n)\nSELECT spend_date, clicks, impressions, ROUND(100.0 * clicks_7d / impressions_7d, 2) AS ctr_7d_pct\nFROM sums\nWHERE spend_date BETWEEN DATE '2025-08-01' AND DATE '2025-08-31'"
+  ],
+  "other_way": {
+    "sql": "WITH daily AS (\n  -- one row per day with spend\n  SELECT a.spend_date, SUM(a.clicks) AS clicks, SUM(a.impressions) AS impressions\n  FROM ad_spend_daily a\n  JOIN campaigns c ON c.campaign_id = a.campaign_id\n  WHERE c.channel_id = 3\n  GROUP BY a.spend_date\n)\nSELECT d.spend_date, d.clicks, d.impressions, ROUND(100.0 * SUM(p.clicks) / SUM(p.impressions), 2) AS ctr_7d_pct\nFROM daily d\nJOIN daily p ON p.spend_date BETWEEN d.spend_date - INTERVAL 6 DAY AND d.spend_date\nWHERE d.spend_date BETWEEN DATE '2025-08-01' AND DATE '2025-08-31'\nGROUP BY d.spend_date, d.clicks, d.impressions",
+    "tradeoff": "A self-join on the 6 days before adds up the same clicks and impressions, but it joins each day to a week of rows."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-20",
+      "sql": "WITH daily AS (SELECT a.spend_date, SUM(a.clicks) AS clicks, SUM(a.impressions) AS impressions FROM ad_spend_daily a JOIN campaigns c ON c.campaign_id = a.campaign_id WHERE c.channel_id = 3 GROUP BY a.spend_date), rates AS (SELECT spend_date, clicks, impressions, AVG(100.0 * clicks / impressions) OVER (ORDER BY spend_date RANGE BETWEEN INTERVAL 6 DAY PRECEDING AND CURRENT ROW) AS ctr_7d FROM daily) SELECT spend_date, clicks, impressions, ROUND(ctr_7d, 2) AS ctr_7d_pct FROM rates WHERE spend_date BETWEEN DATE '2025-08-01' AND DATE '2025-08-31'"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-38",
+      "sql": "WITH daily AS (SELECT a.spend_date, SUM(a.clicks) AS clicks, SUM(a.impressions) AS impressions FROM ad_spend_daily a JOIN campaigns c ON c.campaign_id = a.campaign_id WHERE c.channel_id = 3 GROUP BY a.spend_date), rates AS (SELECT spend_date, clicks, impressions, 100.0 * SUM(clicks) OVER (ORDER BY spend_date ROWS BETWEEN 6 PRECEDING AND CURRENT ROW) / SUM(impressions) OVER (ORDER BY spend_date ROWS BETWEEN 6 PRECEDING AND CURRENT ROW) AS ctr_7d FROM daily) SELECT spend_date, clicks, impressions, ROUND(ctr_7d, 2) AS ctr_7d_pct FROM rates WHERE spend_date BETWEEN DATE '2025-08-01' AND DATE '2025-08-31'"
+    }
+  ],
+  "hint3_partial": "WITH daily AS (\n  -- one row per day with spend\n  SELECT a.spend_date, SUM(a.clicks) AS clicks, SUM(a.impressions) AS impressions\n  FROM ad_spend_daily a\n  JOIN campaigns c ON c.campaign_id = a.campaign_id\n  WHERE c.channel_id = 3\n  GROUP BY a.spend_date\n), rates AS (\n  -- one row per day with spend\n  SELECT spend_date, clicks, impressions,\n    100.0 * SUM(clicks) OVER (ORDER BY spend_date RANGE BETWEEN INTERVAL 6 DAY PRECEDING AND CURRENT ROW)\n      / ___ AS ctr_7d\n  FROM daily\n)\nSELECT spend_date, clicks, impressions, ROUND(ctr_7d, 2) AS ctr_7d_pct\nFROM rates\nWHERE spend_date BETWEEN DATE '2025-08-01' AND DATE '2025-08-31'",
+  "solver": {
+    "prompt_hash": "09a2db4bf2044d73",
+    "schema_version": "09f3a33d3123",
+    "dataset_version": "e7c58abf7e8f892e",
+    "grader_version": "7a.1",
+    "query": "WITH daily AS (\n  SELECT a.spend_date, SUM(a.clicks) AS clicks, SUM(a.impressions) AS impressions\n  FROM ad_spend_daily a\n  JOIN campaigns c ON c.campaign_id = a.campaign_id\n  WHERE c.channel_id = 3\n  GROUP BY a.spend_date\n), rates AS (\n  SELECT spend_date, clicks, impressions,\n    100.0 * SUM(clicks) OVER (ORDER BY spend_date RANGE BETWEEN INTERVAL 6 DAY PRECEDING AND CURRENT ROW)\n      / SUM(impressions) OVER (ORDER BY spend_date RANGE BETWEEN INTERVAL 6 DAY PRECEDING AND CURRENT ROW) AS ctr_7d\n  FROM daily\n)\nSELECT spend_date, clicks, impressions, ROUND(ctr_7d, 2) AS ctr_7d_pct\nFROM rates\nWHERE spend_date BETWEEN DATE '2025-08-01' AND DATE '2025-08-31'\n",
+    "at": "2026-10-21T09:05:09.831Z"
+  }
+}

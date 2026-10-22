@@ -1,0 +1,187 @@
+{
+  "id": "EX-SQL-WIN-04-E1-42",
+  "version": 1,
+  "kind": "predict_result",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "predict_result",
+    "frame",
+    "price_history"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-04"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-WIN-04",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-WIN-01",
+    "SQL-WIN-04"
+  ],
+  "template_id": "T-WIN-04-predict-sliding-frame",
+  "template_params": {
+    "table": "price_history"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_win",
+  "prompt": "Product 1 has three price versions. Which result does this query return? Rows may be in any order.",
+  "output_contract": null,
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [],
+  "subgoals": [],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 90000,
+  "why_this_works": "",
+  "shown_sql": "SELECT valid_from, list_price_eur,\n  SUM(list_price_eur) OVER (ORDER BY valid_from ROWS BETWEEN 1 PRECEDING AND CURRENT ROW) AS two_version_sum\nFROM price_history\nWHERE product_id = 1",
+  "options": [
+    {
+      "oid": "oa9b369c",
+      "text": "A running total from the first version",
+      "misconception_id": null,
+      "table": {
+        "columns": [
+          "valid_from",
+          "list_price_eur",
+          "two_version_sum"
+        ],
+        "rows": [
+          [
+            "2024-10-09",
+            "239.99",
+            "239.99"
+          ],
+          [
+            "2025-07-06",
+            "259.99",
+            "499.98"
+          ],
+          [
+            "2025-12-17",
+            "269.99",
+            "769.97"
+          ]
+        ]
+      }
+    },
+    {
+      "oid": "oe469d55",
+      "text": "This version plus the one before it",
+      "misconception_id": null,
+      "table": {
+        "columns": [
+          "valid_from",
+          "list_price_eur",
+          "two_version_sum"
+        ],
+        "rows": [
+          [
+            "2024-10-09",
+            "239.99",
+            "239.99"
+          ],
+          [
+            "2025-07-06",
+            "259.99",
+            "499.98"
+          ],
+          [
+            "2025-12-17",
+            "269.99",
+            "529.98"
+          ]
+        ]
+      }
+    },
+    {
+      "oid": "oc0af6a2",
+      "text": "This version plus the one after it",
+      "misconception_id": "ERR-LOG-18",
+      "table": {
+        "columns": [
+          "valid_from",
+          "list_price_eur",
+          "two_version_sum"
+        ],
+        "rows": [
+          [
+            "2024-10-09",
+            "239.99",
+            "499.98"
+          ],
+          [
+            "2025-07-06",
+            "259.99",
+            "529.98"
+          ],
+          [
+            "2025-12-17",
+            "269.99",
+            "269.99"
+          ]
+        ]
+      }
+    },
+    {
+      "oid": "o840cb5f",
+      "text": "The first version shows a missing sum",
+      "misconception_id": "ERR-LOG-43",
+      "table": {
+        "columns": [
+          "valid_from",
+          "list_price_eur",
+          "two_version_sum"
+        ],
+        "rows": [
+          [
+            "2024-10-09",
+            "239.99",
+            null
+          ],
+          [
+            "2025-07-06",
+            "259.99",
+            "499.98"
+          ],
+          [
+            "2025-12-17",
+            "269.99",
+            "529.98"
+          ]
+        ]
+      }
+    }
+  ]
+}

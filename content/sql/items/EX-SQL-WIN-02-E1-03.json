@@ -1,0 +1,138 @@
+{
+  "id": "EX-SQL-WIN-02-E1-03",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "ranking",
+    "row_number",
+    "tie_break",
+    "nulls_last",
+    "products"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "lesson",
+  "target_concept_id": "SQL-WIN-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-NULL-01",
+    "SQL-WIN-01",
+    "SQL-WIN-02"
+  ],
+  "template_id": "T-WIN-02-number-within-group",
+  "template_params": {
+    "table": "products",
+    "partition": "category",
+    "fn": "ROW_NUMBER",
+    "order": "launch_date, oldest first"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_win",
+  "prompt": "For every product in the TV & Video categories, category_id 1 to 6, number the products of its category by launch_date, the oldest first. A product with a missing launch_date comes last in its category. When two products of a category tie on launch_date, the lower product_id comes first. Return four columns, in this order: product_id, category_id, launch_date and launch_order, 1 for the category's oldest product. Return one row for each such product. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "category_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "launch_date",
+        "type_class": "temporal"
+      },
+      {
+        "name": "launch_order",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per product"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "category_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "launch_date",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "launch_order",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "product_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the calculated column launch_order: a number that restarts for each category, the oldest launch first.",
+    "Inside OVER, sort by launch date with missing dates placed last, then by the stated tie-break, so every product gets its own number."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 156,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 157,
+      "to": 170,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 171,
+      "to": 204,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": {
+    "stage1": 52,
+    "stage2": 52
+  },
+  "faded_shape": "SELECT product_id, category_id, launch_date,\n       ",
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "ROW_NUMBER numbers each category's products from the oldest launch, with missing dates last and product_id settling a shared launch day.",
+  "faded_suffix": "\nFROM products\nWHERE category_id BETWEEN 1 AND 6"
+}

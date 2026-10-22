@@ -12,9 +12,10 @@ saying "wrong".
 
 | Section | Content |
 |---|---|
-| SQL | Levels 1 to 4, 25 concepts from the first SELECT to aggregation, CASE, types, dates, joins, CTEs, set operations, subqueries, text, date arithmetic and data cleaning: lessons with worked examples, 715 exercises (write the query, fix the query, predict the result, choose the query), timed drills and a cumulative drill over levels 1 to 4, raw tables with planted errors to clean, 30 cases in an inbox (an opener for each level, nine daily cases, five pricing cases, a retail case, five data-quality tickets, four marketing cases on a second company, Mailvora, and two take-home cases on real data), mistake cards for the mistakes that keep coming back, "other ways to write this" after a pass, a dataset explorer over both companies and the real datasets you prepare, and a portfolio export with flagship drafts on real data |
+| SQL | Levels 1 to 5, 32 concepts from the first SELECT to aggregation, CASE, types, dates, joins, CTEs, set operations, subqueries, text, date arithmetic, data cleaning and window functions: lessons with worked examples, 902 exercises (write the query, fix the query, predict the result, choose the query), timed drills and a cumulative drill over levels 1 to 4, raw tables with planted errors to clean, 34 cases in an inbox (an opener for each level, eleven daily cases, five pricing cases, two retail cases, five data-quality tickets, four marketing cases on a second company, Mailvora, and two take-home cases on real data), mistake cards for the mistakes that keep coming back, "other ways to write this" after a pass, a dataset explorer over both companies and the real datasets you prepare, and a portfolio export with flagship drafts on real data |
 | GA4 | Complete for the certification: 16 lessons and 123 questions (73 for practice and 20-question mini drills, 50 held out for 25-question half-mocks and 50-question full mocks), a readiness check, and 10 interview labs in Google's GA4 demo account, each re-checked a week later |
 | Methodology | 78 concepts, each with a reading: 51 metrics (marketing, retail, pricing and SaaS), 13 on experiments and A/B testing, 9 on statistics and 5 on pricing economics. 478 questions, 93 of them held out for mocks |
+| Recruiter mocks | Four timed mocks on questions you have not seen: the screen mock (stage 2's online SQL test), the knowledge mock (stage 3), the case-round mock (stage 4) and the take-home mock (stage 5). The Recruiter mocks screen has one card per recruitment stage, with the readiness board's status, each mock's history and the live reps |
 
 ## Real datasets
 
@@ -88,13 +89,13 @@ event is never stamped before the visit's latest event, nor later than the momen
 | `session_ended` | A visit ends: written by the first event after 30 idle minutes, or when the app stops | `reason`: `idle` (also when the app stops more than 30 minutes after the visit's last event) or `app_stop`; `duration_s` (first event to last) and `event_count` (the events between its start and end). Stamped with the visit's last activity |
 | `screen_viewed` | The browser shows a screen, outside setup mode. It is recorded even while the log cannot be written | `screen`, the screen before it in the visit (`from_screen`), and the exercise, concept, case or lab in the address (`subject_id`) |
 | `lesson_started` | A SQL lesson, or a GA4 or Methodology reading, opens | `topic`, `case_theme`, `difficulty`, `funnel_step` |
-| `item_viewed` | An exercise is sent to the browser. A screen may fetch one twice as it opens, and a drill or a practice run sends all its questions at its start, so this counts sends, not looks | `item_id`, `topic`, `case_theme`, `difficulty`, and for a multiple-choice question (GA4, Methodology, or an SQL predict or choose item) or a case checkpoint (CP1, CP2, CP4, CP5) the `phase` |
+| `item_viewed` | An exercise is sent to the browser. A screen may fetch one twice as it opens, and a drill or a practice run sends all its questions at its start, so this counts sends, not looks | `item_id`, `topic`, `case_theme`, `difficulty`, and for a multiple-choice question (GA4, Methodology, or an SQL predict or choose item), a case checkpoint (CP1, CP2, CP4, CP5) or a screen mock question the `phase` |
 | `exercise_submitted` | An answer is checked | `item_id`, `time_spent_s`, `time_target_s`, `try_number`, `hints_used`, `answer_shown`, `confidence`, `mode` and `outcome` (`passed`, `failed` or `not graded`), with `topic`, `case_theme`, `difficulty` and `funnel_step` |
 | `exercise_passed`, `exercise_failed` | A graded answer passes or fails | `item_id`, `topic`, `case_theme`, `difficulty`, `funnel_step` |
 | `hint_opened`, `answer_shown`, `other_way_opened` | A hint, "Show answer" or "Other ways to write this" opens | `item_id`, `concept_id`, `topic`, `phase`, whether it reviews a mistake card (`review`; a scheduled review shows as `phase` `review`), and a hint's `hint_level` |
 | `item_closed` | An exercise is closed: left, finished, or at a session's end | `item_id`, `concept_id`, `topic`, `phase`, `reason`, `graded_attempts`, `passed`, `first_attempt_pass`, `max_hint_level`, `active_s`, `rating` |
 | `material_studied` | A reading, worked example or lesson is studied | `concept_id`, `topic`, `kind` |
-| `run_started`, `run_finished` | The run screen starts a timed run, or ends it (its end button, or its clock at zero): a GA4 mini drill, half-mock or full mock, a SQL drill or a live rep. A run the app ends by itself, with its screen closed or at the app's stop, has no `run_finished` | `section`, `run_kind`, `block_id`; at the start `questions`, and for SQL `screen_mode` and a level drill's `level`; at the end `score_pct`, a level drill's `level`, and `run_passed` for every run but a live rep, whose pass waits for its "explained aloud" tick after the end (a `case_self_check`) |
+| `run_started`, `run_finished` | The run screen starts a timed run, or ends it (its end button, or its clock at zero): a GA4 mini drill, half-mock or full mock, a SQL drill, a live rep or a screen mock. A run the app ends by itself (its timer with the screen closed, a study session's end or the app's stop) sends its `run_finished` too, once per run (D81) | `section`, `run_kind`, `block_id`; at the start `questions`, and for SQL `screen_mode` and a level drill's `level`; at the end `score_pct`, a level drill's `level`, and `run_passed` for every run but a live rep, whose pass waits for its "explained aloud" tick after the end (a `case_self_check`), and a case mock (case-round or take-home), whose `run_finished` at its hand-in carries the score of checkpoints 1 to 5 and no result, since its pass waits for its rubric. A knowledge mock names no `section` |
 | `case_opened`, `case_self_check`, `case_exported` | The case screen loads a case, a self-check is logged, or the case goes to the portfolio. The case screen loads its case again after each step is saved or answered, so `case_opened` counts loads, not opens; `screen_viewed` with `screen` `case` or `opener` counts opens | `case_id`; a self-check's `kind` and `phase`; an export's `data_source` |
 | `lab_opened`, `lab_answered` | A GA4 lab opens, or its answers are checked | `lab_id`; an answer's `kind` (`first` or `recheck`) |
 | `review_card_changed` | A review card is paused, resumed, reset or retired | `card_id`, `kind` |
@@ -126,7 +127,7 @@ next event tries the file again.
 
 Times show in Amsterdam time. A line the command cannot read (not JSON, without the fixed fields, or with a time
 DuckDB cannot read) is skipped, and the count is printed. The database is rebuilt from the files on every run, so never
-edit it; for anything more, open it in any DuckDB 1.5 client. The twelve starter views, in `tools/journey-views.sql`:
+edit it; for anything more, open it in any DuckDB 1.5 client. The thirteen starter views, in `tools/journey-views.sql`:
 
 | View | What it shows |
 |---|---|
@@ -141,7 +142,8 @@ edit it; for anything more, open it in any DuckDB 1.5 client. The twelve starter
 | `time_of_day` | Answers and their pass rate by hour of the day |
 | `days` | Each day's visits, answers, passes and minutes spent on answers, counted as in `items` |
 | `mastery` | Each concept state change, in time order |
-| `runs` | Each timed run: its section, kind, start, first finish, minutes, score and result (none for a live rep) |
+| `runs` | Each timed run: its section, kind, start, first finish, minutes, score and result (none for a live rep or a case mock) |
+| `tutor_questions` | The tutor's questions by screen and outcome, with their tokens and cost |
 
 **Never kept:** an exercise's text, a query, an answer, a note, a self-check's or lab's own words, a portfolio export's
 file paths, or personal data. The events carry IDs, counts, times, outcomes and screen names only.
@@ -207,6 +209,10 @@ key.
 - **Exam practice.** GA4 half-mocks and full mocks draw unseen held-out questions and follow a
   21-day retake rule, with a score per exam topic. A readiness check (advice only) shows when the
   mocks and every exam topic are at the pass level.
+- **Recruiter mocks.** A timed test for each recruitment stage, on questions you have not seen. The
+  screen mock is the online SQL test: one answer per question, "Show answer" and the tutor wait for
+  the review, and a pass on a form you have not taken before meets stage 2 on the readiness board.
+  See [Recruiter mocks](#recruiter-mocks) for all four.
 - **Interview labs.** Ten GA4 tasks done in Google's demo account. The app stores no reference
   numbers, because the demo data changes daily: it checks the values against each other, and
   asks for the same screen again a week later.
@@ -217,6 +223,39 @@ key.
 | ![An SQL exercise: the prompt, the editor, the result and the table panel](docs/screenshots/exercise.png) | ![A GA4 mini drill question with the time left and the question squares](docs/screenshots/ga4-run-question.png) |
 
 A lesson reading: [docs/screenshots/lesson.png](docs/screenshots/lesson.png).
+
+## Recruiter mocks
+
+Open "Mocks" in the top bar (`#/mocks`). Each mock sits on the card of the recruitment stage it practises. A passed
+mock on questions you have not seen meets that stage on the readiness board, with its date.
+
+| Mock (stage) | What it tests | Questions and minutes | Pass mark |
+|---|---|---|---|
+| Screen mock (2) | The online SQL test | 6 problems from levels 1 to 5, 45 minutes, in screen mode, one graded answer each | 5 of 6 exactly right |
+| Knowledge mock (3) | The knowledge interview | 30 multiple-choice questions, 20 Methodology and 10 GA4 interview questions, shuffled with no labels, 40 minutes | 24 of 30 (80%) |
+| Case-round mock (4) | The case interview | One case with a plan first, then 6 checkpoints, 45 minutes; afterwards "say it in 60 seconds" | CP6's four core rubric lines ticked and 4 of CP1 to CP5 right |
+| Take-home mock (5) | The take-home on raw data | One case on raw data with a plan and 6 checkpoints; a memo of 4 to 8 sentences; 2 hours | CP6's five core rubric lines ticked (the four plus a reconciliation), 4 of CP1 to CP5 right and nothing late |
+
+- **What counts as unseen.** A fixed form is spent once opened (S7-04, S7-C13), answered or not; with every form taken,
+  the start screen says the next result is practice and does not count toward the stage. The knowledge mock draws
+  its 30 questions fresh each time: a run is unseen when its questions were unseen for 30 days, and every question a
+  knowledge run showed counts as seen at the time it opened, answered or not (S7-04, S7-C36). The mock items, mock
+  cases and the knowledge pool are held out by where they are stored (D114): no practice screen, the inbox, the
+  portfolio or the tutor's course text names them.
+- **While a run is on.** Answers wait for the review: each question takes one answer and the reply says only "Answer
+  recorded". Hints, "Show answer", other ways and the tutor wait for the end of the run. In the two case mocks the plan
+  comes first, and the model plan, the model answer and the rubric open in the review.
+- **The clock.** The screen, knowledge and case-round runs end at their limit, by "Hand in", or when the study session
+  or the app stops. The take-home runs on wall time from its start: leaving, a session end or a restart does not stop
+  it, an answer after 120 minutes is late and the run cannot pass, and it closes at the first start or request 24 hours
+  after it opened.
+- **What is logged.** `mock_open` once per start, with `pass_correct` (the correct answers the run needs, log format
+  version 7); each answer; a `block_close` that rates the cards; for a case mock, the plan and the review's rubric
+  ticks and the "say it" self-check (`explained_aloud`); and, with the tutor on, a second-opinion question as
+  `tutor_asked` with screen `mock_review`. Scores, passes and the stages they meet are derived by replay, so a run is
+  scored on the questions it served and the pass mark it started with.
+- **The tutor's second opinion.** In a case mock's review, with the tutor on, it grades the written answer against each
+  rubric line. It is not help and changes no pass.
 
 ## How it is built
 
@@ -236,20 +275,21 @@ A lesson reading: [docs/screenshots/lesson.png](docs/screenshots/lesson.png).
 Aydin designed and directed the project and built it with AI coding agents (Claude Code), from a
 written design, sprint plans and test-first tasks, with a review per task and an outside review
 of every pull request. Lessons and exercises are generated from a research bank by agents and
-checked before they ship: 18,674 automated content checks (18,716 with the real datasets prepared), and a blind solver (a fresh agent
+checked before they ship: 23,731 automated content checks (with the real datasets prepared), and a blind solver (a fresh agent
 that solves every exercise without seeing its answer key). The design, the plans, every ruling
 and the review logs are in `docs/`.
 
-Today: 2,457 automated tests, 248 data pipeline tests, 18,674 content checks (18,716 with the real datasets) and an 84-row browser smoke test, all passing.
+Today: 2,891 automated tests (the render tests included), 291 data pipeline tests, 23,731 content checks (with the real datasets prepared) and a 95-row browser smoke test, all passing.
 
 ## Status
 
-Version 1.6 (2026-10-17). Built: SQL levels 1 to 4 with the scheduler, Today, drills, level
+Version 0.7.1 (2026-10-22). Built: SQL levels 1 to 5 with the scheduler, Today, drills, level
 openers, cases and the inbox, mistake cards, the portfolio export, the Progress screen, the
 dataset explorer and screen mode; GA4 complete (lessons, mini drills, half-mocks, full mocks,
-the readiness check and the interview labs); Methodology complete; optional telemetry (1.2) and
-the study journey (1.3); SQL level 4, raw data and the incident tickets (1.4); Mailvora, the marketing cases and the first
-real datasets (1.5); the opt-in AI tutor (1.6). Later 1.x releases add SQL levels 5 to 7, more companies and real datasets, and the recruiter mocks. See
+the readiness check and the interview labs); Methodology complete; optional telemetry (0.5.2) and
+the study journey (0.5.3); SQL level 4, raw data and the incident tickets (0.6.0); Mailvora, the marketing cases and the first
+real datasets (0.6.1); the opt-in AI tutor (0.6.2); SQL level 5 and the screen mock on the Recruiter mocks screen (0.7.0); the knowledge, case-round
+and take-home mocks and the tutor's second opinion (0.7.1). Later 0.x releases add SQL levels 6 and 7, more companies and real datasets. See
 `docs/planning/roadmap.md` and `CHANGELOG.md`.
 
 It runs on Windows 11; other systems are untested.
@@ -293,11 +333,11 @@ The app itself:
 | `core/` | Domain-free engine code: the log records, events and goals. aydindutch copies it later |
 | `schemas/` | The app's types (exercises, keys, lessons, curriculum, the log extension) and the grading test cases |
 | `server/` | The local server: the SQL runner (`server/runner/`), the grader (`server/grader/`), the logs, the routes and the AI tutor (`server/tutor/`) |
-| `web/` | The screens: Today, the maps, lessons, exercises, timed runs, settings and setup, and the tutor panel (`web/src/tutor/`) |
+| `web/` | The screens: Today, the maps, lessons, exercises, timed runs, the recruiter mocks, settings and setup, and the tutor panel (`web/src/tutor/`) |
 | `content/` | The SQL, GA4 and Methodology curricula, lessons and exercises, their answer keys (`content/keys/`), and the dataset registry (`content/datasets/registry.json`) |
 | `pipeline/` | The Python build for the course database (Voltmarkt and Mailvora), and the real-data prep in `pipeline/datasets/` |
 | `tools/` | The content checks, the ERRATA check, the import check, the curriculum extractor, the blind-solver tools, the launcher (`tools/launch.ts`), `npm run journey` (`tools/journey.ts`, with its views in `tools/journey-views.sql`) and the tutor's live eval (`tools/tutor-eval.ts`) |
-| `tests/` | The test suite, plus the browser smoke test in `tests/e2e/` |
+| `tests/` | The test suite, with the render tests in `tests/web/render/`, plus the browser smoke test in `tests/e2e/` |
 | `data/`, `logs/` | The built course database (with any real data you prepared, in `data/real/`) and the attempt log. Git ignores both; the log is backed up to the folder chosen in Settings after each session |
 | `journey/` | The [study journey](#your-study-journey) (D77) and the database `npm run journey` builds from it. Git ignores it |
 | `tutor-eval/` | The replies `npm run eval:tutor` saves for reading. Git ignores it |
@@ -332,10 +372,10 @@ To check and build from clean, run these in order:
 | `npm run prep:datasets -- --from <folder>` | Optional. Prepares the real datasets you downloaded into `data/real/` and rebuilds (see [Real datasets](#real-datasets)) |
 | `npm run build:data` | Builds `data/course.duckdb` and its manifest. It also writes the case truth checkpoints to `data/truth/checkpoints.json`, each case's on its own schema (an older build kept them in `data/truth/voltmarkt.json`, key `checkpoints`, which the server still reads). Run it after any change to the pipeline or the case data |
 | `npm run typecheck` | Type-checks the server, tools, tests and screens |
-| `npm test` | Runs the test suite |
+| `npm test` | Runs the test suite, including the render tests, which draw the screens' React components in happy-dom (D113) |
 | `npm run check:imports` | Checks that `core/` stays free of app code |
 | `npm run check:errata` | Checks `knowledge/ERRATA.md` |
-| `npm run check:content` | Runs the content checks on every lesson and exercise, including the blind solver records |
+| `npm run check:content` | Runs the content checks on every lesson and exercise, including the blind solver records. `npm run check:content -- --only C25,C56` runs just the listed checks (IDs such as C14) and its summary line says it was a partial run; only the full run is the gate |
 | `npm run build:web` | Builds the screens into `web/dist`, which `npm start` serves |
 | `npm run eval:tutor` | Optional, and it spends a few cents of your key: asks a model (`-- --model <id> --effort <level>`; Haiku 5.5 at medium by default) 20 fixed questions and checks it never gives the answer before a pass. It prints PASS or FAIL per question; the replies go to `tutor-eval/<date>-<model>-<effort>-prompt-v<n>/`. `node tools/tutor-eval.ts --recheck <folder>` re-scores saved replies with no call |
 | `npm run test:e2e` | The browser smoke test. It starts its own server on port 5174, or on `AYDINLEARNS_PORT` when that is set, so stop `npm start` first or use another port. It starts from an empty temporary log and a temporary journey folder, and never writes to the real `logs/` or `journey/` |

@@ -1,4 +1,4 @@
-# Sprint 5b record: GA4 complete, release 1.1
+# Sprint 5b record: GA4 complete, release 0.5.1
 
 Copied on 2026-10-09 from sprint 5b's build ledger and its review files, which live in a
 git-ignored scratch workspace. It is the sprint 5b counterpart of `2026-10-08-sprint-5a-record.md`.
@@ -9,7 +9,7 @@ are named by ID only.
 
 What the sprint did: finished the GA4 section with 10 interview labs in Google's GA4 demo
 account, full mocks on dated exam blueprints (Codex F14), the readiness check, and log format
-version 5; fixed the GA4 audiences item; ran a screen pass; and numbered the app 1.1.0. No grading
+version 5; fixed the GA4 audiences item; ran a screen pass; and numbered the app 0.5.1. No grading
 change for SQL (`GRADER_VERSION` stays `4c.1`).
 
 ## Owner decisions
@@ -28,11 +28,11 @@ plan's defaults were accepted by "go".
 | D71 | Retiring held-out items to show their explanations is not in 5b |
 | D72 | Codex F14 fixed now with dated blueprints in `content/ga4/exam.json` (today's entries dated 2026-10-06) |
 | D73 | The GA4 audiences item is fixed in 5b and blind-solved again |
-| D74 | Release 1.1 as 1.0 was: version 1.1.0, the public copy, a fresh-install test, the `v1.1.0` tag and release, and the owner's checkout updated |
+| D74 | Release 0.5.1 as 0.5.0 was: version 0.5.1, the public copy, a fresh-install test, the `v1.1.0` tag and release, and the owner's checkout updated |
 
 ## What was built
 
-Base `17f1bea` (the 1.0 record, on top of PR #42's merge `fbf6cce`).
+Base `17f1bea` (the 0.5.0 record, on top of PR #42's merge `fbf6cce`).
 
 | Task | What | Commit |
 |---|---|---|
@@ -46,7 +46,7 @@ Base `17f1bea` (the 1.0 record, on top of PR #42's merge `fbf6cce`).
 | C1 | The 10 labs (35 parts), their keys and the demo account guide; structural blind solve 8 of 8 | `8b73ed6`, `3ab48ce` |
 | B5 | The readiness check (`server/readiness.ts`, `GET /api/ga4/readiness`, cold answers in `server/progress.ts`) | `57d48bc` |
 | F1 | Smoke rows 5b-1 to 5b-5; a screen pass at 1366 and 390 px (30 findings, 120 screenshots); 28 small findings fixed | `609fbe4`, `14c4daa` |
-| F2 | Seams review fix round, version 1.1.0 and the release docs | see the last section |
+| F2 | Seams review fix round, version 0.5.1 and the release docs | see the last section |
 
 Content results:
 
@@ -82,7 +82,7 @@ Content results:
 | S5B-18 | The cold candidate is the scored answer (the last before the close) of the item's first instance with a graded attempt, as replay's S3-07 | A mini drill logs every change; the first click would overclaim | One helper call |
 | S5B-19 | Only counted mocks (ended, answered, unseen) break a half-mock pair | A seen run is not a readiness mock | One filter |
 | S5B-20 | Smoke row 5b-2 resolves LAB-12 P4's option from the key at run time | No option text in a test file | None |
-| S5B-21 | Screen findings S5-19 (where Today shows a due lab) and S5-21 (the runs card's link and button share a label; predates 5b) go to the backlog | S5-19 is a design question; S5-21 renames links older smoke rows click | They stay as they are in 1.1 |
+| S5B-21 | Screen findings S5-19 (where Today shows a due lab) and S5-21 (the runs card's link and button share a label; predates 5b) go to the backlog | S5-19 is a design question; S5-21 renames links older smoke rows click | They stay as they are in 0.5.1 |
 | S5B-22 | The guide's numbered steps become a bullet list in content (no Markdown renderer change); the guide moves below the lab list; early re-check and the full mock line change wording only | Smallest change; no grading or D65 change | None |
 | S5B-23 | The small screen fixes ran as two agents on disjoint files, sharing `components.css` and `smoke.ts` with re-read-before-edit; only the controller ran the smoke test | Wall time; one server per port | An edit conflict, redone |
 | S5B-24 | One exported test decides whether a mock counts for readiness (a mock, ended, at least one answer, every logged item unseen); the history and the review carry it as `counts_for_readiness`, and a short-logged unseen run reads "No saved question was shown in the last 21 days." | A crashed mock was "not counted" on its review and counted by the check | One field |
@@ -158,14 +158,14 @@ PR #43 merged on 2026-10-09. Codex left two P2 comments, both on the readiness c
 part was narrower than D70) and F28 (a mini drill's cold answer is its last answer, not its first
 click). A hygiene PR on `feat/aydinlearns-hygiene-1-1` (plan
 [`2026-10-09-aydinlearns-hygiene-1-1.md`](../superpowers/plans/2026-10-09-aydinlearns-hygiene-1-1.md))
-fixed F27 and the backlog rows that were cheap and safe, before the 1.1 release.
+fixed F27 and the backlog rows that were cheap and safe, before the 0.5.1 release.
 
 **Owner decisions** (all five as recommended):
 
 | ID | Decision |
 |---|---|
 | H-D1 | F28 won't fix: the cold answer stays the answer the run scores (S5B-18) |
-| H-D2 | One release after the hygiene PR, still numbered 1.1.0 |
+| H-D2 | One release after the hygiene PR, still numbered 0.5.1 |
 | H-D3 | A due lab re-check is a step in Today's GA4 plan; the wrap-up card goes |
 | H-D4 | Outline buttons use the `--control` border |
 | H-D5 | The plan's scope; the rest of the backlog waits, with a reason per row |
@@ -219,16 +219,16 @@ hygiene test gaps). 27 rows remain.
 | `npm run build:web` | builds (the chunk-size warning dates from slice 1) |
 | `npm run test:e2e` | 63 of 63 rows, 0 page errors |
 
-## Release 1.1
+## Release 0.5.1
 
 PR #44 merged on 2026-10-09 (`dabdabb`). Codex finished its review with no findings (a +1 and no
-comments). Release 1.1 (D63, H-D2), the same day:
+comments). Release 0.5.1 (D63, H-D2), the same day:
 
 | Step | Result |
 |---|---|
 | Public copy | A fresh clone of `maydinidil/aydinlearns` outside the monorepo; `origin/main`'s `tools/export-public.sh <clone> origin/main` exported `dabdabb` as `f193c4e` (127 files changed). The scan found no logs, data, `.env`, scratch folders, session links, emails or private paths (two hits were instruction text naming the patterns). Pushed `6af683a..f193c4e` |
-| Fresh-install test | The clone's tree in a second clean folder, started with the launcher (`node tools/launch.ts --no-browser`, `AYDINLEARNS_PORT=5194`, a temporary `AYDINLEARNS_LOGS_DIR`). Setup ran end to end (`npm ci`, the venv and `pip install` with DuckDB 1.5.6, `build:data` dataset `6de53e5dbeafe2d5`, `build:web`), the server answering after about 40 seconds, with no DEP0190 warning. The status route reported version 1.1.0 with all 9 checks passing; Today answered for SQL, GA4 and Methodology; `GET /api/labs` listed 10 labs; EX-SQL-BASICS-01-E1-01 graded a pass and logged to the temporary folder. The server was stopped, nothing listened on 5194, and both folders were deleted |
-| Tag and release | `v1.1.0` on `f193c4e`, release "aydinlearns 1.1": what 1.1 adds, how to start it, the known issues, what comes next |
+| Fresh-install test | The clone's tree in a second clean folder, started with the launcher (`node tools/launch.ts --no-browser`, `AYDINLEARNS_PORT=5194`, a temporary `AYDINLEARNS_LOGS_DIR`). Setup ran end to end (`npm ci`, the venv and `pip install` with DuckDB 1.5.6, `build:data` dataset `6de53e5dbeafe2d5`, `build:web`), the server answering after about 40 seconds, with no DEP0190 warning. The status route reported version 0.5.1 with all 9 checks passing; Today answered for SQL, GA4 and Methodology; `GET /api/labs` listed 10 labs; EX-SQL-BASICS-01-E1-01 graded a pass and logged to the temporary folder. The server was stopped, nothing listened on 5194, and both folders were deleted |
+| Tag and release | `v1.1.0` on `f193c4e`, release "aydinlearns 0.5.1": what 0.5.1 adds, how to start it, the known issues, what comes next |
 | Local checkout | `C:\zehirlab` fast-forwarded from `fbf6cce` to `dabdabb` (26 commits) with the app closed; untracked folders untouched. The launcher rebuilds the data and the screens at the next start |
 
 Still open after the release: the Skillshop check of the full mock's rules (owner), the first real lab

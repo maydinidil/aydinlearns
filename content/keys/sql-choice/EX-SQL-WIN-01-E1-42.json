@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-WIN-01-E1-42",
+  "item_version": 1,
+  "correct_oid": "o69c4053",
+  "explanation": "WHERE keeps the two LU stores first, and only then is the window worked out: it counts the rows of each country among the rows kept, 2, and writes that count on both rows. A window never folds rows, so the result keeps two rows, and it cannot see the stores WHERE removed, so it never counts 26.",
+  "solver": {
+    "prompt_hash": "ab4c8403bfb26c72",
+    "grader_version": "choice.3",
+    "chosen": "o69c4053",
+    "typed": null,
+    "at": "2026-10-20T20:50:48.314Z"
+  }
+}

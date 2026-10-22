@@ -1,0 +1,39 @@
+{
+  "item_id": "EX-SQL-WIN-02-E1-07",
+  "item_version": 1,
+  "reference_sql": "SELECT product_id, category_id, unit_cost_eur,\n       DENSE_RANK() OVER (PARTITION BY category_id ORDER BY unit_cost_eur) AS cost_level\nFROM products\nWHERE category_id BETWEEN 35 AND 40",
+  "alternatives": [
+    "SELECT p.product_id, p.category_id, p.unit_cost_eur,\n       1 + (SELECT COUNT(DISTINCT p2.unit_cost_eur) FROM products p2\n            WHERE p2.category_id = p.category_id AND p2.unit_cost_eur < p.unit_cost_eur) AS cost_level\nFROM products p\nWHERE p.category_id BETWEEN 35 AND 40",
+    "SELECT p.product_id, p.category_id, p.unit_cost_eur, COUNT(DISTINCT p2.unit_cost_eur) + 1 AS cost_level\nFROM products p\nLEFT JOIN products p2 ON p2.category_id = p.category_id AND p2.unit_cost_eur < p.unit_cost_eur\nWHERE p.category_id BETWEEN 35 AND 40\nGROUP BY p.product_id, p.category_id, p.unit_cost_eur"
+  ],
+  "other_way": {
+    "sql": "SELECT p.product_id, p.category_id, p.unit_cost_eur,\n       1 + (SELECT COUNT(DISTINCT p2.unit_cost_eur) FROM products p2\n            WHERE p2.category_id = p.category_id AND p2.unit_cost_eur < p.unit_cost_eur) AS cost_level\nFROM products p\nWHERE p.category_id BETWEEN 35 AND 40",
+    "tradeoff": "Counting the different cheaper costs gives the same level on any engine, but it reads the table again for every product."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-40",
+      "sql": "SELECT product_id, category_id, unit_cost_eur, RANK() OVER (PARTITION BY category_id ORDER BY unit_cost_eur) AS cost_level FROM products WHERE category_id BETWEEN 35 AND 40"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-18",
+      "sql": "SELECT product_id, category_id, unit_cost_eur, DENSE_RANK() OVER (PARTITION BY category_id ORDER BY unit_cost_eur DESC) AS cost_level FROM products WHERE category_id BETWEEN 35 AND 40"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-37",
+      "sql": "SELECT product_id, category_id, unit_cost_eur, DENSE_RANK() OVER (ORDER BY unit_cost_eur) AS cost_level FROM products WHERE category_id BETWEEN 35 AND 40"
+    }
+  ],
+  "hint3_partial": "SELECT product_id, category_id, unit_cost_eur,\n       DENSE_RANK() OVER (PARTITION BY category_id ORDER BY ___) AS cost_level\nFROM products\nWHERE category_id BETWEEN 35 AND 40",
+  "solver": {
+    "prompt_hash": "4b090608116431de",
+    "schema_version": "d77fe1c31a0e",
+    "dataset_version": "e7c58abf7e8f892e",
+    "grader_version": "7a.1",
+    "query": "SELECT product_id, category_id, unit_cost_eur,\n       DENSE_RANK() OVER (PARTITION BY category_id ORDER BY unit_cost_eur ASC) AS cost_level\nFROM products\nWHERE category_id BETWEEN 35 AND 40\n",
+    "at": "2026-10-21T09:05:06.261Z"
+  }
+}

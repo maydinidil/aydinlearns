@@ -1,0 +1,115 @@
+{
+  "id": "EX-SQL-WIN-01-E1-08",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "window",
+    "partition_by",
+    "count",
+    "promotion_products"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-WIN-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-AGG-01",
+    "SQL-WIN-01"
+  ],
+  "template_id": "T-WIN-01-row-beside-group-count",
+  "template_params": {
+    "table": "promotion_products",
+    "partition": "promotion"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_win",
+  "prompt": "For every row of promotion_products, a product in a promotion, show how many products that promotion covers. Return three columns, in this order: promo_id, product_id and promo_products. Return one row for each promotion and product. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "promo_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "product_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "promo_products",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "promo_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "product_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "promo_products",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "promo_id",
+      "product_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the calculated column: the number of products of the same promotion, on every row.",
+    "Count rows in a window that restarts for each promotion, so every promotion and product pair keeps its own row."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 91,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 92,
+      "to": 115,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 90000,
+  "why_this_works": "COUNT(*) over a window for each promotion counts that promotion's products and keeps every pair as its own row."
+}

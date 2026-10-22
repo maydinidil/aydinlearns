@@ -11,7 +11,6 @@ import json
 import math
 import pathlib
 import shutil
-import sys
 import tempfile
 import unittest
 from unittest import mock
@@ -19,9 +18,7 @@ from unittest import mock
 import duckdb
 import pyarrow as pa
 
-sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
-sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
-import build_course_db  # noqa: E402
+from course_build import build_course_db   # L50: the paths, and Mailvora generated once per process (S7-30)
 from test_build import M5_MOVES  # noqa: E402  backlog M5 (D90): the one list of objects it may move
 from voltmarkt import ab_test as ab  # noqa: E402
 from voltmarkt import generate as vm  # noqa: E402

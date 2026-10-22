@@ -7,7 +7,7 @@ import { mkdtemp, readFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { Hono } from 'hono';
-import { evaluateGoal } from '../../core/goal-eval.ts';
+import { evaluateGoal, type GoalView } from '../../core/goal-eval.ts';
 import type { Goal } from '../../core/goals.ts';
 import { openJsonlLog, type JsonlLog } from '../../core/jsonl.ts';
 import type { Curriculum } from '../../schemas/concepts.ts';
@@ -184,7 +184,9 @@ test('S4B-26: a live block is never a level or chosen run in drillRuns', () => {
 
 test('G-STAGE-6: evaluateGoal meets the live criterion at 4 reps with 3 passed in 4 weeks; reps outside the window do not count', () => {
   const goal = { id: 'G-STAGE-6', title: 'Live SQL habit', target_date: '2026-12-07', stage: 6, criteria: [{ kind: 'live_rep', window_weeks: 4, min_logged: 4, min_passed: 3 }] } as unknown as Goal;
-  const view = (liveReps: { local_date: string; passed: boolean }[]) => ({ concepts: new Map(), externals: [], mocksPassed: new Set(), casesSolved: [], realCasesAvailable: 0, liveReps }) as any;
+  // F2-4-5: a whole GoalView, typed: mocksPassed is a Map (S7-05) and mocksAvailable a Set (S7-04), so a mock_pass criterion reads it too.
+  const view = (liveReps: { local_date: string; passed: boolean }[]): GoalView => ({ conceptsOf: () => [], stateOf: () => 'new', externals: [], mocksPassed: new Map(),
+    mocksAvailable: new Set(), casesSolved: [], realCasesAvailable: 0, liveReps });
   const today = '2026-10-31';
   const inside = [
     ...rep('live-1', '2026-10-05', { pass: true, tick: true }), ...rep('live-2', '2026-10-12', { pass: true, tick: true }),

@@ -26,9 +26,11 @@ export const COLUMNS: Record<string, ColumnType> = {
   section: 'VARCHAR', run_kind: 'VARCHAR', block_id: 'VARCHAR', questions: 'DOUBLE', level: 'DOUBLE', screen_mode: 'BOOLEAN',
   score_pct: 'DOUBLE', run_passed: 'BOOLEAN', case_id: 'VARCHAR', data_source: 'VARCHAR', lab_id: 'VARCHAR', card_id: 'VARCHAR',
   state_from: 'VARCHAR', state_to: 'VARCHAR',
+  // tutor_asked (D99, S7-36): the counts and the cost are numbers, so they add up. The provider, model and effort load as text.
+  input_tokens: 'DOUBLE', cached_input_tokens: 'DOUBLE', output_tokens: 'DOUBLE', cost_usd: 'DOUBLE',
 };
 export const VIEWS = ['sessions', 'funnel', 'paths', 'exits', 'screen_time', 'items', 'help_and_results', 'confidence', 'time_of_day',
-  'days', 'mastery', 'runs'] as const;
+  'days', 'mastery', 'runs', 'tutor_questions'] as const;
 const SAFE_KEY = /^[a-z][a-z0-9_]{0,62}$/;
 const FILE = /^events-\d{4}-\d{2}\.jsonl$/;
 const VIEWS_SQL = fileURLToPath(new URL('./journey-views.sql', import.meta.url));

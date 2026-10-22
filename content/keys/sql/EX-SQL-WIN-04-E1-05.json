@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-WIN-04-E1-05",
+  "item_version": 1,
+  "reference_sql": "WITH daily AS (\n  -- one row per day with webshop orders\n  SELECT order_date, SUM(units) AS units\n  FROM sales\n  WHERE store_code = 'WEB-01'\n    AND order_date BETWEEN DATE '2025-06-01' AND DATE '2025-06-30'\n  GROUP BY order_date\n)\nSELECT order_date, units,\n  SUM(units) OVER (ORDER BY order_date ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS cumulative_units\nFROM daily",
+  "alternatives": [
+    "WITH daily AS (\n  -- one row per day with webshop orders\n  SELECT order_date, SUM(units) AS units\n  FROM sales\n  WHERE store_code = 'WEB-01'\n    AND order_date BETWEEN DATE '2025-06-01' AND DATE '2025-06-30'\n  GROUP BY order_date\n)\nSELECT d.order_date, d.units,\n  (SELECT SUM(d2.units) FROM daily d2 WHERE d2.order_date <= d.order_date) AS cumulative_units\nFROM daily d",
+    "WITH daily AS (\n  -- one row per day with webshop orders\n  SELECT order_date, SUM(units) AS units\n  FROM sales\n  WHERE store_code = 'WEB-01'\n    AND order_date BETWEEN DATE '2025-06-01' AND DATE '2025-06-30'\n  GROUP BY order_date\n)\nSELECT d.order_date, d.units, SUM(e.units) AS cumulative_units\nFROM daily d\nJOIN daily e ON e.order_date <= d.order_date\nGROUP BY d.order_date, d.units"
+  ],
+  "other_way": {
+    "sql": "WITH daily AS (\n  -- one row per day with webshop orders\n  SELECT order_date, SUM(units) AS units\n  FROM sales\n  WHERE store_code = 'WEB-01'\n    AND order_date BETWEEN DATE '2025-06-01' AND DATE '2025-06-30'\n  GROUP BY order_date\n)\nSELECT d.order_date, d.units,\n  (SELECT SUM(d2.units) FROM daily d2 WHERE d2.order_date <= d.order_date) AS cumulative_units\nFROM daily d",
+    "tradeoff": "A subquery adding up the earlier days works anywhere, but rereads the days for every row."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-41",
+      "sql": "WITH daily AS (\n  -- one row per day with webshop orders\n  SELECT order_date, SUM(units) AS units\n  FROM sales\n  WHERE store_code = 'WEB-01'\n    AND order_date BETWEEN DATE '2025-06-01' AND DATE '2025-06-30'\n  GROUP BY order_date\n) SELECT order_date, units, SUM(units) OVER (ORDER BY units, order_date ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS cumulative_units FROM daily"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-14",
+      "sql": "WITH daily AS (\n  -- one row per day with webshop orders\n  SELECT order_date, SUM(units) AS units\n  FROM sales\n  WHERE store_code = 'WEB-01'\n    AND order_date BETWEEN DATE '2025-06-01' AND DATE '2025-06-30'\n  GROUP BY order_date\n) SELECT order_date, units, MAX(units) OVER (ORDER BY order_date ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS cumulative_units FROM daily"
+    }
+  ],
+  "hint3_partial": "WITH daily AS (\n  -- one row per day with webshop orders\n  SELECT order_date, SUM(units) AS units\n  FROM sales\n  WHERE store_code = 'WEB-01'\n    AND order_date BETWEEN DATE '2025-06-01' AND DATE '2025-06-30'\n  GROUP BY order_date\n)\nSELECT order_date, units,\n  SUM(units) OVER (ORDER BY ___ ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS cumulative_units\nFROM daily",
+  "solver": {
+    "prompt_hash": "c0f98ac62f0428d7",
+    "schema_version": "cebf75df442f",
+    "dataset_version": "e7c58abf7e8f892e",
+    "grader_version": "7a.1",
+    "query": "WITH daily AS (\n  SELECT order_date, SUM(net_revenue_eur) AS revenue_eur, SUM(units) AS units\n  FROM sales\n  WHERE store_code = 'WEB-01' AND order_date BETWEEN DATE '2025-06-01' AND DATE '2025-06-30'\n  GROUP BY order_date\n)\nSELECT order_date, units,\n  SUM(units) OVER (ORDER BY order_date ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS cumulative_units\nFROM daily\n",
+    "at": "2026-10-21T09:05:08.136Z"
+  }
+}

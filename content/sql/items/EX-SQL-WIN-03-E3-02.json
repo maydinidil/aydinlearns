@@ -1,0 +1,131 @@
+{
+  "id": "EX-SQL-WIN-03-E3-02",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "lag",
+    "payments",
+    "subscriptions",
+    "date_difference",
+    "cte"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-03"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-WIN-03",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-SORT-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-DATE-02",
+    "SQL-WIN-01",
+    "SQL-WIN-03"
+  ],
+  "template_id": "T-WIN-03-max-gap",
+  "template_params": {
+    "table": "payments",
+    "group": "subscription",
+    "by": "plan"
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "mailvora",
+  "schema": "mailvora",
+  "edge_schema": "mailvora_edge_win",
+  "prompt": "For each plan, find the longest gap between two consecutive payments of one subscription on that plan, in days: the UTC date of a payment minus the UTC date of the same subscription's payment before it (paid_at holds UTC time). Only payments that were not refunded count; refunded payments are left out before the gaps are measured. A subscription with fewer than two such payments has no gap, and a plan with no gap at all is left out. Return plan_name and max_gap_days. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "plan_name",
+        "type_class": "text"
+      },
+      {
+        "name": "max_gap_days",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "plan_name",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "max_gap_days",
+        "type_class": "numeric",
+        "precision": "count"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "plan_name"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, in a first step, give each payment that was not refunded its gap in days to the same subscription's payment before.",
+    "The window runs per subscription, not per plan; join the gaps to the subscriptions for the plan, then take the longest gap of each plan."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 246,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 247,
+      "to": 298,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 299,
+      "to": 372,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 373,
+      "to": 401,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 402,
+      "to": 422,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "LAG per subscription gives each kept payment its gap to the one before; joining the plan and taking MAX per plan gives the longest gap."
+}

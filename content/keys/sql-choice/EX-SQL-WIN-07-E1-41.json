@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-WIN-07-E1-41",
+  "item_version": 1,
+  "value": 3,
+  "explanation": "NTILE(3) deals the 8 campaigns into three groups whose sizes differ by at most one, the larger groups first: 3, 3 and 2. Group 1 therefore holds 3 campaigns. Eight does not divide by three, so the groups cannot all be the same size, and the extra campaigns go to the first groups.",
+  "solver": {
+    "prompt_hash": "654de3f80d3ccb9f",
+    "grader_version": "choice.3",
+    "chosen": null,
+    "typed": "3",
+    "at": "2026-10-20T20:50:48.403Z"
+  }
+}

@@ -1,0 +1,174 @@
+{
+  "id": "EX-SQL-WIN-02-E3-02",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "ranking",
+    "row_number",
+    "top_n_share",
+    "tie_break",
+    "ad_spend_daily"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-WIN-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CASE-01",
+    "SQL-TYPE-01",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-WIN-01",
+    "SQL-WIN-02"
+  ],
+  "template_id": "T-WIN-02-top-n-share-of-group",
+  "template_params": {
+    "table": "ad_spend_daily",
+    "step": "campaign",
+    "partition": "channel",
+    "fn": "ROW_NUMBER",
+    "n": 2
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "mailvora",
+  "schema": "mailvora",
+  "edge_schema": "mailvora_edge_win",
+  "prompt": "What share of each channel's spend comes from its 2 biggest campaigns? Count all the spend in ad_spend_daily. Take exactly 2 campaigns per channel, or the only one when a channel has just one; when campaigns tie on spend, the lower campaign_id is taken first. Return four columns, in this order: channel_id, top2_spend (the spend of those campaigns), channel_spend (the spend of all the channel's campaigns) and top2_share_pct, top2_spend as a percentage of channel_spend, rounded to 2 decimals. Return one row for each channel with spend. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "channel_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "top2_spend",
+        "type_class": "numeric"
+      },
+      {
+        "name": "channel_spend",
+        "type_class": "numeric"
+      },
+      {
+        "name": "top2_share_pct",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "channel_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "top2_spend",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "channel_spend",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "top2_share_pct",
+        "type_class": "numeric",
+        "precision": "ratio",
+        "require_rounding": 2
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "channel_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the step that numbers each channel's campaigns from the biggest spend, with the stated tie-break.",
+    "Then add up, per channel, the spend of the campaigns numbered 1 and 2 beside the spend of all of them, and divide."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 60,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 61,
+      "to": 120,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 121,
+      "to": 196,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 197,
+      "to": 235,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 239,
+      "to": 286,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 287,
+      "to": 406,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 407,
+      "to": 428,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 431,
+      "to": 653,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 654,
+      "to": 665,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 666,
+      "to": 685,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "ROW_NUMBER marks exactly two campaigns per channel, with campaign_id settling a tie, and one GROUP BY adds up both totals."
+}

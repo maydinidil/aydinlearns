@@ -120,9 +120,15 @@ export function runLine(r: { kind: RunKind; questions: number; minutes: number; 
     ? `${head} One question at a time, no going back, one answer each. Unanswered questions count as wrong.`
     : `${head} Go back, flag a question and change an answer at any time.`;
 }
+/**
+ * The run kinds whose answers a saved line names: a GA4 run's, and (sprint 7 Part 2, N1 M1) the knowledge mock's, which runs in the same
+ * exam view (S7-10).
+ */
+export type SavedKind = RunKind | 'knowledge_mock';
+const SAVED_LABEL: Record<SavedKind, string> = { ...KIND_LABEL, knowledge_mock: 'Knowledge mock' };
 /** The line after a run answer is saved: the run's kind names what takes one answer (a mini drill takes changes, so it names none). */
-export function savedLine(mode: RunMode, kind: RunKind): string {
-  return modeRules(mode).changeAnswer ? 'Answer saved. You can change it until the run ends.' : `Answer saved. A ${KIND_LABEL[kind].toLowerCase()} takes one answer per question.`;
+export function savedLine(mode: RunMode, kind: SavedKind): string {
+  return modeRules(mode).changeAnswer ? 'Answer saved. You can change it until the run ends.' : `Answer saved. A ${SAVED_LABEL[kind].toLowerCase()} takes one answer per question.`;
 }
 export const HELP_LINE = 'Help opens in the end-of-run review.';
 

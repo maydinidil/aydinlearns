@@ -1,0 +1,147 @@
+{
+  "id": "EX-MOCK-SCREEN-C-01",
+  "version": 2,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-01",
+    "mock",
+    "screen",
+    "order_by",
+    "limit",
+    "tie_break",
+    "in_list",
+    "products"
+  ],
+  "level": 1,
+  "source_ids": [
+    "01:SQL-SORT-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-21",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "mock",
+  "target_concept_id": "SQL-SORT-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01"
+  ],
+  "template_id": "T-MOCK-SCREEN-top-n-under-a-cost-cap",
+  "template_params": {
+    "table": "products",
+    "brands": "Vistara, Lumio, Nordvue",
+    "below_cost_eur": 1000,
+    "n": 3
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_sort",
+  "prompt": "Marketing is planning a campaign for three TV brands and wants to lead with their most expensive products that still cost Voltmarkt less than 1,000 euros a unit. Among the products whose brand is Vistara, Lumio or Nordvue and whose unit_cost_eur is below 1000, which 3 have the highest unit_cost_eur? Products with a missing brand or a missing unit_cost_eur do not count. Return four columns, in this order: product_id, product_name, brand, unit_cost_eur. Sort by unit_cost_eur from highest to lowest; when products tie on unit_cost_eur, the lower product_id comes first and takes the place. Return exactly 3 rows.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "product_name",
+        "type_class": "text"
+      },
+      {
+        "name": "brand",
+        "type_class": "text"
+      },
+      {
+        "name": "unit_cost_eur",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per product"
+  },
+  "rules": {
+    "order_matters": true,
+    "sort_keys": [
+      {
+        "column": "unit_cost_eur",
+        "desc": true
+      },
+      {
+        "column": "product_id",
+        "desc": false
+      }
+    ],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "product_name",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "brand",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "unit_cost_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "product_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the sort and the row limit: the highest unit cost first, then the stated tie-break.",
+    "Products can share a unit cost at the cut, so the ORDER BY needs a second key, low to high, before LIMIT keeps 3 rows."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 53,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 54,
+      "to": 67,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 68,
+      "to": 141,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 142,
+      "to": 189,
+      "subgoal": "sort_limit"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 150000,
+  "why_this_works": "Sorting by unit cost, high to low, then by product_id, low to high, decides which tied products make the top 3 before LIMIT cuts."
+}

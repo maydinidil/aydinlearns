@@ -4,11 +4,16 @@
 // current prompt hash). Each fails once and passes once on fixtures. Every item, case and key here is invented.
 import { after, test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
+import { execFile } from 'node:child_process';
+import { copyFile, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { promisify } from 'node:util';
 import { startRunner } from '../../server/runner/client.ts';
 import { parseDrillFile, type DrillFile } from '../../server/drill.ts';
 import { loadContent } from '../../server/content.ts';
 import type { Curriculum } from '../../schemas/concepts.ts';
+import { optionId } from '../../schemas/choice.ts';
 import type { SqlItem } from '../../schemas/item.ts';
 import type { SqlKey } from '../../schemas/keys.ts';
 import {
@@ -33,6 +38,13 @@ const runner = await startRunner(await makeFixtureDb([
   "CREATE TABLE voltmarkt.categories AS SELECT * FROM (VALUES (1, 'TV & Video')) v(category_id, name)",
   "CREATE TABLE voltmarkt_raw.categories AS SELECT * FROM (VALUES (1, 'TV & Video')) v(category_id, name)",
   "CREATE TABLE voltmarkt_edge_clean.categories AS SELECT * FROM (VALUES (1, 'TV & Video')) v(category_id, name)",
+  // S7-C33: Mailvora's raw schema, its clean schema and its clean edge schema (invented rows).
+  'CREATE SCHEMA mailvora', 'CREATE SCHEMA mailvora_raw', 'CREATE SCHEMA mailvora_edge_clean',
+  "CREATE TABLE mailvora.sessions AS SELECT * FROM (VALUES (1, 'email'), (2, 'paid')) v(session_id, channel)",
+  "CREATE TABLE mailvora_raw.sessions AS SELECT * FROM (VALUES (1, 'Email '), (2, 'PAID')) v(session_id, channel)",
+  "CREATE TABLE mailvora_edge_clean.sessions AS SELECT * FROM (VALUES (1, 'email')) v(session_id, channel)",
+  "CREATE TABLE mailvora.campaigns AS SELECT * FROM (VALUES (1, 'spring')) v(campaign_id, name)",
+  "CREATE TABLE mailvora_raw.campaigns AS SELECT * FROM (VALUES (1, 'spring')) v(campaign_id, name)",
 ]));
 after(() => runner.close());
 
@@ -75,6 +87,74 @@ test('C47: a clean item\'s key that reads a raw table (voltmarkt_raw.) fails; it
   assert.deepEqual(await rawDataProblems(clean, keyOf(CITY, { hint3_partial: 'SELECT city FROM "voltmarkt_raw" . stores WHERE ...' }), runner),
     ['hint 3 reads a raw table (voltmarkt_raw.): a clean item reads its own schema only (S6-01)']);
   assert.deepEqual(await rawDataProblems(clean, keyOf("SELECT 'voltmarkt_raw.stores' AS label"), runner), [], 'inside a string it is text, not a table');
+});
+
+// ---- C47 for Mailvora and the mock cases (S7-C33) ----
+
+const MAIL_ITEM = { schema: 'mailvora_raw', edge_schema: 'mailvora_edge_clean' } as const;
+const CHANNEL = 'SELECT channel FROM sessions WHERE session_id = 1';
+
+test('C47 Mailvora: a raw item on mailvora_raw with mailvora_edge_clean whose key finds the quirk passes', async () => {
+  assert.deepEqual(await rawDataProblems(itemOf(MAIL_ITEM), keyOf(CHANNEL), runner), []);
+});
+
+test('C47 Mailvora: the schema, the edge schema, a qualified name and a key with no quirk each fail, naming the Mailvora schemas', async () => {
+  assert.deepEqual(await rawDataProblems(itemOf({ ...MAIL_ITEM, schema: 'mailvora' }), keyOf(CHANNEL), runner), ['a raw-data item has the schema mailvora_raw']);
+  assert.deepEqual(await rawDataProblems(itemOf({ ...MAIL_ITEM, edge_schema: 'mailvora_edge_basics' }), keyOf(CHANNEL), runner),
+    ['a raw-data item has the edge schema mailvora_edge_clean']);
+  assert.deepEqual(await rawDataProblems(itemOf({ schema: 'mailvora', edge_schema: 'mailvora_edge_basics', uses_raw: true }), keyOf(CHANNEL), runner),
+    ['a raw-data item has the schema mailvora_raw', 'a raw-data item has the edge schema mailvora_edge_clean']);
+  assert.deepEqual(await rawDataProblems(itemOf(MAIL_ITEM), keyOf('SELECT channel FROM mailvora_raw.sessions WHERE session_id = 1'), runner),
+    ['the reference names a schema: a raw-data key reads its tables by name only (S6-01)', 'alternative 1 names a schema: a raw-data key reads its tables by name only (S6-01)']);
+  assert.deepEqual(await rawDataProblems(itemOf(MAIL_ITEM), keyOf('SELECT name FROM campaigns'), runner),
+    ['the key gives the same result on mailvora as on mailvora_raw, so it finds no quirk (Review Focus 2)']);
+  assert.deepEqual(await rawDataProblems(itemOf(MAIL_ITEM), keyOf(CHANNEL, { hint3_partial: 'SELECT channel FROM mailvora_raw . sessions' }), runner),
+    ['hint 3 names a schema: a raw-data key reads its tables by name only (S6-01)']);
+});
+
+test('C47 Mailvora: the key of a clean item that reads mailvora_raw. fails, naming it; a Voltmarkt raw item keeps its Voltmarkt messages', async () => {
+  const clean = itemOf({ schema: 'mailvora', edge_schema: 'mailvora_edge_basics', target_concept_id: 'SQL-FILTER-01' });
+  assert.deepEqual(await rawDataProblems(clean, keyOf(CHANNEL), runner), []);
+  assert.deepEqual(await rawDataProblems(clean, keyOf(CHANNEL, { hint3_partial: 'SELECT channel FROM "mailvora_raw" . sessions' }), runner),
+    ['hint 3 reads a raw table (mailvora_raw.): a clean item reads its own schema only (S6-01)']);
+  assert.deepEqual(await rawDataProblems(clean, keyOf('SELECT city FROM voltmarkt_raw.stores'), runner),
+    ['the reference reads a raw table (voltmarkt_raw.): a clean item reads its own schema only (S6-01)', 'alternative 1 reads a raw table (voltmarkt_raw.): a clean item reads its own schema only (S6-01)']);
+});
+
+/** A mock take-home on mailvora_raw, built from the fixture inbox case: its CP3 item is a mock item (held out of item()). */
+const mockTakeHome = async (patch: { record?: (r: Record<string, unknown>) => void; item?: Partial<SqlItem>; ref?: string } = {}) => {
+  const f = await makeCaseFixture({});
+  const store = await loadContent(f.root, { truthFile: f.truthFile });
+  const base = store.cases!().find((c) => c.case_id === INBOX_ID)!;
+  const rec = { ...structuredClone(base), case_id: 'CASE-TAKE-F', kind: 'take_home', uses_raw: true, schema: 'mailvora_raw' } as Record<string, unknown>;
+  // Every checkpoint ID, truth key and option ID is derived from the case ID (S6-14), so re-derive them for the new ID.
+  type Cp = { kind: string; item_id?: string; truth_key?: string; options?: { oid: string }[] };
+  for (const c of rec.checkpoints as Cp[]) {
+    if (c.kind === 'CP3') { c.item_id = 'EX-MOCK-TAKE-F'; continue; }
+    if (c.kind === 'CP6') continue;
+    c.item_id = `CASE-TAKE-F:${c.kind}`;
+    if (c.truth_key) c.truth_key = c.item_id;
+    c.options?.forEach((o, i) => { o.oid = optionId(c.item_id!, i); });
+  }
+  patch.record?.(rec);
+  const item = itemOf({ id: 'EX-MOCK-TAKE-F', ...MAIL_ITEM, ...patch.item });
+  const key = keyOf(patch.ref ?? CHANNEL, { item_id: 'EX-MOCK-TAKE-F' });
+  const fake = { ...store, cases: () => [], mockCases: () => [rec], item: () => undefined, mockItem: (id: string) => (id === 'EX-MOCK-TAKE-F' ? item : undefined),
+    key: (id: string) => (id === 'EX-MOCK-TAKE-F' ? key : undefined), caseKey: () => undefined } as unknown as typeof store;
+  return (await checkRawCases(fake, runner)).find((x) => x.id === 'CASE-TAKE-F')!;
+};
+
+test('C47 for mock cases: a take-home on mailvora_raw with its mock CP3 item on mailvora_raw passes', async () => {
+  const r = await mockTakeHome();
+  assert.deepEqual([r.check, r.ok, r.detail], ['C47', true, '']);
+});
+
+test('C47 for mock cases: uses_raw and the schema agree, the mock CP3 item is on the raw schema, and its key finds the quirk', async () => {
+  const detail = async (p: Parameters<typeof mockTakeHome>[0]) => { const r = await mockTakeHome(p); assert.equal(r.ok, false); return r.detail; };
+  assert.match(await detail({ record: (r) => { r.uses_raw = false; } }), /a case on mailvora_raw has uses_raw true/);
+  assert.match(await detail({ record: (r) => { r.schema = 'mailvora'; } }), /a case with uses_raw has the schema mailvora_raw/);
+  assert.match(await detail({ item: { edge_schema: 'mailvora_edge_basics' } }), /EX-MOCK-TAKE-F has the edge schema mailvora_edge_clean/);
+  assert.match(await detail({ ref: 'SELECT name FROM campaigns' }), /EX-MOCK-TAKE-F's key gives the same result on mailvora as on mailvora_raw/);
 });
 
 /** The inbox case on raw data: its record, its CP3 item (whose fixture key reads store 8's city) and its truth queries. */
@@ -205,6 +285,28 @@ test('P12: C19 checks a cumulative entry by its own shape: its levels are curric
   assert.deepEqual(checkCumulativeDrills(zero, curriculum).map((r) => [r.ok, r.detail]), [[false, 'pass_pct must be above 0']]);
 });
 
+/** The CLI on a content folder that holds only the curriculum and one drills.json (no items, so no database is opened). */
+async function cliOnDrills(mode: string): Promise<{ code: number; out: string }> {
+  const root = await mkdtemp(join(tmpdir(), 'al-drills-'));
+  try {
+    await mkdir(join(root, 'sql'), { recursive: true });
+    for (const f of ['curriculum', 'error-feedback', 'error-concepts']) await copyFile(`content/sql/${f}.json`, join(root, 'sql', `${f}.json`));
+    await writeFile(join(root, 'sql/drills.json'), JSON.stringify({ version: 1, drills: [
+      { level: 1, questions: 4, minutes: 20, pass_pct: 90, concepts: ['SQL-BASICS-01'], unseen_min_pct: 70, mode }] }));
+    return await promisify(execFile)(process.execPath, ['tools/check-content.ts', root]).then((x) => ({ code: 0, out: x.stdout + x.stderr }),
+      (e: { code?: number; stdout?: string; stderr?: string }) => ({ code: e.code ?? -1, out: `${e.stdout ?? ''}${e.stderr ?? ''}` }));
+  } finally { await rm(root, { recursive: true, force: true }); }
+}
+
+test('S7-30: C19 reports a drill entry with a mistyped mode as one failure naming the entry and the mode rule, and a valid mode as none', async () => {
+  const bad = await cliOnDrills('normall');
+  assert.equal(bad.code, 1, bad.out);
+  assert.match(bad.out, /^FAIL C19 sql\/drills\.json drill 1 \(level 1\) has mode "normall", and the mode must be normal or screen\.$/m);
+  assert.doesNotMatch(bad.out, /content\/sql\/drills\.json:/, 'the file prefix is stripped from the message');
+  const good = await cliOnDrills('screen');
+  assert.doesNotMatch(good.out, /C19 sql\/drills\.json/, good.out);
+});
+
 // ---- C50: case blind-solve records ------------------------------------------------------------------------------------------
 
 /** Each case key's solver records: a passing one per CP1, CP2, CP4 and CP5 at its checkpoint's current prompt hash. */
@@ -213,9 +315,9 @@ const solved: CasePatch = {
     for (const k of ks) k.solver = {};
   },
 };
-async function solverResults(patch: (records: Record<string, any>[], keys: Record<string, any>[]) => void = () => {}) {
+async function solverResults(patch: (records: Record<string, any>[], keys: Record<string, any>[]) => void = () => {}, truths?: CasePatch['truths']) {
   let recs: Record<string, any>[] = [];
-  const f = await makeCaseFixture({ records: (r) => { recs = [r.opener, r.inbox, r.daily]; }, keys: (ks) => {
+  const f = await makeCaseFixture({ records: (r) => { recs = [r.opener, r.inbox, r.daily]; }, truths, keys: (ks) => {
     solved.keys!(ks);
     for (const k of ks) {
       const record = recs.find((r) => r.case_id === k.case_id)!;
@@ -258,6 +360,40 @@ test('K1: C50 fails a changed correct_oid, a changed CP2 value, a record with no
   const unbuilt = await one(() => {}, (t) => { delete t[`${INBOX_ID}:CP2`]; });
   assert.ok(!unbuilt.ok && /CP2: no value built: run npm run build:data/.test(unbuilt.detail), unbuilt.detail);
   for (const r of [oid, value, none, unbuilt]) assert.ok(!/[0-9a-f]{16}/.test(r.detail) && !/99/.test(r.detail), 'no hash or value in a detail');
+});
+
+test('S7-30: C50 names a CP1 or CP5 whose key has no correct option, and a CP4 with no built value, by kind and never by answer', async () => {
+  const NO_OPTION = 'the key has no correct option; see C41';
+  const inbox = async (patch: (ks: Record<string, any>[]) => void, truths?: CasePatch['truths']) =>
+    (await solverResults((_, ks) => patch(ks), truths)).find((r) => r.id === INBOX_ID)!;
+  const key = (ks: Record<string, any>[]) => ks.find((k) => k.case_id === INBOX_ID)!;
+  const cp1 = await inbox((ks) => { delete key(ks).choices.CP1; });
+  assert.deepEqual([cp1.ok, cp1.warn, cp1.detail], [false, undefined, `CP1: ${NO_OPTION}`]);
+  const cp5 = await inbox((ks) => { delete key(ks).choices.CP5; });
+  assert.deepEqual([cp5.ok, cp5.warn, cp5.detail], [false, undefined, `CP5: ${NO_OPTION}`]);
+  const cp4 = await inbox(() => {}, (t) => { delete t[`${INBOX_ID}:CP4`]; });
+  assert.deepEqual([cp4.ok, cp4.warn, cp4.detail], [false, undefined, 'CP4: no value built: run npm run build:data']);
+  const both = await inbox((ks) => { delete key(ks).choices.CP1; delete key(ks).choices.CP5; });
+  assert.equal(both.detail, `CP1: ${NO_OPTION}; CP5: ${NO_OPTION}`);
+  // A case whose dataset is not prepared waits for its CP2 and CP4 values only: a CP5 with no correct option still fails, with no warning.
+  let recs: Record<string, any>[] = [];
+  const f = await makeCaseFixture({
+    records: (r) => { r.inbox.schema = 'online_retail_ii'; recs = [r.opener, r.inbox, r.daily]; },
+    keys: (ks) => {
+      for (const k of ks) {
+        k.solver = {};
+        const record = recs.find((r) => r.case_id === k.case_id)!;
+        for (const cp of record.checkpoints.filter((c: any) => ['CP1', 'CP2', 'CP4', 'CP5'].includes(c.kind))) {
+          k.solver[cp.kind] = { pass: true, prompt_hash: casePromptHash(record as never, cp), key_hash: caseKeyHash(cp.kind, k as never, TRUTHS[`${k.case_id}:${cp.kind}`]), at: '2026-10-14T10:00:00.000Z' };
+        }
+      }
+      delete ks.find((k) => k.case_id === INBOX_ID)!.choices.CP5;
+    },
+    truths: (t) => { delete t[`${INBOX_ID}:CP2`]; delete t[`${INBOX_ID}:CP4`]; },
+    file: (x) => { x.schemas = ['voltmarkt']; },
+  });
+  const absent = checkCaseSolvers(await loadContent(f.root, { truthFile: f.truthFile })).find((r) => r.id === INBOX_ID)!;
+  assert.deepEqual([absent.ok, absent.warn, absent.detail], [false, undefined, `CP5: ${NO_OPTION}`]);
 });
 
 test('C50 (Review Focus 3): a case on a schema the build did not hold waits for its CP2 and CP4 values with a warning, and a missing record still fails', async () => {

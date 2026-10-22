@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-WIN-06-E1-41",
+  "item_version": 1,
+  "value": 21,
+  "explanation": "ROW_NUMBER starts again at 1 in every channel, so rn <= 3 keeps exactly three campaigns from each of the 7 channels: 21 rows. The outer WHERE runs after the numbering, and every channel has more than three campaigns to keep.",
+  "solver": {
+    "prompt_hash": "0e1eb924aa29b104",
+    "grader_version": "choice.3",
+    "chosen": null,
+    "typed": "21",
+    "at": "2026-10-20T20:50:48.387Z"
+  }
+}

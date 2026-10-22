@@ -17,7 +17,7 @@ import type { SettingChange } from '../core/events.ts';
 import type { TableNote } from '../schemas/schema-notes.ts';
 import { AttemptLogger } from './log.ts';
 import { SessionTracker } from './session.ts';
-import { blockClosesDue, createApp, recoveredCloses, resetEvent, settingsFromEvents, type AppDeps, type Settings } from './app.ts';
+import { blockClosesDue, createApp, mockBlockClosesDue, recoveredCloses, resetEvent, settingsFromEvents, type AppDeps, type Settings } from './app.ts';
 import { portFromEnv } from './port.ts';
 import { LearnerState } from './state.ts';
 import { journeyDirFrom, journeySettingNote, startJourney, stopJourney } from './journey.ts';
@@ -105,7 +105,7 @@ const inTimeOrder = <T extends { ts: string }>(rs: T[]): T[] => [...rs].sort((a,
 /**
  * Startup recovery, before the first request (design §13): ends every session the last run left open, then writes the
  * item_close of every instance it left without one, at its session's end, each rated by a replay that includes it
- * (S2-15). Then the block_close of every block whose items are all closed now (S2-16), and the reset of every leech
+ * (S2-15). Then the block_close of every block whose items are all closed now (S2-16), and of every mock run left with none (S7-C18), and the reset of every leech
  * that is due one (S2-28). The logger's onWrite must already mirror into `state` (bootState wires it).
  * Each batch is rated and written in time order, so every rating already counts the earlier ones: a close rated before
  * an earlier one on the same card would disagree with every later replay (S2-15).
@@ -115,6 +115,8 @@ export async function recoverLogs(logger: AttemptLogger, session: Pick<SessionTr
   const ends = await session.recover(records, events);
   for (const close of inTimeOrder(recoveredCloses(records, ends, events))) await logger.itemClose(state.rateClose(close));
   for (const block of inTimeOrder(blockClosesDue(state.current(), null))) await logger.blockClose(state.rateBlockClose(block));
+  // S7-C18: a mock run left with no answer has no instance close, so its block_close comes from its mock_open.
+  for (const block of inTimeOrder(mockBlockClosesDue(records, state.current()))) await logger.blockClose(state.rateBlockClose(block));
   for (const p of state.current().pendingResets) await logger.event(resetEvent(p));
 }
 

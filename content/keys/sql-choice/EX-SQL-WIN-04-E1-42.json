@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-WIN-04-E1-42",
+  "item_version": 1,
+  "correct_oid": "oe469d55",
+  "explanation": "The frame ROWS BETWEEN 1 PRECEDING AND CURRENT ROW holds this row and the one before it in valid_from order, so each version adds the previous price to its own. The first version has no row before it, so its frame holds one row and the sum is its own price, not missing. A running total would need UNBOUNDED PRECEDING.",
+  "solver": {
+    "prompt_hash": "8d71555ecdf2ff8c",
+    "grader_version": "choice.3",
+    "chosen": "oe469d55",
+    "typed": null,
+    "at": "2026-10-20T20:50:48.360Z"
+  }
+}

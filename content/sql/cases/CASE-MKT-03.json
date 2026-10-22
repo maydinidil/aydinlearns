@@ -103,7 +103,7 @@
       "kind": "CP4",
       "item_id": "CASE-MKT-03:CP4",
       "credits_concepts": [],
-      "prompt": "Take the users who signed up in September 2025: their signup_ts is from 1 September 2025 00:00 up to but not including 1 October 2025 00:00, UTC. A user's channel is the channel of the last session of the same visitor_id that started at or before signup_ts: a session with a utm_campaign takes the channel_name of the campaign with that utm_campaign, and a session without one is organic when utm_medium is 'organic', referral when utm_medium is 'referral', and direct when utm_source, utm_medium and utm_campaign are all missing. Among the users whose channel is affiliates, what percentage sent their first campaign, their first_campaign_sent event, no later than 7 days, that is 7 times 24 hours, after signup_ts? Check each user's activation within 7 days with EXISTS or with a join to one row per user from activation_events, so the query stays fast. Type the percentage rounded to 1 decimal, for example 25.5.",
+      "prompt": "Take the users who signed up in September 2025: their signup_ts is from 1 September 2025 00:00 up to but not including 1 October 2025 00:00, UTC. A user's channel is the channel of the last session of the same visitor_id that started at or before signup_ts: a session with a utm_campaign takes the channel_name of the campaign with that utm_campaign, and a session without one is organic when utm_medium is 'organic', referral when utm_medium is 'referral', and direct otherwise, as when utm_source, utm_medium and utm_campaign are all missing. Among the users whose channel is affiliates, what percentage sent their first campaign, their first_campaign_sent event, no later than 7 days, that is 7 times 24 hours, after signup_ts? Check each user's activation within 7 days with EXISTS or with a join to one row per user from activation_events, so the query stays fast. Type the percentage rounded to 1 decimal, for example 25.5.",
       "typed": {
         "precision": "ratio",
         "scale": "percent",
@@ -125,7 +125,7 @@
         },
         {
           "oid": "o5276b00",
-          "text": "Not where Siobhán expected: most affiliate signups never activate, and those who do upgrade at about the usual rate, so the upgrade emails are not the main problem."
+          "text": "Not where Siobhán expected: most affiliate signups never activate, and those who do upgrade at the usual rate, so the emails are not the main issue."
         },
         {
           "oid": "o56a9565",

@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-WIN-05-E2-22",
+  "item_version": 1,
+  "reference_sql": "WITH daily AS (\n  -- one row per channel and day with spend\n  SELECT c.channel_id, a.spend_date, SUM(a.spend) AS spend_eur\n  FROM ad_spend_daily a\n  JOIN campaigns c ON c.campaign_id = a.campaign_id\n  GROUP BY c.channel_id, a.spend_date\n), windowed AS (\n  -- one row per channel and day with spend\n  SELECT channel_id, spend_date, spend_eur,\n    SUM(spend_eur) OVER (PARTITION BY channel_id ORDER BY spend_date RANGE BETWEEN INTERVAL 6 DAY PRECEDING AND CURRENT ROW) / 7.0 AS avg_7d\n  FROM daily\n)\nSELECT channel_id, spend_date, spend_eur, ROUND(avg_7d, 2) AS avg_spend_7d\nFROM windowed\nWHERE spend_date BETWEEN DATE '2025-08-01' AND DATE '2025-08-31'",
+  "alternatives": [
+    "WITH daily AS (\n  -- one row per channel and day with spend\n  SELECT c.channel_id, a.spend_date, SUM(a.spend) AS spend_eur\n  FROM ad_spend_daily a\n  JOIN campaigns c ON c.campaign_id = a.campaign_id\n  GROUP BY c.channel_id, a.spend_date\n)\nSELECT d.channel_id, d.spend_date, d.spend_eur, ROUND(SUM(p.spend_eur) / 7.0, 2) AS avg_spend_7d\nFROM daily d\nJOIN daily p ON p.channel_id = d.channel_id AND p.spend_date BETWEEN d.spend_date - INTERVAL 6 DAY AND d.spend_date\nWHERE d.spend_date BETWEEN DATE '2025-08-01' AND DATE '2025-08-31'\nGROUP BY d.channel_id, d.spend_date, d.spend_eur",
+    "WITH daily AS (\n  -- one row per channel and day with spend\n  SELECT c.channel_id, a.spend_date, SUM(a.spend) AS spend_eur\n  FROM ad_spend_daily a\n  JOIN campaigns c ON c.campaign_id = a.campaign_id\n  GROUP BY c.channel_id, a.spend_date\n)\nSELECT channel_id, spend_date, spend_eur, ROUND(avg_7d, 2) AS avg_spend_7d\nFROM (\n  -- one row per channel and day with spend\n  SELECT channel_id, spend_date, spend_eur,\n    SUM(spend_eur) OVER (PARTITION BY channel_id ORDER BY spend_date RANGE BETWEEN INTERVAL 6 DAY PRECEDING AND CURRENT ROW) / 7.0 AS avg_7d\n  FROM daily\n) AS t\nWHERE spend_date BETWEEN DATE '2025-08-01' AND DATE '2025-08-31'"
+  ],
+  "other_way": {
+    "sql": "WITH daily AS (\n  -- one row per channel and day with spend\n  SELECT c.channel_id, a.spend_date, SUM(a.spend) AS spend_eur\n  FROM ad_spend_daily a\n  JOIN campaigns c ON c.campaign_id = a.campaign_id\n  GROUP BY c.channel_id, a.spend_date\n)\nSELECT d.channel_id, d.spend_date, d.spend_eur, ROUND(SUM(p.spend_eur) / 7.0, 2) AS avg_spend_7d\nFROM daily d\nJOIN daily p ON p.channel_id = d.channel_id AND p.spend_date BETWEEN d.spend_date - INTERVAL 6 DAY AND d.spend_date\nWHERE d.spend_date BETWEEN DATE '2025-08-01' AND DATE '2025-08-31'\nGROUP BY d.channel_id, d.spend_date, d.spend_eur",
+    "tradeoff": "A self-join on the channel's 6 days before adds the same spend without a frame, but it joins each day to a week of rows."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-39",
+      "sql": "WITH daily AS (SELECT c.channel_id, a.spend_date, SUM(a.spend) AS spend_eur FROM ad_spend_daily a JOIN campaigns c ON c.campaign_id = a.campaign_id GROUP BY c.channel_id, a.spend_date), windowed AS (SELECT channel_id, spend_date, spend_eur, AVG(spend_eur) OVER (PARTITION BY channel_id ORDER BY spend_date RANGE BETWEEN INTERVAL 6 DAY PRECEDING AND CURRENT ROW) AS avg_7d FROM daily) SELECT channel_id, spend_date, spend_eur, ROUND(avg_7d, 2) AS avg_spend_7d FROM windowed WHERE spend_date BETWEEN DATE '2025-08-01' AND DATE '2025-08-31'"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-38",
+      "sql": "WITH daily AS (SELECT c.channel_id, a.spend_date, SUM(a.spend) AS spend_eur FROM ad_spend_daily a JOIN campaigns c ON c.campaign_id = a.campaign_id GROUP BY c.channel_id, a.spend_date), windowed AS (SELECT channel_id, spend_date, spend_eur, SUM(spend_eur) OVER (PARTITION BY channel_id ORDER BY spend_date ROWS BETWEEN 6 PRECEDING AND CURRENT ROW) / 7.0 AS avg_7d FROM daily) SELECT channel_id, spend_date, spend_eur, ROUND(avg_7d, 2) AS avg_spend_7d FROM windowed WHERE spend_date BETWEEN DATE '2025-08-01' AND DATE '2025-08-31'"
+    }
+  ],
+  "hint3_partial": "WITH daily AS (\n  -- one row per channel and day with spend\n  SELECT c.channel_id, a.spend_date, SUM(a.spend) AS spend_eur\n  FROM ad_spend_daily a\n  JOIN campaigns c ON c.campaign_id = a.campaign_id\n  GROUP BY c.channel_id, a.spend_date\n), windowed AS (\n  -- one row per channel and day with spend\n  SELECT channel_id, spend_date, spend_eur,\n    SUM(spend_eur) OVER (PARTITION BY channel_id ORDER BY spend_date ___) / 7.0 AS avg_7d\n  FROM daily\n)\nSELECT channel_id, spend_date, spend_eur, ROUND(avg_7d, 2) AS avg_spend_7d\nFROM windowed\nWHERE spend_date BETWEEN DATE '2025-08-01' AND DATE '2025-08-31'",
+  "solver": {
+    "prompt_hash": "22acb26535d57801",
+    "schema_version": "09f3a33d3123",
+    "dataset_version": "e7c58abf7e8f892e",
+    "grader_version": "7a.1",
+    "query": "WITH daily AS (\n  SELECT c.channel_id, a.spend_date, SUM(a.spend) AS spend_eur\n  FROM ad_spend_daily a JOIN campaigns c ON c.campaign_id = a.campaign_id\n  WHERE a.spend_date BETWEEN DATE '2025-07-01' AND DATE '2025-08-31'\n  GROUP BY c.channel_id, a.spend_date\n), w AS (\n  SELECT channel_id, spend_date, spend_eur,\n    SUM(spend_eur) OVER (PARTITION BY channel_id ORDER BY spend_date RANGE BETWEEN INTERVAL 6 DAY PRECEDING AND CURRENT ROW) AS s7\n  FROM daily\n)\nSELECT channel_id, spend_date, spend_eur, ROUND(s7 / 7.0, 2) AS avg_spend_7d\nFROM w\nWHERE spend_date BETWEEN DATE '2025-08-01' AND DATE '2025-08-31'\n",
+    "at": "2026-10-21T09:05:09.726Z"
+  }
+}

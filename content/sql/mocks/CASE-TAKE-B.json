@@ -1,0 +1,180 @@
+{
+  "case_id": "CASE-TAKE-B",
+  "kind": "take_home",
+  "level": 5,
+  "world": "MKT",
+  "company_id": "mailvora",
+  "title": "Blended return on ad spend from the raw exports, 2025",
+  "schema": "mailvora_raw",
+  "persona": {
+    "name": "Ciarán",
+    "role": "Marketing director"
+  },
+  "brief": {
+    "decision": "What each euro of Mailvora's paid media returned in revenue in each month of 2025, built from the raw ad platform export and the payments, for the board's budget discussion",
+    "deadline": "Monday's board pack"
+  },
+  "data_needed": [
+    "ad_spend_daily",
+    "fx_rates_monthly",
+    "payments"
+  ],
+  "expected_output": {
+    "columns": [
+      "month_start",
+      "spend_as_exported",
+      "spend_eur",
+      "revenue_eur",
+      "roas",
+      "ytd_roas"
+    ],
+    "grain": "one row per month of 2025 that has spend by UTC day",
+    "sort": [
+      {
+        "column": "month_start",
+        "desc": false
+      }
+    ]
+  },
+  "checkpoints": [
+    {
+      "id": "CP1",
+      "kind": "CP1",
+      "item_id": "CASE-TAKE-B:CP1",
+      "credits_concepts": [],
+      "prompt": "Ciarán wants each month's 2025 paid spend in euros from the ad platforms' raw export. The export holds re-imported copies of some rows, rows dated by the Los Angeles day instead of the UTC day, and spend in more than one currency. Which spend should a month hold?",
+      "options": [
+        {
+          "oid": "o1c0b1ac",
+          "text": "Every exported row whose spend_date falls in the month, its spend added up as it stands, since the platforms' export is exactly what they billed Mailvora for that month"
+        },
+        {
+          "oid": "o7d136f7",
+          "text": "Each set of copies once, on its spend_date as exported, with an amount in dollars turned into euros at the rate for the month of spend_date, since the export dates each row"
+        },
+        {
+          "oid": "ocb9c240",
+          "text": "Each set of copies once, on its UTC day, a Los Angeles row a day after its spend_date, with any amount not in euros turned into euros at its currency's rate for that UTC month"
+        },
+        {
+          "oid": "o9acb6ab",
+          "text": "Each set of copies once, on its UTC day, with any amount not in euros divided by its currency's eur_per_unit for that month, since a rate gives the units of a currency per euro"
+        }
+      ]
+    },
+    {
+      "id": "CP2",
+      "kind": "CP2",
+      "item_id": "CASE-TAKE-B:CP2",
+      "credits_concepts": [
+        "SQL-CLEAN-01"
+      ],
+      "prompt": "Ciarán has heard that a re-import loaded some ad spend rows more than once. How many rows of ad_spend_daily with a spend_date, as exported, from 1 January to 31 December 2025, both included, are extra copies? The table may hold errors. Rows that match in every column are copies of one row: in each set of copies, one row is the original and every other row is an extra copy. Type a whole number.",
+      "typed": {
+        "precision": "count",
+        "scale": "plain",
+        "decimals": 0,
+        "unit_label": "rows"
+      },
+      "truth_key": "CASE-TAKE-B:CP2"
+    },
+    {
+      "id": "CP3",
+      "kind": "CP3",
+      "item_id": "EX-MOCK-TAKE-B",
+      "credits_concepts": [
+        "SQL-WIN-04",
+        "SQL-WIN-01",
+        "SQL-CLEAN-01",
+        "SQL-JOIN-02",
+        "SQL-DATE-02",
+        "SQL-CTE-01"
+      ],
+      "prompt": "Write the query that answers Ciarán's question."
+    },
+    {
+      "id": "CP4",
+      "kind": "CP4",
+      "item_id": "CASE-TAKE-B:CP4",
+      "credits_concepts": [
+        "SQL-CLEAN-01"
+      ],
+      "prompt": "Ciarán's headline is Mailvora's blended return on ad spend for the whole of 2025: the year's revenue divided by the year's paid spend in euros. These tables may hold errors. A re-import can load an ad_spend_daily row more than once: rows that match in every column are copies of one row, so count each set of copies once. A row's spend_date is the day in its export_timezone: a row whose export_timezone is America/Los_Angeles carries the Los Angeles date on which its UTC day began, which is the day before, so its UTC day is spend_date plus one day, and a row exported in UTC is on its spend_date. A row's spend is in its currency: turn it into euros with the eur_per_unit of fx_rates_monthly for that currency and the month of the row's UTC day; a row in euros needs no rate. A payment is revenue in the UTC month of paid_at, unless it was refunded: leave refunded payments out. Take the spend rows whose UTC day falls from 1 January to 31 December 2025, both included, and the payments whose paid_at falls in 2025 in UTC. Divide the revenue by the spend, both unrounded, and type the result rounded to 2 decimals, for example 1.23.",
+      "typed": {
+        "precision": "ratio",
+        "scale": "plain",
+        "decimals": 2,
+        "unit_label": "euros of revenue per euro of spend"
+      },
+      "truth_key": "CASE-TAKE-B:CP4"
+    },
+    {
+      "id": "CP5",
+      "kind": "CP5",
+      "item_id": "CASE-TAKE-B:CP5",
+      "credits_concepts": [],
+      "prompt": "Ciarán's cleaned table shows that in most months of 2025 Mailvora's revenue was below its paid spend. A board member proposes cutting paid media, since it seems to lose money. Ciarán asks: does the table show that?",
+      "options": [
+        {
+          "oid": "o5f97b00",
+          "text": "Yes. In most months each euro of paid media brought back less than a euro of revenue, even after cleaning, so paid media loses money and cutting it would raise profit."
+        },
+        {
+          "oid": "o190107b",
+          "text": "Not yet. The blended return sets all revenue, from organic and earlier subscribers too, against this year's ad spend; payback needs the lifetime revenue of the subscribers paid media won."
+        },
+        {
+          "oid": "o11791bf",
+          "text": "Not on these figures: the ad platforms' own reported conversion values are the right revenue for judging paid media, and those values show a higher return than the payments do, month by month."
+        },
+        {
+          "oid": "o2165e75",
+          "text": "Yes, but only once LinkedIn's dollar spend is turned into euros at each month's rate, since that conversion is what pushes the blended return below 1 in most months of the year."
+        }
+      ]
+    },
+    {
+      "id": "CP6",
+      "kind": "CP6",
+      "credits_concepts": [],
+      "prompt": "Write a memo of 4 to 8 sentences for Ciarán: the blended return on ad spend for 2025 and how it moved through the year, one caveat, one next step, and the reconciliation: how the cleaned spend differs from the spend as exported, and which data errors explain the gap."
+    }
+  ],
+  "model_plan": "Metric formula: per month, the blended return is the revenue of the payments that were not refunded divided by the spend in euros; the year-to-date return divides the revenue added up from the first month to this one by the spend added up over the same months; beside them, the spend as exported.\nOutput grain: one row per month of 2025 that has spend on its UTC day.\nTables and keys: ad_spend_daily joined to fx_rates_monthly on the currency and the month of the row's UTC day; payments added up per UTC month and joined on the month.\nFilters: spend rows whose UTC day is in 2025; payments that were not refunded.\nEdge cases: rows that match in every column are copies, so keep one; a row exported in America/Los_Angeles belongs to the day after its spend_date in UTC, which can move it into the next month and to that month's rate; the rate follows the row's currency, not its channel, and a euro row needs none; the year-to-date figure is a ratio of sums, never an average of the monthly ratios.\nExpected row count: 12",
+  "model_answer_template": "Across 2025, Mailvora took in {CP4} euros of revenue, net of refunds, for each euro of paid media, and the year-to-date return rose overall as subscription revenue built up, though it dipped in a few months, with December the one month in which revenue passed spend. The export overstated spend in every month: a re-import loaded {CP2} Meta rows a second time, LinkedIn's spend came in dollars, which are worth less than a euro, and LinkedIn's rows carry the Los Angeles date, so its month-end rows belong to the next month in UTC. Revenue leaves out the refunded payments, so it is lower than the payments table's total. Once cleaned, the spend is below the exported figure in each month, so the return is higher than the raw export suggests. The blended return sets all revenue, from organic subscribers and earlier years' subscribers too, against this year's ad spend, so it cannot say whether paid media pays back or which channel does. Next, I would tie each new subscriber's payments over their first months to the channel of their last paid session and compare that with each channel's cleaned spend.",
+  "follow_up_question": "Which channel's spend changed most once the export was cleaned, and does that change its share of the budget?",
+  "data_source": {
+    "label": "Fictional, generated data: Mailvora",
+    "real": false,
+    "licence": null
+  },
+  "difficulty": 3,
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-SORT-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CASE-01",
+    "SQL-TYPE-01",
+    "SQL-DATE-01",
+    "SQL-JOIN-01",
+    "SQL-JOIN-02",
+    "SQL-CTE-01",
+    "SQL-DATE-02",
+    "SQL-CLEAN-01",
+    "SQL-WIN-01",
+    "SQL-WIN-04"
+  ],
+  "metric_ids": [
+    "MET-MKT-01",
+    "MET-MKT-06"
+  ],
+  "find_ids": [
+    "FIND-03-11",
+    "FIND-03-13"
+  ],
+  "uses_raw": true
+}

@@ -124,6 +124,7 @@ export const nextGoalLine = (title: string, date: string, today: string, allSect
 export const dueTomorrowLine = (n: number): string => `Due tomorrow: ${n} review${n === 1 ? '' : 's'}`;
 
 const STATE_SUFFIX = / at (new|learning|practised|mastered|retained)$/;
+const DATED_LABEL = /^(.* passed) on (\d{4}-\d{2}-\d{2})$/;
 const LEVEL_LABEL = /\blevel \d+ \w+$/;
 const CONCEPT_LABEL = /^([A-Z][A-Z0-9]*(?:-[A-Z0-9]+)+) at (\w+)$/;
 const NAMED_LABEL = /^\d+ of \d+ named concepts at (\w+)((?: \(\d+ not yet available\))?)$/;
@@ -132,7 +133,7 @@ const NAMED_LABEL = /^\d+ of \d+ named concepts at (\w+)((?: \(\d+ not yet avail
  * a concept by its title, and "n of m" for a count, "done" or "not yet" for a single result. The state is a word after the name, never
  * "at practised" (sprint 5a, finding 20).
  */
-export function criterionLine(c: CriterionResult, titles: Titles | null): string {
+export function criterionLine(c: CriterionResult, titles: Titles | null, today: string = amsterdamDate(new Date())): string {
   const named = NAMED_LABEL.exec(c.label);
   if (named) {
     const head = `Named concepts ${named[1]}`;
@@ -141,6 +142,9 @@ export function criterionLine(c: CriterionResult, titles: Titles | null): string
   const one = CONCEPT_LABEL.exec(c.label);
   const at = one ? `${conceptTitle(titles, one[1]!)} at ${one[2]}` : c.label;
   if (!c.available) return `${at.replace(STATE_SUFFIX, '')}: not yet available`;
+  // F2-4-1: a stage met on a date ("Screen mock passed on 2026-11-03") reads the date as every other date does, with no trailing "done".
+  const dated = c.met ? DATED_LABEL.exec(c.label) : null;
+  if (dated) return `${dated[1]} on ${formatDate(dated[2]!, today)}`;
   const label = at.replace(STATE_SUFFIX, ' $1');
   if (LEVEL_LABEL.test(label) && c.done !== null && c.total !== null) return `${label}: ${c.done} of ${c.total} concept${c.total === 1 ? '' : 's'}`;
   if (c.done !== null && c.total !== null && c.total > 1) return `${label}: ${c.done} of ${c.total}`;

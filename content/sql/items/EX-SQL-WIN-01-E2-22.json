@@ -1,0 +1,132 @@
+{
+  "id": "EX-SQL-WIN-01-E2-22",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "window",
+    "grand_total",
+    "group_by_then_window",
+    "ad_spend_daily",
+    "channels",
+    "drill"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-WIN-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-JOIN-01",
+    "SQL-WIN-01"
+  ],
+  "template_id": "T-WIN-01-share-of-grand-total",
+  "template_params": {
+    "table": "ad_spend_daily",
+    "group": "channel",
+    "period": "July to October 2025"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "mailvora",
+  "schema": "mailvora",
+  "edge_schema": "mailvora_edge_win",
+  "prompt": "What share of all the ad spend from 1 July to 31 October 2025, both days included, does each channel take? spend_date is a UTC day. Return three columns, in this order: channel_name, spend (the channel's spend in that period) and share_pct, that spend as a percentage of the spend of all channels in that period, rounded to 2 decimals. Return one row for each channel with spend in that period. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "channel_name",
+        "type_class": "text"
+      },
+      {
+        "name": "spend",
+        "type_class": "numeric"
+      },
+      {
+        "name": "share_pct",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "channel_name",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "spend",
+        "type_class": "numeric",
+        "precision": "money"
+      },
+      {
+        "name": "share_pct",
+        "type_class": "numeric",
+        "precision": "ratio",
+        "require_rounding": 2
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "channel_name"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the calculated column share_pct: each channel's spend over the spend of all channels in the period.",
+    "After GROUP BY there is one row per channel; a window with nothing inside its brackets adds up those totals over the whole result."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 125,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 126,
+      "to": 246,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 247,
+      "to": 324,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 325,
+      "to": 349,
+      "subgoal": "output_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "GROUP BY leaves one row per channel, and the window with nothing inside OVER adds up all the channel totals, so each channel is divided by the whole period's spend."
+}

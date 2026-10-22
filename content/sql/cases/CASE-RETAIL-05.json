@@ -1,0 +1,170 @@
+{
+  "case_id": "CASE-RETAIL-05",
+  "kind": "inbox",
+  "level": 5,
+  "world": "RETAIL",
+  "company_id": "voltmarkt",
+  "title": "RFM segments for a win-back campaign",
+  "persona": {
+    "name": "Fleur",
+    "role": "Trade marketing"
+  },
+  "brief": {
+    "decision": "Which RFM segments Fleur's win-back email campaign should target, with customers scored as of 31 December 2025 over the 12 months before it, and the F score set by fixed bands on the number of orders: 1 order scores 1, 2 orders score 2, 3 orders score 3, 4 to 5 orders score 4, and 6 or more orders score 5",
+    "deadline": "Monday's campaign briefing"
+  },
+  "data_needed": [
+    "orders",
+    "order_lines"
+  ],
+  "expected_output": {
+    "columns": [
+      "segment",
+      "n_customers",
+      "revenue_eur",
+      "avg_recency_days",
+      "revenue_share_pct"
+    ],
+    "grain": "one row per RFM segment that holds at least one customer",
+    "sort": [
+      {
+        "column": "segment",
+        "desc": false
+      }
+    ]
+  },
+  "checkpoints": [
+    {
+      "id": "CP1",
+      "kind": "CP1",
+      "item_id": "CASE-RETAIL-05:CP1",
+      "credits_concepts": [],
+      "prompt": "Fleur wants RFM scores for Voltmarkt's customers as of 31 December 2025, measured over the 12 months before it: 1 January to 31 December 2025, by the UTC date of order_ts. Which customers should the scores cover?",
+      "options": [
+        {
+          "oid": "o958fe75",
+          "text": "Every customer with a customer_id who ordered at any time, 2024 included, so customers who last bought in 2024 get the lowest R score"
+        },
+        {
+          "oid": "oa0f286d",
+          "text": "Every order placed in 2025, with the guest orders, which have a missing customer_id, scored together as one more customer"
+        },
+        {
+          "oid": "od10eec6",
+          "text": "Every customer with a customer_id who placed at least one order in 2025, by UTC order date, and no guest orders"
+        },
+        {
+          "oid": "o8d21d64",
+          "text": "Only the customers with a customer_id and 2 or more orders in 2025, since a single order says nothing about frequency"
+        }
+      ]
+    },
+    {
+      "id": "CP2",
+      "kind": "CP2",
+      "item_id": "CASE-RETAIL-05:CP2",
+      "credits_concepts": [
+        "SQL-AGG-01"
+      ],
+      "prompt": "Voltmarkt's RFM run covers 2025. How many different customers with a customer_id placed at least one order from 1 January to 31 December 2025, both included, by the UTC date of order_ts (the column holds UTC time)? Guest orders, which have a missing customer_id, do not count. Type a whole number.",
+      "typed": {
+        "precision": "count",
+        "scale": "plain",
+        "decimals": 0,
+        "unit_label": "customers"
+      },
+      "truth_key": "CASE-RETAIL-05:CP2"
+    },
+    {
+      "id": "CP3",
+      "kind": "CP3",
+      "item_id": "EX-CASE-RETAIL-05",
+      "credits_concepts": [
+        "SQL-WIN-07",
+        "SQL-WIN-01",
+        "SQL-CTE-01",
+        "SQL-CASE-01",
+        "SQL-JOIN-03",
+        "SQL-DATE-02"
+      ],
+      "prompt": "Write the query that answers Fleur's question."
+    },
+    {
+      "id": "CP4",
+      "kind": "CP4",
+      "item_id": "CASE-RETAIL-05:CP4",
+      "credits_concepts": [],
+      "prompt": "Fleur's headline is the at_risk segment's share of revenue. Voltmarkt scores every customer with a customer_id who placed at least one order from 1 January to 31 December 2025, both included, by the UTC date of order_ts (the column holds UTC time); guest orders, which have a missing customer_id, stay out. For each customer, recency is the number of days from the date of the customer's last order in 2025 to 31 December 2025, so an order on 31 December gives 0; frequency is the number of orders; and revenue is the sum of quantity times unit_price_eur minus line_discount_eur over the lines of those orders. R score: list the customers from the most days of recency to the fewest and split that list into five groups that differ in size by at most one customer, with the larger groups first, so the first group scores 1 and the last group scores 5. M score: list them from the lowest revenue to the highest and split that list the same way, so the highest spenders score 5. When customers tie on recency or on revenue, the lower customer_id comes first. F score: 1 order scores 1, 2 orders score 2, 3 orders score 3, 4 to 5 orders score 4, and 6 or more orders score 5. Each customer gets the first segment that fits, in this order: champions (R, F and M all 4 or more), loyal (F 4 or more), at_risk (R 2 or less and F 3 or more), new (R 4 or more and F exactly 1), hibernating (R 2 or less) and others (every other customer). What percentage of the revenue of every scored customer comes from the at_risk segment? Type the percentage rounded to 1 decimal, for example 12.3.",
+      "typed": {
+        "precision": "ratio",
+        "scale": "percent",
+        "decimals": 1,
+        "unit_label": "%"
+      },
+      "truth_key": "CASE-RETAIL-05:CP4"
+    },
+    {
+      "id": "CP5",
+      "kind": "CP5",
+      "item_id": "CASE-RETAIL-05:CP5",
+      "credits_concepts": [],
+      "prompt": "Fleur's RFM table has an at_risk segment: customers who ordered several times in 2025 but not in recent months. Fleur plans to email them a win-back voucher. Nothing else has been checked yet. Fleur asks: can we conclude the voucher will bring these customers back?",
+      "options": [
+        {
+          "oid": "o3c294dd",
+          "text": "Yes. They ordered several times in 2025, so they like Voltmarkt, and the voucher will bring most of them back."
+        },
+        {
+          "oid": "o2e46c75",
+          "text": "Not yet. RFM shows who slipped away, not why or whether a voucher changes that; a random hold-out group would measure it."
+        },
+        {
+          "oid": "o0bcfe86",
+          "text": "No. Customers who have not ordered in recent months have mostly left for good, so a voucher sent to them would be wasted money."
+        },
+        {
+          "oid": "oce60150",
+          "text": "Yes. Their low R score shows they stopped ordering, and a voucher is what brings a lapsed customer back."
+        }
+      ]
+    },
+    {
+      "id": "CP6",
+      "kind": "CP6",
+      "credits_concepts": [],
+      "prompt": "Write 2 to 4 sentences for Fleur: which segment the win-back email should target and why, how much of the 2025 revenue that segment holds, one caveat about how the scores are set, and one next step before Monday's campaign briefing."
+    }
+  ],
+  "model_plan": "Metric formula: per known customer with a 2025 order, recency is the days from the last order date to 31 December 2025, frequency the number of orders and revenue the sum of quantity times unit price minus the line discount; R is NTILE(5) from the most days to the fewest and M is NTILE(5) from the lowest revenue to the highest, both with customer_id as the tie-break; F comes from the fixed bands of 1, 2, 3, 4 to 5, and 6 or more orders; each customer takes the first segment rule that fits; per segment, the customer count, the total revenue, the average recency rounded to 1 decimal and the revenue share as a percentage of all scored revenue rounded to 1 decimal.\nOutput grain: one row per segment that holds at least one customer.\nTables and keys: orders joined to order_lines on order_id.\nFilters: orders with a customer_id and a UTC order date from 1 January to 31 December 2025, both included.\nEdge cases: guest orders have a missing customer_id and stay out; the join repeats an order once per line, so count distinct orders; customers who tie on recency or revenue are split by customer_id, lower first; F uses fixed bands because NTILE would split customers with the same number of orders over different scores.\nExpected row count: 6",
+  "model_answer_template": "{CP4} percent of the 2025 revenue from the {CP2} scored customers sits in the at_risk segment: customers who ordered several times in 2025 but not in recent months, so they have shown they buy and are slipping away. They are the natural target for Fleur's win-back email, while hibernating customers, who ordered rarely and long ago, can get a cheaper message. R and M are quintiles, so the scores are relative to the other customers and move between runs, and RFM shows who slipped away, not why. Before Monday, I would hold back a random part of the at_risk customers as a control group, so the email's effect on their orders can be measured.",
+  "follow_up_question": "Which segment should Fleur's win-back email target first, and with what offer?",
+  "data_source": {
+    "label": "Fictional, generated data: Voltmarkt",
+    "real": false,
+    "licence": null
+  },
+  "difficulty": 5,
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-SORT-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-CASE-01",
+    "SQL-TYPE-01",
+    "SQL-DATE-01",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-JOIN-03",
+    "SQL-DATE-02",
+    "SQL-WIN-01",
+    "SQL-WIN-07"
+  ],
+  "metric_ids": [
+    "MET-RETAIL-09"
+  ],
+  "find_ids": [],
+  "uses_raw": false
+}

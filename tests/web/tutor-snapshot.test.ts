@@ -62,3 +62,13 @@ test('the cut: longest section first, to SNAPSHOT_MAX, with a note saying how mu
   assert.match(s.text, /\[\d+ characters left out to fit\]/);
   assert.ok(s.text.includes('SELECT 1'), 'the short part is kept whole');
 });
+
+test('K1: when one cut is not enough, a second long section is cut too, each with its note, and the short part stays whole', () => {
+  const plan = { label: 'Your plan', text: 'p'.repeat(20_000) };
+  const second = { label: 'Your sketch', text: 's'.repeat(20_000) };
+  const s = composeSnapshot([ex, plan, second], 'v'.repeat(20_000));
+  assert.ok(s.text.length <= SNAPSHOT_MAX, `${s.text.length} characters`);
+  assert.equal(s.cut, true);
+  assert.ok((s.text.match(/\[\d+ characters left out to fit\]/g) ?? []).length >= 2, 'more than one long section carries a note');
+  assert.ok(s.text.includes('SELECT 1'), 'the short part is kept whole');
+});

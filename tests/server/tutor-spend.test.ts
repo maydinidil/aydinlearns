@@ -58,3 +58,48 @@ test('the guard: off, a running timed run, an empty or long question, an oversiz
   assert.equal(guard({ ...ok, questionChars: QUESTION_LIMIT + 1 })?.status, 413);
   assert.equal(guard({ ...ok, snapshotChars: SNAPSHOT_LIMIT + 1 })?.status, 413);
 });
+
+// ---- Sprint 7 K1: sprint T's test gaps for the spend (T2/T4 #4, #5; T3 M5) ----------------------------------------------------------
+const NOW = new Date('2026-10-16T12:00:00.000Z');
+
+test('K1: a release called twice frees the hold once: a second release cannot let in a reserve that does not fit', () => {
+  const l = new SpendLedger();
+  const first = l.reserve(0.006, 0.01, NOW);
+  assert.ok(first);
+  first!();
+  first!();                                                                    // a wrong second release would take 0.006 off again
+  const second = l.reserve(0.006, 0.01, NOW);
+  assert.ok(second, 'after one real release the room is back');
+  assert.equal(l.reserve(0.006, 0.01, NOW), null, 'but only once: 0.006 held plus 0.006 is over 0.01');
+  second!();
+  assert.ok(l.reserve(0.006, 0.01, NOW), 'and the second one\'s release frees its own hold');
+});
+
+test('K1: a release after the Amsterdam day changed still frees the hold, and a hold counts on the new day too', () => {
+  const l = new SpendLedger([asked('2026-10-16T08:00:00.000Z', 0.5)]);
+  const late = new Date('2026-10-16T21:50:00.000Z');                           // 23:50 on 16 October in Amsterdam
+  const next = new Date('2026-10-16T22:10:00.000Z');                           // 00:10 on 17 October
+  const hold = l.reserve(0.4, 1, late);
+  assert.ok(hold);
+  assert.equal(l.spentOn(next), 0, 'the new day starts at no spend');
+  assert.equal(l.reserve(0.7, 1, next), null, 'the question still in flight counts against the new day: 0.4 held plus 0.7 is over 1');
+  hold!();
+  assert.ok(l.reserve(0.7, 1, next), 'released after midnight: the hold is gone');
+});
+
+test('K1: spend plus the hold plus the worst case equal to the cap fits; one more cent does not', () => {
+  const l = new SpendLedger([asked('2026-10-16T08:00:00.000Z', 0.5)]);
+  assert.equal(l.reserve(0.5000001, 1, NOW), null, 'over the cap by a hair');
+  assert.ok(l.reserve(0.25, 1, NOW), '0.5 + 0.25 fits');
+  assert.ok(l.reserve(0.25, 1, NOW), '0.5 + 0.25 + 0.25 is exactly the cap, which is allowed');
+  assert.equal(l.reserve(0.01, 1, NOW), null, 'and nothing more');
+});
+
+test('K1: the cap\'s edges: 0.05 and 20 are in range, 20.01 and NaN fall back to the default', () => {
+  assert.equal(capOf(0.05), 0.05);
+  assert.equal(capOf(20), 20);
+  assert.equal(capOf(20.01), 1);
+  assert.equal(capOf(0.049), 1);
+  assert.equal(capOf(Number.NaN), 1);
+  assert.equal(capOf(Number.POSITIVE_INFINITY), 1);
+});

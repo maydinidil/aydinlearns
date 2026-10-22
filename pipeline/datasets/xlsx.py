@@ -120,6 +120,55 @@ def _intact(name: str):
         raise XlsxError(f"the workbook part {name} is damaged or is not XML ({type(e).__name__})") from None
 
 
+PROLOG_LIMIT = 65536
+
+
+class _LongProlog(Exception):
+    """An XML part whose prolog does not end within PROLOG_LIMIT bytes."""
+
+
+def _declares_doctype(stream, limit: int = PROLOG_LIMIT) -> bool:
+    """Whether an XML part's prolog, read up to the root element, holds a DOCTYPE. The prolog is a byte-order mark, whitespace, the
+    XML declaration and processing instructions, comments and at most one DOCTYPE; the first other tag is the root element, and
+    nothing after it is a declaration (a `<!DOCTYPE` inside a CDATA section is text). Review F2-6-1: at most `limit` bytes are read,
+    once, and each is looked at a bounded number of times, so a hostile part with one long comment or instruction costs a fixed read
+    and a linear scan. A prolog that does not end within the limit (no workbook part has one) raises _LongProlog."""
+    data = stream.read(limit)
+    full = len(data) >= limit     # the part may go on past what was read
+    pos = 0
+
+    def find(token: bytes) -> int:
+        """Where `token` next occurs after pos; -1 at the end of the part."""
+        at = data.find(token, pos)
+        if at < 0 and full:
+            raise _LongProlog
+        return at
+
+    def have(count: int) -> bytes:
+        """The next `count` bytes after pos (fewer at the end of the part)."""
+        if full and len(data) - pos < count:
+            raise _LongProlog
+        return data[pos:pos + count]
+
+    if have(3) == b"\xef\xbb\xbf":
+        pos += 3
+    while True:
+        while have(1) in (b" ", b"\t", b"\r", b"\n"):
+            pos += 1
+        head = have(9)
+        if head.startswith(b"<?"):
+            end, width = find(b"?>"), 2
+        elif head.startswith(b"<!--"):
+            end, width = find(b"-->"), 3
+        elif head == b"<!DOCTYPE":
+            return True
+        else:
+            return False        # the root element (or text the parser will refuse)
+        if end < 0:
+            return False        # an unfinished comment or instruction: the parser refuses it
+        pos = end + width
+
+
 class Workbook:
     """An .xlsx file, or the .xlsx at path `inside` a downloaded zip (read into memory, never unpacked on disk)."""
 
@@ -146,13 +195,17 @@ class Workbook:
     def _part(self, name: str, streamed: bool = False):
         """A part of the workbook, opened for parsing, after its declared size is checked against MAX_STREAMED_BYTES (a sheet,
         read row by row) or MAX_HELD_BYTES (every other part, read whole). A downloaded file is untrusted: the bundled expat (2.4.1
-        and later) limits entity expansion and ElementTree never fetches an external entity, and a part whose first 4,096 bytes
-        declare a DOCTYPE, which no workbook part has, is refused before it is parsed."""
+        and later) limits entity expansion and ElementTree never fetches an external entity, and a part whose prolog (everything
+        before its root element: comments, processing instructions, whitespace) declares a DOCTYPE, which no workbook part has,
+        is refused before it is parsed."""
         try:
             _check_size(self._zip, name, MAX_STREAMED_BYTES if streamed else MAX_HELD_BYTES)
             with _intact(name), self._zip.open(name) as head:
-                prolog = head.read(4096)
-            if b"<!DOCTYPE" in prolog or b"<!ENTITY" in prolog:
+                try:
+                    declares = _declares_doctype(head)
+                except _LongProlog:
+                    raise XlsxError(f"the workbook part {name} has a prolog over {PROLOG_LIMIT:,} bytes, which no workbook has") from None
+            if declares:
                 raise XlsxError(f"the workbook part {name} declares a DOCTYPE, which no workbook has")
             return self._zip.open(name)
         except KeyError as e:

@@ -1,0 +1,52 @@
+{
+  "id": "Q-GA4-257",
+  "version": 1,
+  "kind": "mcq",
+  "section": "ga4",
+  "concept_id": "GA4-INTEG-01",
+  "parent_id": null,
+  "topic_id": "T-GA4-03",
+  "legacy_id": null,
+  "stem": "Last week the web team put a redirect in front of the old campaign landing pages. Since then Google Ads sessions in GA4 fell and Direct rose, although auto-tagging is still on and ad clicks in Google Ads are steady. What do you check first?",
+  "options": [
+    {
+      "oid": "o35936bd",
+      "text": "Whether the redirect keeps the gclid parameter on the URL of the page it sends people to",
+      "misconception_id": null
+    },
+    {
+      "oid": "o13e4976",
+      "text": "Whether utm_source and utm_medium were added to the ads to override the auto-tagging",
+      "misconception_id": null
+    },
+    {
+      "oid": "o7ed12fe",
+      "text": "Whether event data retention fell to 2 months in the same week the redirect went live",
+      "misconception_id": null
+    },
+    {
+      "oid": "o8c16123",
+      "text": "Whether the Ads link lost its personalized advertising setting during the work on the redirect",
+      "misconception_id": null
+    }
+  ],
+  "typed": null,
+  "exam_relevance": "core",
+  "held_out": true,
+  "enemy_group": null,
+  "status": "active",
+  "verified": true,
+  "level": null,
+  "tags": [
+    "ga4",
+    "T-GA4-03"
+  ],
+  "source_ids": [
+    "06:GA4-INTEG-01",
+    "10:§4",
+    "ERRATA:E-205"
+  ],
+  "as_of": "2026-09-30",
+  "review_after": null,
+  "supersedes": []
+}

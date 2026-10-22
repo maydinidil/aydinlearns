@@ -14,8 +14,8 @@ do, what it depends on, and when it is done. Written 2026-10-03, after sprint 1 
    The plan is reviewed by the owner before anything is built.
 5. Execute it subagent-driven, under the rules below.
 
-**Release numbers (D63, 2026-10-08):** sprint 5a is released as 1.0 (version 1.0.0). Later
-sprints ship as 1.x releases (5b is 1.1); the design's post-v1 updates become 2.0 or later.
+**Release numbers (D63, 2026-10-08):** sprint 5a is released as 0.5.0 (version 0.5.0). Later
+sprints ship as 0.x releases (5b is 0.5.1); the design's post-v1 updates become 2.0 or later.
 
 **Slip rule (design §2.3):** when a slice misses its date, the content listed after it is
 deferred (levels 6-7, later companies and datasets). The next slice is never compressed, and the
@@ -49,11 +49,11 @@ learner's effort is never the lever. Every slice goes live before the goal it se
 | 4a (done) | 3 (part 1) | 2026-10-19 | G-SQL-LEVEL-3 (2026-11-06): joins, CTEs, dates | Done: SQL level 3 can be studied end to end, with its drill; mistake cards are scheduled and reviewed; merged in PR #38. See [the sprint 4a record](2026-10-07-sprint-4a-record.md) |
 | 4b (done) | 3 (part 2) | 2026-10-26 | G-SQL-LEVEL-3 (2026-11-06): first case exported | Done: cases and the inbox, the portfolio export, the Progress screen, the dataset explorer, screen mode and live reps are built; a solved case can be exported; merged in PR #40. See [the sprint 4b record](2026-10-07-sprint-4b-record.md) |
 | 4c (done) | 3 (cleanup) | 2026-10-08 | G-SQL-LEVEL-3 (2026-11-06): level 3 and its cases studied on clean content | Done, merged in PR #41: the SQL learner-facing backlog (four mistake families with better feedback, clearer wording, case edge data, live reps, export hardening, the division control, focus). See [the sprint 4c record](2026-10-08-sprint-4c-record.md) |
-| 5a (done) | 4 (Methodology) | 2026-11-02 | G-GA4-CERT (2026-11-13); Methodology for the knowledge interview | Done, merged in PR #42 and released as 1.0 (tag `v1.0.0`, 2026-10-08): all Methodology areas can be practised (78 concepts, 478 questions), an A/B test with a daily case, a polish pass, version 1.0.0. See [the sprint 5a record](2026-10-08-sprint-5a-record.md) |
-| 5b | 4 (GA4) | 2026-11-02 | G-GA4-CERT (2026-11-13) | The GA4 readiness check can be taken; released as 1.1 |
-| 6 | 5 | 2026-11-09 | G-SQL-LEVEL-4 (2026-11-27): level 4 and a first real-data analysis | Level 4 is completable; a first real-data analysis can be done |
-| T (done) | AI tutor | 2026-10-17 | All goals: help that teaches on every screen | Done: the tutor's "done when" is met (smoke rows on the fake model; the live eval 20 of 20 on `claude-haiku-5-5`); release 1.6.0. See [the sprint T record](2026-10-16-sprint-t-record.md) |
-| 7 | 6 | 2026-11-20 | G-STAGE-2 to 5 and G-RECRUITMENT-READY (2026-12-11): the recruiter mocks; applications go out | Every recruiter mock runs end to end, and the readiness board shows all six stages |
+| 5a (done) | 4 (Methodology) | 2026-11-02 | G-GA4-CERT (2026-11-13); Methodology for the knowledge interview | Done, merged in PR #42 and released as 0.5.0 (tag `v1.0.0`, 2026-10-08): all Methodology areas can be practised (78 concepts, 478 questions), an A/B test with a daily case, a polish pass, version 0.5.0. See [the sprint 5a record](2026-10-08-sprint-5a-record.md) |
+| 5b (done) | 4 (GA4) | 2026-11-02 | G-GA4-CERT (2026-11-13) | Done, merged in PR #43 (hygiene PR #44) and released as 0.5.1 (tag `v1.1.0`, 2026-10-09): GA4 is complete, with ten interview labs, full mocks and the readiness check. See [the sprint 5b record](2026-10-08-sprint-5b-record.md) |
+| 6 (done) | 5 | 2026-11-09 | G-SQL-LEVEL-4 (2026-11-27): level 4 and a first real-data analysis | Done: level 4 is completable and a first real-data analysis can be done (Part 1 as 0.6.0, Part 2 as 0.6.1, public `v1.5.0`, 2026-10-16). See [the sprint 6 record](2026-10-15-sprint-6-record.md) |
+| T (done) | AI tutor | 2026-10-17 | All goals: help that teaches on every screen | Done: the tutor's "done when" is met (smoke rows on the fake model; the live eval 20 of 20 on `claude-haiku-5-5`); release 0.6.2. See [the sprint T record](2026-10-16-sprint-t-record.md) |
+| 7 (done) | 6 | 2026-11-20 | G-STAGE-2 to 5 and G-RECRUITMENT-READY (2026-12-11): the recruiter mocks; applications go out | Done: every recruiter mock runs end to end, and the readiness board shows all six stages. Part 1 as 0.7.0 (2026-10-21): level 5 and the screen mock; Part 2 as 0.7.1 (2026-10-22): the knowledge, case-round and take-home mocks. No public release yet (R1). See [the sprint 7 record](2026-10-21-sprint-7-record.md) |
 | 8 | 7 | 2026-12-07 | G-SQL-LEVEL-6 (2026-12-23): business patterns and SaaS cases | Level 6 is completable; SaaS cases pass on LedgerLoop |
 | 9+ | rest of v1 | January onward | G-SQL-LEVEL-7 (2027-01-29) | Not set in the design yet; set it when planning |
 | Future | post-v1 (2.0 or later) | no date | | |
@@ -258,27 +258,27 @@ Codex left one finding on PR #41, F26, fixed first in sprint 5a.
 ## Sprint 5: slice 4, GA4 complete, Methodology complete
 
 Live by 2026-11-02. Split on 2026-10-08 (D53) into **5a**, Methodology complete (jobs 5 and the
-metrics), then polish and release 1.0, and **5b**, GA4 complete (jobs 1 to 4), release 1.1. The
+metrics), then polish and release 0.5.0, and **5b**, GA4 complete (jobs 1 to 4), release 0.5.1. The
 research file for 5a, `knowledge/11_methodology.md`, arrived and was reviewed on 2026-10-08
 (grade A-, ERRATA E-174 to E-184; [the review](2026-10-08-kb11-review.md)). 5a's plan is
 [`2026-10-08-aydinlearns-sprint-5a.md`](../superpowers/plans/2026-10-08-aydinlearns-sprint-5a.md).
 **5b needs first:** the Skillshop check and the exam date in Settings, and access to the GA4 demo
 account.
 
-**Status, 5a: done (2026-10-08).** Methodology complete, polish and version 1.0.0 merged in PR #42
+**Status, 5a: done (2026-10-08).** Methodology complete, polish and version 0.5.0 merged in PR #42
 (Codex: no findings): 48 new concepts (the 21
 remaining metrics and file 11's 27), each with a reading, 288 new questions with 48 held out, a
 Voltmarkt A/B test with three SQL items and CASE-DAILY-L3-03, G-GA4-CERT's interview-concepts line,
 Codex F26, the leftover SQL content fixes and 46 small screen fixes. No log change. Its rulings and
-findings are in [the sprint 5a record](2026-10-08-sprint-5a-record.md). Released as 1.0 the same
+findings are in [the sprint 5a record](2026-10-08-sprint-5a-record.md). Released as 0.5.0 the same
 day: the public copy, a fresh-install test that passed, and the `v1.0.0` tag. Jobs 1 to 4 are
 sprint 5b.
 
-**Status, 5b: done (2026-10-09), merged in PR #43.** GA4 complete and version 1.1.0 (plan
+**Status, 5b: done (2026-10-09), merged in PR #43.** GA4 complete and version 0.5.1 (plan
 [`2026-10-08-aydinlearns-sprint-5b.md`](../superpowers/plans/2026-10-08-aydinlearns-sprint-5b.md)).
 A hygiene PR after the merge (plan
 [`2026-10-09-aydinlearns-hygiene-1-1.md`](../superpowers/plans/2026-10-09-aydinlearns-hygiene-1-1.md))
-fixed Codex F27 and ten backlog rows (PR #44). Released as 1.1 on 2026-10-09 (tag `v1.1.0`).
+fixed Codex F27 and ten backlog rows (PR #44). Released as 0.5.1 on 2026-10-09 (tag `v1.1.0`).
 The owner's answers (D65): the exam date is not needed, the Skillshop check comes later (full
 mocks use the design's defaults and say so), and the demo account opens. Job 1 was already done
 in sprint 3 (D66). Built: 10 interview labs with a demo account guide (job 4), full mocks on
@@ -287,11 +287,11 @@ dated blueprints (job 2; Codex F14 fixed), the readiness check (job 3, D70), log
 [the sprint 5b record](2026-10-08-sprint-5b-record.md). Still waiting on the owner: the Skillshop
 check (it may change the full mock's blueprint, a new dated entry) and the exam date.
 
-**Releases 1.2 and 1.3, between 5b and sprint 6.** 1.2 (2026-10-12, tag `v1.2.0`, PRs #45 to #47)
-added the optional OpenTelemetry to Dash0 (D75) and each answer's details (D76). 1.3 (2026-10-13,
+**Releases 0.5.2 and 0.5.3, between 5b and sprint 6.** 0.5.2 (2026-10-12, tag `v1.2.0`, PRs #45 to #47)
+added the optional OpenTelemetry to Dash0 (D75) and each answer's details (D76). 0.5.3 (2026-10-13,
 PR #48, tag `v1.3.0`) added the study journey (D77): every visit kept as one ordered list of events in
 `journey/`, and `npm run journey` to analyse it in DuckDB. Neither changes a sprint's contents.
-Its rulings, reviews and deferred findings are in [the release 1.3 record](2026-10-13-release-1-3-record.md).
+Its rulings, reviews and deferred findings are in [the release 0.5.3 record](2026-10-13-release-1-3-record.md).
 
 **Contents and jobs:**
 1. All remaining GA4 lessons.
@@ -315,15 +315,15 @@ GA4 readiness check can be taken, and all Methodology areas can be practised.
 Live by 2026-11-09. **Owner:** triggers each dataset download, and writes the flagship pieces in
 late November.
 
-**Status, Part 1 (6a): merged as 1.4.0 (2026-10-15).** Plan
+**Status, Part 1 (6a): merged as 0.6.0 (2026-10-15).** Plan
 [`docs/superpowers/plans/2026-10-14-aydinlearns-sprint-6.md`](../superpowers/plans/2026-10-14-aydinlearns-sprint-6.md), decisions D78
 to D87. Jobs 1 to 3 and the data-quality arc are built: the five level 4 concepts with their drill, `voltmarkt_raw` with
 its quirks, the error IDs `ERR-LOG-30` to `-39` and `ERR-SYN-08`, twelve cases (the level 4 opener, two daily cases,
 CASE-PRICE-03 to -05, CASE-RETAIL-03 and the incident tickets CASE-DQ-01 to -05) and the cumulative drill over levels
-1 to 4. No public release for 1.4 (D78). Its rulings and deferred findings are in
+1 to 4. No public release for 0.6.0 (D78). Its rulings and deferred findings are in
 [the sprint 6 record](2026-10-15-sprint-6-record.md).
 
-**Status, Part 2 (6b): done, merging as 1.5.0 (2026-10-16), the public release `v1.5.0`.** Block K first (Codex F32 and
+**Status, Part 2 (6b): done, merging as 0.6.1 (2026-10-16), the public release `v1.5.0`.** Block K first (Codex F32 and
 thirteen backlog rows, D88 to D90), then jobs 4 to 6: Mailvora (`mailvora`, `mailvora_raw`, `mailvora_edge_case`) with
 CASE-MKT-01 to -04; the dataset registry and `npm run prep:datasets` for Online Retail II, Breakfast at the Frat and the
 8 Week SQL Challenge; CASE-REAL-01 and -02; the explorer's dataset picker and registry cards; flagship drafts on real
@@ -350,7 +350,7 @@ E-073 to E-076, E-078, E-081, E-086, E-098, E-102, E-107). Deferred findings tha
 DATE minus DATE detection; deep nested subqueries; raw TV category variants.
 **Done when:** level 4 is completable, and a first real-data analysis can be done.
 
-## Sprint T: the AI tutor (release 1.6.0)
+## Sprint T: the AI tutor (release 0.6.2)
 
 Between sprints 6 and 7, asked for by the owner on 2026-10-16. Spec
 [`docs/superpowers/specs/2026-10-16-aydinlearns-ai-tutor-design.md`](../superpowers/specs/2026-10-16-aydinlearns-ai-tutor-design.md)
@@ -360,7 +360,7 @@ An opt-in tutor on every screen: it sees what the learner sees, teaches before a
 help like hint 1 on an unpassed item. Five Claude and OpenAI models (Claude Haiku 5.5 by default), the keys and the
 effort picked in Settings, and a daily cap that can be turned off (block P, added on 2026-10-17).
 
-**Status: done, merging as 1.6.0 (2026-10-17), the public release `v1.6.0` after the merge.** Tasks T0 to T12 with a
+**Status: done: merged in PR #51 and released as the public `v1.6.0` (2026-10-17).** Tasks T0 to T12 with a
 review each, then block P (P1 to P3) and Codex F34; rulings T-01 to T-23; the live eval at medium effort on prompt
 version 4 passed 20 of 20 on each of Claude Haiku 5.5, Claude Sonnet 5.5, GPT-6 Luna and GPT-6.1 Sol. Its rulings,
 reviews and deferred findings are in [the sprint T record](2026-10-16-sprint-t-record.md).
@@ -379,7 +379,28 @@ reviews and deferred findings are in [the sprint T record](2026-10-16-sprint-t-r
 
 ## Sprint 7: slice 6, SQL level 5 and the recruiter mocks
 
-Live by 2026-11-20. Applications go out after this slice. Ships as 1.7.0.
+Live by 2026-11-20. Applications go out after this slice. Ships in two parts (D100): 0.7.0, then 0.7.1 and the
+public `v0.7.1`.
+
+**Status: done (0.7.0 on 2026-10-21, 0.7.1 on 2026-10-22), no public release yet (R1).** Part 2 (7b) built the knowledge
+mock (20 Methodology and 10 GA4 questions, 40 minutes, pass at 24), the case-round mock (two held-out cases, 45 minutes,
+plan first, "say it in 60 seconds"), the take-home mock (two held-out cases on raw data, 2 hours, a clock that survives
+restarts), the complete Recruiter mocks screen with all six stages live, the tutor's second opinion and
+`mailvora_edge_clean`. The "done when" holds: every recruiter mock runs end to end (smoke rows 7a-3, 7a-4 and 7b-1 to
+7b-4) and the board shows six stages (7a-3, 7b-5). Still the owner's before the PR merges: the MET-MKT-05 swap (K3 Step
+5). Its rulings, reviews and deferred findings are in [the sprint 7 record](2026-10-21-sprint-7-record.md).
+
+**Status, Part 1 (7a): done as 0.7.0 (2026-10-21), no public release.** Plan
+[`docs/superpowers/plans/2026-10-20-aydinlearns-sprint-7.md`](../superpowers/plans/2026-10-20-aydinlearns-sprint-7.md),
+decisions D100 to D115. Built: level 5 (the 7 concepts with lessons, pools, fix and choice items and the level 5 drill,
+the opener CASE-VOLT-L5, two daily cases and CASE-RETAIL-05 with E-007); the screen mock with three held-out forms;
+the Recruiter mocks screen (stages 1, 2 and 6 live, 3 to 5 "Coming in 0.7.1"); log format version 7; render tests in
+`npm test`; and the 13 backlog rows of block H. The first half of "done when" is met: every level 5 concept has a
+lesson, a pool and drill items, the level 5 drill and opener run, and the screen mock runs end to end. The deferred
+findings listed below are closed: the QUALIFY example (S7-21), rank-cutoff ties (C53, S7-22) and the unused named
+WINDOW (S7-23); the window in WHERE has had its own ID, ERR-SYN-08, since 0.6.0. Its rulings and deferred
+findings are in [the sprint 7 record](2026-10-21-sprint-7-record.md). Part 2 (the knowledge, case-round and take-home
+mocks, the complete screen and all six stages) shipped as 0.7.1.
 
 **Contents and jobs:**
 1. Level 5, window functions (7 concepts, SQL-WIN-01 to -07), on Voltmarkt and Mailvora; solved

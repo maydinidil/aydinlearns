@@ -1,0 +1,143 @@
+{
+  "id": "EX-SQL-WIN-04-E2-21",
+  "version": 2,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "running_total",
+    "range_frame",
+    "orders",
+    "order_lines",
+    "cte",
+    "drill"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-04"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "drill",
+  "target_concept_id": "SQL-WIN-04",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-WIN-01",
+    "SQL-WIN-04"
+  ],
+  "template_id": "T-WIN-04-running-total-range",
+  "template_params": {
+    "table": "orders, order_lines",
+    "group": "customer",
+    "ties": "together"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_win",
+  "prompt": "For customers with customer_id from 3001 to 3100 (both included), show each order they placed from 1 January to 30 June 2025 (order_ts holds UTC time; use UTC days), and the customer's running revenue by day: the revenue of all the customer's orders on that UTC day and the days before it in the period. An order's revenue is its net revenue: net_revenue_eur in sales, summed over its lines. Orders on the same day count together, so they show the same running revenue. Return customer_id, order_id, order_date and running_revenue_eur. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "customer_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "order_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "order_date",
+        "type_class": "temporal"
+      },
+      {
+        "name": "running_revenue_eur",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "customer_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "order_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "order_date",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "running_revenue_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "order_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, total each order's revenue in a first step, then add a running total per customer by day.",
+    "Orders of one day count together, so the frame must count values of the date, not rows."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 392,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 393,
+      "to": 434,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 435,
+      "to": 578,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 579,
+      "to": 593,
+      "subgoal": "source_grain"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 180000,
+  "why_this_works": "RANGE in date order takes all of the customer's orders up to this day, so two orders of one day share the day's running revenue."
+}

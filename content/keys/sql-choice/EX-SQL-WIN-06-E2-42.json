@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-WIN-06-E2-42",
+  "item_version": 1,
+  "correct_oid": "o90a7e92",
+  "explanation": "The numbering runs first, over all 8 campaigns, from the latest start: the 2025 campaigns take numbers 1 to 4 and the 2024 campaigns 5 to 8. The outer WHERE then asks for a number of at most 2 and a start before 2025 at once, and no row has both, so the result has no rows. To number only the 2024 campaigns, the start date test would have to go in the CTE's WHERE, before the numbering.",
+  "solver": {
+    "prompt_hash": "7fbe4f5a4db10302",
+    "grader_version": "choice.3",
+    "chosen": "o90a7e92",
+    "typed": null,
+    "at": "2026-10-20T20:50:48.400Z"
+  }
+}

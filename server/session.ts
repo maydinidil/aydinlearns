@@ -1,4 +1,4 @@
-// server/session.ts: a session ends explicitly or after 30 idle minutes (design §13)
+// server/session.ts: a session ends explicitly or after 30 idle minutes (design §13); not while a mock run is on before its deadline (S7-C19)
 import { randomUUID } from 'node:crypto';
 import { SCHEMA_VERSION } from '../core/envelope.ts';
 import type { AttemptLogger } from './log.ts';
@@ -21,6 +21,7 @@ export class SessionTracker {
   #idleMs: number;
   #queue: Promise<unknown> = Promise.resolve();
   #beforeEnd: () => Promise<void> = async () => {};
+  #holdsIdle: (now: Date) => boolean = () => false;
   /** onEnd receives the session's end time: the last activity for an idle end, so closes written later carry it too. */
   constructor(logger: AttemptLogger, onEnd: (at: Date) => Promise<void>, idleMs = 30 * 60_000) {
     this.#logger = logger;
@@ -33,6 +34,11 @@ export class SessionTracker {
    * past touch(), so none of them logs a record after the close (Codex PR #28, aydinlearns F1).
    */
   setBeforeEnd(fn: () => Promise<void>): void { this.#beforeEnd = fn; }
+  /**
+   * S7-06 (ruling S7-C19): while `fn` says so (a mock run is on before its deadline), the idle end waits and the time counts as activity:
+   * writing in a 45-minute mock's editor sends no request, and the run's own deadline ends it. An explicit end is unchanged.
+   */
+  setHoldsIdle(fn: (now: Date) => boolean): void { this.#holdsIdle = fn; }
 
   // Every public call that changes state runs one at a time, so two requests arriving together
   // cannot both start a session. onEnd runs inside this queue and must not call back into the tracker.
@@ -66,7 +72,9 @@ export class SessionTracker {
     return this.#exclusive(async () => { if (this.#id) await this.#close(reason, now); });
   }
   async #endIfIdle(now: Date): Promise<void> {
-    if (this.#id && now.getTime() - this.#last > this.#idleMs) await this.#close('idle', new Date(this.#last));
+    if (!this.#id) return;
+    if (this.#holdsIdle(now)) { this.#last = Math.max(this.#last, now.getTime()); return; }
+    if (now.getTime() - this.#last > this.#idleMs) await this.#close('idle', new Date(this.#last));
   }
   async #close(reason: 'explicit' | 'idle', when?: Date): Promise<void> {
     await this.#beforeEnd();

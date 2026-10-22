@@ -1,0 +1,39 @@
+{
+  "item_id": "EX-SQL-WIN-02-E3-01",
+  "item_version": 1,
+  "reference_sql": "WITH ranked AS (  -- one row per product\n  SELECT category_id, unit_cost_eur,\n         DENSE_RANK() OVER (PARTITION BY category_id ORDER BY unit_cost_eur DESC) AS cost_level\n  FROM products\n)\nSELECT DISTINCT category_id, unit_cost_eur AS second_cost\nFROM ranked\nWHERE cost_level = 2",
+  "alternatives": [
+    "SELECT p.category_id, MAX(p.unit_cost_eur) AS second_cost\nFROM products p\nWHERE p.unit_cost_eur < (SELECT MAX(p2.unit_cost_eur) FROM products p2 WHERE p2.category_id = p.category_id)\nGROUP BY p.category_id",
+    "WITH costs AS (  -- one row per category and different unit cost\n  SELECT DISTINCT category_id, unit_cost_eur\n  FROM products\n)\nSELECT c.category_id, c.unit_cost_eur AS second_cost\nFROM costs c\nWHERE (SELECT COUNT(*) FROM costs c2 WHERE c2.category_id = c.category_id AND c2.unit_cost_eur > c.unit_cost_eur) = 1"
+  ],
+  "other_way": {
+    "sql": "SELECT p.category_id, MAX(p.unit_cost_eur) AS second_cost\nFROM products p\nWHERE p.unit_cost_eur < (SELECT MAX(p2.unit_cost_eur) FROM products p2 WHERE p2.category_id = p.category_id)\nGROUP BY p.category_id",
+    "tradeoff": "The highest cost below the category's top cost is the classic answer without windows, but it does not stretch to the third or fourth cost."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-40",
+      "sql": "WITH ranked AS (SELECT category_id, unit_cost_eur, RANK() OVER (PARTITION BY category_id ORDER BY unit_cost_eur DESC) AS cost_level FROM products) SELECT DISTINCT category_id, unit_cost_eur AS second_cost FROM ranked WHERE cost_level = 2"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-18",
+      "sql": "WITH ranked AS (SELECT category_id, unit_cost_eur, DENSE_RANK() OVER (PARTITION BY category_id ORDER BY unit_cost_eur) AS cost_level FROM products) SELECT DISTINCT category_id, unit_cost_eur AS second_cost FROM ranked WHERE cost_level = 2"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-40",
+      "sql": "WITH ranked AS (SELECT category_id, unit_cost_eur, ROW_NUMBER() OVER (PARTITION BY category_id ORDER BY unit_cost_eur DESC, product_id) AS cost_level FROM products) SELECT DISTINCT category_id, unit_cost_eur AS second_cost FROM ranked WHERE cost_level = 2"
+    }
+  ],
+  "hint3_partial": "WITH ranked AS (  -- one row per product\n  SELECT category_id, unit_cost_eur,\n         DENSE_RANK() OVER (PARTITION BY category_id ORDER BY ___) AS cost_level\n  FROM products\n)\nSELECT DISTINCT category_id, unit_cost_eur AS second_cost\nFROM ranked\nWHERE ___",
+  "solver": {
+    "prompt_hash": "94f187002db89311",
+    "schema_version": "d77fe1c31a0e",
+    "dataset_version": "e7c58abf7e8f892e",
+    "grader_version": "7a.1",
+    "query": "WITH d AS (\n  SELECT category_id, unit_cost_eur,\n         DENSE_RANK() OVER (PARTITION BY category_id ORDER BY unit_cost_eur DESC) AS lvl\n  FROM products\n  WHERE unit_cost_eur IS NOT NULL\n)\nSELECT category_id, unit_cost_eur AS second_cost\nFROM d\nWHERE lvl = 2\nGROUP BY category_id, unit_cost_eur\n",
+    "at": "2026-10-21T09:05:06.943Z"
+  }
+}

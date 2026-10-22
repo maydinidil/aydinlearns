@@ -1,0 +1,155 @@
+{
+  "id": "EX-MOCK-SCREEN-B-02",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-02",
+    "mock",
+    "screen",
+    "filter_agg",
+    "conditional_aggregation",
+    "coalesce",
+    "sales"
+  ],
+  "level": 2,
+  "source_ids": [
+    "01:SQL-AGG-04"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "mock",
+  "target_concept_id": "SQL-AGG-04",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-NULL-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-AGG-04"
+  ],
+  "template_id": "T-MOCK-SCREEN-conditional-count-and-sum",
+  "template_params": {
+    "table": "sales",
+    "from": "2025-01-01",
+    "to": "2025-06-30",
+    "condition": "below cost"
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_agg",
+  "prompt": "Finance wants to see where Voltmarkt sold below cost in the first half of 2025. Use the order lines with an order_date from 1 January 2025 to 30 June 2025, both days included. A line sold below cost when its net_revenue_eur is less than its units times its unit_cost_eur; a line with a missing units, net_revenue_eur or unit_cost_eur cannot be judged, so it does not count as below cost. For each parent category, return four columns, in this order: parent_category; n_lines, the number of order lines, every line counted; below_cost_lines, the number of lines sold below cost; and below_cost_loss_eur, the total of units times unit_cost_eur minus net_revenue_eur over the lines sold below cost, or 0 when the category has none. Sort by below_cost_lines from highest to lowest, then by parent_category from A to Z.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "parent_category",
+        "type_class": "text"
+      },
+      {
+        "name": "n_lines",
+        "type_class": "numeric"
+      },
+      {
+        "name": "below_cost_lines",
+        "type_class": "numeric"
+      },
+      {
+        "name": "below_cost_loss_eur",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": "one row per parent category"
+  },
+  "rules": {
+    "order_matters": true,
+    "sort_keys": [
+      {
+        "column": "below_cost_lines",
+        "desc": true
+      },
+      {
+        "column": "parent_category",
+        "desc": false
+      }
+    ],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "parent_category",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "n_lines",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "below_cost_lines",
+        "type_class": "numeric",
+        "precision": "count"
+      },
+      {
+        "name": "below_cost_loss_eur",
+        "type_class": "numeric",
+        "precision": "money"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "parent_category"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the columns to return: one count of every line, and a count and a total that look only at the lines sold below cost.",
+    "Keep every line in the groups and put the below-cost test inside each aggregate, with FILTER or CASE; a total over no lines is missing, not 0."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 286,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 287,
+      "to": 297,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 298,
+      "to": 362,
+      "subgoal": "row_filter"
+    },
+    {
+      "from": 363,
+      "to": 387,
+      "subgoal": "output_grain"
+    },
+    {
+      "from": 388,
+      "to": 435,
+      "subgoal": "sort_limit"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 210000,
+  "why_this_works": "FILTER applies the below-cost test inside each aggregate, so n_lines still counts every line, and COALESCE turns a total over no lines into 0."
+}

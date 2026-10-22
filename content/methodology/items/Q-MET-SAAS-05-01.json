@@ -1,29 +1,29 @@
 {
   "id": "Q-MET-SAAS-05-01",
-  "version": 1,
+  "version": 2,
   "kind": "mcq",
   "section": "methodology",
   "concept_id": "MET-SAAS-05",
-  "stem": "Voltmarkt's finance director asks about Business Care, Voltmarkt's device-support subscription for small offices: \"What percentage of the MRR we had on 1 September did existing businesses take away in September by cancelling or moving to a cheaper plan?\" Which metric answers this question?",
+  "stem": "Voltmarkt's finance director asks about Business Care, Voltmarkt's device-support subscription for small offices: \"What percentage of the MRR we had on 1 September did existing businesses take away in September by cancelling or moving to a cheaper plan?\" Which calculation answers this question?",
   "options": [
     {
       "oid": "ofc4ce24",
-      "text": "Logo churn rate",
+      "text": "100 × businesses that cancelled / businesses at the start",
       "misconception_id": null
     },
     {
       "oid": "o58db724",
-      "text": "Gross MRR churn rate",
+      "text": "100 × (churn MRR + contraction MRR) / MRR at the start",
       "misconception_id": null
     },
     {
       "oid": "o9291821",
-      "text": "Net revenue retention (NRR)",
+      "text": "100 × the cohort's MRR at the end / its MRR at the start",
       "misconception_id": null
     },
     {
       "oid": "o8d716bf",
-      "text": "Average revenue per account (ARPA)",
+      "text": "MRR at the start / businesses active at the start",
       "misconception_id": null
     }
   ],

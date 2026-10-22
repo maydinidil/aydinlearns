@@ -3,8 +3,26 @@ import { optionId, validateTypedSpec, type TypedSpec } from './choice.ts';
 import type { SortKey } from './item.ts';
 
 export type CheckpointKind = 'CP1' | 'CP2' | 'CP3' | 'CP4' | 'CP5' | 'CP6';
-/** S4B-01: a level opener (content/sql/openers/), or an inbox or daily case (content/sql/cases/). */
+/** S4B-01: a level opener (content/sql/openers/), or an inbox or daily case (content/sql/cases/): the kinds the case list holds. */
 export type CaseKind = 'opener' | 'inbox' | 'daily';
+/**
+ * S7-08: a held-out mock case (content/sql/mocks/), the case-round mock's (CASE-MOCK-<letter>) or the take-home mock's
+ * (CASE-TAKE-<letter>). The content store holds these in its mock map, never in the case list (D114), so no inbox, case or portfolio
+ * view ever names one of these kinds.
+ */
+export type MockCaseKind = 'case_round' | 'take_home';
+export const MOCK_CASE_KINDS: readonly MockCaseKind[] = ['case_round', 'take_home'];
+export const isMockCaseKind = (v: unknown): v is MockCaseKind => MOCK_CASE_KINDS.includes(v as MockCaseKind);
+/** S7-08: each mock case kind's ID, the ID prefix only that kind uses, and its CP3 item's ID prefix (EX-MOCK-CASE-A, EX-MOCK-TAKE-A). */
+const MOCK_CASE: Readonly<Record<MockCaseKind, { id: RegExp; prefix: string; example: string; name: string; cp3: string }>> = {
+  case_round: { id: /^CASE-MOCK-[A-Z]$/, prefix: 'CASE-MOCK-', example: 'CASE-MOCK-A', name: 'case-round', cp3: 'EX-MOCK-CASE-' },
+  take_home: { id: /^CASE-TAKE-[A-Z]$/, prefix: 'CASE-TAKE-', example: 'CASE-TAKE-A', name: 'take-home', cp3: 'EX-MOCK-TAKE-' },
+};
+/** S7-08: a mock case's CP3 item: EX-MOCK-CASE-<letter> for CASE-MOCK-<letter>, EX-MOCK-TAKE-<letter> for CASE-TAKE-<letter>; else null. */
+export function mockCp3ItemId(caseId: string): string | null {
+  for (const m of Object.values(MOCK_CASE)) if (m.id.test(caseId)) return `${m.cp3}${caseId.slice(m.prefix.length)}`;
+  return null;
+}
 /**
  * S4B-02: one CP1 or CP5 option. Prompt content, as a predict option is: its oid is optionId('<case_id>:<CP>', its place in
  * source order) (S2-60), and the correct oid with its explanation lives in content/keys/cases/<case_id>.json, never here.
@@ -70,21 +88,25 @@ export interface CaseRecord {
   data_source: DataSource;
   difficulty: 1 | 2 | 3 | 4 | 5; concept_ids: string[]; metric_ids: string[]; find_ids: string[]; uses_raw: boolean;
 }
+/** S7-08, S7-13: a mock case: a case record of a mock kind, in content/sql/mocks/, validated by validateCaseRecord like every case. */
+export interface MockCaseRecord extends Omit<CaseRecord, 'kind'> { kind: MockCaseKind }
 
 /** S6-13: the schema a case reads, `voltmarkt` when its record names none. */
 export const caseSchema = (r: { schema?: unknown } | null | undefined): string =>
   (typeof r?.schema === 'string' && r.schema !== '' ? r.schema : DEFAULT_CASE_SCHEMA);
 
 const CP_KINDS: CheckpointKind[] = ['CP1', 'CP2', 'CP3', 'CP4', 'CP5', 'CP6'];
-const CASE_KINDS: CaseKind[] = ['opener', 'inbox', 'daily'];
+const CASE_KINDS: readonly (CaseKind | MockCaseKind)[] = ['opener', 'inbox', 'daily', ...MOCK_CASE_KINDS];
 /** Checkpoints whose item ID is `<case_id>:<CP>` (S4B-02). */
 const OWN_ITEM_ID: readonly CheckpointKind[] = ['CP1', 'CP2', 'CP4', 'CP5'];
 const CHOICE: readonly CheckpointKind[] = ['CP1', 'CP5'];
 const TYPED: readonly CheckpointKind[] = ['CP2', 'CP4'];
 /** S4B-03 (S2-106 extended): CP1, CP4 and CP5 may credit nothing when they test judgement; CP6 credits nothing this sprint. */
 const MAY_CREDIT_NOTHING: readonly CheckpointKind[] = ['CP1', 'CP4', 'CP5'];
-/** Design §7's cast: Voltmarkt's five managers and their roles. A daily case is asked by one of them (S4B-04). */
+/** Design §7's cast: Voltmarkt's five managers and their roles. A daily case on any schema but Mailvora is asked by one of them (S4B-04). */
 const CAST = new Map([['Sanne', 'Category manager'], ['Joost', 'Pricing lead'], ['Fleur', 'Trade marketing'], ['Marieke', 'CFO'], ['Yara', 'Retail operations']]);
+/** Design §7's other cast: Mailvora's four managers and their roles. A daily case whose schema is `mailvora` is asked by one of them (S7-C11). */
+const MAILVORA_CAST = new Map([['Aoife', 'Performance marketing manager'], ['Ciarán', 'Marketing director'], ['Siobhán', 'Lifecycle marketing manager'], ['Declan', 'Head of growth']]);
 const CASE_ID = /^CASE-[A-Z0-9]+(-[A-Z0-9]+)*$/;
 /** A plain table name, as data_needed lists it. */
 const TABLE = /^[a-z_][a-z0-9_]*$/;
@@ -92,7 +114,7 @@ const MAX_LEVEL = 7;
 const isObj = (v: unknown): v is Record<string, unknown> => v !== null && typeof v === 'object' && !Array.isArray(v);
 const isStr = (v: unknown): v is string => typeof v === 'string' && v.trim() !== '';
 const isStrArr = (v: unknown): v is string[] => Array.isArray(v) && v.every((s) => typeof s === 'string');
-const isCaseKind = (v: unknown): v is CaseKind => CASE_KINDS.includes(v as CaseKind);
+const isCaseKind = (v: unknown): v is CaseKind | MockCaseKind => CASE_KINDS.includes(v as CaseKind);
 
 /**
  * S4B-01: the columns, the grain and the sort. A case's sort ends in an ID ascending, except the level 1 and 2 openers', which
@@ -136,10 +158,16 @@ function checkOptions(options: unknown, itemId: string, at: string, e: string[])
   if (e.length === before && texts.size !== options.length) e.push(`${at}.options must have different texts`);
 }
 
-/** S4B-02 and S2-49: an opener's CP3 is an opener item of its level; an inbox or daily case's is EX-CASE-<case tail>. */
+/**
+ * S4B-02 and S2-49: an opener's CP3 is an opener item of its level; an inbox or daily case's is EX-CASE-<case tail>. S7-08: a mock
+ * case's is its mock item, EX-MOCK-CASE-<letter> or EX-MOCK-TAKE-<letter>.
+ */
 function checkCp3Item(id: unknown, x: Record<string, unknown>, at: string, e: string[]): void {
   if (!isStr(id)) { e.push(`${at}.item_id is missing`); return; }
-  if (x.kind === 'opener') {
+  if (isMockCaseKind(x.kind)) {
+    const want = typeof x.case_id === 'string' ? mockCp3ItemId(x.case_id) : null;
+    if (want !== null && id !== want) e.push(`${at}.item_id must be ${want}`);
+  } else if (x.kind === 'opener') {
     const named = /^EX-OPENER-L(\d)-\d{2}$/.exec(id)?.[1];
     if (named === undefined) e.push(`${at}.item_id must be an opener item ID such as EX-OPENER-L${Number.isInteger(x.level) ? String(x.level) : '1'}-01`);
     else if (Number.isInteger(x.level) && Number(named) !== x.level) e.push(`${at}.item_id ${id} names level ${named} but the opener is level ${String(x.level)}`);
@@ -183,7 +211,7 @@ function checkCheckpoint(c: unknown, i: number, x: Record<string, unknown>, kind
   }
 }
 
-/** S4B-04, amended by S5A-14 (D56): a daily case must have CP3 and CP4 and may add CP1, CP2, CP5 and CP6; difficulty 1, the ID CASE-DAILY-L<level>-NN, and one of the five managers. */
+/** S4B-04, amended by S5A-14 (D56): a daily case must have CP3 and CP4 and may add CP1, CP2, CP5 and CP6; difficulty 1, the ID CASE-DAILY-L<level>-NN, and one of Voltmarkt's five managers (S7-C11: one of Mailvora's four when the case's schema is `mailvora`). */
 function checkDaily(x: Record<string, unknown>, kinds: Set<string>, e: string[]): void {
   if (x.kind !== 'daily') {
     if (typeof x.case_id === 'string' && x.case_id.startsWith('CASE-DAILY-')) e.push('only a daily case may use a CASE-DAILY- ID');
@@ -195,8 +223,21 @@ function checkDaily(x: Record<string, unknown>, kinds: Set<string>, e: string[])
     e.push(`a daily case ID looks like CASE-DAILY-L${String(x.level)}-01`);
   }
   const p = x.persona;
-  if (!isObj(p) || typeof p.name !== 'string' || CAST.get(p.name) !== p.role) {
+  if (x.schema === 'mailvora') {
+    if (!isObj(p) || typeof p.name !== 'string' || MAILVORA_CAST.get(p.name) !== p.role) {
+      e.push('a daily case on Mailvora is asked by one of its four managers in their own role: Aoife, Ciarán, Siobhán or Declan');
+    }
+  } else if (!isObj(p) || typeof p.name !== 'string' || CAST.get(p.name) !== p.role) {
     e.push('a daily case is asked by one of the five managers in their own role: Sanne, Joost, Fleur, Marieke or Yara');
+  }
+}
+
+/** S7-08: a case-round mock is CASE-MOCK-<letter> and a take-home mock CASE-TAKE-<letter>; no other case uses those IDs. */
+function checkMockCaseId(x: Record<string, unknown>, e: string[]): void {
+  if (typeof x.case_id !== 'string') return;   // the ID's own message is above
+  for (const [kind, m] of Object.entries(MOCK_CASE)) {
+    if (x.kind === kind && !m.id.test(x.case_id)) e.push(`a ${m.name} mock's ID looks like ${m.example}`);
+    else if (x.kind !== kind && x.case_id.startsWith(m.prefix)) e.push(`only a ${m.name} mock may use a ${m.prefix} ID`);
   }
 }
 
@@ -205,7 +246,8 @@ export function validateCaseRecord(x: unknown): string[] {
   if (!isObj(x)) return ['a case record must be an object'];
   const e: string[] = [];
   if (typeof x.case_id !== 'string' || !CASE_ID.test(x.case_id)) e.push('case_id must look like CASE-VOLT-L1');
-  if (!isCaseKind(x.kind)) e.push('kind must be opener, inbox or daily');
+  if (!isCaseKind(x.kind)) e.push('kind must be opener, inbox, daily, case_round or take_home');
+  checkMockCaseId(x, e);
   if (!(Number.isInteger(x.level) && (x.level as number) >= 1 && (x.level as number) <= MAX_LEVEL)) e.push(`level must be a whole number from 1 to ${MAX_LEVEL}`);
   for (const f of ['world', 'company_id', 'title', 'model_plan', 'model_answer_template', 'follow_up_question'] as const) if (!isStr(x[f])) e.push(`${f} is missing`);
   if (isStr(x.world) && !(CASE_WORLDS as readonly string[]).includes(x.world)) e.push(`world must be one of ${CASE_WORLDS.join(', ')}`);

@@ -4,28 +4,17 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { SCHEMA_VERSION } from '../../core/envelope.ts';
-import { card, instance, item, primed, run, A, GA4 } from '../helpers/replay-fixture.ts';
+import { card, instance, item, run, A, GA4 } from '../helpers/replay-fixture.ts';
+// L86 (Task N2): the builders live in a helper, so the log version 7 test replays a version 6 log too.
+import { BASE, ga4Pass, put, sqlPass, tutor } from '../helpers/replay-logs.ts';
 
 const at = (hms: string): string => `2026-11-03T${hms}Z`;
-const SQL_ITEM = item(A, 'E1-01');
-const tutor = (id: string | null, ts: string, over: object = {}) => ({
-  record: 'tutor_asked', schema_version: 6, ts, session_id: 'S-1', screen: 'item', item_instance_id: id,
-  item_id: id === null ? null : SQL_ITEM, target_concept_id: id === null ? null : A, phase: id === null ? null : 'free',
-  provider: 'fake', model: 'fake', prompt_version: 1, input_tokens: 10, cached_input_tokens: 0, output_tokens: 5, cost_usd: 0, outcome: 'answered', ...over,
-});
-// Both cards are rated the day before, so S2-02 holds no rating back; 90 s against a 120 s target is Good, not Easy.
-const BASE = [...primed(A, '2026-11-02'), ...primed(GA4, '2026-11-02')];
-const sqlPass = (): object[] => instance({ id: 'T-1', item: SQL_ITEM, concept: A, start: at('09:00:00'), steps: [{ at: at('09:02:00'), submit: 'pass', activeMs: 90_000 }], version: 2 });
-const ga4Pass = (): object[] => instance({ id: 'T-2', item: 'EX-GA4-SETUP-01-Q1', concept: GA4, section: 'ga4', kind: 'mcq', start: at('09:10:00'),
-  steps: [{ at: at('09:11:00'), submit: 'pass', confidence: 3 }], version: 2 });
 const rated = (records: object[], id: string) => {
   const r = run({ attempts: [...BASE, ...records], events: [] }).instances.get(id)!;
   return { rating: r.rating, why: r.why, countsAsPass: r.countsAsPass };
 };
-/** The records with `extra` put in at `index`. */
-const put = (records: object[], index: number, extra: object): object[] => [...records.slice(0, index), extra, ...records.slice(index)];
 
-test('the log version is 6', () => assert.equal(SCHEMA_VERSION, 6));
+test('the log version is 7 (6 added tutor_asked; 7 is D112, tests/server/log-v7.test.ts)', () => assert.equal(SCHEMA_VERSION, 7));
 
 test('an SQL pass after a tutor question is Hard, as after hint 1, and still counts as a pass', () => {
   assert.equal(rated(sqlPass(), 'T-1').rating, 3, 'without the question: Good');

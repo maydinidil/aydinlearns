@@ -1,0 +1,157 @@
+{
+  "id": "EX-SQL-WIN-05-E3-02",
+  "version": 1,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "rolling_rate",
+    "rolling_sums",
+    "range_interval",
+    "anomaly"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-05"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-WIN-05",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-DATE-02",
+    "SQL-WIN-01",
+    "SQL-WIN-04",
+    "SQL-WIN-05"
+  ],
+  "template_id": "T-WIN-05-rate-below-trailing",
+  "template_params": {
+    "table": "ad_spend_daily",
+    "group": "channel",
+    "window": "7 calendar days before"
+  },
+  "sub_skill": null,
+  "difficulty": "E3",
+  "company": "mailvora",
+  "schema": "mailvora",
+  "edge_schema": "mailvora_edge_win",
+  "prompt": "For each paid channel, find the UTC days of October 2025 with spend on which the channel's click-through rate that day was more than 10% below its click-through rate over the 7 calendar days before it (that day not included): the clicks of those days divided by their impressions. A day with no spend adds no clicks and no impressions, and the 7 days may reach back into September; a day whose 7 days before it had no spend has nothing to compare with and is never listed. Return channel_id, spend_date, ctr_pct (that day's rate) and ctr_prev_7d_pct, each as a percentage rounded to 2 decimals, for those days only. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "channel_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "spend_date",
+        "type_class": "temporal"
+      },
+      {
+        "name": "ctr_pct",
+        "type_class": "numeric"
+      },
+      {
+        "name": "ctr_prev_7d_pct",
+        "type_class": "numeric"
+      }
+    ],
+    "grain": null
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "channel_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "spend_date",
+        "type_class": "temporal",
+        "precision": "exact"
+      },
+      {
+        "name": "ctr_pct",
+        "type_class": "numeric",
+        "precision": "ratio",
+        "require_rounding": 2
+      },
+      {
+        "name": "ctr_prev_7d_pct",
+        "type_class": "numeric",
+        "precision": "ratio",
+        "require_rounding": 2
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "channel_id",
+      "spend_date"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, add up each channel's clicks and impressions per day, then work out the rate over the 7 calendar days before each day.",
+    "Divide two rolling sums over a frame that counts days and ends the day before; compare the unrounded rates, and keep October only after the window."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 327,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 328,
+      "to": 703,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 704,
+      "to": 718,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 719,
+      "to": 816,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 817,
+      "to": 827,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 828,
+      "to": 922,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 240000,
+  "why_this_works": "Rolling sums over the 7 calendar days before each day give the channel's rate for that week, which the day's own rate is compared with."
+}

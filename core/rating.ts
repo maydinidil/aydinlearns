@@ -42,7 +42,7 @@ export interface RatingContext {
    * and S2-62 (a choice answer within 15 minutes of the lesson). The caller decides; countsAsPass is still reported.
    */
   lessonPhase: boolean;
-  /** The caller's S2-09 verdict. The mapper also refuses Easy on an unrated card and in the retest and drill phases. */
+  /** The caller's S2-09 verdict. The mapper also refuses Easy on an unrated card and in the retest, drill and mock phases. */
   easyAllowed: boolean;
 }
 export interface InstanceRating { rating: Rating | null; why: string; countsAsPass: boolean }
@@ -53,8 +53,14 @@ const GOOD: Rating = 3;
 const EASY: Rating = 4;
 const ms = (ts: string): number => Date.parse(ts);
 const hasSyntaxError = (a: AttemptFact, rules: RatingRules): boolean => a.error_ids.some((id) => rules.isSyntaxError(id));
-/** A logged learner submission: not the override copy, not a crash (design §18), never a rejected statement. */
-const isSubmission = (a: AttemptFact): boolean => a.grading_source !== 'override' && a.outcome !== 'crash' && a.outcome !== 'rejected';
+/**
+ * Whether an attempt record counts as an answer: never the copy an "I was right" override logs, a crash (design §18) or a refused
+ * statement. The one place the filter is written: replay's mistake counting and checkpoint answers, the case route's gates, the daily
+ * case (server/session-composer.ts) and this file's submissions all ask it (Tasks K4 and H2). core/replay.ts re-exports it.
+ */
+export function countsAsAttempt(r: { grading_source?: unknown; outcome?: unknown }): boolean {
+  return r.grading_source !== 'override' && r.outcome !== 'crash' && r.outcome !== 'rejected';
+}
 /** S2-06: "show answer", or a hint at level 2 or more. */
 const isReveal = (h: HelpFact): boolean => h.kind === 'solution' || (h.level ?? 0) >= 2;
 /** A help record's level for S2-05; "show answer" before the pass counts as level 3. */
@@ -65,7 +71,7 @@ const levelOf = (h: HelpFact): 0 | 1 | 2 | 3 => (h.kind === 'solution' ? 3 : h.l
  * `syntaxGraceMs` later by submitted_at, holds none. A final syntax-error submission is graded.
  */
 export function gradedAttempts(attempts: AttemptFact[], rules: RatingRules): AttemptFact[] {
-  const subs = attempts.filter(isSubmission);
+  const subs = attempts.filter(countsAsAttempt);
   return subs.filter((a, i) => {
     if (!hasSyntaxError(a, rules)) return true;
     const next = subs[i + 1];
@@ -116,7 +122,10 @@ export function rateSqlInstance(s: InstanceSummary, f: InstanceFacts, ctx: Ratin
   if (s.firstGraded === null) return r(null, f.close_reason === 'run_end' ? 'not reached before the run ended' : 'no graded attempt');
   if (f.override === 'reverted' && s.passedBy === null) return r(AGAIN, '"I was right" was reverted');
   if (s.passedBy === 'override') return s.maxHintBeforePass >= 2 ? r(AGAIN, 'hint 2 or more before the disputed attempt') : r(HARD, '"I was right"');
-  if (f.phase === 'drill') return s.passedBy === 'auto' ? r(GOOD, 'drill: passed within the time limit') : r(AGAIN, 'drill: not passed');
+  // The drill row (D9). S7-06 (ruling S7-C08): an SQL item in a recruiter mock (phase mock) is rated as a drill item.
+  if (f.phase === 'drill' || f.phase === 'mock') {
+    return s.passedBy === 'auto' ? r(GOOD, `${f.phase}: passed within the time limit`) : r(AGAIN, `${f.phase}: not passed`);
+  }
   if (s.passedBy === null || s.passIndex === null || s.passAttempt === null) return r(AGAIN, 'not solved');
   if (s.passIndex >= 3) return r(AGAIN, 'solved on graded attempt 3 or later');
   if (s.maxHintBeforePass >= 2) return r(AGAIN, 'hint 2 or more used');
@@ -125,7 +134,7 @@ export function rateSqlInstance(s: InstanceSummary, f: InstanceFacts, ctx: Ratin
   const a = s.passAttempt;
   if (a.target_ms === null) return r(GOOD, 'attempt 1, no hints (no time target)');
   if (a.active_ms > 2 * a.target_ms) return r(HARD, 'attempt 1 in more than 2x the target time');
-  // S2-09: a drill has already returned above, so only the re-test is left to refuse here.
+  // S2-09: a drill or a mock has already returned above, so only the re-test is left to refuse here.
   const easy = ctx.easyAllowed && ctx.cardRated && f.phase !== 'retest' && a.active_ms <= 0.5 * a.target_ms;
   return easy ? r(EASY, 'attempt 1, no hints, within 0.5x the target time') : r(GOOD, 'attempt 1, no hints, within 2x the target time');
 }

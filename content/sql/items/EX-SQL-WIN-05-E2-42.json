@@ -1,0 +1,200 @@
+{
+  "id": "EX-SQL-WIN-05-E2-42",
+  "version": 1,
+  "kind": "predict_result",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "moving_average",
+    "predict",
+    "missing_period"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-05"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-WIN-05",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02",
+    "SQL-SORT-01",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-DATE-01",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-WIN-01",
+    "SQL-WIN-04",
+    "SQL-WIN-05"
+  ],
+  "template_id": "T-WIN-05-predict-missing-month",
+  "template_params": {
+    "table": "ad_spend_daily",
+    "channel": "youtube",
+    "window": "2 rows"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "mailvora",
+  "schema": "mailvora",
+  "edge_schema": "mailvora_edge_win",
+  "prompt": "The youtube channel (channel_id 5) had ad spend in June, August and September 2025, and none in July. Which result does this query return? Rows may be in any order.",
+  "output_contract": null,
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [],
+  "subgoals": [],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "",
+  "shown_sql": "WITH monthly AS (\n  SELECT CAST(date_trunc('month', a.spend_date) AS DATE) AS month, SUM(a.spend) AS spend\n  FROM ad_spend_daily a\n  JOIN campaigns c ON c.campaign_id = a.campaign_id\n  WHERE c.channel_id = 5\n    AND a.spend_date BETWEEN DATE '2025-06-01' AND DATE '2025-09-30'\n  GROUP BY CAST(date_trunc('month', a.spend_date) AS DATE)\n)\nSELECT month, spend,\n  ROUND(AVG(spend) OVER (ORDER BY month ROWS BETWEEN 1 PRECEDING AND CURRENT ROW), 0) AS avg_2m\nFROM monthly",
+  "options": [
+    {
+      "oid": "o1f8ea14",
+      "text": "July shows up with 0 spend",
+      "misconception_id": "ERR-LOG-39",
+      "table": {
+        "columns": [
+          "month",
+          "spend",
+          "avg_2m"
+        ],
+        "rows": [
+          [
+            "2025-06-01",
+            "69223.15",
+            "69223"
+          ],
+          [
+            "2025-07-01",
+            "0.00",
+            "34612"
+          ],
+          [
+            "2025-08-01",
+            "67654.16",
+            "33827"
+          ],
+          [
+            "2025-09-01",
+            "72884.17",
+            "70269"
+          ]
+        ]
+      }
+    },
+    {
+      "oid": "o51667b3",
+      "text": "August averages June and August",
+      "misconception_id": null,
+      "table": {
+        "columns": [
+          "month",
+          "spend",
+          "avg_2m"
+        ],
+        "rows": [
+          [
+            "2025-06-01",
+            "69223.15",
+            "69223"
+          ],
+          [
+            "2025-08-01",
+            "67654.16",
+            "68439"
+          ],
+          [
+            "2025-09-01",
+            "72884.17",
+            "70269"
+          ]
+        ]
+      }
+    },
+    {
+      "oid": "o7184a7e",
+      "text": "August averages only itself",
+      "misconception_id": null,
+      "table": {
+        "columns": [
+          "month",
+          "spend",
+          "avg_2m"
+        ],
+        "rows": [
+          [
+            "2025-06-01",
+            "69223.15",
+            "69223"
+          ],
+          [
+            "2025-08-01",
+            "67654.16",
+            "67654"
+          ],
+          [
+            "2025-09-01",
+            "72884.17",
+            "70269"
+          ]
+        ]
+      }
+    },
+    {
+      "oid": "o67f1f9e",
+      "text": "June is missing",
+      "misconception_id": "ERR-LOG-43",
+      "table": {
+        "columns": [
+          "month",
+          "spend",
+          "avg_2m"
+        ],
+        "rows": [
+          [
+            "2025-06-01",
+            "69223.15",
+            null
+          ],
+          [
+            "2025-08-01",
+            "67654.16",
+            "68439"
+          ],
+          [
+            "2025-09-01",
+            "72884.17",
+            "70269"
+          ]
+        ]
+      }
+    }
+  ]
+}

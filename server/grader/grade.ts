@@ -30,7 +30,9 @@ export { INT_DIVISION_NOTE } from './portability.ts';
 // 6a.1 (sprint 6, Task A1): two changes. S6-08: a query whose brackets nest deeper than 40 is refused before the runner child
 // receives it, and is not graded. S6-11 (E-189): DuckDB's message for a window function in WHERE diagnoses ERR-SYN-08, not
 // ERR-SYN-02. The per-table hidden-data lines (S6-05) and the FROM subquery alias note (S6-10) change what is shown, not the grade.
-export const GRADER_VERSION = '6a.1';
+// 7a.1 (sprint 7, Task A1, S7-26): a query that uses QUALIFY carries S7-20's note in portability_notes. A note only: outcomes, the
+// diagnosis, the partial score and the logged checks are graded exactly as 6a.1 did.
+export const GRADER_VERSION = '7a.1';
 const DIFF_LIMIT = 10;
 const KEY_FAILED = 'This exercise could not be checked. Please report it.';
 /** `schemaNotes` give the columns of the item's tables to the portability lint; without them it gives only the `==` note. */

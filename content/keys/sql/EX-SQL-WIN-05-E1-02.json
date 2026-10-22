@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-WIN-05-E1-02",
+  "item_version": 1,
+  "reference_sql": "SELECT channel_id, month, budget_eur,\n  ROUND(AVG(budget_eur) OVER (PARTITION BY channel_id ORDER BY month ROWS BETWEEN 2 PRECEDING AND CURRENT ROW), 2) AS avg_budget_3m,\n  COUNT(*) OVER (PARTITION BY channel_id ORDER BY month ROWS BETWEEN 2 PRECEDING AND CURRENT ROW) AS months_in_window\nFROM budget_monthly\nWHERE month BETWEEN DATE '2025-01-01' AND DATE '2025-12-01'",
+  "alternatives": [
+    "WITH b AS (\n  -- one row per paid channel and month of 2025\n  SELECT channel_id, month, budget_eur\n  FROM budget_monthly\n  WHERE month BETWEEN DATE '2025-01-01' AND DATE '2025-12-01'\n)\nSELECT m.channel_id, m.month, m.budget_eur, ROUND(AVG(p.budget_eur), 2) AS avg_budget_3m, COUNT(*) AS months_in_window\nFROM b m\nJOIN b p ON p.channel_id = m.channel_id AND p.month BETWEEN m.month - INTERVAL 2 MONTH AND m.month\nGROUP BY m.channel_id, m.month, m.budget_eur",
+    "WITH w AS (\n  -- one row per paid channel and month of 2025\n  SELECT channel_id, month, budget_eur,\n    AVG(budget_eur) OVER (PARTITION BY channel_id ORDER BY month ROWS BETWEEN 2 PRECEDING AND CURRENT ROW) AS avg_3m,\n    COUNT(*) OVER (PARTITION BY channel_id ORDER BY month ROWS BETWEEN 2 PRECEDING AND CURRENT ROW) AS n\n  FROM budget_monthly\n  WHERE month BETWEEN DATE '2025-01-01' AND DATE '2025-12-01'\n)\nSELECT channel_id, month, budget_eur, ROUND(avg_3m, 2) AS avg_budget_3m, n AS months_in_window\nFROM w"
+  ],
+  "other_way": {
+    "sql": "WITH b AS (\n  -- one row per paid channel and month of 2025\n  SELECT channel_id, month, budget_eur\n  FROM budget_monthly\n  WHERE month BETWEEN DATE '2025-01-01' AND DATE '2025-12-01'\n)\nSELECT m.channel_id, m.month, m.budget_eur, ROUND(AVG(p.budget_eur), 2) AS avg_budget_3m, COUNT(*) AS months_in_window\nFROM b m\nJOIN b p ON p.channel_id = m.channel_id AND p.month BETWEEN m.month - INTERVAL 2 MONTH AND m.month\nGROUP BY m.channel_id, m.month, m.budget_eur",
+    "tradeoff": "Joining each month to the 2 months before it gives the same averages because every month has a budget row, but it needs a self-join."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-37",
+      "sql": "SELECT channel_id, month, budget_eur, ROUND(AVG(budget_eur) OVER (ORDER BY channel_id, month ROWS BETWEEN 2 PRECEDING AND CURRENT ROW), 2) AS avg_budget_3m, COUNT(*) OVER (ORDER BY channel_id, month ROWS BETWEEN 2 PRECEDING AND CURRENT ROW) AS months_in_window FROM budget_monthly WHERE month BETWEEN DATE '2025-01-01' AND DATE '2025-12-01'"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-41",
+      "sql": "SELECT channel_id, month, budget_eur, ROUND(AVG(budget_eur) OVER (PARTITION BY channel_id ORDER BY budget_eur, month ROWS BETWEEN 2 PRECEDING AND CURRENT ROW), 2) AS avg_budget_3m, COUNT(*) OVER (PARTITION BY channel_id ORDER BY budget_eur, month ROWS BETWEEN 2 PRECEDING AND CURRENT ROW) AS months_in_window FROM budget_monthly WHERE month BETWEEN DATE '2025-01-01' AND DATE '2025-12-01'"
+    }
+  ],
+  "hint3_partial": "SELECT channel_id, month, budget_eur,\n  ROUND(AVG(budget_eur) OVER (PARTITION BY ___ ORDER BY month ROWS BETWEEN 2 PRECEDING AND CURRENT ROW), 2) AS avg_budget_3m,\n  COUNT(*) OVER (PARTITION BY ___ ORDER BY month ROWS BETWEEN 2 PRECEDING AND CURRENT ROW) AS months_in_window\nFROM budget_monthly\nWHERE month BETWEEN DATE '2025-01-01' AND DATE '2025-12-01'",
+  "solver": {
+    "prompt_hash": "8e73cb76965e4459",
+    "schema_version": "1ea1a0f5ae04",
+    "dataset_version": "e7c58abf7e8f892e",
+    "grader_version": "7a.1",
+    "query": "SELECT channel_id, month, budget_eur,\n  ROUND(AVG(budget_eur) OVER (PARTITION BY channel_id ORDER BY month ROWS BETWEEN 2 PRECEDING AND CURRENT ROW), 2) AS avg_budget_3m,\n  COUNT(*) OVER (PARTITION BY channel_id ORDER BY month ROWS BETWEEN 2 PRECEDING AND CURRENT ROW) AS months_in_window\nFROM budget_monthly\nWHERE month BETWEEN DATE '2025-01-01' AND DATE '2025-12-01'\n",
+    "at": "2026-10-21T09:05:09.038Z"
+  }
+}

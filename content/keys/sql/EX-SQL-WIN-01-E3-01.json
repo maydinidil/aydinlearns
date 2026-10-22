@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-WIN-01-E3-01",
+  "item_version": 1,
+  "reference_sql": "WITH store_rev AS (  -- one row per store with 2025 sales\n  SELECT st.store_code, st.country_code, SUM(s.net_revenue_eur) AS revenue\n  FROM sales s\n  JOIN stores st ON st.store_code = s.store_code\n  WHERE s.order_date >= DATE '2025-01-01' AND s.order_date < DATE '2026-01-01'\n  GROUP BY st.store_code, st.country_code\n)\nSELECT store_code, country_code, revenue,\n       ROUND(AVG(revenue) OVER (PARTITION BY country_code), 2) AS country_avg,\n       revenue < 0.8 * AVG(revenue) OVER (PARTITION BY country_code) AS below_80\nFROM store_rev",
+  "alternatives": [
+    "WITH store_rev AS (  -- one row per store with 2025 sales\n  SELECT st.store_code, st.country_code, SUM(s.net_revenue_eur) AS revenue\n  FROM sales s\n  JOIN stores st ON st.store_code = s.store_code\n  WHERE s.order_date >= DATE '2025-01-01' AND s.order_date < DATE '2026-01-01'\n  GROUP BY st.store_code, st.country_code\n),\ncountry_avg AS (  -- one row per country\n  SELECT country_code, AVG(revenue) AS avg_rev\n  FROM store_rev\n  GROUP BY country_code\n)\nSELECT sr.store_code, sr.country_code, sr.revenue,\n       ROUND(ca.avg_rev, 2) AS country_avg,\n       sr.revenue < 0.8 * ca.avg_rev AS below_80\nFROM store_rev sr\nJOIN country_avg ca ON ca.country_code = sr.country_code",
+    "WITH store_rev AS (  -- one row per store with 2025 sales\n  SELECT st.store_code, st.country_code, SUM(s.net_revenue_eur) AS revenue\n  FROM sales s\n  JOIN stores st ON st.store_code = s.store_code\n  WHERE s.order_date >= DATE '2025-01-01' AND s.order_date < DATE '2026-01-01'\n  GROUP BY st.store_code, st.country_code\n),\ncompared AS (  -- one row per store with 2025 sales\n  SELECT store_code, country_code, revenue,\n         AVG(revenue) OVER (PARTITION BY country_code) AS avg_rev\n  FROM store_rev\n)\nSELECT store_code, country_code, revenue, ROUND(avg_rev, 2) AS country_avg,\n       CASE WHEN revenue < 0.8 * avg_rev THEN true ELSE false END AS below_80\nFROM compared"
+  ],
+  "other_way": {
+    "sql": "WITH store_rev AS (  -- one row per store with 2025 sales\n  SELECT st.store_code, st.country_code, SUM(s.net_revenue_eur) AS revenue\n  FROM sales s\n  JOIN stores st ON st.store_code = s.store_code\n  WHERE s.order_date >= DATE '2025-01-01' AND s.order_date < DATE '2026-01-01'\n  GROUP BY st.store_code, st.country_code\n),\ncountry_avg AS (  -- one row per country\n  SELECT country_code, AVG(revenue) AS avg_rev\n  FROM store_rev\n  GROUP BY country_code\n)\nSELECT sr.store_code, sr.country_code, sr.revenue,\n       ROUND(ca.avg_rev, 2) AS country_avg,\n       sr.revenue < 0.8 * ca.avg_rev AS below_80\nFROM store_rev sr\nJOIN country_avg ca ON ca.country_code = sr.country_code",
+    "tradeoff": "A per-country average step joined back avoids windows, but it takes a third step and a join."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-37",
+      "sql": "WITH store_rev AS (SELECT st.store_code, st.country_code, SUM(s.net_revenue_eur) AS revenue FROM sales s JOIN stores st ON st.store_code = s.store_code WHERE s.order_date >= DATE '2025-01-01' AND s.order_date < DATE '2026-01-01' GROUP BY st.store_code, st.country_code) SELECT store_code, country_code, revenue, ROUND(AVG(revenue) OVER (), 2) AS country_avg, revenue < 0.8 * AVG(revenue) OVER () AS below_80 FROM store_rev"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-21",
+      "sql": "WITH store_rev AS (SELECT st.store_code, st.country_code, SUM(s.net_revenue_eur) AS revenue FROM sales s JOIN stores st ON st.store_code = s.store_code WHERE s.order_date >= DATE '2025-01-01' AND s.order_date < DATE '2026-01-01' GROUP BY st.store_code, st.country_code) SELECT store_code, country_code, revenue, ROUND(AVG(revenue) OVER (PARTITION BY country_code), 2) AS country_avg, revenue < 80 * AVG(revenue) OVER (PARTITION BY country_code) AS below_80 FROM store_rev"
+    }
+  ],
+  "hint3_partial": "WITH store_rev AS (  -- one row per store with 2025 sales\n  SELECT st.store_code, st.country_code, SUM(s.net_revenue_eur) AS revenue\n  FROM sales s\n  JOIN stores st ON st.store_code = s.store_code\n  WHERE s.order_date >= DATE '2025-01-01' AND s.order_date < DATE '2026-01-01'\n  GROUP BY st.store_code, st.country_code\n)\nSELECT store_code, country_code, revenue,\n       ROUND(AVG(revenue) OVER (PARTITION BY ___), 2) AS country_avg,\n       revenue < 0.8 * AVG(revenue) OVER (PARTITION BY ___) AS below_80\nFROM store_rev",
+  "solver": {
+    "prompt_hash": "fd8f2501cc8c48d7",
+    "schema_version": "5dbd771f9d51",
+    "dataset_version": "e7c58abf7e8f892e",
+    "grader_version": "7a.1",
+    "query": "WITH store_rev AS (\n  SELECT s.store_code, st.country_code, SUM(s.net_revenue_eur) AS revenue\n  FROM sales s\n  JOIN stores st ON st.store_code = s.store_code\n  WHERE s.order_date >= DATE '2025-01-01' AND order_date < DATE '2026-01-01'\n  GROUP BY s.store_code, st.country_code\n),\nx AS (\n  SELECT store_code, country_code, revenue,\n         AVG(revenue) OVER (PARTITION BY country_code) AS avg_exact\n  FROM store_rev\n)\nSELECT store_code, country_code, revenue,\n       ROUND(avg_exact, 2) AS country_avg,\n       revenue < 0.8 * avg_exact AS below_80\nFROM x\n",
+    "at": "2026-10-21T09:05:05.973Z"
+  }
+}

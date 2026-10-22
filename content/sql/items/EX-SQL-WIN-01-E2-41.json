@@ -1,0 +1,94 @@
+{
+  "id": "EX-SQL-WIN-01-E2-41",
+  "version": 1,
+  "kind": "choose_query",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "choose_query",
+    "window",
+    "partition_by",
+    "share_of_total",
+    "ad_spend_daily"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-01"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-WIN-01",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-TYPE-01",
+    "SQL-JOIN-01",
+    "SQL-CTE-01",
+    "SQL-WIN-01"
+  ],
+  "template_id": "T-WIN-01-choose-share-of-group",
+  "template_params": {
+    "table": "ad_spend_daily",
+    "step": "campaign",
+    "partition": "channel"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "mailvora",
+  "schema": "mailvora",
+  "edge_schema": "mailvora_edge_win",
+  "prompt": "Which query returns every campaign with spend, with its total clicks and its share of its channel's total clicks, as a percentage rounded to 2 decimals, in the columns campaign_id, channel_id, clicks and share_pct? Count all the rows of ad_spend_daily.",
+  "output_contract": null,
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [],
+  "subgoals": [],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 120000,
+  "why_this_works": "",
+  "options": [
+    {
+      "oid": "od9d4c5e",
+      "text": "WITH campaign_clicks AS (  -- one row per campaign with spend\n  SELECT c.campaign_id, c.channel_id, SUM(a.clicks) AS clicks\n  FROM ad_spend_daily a\n  JOIN campaigns c ON c.campaign_id = a.campaign_id\n  GROUP BY c.campaign_id, c.channel_id\n)\nSELECT campaign_id, channel_id, clicks,\n       ROUND(100.0 * clicks / SUM(clicks) OVER (), 2) AS share_pct\nFROM campaign_clicks",
+      "misconception_id": "ERR-LOG-37"
+    },
+    {
+      "oid": "oc8c0703",
+      "text": "WITH campaign_clicks AS (  -- one row per campaign with spend\n  SELECT c.campaign_id, c.channel_id, SUM(a.clicks) AS clicks\n  FROM ad_spend_daily a\n  JOIN campaigns c ON c.campaign_id = a.campaign_id\n  GROUP BY c.campaign_id, c.channel_id\n)\nSELECT campaign_id, channel_id, clicks,\n       ROUND(100.0 * clicks / SUM(clicks) OVER (PARTITION BY channel_id), 2) AS share_pct\nFROM campaign_clicks",
+      "misconception_id": null
+    },
+    {
+      "oid": "oe545b92",
+      "text": "WITH campaign_clicks AS (  -- one row per campaign with spend\n  SELECT c.campaign_id, c.channel_id, SUM(a.clicks) AS clicks\n  FROM ad_spend_daily a\n  JOIN campaigns c ON c.campaign_id = a.campaign_id\n  GROUP BY c.campaign_id, c.channel_id\n)\nSELECT campaign_id, channel_id, clicks,\n       ROUND(100.0 * clicks / SUM(clicks) OVER (PARTITION BY campaign_id), 2) AS share_pct\nFROM campaign_clicks",
+      "misconception_id": "ERR-LOG-07"
+    },
+    {
+      "oid": "o0b9a3c0",
+      "text": "WITH campaign_clicks AS (  -- one row per campaign with spend\n  SELECT c.campaign_id, c.channel_id, SUM(a.clicks) AS clicks\n  FROM ad_spend_daily a\n  JOIN campaigns c ON c.campaign_id = a.campaign_id\n  GROUP BY c.campaign_id, c.channel_id\n)\nSELECT campaign_id, channel_id, clicks,\n       ROUND(clicks / SUM(clicks) OVER (PARTITION BY channel_id), 2) AS share_pct\nFROM campaign_clicks",
+      "misconception_id": "ERR-LOG-21"
+    }
+  ]
+}

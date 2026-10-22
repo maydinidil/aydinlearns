@@ -1,0 +1,268 @@
+{
+  "id": "EX-SQL-WIN-02-E1-42",
+  "version": 1,
+  "kind": "predict_result",
+  "tags": [
+    "sql",
+    "LVL-05",
+    "predict_result",
+    "ranking",
+    "rank",
+    "campaigns"
+  ],
+  "level": 5,
+  "source_ids": [
+    "01:SQL-WIN-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-20",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "pool",
+  "target_concept_id": "SQL-WIN-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-BASICS-02",
+    "SQL-AGG-01",
+    "SQL-AGG-02",
+    "SQL-JOIN-01",
+    "SQL-WIN-01",
+    "SQL-WIN-02"
+  ],
+  "template_id": "T-WIN-02-predict-result-rank",
+  "template_params": {
+    "table": "campaigns",
+    "group": "channel"
+  },
+  "sub_skill": null,
+  "difficulty": "E1",
+  "company": "mailvora",
+  "schema": "mailvora",
+  "edge_schema": "mailvora_edge_win",
+  "prompt": "Which result does this query return? The paid channels run these numbers of campaigns: nonbrand_search 48, meta 48, youtube 24, affiliates 22, linkedin 18, review_sites 12 and brand_search 8.",
+  "output_contract": null,
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [],
+  "subgoals": [],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 90000,
+  "why_this_works": "",
+  "shown_sql": "SELECT ch.channel_name, COUNT(*) AS n_campaigns,\n       RANK() OVER (ORDER BY COUNT(*) DESC) AS r\nFROM campaigns c\nJOIN channels ch ON ch.channel_id = c.channel_id\nGROUP BY ch.channel_name",
+  "options": [
+    {
+      "oid": "o7f88e20",
+      "text": "Ranks 1, 1, 2, 3, 4, 5 and 6",
+      "misconception_id": "ERR-LOG-40",
+      "table": {
+        "columns": [
+          "channel_name",
+          "n_campaigns",
+          "r"
+        ],
+        "rows": [
+          [
+            "nonbrand_search",
+            48,
+            1
+          ],
+          [
+            "meta",
+            48,
+            1
+          ],
+          [
+            "youtube",
+            24,
+            2
+          ],
+          [
+            "affiliates",
+            22,
+            3
+          ],
+          [
+            "linkedin",
+            18,
+            4
+          ],
+          [
+            "review_sites",
+            12,
+            5
+          ],
+          [
+            "brand_search",
+            8,
+            6
+          ]
+        ]
+      }
+    },
+    {
+      "oid": "o029ec17",
+      "text": "Ranks 1, 2, 3, 4, 5, 6 and 7",
+      "misconception_id": "ERR-LOG-40",
+      "table": {
+        "columns": [
+          "channel_name",
+          "n_campaigns",
+          "r"
+        ],
+        "rows": [
+          [
+            "nonbrand_search",
+            48,
+            1
+          ],
+          [
+            "meta",
+            48,
+            2
+          ],
+          [
+            "youtube",
+            24,
+            3
+          ],
+          [
+            "affiliates",
+            22,
+            4
+          ],
+          [
+            "linkedin",
+            18,
+            5
+          ],
+          [
+            "review_sites",
+            12,
+            6
+          ],
+          [
+            "brand_search",
+            8,
+            7
+          ]
+        ]
+      }
+    },
+    {
+      "oid": "o8271133",
+      "text": "Ranks 1, 1, 3, 4, 5, 6 and 7",
+      "misconception_id": null,
+      "table": {
+        "columns": [
+          "channel_name",
+          "n_campaigns",
+          "r"
+        ],
+        "rows": [
+          [
+            "nonbrand_search",
+            48,
+            1
+          ],
+          [
+            "meta",
+            48,
+            1
+          ],
+          [
+            "youtube",
+            24,
+            3
+          ],
+          [
+            "affiliates",
+            22,
+            4
+          ],
+          [
+            "linkedin",
+            18,
+            5
+          ],
+          [
+            "review_sites",
+            12,
+            6
+          ],
+          [
+            "brand_search",
+            8,
+            7
+          ]
+        ]
+      }
+    },
+    {
+      "oid": "o3e8aaf7",
+      "text": "Ranks 6, 6, 5, 4, 3, 2 and 1",
+      "misconception_id": "ERR-LOG-18",
+      "table": {
+        "columns": [
+          "channel_name",
+          "n_campaigns",
+          "r"
+        ],
+        "rows": [
+          [
+            "nonbrand_search",
+            48,
+            6
+          ],
+          [
+            "meta",
+            48,
+            6
+          ],
+          [
+            "youtube",
+            24,
+            5
+          ],
+          [
+            "affiliates",
+            22,
+            4
+          ],
+          [
+            "linkedin",
+            18,
+            3
+          ],
+          [
+            "review_sites",
+            12,
+            2
+          ],
+          [
+            "brand_search",
+            8,
+            1
+          ]
+        ]
+      }
+    }
+  ]
+}

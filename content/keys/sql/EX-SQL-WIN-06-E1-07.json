@@ -1,0 +1,34 @@
+{
+  "item_id": "EX-SQL-WIN-06-E1-07",
+  "item_version": 1,
+  "reference_sql": "WITH subs AS (  -- one row per subscription, with the plan of the user's subscription before\n  SELECT user_id, subscription_id, start_date, plan_name,\n         LAG(plan_name) OVER (PARTITION BY user_id ORDER BY start_date) AS prev_plan\n  FROM subscriptions\n)\nSELECT user_id, subscription_id, prev_plan, plan_name\nFROM subs\nWHERE start_date BETWEEN DATE '2025-08-01' AND DATE '2025-08-31'\n  AND plan_name <> prev_plan",
+  "alternatives": [
+    "SELECT s.user_id, s.subscription_id, s.prev_plan, s.plan_name\nFROM (\n  -- one row per subscription, with the plan of the user's subscription before\n  SELECT user_id, subscription_id, start_date, plan_name,\n         LAG(plan_name) OVER (PARTITION BY user_id ORDER BY start_date) AS prev_plan\n  FROM subscriptions\n) AS s\nWHERE s.start_date BETWEEN DATE '2025-08-01' AND DATE '2025-08-31'\n  AND s.plan_name <> s.prev_plan",
+    "WITH subs AS (  -- one row per subscription, with the plan of the user's subscription before\n  SELECT user_id, subscription_id, start_date, plan_name,\n         LAG(plan_name) OVER (PARTITION BY user_id ORDER BY start_date) AS prev_plan\n  FROM subscriptions\n  QUALIFY plan_name <> LAG(plan_name) OVER (PARTITION BY user_id ORDER BY start_date)\n)\nSELECT user_id, subscription_id, prev_plan, plan_name\nFROM subs\nWHERE start_date BETWEEN DATE '2025-08-01' AND DATE '2025-08-31'"
+  ],
+  "other_way": {
+    "sql": "WITH subs AS (  -- one row per subscription, with the plan of the user's subscription before\n  SELECT user_id, subscription_id, start_date, plan_name,\n         LAG(plan_name) OVER (PARTITION BY user_id ORDER BY start_date) AS prev_plan\n  FROM subscriptions\n  QUALIFY plan_name <> LAG(plan_name) OVER (PARTITION BY user_id ORDER BY start_date)\n)\nSELECT user_id, subscription_id, prev_plan, plan_name\nFROM subs\nWHERE start_date BETWEEN DATE '2025-08-01' AND DATE '2025-08-31'",
+    "tradeoff": "QUALIFY filters the window result in the same query, which is shorter, but PostgreSQL, MySQL and SQL Server do not accept it."
+  },
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-37",
+      "sql": "WITH subs AS (SELECT user_id, subscription_id, start_date, plan_name, LAG(plan_name) OVER (ORDER BY start_date, subscription_id) AS prev_plan FROM subscriptions) SELECT user_id, subscription_id, prev_plan, plan_name FROM subs WHERE start_date BETWEEN DATE '2025-08-01' AND DATE '2025-08-31' AND plan_name <> prev_plan"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-41",
+      "sql": "WITH subs AS (SELECT user_id, subscription_id, start_date, plan_name, LAG(plan_name) OVER (PARTITION BY user_id ORDER BY monthly_price_eur, start_date) AS prev_plan FROM subscriptions) SELECT user_id, subscription_id, prev_plan, plan_name FROM subs WHERE start_date BETWEEN DATE '2025-08-01' AND DATE '2025-08-31' AND plan_name <> prev_plan"
+    }
+  ],
+  "hint3_partial": "WITH subs AS (  -- one row per subscription, with the plan of the user's subscription before\n  SELECT user_id, subscription_id, start_date, plan_name,\n         LAG(plan_name) OVER (PARTITION BY user_id ORDER BY start_date) AS prev_plan\n  FROM subscriptions\n)\nSELECT user_id, subscription_id, prev_plan, plan_name\nFROM subs\nWHERE start_date BETWEEN DATE '2025-08-01' AND DATE '2025-08-31'\n  AND ___",
+  "solver": {
+    "prompt_hash": "c09af0d03ce6055e",
+    "schema_version": "fc87ec3c39fe",
+    "dataset_version": "e7c58abf7e8f892e",
+    "grader_version": "7a.1",
+    "query": "WITH s AS (\n  SELECT user_id, subscription_id, start_date,\n         LAG(plan_name) OVER (PARTITION BY user_id ORDER BY start_date) AS prev_plan,\n         plan_name\n  FROM subscriptions\n)\nSELECT user_id, subscription_id, prev_plan, plan_name\nFROM s\nWHERE start_date >= DATE '2025-08-01' AND start_date <= DATE '2025-08-31'\n  AND prev_plan IS NOT NULL AND prev_plan <> plan_name\n",
+    "at": "2026-10-21T09:05:10.222Z"
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "item_id": "EX-SQL-WIN-04-E1-41",
+  "item_version": 1,
+  "correct_oid": "ob55ae23",
+  "explanation": "With an ORDER BY and no frame, SQL uses RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW. All three lines share the order date, so they are peers in that range and each one sees all three: every line shows 306.55. Adding them one at a time needs a tie-break in the ORDER BY and a ROWS frame.",
+  "solver": {
+    "prompt_hash": "d4d31e0a3b5b6307",
+    "grader_version": "choice.3",
+    "chosen": "ob55ae23",
+    "typed": null,
+    "at": "2026-10-20T20:50:48.356Z"
+  }
+}

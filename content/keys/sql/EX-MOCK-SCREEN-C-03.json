@@ -1,0 +1,36 @@
+{
+  "item_id": "EX-MOCK-SCREEN-C-03",
+  "item_version": 1,
+  "reference_sql": "SELECT s.store_code,\n       COUNT(DISTINCT o.order_id) AS n_orders,\n       COUNT(DISTINCT CASE WHEN ol.promo_id IS NOT NULL THEN o.order_id END) AS promo_orders\nFROM stores s\nLEFT JOIN orders o\n  ON o.store_id = s.store_id\n AND o.order_ts >= TIMESTAMP '2025-03-03 00:00:00'\n AND o.order_ts < TIMESTAMP '2025-03-17 00:00:00'\nLEFT JOIN order_lines ol ON ol.order_id = o.order_id\nGROUP BY s.store_code\nORDER BY s.store_code",
+  "alternatives": [
+    "WITH order_flags AS (  -- one row per order placed in those two weeks\n  SELECT o.order_id, o.store_id,\n         MAX(CASE WHEN ol.promo_id IS NOT NULL THEN 1 ELSE 0 END) AS has_promo\n  FROM orders o\n  LEFT JOIN order_lines ol ON ol.order_id = o.order_id\n  WHERE o.order_ts >= TIMESTAMP '2025-03-03 00:00:00'\n    AND o.order_ts < TIMESTAMP '2025-03-17 00:00:00'\n  GROUP BY o.order_id, o.store_id\n)\nSELECT s.store_code, COUNT(f.order_id) AS n_orders, COALESCE(SUM(f.has_promo), 0) AS promo_orders\nFROM stores s\nLEFT JOIN order_flags f ON f.store_id = s.store_id\nGROUP BY s.store_code\nORDER BY s.store_code",
+    "SELECT s.store_code,\n       COUNT(DISTINCT o.order_id) AS n_orders,\n       COUNT(DISTINCT o.order_id) FILTER (WHERE ol.promo_id IS NOT NULL) AS promo_orders\nFROM stores AS s\nLEFT JOIN orders AS o\n  ON o.store_id = s.store_id\n AND CAST(o.order_ts AS DATE) BETWEEN DATE '2025-03-03' AND DATE '2025-03-16'\nLEFT JOIN order_lines AS ol ON ol.order_id = o.order_id\nGROUP BY 1\nORDER BY 1"
+  ],
+  "other_way": null,
+  "planted_wrong": [
+    {
+      "id": "PW1",
+      "error_id": "ERR-LOG-01",
+      "sql": "SELECT s.store_code, COUNT(o.order_id) AS n_orders, COUNT(ol.promo_id) AS promo_orders FROM stores s LEFT JOIN orders o ON o.store_id = s.store_id AND o.order_ts >= TIMESTAMP '2025-03-03 00:00:00' AND o.order_ts < TIMESTAMP '2025-03-17 00:00:00' LEFT JOIN order_lines ol ON ol.order_id = o.order_id GROUP BY s.store_code ORDER BY s.store_code"
+    },
+    {
+      "id": "PW2",
+      "error_id": "ERR-LOG-10",
+      "sql": "SELECT s.store_code, COUNT(DISTINCT o.order_id) AS n_orders, COUNT(DISTINCT CASE WHEN ol.promo_id IS NOT NULL THEN o.order_id END) AS promo_orders FROM stores s LEFT JOIN orders o ON o.store_id = s.store_id LEFT JOIN order_lines ol ON ol.order_id = o.order_id WHERE o.order_ts >= TIMESTAMP '2025-03-03 00:00:00' AND o.order_ts < TIMESTAMP '2025-03-17 00:00:00' GROUP BY s.store_code ORDER BY s.store_code"
+    },
+    {
+      "id": "PW3",
+      "error_id": "ERR-LOG-11",
+      "sql": "SELECT s.store_code, COUNT(DISTINCT o.order_id) AS n_orders, COUNT(DISTINCT CASE WHEN ol.promo_id IS NOT NULL THEN o.order_id END) AS promo_orders FROM stores s LEFT JOIN orders o ON o.store_id = s.store_id AND o.order_ts >= TIMESTAMP '2025-03-03 00:00:00' AND o.order_ts < TIMESTAMP '2025-03-17 00:00:00' JOIN order_lines ol ON ol.order_id = o.order_id GROUP BY s.store_code ORDER BY s.store_code"
+    }
+  ],
+  "hint3_partial": "SELECT s.store_code,\n       COUNT(___) AS n_orders,\n       COUNT(DISTINCT CASE WHEN ___ THEN o.order_id END) AS promo_orders\nFROM stores s\nLEFT JOIN orders o\n  ON o.store_id = s.store_id\n AND ___\nLEFT JOIN order_lines ol ON ol.order_id = o.order_id\nGROUP BY s.store_code\nORDER BY s.store_code",
+  "solver": {
+    "prompt_hash": "79a30fe246552071",
+    "schema_version": "6ef9ff4e4ad1",
+    "dataset_version": "e7c58abf7e8f892e",
+    "grader_version": "7a.1",
+    "query": "WITH o AS (\n  SELECT order_id, store_id FROM orders\n  WHERE order_ts >= TIMESTAMP '2025-03-03 00:00:00' AND order_ts < TIMESTAMP '2025-03-17 00:00:00'\n), po AS (\n  SELECT DISTINCT order_id FROM order_lines WHERE promo_id IS NOT NULL\n)\nSELECT s.store_code,\n       COUNT(o.order_id) AS n_orders,\n       COUNT(po.order_id) AS promo_orders\nFROM stores s\nLEFT JOIN o ON o.store_id = s.store_id\nLEFT JOIN po ON po.order_id = o.order_id\nGROUP BY s.store_code\nORDER BY s.store_code ASC\n",
+    "at": "2026-10-21T09:53:59.092Z"
+  }
+}

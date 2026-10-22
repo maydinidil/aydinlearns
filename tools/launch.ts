@@ -54,7 +54,7 @@ export const DATA_OUTPUTS = ['data/course.duckdb', 'data/manifest.json', 'data/s
  * The inputs of build:data's case truths besides pipeline/: the CP2 and CP4 truth queries (content/keys/cases/), and the case records
  * in content/sql/cases/ and content/sql/openers/, whose `schema` says where each truth query runs (S6-13).
  */
-export const CASE_TRUTH_INPUTS = ['content/keys/cases', 'content/sql/cases', 'content/sql/openers'] as const;
+export const CASE_TRUTH_INPUTS = ['content/keys/cases', 'content/sql/cases', 'content/sql/mocks', 'content/sql/openers'] as const;
 
 /** True when a build:data output the app reads is missing under `root`, or the manifest is older than anything in pipeline/ or the case truth inputs. */
 export function dataBuildNeeded(root: string): boolean {

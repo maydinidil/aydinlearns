@@ -165,9 +165,11 @@ test('Settings: the switch, the model and effort choices, "No daily limit" and t
   assert.ok(s.includes('modelOptions(') && s.includes('EFFORT_OPTIONS') && s.includes('EFFORT_NOTE'), 'the model list and the effort');
   assert.ok(s.includes('limitToSave(') && s.includes('No daily limit'), 'the daily limit');
   assert.ok(s.includes("'tutor_enabled'") && s.includes("'tutor_model'") && s.includes("'tutor_effort'"), 'the three new settings are saved');
-  // A key field is a password field, never filled from the server: its value is the row's own draft.
-  assert.match(s, /<input type="password" autoComplete="off" spellCheck=\{false\}/);
-  assert.match(s, /type="password"[^>]*value=\{draft\}/);
+  // A key field is a masked text field (S7-34: never a password field a browser offers to save), never filled from the server: its value
+  // is the row's own draft. tests/web/render/tutor-key-fields.test.ts renders it.
+  assert.match(s, /<input type="text" style=\{KEY_FIELD_STYLE\} autoComplete="off" spellCheck=\{false\}/);
+  assert.match(s, /style=\{KEY_FIELD_STYLE\}[^>]*value=\{draft\}/);
+  assert.doesNotMatch(s, /type="password"/);
   assert.ok(s.includes('saveTutorKey(') && s.includes('keyToSave(') && s.includes('removeKeyBody('));
 });
 

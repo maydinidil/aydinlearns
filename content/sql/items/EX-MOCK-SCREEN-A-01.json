@@ -1,0 +1,132 @@
+{
+  "id": "EX-MOCK-SCREEN-A-01",
+  "version": 2,
+  "kind": "write",
+  "tags": [
+    "sql",
+    "LVL-01",
+    "mock",
+    "screen",
+    "in_list",
+    "ilike",
+    "between",
+    "products"
+  ],
+  "level": 1,
+  "source_ids": [
+    "01:SQL-FILTER-02"
+  ],
+  "verified": true,
+  "as_of": "2026-10-21",
+  "review_after": null,
+  "status": "active",
+  "supersedes": [],
+  "enemy_group": null,
+  "section": "sql",
+  "use": "mock",
+  "target_concept_id": "SQL-FILTER-02",
+  "concept_ids": [
+    "SQL-BASICS-01",
+    "SQL-FILTER-01",
+    "SQL-FILTER-02"
+  ],
+  "template_id": "T-MOCK-SCREEN-in-ilike-date-range",
+  "template_params": {
+    "table": "products",
+    "category_ids": "15, 16, 24",
+    "text": "pro",
+    "from": "2024-03-01",
+    "to": "2024-12-31"
+  },
+  "sub_skill": null,
+  "difficulty": "E2",
+  "company": "voltmarkt",
+  "schema": "voltmarkt",
+  "edge_schema": "voltmarkt_edge_filter",
+  "prompt": "Marketing is planning a newsletter about the Pro models in its listening range: headphones (category_id 15), earbuds (category_id 16) and gaming headsets (category_id 24). List the products in those three categories whose product_name contains the text pro, however it is capitalised, and that launched from 1 March 2024 to 31 December 2024, both days included. The names come from supplier files, which capitalise them differently. launch_date is a date with no time of day. Return four columns, in this order: product_id, product_name, category_id, launch_date. Return one row per product. Any row order is fine.",
+  "output_contract": {
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "product_name",
+        "type_class": "text"
+      },
+      {
+        "name": "category_id",
+        "type_class": "numeric"
+      },
+      {
+        "name": "launch_date",
+        "type_class": "temporal"
+      }
+    ],
+    "grain": "one row per product"
+  },
+  "rules": {
+    "order_matters": false,
+    "sort_keys": [],
+    "check_names": false,
+    "allow_extra_columns": false,
+    "columns": [
+      {
+        "name": "product_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "product_name",
+        "type_class": "text",
+        "precision": "exact"
+      },
+      {
+        "name": "category_id",
+        "type_class": "numeric",
+        "precision": "exact"
+      },
+      {
+        "name": "launch_date",
+        "type_class": "temporal",
+        "precision": "exact"
+      }
+    ],
+    "strict_temporal_type": false,
+    "trim_strings": false,
+    "tie_policy": "none",
+    "key_columns": [
+      "product_id"
+    ],
+    "timeout_ms": 5000,
+    "set_semantics": false,
+    "case_insensitive": false,
+    "strict_column_order": false
+  },
+  "hints": [
+    "Next, write the row filter: the three categories, the name text however it is capitalised, and the launch dates.",
+    "A plain LIKE matches capitals exactly, and the date range keeps both end days."
+  ],
+  "subgoals": [
+    {
+      "from": 0,
+      "to": 57,
+      "subgoal": "metrics"
+    },
+    {
+      "from": 58,
+      "to": 71,
+      "subgoal": "source_grain"
+    },
+    {
+      "from": 72,
+      "to": 204,
+      "subgoal": "row_filter"
+    }
+  ],
+  "fading": null,
+  "faded_shape": null,
+  "starter_sql": null,
+  "time_target_ms": 150000,
+  "why_this_works": "ILIKE matches pro however it is capitalised, IN keeps the three categories, and BETWEEN keeps both end days of the launch range."
+}

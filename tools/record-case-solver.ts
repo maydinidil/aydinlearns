@@ -11,6 +11,7 @@
 // whose key does not validate (see C41).
 //
 // It prints checkpoint IDs and PASS, FAIL or SKIP only, with a fixed reason. Never an answer, an oid or a number: a right answer is the key.
+// Sprint 7 (S7-08): a held-out mock case is found through the content store's mock map, so the case mocks are solved like any case.
 // Usage: node tools/record-case-solver.ts [content-root] [answers-dir] [view-dir]
 //        (defaults: content/, tools/.solver-out/cases/, tools/.solver-view/cases/)
 import { readdir, readFile, writeFile } from 'node:fs/promises';
@@ -40,7 +41,7 @@ const NOT_ONE_NUMBER = 'not one SELECT that returns one number';
 
 /** Grades one answer to one checkpoint. A typed answer in a .sql file runs on the case's schema; its number is written with the
  * checkpoint's decimals, then read and graded as a learner's typed text would be. */
-export async function gradeCaseAnswer(record: CaseRecord, cp: Checkpoint, key: CaseKey, truth: number | undefined, answer: string, format: 'txt' | 'sql',
+export async function gradeCaseAnswer(record: Pick<CaseRecord, 'schema'>, cp: Checkpoint, key: CaseKey, truth: number | undefined, answer: string, format: 'txt' | 'sql',
   runner: () => Promise<RunnerClient>): Promise<Graded> {
   if (cp.kind === 'CP1' || cp.kind === 'CP5') {
     if (format !== 'txt') return { outcome: 'skip', why: 'a CP1 or CP5 answer is an oid in a .txt file' };
@@ -90,7 +91,7 @@ export async function recordCaseSolver(store: ContentStore, root: string, answer
     if (!m) { if (name.endsWith('.txt') || name.endsWith('.sql')) lines.push(`SKIP ${name} (not named <case ID>-<CP>.txt or .sql)`); continue; }
     const [, caseId, kind, format] = m as unknown as [string, string, string, 'txt' | 'sql'];
     const tag = `${caseId}:${kind}`;
-    const record = store.case?.(caseId);
+    const record = store.case?.(caseId) ?? store.mockCase?.(caseId);
     if (!record) { lines.push(`SKIP ${name} (unknown case)`); continue; }
     if (!(SOLVED_KINDS as readonly string[]).includes(kind)) { lines.push(`SKIP ${name} (not a CP1, CP2, CP4 or CP5 answer)`); continue; }
     const cp = record.checkpoints.find((c) => c.kind === kind);

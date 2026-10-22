@@ -14,7 +14,7 @@ import type { CardReview, CloseReason, Outcome, Phase, Rating, Section } from '.
 import type { DeckPreset } from './presets.ts';
 import { configFor, emptyCard, reviewCard, type CardSnapshot, type SchedulerConfig } from './scheduler.ts';
 import {
-  rateCheckpoint, rateChoiceInstance, rateSqlInstance, scoredAnswer, summarise, worstRating,
+  countsAsAttempt, rateCheckpoint, rateChoiceInstance, rateSqlInstance, scoredAnswer, summarise, worstRating,
   type AttemptFact, type HelpFact, type InstanceFacts, type ItemFamily, type OverrideStatus, type RatingContext, type RatingRules,
 } from './rating.ts';
 import { DEFAULT_THRESHOLDS, foldConceptStates, type ConceptFact, type ConceptStatus, type StateThresholds } from './states.ts';
@@ -190,6 +190,8 @@ interface Acc {
   help_card_id: string | null;
   /** S4-05: a submission naming a syntax error, which the next submission decides is graded or not (S2-07). */
   syntaxHeld: AttemptFact | null;
+  /** S7-03 (ruling S7-C16): a phase mock instance's attempts, whose error occurrences wait for its close (the run's end). */
+  mockHeld: AttemptFact[];
   /** Each attempt's logged payload, in step with `attempts` (a case checkpoint's latest answer, S4B-08). */
   payloads: unknown[];
 }
@@ -198,7 +200,7 @@ interface ConfigAt { effective: number; config_id: string; preset: DeckPreset }
 const PHASES: readonly string[] = ['pretest', 'faded_1', 'faded_2', 'faded_3', 'lesson_block', 'retest', 'review', 'mixed', 'drill', 'case', 'free', 'mock', 'opener_preview'];
 /** Design §4: the lesson phase, for SQL, is the pretest, the faded stages and the lesson block. */
 const LESSON_PHASES: ReadonlySet<string> = new Set(['pretest', 'faded_1', 'faded_2', 'faded_3', 'lesson_block']);
-/** S2-24: served in a mixed set. A drill qualifies too when its block covers 2 or more concepts. */
+/** S2-24: served in a mixed set. A drill qualifies too when its block covers 2 or more concepts, and so does a mock's SQL item (S7-06). */
 const MIXED_SET_PHASES: ReadonlySet<string> = new Set(['review', 'mixed', 'case']);
 const CLOSE_REASONS: readonly string[] = ['pass', 'left', 'session_end', 'run_end'];
 const OUTCOMES: readonly string[] = ['pass', 'fail', 'engine_error', 'timeout', 'crash', 'rejected'];
@@ -238,13 +240,7 @@ function targetMs(r: Rec): number | null {
   return typeof t === 'number' && t > 0 ? t : null;
 }
 
-/**
- * Whether an attempt record counts as an answer: never the copy an "I was right" override logs, a crash or a refused statement. Replay's
- * mistake counting and the daily case (server/session-composer.ts) both ask this (Task K4).
- */
-export function countsAsAttempt(r: { grading_source?: unknown; outcome?: unknown }): boolean {
-  return r.grading_source !== 'override' && r.outcome !== 'crash' && r.outcome !== 'rejected';
-}
+export { countsAsAttempt };   // defined in core/rating.ts, which this file imports: replay's mistake counting and the daily case (server/session-composer.ts) ask it (Task K4)
 
 function attemptFact(r: Rec): AttemptFact | null {
   const submitted_at = str(r.submitted_at);
@@ -495,14 +491,17 @@ function mistakeEngine(o: {
   };
 
   return {
-    /** S4-05: a graded attempt named `error_id` on `concept_id` at `t`. */
-    occur(concept_id: string, error_id: string, attempt_id: string, t: number, local_date: string): void {
-      advance(t);
+    /**
+     * S4-05: a graded attempt named `error_id` on `concept_id` at `t`. `notedAt` (S7-C16): when replay learns of it, if later; a mock
+     * answer's error is noted at its instance's close, so its card is made there, never before.
+     */
+    occur(concept_id: string, error_id: string, attempt_id: string, t: number, local_date: string, notedAt = t): void {
+      advance(Math.max(t, notedAt));
       const p = pairFor(concept_id, error_id);
       p.occ.push({ attempt_id, t, local_date });
       p.occ.sort((x, y) => x.t - y.t);           // in order already, unless a syntax error's attempt was decided late
       p.next = undefined;
-      admit(concept_id, Math.max(t, clock));
+      admit(concept_id, Math.max(t, notedAt, clock));
     },
     /** The card has been reviewed since it was last made (RatingContext.cardRated). */
     rated(card_id: string, t: number): boolean {
@@ -608,7 +607,7 @@ export function replay(attemptRecords: object[], events: object[], opts: ReplayO
     let a = accs.get(id);
     if (!a) {
       a = { id, item_id: null, target: null, phase: null, block_id: null, repeat_exposure: false, item_kind: '', started: null, touched: null,
-        attempts: [], help: [], overrideAttemptId: null, closed: false, sessions: [], card_id: null, help_card_id: null, syntaxHeld: null, payloads: [] };
+        attempts: [], help: [], overrideAttemptId: null, closed: false, sessions: [], card_id: null, help_card_id: null, syntaxHeld: null, mockHeld: [], payloads: [] };
       accs.set(id, a);
     }
     return a;
@@ -727,7 +726,10 @@ export function replay(attemptRecords: object[], events: object[], opts: ReplayO
     // The lesson phase (LE-01): the SQL phases of design §4 (predict and choose items are served in them too); for a choice
     // item, an answer within 15 minutes of the card's latest reading or lesson (S2-62). S2-02 is the gate below, per card.
     const lessonPhase = family === 'choice' ? withinLesson(card_id, firstT ?? a.started ?? t) : LESSON_PHASES.has(phase);
-    const ctx: RatingContext = { cardRated, lessonPhase, easyAllowed: cardRated && !lessonPhase && phase !== 'retest' && phase !== 'drill' };   // S2-09
+    // S7-06 (ruling S7-C08): an SQL item in a recruiter mock (phase mock) takes the drill rules: no Easy, and the multi-concept mixed set
+    // below. A mock's choice items and case checkpoints keep their own rules (the knowledge and case mocks are Part 2's).
+    const drillRules = phase === 'drill' || (phase === 'mock' && (family === 'write' || family === 'fix'));
+    const ctx: RatingContext = { cardRated, lessonPhase, easyAllowed: cardRated && !lessonPhase && phase !== 'retest' && !drillRules };   // S2-09
     // S2-26: unassisted means no override and no hint or reveal before the pass (help after it is free, S2-05).
     const unassisted = override === 'none' && help.every((h) => passT !== null && Date.parse(h.ts) > passT);
     /**
@@ -818,7 +820,7 @@ export function replay(attemptRecords: object[], events: object[], opts: ReplayO
         return !answeredBefore && scored.is_correct && help.every((h) => Date.parse(h.ts) > scoredT) && !lessonPhase;
       }
       if (!s.unassistedFirstAttemptPass || (family !== 'write' && family !== 'checkpoint')) return false;
-      const mixedSet = MIXED_SET_PHASES.has(phase) || (phase === 'drill' && (blockConcepts.get(a.block_id ?? '')?.size ?? 0) >= 2);
+      const mixedSet = MIXED_SET_PHASES.has(phase) || (drillRules && (blockConcepts.get(a.block_id ?? '')?.size ?? 0) >= 2);
       const anchor = anchors.get(concept);
       return mixedSet && anchor !== undefined && first.local_date > amsterdamDate(new Date(anchor));
     };
@@ -851,27 +853,28 @@ export function replay(attemptRecords: object[], events: object[], opts: ReplayO
     });
   };
 
-  /** S4-05: each logic or semantic error ID of a graded attempt is an occurrence of that error on the instance's concept. */
-  const occurrences = (a: Acc, f: AttemptFact): void => {
+  /** S4-05: each logic or semantic error ID of a graded attempt is an occurrence of that error on the instance's concept, noted at `at` (S7-C16). */
+  const occurrences = (a: Acc, f: AttemptFact, at?: number): void => {
     if (a.target === null || !known(a.target)) return;
-    for (const e of new Set(f.error_ids)) if (MISTAKE_ERROR.test(e)) mistakes.occur(a.target, e, f.attempt_id, Date.parse(f.submitted_at), f.local_date);
+    const t = Date.parse(f.submitted_at);
+    for (const e of new Set(f.error_ids)) if (MISTAKE_ERROR.test(e)) mistakes.occur(a.target, e, f.attempt_id, t, f.local_date, at ?? t);
   };
   const hasSyntaxError = (f: AttemptFact): boolean => f.error_ids.some((e) => rules.isSyntaxError(e));
   /**
    * S4-05 with S2-07, attempt by attempt, as core/rating.ts gradedAttempts decides: the override copy, a crash and a rejected
    * statement are never graded; a submission naming a syntax error is graded unless the next submission, within the grace, names none.
    */
-  const noteMistakes = (a: Acc, f: AttemptFact): void => {
+  const noteMistakes = (a: Acc, f: AttemptFact, at?: number): void => {
     if (!countsAsAttempt(f)) return;
     const held = a.syntaxHeld;
     a.syntaxHeld = null;
-    if (held && !(Date.parse(f.submitted_at) - Date.parse(held.submitted_at) <= rules.syntaxGraceMs && !hasSyntaxError(f))) occurrences(a, held);
+    if (held && !(Date.parse(f.submitted_at) - Date.parse(held.submitted_at) <= rules.syntaxGraceMs && !hasSyntaxError(f))) occurrences(a, held, at);
     if (hasSyntaxError(f)) a.syntaxHeld = f;
-    else occurrences(a, f);
+    else occurrences(a, f, at);
   };
   /** A final submission naming a syntax error is graded (S2-07). */
-  const releaseHeld = (a: Acc): void => {
-    if (a.syntaxHeld) occurrences(a, a.syntaxHeld);
+  const releaseHeld = (a: Acc, at?: number): void => {
+    if (a.syntaxHeld) occurrences(a, a.syntaxHeld, at);
     a.syntaxHeld = null;
   };
 
@@ -890,7 +893,10 @@ export function replay(attemptRecords: object[], events: object[], opts: ReplayO
     else if (cardId !== null && cardId !== a.card_id) warnings.push(`attempt ${fa.attempt_id} names card ${cardId}, but instance ${id} reviews ${a.card_id}: the first is kept`);
     if (fa.grading_source === 'override') a.overrideAttemptId ??= fa.attempt_id;   // the override summarise reads (core/rating.ts)
     if (a.target !== null && LESSON_PHASES.has(a.phase ?? '') && known(a.target)) lessonActivity.push({ t, concept: a.target });   // S2-12
-    noteMistakes(a, fa);
+    // S7-03 (ruling S7-C16): inside a mock the answer shows no result, so its errors wait for the instance's close (the run's end): no
+    // mistake card, Today review step, "Try again" or tutor feedback line appears while the run is on.
+    if (a.phase === 'mock') a.mockHeld.push(fa);
+    else noteMistakes(a, fa);
   };
   const onHelp = (r: Rec, t: number): void => {
     const id = str(r.item_instance_id);
@@ -925,7 +931,10 @@ export function replay(attemptRecords: object[], events: object[], opts: ReplayO
     // S2-97: an unreached drill item is replayed and rates nothing, but starts nothing: no first exposure, no Learning.
     learn(a, r, t - (typeof am === 'number' && am >= 0 ? am : 0), false, !isUnreached({ reason: r.reason, attempts: a.attempts.length, help: a.help.length }));
     a.closed = true;
-    releaseHeld(a);
+    // S7-C16: a mock answer's errors are noted at the close; any other instance's last syntax-error submission keeps its own time.
+    const noteAt = a.phase === 'mock' ? t : undefined;
+    for (const f of a.mockHeld.splice(0)) noteMistakes(a, f, noteAt);
+    releaseHeld(a, noteAt);
     if (a.item_id === null || a.target === null) { warnings.push(`item_close ${id} names no item or concept: skipped`); return; }
     const section = known(a.target);
     if (section) rateAtClose(a, r, t, a.item_id, a.target, section);
@@ -1055,7 +1064,7 @@ export function replay(attemptRecords: object[], events: object[], opts: ReplayO
   }
   // A block with no block_close writes no review yet (S2-04), so its instances' first attempts count from their closes.
   for (const b of blocks.values()) b.firstAttempts.forEach(fact);
-  for (const a of accs.values()) releaseHeld(a);       // an instance still open: its last syntax-error submission is graded so far
+  for (const a of accs.values()) releaseHeld(a);       // an instance still open: its last syntax-error submission is graded so far (S7-C16: a mock's waits)
   const mistakeState = mistakes.finish(opts.now.getTime());
 
   // S2-28, S2-72: a leech is due a reset at its micro-lesson, or at the end of the first session that started after the
@@ -1113,7 +1122,7 @@ function caseStatuses(list: readonly ReplayCase[], accs: Map<string, Acc>, overr
     // Seams M2: the times of this instance's reveals ("show answer", or a hint at level 2 or higher).
     const reveals = a.help.filter((h) => h.kind === 'solution' || (h.level ?? 0) >= 2).map((h) => Date.parse(h.ts));
     a.attempts.forEach((f, i) => {
-      if (f.grading_source === 'override' || f.outcome === 'crash' || f.outcome === 'rejected') return;
+      if (!countsAsAttempt(f)) return;
       const at = Date.parse(f.submitted_at);
       const answer: CheckpointAnswer = { attempt_id: f.attempt_id, instance_id: a.id, submitted_at: iso(at),
         passed: f.outcome === 'pass' || f === disputed, payload: a.payloads[i] ?? null, assisted: reveals.some((h) => h <= at) };
