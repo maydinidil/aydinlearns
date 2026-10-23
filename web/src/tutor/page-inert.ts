@@ -6,15 +6,24 @@ import { useEffect, type RefObject } from 'react';
 /** The window width, in CSS, up to which the panel covers the page (the same breakpoint as components.css). */
 export const NARROW_QUERY = '(max-width: 700px)';
 
-/** Makes every other child of the panel's parent inert, and returns the undo: it removes only the marks it added. */
+/**
+ * Makes every other child of the panel's parent inert, and keeps doing so for children mounted while the panel is open (a route change,
+ * K1 M3). Returns the undo: it stops watching and removes only the marks it added.
+ */
 export function makeSiblingsInert(panel: Element): () => void {
   const marked: Element[] = [];
-  for (const el of Array.from(panel.parentElement?.children ?? [])) {
-    if (el === panel || el.hasAttribute('inert')) continue;
-    el.setAttribute('inert', '');
-    marked.push(el);
-  }
-  return () => { for (const el of marked) el.removeAttribute('inert'); };
+  const parent = panel.parentElement;
+  const mark = (): void => {
+    for (const el of Array.from(parent?.children ?? [])) {
+      if (el === panel || el.hasAttribute('inert')) continue;
+      el.setAttribute('inert', '');
+      marked.push(el);
+    }
+  };
+  mark();
+  const observer = new MutationObserver(mark);
+  if (parent) observer.observe(parent, { childList: true });
+  return () => { observer.disconnect(); for (const el of marked) el.removeAttribute('inert'); };
 }
 
 /** While `active` and the window is narrow, the rest of the page is inert. */

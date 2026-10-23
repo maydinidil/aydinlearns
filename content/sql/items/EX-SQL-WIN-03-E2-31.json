@@ -1,6 +1,6 @@
 {
   "id": "EX-SQL-WIN-03-E2-31",
-  "version": 1,
+  "version": 2,
   "kind": "fix",
   "tags": [
     "sql",
@@ -44,7 +44,7 @@
   "company": "voltmarkt",
   "schema": "voltmarkt",
   "edge_schema": "voltmarkt_edge_win",
-  "prompt": "The query in the editor has one mistake. Fix it so that it answers this question: for each product in categories 1 and 2 with a known launch date, how many days after the previous launch in its category was it launched? Within a category, products follow each other by launch_date; when two products of a category launched on the same day, the lower product_id comes first. Leave out products with a missing launch_date. Return product_id, category_id, launch_date and days_after_prev, this launch_date minus the previous product's, in days. A category's first product shows days_after_prev as missing. Any row order is fine.",
+  "prompt": "The query in the editor has one mistake. Fix it so that it answers this question: for each product in categories 1 and 2 with a known launch date, how many days after the previous launch in its category was it launched? Within a category, products follow each other by launch_date; when two products of a category launched on the same day, the lower product_id comes first. Leave out products with a missing launch_date. Return four columns, in this order: product_id, category_id, launch_date and days_after_prev, this launch_date minus the previous product's, in days. Return one row for each such product. A category's first product shows days_after_prev as missing. Any row order is fine.",
   "output_contract": {
     "columns": [
       {

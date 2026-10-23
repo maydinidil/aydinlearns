@@ -1,6 +1,6 @@
 {
   "id": "EX-SQL-WIN-01-E3-03",
-  "version": 1,
+  "version": 2,
   "kind": "write",
   "tags": [
     "sql",
@@ -44,7 +44,7 @@
   "company": "voltmarkt",
   "schema": "voltmarkt",
   "edge_schema": "voltmarkt_edge_win",
-  "prompt": "Which products earned more 2025 net revenue than the average product of their category? Use the sales rows whose order_date falls in 2025, and average over the products of the category with sales in 2025. Compare with the exact average. Return four columns, in this order: category_name, product_id, revenue (the product's 2025 net revenue) and category_avg, the category's average product revenue rounded to 2 decimals. Return one row for each such product. Any row order is fine.",
+  "prompt": "Which products earned more 2025 net revenue than the average product of their category? Use the sales rows whose order_date falls in 2025 (order_date is a UTC day), and average over the products of the category with sales in 2025. Compare with the exact average. Return four columns, in this order: category_name, product_id, revenue (the product's 2025 net revenue) and category_avg, the category's average product revenue rounded to 2 decimals. Return one row for each such product. Any row order is fine.",
   "output_contract": {
     "columns": [
       {

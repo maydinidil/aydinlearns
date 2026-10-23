@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { api, ApiError, NOT_RUNNING } from '../../web/src/api.ts';
+import { api, apiCall, ApiError, NOT_RUNNING } from '../../web/src/api.ts';
 
 /** Replaces fetch for one test and records what each call sent. */
 function stubFetch(t: { mock: { method: (o: object, name: string, impl: unknown) => unknown } }, status = 200, reply: unknown = { ok: true }) {
@@ -49,4 +49,15 @@ test('an SQL choice question names its section and, for a pretest, its phase; ot
     '/api/choice/EX-SQL-1?section=sql&instance=I-2',
     '/api/choice/Q-GA4-001?section=ga4&instance=I-3',
   ]);
+});
+
+test('S7C-10 (F4-2-2): a POST with no body sends {} with a JSON content type; a GET sends neither', async (t) => {
+  const seen: { method: string | undefined; body: unknown; type: string | undefined }[] = [];
+  t.mock.method(globalThis, 'fetch', async (_path: string, init: RequestInit) => {
+    seen.push({ method: init.method, body: init.body, type: (init.headers as Record<string, string> | undefined)?.['content-type'] });
+    return new Response('{}', { status: 200, headers: { 'content-type': 'application/json' } });
+  });
+  await apiCall('POST', '/api/x');
+  await apiCall('GET', '/api/x');
+  assert.deepEqual(seen, [{ method: 'POST', body: '{}', type: 'application/json' }, { method: 'GET', body: undefined, type: undefined }]);
 });

@@ -1,6 +1,6 @@
 {
   "id": "EX-SQL-WIN-03-E2-22",
-  "version": 1,
+  "version": 2,
   "kind": "write",
   "tags": [
     "sql",
@@ -41,7 +41,7 @@
   "company": "mailvora",
   "schema": "mailvora",
   "edge_schema": "mailvora_edge_win",
-  "prompt": "For each campaign, show the start date of the next campaign of the same channel. Within a channel, campaigns follow each other by start_date; when two campaigns of a channel start on the same day, the lower campaign_id comes first. Return campaign_id, channel_id, start_date and next_start_date. A channel's last campaign shows next_start_date as missing. Any row order is fine.",
+  "prompt": "For each campaign, show the start date of the next campaign of the same channel. Within a channel, campaigns follow each other by start_date; when two campaigns of a channel start on the same day, the lower campaign_id comes first. Return four columns, in this order: campaign_id, channel_id, start_date and next_start_date. Return one row for each campaign. A channel's last campaign shows next_start_date as missing. Any row order is fine.",
   "output_contract": {
     "columns": [
       {

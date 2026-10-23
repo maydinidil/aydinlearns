@@ -51,6 +51,22 @@ test('a screen whose heading arrives on its third render gets focus on it', asyn
   unmount();
 });
 
+test('X4-M1: a focused element removed while the heading is pending leaves focus on the body, which is no move: the heading still gets focus', async () => {
+  const field = document.createElement('input');
+  document.body.appendChild(field);
+  field.focus();
+  assert.equal(document.activeElement, field);
+  const stop = watchForHeading(document, 1000);
+  field.remove();
+  assert.equal(document.activeElement, document.body);
+  const { unmount } = render(main(createElement('h1', { key: 'h' }, 'Arrived late')));
+  await settle();
+  assert.equal(document.activeElement?.tagName, 'H1');
+  assert.equal(document.activeElement?.textContent, 'Arrived late');
+  stop();
+  unmount();
+});
+
 test('a screen with no heading after loading focuses main', async () => {
   const { unmount } = render(main(createElement('p', { key: 'p' }, 'Nothing to name this screen')));
   const stop = watchForHeading(document, 30);
@@ -68,5 +84,38 @@ test('stopping the watch cancels the wait: nothing takes focus afterwards', asyn
   stop();
   await sleep(60);
   assert.notEqual(document.activeElement?.tagName, 'MAIN');
+  unmount();
+});
+
+test('B1: a field the learner focused while the watch waited keeps focus, at the heading and at the timeout', async () => {
+  const { container, unmount } = render(main(createElement('p', { key: 'p' }, 'Loading...'), createElement('input', { key: 'i', 'aria-label': 'Search' })));
+  const field = container.querySelector('input')!;
+  const stop = watchForHeading(document, 40);
+  field.focus();                                                   // the learner clicked into a field before the heading drew
+  const h = document.createElement('h1');
+  h.textContent = 'Arrived';
+  container.querySelector('main')!.appendChild(h);
+  await sleep(10);
+  assert.ok(document.activeElement === field, 'the heading that drew did not take focus');
+  await sleep(60);
+  assert.ok(document.activeElement === field, 'nor did main at the timeout');
+  stop();
+  unmount();
+});
+
+test('B1: with nothing focused since the watch began, a late heading still gets focus (the nav link focused before it does not count)', async () => {
+  const { container, unmount } = render(main(createElement('p', { key: 'p' }, 'Loading...')));
+  const link = document.createElement('a');
+  link.href = '#/x';
+  document.body.appendChild(link);
+  link.focus();                                                    // a nav click: focus is on the tab link when the watch starts
+  const stop = watchForHeading(document, 200);
+  const h = document.createElement('h1');
+  h.textContent = 'Arrived';
+  container.querySelector('main')!.appendChild(h);
+  await sleep(10);
+  assert.ok(document.activeElement === h, 'the late heading has focus');
+  stop();
+  link.remove();
   unmount();
 });

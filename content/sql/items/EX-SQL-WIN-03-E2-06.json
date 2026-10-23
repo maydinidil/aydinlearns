@@ -1,6 +1,6 @@
 {
   "id": "EX-SQL-WIN-03-E2-06",
-  "version": 1,
+  "version": 2,
   "kind": "write",
   "tags": [
     "sql",
@@ -49,7 +49,7 @@
   "company": "mailvora",
   "schema": "mailvora",
   "edge_schema": "mailvora_edge_win",
-  "prompt": "In which months of 2025 did a channel spend less on ads than in its previous month with spend? Only months with spend count, and the previous month with spend can be more than one month back; a channel's first month with spend in 2025 has nothing to compare with and is never listed. Return channel_id, month (the first day of the month), spend_eur and prev_spend_eur for those months only. Any row order is fine.",
+  "prompt": "In which months of 2025 did a channel spend less on ads than in its previous month with spend? Only months with spend count, and the previous month with spend can be more than one month back; a channel's first month with spend in 2025 has nothing to compare with and is never listed. Return four columns, in this order: channel_id, month (the first day of the month), spend_eur and prev_spend_eur. Return one row for each channel and month that spent less than its previous month with spend. Any row order is fine.",
   "output_contract": {
     "columns": [
       {

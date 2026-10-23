@@ -1,6 +1,6 @@
 {
   "id": "EX-SQL-WIN-03-E1-03",
-  "version": 1,
+  "version": 2,
   "kind": "write",
   "tags": [
     "sql",
@@ -43,7 +43,7 @@
   "company": "voltmarkt",
   "schema": "voltmarkt",
   "edge_schema": "voltmarkt_edge_win",
-  "prompt": "For each product in categories 15, 16 and 17 with a known launch date, show the launch date of the product launched just before it in the same category. Within a category, products follow each other by launch_date; when two products of a category launched on the same day, the lower product_id comes first. Leave out products with a missing launch_date. Return product_id, category_id, launch_date and prev_launch_date. A category's first product shows prev_launch_date as missing. Any row order is fine.",
+  "prompt": "For each product in categories 15, 16 and 17 with a known launch date, show the launch date of the product launched just before it in the same category. Within a category, products follow each other by launch_date; when two products of a category launched on the same day, the lower product_id comes first. Leave out products with a missing launch_date. Return four columns, in this order: product_id, category_id, launch_date and prev_launch_date. Return one row for each such product. A category's first product shows prev_launch_date as missing. Any row order is fine.",
   "output_contract": {
     "columns": [
       {

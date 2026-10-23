@@ -29,6 +29,7 @@ import { TutorKeys } from '../../server/tutor/keys.ts';
 import { fakeModel } from '../../server/tutor/providers/fake.ts';
 import { SpendLedger } from '../../server/tutor/spend.ts';
 import { EXPLANATION } from '../helpers/case-fixture.ts';
+import { FIXTURE_CONCEPT } from '../helpers/content-fixture.ts';
 import { makeFixtureDb } from '../helpers/fixture-db.ts';
 import { MOCK_CASE, MOCK_CP3, makeMockFixture, mockCaseKey, mockCaseRecord } from '../helpers/mock-fixture.ts';
 
@@ -109,7 +110,7 @@ type Kind = 'case_round' | 'take_home';
 interface CaseRun {
   block_id: string; form_id: string; minutes: number; on_unseen: boolean; ends_at: string; deadline_at: string; mock: Kind;
   servings: { item_id: string; item_instance_id: string }[];
-  case: { case_id: string; checkpoints: { kind: string; item_id: string | null; item_instance_id: string | null; answered: boolean; late: boolean }[];
+  case: { case_id: string; checkpoints: { kind: string; prompt: string | null; item_id: string | null; item_instance_id: string | null; answered: boolean; late: boolean }[];
     plan: Record<string, string> | null; insight: string | null; expected_output: { grain: string | null } };
 }
 /** A fresh app (or `clock`'s) with the mock started on it. */
@@ -174,6 +175,8 @@ test('S7-01, S7-13, S7-14: the case-round start writes one mock_open with CASE-R
   const opens = (await records(d)).filter((r) => r.record === 'mock_open');
   assert.deepEqual(opens.map((o) => [o.block_id, o.mock, o.form_id, o.minutes, o.on_unseen, o.schema_version, o.pass_correct]), [[run.block_id, 'case_round', 'CASE-ROUND-A', 45, true, 7, 4]],
     'S7-C34: it records the 4 of CP1 to CP5 the run needs');
+  assert.deepEqual([opens[0].core_rubric, 'item_ids' in opens[0]], [['number', 'direction', 'caveat', 'next_step'], false],
+    'D116 (S7C-03): it records its mock\'s core rubric lines as the start read them, and lists no questions');
   assert.equal(Date.parse(run.ends_at) - Date.parse(opens[0].ts), 45 * MINUTE, 'its limit runs from the mock_open');
   assert.equal(run.deadline_at, run.ends_at, 'a case-round ends at its deadline');
   assert.ok(Math.abs(Date.parse(opens[0].ts) - clock.now()) < 5_000, 'stamped with the run clock');
@@ -248,7 +251,7 @@ test('S7-03: CP1 to CP5 replies are { recorded: true }; a second answer is a 409
     [`${MOCK_CASE}:CP4`, 'mock', run.block_id, 'pass', null], [`${MOCK_CASE}:CP5`, 'mock', run.block_id, 'pass', null]]);
   assert.equal((await records(d)).filter((x) => x.record === 'item_close').length, 0, 'the run\'s instances stay open until its end');
   assert.deepEqual((await json(get(app, '/api/mocks'))).run.case.checkpoints.map((c: any) => c.answered), [true, true, true, true, true, false]);
-  assert.notEqual((await json(get(app, '/api/mocks'))).run.case.expected_output.grain, null, 'the grain shows once CP1 has its answer');
+  assert.equal((await json(get(app, '/api/mocks'))).run.case.expected_output.grain === null, true, 'S7C-06: the grain waits for the review, CP1 answered or not');
 });
 
 test('S7-14: CP6\'s insight is recorded with no model answer; after it, "say it in 60 seconds" logs explained_aloud with the block_id and case_id', async () => {
@@ -366,6 +369,7 @@ test('S7-15: the take-home start: TAKE-HOME-A, 120 minutes to its deadline, and 
   const open = (await records(d)).find((r) => r.record === 'mock_open')!;
   assert.deepEqual([Date.parse(run.deadline_at) - Date.parse(open.ts), Date.parse(run.ends_at) - Date.parse(open.ts)], [120 * MINUTE, 24 * HOUR]);
   assert.deepEqual([open.mock, open.form_id, open.on_unseen, open.pass_correct], ['take_home', 'TAKE-HOME-A', true, 4], 'S7-C34 (F4-4-6): it records the 4 of CP1 to CP5 the run needs');
+  assert.deepEqual(open.core_rubric, content.mocks!.take_home.core_rubric, 'D116 (S7C-03): and the take-home\'s core rubric lines');
 });
 
 test('S7-15: a session end and finishAll leave the take-home on; its answered checkpoints stay answered; the idle end does not wait for it', async () => {
@@ -721,4 +725,187 @@ test('S7-17: in the review, the tutor\'s second opinion on CP6 is logged as tuto
   assert.deepEqual([after1.correct, after1.passed, after1.counts, after1.status], [before.correct, before.passed, before.counts, before.status]);
   const stage4 = (await json(get(app, '/api/progress'))).board.stages.find((g: any) => g.goal.id === 'G-STAGE-4');
   assert.equal(stage4.status, 'met', 'its stage stays met');
+});
+
+// ---- Sprint 7c (Task X3): Codex F38 (S7C-02) -----------------------------------------------------------------------------------------------
+
+/** Waits until `ok` holds, or `ms` have passed (a held end never comes, so a bound is part of the test). */
+async function until(ok: () => Promise<boolean>, ms = 300): Promise<boolean> {
+  for (let waited = 0; waited < ms; waited += 10) { if (await ok()) return true; await new Promise((r) => setTimeout(r, 10)); }
+  return ok();
+}
+const closed = (d: { logger: AttemptLogger }, block: string) => async (): Promise<boolean> => (await records(d)).some((r) => r.record === 'block_close' && r.block_id === block);
+/** The block's insight self-checks and its block_close, by their place in the attempt file. */
+async function insightOrder(d: { logger: AttemptLogger }, block: string): Promise<{ insights: number[]; close: number }> {
+  const recs = (await records(d)).filter((r) => r.block_id === block);
+  return { insights: recs.flatMap((r, i) => (r.record === 'self_check' && r.kind === 'insight' ? [i] : [])), close: recs.findIndex((r) => r.record === 'block_close') };
+}
+
+test('Codex F38 (S7C-02): an insight whose log write is held while the 45-minute timer fires is logged before the block_close; no insight follows it', async () => {
+  const { app, d, run, clock } = await started('case_round');
+  await plan(app, run.block_id);
+  // The insight's write waits for the test; the route has passed its run check by the time it gets there.
+  const write = d.logger.selfCheck.bind(d.logger);
+  let reached = (): void => {};
+  const atWrite = new Promise<void>((r) => { reached = r; });
+  let release = (): void => {};
+  const gate = new Promise<void>((r) => { release = r; });
+  d.logger.selfCheck = (async (s: Parameters<typeof write>[0]) => { if (s.kind === 'insight') { reached(); await gate; } return write(s); }) as typeof d.logger.selfCheck;
+  const sent = post(app, `${base(run.block_id)}/insight`, { text: 'An invented insight, sent at the last moment.' });
+  await atWrite;
+  clock.advance(45);
+  clock.fire();                                                      // the run's own timer ends it while the write is held
+  await until(closed(d, run.block_id));                              // the end goes as far as it can
+  release();
+  const r = await sent;
+  assert.ok(await until(closed(d, run.block_id), 2_000), 'the run ends');
+  const { insights, close } = await insightOrder(d, run.block_id);
+  assert.deepEqual(insights.filter((i) => i > close), [], 'no insight record follows the block_close');
+  assert.deepEqual([r.status, await r.json()], [200, { recorded: true }], 'sent in time, so it is logged, before the end');
+  assert.equal(insights.length, 1);
+});
+
+test('Codex F38 (S7C-02): an insight whose body is still arriving when the timer fires is refused with RUN_OVER and logs nothing', async () => {
+  const { app, d, run, clock } = await started('case_round');
+  await plan(app, run.block_id);
+  // A body the route reads only when the test lets it: `pulled` says the route has started reading it.
+  let pulled = (): void => {};
+  const reading = new Promise<void>((r) => { pulled = r; });
+  let send = (): void => {};
+  const sendNow = new Promise<void>((r) => { send = r; });
+  const text = new TextEncoder().encode(JSON.stringify({ text: 'An invented insight, still arriving.' }));
+  const body = new ReadableStream<Uint8Array>({ async pull(c) { pulled(); await sendNow; c.enqueue(text); c.close(); } }, { highWaterMark: 0 });
+  const sent = app.request(`http://127.0.0.1:5174${base(run.block_id)}/insight`, { method: 'POST', headers: P, body, duplex: 'half' } as RequestInit);
+  await reading;
+  clock.advance(45);
+  clock.fire();
+  assert.ok(await until(closed(d, run.block_id), 2_000), 'the end does not wait for a body that has not arrived');
+  send();
+  const r = await sent;
+  const { insights, close } = await insightOrder(d, run.block_id);
+  assert.deepEqual(insights.filter((i) => i > close), [], 'no insight record follows the block_close');
+  assert.deepEqual([r.status, (await r.json()).code], [409, 'RUN_OVER'], 'the end won the race: the mock\'s run-over 409');
+  assert.equal(insights.length, 0, 'nothing is logged');
+});
+
+// ---- Sprint 7c (Task X3): D117 (S7C-04), the tutor closed while any mock runs ------------------------------------------------------------
+
+/** A question on `screen` with no item, as Today, a lesson or a mock review asks it. */
+const askOn = (app: Hono, screen: string, subject?: string) => post(app, '/api/tutor/ask', { screen, ...(subject ? { subject_id: subject } : {}), item: null, thread: [],
+  snapshot: '## The screen\nAn invented screen.', question: 'An invented question?' });
+
+test('D117 (S7C-04): while a case mock runs, a question on Today, a lesson or another mock\'s review is 409 help_waits and the status says a mock is on; once it ends they are open', async () => {
+  const clock = fakeClock();
+  const d = { ...await deps(clock), tutor: await fakeTutor() };
+  const app = createApp(d);
+  // An earlier case-round, ended, so its review is a screen the learner can be on while the next mock runs.
+  const first = await json(post(app, '/api/mocks/start', { mock: 'case_round' })) as CaseRun;
+  await answerAll(app, first, [true, true, true, true, true]);
+  await post(app, `${base(first.block_id)}/insight`, { text: 'An invented insight.' });
+  await post(app, '/api/mocks/end', { block_id: first.block_id });
+  const free = await json(get(app, '/api/tutor/status'));
+  assert.deepEqual([free.run_on, free.mock_on], [false, false]);
+  const run = await json(post(app, '/api/mocks/start', { mock: 'take_home' })) as CaseRun;
+  const on = await json(get(app, '/api/tutor/status'));
+  assert.deepEqual([on.run_on, on.mock_on], [true, true], 'the status says a mock is on, so the panel shows the line without a question');
+  for (const [screen, subject] of [['today'], ['lesson', FIXTURE_CONCEPT], ['mock_review', first.block_id], ['mocks'], ['progress']] as const) {
+    const r = await askOn(app, screen, subject);
+    assert.deepEqual([r.status, await r.json()], [409, { error: HELP_WAITS, code: 'help_waits' }], screen);
+  }
+  clock.advance(130);                                                 // the take-home past its 2 hours is still on
+  assert.equal((await json(get(app, '/api/tutor/status'))).mock_on, true, 'past its deadline, the take-home is on');
+  assert.equal((await askOn(app, 'today')).status, 409, 'and the tutor still waits');
+  assert.equal((await records(d)).filter((r) => r.record === 'tutor_asked').length, 0, 'a refusal logs nothing');
+  await post(app, `${base(run.block_id)}/give-up`);
+  const after = await json(get(app, '/api/tutor/status'));
+  assert.deepEqual([after.run_on, after.mock_on], [false, false]);
+  for (const [screen, subject] of [['today'], ['mock_review', first.block_id]] as const) {
+    const r = await askOn(app, screen, subject);
+    assert.equal(r.status, 200, `${screen} is open once the mock ends`);
+    await r.text();
+  }
+});
+
+// ---- Sprint 7c (Task X3): the backlog rows F4-2-5, F4-2-6 (S7C-06) and F4-4-3 (S7C-07) ---------------------------------------------------
+
+test('F4-2-5: before the plan the run view carries no checkpoint prompt; once a plan self-check names the block, every prompt is there', async () => {
+  const { app, run } = await started('case_round');
+  // Each prompt is compared as null or not, so a failure never prints one.
+  const held = (cs: { prompt: string | null }[]): boolean[] => cs.map((c) => c.prompt === null);
+  assert.deepEqual(held(run.case.checkpoints), [true, true, true, true, true, true], 'the start');
+  const before = await json(get(app, '/api/mocks'));
+  assert.deepEqual(held(before.run.case.checkpoints), [true, true, true, true, true, true], 'the run view');
+  await plan(app, run.block_id);
+  const after = await json(get(app, '/api/mocks'));
+  assert.deepEqual(after.run.case.checkpoints.map((c: { prompt: string | null }) => typeof c.prompt === 'string' && c.prompt !== ''), [true, true, true, true, true, true], 'after the plan');
+  assert.deepEqual(leaks(JSON.stringify(after)), []);
+});
+
+test('S7C-06 (F4-2-6): in a case mock whose case lists a CP1 the grain waits for the review, whatever is answered in the run; the review shows it', async () => {
+  const { app, run } = await started('case_round');
+  await answerAll(app, run, [true, true, true, true, true]);
+  assert.equal((await json(get(app, '/api/mocks'))).run.case.expected_output.grain === null, true, 'CP1 and CP3 answered: still held');
+  await post(app, '/api/mocks/end', { block_id: run.block_id });
+  assert.notEqual((await json(get(app, `${base(run.block_id)}/review`))).case.expected_output.grain, null, 'the review shows it');
+});
+
+/** The content with `kind`'s one form now naming another case: a copy of the form's case under the ID ending -B, with its own checkpoints. */
+function formMoved(kind: Kind): ContentStore {
+  const from = kind === 'case_round' ? MOCK_CASE : TAKE;
+  const to = from.replace(/-A$/, '-B');
+  const old = content.mockCase!(from)!;
+  const copy = { ...old, case_id: to, checkpoints: old.checkpoints.map((c) => ({ ...c, ...(c.item_id ? { item_id: c.item_id.replace(from, to) } : {}) })) };
+  const rules = content.mocks![kind];
+  return { ...content, mockCase: (id) => (id === to ? copy : content.mockCase!(id)),
+    mocks: { ...content.mocks!, [kind]: { ...rules, forms: [{ id: rules.forms[0]!.id, case_id: to }] } } };
+}
+
+test('S7C-07 (F4-4-3): an ended case-round\'s case comes from its own records, not its form: after the form names another case, its review and its rubric keep the run\'s case', async () => {
+  const { app, d, run, clock } = await started('case_round');
+  await answerAll(app, run, [true, true, true, true, false]);
+  await post(app, `${base(run.block_id)}/insight`, { text: 'An invented insight.' });
+  await post(app, '/api/mocks/end', { block_id: run.block_id });
+  const again = createApp({ ...await deps(clock, d.dir), content: formMoved('case_round') });
+  const review = await json(get(again, `${base(run.block_id)}/review`));
+  assert.equal(review.case.case_id, MOCK_CASE, 'the run\'s own case');
+  assert.deepEqual(review.checkpoints.map((c: { kind: string; outcome: string }) => [c.kind, c.outcome]),
+    [['CP1', 'passed'], ['CP2', 'passed'], ['CP3', 'passed'], ['CP4', 'passed'], ['CP5', 'failed'], ['CP6', 'not_answered']], 'its own checkpoints and answers');
+  const ticked = await post(again, `${base(run.block_id)}/rubric`, { ticked: ['number', 'direction', 'caveat', 'next_step'] });
+  assert.equal(ticked.status, 200, 'the rubric can be ticked');
+  assert.deepEqual((await records(d)).filter((x) => x.record === 'self_check' && x.kind === 'rubric').map((x) => x.case_id), [MOCK_CASE]);
+});
+
+test('D116 (S7C-03): a case-round is scored, reviewed and ticked on the core lines its start recorded: after the file adds a line, a met stage stays met', async () => {
+  const { app, d, run, clock } = await started('case_round');
+  await answerAll(app, run, [true, true, false, true, true]);
+  await post(app, `${base(run.block_id)}/insight`, { text: 'An invented insight.' });
+  await post(app, '/api/mocks/end', { block_id: run.block_id });
+  const core = ['number', 'direction', 'caveat', 'next_step'];
+  assert.equal((await post(app, `${base(run.block_id)}/rubric`, { ticked: core })).status, 200);
+  const stage4 = async (a: Hono) => (await json(get(a, '/api/progress'))).board.stages.find((g: any) => g.goal.id === 'G-STAGE-4').status;
+  assert.equal(await stage4(app), 'met');
+  // The file's core rubric now asks the reconciliation line too (a later content change); the run was taken on the four.
+  const more: ContentStore = { ...content, mocks: { ...content.mocks!, case_round: { ...content.mocks!.case_round, core_rubric: [...core, 'reconciliation'] } } };
+  const again = createApp({ ...await deps(clock, d.dir), content: more });
+  const review = await json(get(again, `${base(run.block_id)}/review`));
+  assert.deepEqual([review.core_rubric, review.rubric.map((p: { id: string }) => p.id)], [core, [...core, 'driver']], 'its own lines, and its own rubric to tick');
+  assert.deepEqual([review.correct, review.status, review.passed, review.counts], [5, 'ended', true, true]);
+  assert.equal(review.checkpoints.find((c: { kind: string }) => c.kind === 'CP6').outcome, 'passed');
+  assert.equal(await stage4(again), 'met', 'a met stage stays met');
+  const ticked = await post(again, `${base(run.block_id)}/rubric`, { ticked: [...core, 'reconciliation'] });
+  assert.equal(ticked.status, 400, 'the rubric route checks the run\'s own rubric: the new line is not one of its points');
+  assert.equal((await records(d)).filter((x) => x.record === 'self_check' && x.kind === 'rubric').length, 1, 'nothing more logged');
+});
+
+test('S7C-07 (F4-4-3): a take-home rebuilt after a restart, whose form now names another case, keeps the case it was working on', async () => {
+  const { app, d, run, clock } = await started('take_home');
+  await plan(app, run.block_id);
+  await answerCp(app, run.block_id, 'CP1', true);
+  await d.session.end('explicit');                                   // as shutdown() does: the take-home stays open
+  const again = createApp({ ...await deps(clock, d.dir), content: formMoved('take_home') });
+  const view = (await json(get(again, '/api/mocks'))).run as CaseRun;
+  assert.equal(view?.case.case_id, TAKE, 'the run\'s own case');
+  assert.deepEqual(view.servings.map((s) => s.item_id), [`${TAKE}:CP1`, `${TAKE}:CP2`, TAKE_CP3, `${TAKE}:CP4`, `${TAKE}:CP5`], 'its own questions');
+  assert.deepEqual(view.case.checkpoints.map((c) => c.answered), [true, false, false, false, false, false]);
+  assert.deepEqual(await json(answerCp(again, run.block_id, 'CP2', true)), { recorded: true }, 'and it takes the next answer');
 });

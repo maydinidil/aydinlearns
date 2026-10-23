@@ -1,6 +1,6 @@
 {
   "id": "EX-SQL-WIN-04-E1-05",
-  "version": 1,
+  "version": 2,
   "kind": "write",
   "tags": [
     "sql",
@@ -45,7 +45,7 @@
   "company": "voltmarkt",
   "schema": "voltmarkt",
   "edge_schema": "voltmarkt_edge_win",
-  "prompt": "For the webshop (store_code WEB-01), show each UTC day of June 2025 on which it had orders, with the units sold that day and the cumulative units from 1 June up to and including that day. Days with no orders are left out. Return order_date, units and cumulative_units. Any row order is fine.",
+  "prompt": "For the webshop (store_code WEB-01), show each UTC day of June 2025 on which it had orders, with the units sold that day and the cumulative units from 1 June up to and including that day. Days with no orders are left out. Return three columns, in this order: order_date, units and cumulative_units. Return one row for each such day. Any row order is fine.",
   "output_contract": {
     "columns": [
       {

@@ -26,7 +26,8 @@
 //   is on; once the run is over, an open or an answer of that instance is the mock's run-over 409 (S7-C18), and every other request the
 //   usual 404. Show-answer is always a 404 (S3-12), in the run and after it.
 // - An answer is graded and logged with run_kind knowledge_mock and no confidence, leaves the instance open (the run's end closes it), and
-//   answers { recorded: true } only; a second answer is the mock's 409 (S7-03).
+//   answers { recorded: true } only; a second answer is the mock's 409 (S7-03). It is logged as a GA4 run's answer is, by one helper
+//   (logRunAnswer, sprint 7c N1 M6); only the one-answer line, the confidence, the run kind and the reply differ.
 import { randomInt, randomUUID } from 'node:crypto';
 import type { Context, Hono } from 'hono';
 import { HTTPException } from 'hono/http-exception';
@@ -260,6 +261,21 @@ export function mountChoice(app: Hono, d: RouteDeps, runs: DrillGate = NO_DRILLS
         ...(a.runKind === undefined ? {} : { run_kind: a.runKind }) },
     };
   };
+  /**
+   * N1 M6: an answer to a timed run's question, a GA4 run's (S3-01 to S3-04) or a knowledge mock's (S7-03, S7-10). With `oneAnswer` (exam
+   * mode, and every mock) a second answer is refused with that line and CODE_ONE_ANSWER; the answer is claimed before the first await, so a
+   * second one sent at once gets the refusal. Then it is logged (the confidence given, the run's kind) and its funnel step sent; the
+   * instance stays open until the run's end, and the learner sees nothing until then. Returns the attempt and when it was logged.
+   */
+  const logRunAnswer = async (a: Omit<Parameters<typeof attemptOf>[0], 'at'> & { oneAnswer: string | null }): Promise<{ attempt: AydinAttempt; at: Date }> => {
+    if (a.oneAnswer !== null && a.i.submitted > 0) throw refuse(409, a.oneAnswer, CODE_ONE_ANSWER);
+    a.i.noteSubmission(true, a.grade.correct);           // claimed before the first await: a second answer gets the 409 above
+    const at = new Date();
+    const attempt = attemptOf({ ...a, at });
+    await d.logger.attempt(attempt);
+    funnelAnswer(a.q, attempt, a.grade.correct);         // telemetry only: the learner sees nothing until the run's end
+    return { attempt, at };
+  };
 
   app.get('/api/choice/:id', async (c) => {
     const section = c.req.query('section');
@@ -345,26 +361,18 @@ export function mountChoice(app: Hono, d: RouteDeps, runs: DrillGate = NO_DRILLS
         // S3-01 to S3-04: a timed GA4 run's item stays open until the run's end. Exam mode takes one answer and asks no
         // confidence (null); practice mode logs each change as a new attempt, and the last one before the end is scored.
         const exam = run.plan.mode === 'exam';
-        if (exam && i.submitted > 0) throw refuse(409, oneAnswer(run.plan.kind), CODE_ONE_ANSWER);
-        i.noteSubmission(true, grade.correct);           // claimed before the first await: a second exam answer gets the 409 above
-        const at = new Date();
-        const attempt = attemptOf({ id, q, s, i, b, at, grade, chosen, typed, confidence: exam ? null : confidence, runKind: run.plan.kind });
-        await d.logger.attempt(attempt);
+        const { attempt, at } = await logRunAnswer({ id, q, s, i, b, grade, chosen, typed, confidence: exam ? null : confidence, runKind: run.plan.kind,
+          oneAnswer: exam ? oneAnswer(run.plan.kind) : null });
         logged = at;
-        funnelAnswer(q, attempt, grade.correct);                  // telemetry only: the learner sees nothing until the run's end
         const body: ChoiceSavedView = { saved: true, attempt_id: attempt.attempt_id };   // help waits: no correctness, key or explanation
         return c.json(body);
       }
       if (run && isMockPlan(run.plan)) {
         // S7-03, S7-10: a knowledge mock's question takes one answer and asks no confidence; it stays open until the run's end. Its answer
         // is logged with run_kind knowledge_mock (D112), so no GA4 run path reads it (S7-11), and the reply says only that it is recorded.
-        if (i.submitted > 0) throw refuse(409, MOCK_ONE_ANSWER, CODE_ONE_ANSWER);
-        i.noteSubmission(true, grade.correct);           // claimed before the first await: a second answer gets the 409 above
-        const at = new Date();
-        const attempt = attemptOf({ id, q, s, i, b, at, grade, chosen, typed, confidence: null, runKind: run.plan.mock === 'knowledge' ? 'knowledge_mock' : undefined });
-        await d.logger.attempt(attempt);
+        const { at } = await logRunAnswer({ id, q, s, i, b, grade, chosen, typed, confidence: null,
+          runKind: run.plan.mock === 'knowledge' ? 'knowledge_mock' : undefined, oneAnswer: MOCK_ONE_ANSWER });
         logged = at;
-        funnelAnswer(q, attempt, grade.correct);                  // telemetry only: the learner sees nothing until the run's end
         return c.json({ recorded: true as const });
       }
       if (i.submitted > 0) throw refuse(409, 'This question already has an answer. Open it again to answer once more.');

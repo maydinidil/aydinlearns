@@ -1,6 +1,6 @@
 {
   "id": "EX-SQL-WIN-04-E1-01",
-  "version": 1,
+  "version": 2,
   "kind": "write",
   "tags": [
     "sql",
@@ -45,7 +45,7 @@
   "company": "voltmarkt",
   "schema": "voltmarkt",
   "edge_schema": "voltmarkt_edge_win",
-  "prompt": "For store NL-01, show each UTC day from 1 January to 30 June 2025 on which it had orders, with that day's net revenue and the store's running revenue from 1 January up to and including that day. Days follow each other by date; days with no orders are left out. Return order_date, revenue_eur and running_revenue_eur. Any row order is fine.",
+  "prompt": "For store NL-01, show each UTC day from 1 January to 30 June 2025 on which it had orders, with that day's net revenue and the store's running revenue from 1 January up to and including that day. Days follow each other by date; days with no orders are left out. Return three columns, in this order: order_date, revenue_eur and running_revenue_eur. Return one row for each such day. Any row order is fine.",
   "output_contract": {
     "columns": [
       {

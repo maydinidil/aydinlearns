@@ -16,6 +16,7 @@ import type { ConceptStateName } from '../core/states.ts';
 import { amsterdamDate } from '../core/time.ts';
 import type { SqlItem } from '../schemas/item.ts';
 import type { MockKind } from '../schemas/mock.ts';
+import { deadlineOf, openMinutes } from './mocks.ts';
 import type { ChoiceRunPlan } from './run.ts';
 
 const DAY_MS = 86_400_000;
@@ -606,13 +607,14 @@ export function screenMockDraw(itemIds: readonly string[], mockItem: (id: string
 
 /**
  * What a mock's start answers, and a second start of any run while it is on (S7-02): the run, its form, its limit and its items. `deadline_at`
- * is its minutes after it opened; `ends_at` is when the run clock ends it: the deadline, except for a take-home, which takes late answers
- * until it is handed in or closes `close_after_hours` after it opened (S7-15).
+ * is its minutes after it opened, by the one rule the score and the review read (server/mocks.ts deadlineOf, N3 M1); `ends_at` is when the
+ * run clock ends it: the deadline, except for a take-home, which takes late answers until it is handed in or closes `close_after_hours`
+ * after it opened (S7-15).
  */
 export function mockRunView(run: RunEntry & { plan: MockPlan }) {
   const p = run.plan;
   return { block_id: run.block_id, kind: p.kind, mock: p.mock, form_id: p.form_id, phase: 'mock' as const, hide_labels: true, minutes: p.minutes,
-    on_unseen: p.on_unseen, ends_at: new Date(run.ends_at).toISOString(), deadline_at: new Date(p.started_at + Math.round(p.minutes * 60_000)).toISOString(),
+    on_unseen: p.on_unseen, ends_at: new Date(run.ends_at).toISOString(), deadline_at: new Date(deadlineOf(p.started_at, p.minutes)).toISOString(),
     servings: run.servings };
 }
 
@@ -650,7 +652,7 @@ export function openTakeHomes(records: readonly object[]): OpenTakeHome[] {
     else if (r.record === 'mock_open' && r.mock === 'take_home' && !opens.has(block)) {
       const at = Date.parse(str(r.ts) ?? '');
       if (Number.isNaN(at)) continue;
-      opens.set(block, { block_id: block, form_id: str(r.form_id) ?? '', minutes: typeof r.minutes === 'number' && r.minutes > 0 ? r.minutes : null,
+      opens.set(block, { block_id: block, form_id: str(r.form_id) ?? '', minutes: openMinutes(r),
         on_unseen: r.on_unseen === true, started_at: at, answered: new Map(), attempted: new Map() });
     } else if (r.record === 'attempt' && r.phase === 'mock') {
       const item = str(r.item_id), id = str(r.item_instance_id), run = opens.get(block);
@@ -775,6 +777,25 @@ export class DrillRuns implements DrillGate {
     if (ending) await ending.catch(() => {});
     if (this.#over.has(instanceId)) return null;
     if (!run || ending) return () => {};
+    let done: () => void = () => {};
+    const held = new Promise<void>((resolve) => { done = resolve; });
+    run.inFlight.add(held);
+    return (loggedAt) => {
+      if (loggedAt) run.last = Math.max(run.last, loggedAt.getTime());
+      run.inFlight.delete(held);
+      done();
+    };
+  }
+  /**
+   * S7C-02 (Codex F38): holdForSubmission's twin for a record that names no instance (a case mock's insight), keyed by the run itself. Null
+   * when the run is over or ending (the caller refuses the record); otherwise a release, which the caller calls once its record is logged,
+   * with the record's time (or null when nothing was logged). The run's end waits for it (D9).
+   */
+  async holdRun(run: RunEntry): Promise<((loggedAt: Date | null) => void) | null> {
+    await this.sweep();
+    const ending = this.#ending.get(run.block_id);
+    if (ending) { await ending.catch(() => {}); return null; }
+    if (this.#active.get(run.block_id) !== run) return null;
     let done: () => void = () => {};
     const held = new Promise<void>((resolve) => { done = resolve; });
     run.inFlight.add(held);

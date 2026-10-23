@@ -58,7 +58,14 @@ export interface MockReviewItem {
   n: number; item_id: string; item_instance_id: string | null; outcome: 'passed' | 'failed' | 'not_answered'; query: string | null;
   prompt: string | null; output_contract: ItemView['output_contract'] | null; grade: PublicGrade | null;
 }
-export interface MockReview extends MockHistoryRow { mock: MockKind; items: MockReviewItem[] }
+export interface MockReview extends MockHistoryRow {
+  mock: MockKind; items: MockReviewItem[];
+  /** N3 M4: the questions the run never reached (a crash ended it first); absent on the other reviews. */
+  not_reached?: number;
+}
+/** N3 M4: the review line for questions a crashed run never reached; none when there are none. */
+export const notReachedLine = (n: number | undefined): string | null =>
+  (n && n > 0 ? `${n} ${n === 1 ? 'question was' : 'questions were'} not reached, because the run ended before ${n === 1 ? 'it was' : 'they were'} shown.` : null);
 
 export const mocksApi = {
   /** A run past its limit ends first, as for the drill history. */

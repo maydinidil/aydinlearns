@@ -1,6 +1,6 @@
 {
   "id": "EX-SQL-WIN-04-E1-21",
-  "version": 1,
+  "version": 2,
   "kind": "write",
   "tags": [
     "sql",
@@ -47,7 +47,7 @@
   "company": "voltmarkt",
   "schema": "voltmarkt",
   "edge_schema": "voltmarkt_edge_win",
-  "prompt": "For the webshop (store_code WEB-01), show each month from January to June 2025 in which it had orders (by UTC order date), with that month's net revenue and the year-to-date revenue up to and including that month. Months with no orders are left out. Return month (the first day of the month), revenue_eur and ytd_revenue_eur. Any row order is fine.",
+  "prompt": "For the webshop (store_code WEB-01), show each month from January to June 2025 in which it had orders (by UTC order date), with that month's net revenue and the year-to-date revenue up to and including that month. Months with no orders are left out. Return three columns, in this order: month (the first day of the month), revenue_eur and ytd_revenue_eur. Return one row for each such month. Any row order is fine.",
   "output_contract": {
     "columns": [
       {

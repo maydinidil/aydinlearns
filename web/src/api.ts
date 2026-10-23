@@ -212,11 +212,13 @@ export const NOT_RUNNING = 'The app is not running. Start it with Start aydinlea
 async function call<T>(method: 'GET' | 'POST', path: string, body?: unknown, keepalive = false): Promise<T> {
   let res: Response;
   try {
+    // A POST always carries a JSON body, `{}` when it has none, so the server's JSON content-type check never refuses it (S7C-10).
+    const sent = body === undefined && method === 'POST' ? {} : body;
     res = await fetch(path, {
       method,
       keepalive,
-      headers: body === undefined ? {} : { 'content-type': 'application/json' },
-      body: body === undefined ? undefined : JSON.stringify(body),
+      headers: sent === undefined ? {} : { 'content-type': 'application/json' },
+      body: sent === undefined ? undefined : JSON.stringify(sent),
     });
   } catch {
     // fetch rejects only when no answer came back: the server is not running. Status 0, never a 409, so no screen retries.

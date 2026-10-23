@@ -4,6 +4,7 @@
 // starts and what each step says. Sprint 7 Part 2 (Task N2): the case-round and take-home mocks' shapes and lines (mock mode, at the
 // end), pinned by tests/web/case-mock-flow.test.ts; a mock is a test, so there its plan comes first (S7-13) and each checkpoint takes one answer.
 import type { SortKey } from '../../../schemas/item.ts';
+import type { CaseMockKind } from '../../../schemas/mock.ts';
 import type { ItemView, PublicGrade, TypedView } from '../api.ts';
 import { cp4Feedback } from './cp4-flow.ts';
 import type {
@@ -262,17 +263,15 @@ export function countdown(startedAt: number | null, now: number, seconds = 60): 
 // rules are schemas/mock.ts's, the rule and counts lines lib/mock-flow.ts's, the calls lib/cases-api.ts's (N2 M7).
 
 /**
- * The two case mocks, and a route's mock kind that is one (#/mock/case_round, #/mock/take_home). They are schemas/case.ts's MockCaseKind and
- * isMockCaseKind (N2 M5), which tests/web/case-mock-flow.test.ts keeps equal; that module brings node:crypto (through schemas/choice.ts), which
- * the browser build cannot load, even for a type.
+ * The two case mocks (#/mock/case_round, #/mock/take_home): the kind is schemas/mock.ts's, the one guard too (N3 M2); App.tsx imports the guard
+ * from there. The type is re-exported so the case mock screen keeps importing it from here.
  */
-export type CaseMockKind = 'case_round' | 'take_home';
-export const isCaseMockKind = (m: string): m is CaseMockKind => m === 'case_round' || m === 'take_home';
+export type { CaseMockKind };
 /** A case mock run's block (mock-case_round-<uuid>, mock-take_home-<uuid>): its review is the case mock's review. */
 export const isCaseMockBlock = (blockId: string): boolean => /^mock-(case_round|take_home)-/.test(blockId);
 
 /** One checkpoint as the run shows it: its prompt, the run's instance of it, and whether its one answer is in (late: S7-15, S7-C30). */
-export interface MockCaseCheckpointView { id: string; kind: CheckpointKind; prompt: string; item_id: string | null; item_instance_id: string | null; answered: boolean; late: boolean }
+export interface MockCaseCheckpointView { id: string; kind: CheckpointKind; prompt: string | null; item_id: string | null; item_instance_id: string | null; answered: boolean; late: boolean }
 export interface MockCaseView {
   case_id: string; title: string; level: number; persona: { name: string; role: string }; brief: { decision: string; deadline: string };
   data_needed: string[]; expected_output: { columns: string[]; sort: SortKey[]; grain: string | null }; data_source: DataSource | null;

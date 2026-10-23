@@ -1,6 +1,6 @@
 {
   "id": "EX-SQL-WIN-04-E2-06",
-  "version": 1,
+  "version": 2,
   "kind": "write",
   "tags": [
     "sql",
@@ -50,7 +50,7 @@
   "company": "mailvora",
   "schema": "mailvora",
   "edge_schema": "mailvora_edge_win",
-  "prompt": "For each plan, show each month of 2025 in which its subscriptions brought in revenue (by the UTC month of paid_at; refunded payments do not count), with that month's revenue and the plan's year-to-date revenue up to and including that month. Months with no revenue are left out. Return plan_name, month (the first day of the month), revenue_eur and ytd_revenue_eur. Any row order is fine.",
+  "prompt": "For each plan, show each month of 2025 in which its subscriptions brought in revenue (by the UTC month of paid_at; refunded payments do not count), with that month's revenue and the plan's year-to-date revenue up to and including that month. Months with no revenue are left out. Return four columns, in this order: plan_name, month (the first day of the month), revenue_eur and ytd_revenue_eur. Return one row for each such plan and month. Any row order is fine.",
   "output_contract": {
     "columns": [
       {

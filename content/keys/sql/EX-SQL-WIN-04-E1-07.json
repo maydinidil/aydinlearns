@@ -1,6 +1,6 @@
 {
   "item_id": "EX-SQL-WIN-04-E1-07",
-  "item_version": 1,
+  "item_version": 2,
   "reference_sql": "SELECT product_id, category_id, launch_date,\n  COUNT(*) OVER (PARTITION BY category_id ORDER BY launch_date RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS launched_so_far\nFROM products\nWHERE category_id IN (1, 13, 17)\n  AND launch_date IS NOT NULL",
   "alternatives": [
     "SELECT p.product_id, p.category_id, p.launch_date,\n  (SELECT COUNT(*) FROM products p2\n   WHERE p2.category_id = p.category_id\n     AND p2.launch_date <= p.launch_date) AS launched_so_far\nFROM products p\nWHERE p.category_id IN (1, 13, 17)\n  AND p.launch_date IS NOT NULL",
@@ -24,11 +24,11 @@
   ],
   "hint3_partial": "SELECT product_id, category_id, launch_date,\n  COUNT(*) OVER (PARTITION BY category_id ORDER BY launch_date ___ BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS launched_so_far\nFROM products\nWHERE category_id IN (1, 13, 17)\n  AND launch_date IS NOT NULL",
   "solver": {
-    "prompt_hash": "71d7e682d094f52a",
+    "prompt_hash": "e5f30594dec7315b",
     "schema_version": "d77fe1c31a0e",
-    "dataset_version": "e7c58abf7e8f892e",
-    "grader_version": "7a.1",
-    "query": "SELECT product_id, category_id, launch_date,\n  COUNT(*) OVER (PARTITION BY category_id ORDER BY launch_date RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS launched_so_far\nFROM products\nWHERE category_id IN (1, 13, 17) AND launch_date IS NOT NULL\n",
-    "at": "2026-10-21T09:05:08.209Z"
+    "dataset_version": "ef4aa0325da6ea43",
+    "grader_version": "7c.1",
+    "query": "SELECT product_id, category_id, launch_date, COUNT(*) OVER (PARTITION BY category_id ORDER BY launch_date RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS launched_so_far FROM products WHERE category_id IN (1, 13, 17) AND launch_date IS NOT NULL\n",
+    "at": "2026-10-22T18:09:35.512Z"
   }
 }

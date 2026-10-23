@@ -1,6 +1,6 @@
 {
   "item_id": "EX-SQL-WIN-02-E2-31",
-  "item_version": 1,
+  "item_version": 2,
   "reference_sql": "WITH product_rev AS (  -- one row per product with 2025 sales\n  SELECT category_name, product_id, SUM(net_revenue_eur) AS revenue\n  FROM sales\n  WHERE order_date >= DATE '2025-01-01' AND order_date < DATE '2026-01-01'\n  GROUP BY category_name, product_id\n),\nranked AS (  -- one row per product with 2025 sales\n  SELECT category_name, product_id, revenue,\n         ROW_NUMBER() OVER (PARTITION BY category_name ORDER BY revenue DESC, product_id) AS rn\n  FROM product_rev\n)\nSELECT category_name, product_id, revenue\nFROM ranked\nWHERE rn <= 3",
   "alternatives": [
     "WITH product_rev AS (  -- one row per product with 2025 sales\n  SELECT category_name, product_id, SUM(net_revenue_eur) AS revenue\n  FROM sales\n  WHERE order_date >= DATE '2025-01-01' AND order_date < DATE '2026-01-01'\n  GROUP BY category_name, product_id\n)\nSELECT pr.category_name, pr.product_id, pr.revenue\nFROM product_rev pr\nWHERE (SELECT COUNT(*) FROM product_rev pr2\n       WHERE pr2.category_name = pr.category_name\n         AND (pr2.revenue > pr.revenue OR (pr2.revenue = pr.revenue AND pr2.product_id < pr.product_id))) < 3",
@@ -24,11 +24,11 @@
   ],
   "hint3_partial": "WITH product_rev AS (  -- one row per product with 2025 sales\n  SELECT category_name, product_id, SUM(net_revenue_eur) AS revenue\n  FROM sales\n  WHERE order_date >= DATE '2025-01-01' AND order_date < DATE '2026-01-01'\n  GROUP BY category_name, product_id\n),\nranked AS (  -- one row per product with 2025 sales\n  SELECT category_name, product_id, revenue,\n         ROW_NUMBER() OVER (PARTITION BY category_name ORDER BY revenue DESC, ___) AS rn\n  FROM product_rev\n)\nSELECT category_name, product_id, revenue\nFROM ranked\nWHERE rn <= 3",
   "solver": {
-    "prompt_hash": "7a4236f964531027",
+    "prompt_hash": "f1919c4a89e49d51",
     "schema_version": "cebf75df442f",
-    "dataset_version": "e7c58abf7e8f892e",
-    "grader_version": "7a.1",
-    "query": "WITH product_rev AS (  -- one row per product with 2025 sales\n  SELECT category_name, product_id, SUM(net_revenue_eur) AS revenue\n  FROM sales\n  WHERE order_date >= DATE '2025-01-01' AND order_date < DATE '2026-01-01'\n  GROUP BY category_name, product_id\n),\nranked AS (  -- one row per product with 2025 sales\n  SELECT category_name, product_id, revenue,\n         ROW_NUMBER() OVER (PARTITION BY category_name ORDER BY revenue DESC, product_id ASC) AS rn\n  FROM product_rev\n)\nSELECT category_name, product_id, revenue\nFROM ranked\nWHERE rn <= 3\n",
-    "at": "2026-10-21T09:05:06.920Z"
+    "dataset_version": "ef4aa0325da6ea43",
+    "grader_version": "7c.1",
+    "query": "WITH r AS (SELECT category_name, product_id, SUM(net_revenue_eur) AS revenue FROM sales WHERE order_date >= DATE '2025-01-01' AND order_date <= DATE '2025-12-31' GROUP BY 1, 2), k AS (SELECT category_name, product_id, revenue, ROW_NUMBER() OVER (PARTITION BY category_name ORDER BY revenue DESC, product_id) AS rn FROM r) SELECT category_name, product_id, revenue FROM k WHERE rn <= 3\n",
+    "at": "2026-10-22T18:09:34.536Z"
   }
 }

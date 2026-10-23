@@ -3,6 +3,140 @@
 Append-only log of findings raised by the Codex PR reviewer, each with an independent verdict.
 Newest review first.
 
+## PR #54: sprint 7c, fix and polish, release 0.7.2 (reviewed 2026-10-22)
+
+Codex left one line comment (P1) on `22f1c4ee`, plus its summary comment. It is confirmed, with a correction. It was not
+known from sprint 7c's own reviews.
+
+### F39: A tutor reply in flight is not stopped when the status says a mock is on
+
+**P1 · `web/src/tutor/TutorPanel.tsx:60` · Verdict: CONFIRMED, with a correction · Status: OPEN**
+
+The claim: when the panel's status read finds `mock_on` after a question was sent (for example, a mock started in
+another tab), it only sets `closedBy`. The panel stays open, and the request in flight is stopped only when the panel
+closes, so the model can finish streaming and show help during the mock.
+
+What I found: the mechanism is as described. `readStatus` (`:60`) passes MOCK_WAITS to `closeFor` and does nothing else.
+Only two effects stop a reply in flight: the panel closing (`:89`, `stop()`) and a new thread key (`:86`). I checked it
+with a throwaway render test, not committed: the status read made on opening was held, a question was sent and began to
+stream, and then the status answered `mock_on`. After the tutor closed, the request's signal was not aborted, and it was
+still not aborted when the reply ended.
+
+The correction: the help is not shown during the mock. While `closedBy` is set, the panel draws only the waiting line
+(`:147`). In the same probe, no reply text showed at any point after the close, though the streamed part had been on
+screen before it. Three things still happen:
+
+- The model call runs to its end; it is billed and logged (`tutor_asked`).
+- The reply lands in the item's thread and shows once the mock has ended.
+- A reply the server counted as help marks that earlier item (`t.helped`).
+
+Reach: the server refuses any question that arrives while a mock runs (`server/tutor/guard.ts:29`, 409 `help_waits`),
+and a new screen or item stops a reply in flight through the thread key. This finding therefore needs two things: a
+question the server accepted before the mock started, and a status read that answers after it started. That happens
+when the read made on opening races a question sent at once, while a mock starts in another tab. In one tab, a mock
+starts from the mocks screen and runs on its own route, so the screen changes and the reply stops (read, not probed). In
+practice I would rate it P3; the field keeps Codex's P1.
+
+**Fix direction:** stop the reply in flight when `t.closedBy` becomes set, with an effect beside the one on `t.open`. This
+covers every closer: D117's status and D94's timed-run clocks. As with Close, the question goes back in the box. Test: the
+probe above as a render test, which must fail first on the current panel. The signal must be aborted once the status
+says `mock_on`, and no reply may be added to the thread after it. A reply cut off this way counts at $0, which is the
+existing known issue from 0.6.2.
+
+## PR #53: sprint 7 Part 2, the knowledge, case-round and take-home mocks, release 0.7.1 (reviewed 2026-10-22)
+
+Codex left two line comments (one P1, one P2) on `db4eaf07`, plus its summary comment. Both are confirmed. Neither was
+known from sprint 7's own reviews.
+
+### F37: The full-pool draw of `reserve-held-out` ignores the GA4 knowledge pool
+
+**P1 · `tools/reserve-held-out.ts:255` · Verdict: CONFIRMED · Status: FIXED 2026-10-22**
+
+The claim: `node tools/reserve-held-out.ts ga4 --replace` never uses the knowledge pool: `main` passes every GA4 item to
+`reserveHeldOut` and rewrites the item flags and `held-out.json` from the result, so the draw puts 9 of the 18
+knowledge questions into the exam pool and clears `held_out` on the other 9.
+
+What I found: the mechanism is as described, and the arithmetic is exact. Only `extendMain` reads `knowledgePoolIds`
+(`tools/reserve-held-out.ts:476`); `main` (`:515` to `:556`) draws from all items, and its flag loop sets
+`held_out` to "in the draw" for every item, knowledge items included. A counts-only probe of `reserveHeldOut('ga4', ...)`
+on the committed bank: a draw of 50, of which 9 are knowledge-pool items; the other 9 pool items would be unflagged; 39
+of the current 50 exam items stay. There is a second symptom: the plain run (no `--replace`) now always refuses, because
+`currentPool` counts the 18 flagged pool items with the 50 listed exam items, so it reports "a different held-out pool
+of 68 items already exists" on an unchanged bank. Reach and blast radius: an operator command only, which the usage
+text already forbids once a section's items have been served (true of GA4); C25 would flag the result at the next
+`check:content` (a pool item with `held_out` false, an item in both lists), and git restores it. No learner path runs it.
+
+**Fix direction:** `reserveHeldOut` takes the knowledge pool as items already held (they count for enemy groups and card
+floors, as C25 counts them, are never drawn and are not in the result), as the extend path's options do; `main` passes
+`knowledgePoolIds(bank)`, compares the existing exam pool without the pool's IDs, and keeps every pool item flagged.
+Tests: on a fixture with a knowledge pool, `ga4 --replace` leaves every pool item flagged and out of `held-out.json`,
+the draw respects a pool item's enemy group, and a plain re-run on an unchanged bank answers "unchanged".
+
+> **Update 2026-10-22: fixed** in Task X1 (`9da893ab`, sprint 7c, S7C-01). `reserveHeldOut` takes the items held in
+> another list as a fifth argument: they count as held for enemy groups, the card floor and the level 1 floor, are never
+> drawn, and are not in the result or the printed counts. `main` passes `knowledgePoolIds(bank)`, compares the existing
+> exam pool without the pool's IDs, and writes `held_out` true for a pool item. The tests in
+> `tests/tools/reserve-held-out.test.ts` failed first on the unmodified tool (5 of 5 new tests red, 31 of 36 passing):
+> "F37 ga4 --replace keeps every knowledge-pool item flagged" (a knowledge item was drawn), "F37 plain run on unchanged
+> bank answers unchanged" (it refused), and the three on items held elsewhere, an enemy-group sibling and the card
+> floors. Three mutations (the option ignored, the pool left in the comparison, the flag rule without the pool) each
+> turned tests red again. The controller then ran `ga4 --replace` on a scratch copy of the shipped content, which was
+> deleted: the 18 pool items stayed flagged (18 of 18) and out of `held-out.json` (0 of 18), the exam list kept its 50
+> flagged, and 6 exam item files were rewritten, as a `--replace` may.
+>
+> **Correction to the closing note.** A plain run (no `--replace`) on the real bank still refuses, now with "a different
+> held-out pool of 50 items" (it said 68). The exam pool was built incrementally (`--extend`, S3-21) and differs from a
+> fresh full draw, as it did before the knowledge pool existed. "Answers unchanged" holds when the pool equals the full
+> draw, which is what the fixture tests build.
+>
+> **Still unproven:** the command was not run on the real bank itself (only on a copy), and a full-pool draw on a
+> served GA4 bank stays forbidden by the usage text whatever this fix does. Nothing past the fixture tests and the
+> copy shows how a future `--replace` after a content change would draw.
+
+### F38: A case mock's insight can be logged after the run's timer closed it
+
+**P2 · `server/routes/mock-cases.ts:221` · Verdict: CONFIRMED · Status: FIXED 2026-10-22 (unverified against a real run's end race)**
+
+The claim: an insight request that passes `liveRun` just before the 45-minute timer fires can be logged after
+`block_close`, because the route awaits the body and the log write without holding the run; the late record then
+satisfies the rubric's block-wide "wrote" check and shows in the review, so CP6 can be completed with an insight sent
+after the case round ended.
+
+What I found: the mechanism is as described. The checkpoint answer route holds the run's end with
+`runs.holdForSubmission` until its record is logged (D9, `:206`), and the run's end waits for every hold
+(`server/drill.ts:749`); the insight route takes no hold and awaits twice after `liveRun` (`readBody`, then the
+engine's `logSelfCheck`). Nothing downstream bounds the record by the run's end: the rubric's `wrote` check
+(`server/routes/cases.ts:582`) and the review's `insight` (`selfChecksIn`) read every insight of the block, and only the
+take-home's late flag is bounded by `ended`. The window is the few milliseconds between `liveRun` and the write, so it
+needs an insight sent at the very end of a run; the case round's 45-minute close is where it bites. `holdForSubmission`
+is keyed by an instance ID, and an insight has none, so the fix needs a run-level hold.
+
+**Fix direction:** read the body before `liveRun`, then hold the run's end until the insight is logged (a hold keyed by
+the block, or by one of the run's served instances), and refuse with the run-over 409 when the end won the race. Tests:
+an insight whose log write is held while the timer fires is either logged before `block_close` or refused with
+`RUN_OVER`, and no insight record follows a `block_close` in the block.
+
+> Adjacent, not fixed: the plan route has the same shape (no hold, `liveRun` then two awaits). A plan logged after the
+> close decides nothing (the plan gate only guards live routes, and the review shows the latest plan), so it is noted, not
+> filed.
+
+> **Update 2026-10-22: fixed** in Task X3 (`38706b49`, sprint 7c, S7C-02). The insight route reads its body before
+> `liveRun`, takes a run-level hold (`DrillRuns.holdRun`, keyed by the run, beside `holdForSubmission`), logs the
+> insight, then releases the hold with the logged time. If the run's end won the race, the route answers the mock's
+> run-over 409 and logs nothing. The run's `block_close` is stamped no earlier than the insight. Two tests in
+> `tests/server/case-mocks.test.ts` failed first on the unmodified code, each with "no insight record follows the
+> block_close" (an insight record at index 8, expected none): "Codex F38 (S7C-02): an insight whose log write is held
+> while the 45-minute timer fires is logged before the block_close; no insight follows it" and "... an insight whose body
+> is still arriving when the timer fires is refused with RUN_OVER and logs nothing". Both pass, 5 runs of 5. Removing
+> the hold turns the first test red again; moving the body read back after `liveRun` with the hold kept leaves both
+> green, because the hold alone then refuses. The seams review confirmed the take-home's late flag and the score and
+> review ends read the one stamp.
+>
+> **Still unproven:** the race was tested with an injected clock and a held log write, never in a running app at the
+> last millisecond of a real run. A memo sent in the last milliseconds before a take-home's 2-hour deadline can still be
+> late, because an insight is stamped when written, after its body is read (the gap is the body read and one sweep);
+> that is the late flag's rule, not this race. The plan route keeps its shape, as noted above.
+
 ## PR #52: sprint 7 Part 1, SQL level 5 and the screen mock, release 0.7.0 (reviewed 2026-10-21)
 
 Codex left two line comments (P2), plus its summary comment. Both are confirmed. Both were already known from

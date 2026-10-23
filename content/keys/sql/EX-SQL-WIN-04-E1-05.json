@@ -1,6 +1,6 @@
 {
   "item_id": "EX-SQL-WIN-04-E1-05",
-  "item_version": 1,
+  "item_version": 2,
   "reference_sql": "WITH daily AS (\n  -- one row per day with webshop orders\n  SELECT order_date, SUM(units) AS units\n  FROM sales\n  WHERE store_code = 'WEB-01'\n    AND order_date BETWEEN DATE '2025-06-01' AND DATE '2025-06-30'\n  GROUP BY order_date\n)\nSELECT order_date, units,\n  SUM(units) OVER (ORDER BY order_date ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS cumulative_units\nFROM daily",
   "alternatives": [
     "WITH daily AS (\n  -- one row per day with webshop orders\n  SELECT order_date, SUM(units) AS units\n  FROM sales\n  WHERE store_code = 'WEB-01'\n    AND order_date BETWEEN DATE '2025-06-01' AND DATE '2025-06-30'\n  GROUP BY order_date\n)\nSELECT d.order_date, d.units,\n  (SELECT SUM(d2.units) FROM daily d2 WHERE d2.order_date <= d.order_date) AS cumulative_units\nFROM daily d",
@@ -24,11 +24,11 @@
   ],
   "hint3_partial": "WITH daily AS (\n  -- one row per day with webshop orders\n  SELECT order_date, SUM(units) AS units\n  FROM sales\n  WHERE store_code = 'WEB-01'\n    AND order_date BETWEEN DATE '2025-06-01' AND DATE '2025-06-30'\n  GROUP BY order_date\n)\nSELECT order_date, units,\n  SUM(units) OVER (ORDER BY ___ ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS cumulative_units\nFROM daily",
   "solver": {
-    "prompt_hash": "c0f98ac62f0428d7",
+    "prompt_hash": "9ec47a24938f2d2a",
     "schema_version": "cebf75df442f",
-    "dataset_version": "e7c58abf7e8f892e",
-    "grader_version": "7a.1",
-    "query": "WITH daily AS (\n  SELECT order_date, SUM(net_revenue_eur) AS revenue_eur, SUM(units) AS units\n  FROM sales\n  WHERE store_code = 'WEB-01' AND order_date BETWEEN DATE '2025-06-01' AND DATE '2025-06-30'\n  GROUP BY order_date\n)\nSELECT order_date, units,\n  SUM(units) OVER (ORDER BY order_date ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS cumulative_units\nFROM daily\n",
-    "at": "2026-10-21T09:05:08.136Z"
+    "dataset_version": "ef4aa0325da6ea43",
+    "grader_version": "7c.1",
+    "query": "WITH d AS (SELECT order_date, SUM(units) AS v FROM sales WHERE store_code = 'WEB-01' AND order_date >= DATE '2025-06-01' AND order_date <= DATE '2025-06-30' GROUP BY order_date) SELECT order_date, v AS units, SUM(v) OVER (ORDER BY order_date ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS cumulative_units FROM d\n",
+    "at": "2026-10-22T18:09:35.441Z"
   }
 }

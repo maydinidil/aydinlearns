@@ -1,6 +1,6 @@
 {
   "id": "EX-SQL-WIN-04-E2-03",
-  "version": 1,
+  "version": 2,
   "kind": "write",
   "tags": [
     "sql",
@@ -46,7 +46,7 @@
   "company": "voltmarkt",
   "schema": "voltmarkt",
   "edge_schema": "voltmarkt_edge_win",
-  "prompt": "For stores NL-01 and NL-02, show each order from 10 to 16 February 2025 (UTC order dates, both days included) with its net revenue and the store's running revenue by day over that week: the revenue of all the store's orders on that day and the days before it in the week. Orders on the same day count together, so they show the same running revenue. Each store has its own total. Return store_code, order_id, order_date, revenue_eur and running_revenue_eur. Any row order is fine.",
+  "prompt": "For stores NL-01 and NL-02, show each order from 10 to 16 February 2025 (UTC order dates, both days included) with its net revenue and the store's running revenue by day over that week: the revenue of all the store's orders on that day and the days before it in the week. Orders on the same day count together, so they show the same running revenue. Each store has its own total. Return five columns, in this order: store_code, order_id, order_date, revenue_eur and running_revenue_eur. Return one row for each such order. Any row order is fine.",
   "output_contract": {
     "columns": [
       {

@@ -1,6 +1,6 @@
 {
   "id": "EX-SQL-WIN-05-E1-07",
-  "version": 1,
+  "version": 2,
   "kind": "write",
   "tags": [
     "sql",
@@ -45,7 +45,7 @@
   "company": "voltmarkt",
   "schema": "voltmarkt",
   "edge_schema": "voltmarkt_edge_win",
-  "prompt": "For every competitor price check of products 1 to 10 (product_id from 1 to 10, both included) observed from 1 January to 30 June 2025 (observed_ts holds UTC time; both days included, in UTC), show the average price of that check and the 2 checks before it of the same product by the same competitor, rounded to 2 decimals. Checks follow each other by observed_ts. Only checks in that period count, so the first checks of a product and competitor have fewer than 3 to average: show how many checks each average covers in checks_in_window. Return product_id, competitor, observed_ts, price_eur, avg_price_3c and checks_in_window. Any row order is fine.",
+  "prompt": "For every competitor price check of products 1 to 10 (product_id from 1 to 10, both included) observed from 1 January to 30 June 2025 (observed_ts holds UTC time; both days included, in UTC), show the average price of that check and the 2 checks before it of the same product by the same competitor, rounded to 2 decimals. Checks follow each other by observed_ts. No product has two checks by the same competitor at the same moment. Only checks in that period count, so the first checks of a product and competitor have fewer than 3 to average: show how many checks each average covers in checks_in_window. Return product_id, competitor, observed_ts, price_eur, avg_price_3c and checks_in_window. Any row order is fine.",
   "output_contract": {
     "columns": [
       {

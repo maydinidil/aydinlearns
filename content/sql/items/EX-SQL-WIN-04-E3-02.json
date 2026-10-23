@@ -1,6 +1,6 @@
 {
   "id": "EX-SQL-WIN-04-E3-02",
-  "version": 1,
+  "version": 2,
   "kind": "write",
   "tags": [
     "sql",
@@ -47,7 +47,7 @@
   "company": "mailvora",
   "schema": "mailvora",
   "edge_schema": "mailvora_edge_win",
-  "prompt": "For each channel with ad spend from 1 July to 31 October 2025, on which UTC day did its cumulative spend since 1 July first reach half of its total spend over that whole period? Return channel_id and half_spend_date. Any row order is fine.",
+  "prompt": "For each channel with ad spend from 1 July to 31 October 2025, on which UTC day did its cumulative spend since 1 July first reach half of its total spend over that whole period? Return two columns, in this order: channel_id and half_spend_date. Return one row for each such channel. Any row order is fine.",
   "output_contract": {
     "columns": [
       {

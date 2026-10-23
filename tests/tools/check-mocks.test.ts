@@ -167,6 +167,17 @@ test('C41: a mock case goes in content/sql/mocks/, and only a mock case does (S7
   assert.match(result(inMocks, 'CASE-PRICE-09').detail, /content\/sql\/mocks\/ holds the mock cases only/);
 });
 
+test('S7C-05: a CASE-MOCK- ID on an inbox case in content/sql/cases/ is held out by its record; C41 names the ID, and neither check names content/sql/mocks/', async () => {
+  const f = await makeMockFixture();
+  await writeFile(join(f.root, 'sql/cases', 'CASE-MOCK-D.json'), JSON.stringify({ ...inboxRecord(), case_id: 'CASE-MOCK-D' }));
+  const s = await loadContent(f.root, { truthFile: f.truthFile });
+  const c41 = result(await checkCases(s), 'CASE-MOCK-D');
+  const c55 = result(checkMockCases(s), 'CASE-MOCK-D');
+  assert.deepEqual([c41.ok, c55.ok], [false, false]);
+  assert.match(c41.detail, /only a case-round mock may use a CASE-MOCK- ID/);
+  assert.deepEqual([c41.detail, c55.detail].filter((d) => /content\/sql\/mocks\//.test(d)), [], 'the record is not in content/sql/mocks/');
+});
+
 test('C50 checks a mock case\'s blind-solve records as it checks every case\'s', async () => {
   const r = result(checkCaseSolvers(await store()), MOCK_CASE);
   assert.equal(r.ok, false);

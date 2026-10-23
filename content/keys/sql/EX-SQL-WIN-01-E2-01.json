@@ -1,6 +1,6 @@
 {
   "item_id": "EX-SQL-WIN-01-E2-01",
-  "item_version": 1,
+  "item_version": 2,
   "reference_sql": "WITH store_rev AS (  -- one row per store with 2025 sales\n  SELECT st.store_code, st.country_code, SUM(s.net_revenue_eur) AS revenue\n  FROM sales s\n  JOIN stores st ON st.store_code = s.store_code\n  WHERE s.order_date >= DATE '2025-01-01' AND s.order_date < DATE '2026-01-01'\n  GROUP BY st.store_code, st.country_code\n)\nSELECT store_code, country_code, revenue,\n       ROUND(100.0 * revenue / SUM(revenue) OVER (PARTITION BY country_code), 2) AS share_pct\nFROM store_rev",
   "alternatives": [
     "WITH store_rev AS (  -- one row per store with 2025 sales\n  SELECT st.store_code, st.country_code, SUM(s.net_revenue_eur) AS revenue\n  FROM sales s\n  JOIN stores st ON st.store_code = s.store_code\n  WHERE s.order_date >= DATE '2025-01-01' AND s.order_date < DATE '2026-01-01'\n  GROUP BY st.store_code, st.country_code\n),\ncountry_rev AS (  -- one row per country\n  SELECT country_code, SUM(revenue) AS country_revenue\n  FROM store_rev\n  GROUP BY country_code\n)\nSELECT sr.store_code, sr.country_code, sr.revenue,\n       ROUND(100.0 * sr.revenue / cr.country_revenue, 2) AS share_pct\nFROM store_rev sr\nJOIN country_rev cr ON cr.country_code = sr.country_code",
@@ -24,11 +24,11 @@
   ],
   "hint3_partial": "WITH store_rev AS (  -- one row per store with 2025 sales\n  SELECT st.store_code, st.country_code, SUM(s.net_revenue_eur) AS revenue\n  FROM sales s\n  JOIN stores st ON st.store_code = s.store_code\n  WHERE s.order_date >= DATE '2025-01-01' AND s.order_date < DATE '2026-01-01'\n  GROUP BY st.store_code, st.country_code\n)\nSELECT store_code, country_code, revenue,\n       ROUND(100.0 * revenue / SUM(revenue) OVER (PARTITION BY ___), 2) AS share_pct\nFROM store_rev",
   "solver": {
-    "prompt_hash": "cf3f2476cf40bac7",
+    "prompt_hash": "a9413eba4dd20e73",
     "schema_version": "5dbd771f9d51",
-    "dataset_version": "e7c58abf7e8f892e",
-    "grader_version": "7a.1",
-    "query": "WITH store_rev AS (\n  SELECT s.store_code, st.country_code, SUM(s.net_revenue_eur) AS revenue\n  FROM sales s\n  JOIN stores st ON st.store_code = s.store_code\n  WHERE s.order_date >= DATE '2025-01-01' AND order_date < DATE '2026-01-01'\n  GROUP BY s.store_code, st.country_code\n)\nSELECT store_code, country_code, revenue,\n       ROUND(100.0 * revenue / SUM(revenue) OVER (PARTITION BY country_code), 2) AS share_pct\nFROM store_rev\n",
-    "at": "2026-10-21T09:05:05.385Z"
+    "dataset_version": "ef4aa0325da6ea43",
+    "grader_version": "7c.1",
+    "query": "WITH r AS (SELECT s.store_code, st.country_code, SUM(s.net_revenue_eur) AS revenue FROM sales s JOIN stores st ON st.store_code = s.store_code WHERE s.order_date >= DATE '2025-01-01' AND order_date <= DATE '2025-12-31' GROUP BY 1, 2) SELECT store_code, country_code, revenue, ROUND(100.0 * revenue / SUM(revenue) OVER (PARTITION BY country_code), 2) AS share_pct FROM r\n",
+    "at": "2026-10-22T18:09:33.939Z"
   }
 }

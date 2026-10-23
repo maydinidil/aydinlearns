@@ -1,6 +1,6 @@
 {
   "id": "EX-SQL-WIN-03-E2-05",
-  "version": 1,
+  "version": 2,
   "kind": "write",
   "tags": [
     "sql",
@@ -42,7 +42,7 @@
   "company": "voltmarkt",
   "schema": "voltmarkt",
   "edge_schema": "voltmarkt_edge_win",
-  "prompt": "For every price version of products 1 to 25 (product_id from 1 to 25, both included), show how many days passed before the same product's next version started: the next version's valid_from minus this version's valid_from, in days. Within each product, versions follow each other by valid_from. A product's current version has no next one: show its days_to_next as missing. Return product_id, valid_from and days_to_next. Any row order is fine.",
+  "prompt": "For every price version of products 1 to 25 (product_id from 1 to 25, both included), show how many days passed before the same product's next version started: the next version's valid_from minus this version's valid_from, in days. Within each product, versions follow each other by valid_from. A product's current version has no next one: show its days_to_next as missing. Return three columns, in this order: product_id, valid_from and days_to_next. Return one row for each such price version. Any row order is fine.",
   "output_contract": {
     "columns": [
       {

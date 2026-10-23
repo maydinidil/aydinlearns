@@ -1,6 +1,6 @@
 {
   "item_id": "EX-SQL-WIN-03-E2-22",
-  "item_version": 1,
+  "item_version": 2,
   "reference_sql": "SELECT campaign_id, channel_id, start_date,\n  LEAD(start_date) OVER (PARTITION BY channel_id ORDER BY start_date, campaign_id) AS next_start_date\nFROM campaigns",
   "alternatives": [
     "SELECT c.campaign_id, c.channel_id, c.start_date,\n  (SELECT MIN(c2.start_date) FROM campaigns c2\n   WHERE c2.channel_id = c.channel_id\n     AND (c2.start_date > c.start_date OR (c2.start_date = c.start_date AND c2.campaign_id > c.campaign_id))) AS next_start_date\nFROM campaigns c",
@@ -24,11 +24,11 @@
   ],
   "hint3_partial": "SELECT campaign_id, channel_id, start_date,\n  LEAD(start_date) OVER (PARTITION BY channel_id ORDER BY ___) AS next_start_date\nFROM campaigns",
   "solver": {
-    "prompt_hash": "2c8a73bd7dfaadd7",
+    "prompt_hash": "05c6b88c5985c7a9",
     "schema_version": "487f49df0fcd",
-    "dataset_version": "e7c58abf7e8f892e",
-    "grader_version": "7a.1",
-    "query": "SELECT campaign_id, channel_id, start_date,\n  LEAD(start_date) OVER (PARTITION BY channel_id ORDER BY start_date, campaign_id) AS next_start_date\nFROM campaigns\n",
-    "at": "2026-10-21T09:05:07.592Z"
+    "dataset_version": "ef4aa0325da6ea43",
+    "grader_version": "7c.1",
+    "query": "SELECT campaign_id, channel_id, start_date, LEAD(start_date) OVER (PARTITION BY channel_id ORDER BY start_date, campaign_id) AS next_start_date FROM campaigns\n",
+    "at": "2026-10-22T18:09:35.088Z"
   }
 }

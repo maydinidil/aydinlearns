@@ -1,6 +1,6 @@
 {
   "id": "EX-SQL-WIN-03-E1-06",
-  "version": 1,
+  "version": 2,
   "kind": "write",
   "tags": [
     "sql",
@@ -44,7 +44,7 @@
   "company": "mailvora",
   "schema": "mailvora",
   "edge_schema": "mailvora_edge_win",
-  "prompt": "For each UTC day from 1 July to 31 October 2025 on which at least one user signed up (signup_ts holds UTC time), show the number of signups that day and on the previous day with signups. Days with no signups are left out, so the previous day with signups can be more than one day back. The first such day in the range shows prev_signups as missing. Return signup_date, signups and prev_signups. Any row order is fine.",
+  "prompt": "For each UTC day from 1 July to 31 October 2025 on which at least one user signed up (signup_ts holds UTC time), show the number of signups that day and on the previous day with signups. Days with no signups are left out, so the previous day with signups can be more than one day back. The first such day in the range shows prev_signups as missing. Return three columns, in this order: signup_date, signups and prev_signups. Return one row for each such day. Any row order is fine.",
   "output_contract": {
     "columns": [
       {

@@ -14,6 +14,7 @@
 // A checkpoint, CP3 and the insight wait for the plan (S7-13: PLAN_FIRST). While the run is on, help and the tutor wait (D108); once it has
 // ended (here or before a restart) its routes answer the mock's run-over 409 (S7-C18), and the rubric opens. S7-15 (ruling S7-C30): a take-home's
 // answer or memo logged after its deadline is late, in the run view, the review and the score alike (server/mocks.ts deadlineOf, isLateAt).
+// Sprint 7c (D116, ruling S7C-03): the review reads the run's own core rubric lines first, then the rules' (server/mocks.ts runCoreRubric).
 import type { Context, Hono } from 'hono';
 import { HTTPException } from 'hono/http-exception';
 import { countsAsAttempt } from '../../core/rating.ts';
@@ -21,9 +22,10 @@ import { isMockCaseKind, type CaseRecord, type CheckpointKind, type CheckpointOp
 import type { TypedSpec } from '../../schemas/choice.ts';
 import type { SortKey, SqlItem } from '../../schemas/item.ts';
 import type { RouteDeps } from '../app.ts';
+import type { GradeResult } from '../grader/types.ts';
 import { caseUnavailable } from '../content.ts';
 import { isMockPlan, MOCK_ONE_ANSWER, MOCK_RUN_CHANGED, MOCK_RUN_OVER, openTakeHomes, type DrillRuns, type MockPlan, type RunEntry } from '../drill.ts';
-import { deadlineOf, isLateAt, type MockRun } from '../mocks.ts';
+import { deadlineOf, isLateAt, openMinutes, runCoreRubric, type MockRun } from '../mocks.ts';
 import { CODE_ONE_ANSWER, CODE_RUN_CHANGED, CODE_RUN_OVER, REVIEW_WAITS } from '../run.ts';
 import {
   briefOf, dataSourceOf, fillModelAnswer, mockRubric, personaOf, PLAN_FIELDS, type AnswerableKind, type CaseEngine, type MockContext, type Point,
@@ -39,13 +41,16 @@ export const CODE_PLAN_FIRST = 'PLAN_FIRST';
 /** S7-18: a case mock with no form yet (the shipped content until Task P2): its card shows this, and a start answers it. */
 export const NO_CASE_FORMS: Readonly<Record<MockCaseKind, string>> = { case_round: 'No case-round mock forms yet.', take_home: 'No take-home mock forms yet.' };
 
-/** One checkpoint as a case mock's run shows it: its prompt, the run's instance of it, and whether it has its one answer (late: S7-15, S7-C30). */
+/**
+ * One checkpoint as a case mock's run shows it: its prompt, the run's instance of it, and whether it has its one answer (late: S7-15, S7-C30).
+ * F4-2-5: the prompt is null until a plan self-check names the run's block, since the checkpoints open only after the plan (S7-13).
+ */
 export interface MockCaseCheckpointView {
-  id: string; kind: CheckpointKind; prompt: string; item_id: string | null; item_instance_id: string | null; answered: boolean; late: boolean;
+  id: string; kind: CheckpointKind; prompt: string | null; item_id: string | null; item_instance_id: string | null; answered: boolean; late: boolean;
 }
 /**
  * The case part of a case mock's run view (the start's reply, GET /api/mocks's run, a start's run-on 409). Never a key, a correct option, a
- * value or a model text (S7-03); a checkpoint's options come with its serve. The grain waits while CP1, which may ask it, has no answer.
+ * value or a model text (S7-03); a checkpoint's options come with its serve. S7C-06: the grain waits for the review when the case lists a CP1.
  */
 export interface MockCaseView {
   case_id: string; title: string; level: number; persona: { name: string; role: string }; brief: { decision: string; deadline: string };
@@ -55,6 +60,8 @@ export interface MockCaseView {
   plan: Record<string, string> | null; insight: string | null; said: string[] | null;
   plan_fields: readonly Point[]; say_points: readonly Point[];
 }
+/** CP3's answer graded again for its diff, as a screen mock's review item has it (routes/mocks.ts MockReviewItem); null without an answer. */
+export type ReviewGrade = (GradeResult & { attempt_id: string | null }) | null;
 /** S7-07: one checkpoint of a case mock's review: the learner's one answer beside the correct one. */
 export interface MockCaseReviewCheckpoint {
   id: string; kind: CheckpointKind; prompt: string;
@@ -68,7 +75,7 @@ export interface MockCaseReviewCheckpoint {
   typed: TypedSpec | null; answer: string | null; value: number | null;
   /** CP3: its item, its instance (whose "show answer" is free now), the question, the learner's query and its grade with the diff. */
   item_id: string | null; item_instance_id: string | null; query: string | null; item_prompt: string | null; output_contract: SqlItem['output_contract'] | null;
-  grade: unknown;
+  grade: ReviewGrade;
 }
 /** S7-07: the case part of a case mock's review. */
 export interface MockCaseReviewPart {
@@ -76,7 +83,10 @@ export interface MockCaseReviewPart {
   checkpoints: MockCaseReviewCheckpoint[];
   plan: Record<string, string> | null; plan_fields: readonly Point[]; model_plan: string;
   insight: string | null; model_answer: string;
-  /** The rubric to tick (mockRubric), its mock's core lines, and the latest rubric logged (null: "Waiting for your rubric"). */
+  /**
+   * The rubric to tick (mockRubric), its mock's core lines (D116: the ones its start recorded, else the rules'), and the latest rubric logged
+   * (null: "Waiting for your rubric").
+   */
   rubric: readonly Point[]; core_rubric: string[]; rubric_ticked: string[] | null;
   said: string[] | null; say_points: readonly Point[];
   deadline_at: string;
@@ -88,7 +98,7 @@ export interface MockCases {
   /** The case part of a run view; null for a run that is not a case mock's. */
   view(run: RunEntry): MockCaseView | null;
   /** S7-07: the case part of an ended run's review; null when the run's case is not in the content. */
-  review(r: MockRun, regrade: (item: SqlItem, sql: string, attemptId: string | null) => Promise<unknown>): Promise<MockCaseReviewPart | null>;
+  review(r: MockRun, regrade: (item: SqlItem, sql: string, attemptId: string | null) => Promise<ReviewGrade>): Promise<MockCaseReviewPart | null>;
   /** S7-13: CP3's serve waits for the plan too (server/app.ts asks this on POST /api/serve purpose mock): the refusal line, or null. */
   planWait(blockId: string): string | null;
 }
@@ -140,6 +150,20 @@ export function mountMockCases(app: Hono, d: RouteDeps, runs: DrillRuns, engine:
     const id = d.content.mocks?.[mock].forms.find((f) => f.id === formId)?.case_id;
     return id === undefined ? undefined : d.content.mockCase?.(id);
   };
+  /**
+   * S7C-07 (F4-4-3): the case a run worked on, from its own records: a self-check's case_id (the plan comes first, S7-13), else the
+   * CASE-...:CPn prefix of a checkpoint answer; else its form's case. So a form whose case changes after the run (or before a take-home's
+   * rebuild) never shows the run another case's checkpoints. A case the content no longer holds falls back to the form too.
+   */
+  const caseOfRun = (block: string, mock: MockCaseKind, formId: string): MockCaseRecord | undefined => {
+    for (const r of records()) {
+      if (r.block_id !== block) continue;
+      const own = r.record === 'self_check' ? str(r.case_id) : r.record === 'attempt' ? /^(CASE-[^:]+):CP[1-6]$/.exec(str(r.item_id) ?? '')?.[1] ?? null : null;
+      const found = own === null ? undefined : d.content.mockCase?.(own);
+      if (found) return found;
+    }
+    return caseOfForm(mock, formId);
+  };
   /** The mock_open of a case mock's run, from the log (a run this process may not hold: it ended, or a restart came between). */
   const openOf = (block: string): Rec | undefined => records().find((r) => r.record === 'mock_open' && r.block_id === block && isMockCaseKind(r.mock));
   const hasPlan = (block: string): boolean => records().some((r) => r.record === 'self_check' && r.kind === 'plan' && r.block_id === block);
@@ -156,7 +180,7 @@ export function mountMockCases(app: Hono, d: RouteDeps, runs: DrillRuns, engine:
    */
   const liveRun = (block: string): { run: RunEntry & { plan: MockPlan }; record: MockCaseRecord; mock: MockContext } => {
     const run = caseRunOf(block);
-    const record = run && runs.current() === run && isMockCaseKind(run.plan.mock) ? caseOfForm(run.plan.mock, run.plan.form_id) : undefined;
+    const record = run && runs.current() === run && isMockCaseKind(run.plan.mock) ? caseOfRun(block, run.plan.mock, run.plan.form_id) : undefined;
     if (run && record) return { run, record, mock: { block_id: block } };
     if (run || openOf(block)) throw refuse(409, MOCK_RUN_OVER, CODE_RUN_OVER);
     throw refuse(404, 'Unknown mock run.');
@@ -165,7 +189,7 @@ export function mountMockCases(app: Hono, d: RouteDeps, runs: DrillRuns, engine:
   const endedRun = (block: string): { record: MockCaseRecord; mock: MockContext } => {
     if (caseRunOf(block)) throw refuse(409, REVIEW_WAITS);
     const open = openOf(block);
-    const record = open && isMockCaseKind(open.mock) ? caseOfForm(open.mock, String(open.form_id)) : undefined;
+    const record = open && isMockCaseKind(open.mock) ? caseOfRun(block, open.mock, String(open.form_id)) : undefined;
     if (!record) throw refuse(404, 'Unknown mock run.');
     return { record, mock: { block_id: block } };
   };
@@ -214,11 +238,23 @@ export function mountMockCases(app: Hono, d: RouteDeps, runs: DrillRuns, engine:
       release(logged);
     }
   });
+  // S7C-02 (Codex F38): the body is read before the run check, and an insight sent in time holds the run's end until it is logged, as an
+  // answer does (D9); one whose run ended first is refused with the run-over 409 and logs nothing, so no insight follows a block_close.
   app.post('/api/mocks/:block_id/insight', async (c) => {
     const block = c.req.param('block_id');
-    const { record, mock } = liveRun(block);
+    const b = await readBody(c);
+    const { run, record, mock } = liveRun(block);
     planFirst(block);
-    return c.json(await engine.insight(asCase(record), await readBody(c), mock));
+    const release = await runs.holdRun(run);
+    if (!release) throw refuse(409, MOCK_RUN_OVER, CODE_RUN_OVER);
+    let logged: Date | null = null;
+    try {
+      const reply = await engine.insight(asCase(record), b, mock);
+      logged = new Date(runs.now());
+      return c.json(reply);
+    } finally {
+      release(logged);
+    }
   });
   // S7-14: said aloud, so nothing is recorded but the four points ticked; during the run or after it, as the learner says it.
   app.post('/api/mocks/:block_id/say-aloud', async (c) => {
@@ -256,7 +292,7 @@ export function mountMockCases(app: Hono, d: RouteDeps, runs: DrillRuns, engine:
   if (file) {
     for (const t of openTakeHomes(records())) {
       if (runs.get(t.block_id)) continue;
-      const record = caseOfForm('take_home', t.form_id);
+      const record = caseOfRun(t.block_id, 'take_home', t.form_id);
       const servings = (record?.checkpoints ?? []).filter((cp) => AUTO_GRADED.includes(cp.kind) && typeof cp.item_id === 'string').map((cp) => ({
         item_id: cp.item_id!,
         item_instance_id: t.answered.get(cp.item_id!) ?? t.attempted.get(cp.item_id!)
@@ -289,7 +325,7 @@ export function mountMockCases(app: Hono, d: RouteDeps, runs: DrillRuns, engine:
     view: (run) => {
       const p = run.plan;
       if (!isMockPlan(p) || !isMockCaseKind(p.mock)) return null;
-      const record = caseOfForm(p.mock, p.form_id);
+      const record = caseOfRun(run.block_id, p.mock, p.form_id);
       if (!record) return null;
       const recs = records();
       const answers = answersIn(recs, run.block_id);
@@ -298,11 +334,14 @@ export function mountMockCases(app: Hono, d: RouteDeps, runs: DrillRuns, engine:
       const checks = selfChecksIn(recs, run.block_id);
       // S7-15, S7-C30: an answer after the deadline is late; so is CP6 once its memo was saved after it.
       const memoLate = insightTimes(recs, run.block_id).some((at) => isLateAt(p.mock, at, deadline));
+      // F4-2-5: no prompt before the plan: the screen shows none then, and the server refuses every serve (PLAN_FIRST).
+      const planned = checks.has('plan');
       return {
-        ...caseHead(record, answers),
+        ...caseHead(record),
         checkpoints: record.checkpoints.map((cp) => {
           const a = typeof cp.item_id === 'string' ? answers.get(cp.item_id) : undefined;
-          return { id: cp.id, kind: cp.kind, prompt: cp.prompt, item_id: cp.item_id ?? null, item_instance_id: typeof cp.item_id === 'string' ? instanceOf.get(cp.item_id) ?? null : null,
+          return { id: cp.id, kind: cp.kind, prompt: planned ? cp.prompt : null, item_id: cp.item_id ?? null,
+            item_instance_id: typeof cp.item_id === 'string' ? instanceOf.get(cp.item_id) ?? null : null,
             answered: a !== undefined, late: cp.kind === 'CP6' ? memoLate : a !== undefined && isLateAt(p.mock, a.at, deadline) };
         }),
         plan: fieldsOf(checks.get('plan')), insight: str(checks.get('insight')?.text), said: tickedOf(checks.get('explained_aloud')),
@@ -312,15 +351,17 @@ export function mountMockCases(app: Hono, d: RouteDeps, runs: DrillRuns, engine:
 
     review: async (r, regrade) => {
       if (!isMockCaseKind(r.mock) || r.ended_at === null) return null;
-      const record = caseOfForm(r.mock, r.form_id);
+      const record = caseOfRun(r.block_id, r.mock, r.form_id);
       if (!record) return null;
       const recs = records();
       const ended = Date.parse(r.ended_at);
       const answers = answersIn(recs, r.block_id, ended);
-      const minutes = Number(openOf(r.block_id)?.minutes) || d.content.mocks![r.mock].minutes;
+      // N3 M1: the minutes the score reads (openMinutes), so the review's late marks and deadline agree with the run's.
+      const minutes = openMinutes(openOf(r.block_id) ?? {}) ?? d.content.mocks![r.mock].minutes;
       const deadline = deadlineOf(Date.parse(r.opened_at), minutes);
       const memoLate = insightTimes(recs, r.block_id, ended).some((at) => isLateAt(r.mock, at, deadline));
-      const core = d.content.mocks?.[r.mock].core_rubric ?? [];
+      // D116 (S7C-03): the core lines its start recorded, else (a log before 0.7.2) the rules', as its score reads them.
+      const core = runCoreRubric(recs, r.block_id, r.mock, d.content.mocks);
       const checks = selfChecksIn(recs, r.block_id);
       const key = d.content.caseKey?.(record.case_id);
       const truthOf = (truthKey: string | undefined): number | undefined => (truthKey ? d.content.checkpointTruth?.(truthKey) : undefined);
@@ -355,7 +396,7 @@ export function mountMockCases(app: Hono, d: RouteDeps, runs: DrillRuns, engine:
           checkpoints.push({ ...base, outcome: cp6Passed ? 'passed' : r.rubric_ticked === null ? 'not_answered' : 'failed', late: memoLate });
         }
       }
-      const head = caseHead(record, answers);
+      const head = caseHead(record);
       return {
         // The run is over, so the grain is shown whatever was answered.
         case: { ...head, expected_output: { ...head.expected_output, grain: record.expected_output?.grain ?? null } },
@@ -371,14 +412,13 @@ export function mountMockCases(app: Hono, d: RouteDeps, runs: DrillRuns, engine:
 }
 
 /**
- * The case's brief as a case mock shows it (D1-M6: only the fields the screens read). The grain waits while it would answer CP1, as on the
- * case screen: shown once CP1 or CP3 has its answer in the run, or at once when the case lists no CP1.
+ * The case's brief as a case mock shows it (D1-M6: only the fields the screens read). S7C-06 (F4-2-6): when the case lists a CP1, which may
+ * ask the grain, the grain waits for the review, whatever the run has answered (a mock's answers are never shown in the run, so nothing
+ * would tell the learner the grain was given away); a case with no CP1 shows it at once.
  */
-function caseHead(record: MockCaseRecord, answers: ReadonlyMap<string, unknown>) {
+function caseHead(record: MockCaseRecord) {
   const out = record.expected_output;
-  const cp1 = record.checkpoints.find((c) => c.kind === 'CP1')?.item_id;
-  const cp3 = record.checkpoints.find((c) => c.kind === 'CP3')?.item_id;
-  const grain = cp1 === undefined || answers.has(cp1) || (cp3 !== undefined && answers.has(cp3));
+  const grain = !record.checkpoints.some((c) => c.kind === 'CP1');
   return {
     case_id: record.case_id, title: record.title, level: record.level, persona: personaOf(record), brief: briefOf(record),
     data_needed: Array.isArray(record.data_needed) ? [...record.data_needed] : [],

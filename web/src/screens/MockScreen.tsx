@@ -10,7 +10,7 @@
 // Part 2 (Task N1; S7-04, S7-07, S7-10): the knowledge mock. Its start screen says whether a pass would count (or when unseen questions
 // come back); its run is ChoiceRunScreen's exam view (one question at a time in its own section, forward only, one answer, no confidence);
 // its review shows the score per section and topic, never a question.
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type RefObject } from 'react';
 import { passCorrect } from '../../../schemas/mock.ts';
 import type { DisplayOk } from '../../../server/runner/protocol.ts';
 import { api, type ChoiceSection } from '../api.ts';
@@ -22,10 +22,10 @@ import { SqlCode } from '../components/SqlCode.tsx';
 import { TOPIC_LABEL } from '../lib/choice-flow.ts';
 import { EndGuard, countdownText, endWithRetry, hiddenFlags, remainingSeconds } from '../lib/drill-flow.ts';
 import { grainLine } from '../lib/exercise.ts';
-import { recallIndex, rememberIndex, resumeIndex } from '../lib/run-flow.ts';
+import { recallIndex, rememberIndex, resumeIndex, saveFocusTarget } from '../lib/run-flow.ts';
 import {
   KNOWLEDGE_HELP_LINE, MOCK_HELP_LINE, MOCK_NAME, MOCKS_HREF, OUTCOME_LINE, PRACTICE_LINE, REVIEW_HELP_LINE, RUN_OVER_LINE, UNSEEN_LINE, answeredServings,
-  cardRuleLine, countsLine, formsLine, isKnowledgeRules, isScreenRules, knowledgeUnseenLine, mockRunFromRefusal, mocksApi, questionName, reviewHref, reviewScoreLine,
+  cardRuleLine, countsLine, formsLine, notReachedLine, isKnowledgeRules, isScreenRules, knowledgeUnseenLine, mockRunFromRefusal, mocksApi, questionName, reviewHref, reviewScoreLine,
   type MockCard, type MockKind, type MockReview, type MockReviewItem, type MockRunView,
 } from '../lib/mock-flow.ts';
 import { TUTOR_WAITS } from '../tutor/snapshot.ts';
@@ -38,11 +38,6 @@ const isMockKind = (m: string): m is MockKind => m === 'screen' || m === 'knowle
 const SECTION_NAME: Readonly<Record<ChoiceSection, string>> = { methodology: 'Methodology', ga4: 'GA4' };
 /** S7-10: the section a question of the run is opened in (the start names it on each serving). */
 const sectionOf = (s: MockRunView['servings'][number]): ChoiceSection => (s.section === 'methodology' ? 'methodology' : 'ga4');
-/** B3 I2: the positions of the run that have their answer, as the server gives them (resumeIndex drops any out of range). */
-const answeredOf = (r: MockRunView): number[] => {
-  const a = (r as { answered?: unknown }).answered;
-  return Array.isArray(a) ? a.filter((n): n is number => Number.isInteger(n)) : [];
-};
 /** S7-07: a knowledge mock's review: the score per section and per topic, never a question. */
 interface KnowledgeReview extends MockReview {
   sections: { section: ChoiceSection; correct: number; of: number }[];
@@ -55,21 +50,30 @@ interface KnowledgeReview extends MockReview {
  * there (B3 I2), a resumed run opens after its last answered question and never before the one this tab reached. Its saved line names the
  * knowledge mock (N1 M1).
  */
-function KnowledgeQuestions(p: { run: MockRunView; onStopped: (note?: string) => void }) {
+function KnowledgeQuestions(p: { run: MockRunView; onStopped: (note?: string) => void; endButton: RefObject<HTMLButtonElement | null> }) {
   const total = p.run.servings.length;
-  const [answered, setAnswered] = useState<ReadonlySet<number>>(() => new Set(answeredOf(p.run)));
-  const [index, setIndex] = useState(() => resumeIndex('exam', answeredOf(p.run), total, recallIndex(p.run.block_id, total)));
+  // The positions that have their answer are the servings' own marks (answeredServings); the run view carries them once.
+  const [answered, setAnswered] = useState<ReadonlySet<number>>(() => new Set(answeredServings(p.run)));
+  const [index, setIndex] = useState(() => resumeIndex('exam', answeredServings(p.run), total, recallIndex(p.run.block_id, total)));
   const s = p.run.servings[index]!;
   const next = () => { setIndex(index + 1); rememberIndex(p.run.block_id, index + 1); };
+  // N1 M8 (S5-25): a save moves focus to the next control, or to the end control on the last question, once the screen has updated.
+  const nextButton = useRef<HTMLButtonElement>(null);
+  const focusNext = useRef<'next' | 'end' | null>(null);
+  useEffect(() => {
+    if (!focusNext.current) return;
+    (focusNext.current === 'end' ? p.endButton : nextButton).current?.focus();
+    focusNext.current = null;
+  }, [answered]);
   return (
     <>
       <div className="card q-card">
         <h2>{`Question ${index + 1} of ${total}`}</h2>
         <ChoicePanel itemId={s.item_id} section={sectionOf(s)} instanceId={s.item_instance_id}
           run={{ mode: 'exam', kind: 'knowledge_mock', confidence: false, answeredBefore: answered.has(index), visible: true,
-            onSaved: () => setAnswered((a) => new Set(a).add(index)), onStopped: p.onStopped }} />
+            onSaved: () => { focusNext.current = saveFocusTarget(index, total); setAnswered((a) => new Set(a).add(index)); }, onStopped: p.onStopped }} />
       </div>
-      {index < total - 1 && <p className="toolbar"><button type="button" onClick={next}>Next question</button></p>}
+      {index < total - 1 && <p className="toolbar"><button type="button" ref={nextButton} onClick={next}>Next question</button></p>}
     </>
   );
 }
@@ -109,6 +113,7 @@ function MockRun(p: { run: MockRunView; card: MockCard | undefined; onEnded: () 
   const [left, setLeft] = useState(() => remainingSeconds(Date.parse(run.ends_at), Date.now()));
   const [message, setMessage] = useState<string | null>(null);
   const guard = useRef(new EndGuard());
+  const handIn = useRef<HTMLButtonElement>(null);
   // An end the clock asked for that failed after its tries: the clock stops asking, and "Hand in" tries again.
   const clockGaveUp = useRef(false);
   // D108: the tutor is closed while the mock's clock runs, as help is, and open again in the review.
@@ -180,7 +185,7 @@ function MockRun(p: { run: MockRunView; card: MockCard | undefined; onEnded: () 
         <p className="run-timer"><strong role="timer">{countdownText(left)}</strong></p>
       </div>
       {message && <p role="alert" className="notice">{message}</p>}
-      {knowledge ? <KnowledgeQuestions run={run} onStopped={(note) => void knowledgeStopped(note)} /> : <>
+      {knowledge ? <KnowledgeQuestions run={run} endButton={handIn} onStopped={(note) => void knowledgeStopped(note)} /> : <>
         <nav aria-label="Questions" className="qstrip">{run.servings.map((s, i) => (
           <button key={s.item_instance_id} type="button" className={answered.has(i) ? 'answered' : undefined} aria-pressed={i === index} aria-label={questionName(i, answered.has(i))}
             onClick={() => setIndex(i)}>{i === index ? <strong>{i + 1}</strong> : i + 1}</button>
@@ -193,7 +198,7 @@ function MockRun(p: { run: MockRunView; card: MockCard | undefined; onEnded: () 
           </div>
         ))}
       </>}
-      <p><button type="button" onClick={() => { if (confirm('Hand in the mock now? Questions you have not answered count as not right.')) void end(); }}>Hand in</button></p>
+      <p><button type="button" ref={handIn} onClick={() => { if (confirm('Hand in the mock now? Questions you have not answered count as not right.')) void end(); }}>Hand in</button></p>
     </section>
   );
 }
@@ -292,6 +297,7 @@ export function MockReviewScreen(p: { blockId: string }) {
       {head}
       <p role="status"><strong>{reviewScoreLine(review)}</strong></p>
       <p>{countsLine(review)}</p>
+      {notReachedLine(review.not_reached) && <p>{notReachedLine(review.not_reached)}</p>}
       <p className="muted">{REVIEW_HELP_LINE}</p>
       <ol className="review-items card">{review.items.map((i) => <ReviewItem key={i.n} item={i} total={review.items.length} />)}</ol>
       <p><a href={MOCKS_HREF}>Back to the recruiter mocks</a></p>

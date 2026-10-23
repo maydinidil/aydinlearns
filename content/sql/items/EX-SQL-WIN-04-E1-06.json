@@ -1,6 +1,6 @@
 {
   "id": "EX-SQL-WIN-04-E1-06",
-  "version": 1,
+  "version": 2,
   "kind": "write",
   "tags": [
     "sql",
@@ -45,7 +45,7 @@
   "company": "mailvora",
   "schema": "mailvora",
   "edge_schema": "mailvora_edge_win",
-  "prompt": "For each UTC day from 1 July to 31 October 2025 on which at least one user signed up (signup_ts holds UTC time), show the number of signups that day and the cumulative number of signups from 1 July up to and including that day. Days with no signups are left out. Return signup_date, signups and cumulative_signups. Any row order is fine.",
+  "prompt": "For each UTC day from 1 July to 31 October 2025 on which at least one user signed up (signup_ts holds UTC time), show the number of signups that day and the cumulative number of signups from 1 July up to and including that day. Days with no signups are left out. Return three columns, in this order: signup_date, signups and cumulative_signups. Return one row for each such day. Any row order is fine.",
   "output_contract": {
     "columns": [
       {

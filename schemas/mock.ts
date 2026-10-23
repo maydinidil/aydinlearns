@@ -6,6 +6,12 @@ import type { MockOpen } from '../core/envelope.ts';
 /** The four recruiter mocks (design §2.1, stages 2 to 5), as a mock_open names them (D112). */
 export type MockKind = MockOpen['mock'];
 export const MOCK_KINDS: readonly MockKind[] = ['screen', 'knowledge', 'case_round', 'take_home'];
+/**
+ * The two case mocks, and the guard for a route's or a record's mock kind (N3 M2). It lives here because the browser build can load this
+ * module (schemas/case.ts brings node:crypto through schemas/choice.ts); schemas/case.ts re-exports it beside its isMockCaseKind.
+ */
+export type CaseMockKind = 'case_round' | 'take_home';
+export const isCaseMockKind = (m: unknown): m is CaseMockKind => m === 'case_round' || m === 'take_home';
 /** S7-04: the mocks that run fixed forms. The knowledge mock draws its questions at its start instead. */
 export type FormMockKind = Exclude<MockKind, 'knowledge'>;
 /** S7-01: the knowledge mock's form_id: its questions are drawn at the start, so it has no forms. */

@@ -31,6 +31,11 @@ export interface MockSqlQuestionProps {
    * restart, on which a case mock reads the run again): true when it did; otherwise its line shows here.
    */
   onRefused: (code: string) => boolean;
+  /**
+   * F4-2-1 (fixer A, sprint 7c): the typed query, kept by the screen. When the editor is taken down (the question reopens on a new instance
+   * after an app restart, or the step remounts) its text goes here, and a new editor starts from it, so a take-home's CP3 keeps its query.
+   */
+  draft?: { current: string | null };
 }
 
 export function MockSqlQuestion(p: MockSqlQuestionProps) {
@@ -49,8 +54,15 @@ export function MockSqlQuestion(p: MockSqlQuestionProps) {
   const shownAt = useRef(new Date());
   const refused = useRef(p.onRefused);
   refused.current = p.onRefused;
+  const draft = useRef(p.draft);
+  draft.current = p.draft;
+  // F4-2-1 (fixer A): before the editor is taken down, its text goes to the draft. Declared before useSqlEditor, whose clean-up destroys the
+  // editor, because React runs a component's clean-ups in the order its effects are declared.
+  useEffect(() => () => { const text = editor.current?.getText(); if (draft.current && text !== undefined) draft.current.current = text; }, [data]);
   // F2-3-6: Ctrl+Shift+Enter, one key from Run's Ctrl+Enter, sends nothing here: the one answer goes only through Submit and its question.
   const editor = useSqlEditor(editorHost, data, { stage: 3, screenMode: p.screen === true || data?.screen_mode === true, run: () => void doRun(), submit: () => {} });
+  // F4-2-1 (fixer A): a new editor starts from the draft, when the screen keeps one.
+  useEffect(() => { const text = draft.current?.current; if (data && text != null && editor.current && editor.current.getText() !== text) editor.current.setText(text); }, [data]);
 
   useEffect(() => { if (p.answered) setAnswered(true); }, [p.answered]);
   useEffect(() => {

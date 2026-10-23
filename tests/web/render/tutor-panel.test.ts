@@ -8,7 +8,7 @@ import { act, createElement, Fragment, useState, type ReactElement } from 'react
 import { click, render, settle, type } from '../../helpers/render.ts';
 import { GradePanel } from '../../../web/src/components/GradePanel.tsx';
 import { TutorPanel } from '../../../web/src/tutor/TutorPanel.tsx';
-import { TutorProvider, useTutor, useTutorAvailable, useTutorClosed, useTutorPart, type TutorState } from '../../../web/src/tutor/TutorContext.tsx';
+import { MOCK_WAITS, TutorProvider, useTutor, useTutorAvailable, useTutorClosed, useTutorPart, type TutorState } from '../../../web/src/tutor/TutorContext.tsx';
 import { choicePart } from '../../../web/src/tutor/snapshot.ts';
 import { SUMMARY_MARK, type TutorAskBody } from '../../../schemas/tutor.ts';
 import type { PublicGrade } from '../../../web/src/api.ts';
@@ -271,4 +271,57 @@ test('S7-36 (T8 M7): the panel starts at the top bar\'s bottom edge, follows the
   await act(async () => { window.dispatchEvent(new Event('scroll')); });
   assert.equal(top(), '0px', 'the bar is off the screen: the panel is at the top, never above it');
   unmount();
+});
+
+// ---- Sprint 7c (Task X3): D117 (S7C-04) ---------------------------------------------------------------------------------------------------
+
+/** The status as GET /api/tutor/status answers it, with a mock run on or not; questions are refused, as the server would while one is. */
+function stubStatus(mockOn: () => boolean): string[] {
+  const reads: string[] = [];
+  globals.fetch = async (input: unknown) => {
+    if (String(input) === '/api/tutor/status') {
+      reads.push(String(input));
+      return new Response(JSON.stringify({ enabled: true, switched_on: true, provider: 'claude', model: 'claude-haiku-5-5', effort: 'medium', reason: null, models: [],
+        keys: [], spent_today_usd: 0, cap_usd: 1, run_on: mockOn(), mock_on: mockOn() }), { status: 200, headers: { 'content-type': 'application/json' } });
+    }
+    return new Response(JSON.stringify({ error: 'Not found.' }), { status: 404, headers: { 'content-type': 'application/json' } });
+  };
+  return reads;
+}
+
+test('D117 (S7C-04): while a mock runs the panel shows the waiting line on any screen, with no question asked; once it ends, the next screen or opening reads it again and the tutor opens', async () => {
+  viewport(false);
+  let mockOn = true;
+  const reads = stubStatus(() => mockOn);
+  let go: (screen: 'today' | 'lesson') => void = () => {};
+  const available: boolean[] = [];
+  function Page() {
+    const [screen, set] = useState<'today' | 'lesson'>('today');
+    go = set;
+    return createElement(Fragment, null, createElement('main', null, 'The screen'), createElement(TutorPanel, { screen }), createElement(Probe));
+  }
+  function Narrow() { available.push(useTutorAvailable()); return null; }
+  const { container, unmount } = render(createElement(TutorProvider, { enabled: true, children: createElement(Fragment, null, createElement(Page), createElement(Narrow)) }));
+  try {
+    await settle();
+    assert.equal(tutor!.closedBy, MOCK_WAITS, 'read when the panel mounts, closed before it is opened');
+    assert.equal(available.at(-1), false, 'the quick prompts hear it too');
+    await open();
+    const panel = container.querySelector('aside.tutor-panel')!;
+    assert.equal(panel.querySelector('[role="status"]')?.textContent, `${MOCK_WAITS}.`, 'Today: the waiting line, before any question');
+    assert.equal(panel.querySelector('textarea'), null, 'no question box while it waits');
+    await act(async () => { go('lesson'); });
+    await settle();
+    assert.equal(container.querySelector('aside.tutor-panel [role="status"]')?.textContent, `${MOCK_WAITS}.`, 'a lesson too');
+    mockOn = false;                                                                          // the mock is handed in
+    await shut(); await open();
+    assert.equal(tutor!.closedBy, null, 'opening reads the status again: the tutor is open');
+    assert.ok(container.querySelector('aside.tutor-panel textarea'), 'the question box is back');
+    assert.equal(available.at(-1), true);
+    const before = reads.length;
+    await act(async () => { go('today'); });
+    await settle();
+    assert.equal(reads.length, before + 1, 'each screen change reads the status');
+  } finally { unmount(); }
+  assert.equal(tutor!.closedBy, null, 'nothing is left closed once the panel is gone');
 });

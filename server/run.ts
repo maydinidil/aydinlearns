@@ -13,7 +13,7 @@
 // a knowledge-pool item.
 import { randomInt } from 'node:crypto';
 import { isUnseen, nextUnseenDate, pickForm, scoreRun, spread, type ExamHistory, type RunScore } from '../core/exam.ts';
-import { countsAsAttempt, isUnreached } from '../core/replay.ts';
+import { isUnreached } from '../core/replay.ts';
 import { amsterdamDate } from '../core/time.ts';
 import { choiceTarget, type ChoiceItem, type ChoiceSection } from '../schemas/choice.ts';
 import type { Ga4Item } from '../schemas/ga4.ts';
@@ -22,7 +22,7 @@ import type { LoggedRunKind } from '../schemas/log-ext.ts';
 import type { KnowledgeMock } from '../schemas/mock.ts';
 import type { ContentStore } from './content.ts';
 import { drillRunView, isDrillPlan, isMockPlan, mockRunView, SEEN_WINDOW_MS, type RunEntry } from './drill.ts';
-import { MOCK_BLOCK_PREFIX } from './mocks.ts';
+import { knowledgeRunAnswers, knowledgeTotal, MOCK_BLOCK_PREFIX } from './mocks.ts';
 import { countsForReadiness } from './readiness.ts';
 
 /** D68: the kinds a GA4 run answer logs as its payload's run_kind. */
@@ -423,9 +423,21 @@ export function knowledgePools(content: Pick<ContentStore, 'choiceItems' | 'choi
   const ga4 = [...new Set(content.knowledgePool?.() ?? [])].map((id) => content.choiceItem?.(id)).filter(usable).flatMap(question('ga4'));
   return { methodology, ga4 };
 }
-/** S7-C21: whether a start can draw the knowledge mock: each pool holds at least its section's share of questions. */
-export const knowledgeReady = (pools: KnowledgePools, rules: KnowledgeMock): boolean =>
-  pools.methodology.length >= rules.per_section.methodology && pools.ga4.length >= rules.per_section.ga4;
+/** N1 M5: each knowledge pool's usable questions, what its section's share asks, and the sections whose pool is too small, Methodology first. */
+export interface KnowledgeReadiness { usable: Record<ChoiceSection, number>; need: Record<ChoiceSection, number>; short: ChoiceSection[] }
+/**
+ * S7-C21 (N1 M5, F4-1-6): the one rule for whether the knowledge mock can be drawn: each pool's usable questions (knowledgePools: active,
+ * with a key and a topic) against its section's share (`per_section`). The start's refusal and the card's `blocked` (routes/mocks.ts), the
+ * goal view's `mocksAvailable` (knowledgeReady) and content check C56 all read it. A draw it allows can still come up short when too many
+ * questions share an enemy group (drawKnowledge); the start says so then.
+ */
+export function knowledgeReadiness(pools: KnowledgePools, rules: KnowledgeMock): KnowledgeReadiness {
+  const usable = { methodology: pools.methodology.length, ga4: pools.ga4.length };
+  const need = { methodology: rules.per_section.methodology, ga4: rules.per_section.ga4 };
+  return { usable, need, short: (['methodology', 'ga4'] as const).filter((s) => usable[s] < need[s]) };
+}
+/** S7-C21: whether a start can draw the knowledge mock (knowledgeReadiness: no pool is short). */
+export const knowledgeReady = (pools: KnowledgePools, rules: KnowledgeMock): boolean => knowledgeReadiness(pools, rules).short.length === 0;
 
 /** Fisher-Yates. `random(n)` is a whole number from 0 to n - 1. The input is left alone. */
 function shuffle<T>(xs: readonly T[], random: (n: number) => number): T[] {
@@ -481,24 +493,27 @@ export interface KnowledgeScore {
   topics: { section: ChoiceSection; topic: string; correct: number; of: number }[];
 }
 /**
- * S7-07, S7-10: a knowledge run's score from the questions its block served (its end closes each one) and each one's first answer that
- * counts (countsAsAttempt, as server/mocks.ts mockRuns scores the run), logged by `ended` (ms). A section is out of its share of
- * questions (`per_section`), a topic out of the questions served there; an unanswered question is wrong. Names no item (S3-12).
+ * S7-07, S7-10: a knowledge run's score per section and topic, from its own questions and each one's first answer that counts, logged by
+ * `ended` (ms): server/mocks.ts knowledgeRunAnswers, the reading mockRuns scores the history row on (N1 M4), so the sections add up to the
+ * row, and the topics to the questions it names, while the content holds each question's topic (a 0.7.1 run's unnamed questions have no
+ * known topic, as in 0.7.1, and nor has a question whose topic the content no longer holds). Its questions are its mock_open's item_ids, else (a log before 0.7.2) the
+ * ones its records name (D116, S7C-03). A section or a topic is out of the run's questions there, whatever the rules ask now (F4-4-2); an
+ * unanswered question is wrong. Ruling S7C-C04: a 0.7.1 run keeps 0.7.1's total (server/mocks.ts knowledgeTotal), so the questions a crash
+ * left unnamed go to the sections short of their share (`per_section`), Methodology first, as 0.7.1 counted each section out of at least
+ * its share; they add up exactly, since the shares add up to `questions`. Names no item (S3-12).
  */
 export function knowledgeScore(records: readonly object[], block: string, ended: number, rules: KnowledgeMock,
   topicOf: (itemId: string) => KnowledgeTopic | undefined): KnowledgeScore {
-  const mine = (records as Rec[]).filter((r) => str(r.block_id) === block);
-  const served = [...new Set(mine.filter((r) => r.record === 'attempt' || r.record === 'item_close').map((r) => str(r.item_id)).filter((x): x is string => x !== null))];
-  const first = new Map<string, boolean>();
-  const answers = mine.filter((r) => r.record === 'attempt' && r.phase === 'mock' && countsAsAttempt(r) && Date.parse(str(r.submitted_at) ?? '') <= ended)
-    .sort((x, y) => Date.parse(str(x.submitted_at)!) - Date.parse(str(y.submitted_at)!));
-  for (const r of answers) if (!first.has(str(r.item_id) ?? '')) first.set(str(r.item_id) ?? '', r.outcome === 'pass');
-  const rows = served.flatMap((id) => { const t = topicOf(id); return t ? [{ ...t, right: first.get(id) === true }] : []; });
+  const { questions, listed, passed } = knowledgeRunAnswers(records, block, ended);
+  const rows = questions.flatMap((id) => { const t = topicOf(id); return t ? [{ ...t, right: passed.get(id) === true }] : []; });
   const order: readonly ChoiceSection[] = ['methodology', 'ga4'];
+  let unnamed = knowledgeTotal(questions, listed, rules) - rows.length;
   return {
     sections: order.map((section) => {
       const all = rows.filter((r) => r.section === section);
-      return { section, correct: all.filter((r) => r.right).length, of: Math.max(rules.per_section[section], all.length) };
+      const more = Math.min(unnamed, Math.max(0, rules.per_section[section] - all.length));
+      unnamed -= more;
+      return { section, correct: all.filter((r) => r.right).length, of: all.length + more };
     }),
     topics: order.flatMap((section) => [...new Set(rows.filter((r) => r.section === section).map((r) => r.topic))].sort().map((topic) => {
       const all = rows.filter((r) => r.section === section && r.topic === topic);

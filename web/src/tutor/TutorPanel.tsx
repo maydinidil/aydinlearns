@@ -1,7 +1,8 @@
 // web/src/tutor/TutorPanel.tsx: the side panel (AI tutor design §4, §7, §10): the thread, the question box, "New question", the reply as it
 // streams (rendered with Markdown, its code blocks with SqlCode), the help note before the first question on an unpassed item, the model
 // and effort in use and today's spend (block P), and the closed state. Alt+T opens and closes it; closing gives focus back to where it
-// was, and stops a reply in flight (Review Focus 2). It sends one question at a time.
+// was, and stops a reply in flight (Review Focus 2). It sends one question at a time. D117 (S7C-04): it reads the status on each screen and
+// on opening, and while a mock run is on it closes the tutor on every screen with MOCK_WAITS.
 import { useEffect, useRef, useState } from 'react';
 import type { TutorStatusView } from '../../../schemas/tutor.ts';
 import type { Screen } from '../../../schemas/journey.ts';
@@ -14,7 +15,7 @@ import {
   afterAsk, canSend, emptyThread, exchangeKey, HELP_NOTE, helpNoteDue, newQuestion, NO_ANSWER, restoreQuestion, spendLine, thinking, threadFor, threadKey,
   type AfterAsk, type AskEnd, type Asked, type LiveReply, type ThreadState,
 } from './thread.ts';
-import { useTutor } from './TutorContext.tsx';
+import { mockWaitsIn, useTutor } from './TutorContext.tsx';
 import { tutorAsk, tutorStatus } from './tutor-api.ts';
 import { modelLine } from '../lib/tutor-settings.ts';
 import { helpedInstance } from '../lib/tutor-help.ts';
@@ -50,13 +51,25 @@ export function TutorPanel({ screen, subject }: { screen: Screen; subject?: stri
   const onPanelKey = (e: React.KeyboardEvent<HTMLElement>): void => {
     if (closesOnKey({ key: e.key, isComposing: e.nativeEvent.isComposing }, t.open)) { e.preventDefault(); t.setOpen(false); }
   };
-  // Opening: the question box gets focus and the spend is read again. Closing: focus goes back to where it was, when it was in the panel.
+  // D117 (S7C-04): while a mock run is on the tutor waits on every screen. The status says so; it is read when the panel mounts, on each new
+  // screen and on opening, so the line shows before any question is sent, and the tutor opens again once the mock has ended.
+  const mockWait = useRef(Symbol('mock-run'));
+  const closeFor = t.close;
+  const readStatus = (): (() => void) => {
+    let live = true;
+    tutorStatus().then((s) => { if (!live) return; setStatus(s); closeFor(mockWait.current, mockWaitsIn(s)); }, () => {});
+    return () => { live = false; };
+  };
+  useEffect(readStatus, [screen, subject]);
+  useEffect(() => () => closeFor(mockWait.current, null), []);
+  // Opening: the question box gets focus and the status (the spend, D117's mock run) is read again. Closing: focus goes back to where it was,
+  // when it was in the panel.
   useEffect(() => {
     if (!t.open) return;
     const before = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     (box.current ?? closeButton.current)?.focus();
-    tutorStatus().then(setStatus, () => {});
-    return () => { if (before?.isConnected && (document.activeElement === null || document.activeElement === document.body)) before.focus(); };
+    const stopRead = readStatus();
+    return () => { stopRead(); if (before?.isConnected && (document.activeElement === null || document.activeElement === document.body)) before.focus(); };
   }, [t.open]);
   // A quick prompt fills the question.
   useEffect(() => { if (t.prefill !== null) { setDraft(t.prefill); t.clearPrefill(); } }, [t.prefill]);

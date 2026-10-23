@@ -7,7 +7,7 @@ import type { Lesson } from '../schemas/lesson.ts';
 import { MOCK_ITEM_PREFIX, type SqlItem } from '../schemas/item.ts';
 import type { SqlKey } from '../schemas/keys.ts';
 import type { EdgeDescription } from '../schemas/edge.ts';
-import { caseSchema, type CaseKey, type CaseRecord, type MockCaseRecord } from '../schemas/case.ts';
+import { caseSchema, isMockCaseKind, type CaseKey, type CaseRecord, type MockCaseRecord } from '../schemas/case.ts';
 import type { Goal } from '../core/goals.ts';
 import { choiceTarget, type ChoiceConcept, type ChoiceConceptFile, type ChoiceItem, type ChoiceKey, type ChoiceSection, type HeldOutFile } from '../schemas/choice.ts';
 import { validateReading, type Reading } from '../schemas/reading.ts';
@@ -22,6 +22,8 @@ export const LAB_KEY_DIR = 'keys/ga4/labs';
 export const LAB_GUIDE_FILE = 'ga4/lab-guide.json';
 /** Sprint 7 (S7-08): where the held-out mock cases sit under the content root, one file per case (<case_id>.json). */
 export const MOCK_CASE_DIR = 'sql/mocks';
+/** S7C-05: the ID prefixes only the mock cases use (schemas/case.ts checkMockCaseId): a record with one is held out wherever it sits. */
+export const MOCK_CASE_ID_PREFIXES: readonly string[] = ['CASE-MOCK-', 'CASE-TAKE-'];
 /** Sprint 7 Part 2 (S7-10, S7-11): the knowledge mock's GA4 questions, `{ "item_ids": [...] }`, under the content root. */
 export const KNOWLEDGE_POOL_FILE = 'ga4/knowledge-pool.json';
 
@@ -158,7 +160,8 @@ export interface ContentStore {
   /**
    * Sprint 7 (S7-08, D114): the held-out mock content, held out by where it is stored. An SQL item with `use: 'mock'` (or an EX-MOCK- ID,
    * whatever its use says) loads here and never into item() or sqlItems(), so no practice route, drill pool or lesson reaches it; a case
-   * in content/sql/mocks/ loads here and never into cases() or case(). Only the mock routes, check:content and the solver tools read
+   * in content/sql/mocks/ (S7C-05: or a mock case's record in any case folder) loads here and never into cases(), case() or openers(). Only
+   * the mock routes, check:content and the solver tools read
    * these. Their keys stay where every key is (key(), caseKey()), server-side. Optional, like the lookups above, so a store with no mock
    * content still fits.
    */
@@ -166,8 +169,16 @@ export interface ContentStore {
   /** Sprint 7: every mock item, in file-name order (C54). */
   mockItems?(): SqlItem[];
   mockCase?(caseId: string): MockCaseRecord | undefined;
-  /** Sprint 7: every case in content/sql/mocks/, in case ID order, as loaded: C41, C50 and C55 check them. */
+  /**
+   * Sprint 7: every case in content/sql/mocks/, in case ID order, as loaded: C41, C50 and C55 check them. S7C-05: and every case-round or
+   * take-home record found in another case folder (by its CASE-MOCK- or CASE-TAKE- ID, or its kind), which caseFolder names.
+   */
   mockCases?(): MockCaseRecord[];
+  /**
+   * S7C-05: the folder under the content root a case record was read from (sql/openers, sql/cases or sql/mocks), so C41 can name a record
+   * that sits in the wrong one; undefined for a record the store did not load.
+   */
+  caseFolder?(rec: object): string | undefined;
   /**
    * Sprint 7: content/mocks.json, the four mocks' rules and forms (S7-09, S7-10, S7-14, S7-15), validated at load: a malformed file stops
    * the load with an error that names it. Undefined when the file does not exist: no mock can start.
@@ -297,11 +308,27 @@ export async function loadContent(root: string, options: LoadOptions = {}): Prom
   // Task C4: the SQL choice keys (S3-13), hashed with the rest. A folder that does not exist yet is no keys.
   const sqlChoiceKeys = new Map((await readDir<ChoiceKey>('keys/sql-choice')).map((k) => [k.item_id, k]));
   const byCaseId = (a: { case_id: string }, b: { case_id: string }): number => String(a.case_id).localeCompare(String(b.case_id));
-  const openers = (await readDir<CaseRecord>('sql/openers')).sort(byCaseId);
+  // S7C-05: the folder each case record was read from, which C41 names when a record sits in the wrong one.
+  const folders = new WeakMap<object, string>();
+  const readCases = async <T>(rel: string): Promise<T[]> => {
+    const recs = await readDir<T>(rel);
+    for (const r of recs) if (r !== null && typeof r === 'object') folders.set(r, rel);
+    return recs;
+  };
+  // S7C-05 (F4 triage B6): a mock case is held out by its record as well as its folder (D114 stays): a CASE-MOCK- or CASE-TAKE- ID, or kind
+  // case_round or take_home, goes to the mock map wherever it sits, so no inbox, case route, portfolio or tutor source ever reaches it.
+  const isMockCase = (r: unknown): boolean => {
+    const rec = r as { case_id?: unknown; kind?: unknown } | null;
+    return isMockCaseKind(rec?.kind) || (typeof rec?.case_id === 'string' && MOCK_CASE_ID_PREFIXES.some((p) => (rec.case_id as string).startsWith(p)));
+  };
+  const openerFiles = await readCases<CaseRecord>('sql/openers');
+  const openers = openerFiles.filter((r) => !isMockCase(r)).sort(byCaseId);
   // Sprint 4b (S4B-01): the inbox and daily cases sit beside the openers. Every case's checkpoints credit through one map.
-  const cases = [...openers, ...(await readDir<CaseRecord>('sql/cases'))].sort(byCaseId);
-  // S7-08: the mock cases, held out in their own folder. Their checkpoints credit nothing through the practice map below.
-  const mockCases = (await readDir<MockCaseRecord>(MOCK_CASE_DIR)).sort(byCaseId);
+  const caseFiles = await readCases<CaseRecord>('sql/cases');
+  const cases = [...openers, ...caseFiles.filter((r) => !isMockCase(r))].sort(byCaseId);
+  // S7-08: the mock cases, held out in their own folder, and (S7C-05) any found elsewhere. Their checkpoints credit nothing through the
+  // practice map below.
+  const mockCases = [...await readCases<MockCaseRecord>(MOCK_CASE_DIR), ...[...openerFiles, ...caseFiles].filter(isMockCase) as unknown as MockCaseRecord[]].sort(byCaseId);
   const credits = new Map<string, string[]>();
   for (const o of cases) for (const c of Array.isArray(o?.checkpoints) ? o.checkpoints : []) {
     if (typeof c?.item_id === 'string' && Array.isArray(c.credits_concepts)) credits.set(c.item_id, c.credits_concepts);
@@ -437,6 +464,7 @@ export async function loadContent(root: string, options: LoadOptions = {}): Prom
     mockItems: () => [...mockItems.values()],
     mockCase: (caseId) => mockCases.find((c) => c.case_id === caseId),
     mockCases: () => [...mockCases],
+    caseFolder: (rec) => folders.get(rec),
     mocks: mocksFile as MocksFile | undefined,
     contentVersion: hash.digest('hex').slice(0, 12),
   };

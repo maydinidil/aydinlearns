@@ -2,8 +2,9 @@
 // S7-C18, S7-C21). A start draws 20 held-out Methodology and 10 knowledge-pool GA4 questions by topic weight, at most one per enemy group,
 // shuffled across both sections, writes one mock_open (KNOWLEDGE) and runs them in the run clock, labels hidden; each answer is logged with
 // run_kind knowledge_mock and answers { recorded: true }; a held-out question is reached only through its own instance while the run is on;
-// the review shows the score per section and topic and never a question; 24 of 30 passes and meets stage 3. Every question, option and
-// explanation is invented (tests/helpers/knowledge-fixture.ts); no message quotes a stem or a key.
+// the review shows the score per section and topic and never a question; 24 of 30 passes and meets stage 3. Sprint 7c (Task X2): the
+// mock_open lists the drawn questions (D116), so a crash still spends them and a run keeps its total; one "ready" rule; the short draw; one
+// run-answer helper. Every question, option and explanation is invented (tests/helpers/knowledge-fixture.ts); no message quotes a stem or a key.
 import { after, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promises';
@@ -102,8 +103,9 @@ test('S7-01, S7-10: a start writes one mock_open (KNOWLEDGE) and serves 20 held-
   assert.deepEqual([run.mock, run.form_id, run.minutes, run.on_unseen, run.hide_labels, run.next_unseen_date], ['knowledge', 'KNOWLEDGE', 40, true, true, null]);
   const opens = (await records(d)).filter((r) => r.record === 'mock_open');
   assert.equal(opens.length, 1);
+  // D116 (S7C-03): it lists the drawn questions in the order the run serves them; a knowledge mock_open carries no core_rubric.
   assert.deepEqual({ ...opens[0], ts: undefined, session_id: undefined }, { record: 'mock_open', schema_version: 7, ts: undefined, session_id: undefined,
-    block_id: run.block_id, mock: 'knowledge', form_id: 'KNOWLEDGE', minutes: 40, on_unseen: true, pass_correct: 24 });
+    block_id: run.block_id, mock: 'knowledge', form_id: 'KNOWLEDGE', minutes: 40, on_unseen: true, pass_correct: 24, item_ids: run.servings.map((s) => s.item_id) });
   assert.equal(Date.parse(run.ends_at) - Date.parse(opens[0].ts), 40 * MINUTE, 'the limit runs from the mock_open');
   assert.ok(Math.abs(Date.parse(opens[0].ts) - clock.now()) < 5_000, 'stamped with the run clock');
   const ids = run.servings.map((s) => s.item_id);
@@ -157,18 +159,19 @@ test('S7-03, S7-11: each answer replies { recorded: true } and is logged with ru
   assert.equal((await records(d)).filter((x) => x.record === 'item_close').length, 0, 'an answer leaves its question open until the run ends');
 });
 
-test('N1 I1 (B3 I2): the knowledge run carries its answered positions (start, GET /api/mocks, a second start\'s 409), so a resumed exam never reopens before them', async () => {
+test('N1 I1 (B3 I2, N3 M3): the knowledge run marks each serving answered once (start, GET /api/mocks, a second start 409), and carries no second list of positions', async () => {
   const { app, run } = await started();
-  assert.deepEqual((run as Run & { answered?: number[] }).answered, [], 'the start: nothing answered yet');
+  assert.ok(!('answered' in run), 'the run view holds no separate answered list');
+  assert.ok(run.servings.every((s: any) => s.answered === false), 'the start: nothing answered yet');
   for (const s of run.servings.slice(0, 3)) await answer(app, s, true);
   const reload = (await json(get(app, '/api/mocks'))).run;
-  assert.deepEqual(reload.answered, [0, 1, 2], 'a reload reads the answered positions');
-  assert.deepEqual(reload.servings.slice(0, 5).map((s: any) => s.answered), [true, true, true, false, false], 'Codex F36: each serving says so too');
+  assert.ok(!('answered' in reload), 'a reload carries no separate list either');
+  assert.deepEqual(reload.servings.slice(0, 5).map((s: any) => s.answered), [true, true, true, false, false], 'Codex F36: each serving says so, so a resumed exam never reopens before them');
   assert.deepEqual(reload.servings.map((s: any) => s.section), run.servings.map((s) => s.section), 'each still names its section (S7-10)');
   const second = await start(app);                       // a second tab that still shows the start screen
   assert.equal(second.status, 409);
   const on = (await second.json()).run;
-  assert.deepEqual([on.block_id, on.answered], [run.block_id, [0, 1, 2]], 'the run the refusal carries has them too');
+  assert.deepEqual([on.block_id, 'answered' in on, on.servings.slice(0, 4).map((s: any) => s.answered)], [run.block_id, false, [true, true, true, false]], 'the run the refusal carries has the marks too');
 });
 
 test('S7-11: a held-out Methodology question and a knowledge-pool question are reached only through the run\'s own instance while it is on (404 elsewhere, before and after)', async () => {
@@ -360,6 +363,100 @@ test('S7-06 (S7-C18): after an app stop mid-run, the restarted app answers an an
   }
   const row = await json(post(again, '/api/mocks/end', { block_id: run.block_id }));
   assert.deepEqual([row.block_id, row.correct, row.status], [run.block_id, 1, 'ended']);
+});
+
+// ---- sprint 7c, Task X2: D116 (S7C-03), F4-4-2, one "ready" rule (N1 M5), the short draw (N1 M7), one run-answer helper (N1 M6) ----------
+
+const sum = (rows: readonly { correct: number; of: number }[]): [number, number] => [rows.reduce((s, r) => s + r.correct, 0), rows.reduce((s, r) => s + r.of, 0)];
+const knowledgeCard = async (app: Hono) => (await json(get(app, '/api/mocks'))).mocks.find((m: { mock: string }) => m.mock === 'knowledge');
+const METHODOLOGY_NOT_READY = 'The knowledge mock\'s Methodology questions are not ready yet.';
+
+test('D116 (S7C-03): a crash leaves a served question with no answer and no close; the mock_open\'s item_ids still count it as shown in the next draw', async () => {
+  const { app, d, run, clock } = await started();
+  const answered = run.servings.filter((s) => s.section === 'methodology').slice(0, 2);
+  await answer(app, answered[0]!, true);
+  await answer(app, answered[1]!, false);
+  // A crash: no run end and no session end. The restart's recovery closes the two answered questions and the block, and nothing else.
+  const again = createApp(await deps(clock, content, d.dir));
+  const closes = (await records(d)).filter((r) => r.record === 'item_close' && r.block_id === run.block_id).map((r) => r.item_id);
+  assert.deepEqual(closes.sort(), answered.map((s) => s.item_id).sort(), 'no close for the 28 questions never answered');
+  const card = await knowledgeCard(again);
+  const back = addDays(amsterdamDate(new Date(clock.now())), 31);
+  assert.deepEqual([card.next, card.next_unseen_date], [{ form_id: 'KNOWLEDGE', on_unseen: false }, back], 'all 30 were shown at its mock_open: a start now is practice');
+  assert.deepEqual(card.history.map((h: any) => [h.block_id, h.correct, h.total, h.status]), [[run.block_id, 1, 30, 'ended']], 'its total is its 30 listed questions');
+  const review = await json(get(again, `/api/mocks/${run.block_id}/review`));
+  assert.deepEqual(review.sections, [{ section: 'methodology', correct: 1, of: 20 }, { section: 'ga4', correct: 0, of: 10 }]);
+  const second = await json(start(again)) as Run;
+  assert.equal(second.on_unseen, false, 'the next run\'s draw is not unseen');
+});
+
+test('F4-4-2 (N1 M4): a finished run keeps its score line when the rules later ask more questions, and its sections and topics add up to it', async () => {
+  const { app, d, run, clock } = await started();
+  for (const [k, s] of run.servings.entries()) if (k < 25) await answer(app, s, k % 5 !== 0);
+  await post(app, '/api/mocks/end', { block_id: run.block_id });
+  const before = await json(get(app, `/api/mocks/${run.block_id}/review`));
+  const raised: ContentStore = { ...content, mocks: { ...content.mocks!, knowledge: { ...content.mocks!.knowledge, questions: 35, per_section: { methodology: 25, ga4: 10 } } } };
+  const later = await json(get(createApp(await deps(clock, raised, d.dir)), `/api/mocks/${run.block_id}/review`));
+  for (const review of [before, later]) {
+    assert.deepEqual([review.correct, review.total], [20, 30]);
+    assert.deepEqual(sum(review.sections), [review.correct, review.total], 'the sections add up to the row');
+    assert.deepEqual(sum(review.topics), [review.correct, review.total], 'so do the topics');
+  }
+  assert.deepEqual([later.sections, later.topics, later.passed], [before.sections, before.topics, before.passed]);
+});
+
+test('N1 M5 (F4-1-6): one "ready" rule: with 19 usable Methodology questions the card says why, a start is a 409 with the same line, and stage 3 is not yet available', async () => {
+  const unkeyed = new Set(MET_HELD.slice(-5));
+  const store: ContentStore = { ...content, choiceKey: (id) => (unkeyed.has(id) ? undefined : content.choiceKey!(id)) };
+  const d = await deps(fakeClock(), store);
+  const app = createApp(d);
+  const view = await json(get(app, '/api/mocks'));
+  const card = view.mocks.find((m: { mock: string }) => m.mock === 'knowledge');
+  assert.deepEqual([card.next, card.blocked, card.next_unseen_date], [null, METHODOLOGY_NOT_READY, null]);
+  assert.equal(view.stages.find((g: any) => g.goal.id === 'G-STAGE-3').status, 'not_yet_available', 'the goal view reads the same rule');
+  const r = await start(app);
+  assert.deepEqual([r.status, (await r.json()).error], [409, METHODOLOGY_NOT_READY]);
+  assert.equal((await records(d)).filter((x) => x.record === 'mock_open').length, 0, 'nothing logged');
+});
+
+test('N1 M7: a draw the enemy groups keep short is a 409 that says how many questions can be drawn, and the card says the same; nothing is logged', async () => {
+  // Ten usable pool questions, of which K11 and K12 share an enemy group: the GA4 share can draw 9, so 29 of 30.
+  const store: ContentStore = { ...content, knowledgePool: () => KNOWLEDGE_POOL.slice(2) };
+  const d = await deps(fakeClock(), store);
+  const app = createApp(d);
+  const short = 'The knowledge mock needs 30 questions, and 29 can be drawn now.';
+  const card = await knowledgeCard(app);
+  assert.deepEqual([card.next, card.blocked], [null, short]);
+  const r = await start(app);
+  assert.deepEqual([r.status, (await r.json()).error], [409, short]);
+  assert.equal((await records(d)).filter((x) => x.record === 'mock_open').length, 0, 'nothing logged, so no question is spent');
+  assert.equal((await json(get(app, '/api/mocks'))).run, null);
+});
+
+test('N1 M6: a GA4 exam run and a knowledge mock log an answer alike: of two sent at once one is logged and the other is the run\'s one-answer 409; no confidence; the question stays open', async () => {
+  const clock = fakeClock();
+  const d = await deps(clock);
+  const app = createApp(d);
+  /** The question opened through its instance, then answered twice at once (a double click), with a confidence the run must not log. */
+  const twice = async (s: { item_id: string; item_instance_id: string; section: string }) => {
+    const shown = await json(show(app, s));
+    const body = { item_id: s.item_id, item_instance_id: s.item_instance_id, chosen: RIGHT(s.item_id), confidence: 3, shown_order: shown.shown_order, phase: shown.phase };
+    const sent = await Promise.all([post(app, '/api/choice/answer', body), post(app, '/api/choice/answer', body)]);
+    return (await Promise.all(sent.map(async (r) => [r.status, (await r.json()).code ?? null] as const))).sort((a, b) => a[0] - b[0]);
+  };
+  const half = await json(post(app, '/api/run/start', { section: 'ga4', kind: 'half_mock' }));
+  const hs = { ...half.servings[0], section: 'ga4' };
+  assert.deepEqual(await twice(hs), [[200, null], [409, 'ONE_ANSWER']], 'the GA4 half-mock');
+  await post(app, '/api/run/end', { block_id: half.block_id });
+  const run = await json(start(app)) as Run;
+  const ks = run.servings[0]!;
+  assert.deepEqual(await twice(ks), [[200, null], [409, 'ONE_ANSWER']], 'the knowledge mock');
+  const recs = await records(d);
+  for (const [s, kind] of [[hs, 'half_mock'], [ks, 'knowledge_mock']] as const) {
+    const logged = recs.filter((r) => r.record === 'attempt' && r.item_instance_id === s.item_instance_id);
+    assert.deepEqual(logged.map((a) => [a.phase, a.confidence, a.outcome, a.payload.run_kind]), [['mock', null, 'pass', kind]], kind);
+  }
+  assert.equal(recs.filter((r) => r.record === 'item_close' && r.item_instance_id === ks.item_instance_id).length, 0, 'open until the run ends');
 });
 
 test('N1 M11: a knowledge run sends run_started and run_finished with run kind knowledge_mock, once each', async () => {

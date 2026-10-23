@@ -1,6 +1,6 @@
 {
   "id": "EX-SQL-WIN-04-E2-05",
-  "version": 1,
+  "version": 2,
   "kind": "write",
   "tags": [
     "sql",
@@ -46,7 +46,7 @@
   "company": "voltmarkt",
   "schema": "voltmarkt",
   "edge_schema": "voltmarkt_edge_win",
-  "prompt": "For the webshop (store_code WEB-01), show each UTC day from 3 to 30 March 2025 (four weeks, Monday to Sunday) on which it had orders, with the units sold that day and the week-to-date units: the units from that week's Monday up to and including that day. The total starts again every Monday. Days with no orders are left out. Return order_date, units and wtd_units. Any row order is fine.",
+  "prompt": "For the webshop (store_code WEB-01), show each UTC day from 3 to 30 March 2025 (four weeks, Monday to Sunday) on which it had orders, with the units sold that day and the week-to-date units: the units from that week's Monday up to and including that day. The total starts again every Monday. Days with no orders are left out. Return three columns, in this order: order_date, units and wtd_units. Return one row for each such day. Any row order is fine.",
   "output_contract": {
     "columns": [
       {

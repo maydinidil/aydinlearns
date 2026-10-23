@@ -1,6 +1,6 @@
 {
   "id": "EX-SQL-WIN-04-E2-22",
-  "version": 1,
+  "version": 2,
   "kind": "write",
   "tags": [
     "sql",
@@ -44,7 +44,7 @@
   "company": "mailvora",
   "schema": "mailvora",
   "edge_schema": "mailvora_edge_win",
-  "prompt": "For each paid channel and each month of 2025 in budget_monthly, what share of the channel's 2025 budget is planned up to and including that month? Show it as a percentage rounded to 1 decimal. Return channel_id, month, budget_eur and cumulative_share_pct. Any row order is fine.",
+  "prompt": "For each paid channel and each month of 2025 in budget_monthly, what share of the channel's 2025 budget is planned up to and including that month? Show it as a percentage rounded to 1 decimal. Return four columns, in this order: channel_id, month, budget_eur and cumulative_share_pct. Return one row for each channel and month of 2025. Any row order is fine.",
   "output_contract": {
     "columns": [
       {

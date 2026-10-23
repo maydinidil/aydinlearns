@@ -4,9 +4,10 @@
 // here is invented. Task N3: the web kind guard agrees with schemas/case.ts's (N2 M5); the calls in lib/cases-api.ts (N2 M7) and their paths (M10).
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { isMockCaseKind } from '../../schemas/case.ts';
+import { isCaseMockKind as caseReExport, isMockCaseKind } from '../../schemas/case.ts';
+import { isCaseMockKind } from '../../schemas/mock.ts';
 import {
-  isCaseMockBlock, isCaseMockKind, mockClock, mockReviewScoreLine, mockStepState, mockSteps, type CaseMockRunView, type MockCaseView,
+  isCaseMockBlock, mockClock, mockReviewScoreLine, mockStepState, mockSteps, type CaseMockRunView, type MockCaseView,
 } from '../../web/src/lib/case-flow.ts';
 import { caseMockApi } from '../../web/src/lib/cases-api.ts';
 import { caseMockRuleLine, countsLine } from '../../web/src/lib/mock-flow.ts';
@@ -31,7 +32,8 @@ const run = (mock: 'case_round' | 'take_home'): CaseMockRunView => ({
 test('a case mock\'s own routes: #/mock/case_round and #/mock/take_home, and the review of a case mock block', () => {
   const kinds = ['case_round', 'take_home', 'screen', 'knowledge', 'review'];
   assert.deepEqual(kinds.map(isCaseMockKind), [true, true, false, false, false]);
-  assert.deepEqual(kinds.map(isCaseMockKind), kinds.map(isMockCaseKind), 'the web guard agrees with schemas/case.ts (N2 M5)');
+  assert.deepEqual(kinds.map(isCaseMockKind), kinds.map(isMockCaseKind), 'the one guard in schemas/mock.ts agrees with schemas/case.ts (N2 M5)');
+  assert.equal(caseReExport, isCaseMockKind, 'schemas/case.ts re-exports that guard; the web keeps no second copy (N3 M2)');
   assert.deepEqual(['mock-case_round-1', 'mock-take_home-1', 'mock-screen-1', 'mock-knowledge-1'].map(isCaseMockBlock), [true, true, false, false]);
 });
 

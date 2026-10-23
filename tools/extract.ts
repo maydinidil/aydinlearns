@@ -74,8 +74,8 @@ export const NEW_ERRORS: Omit<ErrorType, 'concept_id'>[] = [
   { id: 'ERR-LOG-29', category: 'LOG', name: 'CASE branch order: an earlier WHEN catches rows meant for a later one', detection_checks: ['CHK-MUTANT-MATCH'],
     feedback_template: 'CASE takes the first WHEN that is true. Put the narrower or more important test first.' },
   // Sprint 6 Task A1 (ERRATA E-189, S6-11): DuckDB's binder message for a window function in WHERE, which fell to ERR-SYN-02.
-  { id: 'ERR-SYN-08', category: 'SYN', name: 'A window function in WHERE', detection_checks: ['CHK-ENGINE-ERROR'],
-    feedback_template: 'WHERE picks rows before any window function is worked out, so it cannot use one. Work it out in a CTE or subquery, then filter that result in the outer query.' },
+  { id: 'ERR-SYN-08', category: 'SYN', name: 'A window function in WHERE, GROUP BY, HAVING or an aggregate', detection_checks: ['CHK-ENGINE-ERROR'],
+    feedback_template: 'SQL works out window functions after WHERE, GROUP BY and HAVING, so none of them can use one, and neither can an aggregate or another window function. Work it out in a CTE or subquery, then use that result in the outer query.' },
   // Sprint 6 Task B2 (ERRATA E-188, S6-11): level 4's common mistakes, detected by a planted match. Names as E-188 gives them.
   { id: 'ERR-LOG-30', category: 'LOG', name: 'NOT IN over a list with a missing value returns no rows', detection_checks: ['CHK-MUTANT-MATCH'],
     feedback_template: 'NOT IN returns no rows at all when the list it checks holds a missing value. Use NOT EXISTS, or leave the missing values out of the list with IS NOT NULL.' },

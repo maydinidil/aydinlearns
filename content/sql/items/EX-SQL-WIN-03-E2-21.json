@@ -1,6 +1,6 @@
 {
   "id": "EX-SQL-WIN-03-E2-21",
-  "version": 1,
+  "version": 2,
   "kind": "write",
   "tags": [
     "sql",
@@ -51,7 +51,7 @@
   "company": "voltmarkt",
   "schema": "voltmarkt",
   "edge_schema": "voltmarkt_edge_win",
-  "prompt": "For each parent category in categories and each month from January to June 2025 (UTC order dates), show the units sold and the change from the previous calendar month. Every parent category has a row for every month of the range, and a month with no sales counts as 0. Return parent_category, month (the first day of the month), units and change_units, this month's units minus the previous calendar month's. January's previous month is outside the range, so January shows change_units as missing. Any row order is fine.",
+  "prompt": "For each parent category in categories and each month from January to June 2025 (UTC order dates), show the units sold and the change from the previous calendar month. Every parent category has a row for every month of the range, and a month with no sales counts as 0. Return four columns, in this order: parent_category, month (the first day of the month), units and change_units, this month's units minus the previous calendar month's. Return one row for each parent category and month. January's previous month is outside the range, so January shows change_units as missing. Any row order is fine.",
   "output_contract": {
     "columns": [
       {

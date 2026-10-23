@@ -1,6 +1,6 @@
 {
   "id": "EX-SQL-WIN-03-E1-05",
-  "version": 1,
+  "version": 2,
   "kind": "write",
   "tags": [
     "sql",
@@ -41,7 +41,7 @@
   "company": "voltmarkt",
   "schema": "voltmarkt",
   "edge_schema": "voltmarkt_edge_win",
-  "prompt": "For every competitor price check of products 1 to 20 (product_id from 1 to 20, both included) observed from 1 January to 30 June 2025 (observed_ts holds UTC time; both days included, in UTC), show the price the same competitor showed for the same product at its check before. Checks follow each other by observed_ts. Only checks in that period count, so the first check of a product and competitor in it shows prev_price_eur as missing. Return product_id, competitor, observed_ts, price_eur and prev_price_eur. Any row order is fine.",
+  "prompt": "For every competitor price check of products 1 to 20 (product_id from 1 to 20, both included) observed from 1 January to 30 June 2025 (observed_ts holds UTC time; both days included, in UTC), show the price the same competitor showed for the same product at its check before. Checks follow each other by observed_ts. Only checks in that period count, so the first check of a product and competitor in it shows prev_price_eur as missing. Return five columns, in this order: product_id, competitor, observed_ts, price_eur and prev_price_eur. Return one row for each such price check. Any row order is fine.",
   "output_contract": {
     "columns": [
       {

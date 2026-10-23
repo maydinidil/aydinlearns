@@ -1,6 +1,6 @@
 {
   "item_id": "EX-SQL-WIN-03-E1-04",
-  "item_version": 1,
+  "item_version": 2,
   "reference_sql": "WITH monthly AS (\n  -- one row per channel and month with spend\n  SELECT c.channel_id, CAST(date_trunc('month', a.spend_date) AS DATE) AS month, SUM(a.spend) AS spend_eur\n  FROM ad_spend_daily a\n  JOIN campaigns c ON c.campaign_id = a.campaign_id\n  WHERE a.spend_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\n  GROUP BY c.channel_id, CAST(date_trunc('month', a.spend_date) AS DATE)\n)\nSELECT channel_id, month, spend_eur,\n  LEAD(spend_eur) OVER (PARTITION BY channel_id ORDER BY month) AS next_spend_eur\nFROM monthly",
   "alternatives": [
     "WITH monthly AS (\n  -- one row per channel and month with spend\n  SELECT c.channel_id, CAST(date_trunc('month', a.spend_date) AS DATE) AS month, SUM(a.spend) AS spend_eur\n  FROM ad_spend_daily a\n  JOIN campaigns c ON c.campaign_id = a.campaign_id\n  WHERE a.spend_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\n  GROUP BY c.channel_id, CAST(date_trunc('month', a.spend_date) AS DATE)\n), paired AS (\n  -- one row per channel and month with spend\n  SELECT m.channel_id, m.month, m.spend_eur,\n    (SELECT MIN(m2.month) FROM monthly m2 WHERE m2.channel_id = m.channel_id AND m2.month > m.month) AS next_month\n  FROM monthly m\n)\nSELECT p.channel_id, p.month, p.spend_eur, n.spend_eur AS next_spend_eur\nFROM paired p\nLEFT JOIN monthly n ON n.channel_id = p.channel_id AND n.month = p.next_month",
@@ -24,11 +24,11 @@
   ],
   "hint3_partial": "WITH monthly AS (\n  -- one row per channel and month with spend\n  SELECT c.channel_id, CAST(date_trunc('month', a.spend_date) AS DATE) AS month, SUM(a.spend) AS spend_eur\n  FROM ad_spend_daily a\n  JOIN campaigns c ON c.campaign_id = a.campaign_id\n  WHERE a.spend_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\n  GROUP BY c.channel_id, CAST(date_trunc('month', a.spend_date) AS DATE)\n)\nSELECT channel_id, month, spend_eur,\n  LEAD(spend_eur) OVER (PARTITION BY ___ ORDER BY month) AS next_spend_eur\nFROM monthly",
   "solver": {
-    "prompt_hash": "083a6468ac59ce0f",
+    "prompt_hash": "afec808843f3b12e",
     "schema_version": "09f3a33d3123",
-    "dataset_version": "e7c58abf7e8f892e",
-    "grader_version": "7a.1",
-    "query": "WITH monthly AS (\n  SELECT c.channel_id, CAST(date_trunc('month', a.spend_date) AS DATE) AS month, SUM(a.spend) AS spend_eur\n  FROM ad_spend_daily a JOIN campaigns c ON c.campaign_id = a.campaign_id\n  WHERE a.spend_date BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\n  GROUP BY c.channel_id, CAST(date_trunc('month', a.spend_date) AS DATE)\n)\nSELECT channel_id, month, spend_eur,\n  LEAD(spend_eur) OVER (PARTITION BY channel_id ORDER BY month) AS next_spend_eur\nFROM monthly\n",
-    "at": "2026-10-21T09:05:07.161Z"
+    "dataset_version": "ef4aa0325da6ea43",
+    "grader_version": "7c.1",
+    "query": "WITH m AS (SELECT c.channel_id, CAST(date_trunc('month', a.spend_date) AS DATE) AS month, SUM(a.spend) AS spend_eur FROM ad_spend_daily a JOIN campaigns c ON c.campaign_id = a.campaign_id WHERE a.spend_date >= DATE '2025-01-01' AND a.spend_date <= DATE '2025-12-31' GROUP BY 1, 2) SELECT channel_id, month, spend_eur, LEAD(spend_eur) OVER (PARTITION BY channel_id ORDER BY month) AS next_spend_eur FROM m\n",
+    "at": "2026-10-22T18:09:34.712Z"
   }
 }

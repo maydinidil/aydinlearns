@@ -1,6 +1,6 @@
 {
   "id": "EX-SQL-WIN-03-E2-01",
-  "version": 1,
+  "version": 2,
   "kind": "write",
   "tags": [
     "sql",
@@ -45,7 +45,7 @@
   "company": "voltmarkt",
   "schema": "voltmarkt",
   "edge_schema": "voltmarkt_edge_win",
-  "prompt": "For every price version of products 1 to 25 (product_id from 1 to 25, both included), show how much the list price changed from the same product's version before it, as a percentage of that earlier price, rounded to 1 decimal. Within each product, versions follow each other by valid_from. Return product_id, valid_from, list_price_eur and pct_change. A product's first version shows pct_change as missing. Any row order is fine.",
+  "prompt": "For every price version of products 1 to 25 (product_id from 1 to 25, both included), show how much the list price changed from the same product's version before it, as a percentage of that earlier price, rounded to 1 decimal. Within each product, versions follow each other by valid_from. Return four columns, in this order: product_id, valid_from, list_price_eur and pct_change. Return one row for each such price version. A product's first version shows pct_change as missing. Any row order is fine.",
   "output_contract": {
     "columns": [
       {

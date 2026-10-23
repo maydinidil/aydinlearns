@@ -342,3 +342,21 @@ test('Codex F36: a resumed screen mock shows each answered question\'s mark and 
     assert.ok([...second!.querySelectorAll('button')].some((b) => b.textContent === 'Submit' && !(b as HTMLButtonElement).disabled));
   } finally { unmount(); }
 });
+
+test('N3 M4: a crashed run\'s review says how many questions it did not reach, and a complete one says nothing of it', async () => {
+  const review = (notReached: number) => ({ block_id: 'mock-screen-2', mock: 'screen', form_id: 'SCREEN-A', date: '2026-11-02', correct: 1, total: 6, passed: false, late: false,
+    practice: false, counts: false, status: 'ended', not_reached: notReached,
+    items: [{ n: 1, item_id: 'EX-MOCK-SCREEN-A-01', item_instance_id: 'inst-1', outcome: 'passed', query: 'SELECT 1', prompt: 'An invented question marker.', output_contract: QUESTION.output_contract, grade: null }] });
+  let answer = review(5);
+  stubFetch((_m, path) => (path === '/api/mocks/mock-screen-2/review' ? answer : undefined));
+  const first = render(createElement(MockReviewScreen, { blockId: 'mock-screen-2' }));
+  await settle();
+  assert.match(first.container.textContent!, /1 of 6 exactly right\./);
+  assert.match(first.container.textContent!, /5 questions were not reached/);
+  first.unmount();
+  answer = review(0);
+  const second = render(createElement(MockReviewScreen, { blockId: 'mock-screen-2' }));
+  await settle();
+  assert.doesNotMatch(second.container.textContent!, /not reached/);
+  second.unmount();
+});

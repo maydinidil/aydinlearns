@@ -1,6 +1,6 @@
 {
   "id": "EX-SQL-WIN-03-E1-22",
-  "version": 1,
+  "version": 2,
   "kind": "write",
   "tags": [
     "sql",
@@ -39,7 +39,7 @@
   "company": "voltmarkt",
   "schema": "voltmarkt",
   "edge_schema": "voltmarkt_edge_win",
-  "prompt": "For each store, show the city of the store that opened just before it. Stores follow each other by opened_on; no two stores opened on the same day. Return store_id, city, opened_on and prev_city. The first store to open shows prev_city as missing. Any row order is fine.",
+  "prompt": "For each store, show the city of the store that opened just before it. Stores follow each other by opened_on; no two stores opened on the same day. Return four columns, in this order: store_id, city, opened_on and prev_city. Return one row for each store. The first store to open shows prev_city as missing. Any row order is fine.",
   "output_contract": {
     "columns": [
       {

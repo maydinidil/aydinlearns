@@ -1,6 +1,7 @@
 // server/routes/tutor.ts: the AI tutor's three routes (AI tutor design §4, §7, §10, §11; D91 to D99; block P, T-20 to T-23).
 // GET /api/tutor/status: on or off and why, the Settings switch, model and effort, every model with its price and whether its provider has
-//   a key, where each key came from (never the key), today's spend and the limit (null: none), and whether a timed run is on. Starts no session.
+//   a key, where each key came from (never the key), today's spend and the limit (null: none), whether a timed run is on, and (D117, S7C-04)
+//   whether that run is a mock's, which closes the tutor on every screen, so the panel shows its line before any question. Starts no session.
 // POST /api/tutor/ask: { screen, subject_id?, snapshot, item, thread, question }. The guard's refusals come first, as JSON, and call no model.
 //   The model is built per question from Settings and the key store (server/tutor/config.ts, startup.ts), with the token limit of the
 //   effort. Then the daily limit: a question that could pass it is refused (429) and logged as `capped`; with no limit (T-22) nothing is
@@ -20,7 +21,7 @@ import { SCHEMA_VERSION, type Phase, type TutorAsked, type TutorOutcome } from '
 import { SCREENS, SUBJECT_ID, type Screen } from '../../schemas/journey.ts';
 import { SUMMARY_MARK, TUTOR_KEY_PATH, type TutorStatusView, type TutorSummary } from '../../schemas/tutor.ts';
 import type { RouteDeps, Settings } from '../app.ts';
-import type { DrillGate } from '../drill.ts';
+import { isMockPlan, type DrillGate, type RunEntry } from '../drill.ts';
 import { tutorObserved } from '../observe.ts';
 import { hidesLabels } from '../servings.ts';
 import { tutorState, type TutorState } from '../tutor/config.ts';
@@ -47,12 +48,17 @@ export interface TutorRuntime {
   ledger: SpendLedger;
   replyDeadlineMs?: number;
 }
+/**
+ * GET /api/tutor/status's reply: the shared status view, and (D117, S7C-04) whether the run that is on is a mock's. The browser declares the
+ * same shape (TutorStatusRead in web/src/tutor/TutorContext.tsx); tests/web/tutor-status-shape.test.ts checks the two agree, both ways.
+ */
+export interface TutorStatusReply extends TutorStatusView { mock_on: boolean }
 /** T-03: the instance a question names, with what its record carries. */
 export interface TutorTarget { item_instance_id: string; item_id: string; target_concept_id: string; phase: Phase; card_id?: string }
 export interface TutorRoutes {
   /** Null: no tutor (an app built without one); every route answers that it is off. */
   runtime: TutorRuntime | null;
-  runs: Pick<DrillGate, 'running'> & { current(): unknown };
+  runs: Pick<DrillGate, 'running'> & { current(): Pick<RunEntry, 'plan'> | undefined };
   target(b: Record<string, unknown>): TutorTarget | null;
   /** I1 (T-16): the named instance's phase hides labels whatever its state (live, served, closed), or the browser's own phase does. */
   hides(b: Record<string, unknown>): boolean;
@@ -82,7 +88,9 @@ export function mountTutor(app: Hono, d: RouteDeps, t: TutorRoutes): void {
     ? tutorState(d.settings, (p) => rt.keys.sourceOf(p), rt.fake)
     : { ...tutorState(d.settings, () => null, false), enabled: false, reason: OFF_LINE });
   const cap = (): number | null => capOf(d.settings.tutor_daily_cap_usd);
-  const statusView = (): TutorStatusView => {
+  /** D117 (S7C-04): the run that is on is a mock's (any of the four; a take-home until it is handed in or closes at 24 hours). */
+  const mockOn = (): boolean => { const run = t.runs.current(); return run !== undefined && isMockPlan(run.plan); };
+  const statusView = (): TutorStatusReply => {
     const s = stateNow();
     const has = (p: KeyProvider): boolean => rt !== null && (rt.fake || rt.keys.sourceOf(p) !== null);
     return {
@@ -92,7 +100,7 @@ export function mountTutor(app: Hono, d: RouteDeps, t: TutorRoutes): void {
         return { id: m.id, label: m.label, provider: m.provider, input_usd: p.input, output_usd: p.output, available: has(m.provider) };
       }),
       keys: KEY_PROVIDERS.map((p) => ({ provider: p, source: rt?.keys.sourceOf(p) ?? null })),
-      spent_today_usd: rt?.ledger.spentOn(new Date()) ?? 0, cap_usd: cap(), run_on: t.runs.current() != null,
+      spent_today_usd: rt?.ledger.spentOn(new Date()) ?? 0, cap_usd: cap(), run_on: t.runs.current() != null, mock_on: mockOn(),
     };
   };
 
@@ -130,7 +138,7 @@ export function mountTutor(app: Hono, d: RouteDeps, t: TutorRoutes): void {
     const item = isRecord(b.item) ? b.item : null;
     const instanceId = typeof item?.item_instance_id === 'string' ? item.item_instance_id : null;
     const state = stateNow();
-    const refusal = guard({ enabled: state.enabled, offReason: state.reason, screen, runOn: t.runs.current() != null,
+    const refusal = guard({ enabled: state.enabled, offReason: state.reason, screen, runOn: t.runs.current() != null, mockOn: mockOn(),
       itemInRun: instanceId !== null && (await t.runs.running(instanceId)), questionChars: question.length, snapshotChars: snapshot.length });
     if (refusal) return c.json({ error: refusal.message, code: refusal.code }, refusal.status);
 

@@ -1,6 +1,6 @@
 {
   "id": "EX-SQL-WIN-04-E1-22",
-  "version": 1,
+  "version": 2,
   "kind": "write",
   "tags": [
     "sql",
@@ -48,7 +48,7 @@
   "company": "mailvora",
   "schema": "mailvora",
   "edge_schema": "mailvora_edge_win",
-  "prompt": "For each country, show each month of 2025 in which users from it signed up (by the UTC month of signup_ts), with that month's signups and the country's cumulative signups in 2025 up to and including that month. Months with no signups are left out. Return country_code, month (the first day of the month), signups and cumulative_signups. Any row order is fine.",
+  "prompt": "For each country, show each month of 2025 in which users from it signed up (by the UTC month of signup_ts), with that month's signups and the country's cumulative signups in 2025 up to and including that month. Months with no signups are left out. Return four columns, in this order: country_code, month (the first day of the month), signups and cumulative_signups. Return one row for each such country and month. Any row order is fine.",
   "output_contract": {
     "columns": [
       {

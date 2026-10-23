@@ -103,9 +103,14 @@ export function mayBeHeldOut(item: ChoiceItem, concepts: ReadonlyMap<string, Cho
   return true;
 }
 
-/** Draws the pool. Pure: it reads only IDs, topics, cards, groups and flags, and returns the pool in ID order. */
+/**
+ * Draws the pool. Pure: it reads only IDs, topics, cards, groups and flags, and returns the pool in ID order.
+ * `elsewhere` (F37, S7C-01) is the items already held in another list (GA4's knowledge pool): they count as held for enemy
+ * groups, card floors and the level 1 floor, as C25 counts them, but are never drawn, are not in the result, and are not counted
+ * in the topic or card `held` numbers.
+ */
 export function reserveHeldOut(section: ChoiceSection, items: readonly ChoiceItem[], concepts: readonly ChoiceConcept[],
-  rules: HeldOutRules = HELD_OUT_RULES[section]): Reservation {
+  rules: HeldOutRules = HELD_OUT_RULES[section], elsewhere: ReadonlySet<string> = new Set()): Reservation {
   const conceptById = new Map(concepts.map((c) => [c.id, c]));
   const topicOf = (i: ChoiceItem): string | null => (i.section === 'ga4' ? i.topic_id : conceptById.get(i.concept_id)?.topic_id ?? null);
   const active = items.filter((i) => i.status === 'active');
@@ -121,17 +126,18 @@ export function reserveHeldOut(section: ChoiceSection, items: readonly ChoiceIte
   const weightOf = (t: string | null): number => (t === null ? 0 : weights.get(t) ?? 0);
   const totalWeight = [...weights.values()].reduce((a, b) => a + b, 0);
 
-  const cards = new Map<string, { active: number; held: number }>();
+  const cards = new Map<string, { active: number; held: number; fixed: number }>();
   const left = new Map<string, number>();                    // practice items of one topic on one card
   const leftKey = (topic: string | null, card: string): string => `${topic}\u0000${card}`;
   for (const i of active) {
-    const c = cards.get(cardOf(i)) ?? { active: 0, held: 0 };
+    const c = cards.get(cardOf(i)) ?? { active: 0, held: 0, fixed: 0 };
     c.active++;
+    if (elsewhere.has(i.id)) c.fixed++;
     cards.set(cardOf(i), c);
-    left.set(leftKey(topicOf(i), cardOf(i)), (left.get(leftKey(topicOf(i), cardOf(i))) ?? 0) + 1);
+    left.set(leftKey(topicOf(i), cardOf(i)), (left.get(leftKey(topicOf(i), cardOf(i))) ?? 0) + (elsewhere.has(i.id) ? 0 : 1));
   }
 
-  const eligible = active.filter((i) => mayBeHeldOut(i, conceptById) && weightOf(topicOf(i)) > 0)
+  const eligible = active.filter((i) => !elsewhere.has(i.id) && mayBeHeldOut(i, conceptById) && weightOf(topicOf(i)) > 0)
     .map((i) => ({ i, rank: heldOutRank(i.id) }))
     .sort((a, b) => byText(a.rank, b.rank) || byText(a.i.id, b.i.id))
     .map((x) => x.i);
@@ -140,25 +146,26 @@ export function reserveHeldOut(section: ChoiceSection, items: readonly ChoiceIte
   const blocks = (i: ChoiceItem): number => (i.enemy_group === null ? 0 : groupSize.get(i.enemy_group)! - 1);
   // S2-103: a GA4 level 1 parent keeps LEVEL1_OWN_TOPIC_CORE_FLOOR of the practice items that count, or all it has.
   const counts = new Set(active.filter((i) => levelOneCoreItem(i, conceptById)).map((i) => i.id));
-  const levelOne = new Map<string, { counted: number; held: number }>();
+  const levelOne = new Map<string, { counted: number; held: number; fixed: number }>();
   for (const i of active) {
     if (!counts.has(i.id)) continue;
-    const c = levelOne.get(cardOf(i)) ?? { counted: 0, held: 0 };
+    const c = levelOne.get(cardOf(i)) ?? { counted: 0, held: 0, fixed: 0 };
     c.counted++;
+    if (elsewhere.has(i.id)) c.fixed++;
     levelOne.set(cardOf(i), c);
   }
   const need = (c: { counted: number }): number => Math.min(LEVEL1_OWN_TOPIC_CORE_FLOOR, c.counted);
   const keepsLevelOneFloor = (i: ChoiceItem): boolean => {
     const c = levelOne.get(cardOf(i));
-    return !counts.has(i.id) || c!.counted - c!.held - 1 >= need(c!);
+    return !counts.has(i.id) || c!.counted - c!.held - c!.fixed - 1 >= need(c!);
   };
 
   const held = new Set<string>();
-  const usedGroups = new Set<string>();
+  const usedGroups = new Set<string>(active.filter((i) => elsewhere.has(i.id) && i.enemy_group !== null).map((i) => i.enemy_group!));
   const heldIn = new Map<string, number>();
   const open = (i: ChoiceItem): boolean => {
     const c = cards.get(cardOf(i))!;
-    return !held.has(i.id) && !(i.enemy_group !== null && usedGroups.has(i.enemy_group)) && c.held < c.active - rules.floor && keepsLevelOneFloor(i);
+    return !held.has(i.id) && !(i.enemy_group !== null && usedGroups.has(i.enemy_group)) && c.held + c.fixed < c.active - rules.floor && keepsLevelOneFloor(i);
   };
 
   while (held.size < rules.total) {
@@ -195,9 +202,9 @@ export function reserveHeldOut(section: ChoiceSection, items: readonly ChoiceIte
       held: heldIn.get(t) ?? 0,
       full: !eligible.some((i) => topicOf(i) === t && open(i)),
     })),
-    cards: [...cards].sort(([a], [b]) => byText(a, b)).map(([card, c]) => ({ card, active: c.active, held: c.held, practice: c.active - c.held })),
+    cards: [...cards].sort(([a], [b]) => byText(a, b)).map(([card, c]) => ({ card, active: c.active, held: c.held, practice: c.active - c.held - c.fixed })),
     levelOne: [...levelOne].sort(([a], [b]) => byText(a, b))
-      .map(([card, c]) => ({ card, topic: conceptById.get(card)!.topic_id, counted: c.counted, left: c.counted - c.held, need: need(c) })),
+      .map(([card, c]) => ({ card, topic: conceptById.get(card)!.topic_id, counted: c.counted, left: c.counted - c.held - c.fixed, need: need(c) })),
   };
 }
 
@@ -530,9 +537,11 @@ async function main(argv: string[]): Promise<number> {
   }
   const items = bank.items.map((f) => f.data as ChoiceItem);
   const concepts = (bank.concepts!.data as { concepts: ChoiceConcept[] }).concepts;
-  const r = reserveHeldOut(s, items, concepts);
+  // F37 (S7C-01): the knowledge pool is held elsewhere: it counts for groups and floors, is never drawn, and keeps its flags.
+  const knowledgeIds = knowledgePoolIds(bank);
+  const r = reserveHeldOut(s, items, concepts, undefined, knowledgeIds);
   const pool = new Set(r.ids);
-  const before = currentPool(bank);
+  const before = new Set([...currentPool(bank)].filter((id) => !knowledgeIds.has(id)));
   const same = before.size === pool.size && [...before].every((id) => pool.has(id));
   if (before.size && !same && !replace) {
     console.error(`${s}: a different held-out pool of ${before.size} items already exists. Replacing it could move practised items into the mock pool.`
@@ -543,8 +552,9 @@ async function main(argv: string[]): Promise<number> {
   let written = 0;
   for (const f of bank.items) {
     const item = f.data as ChoiceItem;
-    if (item.held_out === pool.has(item.id)) continue;
-    await writeFile(join(root, f.file), JSON.stringify({ ...item, held_out: pool.has(item.id) }, null, 2) + '\n');
+    const wanted = pool.has(item.id) || knowledgeIds.has(item.id);
+    if (item.held_out === wanted) continue;
+    await writeFile(join(root, f.file), JSON.stringify({ ...item, held_out: wanted }, null, 2) + '\n');
     written++;
   }
   const poolFile = `${s}/held-out.json`;

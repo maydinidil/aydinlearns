@@ -41,7 +41,11 @@ const isStatused = (a: unknown): a is { status: number; body: unknown } => !!a &
  */
 export function stubFetch(answer: (method: string, path: string, body: unknown) => FetchAnswer | Promise<FetchAnswer>): FetchCall[] {
   const calls: FetchCall[] = [];
-  globals.fetch = async (input: unknown, init?: { method?: string; body?: string }) => {
+  globals.fetch = async (input: unknown, init?: { method?: string; body?: string; headers?: Record<string, string> }) => {
+    // The server refuses a non-GET without a JSON content type with a 415 (S7C-10), so a call that forgets the header fails here too.
+    if ((init?.method ?? 'GET') !== 'GET' && !(init?.headers?.['content-type'] ?? '').toLowerCase().startsWith('application/json')) {
+      return new Response(JSON.stringify({ error: 'Send JSON.' }), { status: 415, headers: { 'content-type': 'application/json' } });
+    }
     const call = { method: init?.method ?? 'GET', path: String(input), body: init?.body === undefined ? undefined : (JSON.parse(init.body) as unknown) };
     calls.push(call);
     const a = await answer(call.method, call.path, call.body);

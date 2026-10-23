@@ -1,6 +1,6 @@
 {
   "item_id": "EX-SQL-WIN-04-E2-22",
-  "item_version": 1,
+  "item_version": 2,
   "reference_sql": "SELECT channel_id, month, budget_eur,\n  ROUND(100.0 * SUM(budget_eur) OVER (PARTITION BY channel_id ORDER BY month ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)\n    / SUM(budget_eur) OVER (PARTITION BY channel_id), 1) AS cumulative_share_pct\nFROM budget_monthly\nWHERE month BETWEEN DATE '2025-01-01' AND DATE '2025-12-01'",
   "alternatives": [
     "SELECT b.channel_id, b.month, b.budget_eur,\n  ROUND(100.0 * (SELECT SUM(b2.budget_eur) FROM budget_monthly b2\n                 WHERE b2.channel_id = b.channel_id AND b2.month BETWEEN DATE '2025-01-01' AND b.month)\n    / (SELECT SUM(b3.budget_eur) FROM budget_monthly b3\n       WHERE b3.channel_id = b.channel_id AND b3.month BETWEEN DATE '2025-01-01' AND DATE '2025-12-01'), 1) AS cumulative_share_pct\nFROM budget_monthly b\nWHERE b.month BETWEEN DATE '2025-01-01' AND DATE '2025-12-01'",
@@ -24,11 +24,11 @@
   ],
   "hint3_partial": "SELECT channel_id, month, budget_eur,\n  ROUND(100.0 * SUM(budget_eur) OVER (PARTITION BY channel_id ORDER BY month ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)\n    / SUM(budget_eur) OVER (___), 1) AS cumulative_share_pct\nFROM budget_monthly\nWHERE month BETWEEN DATE '2025-01-01' AND DATE '2025-12-01'",
   "solver": {
-    "prompt_hash": "cbb27998f7a9f216",
+    "prompt_hash": "f98743bac6ed3057",
     "schema_version": "1ea1a0f5ae04",
-    "dataset_version": "e7c58abf7e8f892e",
-    "grader_version": "7a.1",
-    "query": "SELECT channel_id, month, budget_eur,\n  ROUND(100.0 * SUM(budget_eur) OVER (PARTITION BY channel_id ORDER BY month ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)\n    / SUM(budget_eur) OVER (PARTITION BY channel_id), 1) AS cumulative_share_pct\nFROM budget_monthly\nWHERE month BETWEEN DATE '2025-01-01' AND DATE '2025-12-01'\n",
-    "at": "2026-10-21T09:05:08.770Z"
+    "dataset_version": "ef4aa0325da6ea43",
+    "grader_version": "7c.1",
+    "query": "SELECT channel_id, month, budget_eur, ROUND(100.0 * SUM(budget_eur) OVER (PARTITION BY channel_id ORDER BY month ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) / SUM(budget_eur) OVER (PARTITION BY channel_id), 1) AS cumulative_share_pct FROM budget_monthly WHERE month >= DATE '2025-01-01' AND month <= DATE '2025-12-01'\n",
+    "at": "2026-10-22T18:09:35.976Z"
   }
 }

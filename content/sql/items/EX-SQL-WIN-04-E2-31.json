@@ -1,6 +1,6 @@
 {
   "id": "EX-SQL-WIN-04-E2-31",
-  "version": 1,
+  "version": 2,
   "kind": "fix",
   "tags": [
     "sql",
@@ -45,7 +45,7 @@
   "company": "mailvora",
   "schema": "mailvora",
   "edge_schema": "mailvora_edge_win",
-  "prompt": "The query in the editor has one mistake. Fix it so that it answers this question: for the nonbrand_search channel (channel_id 1), what is the channel's running spend over October 2025 at each campaign's spend row, up to and including the row? The rows are added one at a time in order of spend_date; when two rows share a spend_date, the lower campaign_id comes first, so no two rows show the same running spend unless a row spent 0. Return spend_date, campaign_id, spend and running_spend_eur. Any row order is fine.",
+  "prompt": "The query in the editor has one mistake. Fix it so that it answers this question: for the nonbrand_search channel (channel_id 1), what is the channel's running spend over October 2025 at each campaign's spend row, up to and including the row? The rows are added one at a time in order of spend_date; when two rows share a spend_date, the lower campaign_id comes first, so no two rows show the same running spend unless a row spent 0. Return four columns, in this order: spend_date, campaign_id, spend and running_spend_eur. Return one row for each such spend row. Any row order is fine.",
   "output_contract": {
     "columns": [
       {

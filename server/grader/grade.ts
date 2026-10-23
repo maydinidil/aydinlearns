@@ -32,7 +32,10 @@ export { INT_DIVISION_NOTE } from './portability.ts';
 // ERR-SYN-02. The per-table hidden-data lines (S6-05) and the FROM subquery alias note (S6-10) change what is shown, not the grade.
 // 7a.1 (sprint 7, Task A1, S7-26): a query that uses QUALIFY carries S7-20's note in portability_notes. A note only: outcomes, the
 // diagnosis, the partial score and the logged checks are graded exactly as 6a.1 did.
-export const GRADER_VERSION = '7a.1';
+// 7c.1 (sprint 7c, Task X5, S7C-08): DuckDB's messages for a window function in HAVING, in GROUP BY, inside an aggregate and nested in
+// another window function diagnose ERR-SYN-08, not ERR-SYN-02, and its feedback names every place a window function cannot go. Such a
+// query was an engine error and still is: outcomes, the partial score and the logged checks are graded exactly as 7a.1 did.
+export const GRADER_VERSION = '7c.1';
 const DIFF_LIMIT = 10;
 const KEY_FAILED = 'This exercise could not be checked. Please report it.';
 /** `schemaNotes` give the columns of the item's tables to the portability lint; without them it gives only the `==` note. */

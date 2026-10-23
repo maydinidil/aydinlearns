@@ -27,7 +27,7 @@ holds the evidence behind those changes.
 
 ## The state you will find it in
 
-**Slices 0, 1a, 1b, 2a and 2b, sprints 4a, 4b, 4c, 5a, 5b, 6 and T, and sprint 7 (Parts 1 and 2) are built: SQL levels 1 to 5,
+**Slices 0, 1a, 1b, 2a and 2b, sprints 4a, 4b, 4c, 5a, 5b, 6 and T, sprint 7 (Parts 1 and 2) and sprint 7c (fix and polish, 0.7.2) are built: SQL levels 1 to 5,
 all of GA4 (with full mocks, the readiness check and the interview labs) and all of Methodology can be studied, with the scheduler, Today, drills, the
 level openers, mistake cards, cases on Voltmarkt, Mailvora and real data, the portfolio export, the Progress screen, the opt-in AI tutor and the
 four recruiter mocks (screen, knowledge, case-round and take-home) on the Recruiter mocks screen.** Slice 2b (GA4 lessons, timed
@@ -43,11 +43,11 @@ built cases and the inbox, the level 3 opener, the portfolio export, the Progres
 dataset explorer, screen mode and live reps, merged in PR #40 (2026-10-08). Sprint 4c, a cleanup of
 the SQL learner-facing backlog, merged in PR #41 (2026-10-08). Open deferred work lives in
 [`docs/planning/backlog.md`](docs/planning/backlog.md). Sprint 5 is split: 5a (Methodology
-complete, polish, release 0.5.0) merged in PR #42 and was released as 0.5.0 (tag `v1.0.0` on the
+complete, polish, release 0.5.0) merged in PR #42 and was released as 0.5.0 (tag `v0.5.0` on the
 public repo, 2026-10-08), and 5b (GA4 complete) merged in PR #43, followed by a hygiene PR (PR #44, plan
 [`docs/superpowers/plans/2026-10-09-aydinlearns-hygiene-1-1.md`](docs/superpowers/plans/2026-10-09-aydinlearns-hygiene-1-1.md):
-Codex F27 and ten backlog rows), and was released as 0.5.1 (tag `v1.1.0` on the public repo,
-2026-10-09); read the roadmap first. Release 0.5.2 (2026-10-12, tag `v1.2.0`) added the optional OpenTelemetry (D75, D76; PRs #45 to #47). Release 0.5.3 (2026-10-13, tag `v1.3.0`) added the study journey (D77; PR #48; its rulings, reviews and deferred findings are in [`docs/planning/2026-10-13-release-1-3-record.md`](docs/planning/2026-10-13-release-1-3-record.md)). Sprint 6 Part 1 (2026-10-15, 0.6.0, no public release) added SQL level 4, `voltmarkt_raw` and the incident tickets; Part 2 (2026-10-16, 0.6.1, the public `v1.5.0`) added Mailvora, the dataset registry and the first real-data cases. Sprint T (2026-10-17, 0.6.2, the public `v1.6.0`; PR #51) added the opt-in AI tutor (D91 to D99). Sprint 7 Part 1 (2026-10-21, 0.7.0, no public release) added SQL level 5 and the screen mock; Part 2 (2026-10-22, 0.7.1, no public release yet) added the other three recruiter mocks. The app's version is in `package.json` (0.7.1); later sprints ship as 0.x releases (D63, D115).
+Codex F27 and ten backlog rows), and was released as 0.5.1 (tag `v0.5.1` on the public repo,
+2026-10-09); read the roadmap first. Release 0.5.2 (2026-10-12, tag `v0.5.2`) added the optional OpenTelemetry (D75, D76; PRs #45 to #47). Release 0.5.3 (2026-10-13, tag `v0.5.3`) added the study journey (D77; PR #48; its rulings, reviews and deferred findings are in [`docs/planning/2026-10-13-release-1-3-record.md`](docs/planning/2026-10-13-release-1-3-record.md)). Sprint 6 Part 1 (2026-10-15, 0.6.0, no public release) added SQL level 4, `voltmarkt_raw` and the incident tickets; Part 2 (2026-10-16, 0.6.1, the public `v0.6.1`) added Mailvora, the dataset registry and the first real-data cases. Sprint T (2026-10-17, 0.6.2, the public `v0.6.2`; PR #51) added the opt-in AI tutor (D91 to D99). Sprint 7 Part 1 (2026-10-21, 0.7.0, no public release) added SQL level 5 and the screen mock; Part 2 (2026-10-22, 0.7.1, the public `v0.7.1`) added the other three recruiter mocks. The app's version is in `package.json` (0.7.2); later sprints ship as 0.x releases (D63, D115). The public releases before 0.7.1 were re-created under the new numbers on 2026-10-23 (`v0.5.0` to `v0.6.2`, sprint 7 R1).
 - Slice 0: the domain-free types in `core/`, the app schemas in `schemas/`, the curriculum and
   error catalogue extracted into `content/sql/`, and the adjudicated fixes in
   `knowledge/ERRATA.md`. `knowledge/` itself still holds the research bank: 12 files (00 to 11), plus an index and a
@@ -171,8 +171,17 @@ Codex F27 and ten backlog rows), and was released as 0.5.1 (tag `v1.1.0` on the 
   take-home's wall clock and its 24-hour close, S7-15, S7-C25); the complete Recruiter mocks screen with all six stages
   live; the tutor's second opinion in a case mock's review (S7-17, screen `mock_review`); `pass_correct` on
   `mock_open` (S7-C34, additive); `mailvora_edge_clean`; `npm run check:content -- --only`. Its controller rulings
-  S7-C20 to S7-C36 and the F4 seams review are in the sprint 7 record. The owner's MET-MKT-05 swap (K3 Step 5) was
-  still to run when 0.7.1 was written: until it runs, the knowledge mock can draw `Q-MET-MKT-05-01`.
+  S7-C20 to S7-C36 and the F4 seams review are in the sprint 7 record. The owner's MET-MKT-05 swap (K3 Step 5) ran
+  before PR #53 merged (`db4eaf07`): `Q-MET-MKT-05-01` is back in practice and `Q-MET-MKT-05-02` is held out (S7C-C01).
+- Sprint 7c (plan `docs/superpowers/plans/2026-10-22-aydinlearns-sprint-7c.md`, 0.7.2, 2026-10-22): fix and polish, no
+  new feature. Codex F37 (`reserve-held-out` treats the knowledge pool as held elsewhere) and F38 (a run-level hold
+  for a case mock's insight) are fixed; the tutor is closed on every screen while any mock runs (D117, `mock_on` in
+  `/api/tutor/status`); `mock_open` carries `item_ids` (knowledge) and `core_rubric` (case mocks), additive on version 7
+  (D116); a mock case is held out by its record as well as its folder (S7C-05); `GRADER_VERSION` is `7c.1` and a window
+  function in HAVING, GROUP BY, an aggregate or another window is `ERR-SYN-08` (S7C-08, ERRATA `E-206`); C53 lives in
+  `tools/rank-cutoffs.ts`; 55 SQL prompts (level 5 and two cases) and five GA4 questions were reworded and
+  solved again blind; 33 backlog rows closed, 11 added. Its rulings (S7C-01 to S7C-11, the controller's S7C-C01 on),
+  the seams review and the deferred findings are in the sprint 7 record's "Sprint 7c (0.7.2)" part.
 - Every check in the README's "Run and ship" passes, and so does the browser smoke test,
   `npm run test:e2e`. It runs its own server on `AYDINLEARNS_PORT` (default 5174) against an
   empty temporary logs folder, set through `AYDINLEARNS_LOGS_DIR`, and a temporary journey folder,

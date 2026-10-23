@@ -1,6 +1,6 @@
 {
   "id": "EX-SQL-WIN-04-E2-02",
-  "version": 1,
+  "version": 2,
   "kind": "write",
   "tags": [
     "sql",
@@ -45,7 +45,7 @@
   "company": "mailvora",
   "schema": "mailvora",
   "edge_schema": "mailvora_edge_win",
-  "prompt": "For the brand_search channel (channel_id 2), show each campaign's spend row from 1 July to 31 October 2025 with the channel's running spend over that period, up to and including the row. Add the rows one at a time in order of spend_date; when two rows share a spend_date, the lower campaign_id comes first. Return spend_date, campaign_id, spend and running_spend_eur. Any row order is fine.",
+  "prompt": "For the brand_search channel (channel_id 2), show each campaign's spend row from 1 July to 31 October 2025 with the channel's running spend over that period, up to and including the row. Add the rows one at a time in order of spend_date; when two rows share a spend_date, the lower campaign_id comes first. Return four columns, in this order: spend_date, campaign_id, spend and running_spend_eur. Return one row for each such spend row. Any row order is fine.",
   "output_contract": {
     "columns": [
       {

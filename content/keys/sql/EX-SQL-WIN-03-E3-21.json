@@ -1,6 +1,6 @@
 {
   "item_id": "EX-SQL-WIN-03-E3-21",
-  "item_version": 1,
+  "item_version": 2,
   "reference_sql": "WITH days AS (\n  -- one row per store and day with orders\n  SELECT DISTINCT store_code, order_date\n  FROM sales\n  WHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-06-30'\n), gaps AS (\n  -- one row per store and day with orders\n  SELECT store_code,\n    order_date - LAG(order_date) OVER (PARTITION BY store_code ORDER BY order_date) AS gap_days\n  FROM days\n)\nSELECT store_code, MAX(gap_days) AS max_gap_days\nFROM gaps\nWHERE gap_days IS NOT NULL\nGROUP BY store_code",
   "alternatives": [
     "WITH days AS (\n  -- one row per store and day with orders\n  SELECT DISTINCT store_code, order_date\n  FROM sales\n  WHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-06-30'\n), gaps AS (\n  -- one row per store and day with orders\n  SELECT d.store_code,\n    d.order_date - (SELECT MAX(d2.order_date) FROM days d2 WHERE d2.store_code = d.store_code AND d2.order_date < d.order_date) AS gap_days\n  FROM days d\n)\nSELECT store_code, MAX(gap_days) AS max_gap_days\nFROM gaps\nWHERE gap_days IS NOT NULL\nGROUP BY store_code",
@@ -24,11 +24,11 @@
   ],
   "hint3_partial": "WITH days AS (\n  -- one row per store and day with orders\n  SELECT DISTINCT store_code, order_date\n  FROM sales\n  WHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-06-30'\n), gaps AS (\n  -- one row per store and day with orders\n  SELECT store_code,\n    order_date - LAG(order_date) OVER (PARTITION BY store_code ORDER BY order_date) AS gap_days\n  FROM days\n)\nSELECT store_code, MAX(gap_days) AS max_gap_days\nFROM gaps\nWHERE ___\nGROUP BY store_code",
   "solver": {
-    "prompt_hash": "1c049c0a54bcc292",
+    "prompt_hash": "f61df3c2ef85f2cc",
     "schema_version": "cebf75df442f",
-    "dataset_version": "e7c58abf7e8f892e",
-    "grader_version": "7a.1",
-    "query": "WITH days AS (\n  SELECT DISTINCT store_code, order_date\n  FROM sales\n  WHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-06-30'\n), g AS (\n  SELECT store_code,\n    order_date - LAG(order_date) OVER (PARTITION BY store_code ORDER BY order_date) AS gap\n  FROM days\n)\nSELECT store_code, MAX(gap) AS max_gap_days\nFROM g\nWHERE gap IS NOT NULL\nGROUP BY store_code\n",
-    "at": "2026-10-21T09:05:07.963Z"
+    "dataset_version": "ef4aa0325da6ea43",
+    "grader_version": "7c.1",
+    "query": "WITH d AS (SELECT DISTINCT store_id, CAST(order_ts AS DATE) AS dt FROM orders WHERE order_ts >= TIMESTAMP '2025-01-01 00:00:00' AND order_ts < TIMESTAMP '2025-07-01 00:00:00'), g AS (SELECT store_id, dt - LAG(dt) OVER (PARTITION BY store_id ORDER BY dt) AS gap FROM d) SELECT s.store_code, MAX(g.gap) AS max_gap_days FROM g JOIN stores s ON s.store_id = g.store_id WHERE g.gap IS NOT NULL GROUP BY s.store_code\n",
+    "at": "2026-10-22T18:09:35.297Z"
   }
 }

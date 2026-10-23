@@ -50,6 +50,14 @@ const cases: [string, string][] = [
   ['SELECT city FROM stores WHERE row_number() OVER (ORDER BY city) = 1', 'ERR-SYN-08'],
   ['SELECT city FROM stores WHERE store_id > avg(store_id) OVER ()', 'ERR-SYN-08'],
   ['SELECT city FROM stores WHERE nme > 1', 'ERR-SYN-02'],
+  // S7C-08 (sprint 7c, Task X5; backlog F2-5-2): a window function in HAVING, in GROUP BY, inside an aggregate (its FILTER included) or
+  // nested in another window function is ERR-SYN-08 too, no longer ERR-SYN-02. DuckDB reports one in a join's ON as one in WHERE.
+  ['SELECT country_code FROM stores GROUP BY country_code HAVING rank() OVER (ORDER BY country_code) = 1', 'ERR-SYN-08'],
+  ['SELECT count(*) FROM stores GROUP BY row_number() OVER (ORDER BY city)', 'ERR-SYN-08'],
+  ['SELECT sum(row_number() OVER (ORDER BY city)) FROM stores', 'ERR-SYN-08'],
+  ['SELECT count(*) FILTER (WHERE rank() OVER (ORDER BY city) = 1) FROM stores', 'ERR-SYN-08'],
+  ['SELECT sum(rank() OVER (ORDER BY city)) OVER () FROM stores', 'ERR-SYN-08'],
+  ['SELECT a.city FROM stores a JOIN stores b ON rank() OVER (ORDER BY a.city) = b.store_id', 'ERR-SYN-08'],
 ];
 for (const [sql, id] of cases) {
   test(`${id}: ${sql.replace(/\n/g, '\\n')}`, async () => {
@@ -96,6 +104,37 @@ test("S6-11: DuckDB 1.5.6's own message for a window function in WHERE, on an in
     inst.closeSync();
   }
 });
+/** DuckDB 1.5.6's message when `sql` is prepared on an in-memory instance holding t(id, g), set up as every instance is (R17). */
+async function inMemoryMessage(sql: string): Promise<string> {
+  const inst = await DuckDBInstance.create(':memory:', { autoinstall_known_extensions: 'false', autoload_known_extensions: 'false' });
+  const conn = await inst.connect();
+  try {
+    await conn.run(`SET TimeZone = 'UTC'`);
+    await conn.run('CREATE TABLE t AS SELECT range AS id, range % 2 AS g FROM range(3)');
+    return await conn.prepare(sql).then(() => '', (e: Error) => e.message);
+  } finally {
+    conn.disconnectSync();
+    inst.closeSync();
+  }
+}
+/** S7C-08: each place a window function cannot go but WHERE, with the first line of DuckDB 1.5.6's message for it (captured in Task X5). */
+const WINDOW_PLACES: { place: string; sql: string; message: string }[] = [
+  { place: 'in HAVING', sql: 'SELECT g FROM t GROUP BY g HAVING rank() OVER (ORDER BY g) = 1',
+    message: 'Binder Error: HAVING clause cannot contain window functions!' },
+  { place: 'in GROUP BY', sql: 'SELECT count(*) FROM t GROUP BY row_number() OVER (ORDER BY id)',
+    message: 'Binder Error: GROUP BY clause cannot contain window functions!' },
+  { place: 'inside an aggregate', sql: 'SELECT sum(rank() OVER (ORDER BY id)) FROM t',
+    message: 'Binder Error: aggregate function calls cannot contain window function calls' },
+  { place: 'nested in another window function', sql: 'SELECT sum(rank() OVER (ORDER BY id)) OVER () FROM t',
+    message: 'Binder Error: window function calls cannot be nested' },
+];
+for (const w of WINDOW_PLACES) {
+  test(`S7C-08: DuckDB 1.5.6's own message for a window function ${w.place}, on an in-memory instance, is ERR-SYN-08`, async () => {
+    const message = await inMemoryMessage(w.sql);
+    assert.equal(message.split('\n')[0], w.message);
+    assert.deepEqual(classifyEngineError(message, w.sql), { errorId: 'ERR-SYN-08' });
+  });
+}
 test('an unknown message falls back by its error class', () => {
   assert.equal(classifyEngineError('Parser Error: something new', 'SELECT 1').errorId, 'ERR-SYN-01');
   assert.equal(classifyEngineError('Catalog Error: Scalar Function with name foo does not exist!', 'SELECT foo(1)').errorId, 'ERR-SYN-02');

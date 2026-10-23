@@ -150,14 +150,14 @@ const status = async (app: Hono): Promise<TutorStatusView> => (await get(app, '/
 test("status (block P): on or off and why, the switch, model and effort, each model with its price and whether it can be picked, each key's source, the spend and the limit", async () => {
   assert.deepEqual(await status(createApp((await deps()).d)), { enabled: false, switched_on: true, provider: 'claude', model: 'claude-haiku-5-5', effort: 'medium',
     reason: 'The tutor is off.', models: modelsView(false, false), keys: [{ provider: 'claude', source: null }, { provider: 'openai', source: null }],
-    spent_today_usd: 0, cap_usd: 1, run_on: false });
+    spent_today_usd: 0, cap_usd: 1, run_on: false, mock_on: false });
   assert.deepEqual(await status(createApp((await deps(runtime(scripted(['x']).model), { tutor_daily_cap_usd: 2 })).d)), { enabled: true, switched_on: true,
     provider: 'claude', model: 'claude-haiku-5-5', effort: 'medium', reason: null, models: modelsView(true, false),
-    keys: [{ provider: 'claude', source: 'env' }, { provider: 'openai', source: null }], spent_today_usd: 0, cap_usd: 2, run_on: false });
+    keys: [{ provider: 'claude', source: 'env' }, { provider: 'openai', source: null }], spent_today_usd: 0, cap_usd: 2, run_on: false, mock_on: false });
   const noKey = await status(createApp((await deps(runtime(null), { tutor_model: 'gpt-6.1-sol', tutor_effort: 'high', tutor_daily_cap_usd: 'none' })).d));
   assert.deepEqual(noKey, { enabled: false, switched_on: true, provider: 'openai', model: 'gpt-6.1-sol', effort: 'high',
     reason: 'GPT-6.1 Sol needs an OpenAI key. Add one in Settings to turn the tutor on.', models: modelsView(false, false),
-    keys: [{ provider: 'claude', source: null }, { provider: 'openai', source: null }], spent_today_usd: 0, cap_usd: null, run_on: false });
+    keys: [{ provider: 'claude', source: null }, { provider: 'openai', source: null }], spent_today_usd: 0, cap_usd: null, run_on: false, mock_on: false });
   const both = { start: { claude: CLAUDE_KEY, openai: OPENAI_KEY } };
   const off = await status(createApp((await deps(runtime(scripted(['x']).model, undefined, both), { tutor_enabled: false })).d));
   assert.deepEqual([off.enabled, off.switched_on, off.reason, off.models.every((m) => m.available)], [false, false, 'The tutor is switched off in Settings.', true]);
@@ -430,6 +430,7 @@ test("D94: while a timed run's clock runs, its screen and its items are refused;
   const s = run.servings[0]!;
   const onItem = { item_id: s.item_id, item_instance_id: s.item_instance_id, phase: 'drill' };
   assert.equal((await (await get(app, '/api/tutor/status')).json()).run_on, true);
+  assert.equal((await (await get(app, '/api/tutor/status')).json()).mock_on, false, 'D117: a drill is no mock, so the other screens stay open');
   for (const body of [ask({ screen: 'drill', item: null }), ask({ item: onItem })]) {
     const res = await post(app, '/api/tutor/ask', body);
     assert.deepEqual([res.status, await res.json()], [409, { error: 'Help opens in the end-of-run review.', code: 'help_waits' }]);

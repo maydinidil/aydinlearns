@@ -1,6 +1,6 @@
 {
   "item_id": "EX-SQL-WIN-04-E2-21",
-  "item_version": 2,
+  "item_version": 3,
   "reference_sql": "WITH order_rev AS (\n  -- one row per order\n  SELECT o.customer_id, o.order_id, s.order_date, SUM(s.net_revenue_eur) AS revenue_eur\n  FROM orders o\n  JOIN sales s ON s.order_id = o.order_id\n  WHERE o.customer_id BETWEEN 3001 AND 3100\n    AND o.order_ts >= TIMESTAMP '2025-01-01 00:00:00'\n    AND o.order_ts < TIMESTAMP '2025-07-01 00:00:00'\n  GROUP BY o.customer_id, o.order_id, s.order_date\n)\nSELECT customer_id, order_id, order_date,\n  SUM(revenue_eur) OVER (PARTITION BY customer_id ORDER BY order_date RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS running_revenue_eur\nFROM order_rev",
   "alternatives": [
     "WITH order_rev AS (\n  -- one row per order\n  SELECT o.customer_id, o.order_id, s.order_date, SUM(s.net_revenue_eur) AS revenue_eur\n  FROM orders o\n  JOIN sales s ON s.order_id = o.order_id\n  WHERE o.customer_id BETWEEN 3001 AND 3100\n    AND o.order_ts >= TIMESTAMP '2025-01-01 00:00:00'\n    AND o.order_ts < TIMESTAMP '2025-07-01 00:00:00'\n  GROUP BY o.customer_id, o.order_id, s.order_date\n)\nSELECT r.customer_id, r.order_id, r.order_date,\n  (SELECT SUM(r2.revenue_eur) FROM order_rev r2 WHERE r2.customer_id = r.customer_id AND r2.order_date <= r.order_date) AS running_revenue_eur\nFROM order_rev r",
@@ -24,11 +24,11 @@
   ],
   "hint3_partial": "WITH order_rev AS (\n  -- one row per order\n  SELECT o.customer_id, o.order_id, s.order_date, SUM(s.net_revenue_eur) AS revenue_eur\n  FROM orders o\n  JOIN sales s ON s.order_id = o.order_id\n  WHERE o.customer_id BETWEEN 3001 AND 3100\n    AND o.order_ts >= TIMESTAMP '2025-01-01 00:00:00'\n    AND o.order_ts < TIMESTAMP '2025-07-01 00:00:00'\n  GROUP BY o.customer_id, o.order_id, s.order_date\n)\nSELECT customer_id, order_id, order_date,\n  SUM(revenue_eur) OVER (PARTITION BY customer_id ORDER BY order_date ___ BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS running_revenue_eur\nFROM order_rev",
   "solver": {
-    "prompt_hash": "e0e53d75b299274e",
+    "prompt_hash": "1e3df913a946c45b",
     "schema_version": "669fef2a1651",
-    "dataset_version": "e7c58abf7e8f892e",
-    "grader_version": "7a.1",
-    "query": "WITH order_rev AS (\n  SELECT order_id, SUM(net_revenue_eur) AS order_revenue_eur\n  FROM sales\n  GROUP BY order_id\n),\ncust_orders AS (\n  SELECT o.customer_id,\n         o.order_id,\n         CAST(o.order_ts AS DATE) AS order_date,\n         r.order_revenue_eur\n  FROM orders o\n  JOIN order_rev r ON r.order_id = o.order_id\n  WHERE o.customer_id BETWEEN 3001 AND 3100\n    AND CAST(o.order_ts AS DATE) >= DATE '2025-01-01'\n    AND CAST(o.order_ts AS DATE) <= DATE '2025-06-30'\n)\nSELECT customer_id,\n       order_id,\n       order_date,\n       SUM(order_revenue_eur) OVER (\n         PARTITION BY customer_id\n         ORDER BY order_date\n         RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW\n       ) AS running_revenue_eur\nFROM cust_orders\n",
-    "at": "2026-10-21T12:57:43.679Z"
+    "dataset_version": "ef4aa0325da6ea43",
+    "grader_version": "7c.1",
+    "query": "WITH o AS (SELECT od.customer_id, od.order_id, CAST(od.order_ts AS DATE) AS order_date, COALESCE(SUM(s.net_revenue_eur), 0) AS rev FROM orders od LEFT JOIN sales s ON s.order_id = od.order_id WHERE od.customer_id BETWEEN 3001 AND 3100 AND od.order_ts >= TIMESTAMP '2025-01-01 00:00:00' AND od.order_ts < TIMESTAMP '2025-07-01 00:00:00' GROUP BY 1, 2, 3) SELECT customer_id, order_id, order_date, SUM(rev) OVER (PARTITION BY customer_id ORDER BY order_date RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS running_revenue_eur FROM o\n",
+    "at": "2026-10-22T18:09:35.951Z"
   }
 }

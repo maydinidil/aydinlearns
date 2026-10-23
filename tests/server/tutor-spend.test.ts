@@ -59,6 +59,17 @@ test('the guard: off, a running timed run, an empty or long question, an oversiz
   assert.equal(guard({ ...ok, snapshotChars: SNAPSHOT_LIMIT + 1 })?.status, 413);
 });
 
+test('D117 (S7C-04): while a mock run is on, every screen waits, a mock review included; a drill or GA4 run still closes only its own screens', () => {
+  const waits = { status: 409, code: 'help_waits', message: HELP_WAITS };
+  for (const screen of ['today', 'lesson', 'item', 'mock_review', 'mocks', 'case', 'progress', 'mock']) {
+    assert.deepEqual(guard({ ...ok, screen, runOn: true, mockOn: true }), waits, screen);
+  }
+  assert.equal(guard({ ...ok, screen: 'mock_review', runOn: false, mockOn: false }), null, 'once the mock ends, its review is open again');
+  assert.equal(guard({ ...ok, screen: 'today', runOn: true, mockOn: false }), null, 'a drill run on: other screens stay open (D94)');
+  assert.deepEqual(guard({ ...ok, screen: 'drill', runOn: true, mockOn: false }), waits, 'and its own screen waits');
+  assert.deepEqual(guard({ ...ok, enabled: false, offReason: 'The tutor is off.', mockOn: true })?.code, 'tutor_off', 'off comes first');
+});
+
 // ---- Sprint 7 K1: sprint T's test gaps for the spend (T2/T4 #4, #5; T3 M5) ----------------------------------------------------------
 const NOW = new Date('2026-10-16T12:00:00.000Z');
 

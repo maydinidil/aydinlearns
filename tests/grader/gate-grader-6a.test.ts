@@ -65,6 +65,21 @@ test('S6-11: a window function in WHERE is graded as ERR-SYN-08 with its own fee
   assert.equal(unknown.diagnosis?.errorId, 'ERR-SYN-02');
 });
 
+// ---- S7C-08: the other places a window function cannot go (sprint 7c, Task X5; GRADER_VERSION 7c.1) ----------------------------
+
+for (const [place, sql] of [
+  ['in HAVING', 'SELECT city FROM stores GROUP BY city HAVING row_number() OVER (ORDER BY city) = 1'],
+  ['in GROUP BY', 'SELECT count(*) AS city FROM stores GROUP BY rank() OVER (ORDER BY city)'],
+  ['inside an aggregate', 'SELECT max(row_number() OVER (ORDER BY city)) AS city FROM stores'],
+  ['nested in another window function', 'SELECT city FROM (SELECT city, sum(rank() OVER (ORDER BY city)) OVER () AS s FROM stores) AS t'],
+] as const) {
+  test(`S7C-08: a window function ${place} is graded as ERR-SYN-08 with its own feedback, an engine error as before`, async () => {
+    const r = await grade({ ...cities, sql }, deps(perTable));
+    assert.deepEqual([r.outcome, r.graded, r.diagnosis?.errorId, r.diagnosis?.source], ['engine_error', true, 'ERR-SYN-08', 'engine']);
+    assert.deepEqual(r.diagnosis?.feedback, feedback['ERR-SYN-08']);
+  });
+}
+
 // ---- S6-05: per-table lines --------------------------------------------------------------------------------------------
 
 test('S6-05: edgeLines gives the lines of the tables the query read, each once, in the file\'s order', () => {

@@ -29,11 +29,13 @@ import {
 } from '../lib/mock-flow.ts';
 import { mockReviewPart, secondOpinionPrompts } from '../lib/tutor-parts.ts';
 import { TUTOR_WAITS } from '../tutor/snapshot.ts';
-import { AVAILABLE, useTutorAsk, useTutorAvailable, useTutorClosed, useTutorPart } from '../tutor/TutorContext.tsx';
+import { AVAILABLE, useTutorAsk, useTutorAvailable, useTutorClosed, useTutorPart, useTutorWaits } from '../tutor/TutorContext.tsx';
 
 const LATE_NOTE = ' It came in late.';
-/** The grain waits while CP1, which may ask it, has no answer (D1): the brief says when it shows. */
-const GRAIN_WAITS = 'Shown once the Scope step or the Query step has its answer.';
+/** S7C-06: in a mock whose case lists a CP1, which may ask it, the grain waits for the review (D1): the brief says when it shows. */
+const GRAIN_WAITS = 'Shown in the review.';
+/** The review shows the grain; a case written with none says so. */
+const NO_GRAIN = 'None given.';
 const errorText = (e: unknown): string => (e as Error).message;
 type Refresh = () => Promise<void>;
 
@@ -94,6 +96,8 @@ function CaseMockRun(p: { run: CaseMockRunView; refresh: Refresh }) {
   const [current, setCurrent] = useState<StepId>('plan');
   const [message, setMessage] = useState<string | null>(null);
   const ending = useRef(false);
+  // F4-2-1 (fixer A): CP3's typed query, kept here so it survives the query step reopening on a new instance after an app restart.
+  const cp3Draft = useRef<string | null>(null);
   useEffect(() => { const t = setInterval(() => setNow(Date.now()), 500); return () => clearInterval(t); }, []);
   const clock = mockClock(now, run);
   async function finish(how: 'end' | 'give_up'): Promise<void> {
@@ -126,7 +130,7 @@ function CaseMockRun(p: { run: CaseMockRunView; refresh: Refresh }) {
       case 'plan': return <MockPlanStep run={run} onSaved={p.refresh} />;
       case 'say': return <MockSayStep run={run} onSaved={p.refresh} />;
       case 'CP6': return cp ? <MockInsightStep run={run} cp={cp} onSaved={p.refresh} /> : null;
-      case 'CP3': return cp ? <MockQueryStep key={cp.item_instance_id ?? cp.id} run={run} cp={cp} active={shown === id} onAnswered={p.refresh} onStopped={stopped} /> : null;
+      case 'CP3': return cp ? <MockQueryStep key={cp.item_instance_id ?? cp.id} run={run} cp={cp} active={shown === id} onAnswered={p.refresh} onStopped={stopped} draft={cp3Draft} /> : null;
       default: return cp ? <MockCheckpointStep key={cp.item_instance_id ?? cp.id} run={run} cp={cp} active={shown === id} onAnswered={p.refresh} onStopped={stopped} /> : null;
     }
   }
@@ -298,7 +302,7 @@ function MockCheckpointStep({ run, cp, active, onAnswered, onStopped }: MockStep
  * S7-03: CP3, the case's query: the shared mock question (served through the run's instance, Run free, one Submit asked for in the page,
  * recorded only), opened the first time its step is shown.
  */
-function MockQueryStep({ run, cp, active, onAnswered, onStopped }: MockStepProps) {
+function MockQueryStep({ run, cp, active, onAnswered, onStopped, draft }: MockStepProps & { draft: { current: string | null } }) {
   const [opened, setOpened] = useState(false);
   useEffect(() => { if (active && !cp.answered) setOpened(true); }, [active, cp.answered]);
   if (cp.answered) return <AnsweredStep cp={cp} />;
@@ -313,7 +317,7 @@ function MockQueryStep({ run, cp, active, onAnswered, onStopped }: MockStepProps
     return false;
   };
   return <MockSqlQuestion blockId={run.block_id} instanceId={cp.item_instance_id} heading={checkpointLabel('CP3')} sectionClass="case-step" answered={cp.answered}
-    onAnswered={() => void onAnswered()} onRefused={refused} />;
+    onAnswered={() => void onAnswered()} onRefused={refused} draft={draft} />;
 }
 
 /** CP6: the written insight (the take-home's memo), saved again until the run ends; the model answer and the rubric open in the review. */
@@ -391,7 +395,7 @@ export function CaseMockReviewScreen({ blockId }: { blockId: string }) {
       <p>{countsLine(review)}</p>
       <p className="muted">The mock is over, so its answers, the model texts and the tutor are open now, and "show answer" is free.</p>
       <CaseBrief persona={review.case.persona} brief={review.case.brief} tables={review.case.data_needed} output={review.case.expected_output}
-        dataSource={review.case.data_source} heldBack={GRAIN_WAITS} />
+        dataSource={review.case.data_source} heldBack={NO_GRAIN} />
       <ol className="review-items card">{review.checkpoints.filter((c) => c.kind !== 'CP6').map((c) => <MockReviewCheckpoint key={c.id} cp={c} />)}</ol>
       <section className="card case-step">
         <h2>Plan</h2>
@@ -464,6 +468,8 @@ function MockReviewInsight({ review, onSaved }: { review: CaseMockReview; onSave
   // S7-17: the tutor sees the written answer, the model answer and the rubric lines; it reads only whether the tutor is available.
   useTutorPart(() => mockReviewPart({ memo, written: review.insight, modelAnswer: review.model_answer, rubric: review.rubric, core: review.core_rubric }));
   const quick = secondOpinionPrompts(useTutorAvailable() ? AVAILABLE : null, wrote);
+  // D117 (S7C-04): while another mock runs the tutor waits here too, and its line stands where the second opinion would.
+  const waits = useTutorWaits();
   const ask = useTutorAsk();
   async function save(): Promise<void> {
     if (busy) return;
@@ -499,6 +505,7 @@ function MockReviewInsight({ review, onSaved }: { review: CaseMockReview; onSave
       </div>
       <p><button type="button" onClick={() => void save()} disabled={busy}>Save the rubric</button></p>
       {quick.length > 0 && <p className="toolbar tutor-quick">{quick.map((q) => <button key={q.label} type="button" onClick={() => ask?.(q.question)}>{q.label}</button>)}</p>}
+      {quick.length === 0 && wrote && waits !== null && <p className="muted">{waits}.</p>}
       {message && <p role="status">{message}</p>}
     </section>
   );

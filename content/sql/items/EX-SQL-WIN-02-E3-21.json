@@ -1,6 +1,6 @@
 {
   "id": "EX-SQL-WIN-02-E3-21",
-  "version": 1,
+  "version": 2,
   "kind": "write",
   "tags": [
     "sql",
@@ -49,7 +49,7 @@
   "company": "voltmarkt",
   "schema": "voltmarkt",
   "edge_schema": "voltmarkt_edge_win",
-  "prompt": "Which products are in the top 2 of their category by 2025 net revenue? Use the sales rows whose order_date falls in 2025. Products that tie on revenue share a place, and the place after a tie is skipped, so a tie for second place keeps both products. Return four columns, in this order: category_name, product_id, revenue and revenue_rank. Return one row for each product kept. Any row order is fine.",
+  "prompt": "Which products are in the top 2 of their category by 2025 net revenue? Use the sales rows whose order_date falls in 2025 (order_date is a UTC day). Products that tie on revenue share a place, and the place after a tie is skipped, so a tie for second place keeps both products. Return four columns, in this order: category_name, product_id, revenue and revenue_rank. Return one row for each product kept. Any row order is fine.",
   "output_contract": {
     "columns": [
       {

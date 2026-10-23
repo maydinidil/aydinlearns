@@ -245,12 +245,17 @@ mock on questions you have not seen meets that stage on the readiness board, wit
 - **While a run is on.** Answers wait for the review: each question takes one answer and the reply says only "Answer
   recorded". Hints, "Show answer", other ways and the tutor wait for the end of the run. In the two case mocks the plan
   comes first, and the model plan, the model answer and the rubric open in the review.
+- **The tutor while a mock runs.** The tutor is closed on every screen while any mock runs, not only inside the run: on
+  Today, a lesson, Progress and the review of an earlier mock too (D117). The panel says "A mock is on, so the tutor
+  waits for its review." A take-home counts as running until it is handed in or closes at 24 hours. Drills and GA4 runs
+  keep their timed screens only.
 - **The clock.** The screen, knowledge and case-round runs end at their limit, by "Hand in", or when the study session
   or the app stops. The take-home runs on wall time from its start: leaving, a session end or a restart does not stop
   it, an answer after 120 minutes is late and the run cannot pass, and it closes at the first start or request 24 hours
   after it opened.
 - **What is logged.** `mock_open` once per start, with `pass_correct` (the correct answers the run needs, log format
-  version 7); each answer; a `block_close` that rates the cards; for a case mock, the plan and the review's rubric
+  version 7). It also records what the run was built from (D116): a knowledge run's questions (`item_ids`) and a case
+  mock's core rubric lines (`core_rubric`), so a later edit to the content cannot change a past run; each answer; a `block_close` that rates the cards; for a case mock, the plan and the review's rubric
   ticks and the "say it" self-check (`explained_aloud`); and, with the tutor on, a second-opinion question as
   `tutor_asked` with screen `mock_review`. Scores, passes and the stages they meet are derived by replay, so a run is
   scored on the questions it served and the pass mark it started with.
@@ -275,21 +280,21 @@ mock on questions you have not seen meets that stage on the readiness board, wit
 Aydin designed and directed the project and built it with AI coding agents (Claude Code), from a
 written design, sprint plans and test-first tasks, with a review per task and an outside review
 of every pull request. Lessons and exercises are generated from a research bank by agents and
-checked before they ship: 23,731 automated content checks (with the real datasets prepared), and a blind solver (a fresh agent
+checked before they ship: 23,732 automated content checks (with the real datasets prepared), and a blind solver (a fresh agent
 that solves every exercise without seeing its answer key). The design, the plans, every ruling
 and the review logs are in `docs/`.
 
-Today: 2,891 automated tests (the render tests included), 291 data pipeline tests, 23,731 content checks (with the real datasets prepared) and a 95-row browser smoke test, all passing.
+Today: 2,976 automated tests (the render tests included), 291 data pipeline tests, 23,732 content checks (with the real datasets prepared) and a 95-row browser smoke test, all passing.
 
 ## Status
 
-Version 0.7.1 (2026-10-22). Built: SQL levels 1 to 5 with the scheduler, Today, drills, level
+Version 0.7.2 (2026-10-22). Built: SQL levels 1 to 5 with the scheduler, Today, drills, level
 openers, cases and the inbox, mistake cards, the portfolio export, the Progress screen, the
 dataset explorer and screen mode; GA4 complete (lessons, mini drills, half-mocks, full mocks,
 the readiness check and the interview labs); Methodology complete; optional telemetry (0.5.2) and
 the study journey (0.5.3); SQL level 4, raw data and the incident tickets (0.6.0); Mailvora, the marketing cases and the first
 real datasets (0.6.1); the opt-in AI tutor (0.6.2); SQL level 5 and the screen mock on the Recruiter mocks screen (0.7.0); the knowledge, case-round
-and take-home mocks and the tutor's second opinion (0.7.1). Later 0.x releases add SQL levels 6 and 7, more companies and real datasets. See
+and take-home mocks and the tutor's second opinion (0.7.1); fixes and polish after the mocks (0.7.2). Later 0.x releases add SQL levels 6 and 7, more companies and real datasets. See
 `docs/planning/roadmap.md` and `CHANGELOG.md`.
 
 It runs on Windows 11; other systems are untested.

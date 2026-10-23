@@ -1,6 +1,6 @@
 {
   "id": "EX-SQL-WIN-03-E2-04",
-  "version": 1,
+  "version": 2,
   "kind": "write",
   "tags": [
     "sql",
@@ -52,7 +52,7 @@
   "company": "mailvora",
   "schema": "mailvora",
   "edge_schema": "mailvora_edge_win",
-  "prompt": "For each paid channel and each month from July to October 2025, show the channel's total ad spend that month and the change from the previous calendar month. Show every channel that has a budget row for the month, even in a month it spent nothing: a month with no spend counts as 0. Return channel_id, month (the first day of the month), spend_eur and change_eur, this month's spend minus the previous calendar month's. July's previous month is outside the range, so July shows change_eur as missing. Any row order is fine.",
+  "prompt": "For each paid channel and each month from July to October 2025, show the channel's total ad spend that month and the change from the previous calendar month. Show every channel that has a budget row for the month, even in a month it spent nothing: a month with no spend counts as 0. Return four columns, in this order: channel_id, month (the first day of the month), spend_eur and change_eur, this month's spend minus the previous calendar month's. Return one row for each channel and month with a budget row. July's previous month is outside the range, so July shows change_eur as missing. Any row order is fine.",
   "output_contract": {
     "columns": [
       {

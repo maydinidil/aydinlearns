@@ -18,7 +18,8 @@
 // { recorded: true } (S7-03); help and the tutor wait (HELP_WAITS, D108). Its end closes every item run_end and writes the rated
 // block_close, as a drill's does (routes/drill.ts); each mock's run_started and run_finished name its own run kind (D77; N1 M11).
 // Codex F35 (ruling S7-C34): each mock_open records pass_correct, the count of correct answers the run needs, and a screen mock's review
-// shows the questions its own instances served. Codex F36: a run view marks each serving that has its one answer.
+// shows the questions its own instances served. Codex F36: a run view marks each serving that has its one answer. Sprint 7c (D116, ruling
+// S7C-03): a knowledge mock_open also records item_ids, its drawn questions in serve order, and a case mock's core_rubric, its core lines.
 import type { Context, Hono } from 'hono';
 import { HTTPException } from 'hono/http-exception';
 import { SCHEMA_VERSION, type AttemptFileRecord, type Section } from '../../core/envelope.ts';
@@ -39,7 +40,7 @@ import { journey } from '../journey.ts';
 import { knowledgeShowings, mockBlockId, mockRuns, nextForm, type MockRun } from '../mocks.ts';
 import { progressGoals, readinessBoard, type ProgressGoal } from '../progress.ts';
 import {
-  answeredPositions, drawKnowledge, knowledgePools, knowledgeScore, knowledgeTopic, knowledgeUnseenDate, REVIEW_WAITS, runView, seenWindow, type KnowledgeScore,
+  drawKnowledge, knowledgePools, knowledgeReadiness, knowledgeScore, knowledgeTopic, knowledgeUnseenDate, REVIEW_WAITS, runView, seenWindow, type KnowledgeScore,
 } from '../run.ts';
 import { seenIn } from '../session-composer.ts';
 import type { CaseEngine } from './cases.ts';
@@ -50,7 +51,12 @@ import { mountMockCases, NO_CASE_FORMS, type MockCaseReviewPart, type MockCaseVi
 export const NO_SCREEN_FORMS = 'No screen mock forms yet.';
 /** S7-C21: the knowledge pool holds fewer than per_section.ga4 questions (empty until Task P1): the card shows this, and a start answers it. */
 export const KNOWLEDGE_NOT_READY = 'The knowledge mock\'s GA4 questions are not ready yet.';
-/** S7-10: a knowledge draw that cannot fill the mock (too many questions share an enemy group, or Methodology holds too few). */
+/** S7-C21 (N1 M5): the held-out Methodology items hold fewer usable questions than per_section.methodology: as KNOWLEDGE_NOT_READY. */
+export const KNOWLEDGE_METHODOLOGY_NOT_READY = 'The knowledge mock\'s Methodology questions are not ready yet.';
+/**
+ * S7-10: a knowledge draw that cannot fill the mock although each pool holds its share (knowledgeReadiness): too many questions share an
+ * enemy group.
+ */
 const knowledgeShort = (drawn: number, questions: number): string => `The knowledge mock needs ${questions} questions, and ${drawn} can be drawn now.`;
 /** A start, a drill's or a GA4 run's, while another timed run is on (S7-02, S3-08). */
 const RUN_ON = 'A timed run is already on. End it before starting another.';
@@ -100,10 +106,10 @@ export interface MocksView {
   /** Screen, knowledge, case-round and take-home, in stage order. */
   mocks: MockCardView[];
   /**
-   * The mock run that is on, as its start answered it, each serving marked when it has its one answer (Codex F36); a knowledge run also
-   * names its answered positions (B3 I2), and a case mock's carries its case with each checkpoint's answered state (Task N2).
+   * The mock run that is on, as its start answered it, each serving marked when it has its one answer (Codex F36); the screen reads a knowledge run's answered
+   * positions from those marks (B3 I2, N3 M3: held once), and a case mock's carries its case with each checkpoint's answered state (Task N2).
    */
-  run: (Omit<ReturnType<typeof mockRunView>, 'servings'> & { servings: MarkedServing[]; answered?: number[]; case?: MockCaseView }) | null;
+  run: (Omit<ReturnType<typeof mockRunView>, 'servings'> & { servings: MarkedServing[]; case?: MockCaseView }) | null;
   /** Stage 6: the live reps logged and passed in the Amsterdam dates from `from` to `to`, G-STAGE-6's window of `weeks` weeks (L106). */
   live_reps: { logged: number; passed: number; from: string; to: string; weeks: number };
 }
@@ -120,7 +126,11 @@ export interface MockReviewItem {
   /** The answer graded again for its diff (the log keeps a summary only); null when there is no answer, or the runner is not running. */
   grade: (GradeResult & { attempt_id: string | null }) | null;
 }
-export interface MockReview extends MockHistoryRow { mock: MockKind; items: MockReviewItem[] }
+export interface MockReview extends MockHistoryRow {
+  mock: MockKind; items: MockReviewItem[];
+  /** N3 M4: how many of the run's questions it never reached (a crash ended it before they were served), so "5 of 12" over 5 items reads right. */
+  not_reached: number;
+}
 /** S7-07: a knowledge mock's review: its score per section and per topic, the GA4 topics' names, and never a question (S3-12). */
 export interface KnowledgeMockReview extends MockHistoryRow, KnowledgeScore { mock: 'knowledge'; items: []; topic_names: Record<string, string> }
 /** S7-07: a case-round's or take-home's review (routes/mock-cases.ts): each checkpoint's answer beside the correct one, the model texts, the rubric. */
@@ -153,9 +163,8 @@ const markServings = (servings: readonly { item_id: string; item_instance_id: st
  * and late state (`caseView`, routes/mock-cases.ts).
  */
 const withAnswered = <T extends { servings: readonly { item_id: string; item_instance_id: string }[] }>(view: T, run: RunEntry & { plan: MockPlan },
-  attempts: readonly object[], caseView: (run: RunEntry) => MockCaseView | null): Omit<T, 'servings'> & { servings: MarkedServing[]; answered?: number[]; case?: MockCaseView } => {
+  attempts: readonly object[], caseView: (run: RunEntry) => MockCaseView | null): Omit<T, 'servings'> & { servings: MarkedServing[]; case?: MockCaseView } => {
   const marked = { ...view, servings: markServings(view.servings, attempts) };
-  if (run.plan.mock === 'knowledge') return { ...marked, answered: answeredPositions(attempts, run.servings) };
   const c = isMockCaseKind(run.plan.mock) ? caseView(run) : null;
   return c ? { ...marked, case: c } : marked;
 };
@@ -205,13 +214,15 @@ export function mountMocks(app: Hono, d: RouteDeps, runs: DrillRuns, engine: Cas
   let starting = false;
   /**
    * S7-04, S7-10, S7-C21: what a knowledge start at `now` draws (its 30-day rule reads the replayed showings, S2-97, and ruling S7-C36's: every
-   * question an earlier knowledge run served is shown at its mock_open, answered or not) and, when the draw is not unseen, the date unseen
-   * questions come back; or, with no draw, why it cannot start.
+   * question an earlier knowledge run served, or its mock_open listed (D116), is shown at its mock_open, answered or not) and, when the draw
+   * is not unseen, the date unseen questions come back; or, with no draw, why it cannot start: a pool too small by the one "ready" rule the
+   * goal view and C56 read (knowledgeReadiness, N1 M5), or a draw the enemy groups keep short.
    */
   const knowledgeDraw = (file: MocksFile, now: Date, records: readonly object[]) => {
     const rules = file.knowledge;
     const pools = knowledgePools(d.content);
-    if (pools.ga4.length < rules.per_section.ga4) return { form: null, next_unseen_date: null, blocked: KNOWLEDGE_NOT_READY };
+    const { short } = knowledgeReadiness(pools, rules);
+    if (short.length > 0) return { form: null, next_unseen_date: null, blocked: short.includes('ga4') ? KNOWLEDGE_NOT_READY : KNOWLEDGE_METHODOLOGY_NOT_READY };
     const seen = [...seenIn(d.state.current()), ...knowledgeShowings(records)];
     const form = drawKnowledge({ rules, pools, ...seenWindow(seen, now) });
     if (form.picks.length < rules.questions) return { form: null, next_unseen_date: null, blocked: knowledgeShort(form.picks.length, rules.questions) };
@@ -222,15 +233,18 @@ export function mountMocks(app: Hono, d: RouteDeps, runs: DrillRuns, engine: Cas
    * or GA4 run started while the mock_open was written (another tab) keeps the clock: this mock closes at once, its form or draw taken and
    * nothing answered, and the start answers as a second start does. Between the caller's check of the run clock and here nothing awaits.
    */
-  async function openRun(c: Context, o: { mock: MockKind; form_id: string; minutes: number; on_unseen: boolean; pass_correct: number; at: number; ends_at?: number },
+  async function openRun(c: Context, o: { mock: MockKind; form_id: string; minutes: number; on_unseen: boolean; pass_correct: number; at: number; ends_at?: number;
+    item_ids?: string[]; core_rubric?: string[] },
     questions: readonly { item_id: string; section: Section; repeat_exposure: boolean }[],
     extra: Record<string, unknown> | ((run: RunEntry) => object) = {}): Promise<Response> {
     const { at } = o;
     const block_id = mockBlockId(o.mock);
     starting = true;
     try {
+      // D116 (S7C-03): a knowledge run's drawn questions in serve order, or a case run's core rubric lines, ride on its mock_open.
       await d.logger.mockOpen({ record: 'mock_open', schema_version: SCHEMA_VERSION, ts: new Date(at).toISOString(), session_id: d.session.currentId ?? '',
-        block_id, mock: o.mock, form_id: o.form_id, minutes: o.minutes, on_unseen: o.on_unseen, pass_correct: o.pass_correct });
+        block_id, mock: o.mock, form_id: o.form_id, minutes: o.minutes, on_unseen: o.on_unseen, pass_correct: o.pass_correct,
+        ...(o.item_ids === undefined ? {} : { item_ids: [...o.item_ids] }), ...(o.core_rubric === undefined ? {} : { core_rubric: [...o.core_rubric] }) });
     } finally {
       starting = false;
     }
@@ -317,7 +331,8 @@ export function mountMocks(app: Hono, d: RouteDeps, runs: DrillRuns, engine: Cas
       const ready = cases.prepare(mock, form.form_id);
       if ('refusal' in ready) throw refuse(409, ready.refusal);
       const ends_at = mock === 'take_home' ? at + Math.round(file.take_home.close_after_hours * HOUR_MS) : undefined;
-      return openRun(c, { mock, form_id: form.form_id, minutes: file[mock].minutes, on_unseen: form.on_unseen, pass_correct: passCorrect(mock, file[mock]), at, ends_at },
+      return openRun(c, { mock, form_id: form.form_id, minutes: file[mock].minutes, on_unseen: form.on_unseen, pass_correct: passCorrect(mock, file[mock]), at, ends_at,
+        core_rubric: file[mock].core_rubric },
         ready.item_ids.map((item_id) => ({ item_id, section: 'sql' as const, repeat_exposure: !form.on_unseen })), (run) => ({ case: cases.view(run) }));
     }
     if (b.mock === 'knowledge') {
@@ -325,8 +340,8 @@ export function mountMocks(app: Hono, d: RouteDeps, runs: DrillRuns, engine: Cas
       const k = file ? knowledgeDraw(file, new Date(at), attempts) : null;
       if (!file || !k?.form) throw refuse(409, k?.blocked ?? KNOWLEDGE_NOT_READY);
       return openRun(c, { mock: 'knowledge', form_id: KNOWLEDGE_FORM, minutes: file.knowledge.minutes, on_unseen: k.form.allFresh,
-        pass_correct: passCorrect('knowledge', file.knowledge), at },
-        k.form.picks.map((p) => ({ item_id: p.item.id, section: p.item.section, repeat_exposure: !p.fresh })), { next_unseen_date: k.next_unseen_date, answered: [] });
+        pass_correct: passCorrect('knowledge', file.knowledge), at, item_ids: k.form.picks.map((p) => p.item.id) },
+        k.form.picks.map((p) => ({ item_id: p.item.id, section: p.item.section, repeat_exposure: !p.fresh })), { next_unseen_date: k.next_unseen_date });
     }
     const form = file ? nextForm('screen', await history(attempts), file) : null;
     const ids = form ? file!.screen.forms.find((f) => f.id === form.form_id)?.item_ids : undefined;
@@ -358,6 +373,7 @@ export function mountMocks(app: Hono, d: RouteDeps, runs: DrillRuns, engine: Cas
     if (r && r.mock === 'knowledge') {
       // S7-07: the score per section and per topic, never a question, so the pools stay unseen for retakes (S3-12).
       if (r.status === 'on') throw refuse(409, REVIEW_WAITS);
+      // N1 M4: the same reading of its questions and first answers as its history row, so the sections add up to it.
       const score = knowledgeScore(records, block, Date.parse(r.ended_at!), d.content.mocks!.knowledge, knowledgeTopic(d.content));
       const body: KnowledgeMockReview = { ...historyRow(r), mock: 'knowledge', items: [], ...score, topic_names: { ...d.content.ga4Exam?.()?.topic_names } };
       return c.json(body);
@@ -387,7 +403,7 @@ export function mountMocks(app: Hono, d: RouteDeps, runs: DrillRuns, engine: Cas
         query, prompt: item?.prompt ?? null, output_contract: item?.output_contract ?? null,
         grade: item && query !== null ? await regrade(item, query, answer!.screen_mode === true, typeof answer!.attempt_id === 'string' ? answer!.attempt_id : null) : null });
     }
-    const body: MockReview = { ...historyRow(r), mock: r.mock, items };
+    const body: MockReview = { ...historyRow(r), mock: r.mock, items, not_reached: Math.max(0, r.total - items.length) };
     return c.json(body);
   });
 

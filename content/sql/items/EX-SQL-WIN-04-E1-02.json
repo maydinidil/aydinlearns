@@ -1,6 +1,6 @@
 {
   "id": "EX-SQL-WIN-04-E1-02",
-  "version": 1,
+  "version": 2,
   "kind": "write",
   "tags": [
     "sql",
@@ -46,7 +46,7 @@
   "company": "mailvora",
   "schema": "mailvora",
   "edge_schema": "mailvora_edge_win",
-  "prompt": "For each channel, show each UTC day from 1 July to 31 October 2025 on which it had ad spend, with that day's total spend and the channel's cumulative spend from 1 July up to and including that day. Each channel's total starts from its own first day; days with no spend are left out. Return channel_id, spend_date, spend_eur and cumulative_spend_eur. Any row order is fine.",
+  "prompt": "For each channel, show each UTC day from 1 July to 31 October 2025 on which it had ad spend, with that day's total spend and the channel's cumulative spend from 1 July up to and including that day. Each channel's total starts from its own first day; days with no spend are left out. Return four columns, in this order: channel_id, spend_date, spend_eur and cumulative_spend_eur. Return one row for each such channel and day. Any row order is fine.",
   "output_contract": {
     "columns": [
       {

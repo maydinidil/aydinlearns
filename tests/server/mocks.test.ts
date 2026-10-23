@@ -1,7 +1,7 @@
 // tests/server/mocks.test.ts: the mock runs derived by replay (server/mocks.ts; sprint 7, Task M1; S7-01, S7-04, S7-05, S7-16, D102,
 // D112), the mock run in the run clock (server/drill.ts MockPlan; S7-02), and the readiness board's mock evidence (server/goal-view.ts).
-// A run is its mock_open, its answers (phase mock, its block_id), its rubric self-check and its block_close; nothing else. Every record,
-// form and item here is invented.
+// A run is its mock_open, its answers (phase mock, its block_id), its rubric self-check and its block_close; nothing else. Sprint 7c (D116,
+// S7C-03): a mock_open with and without item_ids or core_rubric. Every record, form and item here is invented.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { mkdtemp, readFile } from 'node:fs/promises';
@@ -18,7 +18,7 @@ import { loadContent, type ContentStore } from '../../server/content.ts';
 import { DrillRuns, isDrillPlan, isMockPlan, mockRunView, openTakeHomes, type MockPlan, type RunEntry } from '../../server/drill.ts';
 import { goalView } from '../../server/goal-view.ts';
 import { AttemptLogger } from '../../server/log.ts';
-import { mockBlockId, mockRuns, nextForm, stagesMet, type MockRun } from '../../server/mocks.ts';
+import { knowledgeShowings, mockBlockId, mockRuns, nextForm, stagesMet, type MockRun } from '../../server/mocks.ts';
 import { isChoicePlan, runView } from '../../server/run.ts';
 import { SessionTracker } from '../../server/session.ts';
 import { LearnerState } from '../../server/state.ts';
@@ -393,4 +393,64 @@ test('S7-15 (ruling S7-C30): a take-home memo saved after its 120 minutes is lat
   // A case-round is never late: its clock ends it at its deadline.
   const round = caseRun('C-1', 'case_round', 'CASE-ROUND-A', 'CASE-MOCK-A', [true, true, true, true, true], [5, 10, 20, 30, 35], 44);
   assert.equal(runs([...round.slice(0, -1), insight('C-1', 'CASE-MOCK-A', 44), round.at(-1)!, rubric('C-1', 'CASE-MOCK-A', CORE, 50)])[0]!.late, false);
+});
+
+// ---- sprint 7c, Task X2: D116 (ruling S7C-03), the two optional mock_open fields; F4-4-2, a finished knowledge run's total ---------------
+
+const KNOW = Array.from({ length: 30 }, (_, n) => `EX-GA4-TEST-${String(n + 1).padStart(2, '0')}`);
+/** A knowledge run's mock_open at 0 that lists `listed` as its item_ids (D116), or (null) none: a log written before 0.7.2. */
+const knowledgeOpen = (block: string, listed: readonly string[] | null): MockOpen =>
+  open(block, 'knowledge', 'KNOWLEDGE', 0, { pass_correct: 24, ...(listed === null ? {} : { item_ids: [...listed] }) });
+/** The rules asking more questions than the run had: a later content change (F4-4-2). */
+const RAISED: MocksFile = { ...FILE, knowledge: { ...FILE.knowledge, questions: 35, per_section: { methodology: 25, ga4: 10 } } };
+
+test('D116 (S7C-03): a knowledge mock_open\'s item_ids count as shown at its time, records or not; without them, the block\'s records as before (S7-C36)', () => {
+  // A crash after one answer: startup recovery closes the answered question and the block, and nothing names the 29 never reached.
+  const crashed = (listed: readonly string[] | null): object[] => [knowledgeOpen('K-1', listed), ...answer('K-1', KNOW[0]!, 2, ['pass'], 3), close('K-1', 3)];
+  const shown = (records: object[]) => knowledgeShowings(records).map((s) => [s.item_id, s.started_at]);
+  assert.deepEqual(shown(crashed(KNOW)), KNOW.map((id) => [id, at(0)]), 'every drawn question, at the mock_open, each once');
+  assert.deepEqual(shown(crashed(null)), [[KNOW[0], at(0)]], 'a log before 0.7.2: only what the block\'s records name, as before');
+  // A screen mock_open never lists questions; were one to, the knowledge draw would not read it.
+  assert.deepEqual(shown([{ ...open('M-1', 'screen', 'SCREEN-A', 0), item_ids: ['EX-GA4-TEST-99'] }]), []);
+});
+
+/** A knowledge run a crash cut short after 5 answers, all right: recovery closed the 5 and the block, and nothing names the 25 never reached. */
+const crashedKnowledge = (listed: readonly string[] | null): object[] => [knowledgeOpen('K-1', listed),
+  ...KNOW.slice(0, 5).flatMap((id, k) => answer('K-1', id, 1 + k, ['pass'], 10)), close('K-1', 10)];
+
+test('S7C-C04: a 0.7.1 knowledge run (no item_ids) that a crash cut short keeps 0.7.1\'s total: 5 of 30, never 5 of 5', () => {
+  assert.deepEqual(scored(crashedKnowledge(null), FILE).rows, [['knowledge', 5, 30, false, false]]);
+  // An old run abandoned before any answer (recovery wrote its block_close from its mock_open): 0 of 30, never 0 of 0.
+  assert.deepEqual(scored([knowledgeOpen('K-0', null), close('K-0', 40)], FILE).rows, [['knowledge', 0, 30, false, false]]);
+});
+
+test('D116, F4-4-2 (S7C-03, S7C-C04): a knowledge run that lists its questions totals them, whatever the rules ask now; without the list, 0.7.1\'s total', () => {
+  assert.deepEqual(scored(crashedKnowledge(KNOW), FILE).rows, [['knowledge', 5, 30, false, false]], 'the 30 drawn, though only 5 were reached');
+  assert.deepEqual(scored(crashedKnowledge(KNOW), RAISED).rows, [['knowledge', 5, 30, false, false]], 'its own count, whatever the rules say now');
+  assert.deepEqual(scored(crashedKnowledge(null), RAISED).rows, [['knowledge', 5, 35, false, false]], 'without the list: the larger of the rules\' questions and its served count');
+  // An old log whose run closed every question at its end (run_end) replays as 0.7.1 did, under the rules in force.
+  const full = [knowledgeOpen('K-2', null), ...KNOW.flatMap((id, k) => answer('K-2', id, 1 + k, [k < 24 ? 'pass' : 'fail'], 39)), close('K-2', 39)];
+  assert.deepEqual(scored(full, FILE), { rows: [['knowledge', 24, 30, true, true]], stages: [['knowledge', '2026-11-02']] });
+  assert.deepEqual(scored(full, RAISED).rows, [['knowledge', 24, 35, true, true]], 'S7C-C04: only a run that lists its questions is safe from a raised value');
+  // With the list, an answer to a question the run did not draw (never written) is not one of its questions.
+  assert.deepEqual(scored([...crashedKnowledge(KNOW.slice(1)), ...answer('K-1', 'EX-GA4-OTHER', 6, ['pass'], 10)], FILE).rows, [['knowledge', 4, 29, false, false]]);
+});
+
+/** `records` with each case mock_open's core_rubric set to `lines` (D116), or taken away (undefined: a log before 0.7.2). */
+const withCore = (records: object[], lines: readonly string[] | undefined): object[] =>
+  records.map((r: any) => (r.record !== 'mock_open' ? r : lines === undefined ? (({ core_rubric: _c, ...rest }) => rest)(r) : { ...r, core_rubric: [...lines] }));
+
+test('D116 (S7C-03): a case mock is scored on the core lines its start recorded, so a met stage stays met when the file\'s lines change; without them, on the file\'s', () => {
+  const MORE: MocksFile = { ...FILE, case_round: { ...FILE.case_round, core_rubric: [...CORE, 'driver'] },
+    take_home: { ...FILE.take_home, core_rubric: [...CORE, 'reconciliation', 'driver'] } };
+  const round = [...caseRun('C-1', 'case_round', 'CASE-ROUND-A', 'CASE-MOCK-A', [true, true, false, true, true], [5, 10, 20, 30, 35], 44), rubric('C-1', 'CASE-MOCK-A', CORE, 50)];
+  const take = [...caseRun('T-1', 'take_home', 'TAKE-HOME-A', 'CASE-TAKE-A', [true, true, false, true, true], [10, 30, 60, 90, 110], 115),
+    rubric('T-1', 'CASE-TAKE-A', [...CORE, 'reconciliation'], 120)];
+  for (const [records, mock, lines] of [[round, 'case_round', CORE], [take, 'take_home', [...CORE, 'reconciliation']]] as const) {
+    const own = withCore(records, lines);
+    assert.deepEqual(scored(own, FILE), { rows: [[mock, 5, 6, true, true]], stages: [[mock, '2026-11-02']] }, mock);
+    assert.deepEqual(scored(own, MORE), scored(own, FILE), `${mock}: the file now asks one more line; the run keeps its own`);
+    assert.deepEqual(scored(withCore(records, undefined), FILE), scored(own, FILE), `${mock}: without the field, the file's lines, as before`);
+    assert.deepEqual(scored(withCore(records, undefined), MORE).rows, [[mock, 4, 6, false, false]], `${mock}: without the field, a changed file decides`);
+  }
 });

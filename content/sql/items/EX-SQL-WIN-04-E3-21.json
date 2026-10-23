@@ -1,6 +1,6 @@
 {
   "id": "EX-SQL-WIN-04-E3-21",
-  "version": 1,
+  "version": 2,
   "kind": "write",
   "tags": [
     "sql",
@@ -47,7 +47,7 @@
   "company": "voltmarkt",
   "schema": "voltmarkt",
   "edge_schema": "voltmarkt_edge_win",
-  "prompt": "For each parent category with sales from 1 January to 30 June 2025 (UTC order dates, both days included), on which day did its cumulative units since 1 January first reach half of its units over that whole period? Return parent_category and half_units_date. Any row order is fine.",
+  "prompt": "For each parent category with sales from 1 January to 30 June 2025 (UTC order dates, both days included), on which day did its cumulative units since 1 January first reach half of its units over that whole period? Return two columns, in this order: parent_category and half_units_date. Return one row for each such parent category. Any row order is fine.",
   "output_contract": {
     "columns": [
       {

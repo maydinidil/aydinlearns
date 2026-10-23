@@ -25,7 +25,7 @@ export interface GoalViewSource { content: ContentStore; replay: ReplayResult; a
  * it. `liveReps` (S4B-26): one per closed `live-` block, with its Amsterdam date. `externals`: the GA4 exam and portfolio results.
  * `mocksPassed` (S7-05): each mock's stage met by its first counting pass, with that run's Amsterdam date; none without content/mocks.json.
  * `mocksAvailable` (S7-04): the mocks a start can take now (server/mocks.ts mocksAvailable; the knowledge mock once its pools can fill a
- * draw, S7-C21); none without content/mocks.json.
+ * draw, S7-C21, by the one rule its card and content check C56 read: server/run.ts knowledgeReadiness, N1 M5); none without content/mocks.json.
  */
 export function goalView(s: GoalViewSource): GoalView {
   const { content, replay } = s;

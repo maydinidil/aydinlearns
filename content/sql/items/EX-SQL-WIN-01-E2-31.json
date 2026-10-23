@@ -1,6 +1,6 @@
 {
   "id": "EX-SQL-WIN-01-E2-31",
-  "version": 1,
+  "version": 2,
   "kind": "fix",
   "tags": [
     "sql",
@@ -45,7 +45,7 @@
   "company": "voltmarkt",
   "schema": "voltmarkt",
   "edge_schema": "voltmarkt_edge_win",
-  "prompt": "The query in the editor has one mistake. Fix it so that it answers this question: what share of its category's 2025 units does each Audio product take? Use the sales rows whose parent_category is 'Audio' and whose order_date falls in 2025. Return four columns, in this order: category_name, product_id, units (the product's 2025 units) and share_pct, those units as a percentage of the 2025 units of all the products of its category, rounded to 2 decimals. Return one row for each Audio product with sales in 2025. Any row order is fine.",
+  "prompt": "The query in the editor has one mistake. Fix it so that it answers this question: what share of its category's 2025 units does each Audio product take? Use the sales rows whose parent_category is 'Audio' and whose order_date falls in 2025 (order_date is a UTC day). Return four columns, in this order: category_name, product_id, units (the product's 2025 units) and share_pct, those units as a percentage of the 2025 units of all the products of its category, rounded to 2 decimals. Return one row for each Audio product with sales in 2025. Any row order is fine.",
   "output_contract": {
     "columns": [
       {

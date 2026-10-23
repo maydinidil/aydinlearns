@@ -364,6 +364,19 @@ test('every ranking window in a level 5 trap model (the ones a filter reads) end
   assert.match(feedback['ERR-SYN-08']!.model, /tie-break[^.]*last/i, "ERR-SYN-08 says the question's tie-break goes last");
 });
 
+test('S7C-08: ERR-SYN-08\'s feedback names every place a window function cannot go, and the model works it out first, then uses its name', () => {
+  // DuckDB 1.5.6 refuses a window function in WHERE (and a join's ON, which it reports as WHERE), GROUP BY and HAVING, inside an
+  // aggregate (its FILTER included) and inside another window function (Task X5 captured each message).
+  const f = feedback['ERR-SYN-08']!;
+  const said = `${f.assumed} ${f.why}`;
+  for (const place of [/\bWHERE\b/, /\bON\b/, /\bGROUP BY\b/, /\bHAVING\b/, /\binside an aggregate\b/, /\bFILTER\b/, /\binside another window function\b/]) {
+    assert.match(said, place, `ERR-SYN-08 names ${place.source}`);
+  }
+  assert.match(f.model, /\bCTE or subquery\b/);
+  assert.match(f.model, /\bouter query\b/);
+  houseShape('ERR-SYN-08', f);
+});
+
 test('every level 5 must-have trap is in the catalogue with feedback, under a concept at or before its own (ERR-LOG-39 by S7-24)', () => {
   for (const [concept, ids] of Object.entries(LEVEL5_TRAPS)) {
     assert.equal(levelOf.get(concept), 5, `${concept} is a level 5 concept`);

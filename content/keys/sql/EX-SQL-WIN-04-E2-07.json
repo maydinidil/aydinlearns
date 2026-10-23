@@ -1,6 +1,6 @@
 {
   "item_id": "EX-SQL-WIN-04-E2-07",
-  "item_version": 1,
+  "item_version": 2,
   "reference_sql": "SELECT a.spend_date, a.campaign_id, a.spend,\n  SUM(a.spend) OVER (ORDER BY a.spend_date RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS spend_so_far_eur\nFROM ad_spend_daily a\nJOIN campaigns c ON c.campaign_id = a.campaign_id\nWHERE c.channel_id = 6\n  AND a.spend_date BETWEEN DATE '2025-07-01' AND DATE '2025-10-31'",
   "alternatives": [
     "WITH rows_in AS (\n  -- one row per campaign and day with spend\n  SELECT a.spend_date, a.campaign_id, a.spend\n  FROM ad_spend_daily a\n  JOIN campaigns c ON c.campaign_id = a.campaign_id\n  WHERE c.channel_id = 6\n    AND a.spend_date BETWEEN DATE '2025-07-01' AND DATE '2025-10-31'\n)\nSELECT r.spend_date, r.campaign_id, r.spend,\n  (SELECT SUM(r2.spend) FROM rows_in r2 WHERE r2.spend_date <= r.spend_date) AS spend_so_far_eur\nFROM rows_in r",
@@ -24,11 +24,11 @@
   ],
   "hint3_partial": "SELECT a.spend_date, a.campaign_id, a.spend,\n  SUM(a.spend) OVER (ORDER BY a.spend_date ___ BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS spend_so_far_eur\nFROM ad_spend_daily a\nJOIN campaigns c ON c.campaign_id = a.campaign_id\nWHERE c.channel_id = 6\n  AND a.spend_date BETWEEN DATE '2025-07-01' AND DATE '2025-10-31'",
   "solver": {
-    "prompt_hash": "d9694181420112ba",
+    "prompt_hash": "7cb14dc7141375d5",
     "schema_version": "09f3a33d3123",
-    "dataset_version": "e7c58abf7e8f892e",
-    "grader_version": "7a.1",
-    "query": "SELECT a.spend_date, a.campaign_id, a.spend,\n  SUM(a.spend) OVER (ORDER BY a.spend_date RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS spend_so_far_eur\nFROM ad_spend_daily a JOIN campaigns c ON c.campaign_id = a.campaign_id\nWHERE c.channel_id = 6\n  AND a.spend_date BETWEEN DATE '2025-07-01' AND DATE '2025-10-31'\n",
-    "at": "2026-10-21T09:05:08.612Z"
+    "dataset_version": "ef4aa0325da6ea43",
+    "grader_version": "7c.1",
+    "query": "SELECT a.spend_date, a.campaign_id, a.spend, SUM(a.spend) OVER (ORDER BY a.spend_date RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS spend_so_far_eur FROM ad_spend_daily a JOIN campaigns c ON c.campaign_id = a.campaign_id WHERE c.channel_id = 6 AND a.spend_date >= DATE '2025-07-01' AND a.spend_date <= DATE '2025-10-31'\n",
+    "at": "2026-10-22T18:09:35.862Z"
   }
 }

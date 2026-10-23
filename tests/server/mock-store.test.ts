@@ -19,8 +19,8 @@ import { SessionTracker } from '../../server/session.ts';
 import { buildCatalog, LearnerState } from '../../server/state.ts';
 import { tutorSource } from '../../server/tutor-source.ts';
 import { FIXTURE_CONCEPT } from '../helpers/content-fixture.ts';
-import { INBOX_ID } from '../helpers/case-fixture.ts';
-import { MOCK_CASE, MOCK_CP3, SCREEN_ITEM, makeMockFixture } from '../helpers/mock-fixture.ts';
+import { INBOX_ID, inboxRecord } from '../helpers/case-fixture.ts';
+import { MOCK_CASE, MOCK_CP3, SCREEN_ITEM, makeMockFixture, mockCaseRecord } from '../helpers/mock-fixture.ts';
 import { blockClose, instance, options, primed } from '../helpers/replay-fixture.ts';
 
 const MOCK_ITEMS = [SCREEN_ITEM, MOCK_CP3];
@@ -250,4 +250,46 @@ test('S7-C08 through buildCatalog: a screen-mock item takes its family from its 
     blockClose(block, end)], [], options({ catalog }));
   assert.deepEqual([r.instances.get('MQ-1')?.rating, r.instances.get('MQ-1')?.why], [3, 'mock: passed within the time limit'], 'Good: the drill row, never Easy');
   assert.deepEqual(r.blocks.get(block)?.card_reviews.map((c) => [c.card_id, c.rating]), [[catalog.cardOf(FIXTURE_CONCEPT), 3]]);
+});
+
+// ---- Sprint 7c (Task X3): S7C-05, a mock case held out by its record as well as its folder (F4 triage B6) ----------------------------------
+
+test('S7C-05: a CASE-MOCK- or CASE-TAKE- record, or one of kind case_round or take_home, loads into the mock map wherever it sits, and the store says which folder held it', async () => {
+  const f = await makeMockFixture();
+  made.push(f.root);
+  const put = (dir: string, rec: { case_id: string }) => writeFile(join(f.root, dir, `${rec.case_id}.json`), JSON.stringify(rec));
+  await put('sql/cases', mockCaseRecord('CASE-MOCK-B'));                                       // a case-round, in the inbox folder
+  await put('sql/openers', mockCaseRecord('CASE-TAKE-B', 'take_home'));                        // a take-home, among the openers
+  await put('sql/cases', { ...mockCaseRecord('CASE-MOCK-C'), case_id: 'CASE-INVENTED-01' });   // a case-round's kind under another ID
+  await put('sql/cases', { ...inboxRecord(), case_id: 'CASE-MOCK-D' });                        // a CASE-MOCK- ID on an inbox kind
+  const store = await loadContent(f.root, { truthFile: f.truthFile });
+  const misfiled = ['CASE-INVENTED-01', 'CASE-MOCK-B', 'CASE-MOCK-D', 'CASE-TAKE-B'];
+  for (const id of misfiled) {
+    assert.equal(store.mockCase?.(id)?.case_id, id, `${id}: in the mock map`);
+    assert.equal(store.case?.(id) === undefined && store.opener?.(id) === undefined, true, `${id}: not in the case list or the openers`);
+  }
+  assert.deepEqual((store.cases?.() ?? []).filter((c) => misfiled.includes(c.case_id)).map((c) => c.case_id), []);
+  assert.deepEqual((store.openers?.() ?? []).filter((c) => misfiled.includes(c.case_id)).map((c) => c.case_id), []);
+  assert.deepEqual(store.mockCases?.().map((c) => c.case_id), [...misfiled, MOCK_CASE].sort(), 'every mock case, in case ID order');
+  assert.ok(store.case?.(INBOX_ID), 'a practice case stays where it was');
+  // C41 keeps its folder message: the store names the folder each record came from.
+  assert.deepEqual([...misfiled, MOCK_CASE].map((id) => store.caseFolder?.(store.mockCase!(id)!)), ['sql/cases', 'sql/cases', 'sql/cases', 'sql/openers', 'sql/mocks']);
+  assert.equal(store.caseFolder?.(store.case!(INBOX_ID)!), 'sql/cases');
+  assert.equal(store.caseFolder?.({ case_id: INBOX_ID }), undefined, 'a record the store did not load has no folder');
+  // The inbox, every case route, the portfolio (every checkpoint of one answered right) and the tutor's sources never reach them.
+  const day = (min: number) => new Date(Date.parse('2026-11-02T09:00:00Z') + min * 60_000).toISOString();
+  const answered = ['CP1', 'CP2', 'CP4', 'CP5'].flatMap((cp, k) => instance({ id: `I-B-${cp}`, item: `CASE-MOCK-B:${cp}`, concept: FIXTURE_CONCEPT, phase: 'case',
+    kind: cp === 'CP2' || cp === 'CP4' ? 'typed' : 'mcq', start: day(10 * k), version: 2, steps: [{ at: day(10 * k + 1), submit: 'pass' }] }));
+  const a = createApp(await deps(store, answered));
+  const inbox = await json(get(a, '/api/cases'));
+  assert.ok(inbox.some((c: { case_id: string }) => c.case_id === INBOX_ID));
+  assert.deepEqual(inbox.filter((c: { case_id: string }) => misfiled.includes(c.case_id)).map((c: { case_id: string }) => c.case_id), [], 'the inbox');
+  for (const id of misfiled) {
+    assert.equal((await get(a, `/api/cases/${id}`)).status, 404, `GET /api/cases/${id}`);
+    assert.equal((await post(a, `/api/cases/${id}/export`, {})).status, 404, `export ${id}`);
+  }
+  const portfolio = JSON.stringify(await json(get(a, '/api/portfolio')));
+  assert.deepEqual(misfiled.filter((id) => portfolio.includes(id)), [], 'the portfolio');
+  const source = tutorSource(store, []);
+  assert.deepEqual(misfiled.filter((id) => source.caseRecord(id) !== undefined), [], 'the tutor\'s sources');
 });

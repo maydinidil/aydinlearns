@@ -1,6 +1,6 @@
 {
   "id": "EX-SQL-WIN-03-E2-32",
-  "version": 1,
+  "version": 2,
   "kind": "fix",
   "tags": [
     "sql",
@@ -48,7 +48,7 @@
   "company": "mailvora",
   "schema": "mailvora",
   "edge_schema": "mailvora_edge_win",
-  "prompt": "The query in the editor has one mistake. Fix it so that it answers this question: for each channel and each UTC day of October 2025 on which the channel had ad spend, how did the channel's total spend that day change from its previous day with spend in October? Days with no spend are left out, so the previous day with spend can be more than one day back. Return channel_id, spend_date, spend_eur and change_eur, the day's spend minus the previous day's. A channel's first day with spend in October shows change_eur as missing. Any row order is fine.",
+  "prompt": "The query in the editor has one mistake. Fix it so that it answers this question: for each channel and each UTC day of October 2025 on which the channel had ad spend, how did the channel's total spend that day change from its previous day with spend in October? Days with no spend are left out, so the previous day with spend can be more than one day back. Return four columns, in this order: channel_id, spend_date, spend_eur and change_eur, the day's spend minus the previous day's. Return one row for each such channel and day. A channel's first day with spend in October shows change_eur as missing. Any row order is fine.",
   "output_contract": {
     "columns": [
       {

@@ -1,6 +1,6 @@
 {
   "id": "EX-SQL-WIN-03-E1-01",
-  "version": 1,
+  "version": 2,
   "kind": "write",
   "tags": [
     "sql",
@@ -41,7 +41,7 @@
   "company": "voltmarkt",
   "schema": "voltmarkt",
   "edge_schema": "voltmarkt_edge_win",
-  "prompt": "For every price version of products 1 to 25 (product_id from 1 to 25, both included), show the list price of the same product's version before it. Within each product, versions follow each other by valid_from. Return product_id, valid_from, list_price_eur and prev_price_eur. A product's first version has no version before it: show its prev_price_eur as missing. Any row order is fine.",
+  "prompt": "For every price version of products 1 to 25 (product_id from 1 to 25, both included), show the list price of the same product's version before it. Within each product, versions follow each other by valid_from. Return four columns, in this order: product_id, valid_from, list_price_eur and prev_price_eur. Return one row for each such price version. A product's first version has no version before it: show its prev_price_eur as missing. Any row order is fine.",
   "output_contract": {
     "columns": [
       {

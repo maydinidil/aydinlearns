@@ -1,6 +1,6 @@
 {
   "id": "EX-SQL-WIN-04-E1-08",
-  "version": 1,
+  "version": 2,
   "kind": "write",
   "tags": [
     "sql",
@@ -41,7 +41,7 @@
   "company": "voltmarkt",
   "schema": "voltmarkt",
   "edge_schema": "voltmarkt_edge_win",
-  "prompt": "For every price version of products 1 to 25 (product_id from 1 to 25, both included), show the highest list price the product had up to and including that version. Within each product, versions follow each other by valid_from. Return product_id, valid_from, list_price_eur and max_price_so_far. Any row order is fine.",
+  "prompt": "For every price version of products 1 to 25 (product_id from 1 to 25, both included), show the highest list price the product had up to and including that version. Within each product, versions follow each other by valid_from. Return four columns, in this order: product_id, valid_from, list_price_eur and max_price_so_far. Return one row for each such price version. Any row order is fine.",
   "output_contract": {
     "columns": [
       {

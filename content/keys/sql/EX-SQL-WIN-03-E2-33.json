@@ -1,6 +1,6 @@
 {
   "item_id": "EX-SQL-WIN-03-E2-33",
-  "item_version": 1,
+  "item_version": 2,
   "reference_sql": "WITH months AS (\n  -- one row per month of the range\n  SELECT DISTINCT month_start AS month\n  FROM calendar\n  WHERE cal_date BETWEEN DATE '2025-01-01' AND DATE '2025-06-30'\n),\nmonthly AS (\n  -- one row per month with webshop orders\n  SELECT order_month AS month, SUM(net_revenue_eur) AS revenue_eur\n  FROM sales\n  WHERE store_code = 'WEB-01'\n    AND order_date BETWEEN DATE '2025-01-01' AND DATE '2025-06-30'\n  GROUP BY order_month\n), filled AS (\n  -- one row per month of the range\n  SELECT m.month, COALESCE(s.revenue_eur, 0) AS revenue_eur\n  FROM months m\n  LEFT JOIN monthly s ON s.month = m.month\n)\nSELECT month, revenue_eur,\n  revenue_eur - LAG(revenue_eur) OVER (ORDER BY month) AS change_eur\nFROM filled",
   "alternatives": [
     "WITH months AS (\n  -- one row per month of the range\n  SELECT DISTINCT month_start AS month\n  FROM calendar\n  WHERE cal_date BETWEEN DATE '2025-01-01' AND DATE '2025-06-30'\n), monthly AS (\n  -- one row per month with webshop orders\n  SELECT order_month AS month, SUM(net_revenue_eur) AS revenue_eur\n  FROM sales\n  WHERE store_code = 'WEB-01'\n    AND order_date BETWEEN DATE '2025-01-01' AND DATE '2025-06-30'\n  GROUP BY order_month\n), filled AS (\n  -- one row per month of the range\n  SELECT m.month, COALESCE(s.revenue_eur, 0) AS revenue_eur\n  FROM months m\n  LEFT JOIN monthly s ON s.month = m.month\n)\nSELECT f.month, f.revenue_eur, f.revenue_eur - p.revenue_eur AS change_eur\nFROM filled f\nLEFT JOIN filled p ON p.month = f.month - INTERVAL 1 MONTH",
@@ -24,11 +24,11 @@
   ],
   "hint3_partial": "WITH months AS (\n  -- one row per month of the range\n  SELECT DISTINCT month_start AS month\n  FROM calendar\n  WHERE cal_date BETWEEN DATE '2025-01-01' AND DATE '2025-06-30'\n), monthly AS (\n  -- one row per month with webshop orders\n  SELECT order_month AS month, SUM(net_revenue_eur) AS revenue_eur\n  FROM sales\n  WHERE store_code = 'WEB-01'\n    AND order_date BETWEEN DATE '2025-01-01' AND DATE '2025-06-30'\n  GROUP BY order_month\n), filled AS (\n  -- one row per month of the range\n  SELECT m.month, COALESCE(___, 0) AS revenue_eur\n  FROM months m\n  LEFT JOIN monthly s ON s.month = m.month\n)\nSELECT month, revenue_eur,\n  revenue_eur - LAG(revenue_eur) OVER (ORDER BY month) AS change_eur\nFROM filled",
   "solver": {
-    "prompt_hash": "c751adee2fe76fe0",
+    "prompt_hash": "3624211fbc3a9019",
     "schema_version": "bfa72b600579",
-    "dataset_version": "e7c58abf7e8f892e",
-    "grader_version": "7a.1",
-    "query": "WITH grid AS (\n  SELECT CAST(mo AS DATE) AS month\n  FROM generate_series(DATE '2025-01-01', DATE '2025-06-01', INTERVAL 1 MONTH) AS g(mo)\n), monthly AS (\n  SELECT CAST(order_month AS DATE) AS month, SUM(net_revenue_eur) AS revenue_eur\n  FROM sales\n  WHERE store_code = 'WEB-01'\n    AND order_date BETWEEN DATE '2025-01-01' AND DATE '2025-06-30'\n  GROUP BY CAST(order_month AS DATE)\n), j AS (\n  SELECT g.month, COALESCE(m.revenue_eur, 0) AS revenue_eur\n  FROM grid g LEFT JOIN monthly m ON m.month = g.month\n)\nSELECT month, revenue_eur,\n  revenue_eur - LAG(revenue_eur) OVER (ORDER BY month) AS change_eur\nFROM j\n",
-    "at": "2026-10-21T09:05:07.688Z"
+    "dataset_version": "ef4aa0325da6ea43",
+    "grader_version": "7c.1",
+    "query": "WITH months AS (SELECT CAST(m AS DATE) AS month FROM generate_series(DATE '2025-01-01', DATE '2025-06-01', INTERVAL 1 MONTH) AS t(m)), r AS (SELECT CAST(date_trunc('month', order_date) AS DATE) AS month, SUM(net_revenue_eur) AS revenue_eur FROM sales WHERE store_code = 'WEB-01' AND order_date >= DATE '2025-01-01' AND order_date <= DATE '2025-06-30' GROUP BY 1), g AS (SELECT m.month, COALESCE(r.revenue_eur, 0) AS revenue_eur FROM months m LEFT JOIN r ON r.month = m.month) SELECT month, revenue_eur, revenue_eur - LAG(revenue_eur) OVER (ORDER BY month) AS change_eur FROM g\n",
+    "at": "2026-10-22T18:09:35.169Z"
   }
 }

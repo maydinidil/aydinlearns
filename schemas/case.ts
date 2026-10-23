@@ -1,6 +1,11 @@
 // schemas/case.ts (design §7; sprint 4b rulings S4B-01 to S4B-04)
 import { optionId, validateTypedSpec, type TypedSpec } from './choice.ts';
 import type { SortKey } from './item.ts';
+import { isCaseMockKind, type CaseMockKind } from './mock.ts';
+
+/** N3 M2: the one guard for a case mock's kind is schemas/mock.ts's (browser-safe); it is re-exported here beside isMockCaseKind. */
+export { isCaseMockKind };
+export type { CaseMockKind };
 
 export type CheckpointKind = 'CP1' | 'CP2' | 'CP3' | 'CP4' | 'CP5' | 'CP6';
 /** S4B-01: a level opener (content/sql/openers/), or an inbox or daily case (content/sql/cases/): the kinds the case list holds. */

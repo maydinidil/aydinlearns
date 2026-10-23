@@ -1,11 +1,14 @@
 // tests/tools/check-knowledge-pool.test.ts: content check C56, the knowledge pool (sprint 7 Part 2, Task N1; S7-10, S7-11, S7-C21). Each
 // item content/ga4/knowledge-pool.json lists is a GA4 item, held out by its own flag, listed once, and not in ga4/held-out.json's GA4 exam
-// pool; no two share an enemy group; and a pool that lists any item lists at least per_section.ga4 (10). An empty pool passes until Task
-// P1 fills it. Every item is invented (tests/helpers/knowledge-fixture.ts); results name IDs only.
+// pool; no two share an enemy group; and a pool that lists any item holds at least per_section.ga4 (10) usable ones, counted by the rule a
+// start and the goal view read (server/run.ts knowledgeReadiness; sprint 7c, N1 M5). An empty pool passes until Task P1 fills it. Every
+// item is invented (tests/helpers/knowledge-fixture.ts); results name IDs only.
 import { after, test } from 'node:test';
 import assert from 'node:assert/strict';
-import { rm } from 'node:fs/promises';
+import { readFile, rm, writeFile } from 'node:fs/promises';
+import { join } from 'node:path';
 import { loadContent } from '../../server/content.ts';
+import { knowledgePools, knowledgeReady } from '../../server/run.ts';
 import { checkKnowledgePool, type CheckResult } from '../../tools/check-content.ts';
 import { EXAM_POOL, KNOWLEDGE_POOL, MET_HELD, makeKnowledgeFixture, type KnowledgePatch } from '../helpers/knowledge-fixture.ts';
 
@@ -34,7 +37,19 @@ test('S7-C21: an empty pool, or no file, passes: the knowledge mock waits for Ta
 
 test('C56: a pool that lists fewer than per_section.ga4 items fails, by count', async () => {
   assert.deepEqual(failing(await checked({ pool: GOOD.slice(0, 5) })),
-    [['ga4/knowledge-pool.json', 'the pool lists 5 items; the knowledge mock asks 10 GA4 questions (per_section.ga4), so it needs at least 10']]);
+    [['ga4/knowledge-pool.json', 'the pool holds 5 usable items (active, with a key and a topic); the knowledge mock asks 10 GA4 questions (per_section.ga4), so it needs at least 10']]);
+});
+
+test('N1 M5 (F4-1-6): C56 counts the usable items a start draws from, as the card and the goal view do: ten listed with one not active and one with no key is 8', async () => {
+  const root = await makeKnowledgeFixture({ pool: GOOD.slice(0, 10) });
+  made.push(root);
+  const item = join(root, 'ga4/items', `${GOOD[0]}.json`);
+  await writeFile(item, JSON.stringify({ ...JSON.parse(await readFile(item, 'utf8')), status: 'needs_fix' }));
+  await rm(join(root, 'keys/ga4', `${GOOD[1]}.json`));
+  const store = await loadContent(root);
+  assert.equal(knowledgeReady(knowledgePools(store), store.mocks!.knowledge), false, 'the goal view: not available');
+  assert.deepEqual(failing(checkKnowledgePool(store, EXAM_POOL)),
+    [['ga4/knowledge-pool.json', 'the pool holds 8 usable items (active, with a key and a topic); the knowledge mock asks 10 GA4 questions (per_section.ga4), so it needs at least 10']]);
 });
 
 test('C56: two items of one enemy group fail, naming the group and the items', async () => {

@@ -1,6 +1,6 @@
 {
   "id": "EX-SQL-WIN-04-E2-21",
-  "version": 2,
+  "version": 3,
   "kind": "write",
   "tags": [
     "sql",
@@ -49,7 +49,7 @@
   "company": "voltmarkt",
   "schema": "voltmarkt",
   "edge_schema": "voltmarkt_edge_win",
-  "prompt": "For customers with customer_id from 3001 to 3100 (both included), show each order they placed from 1 January to 30 June 2025 (order_ts holds UTC time; use UTC days), and the customer's running revenue by day: the revenue of all the customer's orders on that UTC day and the days before it in the period. An order's revenue is its net revenue: net_revenue_eur in sales, summed over its lines. Orders on the same day count together, so they show the same running revenue. Return customer_id, order_id, order_date and running_revenue_eur. Any row order is fine.",
+  "prompt": "For customers with customer_id from 3001 to 3100 (both included), show each order they placed from 1 January to 30 June 2025 (order_ts holds UTC time; use UTC days), and the customer's running revenue by day: the revenue of all the customer's orders on that UTC day and the days before it in the period. An order's revenue is its net revenue: net_revenue_eur in sales, summed over its lines. Orders on the same day count together, so they show the same running revenue. Return four columns, in this order: customer_id, order_id, order_date and running_revenue_eur. Return one row for each such order. Any row order is fine.",
   "output_contract": {
     "columns": [
       {

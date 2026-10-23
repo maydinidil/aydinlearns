@@ -19,7 +19,7 @@
 // FIND-01-13's keep-one dedup on raw data when the prompt says which copy is kept (S7-C06). Sprint 7 (Task M1) adds C54, the
 // mocks file and its forms, and C55, the mock cases (S7-08); the held-out mock items take the item checks, and C41 and C50 check the mock
 // cases as they check every case. Sprint 7 Part 2 (Task N1) adds C56, the knowledge pool (S7-10, S7-11, S7-C21), and C46 counts the GA4
-// exam pool without it (server/run.ts ga4ExamPool).
+// exam pool without it (server/run.ts ga4ExamPool). Sprint 7c (Task X5, S7C-09) moves C53's reading to tools/rank-cutoffs.ts.
 // Usage: node tools/check-content.ts [content-root] [--only C14,C25]   (default: content/, every check)
 import { createHash } from 'node:crypto';
 import { existsSync } from 'node:fs';
@@ -27,13 +27,13 @@ import { readdir, readFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { startRunner, type RunnerClient } from '../server/runner/client.ts';
-import type { DisplayOk, GateOk, ParseTreeOk, RowsOk } from '../server/runner/protocol.ts';
+import type { DisplayOk, GateOk, RowsOk } from '../server/runner/protocol.ts';
 import { maskSql, stripTrailing } from '../server/runner/tables.ts';
 import { grade, type Feedback } from '../server/grader/grade.ts';
 import type { GradeResult } from '../server/grader/types.ts';
-import { caseUnavailable, ContentFileError, KNOWLEDGE_POOL_FILE, LAB_GUIDE_FILE, LAB_KEY_DIR, loadContent, truthSourceHash, type ContentStore, type LoadOptions } from '../server/content.ts';
+import { caseUnavailable, ContentFileError, KNOWLEDGE_POOL_FILE, LAB_GUIDE_FILE, LAB_KEY_DIR, loadContent, MOCK_CASE_DIR, truthSourceHash, type ContentStore, type LoadOptions } from '../server/content.ts';
 import { parseDrillFile, type DrillFile } from '../server/drill.ts';
-import { ga4ExamPool } from '../server/run.ts';
+import { ga4ExamPool, knowledgePools, knowledgeReadiness } from '../server/run.ts';
 import { EM_DASH, sameStructuralAnswer, validateLab, validateLabKey, type Lab, type LabKey } from '../schemas/lab.ts';
 import { readingWords } from '../schemas/reading.ts';
 import { amsterdamDate } from '../core/time.ts';
@@ -52,6 +52,7 @@ import { checkChoice, tallyLine } from './check-choice.ts';
 import { checkSqlChoiceItem, checkWhyClause, outermost, sqlChoiceTallyLine } from './check-sql-choice.ts';
 import { caseKeyHash } from './case-key-hash.ts';
 import { casePromptHash } from './export-case-view.ts';
+import { rankCutoffProblems } from './rank-cutoffs.ts';
 
 export interface CheckResult { id: string; check: string; ok: boolean; warn?: boolean; detail: string }   // detail never contains SQL
 export interface CheckContext {
@@ -523,6 +524,7 @@ export async function checkItem(item: SqlItem, key: SqlKey, ctx: CheckContext): 
 
   // C53 (sprint 7, S7-22, E-204): a key that filters a ranking function's result states its tie rule, and the edge schema holds a tie
   // at the cutoff, so a query with the other tie rule fails there. A keep-one dedup on raw data states which copy it keeps (S7-C06).
+  // The reading is tools/rank-cutoffs.ts (S7C-09).
   await check('C53', async () => {
     const problems = await rankCutoffProblems(item, key, ctx);
     add('C53', problems.length === 0, problems.join('; '));
@@ -809,9 +811,11 @@ export async function checkCases(store: ContentStore, options: CaseCheckOptions 
     const warns: string[] = [];
     const isOpener = openers.has(rec);
     if ((files.get(id) ?? 0) > 1) why.push(`the case ID ${id} is used by ${files.get(id)} case files`);
-    // S7-08: a mock case is held out by where it is stored, so its folder is checked whatever else the record holds.
-    if (mocks.has(rec) && !isMockCaseKind(rec?.kind)) why.push('content/sql/mocks/ holds the mock cases only: kind case_round or take_home');
-    if (!mocks.has(rec) && isMockCaseKind(rec?.kind)) why.push('a case-round or take-home mock goes in content/sql/mocks/');
+    // S7-08: a mock case goes in its own folder, so its folder is checked whatever else the record holds. S7C-05: the store holds a mock
+    // case out by its record wherever it sits, so the folder is the one the store read it from (caseFolder), not its place in mockCases().
+    const inMocks = store.caseFolder ? store.caseFolder(rec) === MOCK_CASE_DIR : mocks.has(rec);
+    if (inMocks && !isMockCaseKind(rec?.kind)) why.push('content/sql/mocks/ holds the mock cases only: kind case_round or take_home');
+    if (!inMocks && isMockCaseKind(rec?.kind)) why.push('a case-round or take-home mock goes in content/sql/mocks/');
     // Codex F22's lesson: the checks below read the record's fields, so they run only on a record that validated.
     if (invalid.length) { out.push({ id, check: 'C41', ok: false, detail: why.join('; ') }); continue; }
     const schema = caseSchema(rec);
@@ -1304,290 +1308,6 @@ export function unbuiltItems(items: readonly SqlItem[], schemas: ReadonlySet<str
   return out;
 }
 
-// ---- sprint 7 (Task A1): C53, rank cutoffs (S7-22, E-204) ---------------------------------------------------------------------
-
-export type RankingFn = 'ROW_NUMBER' | 'RANK' | 'DENSE_RANK' | 'NTILE';
-/** The ranking functions S7-22 names, by their window type in json_serialize_sql's tree. */
-const RANKING_TYPES: Readonly<Record<string, RankingFn>> = { WINDOW_ROW_NUMBER: 'ROW_NUMBER', WINDOW_RANK: 'RANK', WINDOW_RANK_DENSE: 'DENSE_RANK', WINDOW_NTILE: 'NTILE' };
-/** A cheap look at the text first: a key with no ranking call has no ranking result to filter, and needs no parse tree. */
-const RANKING_CALL = /\b(?:row_number|rank|dense_rank|ntile)"?\s*\(/i;
-
-/** One ranking window whose result a filter compares (C53). */
-export interface RankCutoff {
-  fn: RankingFn;
-  /**
-   * ROW_NUMBER and NTILE: the plain column, lower case, that ends the window's sort order after at least one other key; else null
-   * (RANK and DENSE_RANK have no tie-break, and a window whose sort order is a single key has none either).
-   */
-  tieBreak: string | null;
-  /**
-   * The query with the other tie rule: ROW_NUMBER becomes RANK without its tie-break (ties share a place), RANK and DENSE_RANK
-   * become ROW_NUMBER (one row a place), and NTILE keeps its tie-break in the other direction. Null when it cannot be written: no
-   * tie-break, or the window cannot be found in the text.
-   */
-  otherRule: string | null;
-  /** Every comparison that filters the result keeps place 1 alone: `= 1`, `< 2` or `<= 1`, with the result on either side (S7-C06). */
-  firstPlaceOnly: boolean;
-  /** The plain column, lower case, when it is the window's whole sort order (a single key); else null (S7-C06). */
-  soleKey: string | null;
-}
-
-type TreeObj = Record<string, unknown>;
-const isTreeObj = (x: unknown): x is TreeObj => typeof x === 'object' && x !== null && !Array.isArray(x);
-const treeList = (x: unknown): unknown[] => (Array.isArray(x) ? x : []);
-
-/** Visits every object in a parse-tree value depth first, with an explicit stack; `enter` returns false to skip an object's children. */
-function walkTree(value: unknown, enter: (o: TreeObj) => boolean): void {
-  const stack: unknown[] = [value];
-  while (stack.length) {
-    const x = stack.pop();
-    if (!x || typeof x !== 'object') continue;
-    if (!Array.isArray(x) && !enter(x as TreeObj)) continue;
-    const children = Array.isArray(x) ? x : Object.values(x);
-    for (let i = children.length - 1; i >= 0; i--) stack.push(children[i]);
-  }
-}
-
-const rankingFn = (o: TreeObj): RankingFn | null => (o.class === 'WINDOW' ? RANKING_TYPES[String(o.type)] ?? null : null);
-/** A column reference's last name part, lower case: `t.rn` is `rn`. */
-const refName = (o: TreeObj): string => String(treeList(o.column_names).at(-1) ?? '').toLowerCase();
-
-/** The operands a comparison, a BETWEEN or an IN list compares; none for anything else. */
-function comparedOperands(o: TreeObj): unknown[] {
-  if (o.class === 'COMPARISON') return [o.left, o.right];
-  if (o.class === 'BETWEEN') return [o.input, o.lower, o.upper];
-  if (o.class === 'OPERATOR' && (o.type === 'COMPARE_IN' || o.type === 'COMPARE_NOT_IN')) return treeList(o.children);
-  return [];
-}
-
-/** ROW_NUMBER's and NTILE's tie-break (RankCutoff.tieBreak). */
-function tieBreakOf(w: TreeObj): string | null {
-  const fn = rankingFn(w);
-  const orders = treeList(w.orders).filter(isTreeObj);
-  const last = orders.at(-1)?.expression;
-  if ((fn !== 'ROW_NUMBER' && fn !== 'NTILE') || orders.length < 2 || !isTreeObj(last) || last.class !== 'COLUMN_REF') return null;
-  return refName(last) || null;
-}
-
-/** A window's single sort key, when it is a plain column (RankCutoff.soleKey). */
-function soleKeyOf(w: TreeObj): string | null {
-  const orders = treeList(w.orders).filter(isTreeObj);
-  const only = orders[0]?.expression;
-  return orders.length === 1 && isTreeObj(only) && only.class === 'COLUMN_REF' ? refName(only) || null : null;
-}
-
-/** A comparison's type with its two sides swapped: `2 > rn` reads as `rn < 2`. Equality reads the same both ways. */
-const SWAPPED: Readonly<Record<string, string>> = { COMPARE_LESSTHAN: 'COMPARE_GREATERTHAN', COMPARE_GREATERTHAN: 'COMPARE_LESSTHAN',
-  COMPARE_LESSTHANOREQUALTO: 'COMPARE_GREATERTHANOREQUALTO', COMPARE_GREATERTHANOREQUALTO: 'COMPARE_LESSTHANOREQUALTO' };
-/** S7-C06: the whole-number bound that keeps place 1 alone, by comparison type with the ranking result on the left: `= 1`, `< 2`, `<= 1`. */
-const FIRST_PLACE_BOUND: Readonly<Record<string, number>> = { COMPARE_EQUAL: 1, COMPARE_LESSTHAN: 2, COMPARE_LESSTHANOREQUALTO: 1 };
-
-/** Whether filter `o`, which compares the ranking result `x`, keeps place 1 alone (RankCutoff.firstPlaceOnly). */
-function keepsFirstPlace(o: TreeObj, x: TreeObj): boolean {
-  if (o.class !== 'COMPARISON') return false;
-  const onLeft = o.left === x;
-  const type = onLeft ? String(o.type) : SWAPPED[String(o.type)] ?? String(o.type);
-  const other = onLeft ? o.right : o.left;
-  const v = isTreeObj(other) && other.class === 'CONSTANT' && isTreeObj(other.value) ? other.value : null;
-  return v !== null && isTreeObj(v.type) && v.type.id === 'INTEGER' && v.is_null === false && v.value === FIRST_PLACE_BOUND[type];
-}
-
-/** A parse-tree location, a byte offset into the UTF-8 text, as a character index into `sql`; -1 when there is none. */
-function charIndex(sql: string, location: unknown): number {
-  if (typeof location !== 'number' || !Number.isSafeInteger(location) || location < 0) return -1;
-  const bytes = Buffer.from(sql, 'utf8');
-  return location > bytes.length ? -1 : bytes.subarray(0, location).toString('utf8').length;
-}
-
-/**
- * The sort term around character `at` in a window's ORDER BY: its [from, to) span between the commas (or the ORDER BY, the frame or the
- * closing bracket that end the list), and whether it is the list's first term. The window spec is the innermost bracket around `at`
- * with an ORDER BY of its own before `at`, so a named window (`WINDOW w AS (...)`) is found as an inline one is. `bare` is the text
- * with strings, comments and quoted names blanked. Null when there is no such bracket.
- */
-function sortTermAt(bare: string, at: number): { from: number; to: number; first: boolean } | null {
-  if (at < 0) return null;
-  const open: number[] = [];
-  for (let i = 0; i < at; i++) {
-    if (bare[i] === '(') open.push(i);
-    else if (bare[i] === ')') open.pop();
-  }
-  for (let k = open.length - 1; k >= 0; k--) {
-    let orderBy = -1;
-    let end = -1;
-    const commas: number[] = [];
-    for (let i = open[k]! + 1, depth = 0; i < bare.length && end < 0; i++) {
-      const ch = bare[i]!;
-      if (ch === '(') depth++;
-      else if (ch === ')') { if (depth === 0) end = i; else depth--; }
-      else if (depth > 0) continue;
-      else if (ch === ',') commas.push(i);
-      else if (/[a-z]/i.test(ch) && !/[\w$]/.test(bare[i - 1] ?? ' ')) {
-        const word = /^(?:order\s+by|rows|range|groups)\b/i.exec(bare.slice(i))?.[0];
-        if (!word) continue;
-        if (/^order/i.test(word)) { if (i < at) orderBy = i + word.length; }
-        else if (orderBy >= 0 && i > at) end = i;            // the frame ends the sort order
-        i += word.length - 1;
-      }
-    }
-    if (orderBy < 0 || end < at) continue;
-    const cuts = commas.filter((c) => c > orderBy && c < end);
-    const before = cuts.filter((c) => c < at);
-    const after = cuts.find((c) => c >= at);
-    return { from: before.length ? before.at(-1)! + 1 : orderBy, to: after ?? end, first: before.length === 0 };
-  }
-  return null;
-}
-
-/** RankCutoff.otherRule for window `w` of `sql`; `bare` is `sql` with strings, comments and quoted names blanked. */
-function otherRuleSql(sql: string, bare: string, w: TreeObj): string | null {
-  const fn = rankingFn(w);
-  const at = charIndex(sql, w.query_location);
-  if (!fn || at < 0 || /^[a-z_]+/i.exec(bare.slice(at))?.[0].toLowerCase() !== fn.toLowerCase()) return null;
-  const edits: { from: number; to: number; text: string }[] = [];
-  if (fn !== 'NTILE') edits.push({ from: at, to: at + fn.length, text: fn === 'ROW_NUMBER' ? 'rank' : 'row_number' });
-  if (fn === 'ROW_NUMBER' || fn === 'NTILE') {
-    const last = treeList(w.orders).filter(isTreeObj).at(-1)?.expression;
-    const term = tieBreakOf(w) !== null && isTreeObj(last) ? sortTermAt(bare, charIndex(sql, last.query_location)) : null;
-    if (!term || term.first) return null;
-    const text = bare.slice(term.from, term.to);
-    if (fn === 'ROW_NUMBER') {
-      // The comma before the tie-break, and the tie-break with its direction; what follows it (a space, the frame) stays.
-      edits.push({ from: term.from - 1, to: term.to - /\s*$/.exec(text)![0].length, text: '' });
-    } else {
-      const m = /^(\s*)([\s\S]*?)(?:\s+(?:asc|desc))?(?:\s+nulls\s+(?:first|last))?\s*$/i.exec(text)!;
-      const exprTo = term.from + m[1]!.length + m[2]!.length;
-      const dir = /\b(?:asc|desc)\b/i.exec(bare.slice(exprTo, term.to));
-      edits.push(dir ? { from: exprTo + dir.index, to: exprTo + dir.index + dir[0].length, text: dir[0].toLowerCase() === 'asc' ? 'DESC' : 'ASC' }
-        : { from: exprTo, to: exprTo, text: ' DESC' });
-    }
-  }
-  return edits.sort((a, b) => b.from - a.from).reduce((s, e) => s.slice(0, e.from) + e.text + s.slice(e.to), sql);
-}
-
-/**
- * C53's reading of one key query (S7-22): each ranking window (ROW_NUMBER, RANK, DENSE_RANK, NTILE) whose result a filter compares,
- * in a WHERE, HAVING, QUALIFY or JOIN condition, with `=`, `<`, `<=`, `>`, `>=`, `<>`, BETWEEN or IN. The result is compared directly
- * (`QUALIFY rank() OVER (...) <= 3`) or through its alias in any SELECT list of the statement (an outer query reading a subquery or a
- * CTE, or QUALIFY in the same query). A ranking result compared in a SELECT list is shown, not filtered. `tree` is json_serialize_sql's
- * reply for `sql`.
- */
-export function rankCutoffs(tree: unknown, sql: string): RankCutoff[] {
-  const byAlias = new Map<string, TreeObj[]>();
-  const filters: unknown[] = [];
-  walkTree(tree, (o) => {
-    if (Array.isArray(o.select_list)) {
-      for (const e of o.select_list) {
-        const alias = isTreeObj(e) && rankingFn(e) && typeof e.alias === 'string' ? e.alias.toLowerCase() : '';
-        if (alias) byAlias.set(alias, [...(byAlias.get(alias) ?? []), e as TreeObj]);
-      }
-      filters.push(o.where_clause, o.having, o.qualify);
-    }
-    if (o.type === 'JOIN') filters.push(o.condition);
-    return true;
-  });
-  const windows: TreeObj[] = [];
-  const firstOnly = new Map<TreeObj, boolean>();
-  const found = (w: TreeObj, first: boolean): void => {
-    if (!windows.includes(w)) windows.push(w);
-    firstOnly.set(w, (firstOnly.get(w) ?? true) && first);
-  };
-  for (const f of filters) {
-    walkTree(f, (o) => {
-      if (isTreeObj(o.node) && String(o.node.type).endsWith('_NODE')) return false;   // a nested query: its own filters are read above
-      for (const x of comparedOperands(o)) {
-        if (!isTreeObj(x)) continue;
-        const first = keepsFirstPlace(o, x);
-        if (rankingFn(x)) found(x, first);
-        else if (x.class === 'COLUMN_REF') for (const w of byAlias.get(refName(x)) ?? []) found(w, first);
-      }
-      return true;
-    });
-  }
-  const bare = maskSql(sql).replace(/"(?:[^"]|"")*"/g, (m) => 'x'.repeat(m.length));
-  return windows.map((w) => ({ fn: rankingFn(w)!, tieBreak: tieBreakOf(w), otherRule: otherRuleSql(sql, bare, w),
-    firstPlaceOnly: firstOnly.get(w) === true, soleKey: soleKeyOf(w) }));
-}
-
-/** Words that make a sentence of the prompt one about ties. */
-const TIE_WORD = /\b(?:ties?|tied|tying|tie-?break(?:s|er|ers)?)\b/i;
-/** Words that make a sentence of the prompt one about which copy a keep-one dedup keeps (S7-C06). */
-const KEEP_WORD = /\b(?:keep|keeps|kept)\b/i;
-const promptSentences = (prompt: string): string[] => prompt.split(/(?<=[.?!])\s+/);
-const tieSentences = (prompt: string): string[] => promptSentences(prompt).filter((s) => TIE_WORD.test(s));
-
-/** `column` as a whole name, as written or with spaces for its underscores, in any case; null for an empty name. */
-function columnName(column: string): RegExp | null {
-  const words = column.split('_').filter(Boolean).map((w) => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
-  return words.length ? new RegExp(`(?<![\\w$])${words.join('[_ ]')}(?![\\w$])`, 'i') : null;
-}
-
-/** S7-22: the prompt names `column` as the tie-break: a sentence about ties names it, as written or with spaces for its underscores. */
-export function namesTieBreak(prompt: string, column: string): boolean {
-  const name = columnName(column);
-  return name !== null && tieSentences(prompt).some((s) => name.test(s));
-}
-
-/** S7-C06: the prompt says which copy a keep-one dedup keeps: a sentence with keep, kept or keeps names `column`, as namesTieBreak does. */
-export function namesKeptCopy(prompt: string, column: string): boolean {
-  const name = columnName(column);
-  return name !== null && promptSentences(prompt).some((s) => KEEP_WORD.test(s) && name.test(s));
-}
-
-/** S7-22: the prompt says that ties share a place: a sentence about ties says they share it, or the same place, rank or position. */
-export function saysTiesShare(prompt: string): boolean {
-  return tieSentences(prompt).some((s) => /\bshar(?:e|es|ing)\b|\bsame\s+(?:place|rank|position)\b/i.test(s));
-}
-
-/**
- * C53 (S7-22, E-204, Review Focus 7): every complete key query (the reference, the alternatives and the other way) that filters a
- * ranking function's result (rankCutoffs) states its tie rule. With ROW_NUMBER (and NTILE, which splits ties as ROW_NUMBER does,
- * E-007), the window's sort order ends in a tie-break column the prompt names in a sentence about ties. With RANK or DENSE_RANK, the
- * prompt says that ties share a place. Then the query with the other tie rule (RankCutoff.otherRule), graded against the reference,
- * must fail on the item's edge schema: a tie there at the cutoff is what tells the two rules apart. Details name the key query, the
- * function, the tie-break column and the edge schema, never SQL.
- *
- * S7-C06 (FIND-01-13): a keep-one dedup, a ROW_NUMBER filtered to place 1 alone (RankCutoff.firstPlaceOnly) in an item with `uses_raw`
- * true, whose sort order is a single plain column, instead needs a sentence of the prompt with keep, kept or keeps that names that
- * column (namesKeptCopy), and its other tie rule is not graded: the resent copies are one fact with a new ID (Q-01-01), so which copy is
- * kept changes no count or total. Every other cutoff keeps the rules above.
- */
-export async function rankCutoffProblems(item: SqlItem, key: SqlKey, ctx: CheckContext): Promise<string[]> {
-  const named: [string, unknown][] = [['the reference', key.reference_sql], ...treeList(key.alternatives).map((s, i): [string, unknown] => [`alternative ${i + 1}`, s]),
-    ['the other way', key.other_way?.sql]];
-  const usesRaw = (item as { uses_raw?: unknown }).uses_raw === true;
-  const problems: string[] = [];
-  const read: string[] = [];
-  for (const [label, sql] of named) {
-    // The other way repeats an alternative (C39): each query is read once, under its first name.
-    if (typeof sql !== 'string' || read.some((s) => sameQuery(s, sql))) continue;
-    read.push(sql);
-    if (!RANKING_CALL.test(maskSql(sql))) continue;
-    const t = await ctx.runner.request<ParseTreeOk>({ op: 'parse_tree', schema: item.schema, allowedSchemas: [], sql });
-    if (!t.ok || t.data.tree === null) { problems.push(`${label} could not be read (see C03 and C04)`); continue; }
-    for (const cut of rankCutoffs(t.data.tree, sql)) {
-      if (usesRaw && cut.fn === 'ROW_NUMBER' && cut.firstPlaceOnly && cut.soleKey !== null) {
-        if (!namesKeptCopy(item.prompt, cut.soleKey)) {
-          problems.push(`${label} keeps one copy with ROW_NUMBER (a keep-one dedup on raw data), but the prompt does not say which copy is kept: a sentence of the prompt with keep, kept or keeps must name ${cut.soleKey} (S7-C06)`);
-        }
-        continue;
-      }
-      const keeps = `${label} keeps ${cut.fn}'s result by a comparison`;
-      if (cut.fn === 'ROW_NUMBER' || cut.fn === 'NTILE') {
-        if (cut.tieBreak === null) { problems.push(`${keeps}, but no tie-break ends its window's sort order (S7-22)`); continue; }
-        if (!namesTieBreak(item.prompt, cut.tieBreak)) { problems.push(`${keeps}, but no tie-break is stated: no sentence of the prompt about ties names ${cut.tieBreak} (S7-22)`); continue; }
-      } else if (!saysTiesShare(item.prompt)) { problems.push(`${keeps}, but the prompt does not say that ties share a place (S7-22)`); continue; }
-      const whose = `${label}'s ${cut.fn} cutoff`;
-      if (cut.otherRule === null) { problems.push(`with the other tie rule, ${whose} could not be written, so the tie at the cutoff cannot be tested`); continue; }
-      const g = await tryGrade(item, { ...key, alternatives: [] }, cut.otherRule, ctx);
-      if (g?.outcome === 'pass') problems.push(`with the other tie rule, ${whose} still passes: ${item.edge_schema} holds no tie at the cutoff`);
-      else if (!g || g.datasets.length < 2) problems.push(`with the other tie rule, ${whose} could not be graded`);
-      else if (g.datasets[1]!.passed) problems.push(`with the other tie rule, ${whose} gives the same rows on ${item.edge_schema}: it holds no tie at the cutoff`);
-    }
-  }
-  return problems;
-}
-
 // ---- sprint 7 (Task M1): C54 the mocks file and its forms, C55 the mock cases (S7-08 to S7-16) -----------------------------------
 
 /** S7-09: a screen form's items in serving order: one of each of levels 1 to 4, then two of level 5. */
@@ -1665,7 +1385,9 @@ export function checkMockCases(store: ContentStore): CheckResult[] {
   return (store.mockCases?.() ?? []).map((rec, n) => {
     const id = typeof rec?.case_id === 'string' ? rec.case_id : `sql/mocks case file #${n + 1}`;
     const why: string[] = [];
-    if (!isMockCaseKind(rec?.kind)) why.push('content/sql/mocks/ holds the mock cases only: kind case_round or take_home');
+    // S7C-05: a record held out by its CASE-MOCK- or CASE-TAKE- ID from another folder is no folder fault here; C41 names its ID and folder.
+    const inMocks = store.caseFolder ? store.caseFolder(rec) === MOCK_CASE_DIR : true;
+    if (inMocks && !isMockCaseKind(rec?.kind)) why.push('content/sql/mocks/ holds the mock cases only: kind case_round or take_home');
     if (validateCaseRecord(rec).length) return { id, check: 'C55', ok: false, detail: [...why, 'the record is not valid; see C41'].join('; ') };
     const kinds = new Set<string>(rec.checkpoints.map((c) => c.kind));
     const missing = ['CP1', 'CP2', 'CP3', 'CP4', 'CP5', 'CP6'].filter((k) => !kinds.has(k));
@@ -1811,16 +1533,20 @@ export function checkFullMockPool(store: ContentStore, today: string = amsterdam
 
 /**
  * C56 (sprint 7 Part 2, Task N1; S7-10, S7-11, ruling S7-C21): content/ga4/knowledge-pool.json, the knowledge mock's GA4 questions. One
- * result named for the file: no item listed twice, no two of one enemy group, and, once it lists any item, at least per_section.ga4 of
- * them (an empty pool passes until Task P1 fills it). Then one result per item it lists, named by its ID: a GA4 item, held out by its own
- * flag (practice never serves it), and not in `examPool` (ga4/held-out.json: the GA4 half and full mock pool). Names IDs only.
+ * result named for the file: no item listed twice, no two of one enemy group, and, once it lists any item, at least per_section.ga4 usable
+ * ones (an empty pool passes until Task P1 fills it). Sprint 7c (N1 M5, F4-1-6): usable as a start counts them, by the one rule the card
+ * and the goal view read (server/run.ts knowledgeReadiness: active, with a key and a topic). Then one result per item it lists, named by
+ * its ID: a GA4 item, held out by its own flag (practice never serves it), and not in `examPool` (ga4/held-out.json: the GA4 half and full
+ * mock pool). Names IDs only.
  */
 export function checkKnowledgePool(store: ContentStore, examPool: readonly string[]): CheckResult[] {
   const listed = store.knowledgePool?.() ?? [];
   const ids = [...new Set(listed)];
   const why = ids.filter((id) => listed.indexOf(id) !== listed.lastIndexOf(id)).map((id) => `${id} is listed twice`);
-  const need = store.mocks?.knowledge.per_section.ga4 ?? 0;
-  if (ids.length > 0 && ids.length < need) why.push(`the pool lists ${ids.length} items; the knowledge mock asks ${need} GA4 questions (per_section.ga4), so it needs at least ${need}`);
+  const ready = ids.length > 0 && store.mocks ? knowledgeReadiness(knowledgePools(store), store.mocks.knowledge) : null;
+  if (ready?.short.includes('ga4')) {
+    why.push(`the pool holds ${ready.usable.ga4} usable items (active, with a key and a topic); the knowledge mock asks ${ready.need.ga4} GA4 questions (per_section.ga4), so it needs at least ${ready.need.ga4}`);
+  }
   const groups = new Map<string, string[]>();
   for (const id of ids) {
     const g = store.choiceItem?.(id)?.enemy_group;

@@ -3,13 +3,15 @@
 // A reply fails when (a) before a pass it gives the answer, (b) before an answer to a choice question it goes through the options, or
 // (c) it names nothing on its screen. After a pass, explaining is allowed (spec §6, rule 2), so only (c) applies. Each has its own reason.
 // - SQL: any query in the reply that the app's grader passes on the item (each code block, inline code span and bare statement, whole
-//   and split at semicolons and blank lines).
+//   and split at semicolons and blank lines), and the blocks and spans that start like a clause joined in order (S7-36, K1 M2). A part
+//   of a query in its own block or span that does not start with its clause's word (a SELECT-list item alone, say) is not joined.
 // - Multiple choice: the reply singles out the correct option, by its text, its number, a letter or its place on the screen: it is the
 //   only option the reply names at all; or a statement (not a question) names it alone with a word that picks it (correct, right, best,
 //   fits, matches, the one, go with, pick, choose, it is, leaves); or the reply rules out every other option and not this one. A reply
 //   that names every option, or none, with no such judgement, gives nothing away.
-// - A typed (number) question: the reply states the number (S7-36): any number in it that rounds to the answer at the question's decimals,
-//   written with a point or a comma for the decimals and either for thousands. A single digit is not checked: a teaching reply uses them.
+// - A typed (number) question: the reply states the number (S7-36): any number in it, with its minus (K1 M1), that rounds to the answer
+//   at the question's decimals, written with a point or a comma for the decimals and either for thousands in groups of 3 (K1 M1). A single
+//   digit is not checked: a teaching reply uses them.
 // - Going through the options (prompt v4, rule 1; the live eval's Sonnet Q17): the reply's statements, not its questions, between them
 //   describe at least three distinct options, or every option when there are fewer, counted as the leak check counts a mention. A mention
 //   only lists an option to compare ("Compare the first, second and fourth options with the stem") when nothing else is said in its
@@ -68,6 +70,12 @@ const CAPITAL_SELECT = /\bSELECT\b/g;
 const BLANK_LINE = /\n[ \t]*\n/;
 /** The most pieces of one reply that are tried joined (S7-36): the joined runs grow with its square. */
 const MAX_PIECES = 12;
+/**
+ * K1 M2: a piece of a query handed over in parts starts like one of its clauses, with the clause's word and something after it, or with
+ * the bracket that closes a CTE or a subquery. Only such pieces are joined, so a name (`amount`), a bare keyword (`GROUP BY`) or a block
+ * of output between two parts does not break the run.
+ */
+const CLAUSE_PIECE = /^\s*(?:\)|(?:select|with|from|where|group\s+by|having|qualify|window|order\s+by|limit|offset|union|intersect|except|on|and|or|(?:(?:left|right|full|inner|cross|natural|semi|anti|asof|positional)\s+)*(?:outer\s+)?join)\b\s*\S)/i;
 
 /**
  * Every text in a reply that could be a query: each fenced block and each inline code span that starts like a query, whole; and each
@@ -83,11 +91,13 @@ export function sqlCandidates(reply: string): string[] {
     }
   };
   // S7-36: a query handed over in pieces (a block per clause, or a span per clause) is also tried joined: every run of two or more
-  // consecutive pieces, in the order they come, for the first MAX_PIECES pieces.
+  // consecutive pieces, in the order they come, for the first MAX_PIECES pieces. K1 M2: only blocks and spans that start like a clause
+  // (CLAUSE_PIECE) are pieces, so what is not SQL between them is left out before the runs are made.
   const pieces: { at: number; text: string }[] = [];
-  for (const m of reply.matchAll(FENCE)) { add(m[2]!); pieces.push({ at: m.index, text: m[2]!.trim() }); }
+  const piece = (at: number, text: string): void => { if (CLAUSE_PIECE.test(text)) pieces.push({ at, text: text.trim() }); };
+  for (const m of reply.matchAll(FENCE)) { add(m[2]!); piece(m.index, m[2]!); }
   const prose = reply.replace(FENCE, (m) => '\n\n'.padEnd(m.length, '\n'));              // the same length, so a span keeps its place in the reply
-  for (const m of prose.matchAll(INLINE)) { if (SQL_START.test(m[1]!)) add(m[1]!); pieces.push({ at: m.index, text: m[1]!.trim() }); }
+  for (const m of prose.matchAll(INLINE)) { if (SQL_START.test(m[1]!)) add(m[1]!); piece(m.index, m[1]!); }
   const ordered = pieces.sort((a, b) => a.at - b.at).slice(0, MAX_PIECES);
   for (let i = 0; i < ordered.length; i++) for (let j = i + 1; j < ordered.length; j++) add(ordered.slice(i, j + 1).map((p) => p.text).join('\n'));
   for (const paragraph of prose.replace(/`/g, '').split(BLANK_LINE)) {
@@ -289,17 +299,38 @@ export function walkedThrough(reply: string, options: readonly string[]): boolea
 // ---- A typed number -------------------------------------------------------------------------------------------------------------------
 
 /**
- * Before an answer to a typed question (S7-36): the reply states the number. Every run of digits in it is read both ways a number is
- * written (a comma for thousands and a point for decimals, or the reverse), and counts when it rounds to `value` at `decimals`. A single
- * digit is not checked: a teaching reply counts "1 buyer" and "2 days". Pure; the value and the reply are never printed.
+ * A run of digits read with `thousands` as the thousands mark and `decimal` as the decimal mark (K1 M1): NaN when it is not a number
+ * written that way, as when a thousands group is not 3 digits (`1,2,3` and `10,20,30` are lists, `12,50` is no thousand) or a decimal
+ * part holds another mark.
+ */
+function readNumber(run: string, thousands: string, decimal: string): number {
+  const [whole, fraction, ...more] = run.split(decimal);
+  if (more.length || (fraction !== undefined && !/^\d+$/.test(fraction))) return NaN;
+  const groups = whole!.split(thousands);
+  if (groups.length > 1 && !(/^\d{1,3}$/.test(groups[0]!) && groups.slice(1).every((g) => /^\d{3}$/.test(g)))) return NaN;
+  return Number(`${groups.join('')}${fraction === undefined ? '' : `.${fraction}`}`);
+}
+
+/**
+ * A number's digits, with the minus before them when it is a sign (K1 M1): a hyphen-minus or a minus sign that follows no letter, digit,
+ * point, comma or other minus, so the hyphen in `10-12` or `2024-12` is not one.
+ */
+const NUMBER_RUN = /(?:(?<![\w.,\-−])[-−])?(?:\d[\d.,]*\d|\d)/g;
+
+/**
+ * Before an answer to a typed question (S7-36): the reply states the number. Every run of digits in it, with its minus (K1 M1), is read
+ * both ways a number is written (a comma for thousands and a point for decimals, or the reverse; a reading whose thousands groups are not
+ * 3 digits is not one, K1 M1), and counts when it rounds to `value` at `decimals`. A single digit is not checked: a teaching reply counts
+ * "1 buyer" and "2 days". Pure; the value and the reply are never printed.
  */
 export function numberLeak(reply: string, value: number, decimals: number): boolean {
   if (!Number.isFinite(value) || (Number.isInteger(value) && Math.abs(value) < 10)) return false;
   const within = 10 ** -decimals / 2 + 1e-9;
-  for (const m of reply.matchAll(/\d[\d.,]*\d|\d/g)) {
-    const asWritten = Number(m[0].replace(/,/g, ''));                                    // 1,250.5
-    const european = Number(m[0].replace(/\./g, '').replace(',', '.'));                   // 1.250,5
-    if ([asWritten, european].some((n) => Number.isFinite(n) && Math.abs(n - value) <= within)) return true;
+  for (const m of reply.matchAll(NUMBER_RUN)) {
+    const negative = /^[-−]/.test(m[0]);
+    const digits = negative ? m[0].slice(1) : m[0];
+    const readings = [readNumber(digits, ',', '.'), readNumber(digits, '.', ',')];    // 1,250.5 and 1.250,5
+    if (readings.some((n) => Number.isFinite(n) && Math.abs((negative ? -n : n) - value) <= within)) return true;
   }
   return false;
 }

@@ -1,6 +1,6 @@
 {
   "item_id": "EX-SQL-WIN-03-E2-21",
-  "item_version": 1,
+  "item_version": 2,
   "reference_sql": "WITH months AS (\n  -- one row per month of the range\n  SELECT DISTINCT month_start AS month\n  FROM calendar\n  WHERE cal_date BETWEEN DATE '2025-01-01' AND DATE '2025-06-30'\n), parents AS (\n  -- one row per parent category\n  SELECT DISTINCT parent_category\n  FROM categories\n), monthly AS (\n  -- one row per parent category and month with sales\n  SELECT parent_category, order_month AS month, SUM(units) AS units\n  FROM sales\n  WHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-06-30'\n  GROUP BY parent_category, order_month\n), grid AS (\n  -- one row per parent category and month of the range\n  SELECT p.parent_category, m.month, COALESCE(s.units, 0) AS units\n  FROM parents p\n  CROSS JOIN months m\n  LEFT JOIN monthly s ON s.parent_category = p.parent_category AND s.month = m.month\n)\nSELECT parent_category, month, units,\n  units - LAG(units) OVER (PARTITION BY parent_category ORDER BY month) AS change_units\nFROM grid",
   "alternatives": [
     "WITH months AS (\n  -- one row per month of the range\n  SELECT DISTINCT month_start AS month\n  FROM calendar\n  WHERE cal_date BETWEEN DATE '2025-01-01' AND DATE '2025-06-30'\n), parents AS (\n  -- one row per parent category\n  SELECT DISTINCT parent_category\n  FROM categories\n), monthly AS (\n  -- one row per parent category and month with sales\n  SELECT parent_category, order_month AS month, SUM(units) AS units\n  FROM sales\n  WHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-06-30'\n  GROUP BY parent_category, order_month\n), grid AS (\n  -- one row per parent category and month of the range\n  SELECT p.parent_category, m.month, COALESCE(s.units, 0) AS units\n  FROM parents p\n  CROSS JOIN months m\n  LEFT JOIN monthly s ON s.parent_category = p.parent_category AND s.month = m.month\n)\nSELECT g.parent_category, g.month, g.units, g.units - p.units AS change_units\nFROM grid g\nLEFT JOIN grid p ON p.parent_category = g.parent_category AND p.month = g.month - INTERVAL 1 MONTH",
@@ -24,11 +24,11 @@
   ],
   "hint3_partial": "WITH months AS (\n  -- one row per month of the range\n  SELECT DISTINCT month_start AS month\n  FROM calendar\n  WHERE cal_date BETWEEN DATE '2025-01-01' AND DATE '2025-06-30'\n), parents AS (\n  -- one row per parent category\n  SELECT DISTINCT parent_category\n  FROM categories\n), monthly AS (\n  -- one row per parent category and month with sales\n  SELECT parent_category, order_month AS month, SUM(units) AS units\n  FROM sales\n  WHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-06-30'\n  GROUP BY parent_category, order_month\n), grid AS (\n  -- one row per parent category and month of the range\n  SELECT p.parent_category, m.month, COALESCE(s.units, 0) AS units\n  FROM parents p\n  CROSS JOIN months m\n  LEFT JOIN monthly s ON s.parent_category = p.parent_category AND s.month = m.month\n)\nSELECT parent_category, month, units,\n  units - LAG(units) OVER (PARTITION BY ___ ORDER BY month) AS change_units\nFROM grid",
   "solver": {
-    "prompt_hash": "49a7f9348822c06b",
+    "prompt_hash": "703aa069b18eef26",
     "schema_version": "6c11104c0696",
-    "dataset_version": "e7c58abf7e8f892e",
-    "grader_version": "7a.1",
-    "query": "WITH grid AS (\n  SELECT parent_category, CAST(mo AS DATE) AS month\n  FROM (SELECT DISTINCT parent_category FROM categories) p\n  CROSS JOIN generate_series(DATE '2025-01-01', DATE '2025-06-01', INTERVAL 1 MONTH) AS g(mo)\n), monthly AS (\n  SELECT parent_category, CAST(order_month AS DATE) AS month, SUM(units) AS units\n  FROM sales\n  WHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-06-30'\n  GROUP BY parent_category, CAST(order_month AS DATE)\n), j AS (\n  SELECT g.parent_category, g.month, COALESCE(m.units, 0) AS units\n  FROM grid g LEFT JOIN monthly m ON m.parent_category = g.parent_category AND m.month = g.month\n)\nSELECT parent_category, month, units,\n  units - LAG(units) OVER (PARTITION BY parent_category ORDER BY month) AS change_units\nFROM j\n",
-    "at": "2026-10-21T09:05:07.570Z"
+    "dataset_version": "ef4aa0325da6ea43",
+    "grader_version": "7c.1",
+    "query": "WITH cats AS (SELECT DISTINCT parent_category FROM categories), months AS (SELECT CAST(m AS DATE) AS month FROM generate_series(DATE '2025-01-01', DATE '2025-06-01', INTERVAL 1 MONTH) AS t(m)), u AS (SELECT parent_category, CAST(date_trunc('month', order_date) AS DATE) AS month, SUM(units) AS units FROM sales WHERE order_date >= DATE '2025-01-01' AND order_date <= DATE '2025-06-30' GROUP BY 1, 2), g AS (SELECT c.parent_category, m.month, COALESCE(u.units, 0) AS units FROM cats c CROSS JOIN months m LEFT JOIN u ON u.parent_category = c.parent_category AND u.month = m.month) SELECT parent_category, month, units, units - LAG(units) OVER (PARTITION BY parent_category ORDER BY month) AS change_units FROM g\n",
+    "at": "2026-10-22T18:09:35.069Z"
   }
 }

@@ -8,7 +8,10 @@
 // the panel is closed or the tutor is off, nothing builds a part: the editors and the screens are read only when the panel is open (S7-36).
 // The registry also carries the help channel (Codex F34): the item panels listen (useTutorHelp), and the tutor panel tells them which
 // instance a reply the server counted as help (D95) was on, and when its question was asked (S7-33).
+// D117 (S7C-04): while a mock run is on the tutor waits on every screen. The status says so (TutorStatusRead.mock_on); the panel reads it and
+// closes the tutor with MOCK_WAITS, and a fourth context carries the line a closed tutor shows (useTutorWaits), where a quick prompt would be.
 import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import type { TutorStatusView } from '../../../schemas/tutor.ts';
 import { collectParts } from './panel-a11y.ts';
 import type { SnapshotPart } from './snapshot.ts';
 
@@ -41,6 +44,17 @@ export interface TutorState extends Registry {
 const Ctx = createContext<TutorState | null>(null);
 const RegistryCtx = createContext<Registry | null>(null);
 const AvailableCtx = createContext(false);
+const WaitsCtx = createContext<string | null>(null);
+/** D117 (S7C-04): the line the tutor shows on every screen while a mock run is on (the status says so: TutorStatusRead.mock_on). */
+export const MOCK_WAITS = 'A mock is on, so the tutor waits for its review';
+/**
+ * GET /api/tutor/status as server/routes/tutor.ts answers it (TutorStatusReply): the shared view, and whether the run that is on is a mock's
+ * (D117). Declared here because the server module brings node types the browser build does not have; tests/web/tutor-status-shape.test.ts
+ * checks that the two agree, both ways.
+ */
+export interface TutorStatusRead extends TutorStatusView { mock_on: boolean }
+/** D117: the line a status closes the tutor with on every screen, or null when no mock run is on. */
+export const mockWaitsIn = (s: TutorStatusView): string | null => ((s as Partial<TutorStatusRead>).mock_on === true ? MOCK_WAITS : null);
 /** What the quick prompts' rules read (tutorAvailable in lib/tutor-parts.ts) when the tutor is available. */
 export const AVAILABLE = { enabled: true, closedBy: null } as const;
 
@@ -79,7 +93,9 @@ export function TutorProvider({ enabled, children }: { enabled: boolean; childre
     [enabled, open, closedBy, prefill, registry, parts]);
   return (
     <RegistryCtx.Provider value={registry}>
-      <AvailableCtx.Provider value={enabled && closedBy === null}><Ctx.Provider value={value}>{children}</Ctx.Provider></AvailableCtx.Provider>
+      <AvailableCtx.Provider value={enabled && closedBy === null}>
+        <WaitsCtx.Provider value={enabled ? closedBy : null}><Ctx.Provider value={value}>{children}</Ctx.Provider></WaitsCtx.Provider>
+      </AvailableCtx.Provider>
     </RegistryCtx.Provider>
   );
 }
@@ -88,6 +104,11 @@ export const useTutor = (): TutorState | null => useContext(Ctx);
 
 /** S7-36: whether the tutor is on and no timed run's clock closes it. It changes only then, never when the panel opens or a part comes or goes. */
 export const useTutorAvailable = (): boolean => useContext(AvailableCtx);
+/**
+ * D117 (S7C-04): the line the tutor shows while a run closes it (a timed run's clock, D94, or a mock run, on any screen), or null when it is
+ * open or off. Like useTutorAvailable, it changes only then, never when the panel opens.
+ */
+export const useTutorWaits = (): string | null => useContext(WaitsCtx);
 /** S7-36: asks a quick prompt (opens the panel with the question in the box); null with no tutor. The function never changes. */
 export const useTutorAsk = (): ((question: string) => void) | null => useContext(RegistryCtx)?.ask ?? null;
 

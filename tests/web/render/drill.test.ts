@@ -4,6 +4,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createElement } from 'react';
 import { click, render, settle, stubFetch } from '../../helpers/render.ts';
+import { DEFAULT_RULES } from '../../../schemas/item.ts';
 import { DrillScreen } from '../../../web/src/screens/DrillScreen.tsx';
 import type { ConceptView, DrillHistoryRow, DrillStarted } from '../../../web/src/api.ts';
 
@@ -86,4 +87,29 @@ test('finding 15: a running drill has the crumb, the run bar and a numbered stri
   assert.deepEqual([...strip.querySelectorAll('button')].map((b) => b.getAttribute('aria-label')), ['Question 1', 'Question 2', 'Question 3']);
   assert.equal(strip.querySelectorAll('button[aria-pressed="true"]').length, 1);
   unmount();   // stops the countdown
+});
+
+test('B2 (S7-35): a drill that resumed after a reload and ended reads its passed question as passed, with "Other ways to write this"; a failed one has none', async () => {
+  const item = (id: string) => ({ id, version: 1, prompt: 'List the stores.', concept_id: 'C-1', topic_id: 'T-1', level: 1, kind: 'write', rules: DEFAULT_RULES, output_contract: null,
+    faded_shape: null, has_other_way: true, fading: false, starter_sql: null });
+  stubFetch((method, path) => {
+    if (path === '/api/curriculum') return { levels: [], concepts: [] };
+    if (path === '/api/drill/current') return { run: started };                 // the run was on when the page reloaded
+    if (path.startsWith('/api/drill/history')) return { drill: null, runs: [], cumulative: [] };
+    if (method === 'GET' && path.startsWith('/api/items/')) return { item: item(path.slice('/api/items/'.length).split('?')[0]!), schemaNotes: [] };
+    if (method === 'POST' && path === '/api/drill/end') {
+      return { block_id: 'BLK-1', kind: 'level', level: 1, score: { passed: 1, questions: 3, pct: 33, run_passed: false, unseen: 3, unseen_pct: 100, counts_for_level: false },
+        items: [{ item_instance_id: 'inst-1', item_id: 'EX-1', outcome: 'passed' }, { item_instance_id: 'inst-2', item_id: 'EX-2', outcome: 'failed' },
+          { item_instance_id: 'inst-3', item_id: 'EX-3', outcome: 'not_answered' }] };
+    }
+    return undefined;
+  });
+  const { container, unmount } = render(createElement('main', null, createElement(DrillScreen)));
+  try {
+    await settle();
+    await click([...container.querySelectorAll('button')].find((b) => b.textContent === 'End the drill and see the review') ?? null);
+    assert.deepEqual([...container.querySelectorAll('nav.qstrip button')].map((b) => b.getAttribute('aria-label')), ['Question 1: Passed', 'Question 2: Not passed', 'Question 3: Not answered'], 'the strip names each outcome');
+    const otherWays = (n: number): number => container.querySelectorAll(`[data-question="${n}"] .other-way`).length;
+    assert.deepEqual([0, 1, 2].map(otherWays), [1, 0, 0], 'only the passed question offers other ways');
+  } finally { unmount(); }
 });

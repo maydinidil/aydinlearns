@@ -35,9 +35,9 @@
     "model": "Put text in single quotes, as in `'{column}'`, and compare values with `=` and `<>`, the standard SQL operators."
   },
   "ERR-SYN-08": {
-    "assumed": "You probably expected WHERE to filter on the result of a window function, such as a rank, a row number or a running total.",
-    "why": "SQL works out window functions after WHERE has already picked the rows, so WHERE cannot test `ROW_NUMBER() OVER (...)` or any other window function.",
-    "model": "Work the window function out in a CTE or subquery, give it a name, and filter that name with WHERE in the outer query: `WITH ranked AS (SELECT product_id, ROW_NUMBER() OVER (ORDER BY units DESC, product_id) AS rn FROM t) SELECT product_id FROM ranked WHERE rn <= 3`. End the ORDER BY with a tie-break, here `product_id`, so tied rows at the cutoff come out the same every time; if the question states a tie-break, it goes last."
+    "assumed": "You probably expected to use the result of a window function, such as a rank, a row number or a running total, in the same query that works it out: to filter rows, group them or add them up.",
+    "why": "SQL works out window functions after WHERE has picked the rows and GROUP BY and HAVING have grouped them, so a window function cannot go in WHERE, a join's ON, GROUP BY or HAVING. It cannot go inside an aggregate such as SUM or COUNT either, its FILTER included, or inside another window function.",
+    "model": "Work the window function out in a CTE or subquery and give it a name. Then use that name in the outer query: filter it with WHERE, group by it, add it up, or use it in another window function. For example: `WITH ranked AS (SELECT product_id, ROW_NUMBER() OVER (ORDER BY units DESC, product_id) AS rn FROM t) SELECT product_id FROM ranked WHERE rn <= 3`. End the ORDER BY with a tie-break, here `product_id`, so tied rows at the cutoff come out the same every time; if the question states a tie-break, it goes last."
   },
   "ERR-SEM-01": {
     "assumed": "You probably expected SQL to show a column next to your totals without being told how to combine its values in each group.",

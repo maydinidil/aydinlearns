@@ -1,6 +1,6 @@
 {
   "id": "EX-SQL-WIN-03-E3-02",
-  "version": 1,
+  "version": 2,
   "kind": "write",
   "tags": [
     "sql",
@@ -50,7 +50,7 @@
   "company": "mailvora",
   "schema": "mailvora",
   "edge_schema": "mailvora_edge_win",
-  "prompt": "For each plan, find the longest gap between two consecutive payments of one subscription on that plan, in days: the UTC date of a payment minus the UTC date of the same subscription's payment before it (paid_at holds UTC time). Only payments that were not refunded count; refunded payments are left out before the gaps are measured. A subscription with fewer than two such payments has no gap, and a plan with no gap at all is left out. Return plan_name and max_gap_days. Any row order is fine.",
+  "prompt": "For each plan, find the longest gap between two consecutive payments of one subscription on that plan, in days: the UTC date of a payment minus the UTC date of the same subscription's payment before it (paid_at holds UTC time). Only payments that were not refunded count; refunded payments are left out before the gaps are measured. A subscription with fewer than two such payments has no gap, and a plan with no gap at all is left out. Return two columns, in this order: plan_name and max_gap_days. Return one row for each plan with a gap. Any row order is fine.",
   "output_contract": {
     "columns": [
       {

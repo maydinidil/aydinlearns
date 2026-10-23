@@ -39,14 +39,17 @@ export const FOCUS_WAIT_MS = 2000;
 /**
  * After a route change: focuses the screen's heading as soon as there is one, looking again each time the page changes (a screen
  * draws its heading when its data arrives). When there is still none after `waitMs`, the screen has no heading, and `main` gets focus
- * so the keyboard starts at the new screen. Returns the function that stops the watch.
+ * so the keyboard starts at the new screen. Returns the function that stops the watch. When the learner has focused something since the
+ * watch began (a field they clicked into), the watch ends without moving focus (B1).
  */
 export function watchForHeading(doc: Document, waitMs = FOCUS_WAIT_MS): () => void {
   if (focusHeading(focusTarget(doc))) return () => {};
+  const start = doc.activeElement;
   let timer: ReturnType<typeof setTimeout> | undefined;
-  const observer = new MutationObserver(() => { if (focusHeading(focusTarget(doc))) stop(); });
+  const moved = (): boolean => { const a = doc.activeElement; return a !== start && a !== null && a !== doc.body; };
+  const observer = new MutationObserver(() => { if (moved() || focusHeading(focusTarget(doc))) stop(); });
   function stop(): void { observer.disconnect(); clearTimeout(timer); }
   observer.observe(doc.body, { childList: true, subtree: true });
-  timer = setTimeout(() => { focusHeading(doc.querySelector<HTMLElement>('main')); stop(); }, waitMs);
+  timer = setTimeout(() => { if (!moved()) focusHeading(doc.querySelector<HTMLElement>('main')); stop(); }, waitMs);
   return stop;
 }

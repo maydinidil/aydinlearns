@@ -167,11 +167,20 @@ export interface TutorAsked {
  * `pass_correct` (Codex F35, ruling S7-C34; additive on version 7, sprint 7 Part 2): the count of correct answers the run needs, as its start
  * read the rules (the screen mock's pass_correct; the knowledge mock's pass_pct of its questions, rounded up; a case mock's auto_min of CP1 to
  * CP5). A run keeps its own pass mark; a mock_open without it (written before Part 2) is read with the rules' value.
+ * `item_ids` and `core_rubric` (owner decision D116, ruling S7C-03; additive on version 7, sprint 7c): `item_ids`, only on a knowledge
+ * mock's, is its drawn question IDs in the order the run serves them. The knowledge draw counts each one as shown at the mock_open's time,
+ * whether or not a record names it (S7-C36), so a crash that leaves a question with no answer and no close spends it too; and a finished run's
+ * total is their count (F4-4-2). `core_rubric`, only on a case-round's or take-home's, is its mock's core rubric lines as the start read
+ * them: its score (server/mocks.ts), its review and its rubric route read them before the rules'. A screen mock's has neither. On a
+ * mock_open without them (written before 0.7.2) the block's records name a knowledge run's questions (S7-C36), its total is 0.7.1's, the
+ * larger of the rules' questions and their count (ruling S7C-C04), and the rules give a case run's core lines.
  */
 export interface MockOpen {
   record: 'mock_open'; schema_version: number; ts: string; session_id: string; block_id: string;
   mock: 'screen' | 'knowledge' | 'case_round' | 'take_home'; form_id: string; minutes: number; on_unseen: boolean;
   pass_correct?: number;
+  item_ids?: string[];
+  core_rubric?: string[];
 }
 
 export type AttemptFileRecord = AttemptBase | ItemClose | BlockClose | HintOpened | SolutionOpened | Exposure | OtherWayOpened | SelfCheck | TutorAsked

@@ -1,6 +1,6 @@
 {
   "item_id": "EX-SQL-WIN-03-E1-02",
-  "item_version": 1,
+  "item_version": 2,
   "reference_sql": "SELECT channel_id, month, budget_eur,\n  LAG(budget_eur) OVER (PARTITION BY channel_id ORDER BY month) AS prev_budget_eur\nFROM budget_monthly",
   "alternatives": [
     "SELECT b.channel_id, b.month, b.budget_eur,\n  (SELECT p.budget_eur FROM budget_monthly p\n   WHERE p.channel_id = b.channel_id\n     AND p.month = (SELECT MAX(p2.month) FROM budget_monthly p2 WHERE p2.channel_id = b.channel_id AND p2.month < b.month)) AS prev_budget_eur\nFROM budget_monthly b",
@@ -24,11 +24,11 @@
   ],
   "hint3_partial": "SELECT channel_id, month, budget_eur,\n  LAG(budget_eur) OVER (PARTITION BY ___ ORDER BY month) AS prev_budget_eur\nFROM budget_monthly",
   "solver": {
-    "prompt_hash": "640c4033ca796c72",
+    "prompt_hash": "41295b2132f7b6d7",
     "schema_version": "1ea1a0f5ae04",
-    "dataset_version": "e7c58abf7e8f892e",
-    "grader_version": "7a.1",
-    "query": "SELECT channel_id, month, budget_eur,\n  LAG(budget_eur) OVER (PARTITION BY channel_id ORDER BY month) AS prev_budget_eur\nFROM budget_monthly\n",
-    "at": "2026-10-21T09:05:07.112Z"
+    "dataset_version": "ef4aa0325da6ea43",
+    "grader_version": "7c.1",
+    "query": "SELECT channel_id, month, budget_eur, LAG(budget_eur) OVER (PARTITION BY channel_id ORDER BY month) AS prev_budget_eur FROM budget_monthly\n",
+    "at": "2026-10-22T18:09:34.670Z"
   }
 }

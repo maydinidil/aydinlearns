@@ -1,6 +1,6 @@
 {
   "id": "EX-SQL-WIN-01-E2-01",
-  "version": 1,
+  "version": 2,
   "kind": "write",
   "tags": [
     "sql",
@@ -46,7 +46,7 @@
   "company": "voltmarkt",
   "schema": "voltmarkt",
   "edge_schema": "voltmarkt_edge_win",
-  "prompt": "What share of its country's 2025 net revenue does each store take? A store's country is its country_code in stores, and the webshop, WEB-01, is a store in NL. Use the sales rows whose order_date falls in 2025. Return four columns, in this order: store_code, country_code, revenue (the store's 2025 net revenue) and share_pct, that revenue as a percentage of the 2025 net revenue of all the stores of its country, rounded to 2 decimals. Return one row for each store with sales in 2025. Any row order is fine.",
+  "prompt": "What share of its country's 2025 net revenue does each store take? A store's country is its country_code in stores, and the webshop, WEB-01, is a store in NL. Use the sales rows whose order_date falls in 2025 (order_date is a UTC day). Return four columns, in this order: store_code, country_code, revenue (the store's 2025 net revenue) and share_pct, that revenue as a percentage of the 2025 net revenue of all the stores of its country, rounded to 2 decimals. Return one row for each store with sales in 2025. Any row order is fine.",
   "output_contract": {
     "columns": [
       {

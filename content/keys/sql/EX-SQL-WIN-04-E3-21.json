@@ -1,6 +1,6 @@
 {
   "item_id": "EX-SQL-WIN-04-E3-21",
-  "item_version": 1,
+  "item_version": 2,
   "reference_sql": "WITH daily AS (\n  -- one row per parent category and day with sales\n  SELECT parent_category, order_date, SUM(units) AS units\n  FROM sales\n  WHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-06-30'\n  GROUP BY parent_category, order_date\n), running AS (\n  -- one row per parent category and day with sales\n  SELECT parent_category, order_date,\n    SUM(units) OVER (PARTITION BY parent_category ORDER BY order_date ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS cumulative_units,\n    SUM(units) OVER (PARTITION BY parent_category) AS total_units\n  FROM daily\n)\nSELECT parent_category, MIN(order_date) AS half_units_date\nFROM running\nWHERE cumulative_units >= 0.5 * total_units\nGROUP BY parent_category",
   "alternatives": [
     "WITH daily AS (\n  -- one row per parent category and day with sales\n  SELECT parent_category, order_date, SUM(units) AS units\n  FROM sales\n  WHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-06-30'\n  GROUP BY parent_category, order_date\n)\nSELECT d.parent_category, MIN(d.order_date) AS half_units_date\nFROM daily d\nWHERE (SELECT SUM(d2.units) FROM daily d2 WHERE d2.parent_category = d.parent_category AND d2.order_date <= d.order_date)\n      >= 0.5 * (SELECT SUM(d3.units) FROM daily d3 WHERE d3.parent_category = d.parent_category)\nGROUP BY d.parent_category",
@@ -24,11 +24,11 @@
   ],
   "hint3_partial": "WITH daily AS (\n  -- one row per parent category and day with sales\n  SELECT parent_category, order_date, SUM(units) AS units\n  FROM sales\n  WHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-06-30'\n  GROUP BY parent_category, order_date\n), running AS (\n  -- one row per parent category and day with sales\n  SELECT parent_category, order_date,\n    SUM(units) OVER (PARTITION BY parent_category ORDER BY order_date ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS cumulative_units,\n    SUM(units) OVER (PARTITION BY parent_category) AS total_units\n  FROM daily\n)\nSELECT parent_category, MIN(order_date) AS half_units_date\nFROM running\nWHERE ___\nGROUP BY parent_category",
   "solver": {
-    "prompt_hash": "9f3620e399303e1c",
+    "prompt_hash": "eeae278c6883e707",
     "schema_version": "cebf75df442f",
-    "dataset_version": "e7c58abf7e8f892e",
-    "grader_version": "7a.1",
-    "query": "WITH daily AS (\n  SELECT parent_category, order_date, SUM(units) AS units\n  FROM sales\n  WHERE order_date BETWEEN DATE '2025-01-01' AND DATE '2025-06-30'\n  GROUP BY parent_category, order_date\n), r AS (\n  SELECT parent_category, order_date,\n    SUM(units) OVER (PARTITION BY parent_category ORDER BY order_date ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS cum_units,\n    SUM(units) OVER (PARTITION BY parent_category) AS total_units\n  FROM daily\n)\nSELECT parent_category, MIN(order_date) AS half_units_date\nFROM r\nWHERE 2 * cum_units >= total_units\nGROUP BY parent_category\n",
-    "at": "2026-10-21T09:05:08.963Z"
+    "dataset_version": "ef4aa0325da6ea43",
+    "grader_version": "7c.1",
+    "query": "WITH d AS (SELECT parent_category, order_date, SUM(units) AS u FROM sales WHERE order_date >= DATE '2025-01-01' AND order_date <= DATE '2025-06-30' GROUP BY 1, 2), c AS (SELECT parent_category, order_date, SUM(u) OVER (PARTITION BY parent_category ORDER BY order_date ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS cum, SUM(u) OVER (PARTITION BY parent_category) AS tot FROM d) SELECT parent_category, MIN(order_date) AS half_units_date FROM c WHERE cum * 2 >= tot GROUP BY parent_category\n",
+    "at": "2026-10-22T18:09:36.105Z"
   }
 }

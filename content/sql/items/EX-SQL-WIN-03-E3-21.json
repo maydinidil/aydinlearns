@@ -1,6 +1,6 @@
 {
   "id": "EX-SQL-WIN-03-E3-21",
-  "version": 1,
+  "version": 2,
   "kind": "write",
   "tags": [
     "sql",
@@ -47,7 +47,7 @@
   "company": "voltmarkt",
   "schema": "voltmarkt",
   "edge_schema": "voltmarkt_edge_win",
-  "prompt": "For each store with orders on at least two different days from 1 January to 30 June 2025 (UTC order dates, both days included), find the longest gap between two consecutive days with orders, in days: a day with orders minus the store's previous day with orders. Several orders on one day make one day. Return store_code and max_gap_days. Any row order is fine.",
+  "prompt": "For each store with orders on at least two different days from 1 January to 30 June 2025 (UTC order dates, both days included), find the longest gap between two consecutive days with orders, in days: a day with orders minus the store's previous day with orders. Several orders on one day make one day. Return two columns, in this order: store_code and max_gap_days. Return one row for each such store. Any row order is fine.",
   "output_contract": {
     "columns": [
       {

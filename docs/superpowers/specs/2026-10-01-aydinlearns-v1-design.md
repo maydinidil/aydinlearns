@@ -536,6 +536,14 @@ available at any time; their cost shows in the rating. Inside a timed drill or a
 - It is logged as `tutor_asked` with screen `mock_review` and no item instance, so it is not help and changes no pass.
   `TUTOR_PROMPT_VERSION` stays 4.
 
+**(amended 2026-10-22, sprint 7c, 0.7.2) The tutor while any mock runs** (D117, S7C-04): the tutor is closed on every
+screen while any mock run is on, not only on the run's own screen: Today, a lesson, Progress, the Recruiter mocks screen
+and the review of an earlier mock, the second opinion included. The server refuses with `help_waits` (the guard reads the
+run table, so a restart that rebuilds a take-home keeps it closed), and `/api/tutor/status` reports `mock_on` so the panel
+shows "A mock is on, so the tutor waits for its review." without a request. A take-home counts as running until it is
+handed in or closes at 24 hours. Drills and GA4 runs keep D94's per-screen rule. This replaces the reading of D108 that
+left the review of another mock open.
+
 **"I was right"** (LE-05):
 - It schedules as Hard at once (rating map above) and counts toward Practised.
 - It counts toward Mastered and level completion only after the weekly tune-up writes an
@@ -1513,7 +1521,7 @@ starter query. The slice 0 row above is `ERR-LOG-20` (averaging ratios, E-142) a
 | `ERR-LOG-37` | Missing PARTITION BY | `SQL-WIN-01` | E-189 |
 | `ERR-LOG-38` | ROWS versus RANGE | `SQL-WIN-04` | E-189 |
 | `ERR-LOG-39` | No date spine: periods with no rows vanish | `SQL-PAT-04` | E-189 |
-| `ERR-SYN-08` | A window function in WHERE, from DuckDB's "WHERE clause cannot contain window functions" | `SQL-WIN-01` | E-189 |
+| `ERR-SYN-08` | A window function in WHERE, GROUP BY, HAVING, an aggregate or another window (amended 2026-10-22, S7C-08), from five DuckDB messages ("WHERE clause", "GROUP BY clause" and "HAVING clause cannot contain window functions", "aggregate function calls cannot contain window function calls", "window function calls cannot be nested") | `SQL-WIN-01` | E-189, E-206 |
 
 A scalar subquery at the wrong grain stays `ERR-LOG-07`, and a scalar subquery that returns many rows stays
 `ERR-SEM-05`. (`ERR-LOG-28` and `ERR-LOG-29` came in sprint 4c; see its record.)
@@ -1621,6 +1629,15 @@ additive field, the number of correct answers the run needs, written for every k
 run on its own served questions and its own pass mark, and a `mock_open` without the field reads as the file's value.
 The journey's run events cover every mock kind; a knowledge or case mock carries no SQL section, and a case-mock
 `run_finished` has no pass flag.
+
+**(amended 2026-10-22, sprint 7c, 0.7.2) `item_ids` and `core_rubric` on `mock_open`** (D116, S7C-03): two additive
+fields, version 7 unchanged. A knowledge mock's `mock_open` lists `item_ids`, its drawn question IDs in serve order. The
+draw counts each one as shown at the `mock_open` time, whether or not a record names it, and a finished run's total is
+the count of the list. A case-round's or take-home's lists `core_rubric`, the core lines its start read; its score, its
+review and the rubric route read those lines before the file's, so a later edit to the file does not rescore a past run.
+A screen mock's has neither. On a `mock_open` without them (every 0.7.1 log), the block's records name a knowledge run's
+questions and its total is the larger of the rules' questions and the count served (S7C-C04), and the file gives a case
+run's core lines.
 
 **The aydinlearns extension:**
 - `world`, `difficulty`, `sub_skill`, `dataset_version`, `duckdb_version`;

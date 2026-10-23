@@ -1,6 +1,6 @@
 {
   "item_id": "EX-SQL-WIN-04-E1-02",
-  "item_version": 1,
+  "item_version": 2,
   "reference_sql": "WITH daily AS (\n  -- one row per channel and day with spend\n  SELECT c.channel_id, a.spend_date, SUM(a.spend) AS spend_eur\n  FROM ad_spend_daily a\n  JOIN campaigns c ON c.campaign_id = a.campaign_id\n  WHERE a.spend_date BETWEEN DATE '2025-07-01' AND DATE '2025-10-31'\n  GROUP BY c.channel_id, a.spend_date\n)\nSELECT channel_id, spend_date, spend_eur,\n  SUM(spend_eur) OVER (PARTITION BY channel_id ORDER BY spend_date ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS cumulative_spend_eur\nFROM daily",
   "alternatives": [
     "WITH daily AS (\n  -- one row per channel and day with spend\n  SELECT c.channel_id, a.spend_date, SUM(a.spend) AS spend_eur\n  FROM ad_spend_daily a\n  JOIN campaigns c ON c.campaign_id = a.campaign_id\n  WHERE a.spend_date BETWEEN DATE '2025-07-01' AND DATE '2025-10-31'\n  GROUP BY c.channel_id, a.spend_date\n)\nSELECT d.channel_id, d.spend_date, d.spend_eur,\n  (SELECT SUM(d2.spend_eur) FROM daily d2 WHERE d2.channel_id = d.channel_id AND d2.spend_date <= d.spend_date) AS cumulative_spend_eur\nFROM daily d",
@@ -24,11 +24,11 @@
   ],
   "hint3_partial": "WITH daily AS (\n  -- one row per channel and day with spend\n  SELECT c.channel_id, a.spend_date, SUM(a.spend) AS spend_eur\n  FROM ad_spend_daily a\n  JOIN campaigns c ON c.campaign_id = a.campaign_id\n  WHERE a.spend_date BETWEEN DATE '2025-07-01' AND DATE '2025-10-31'\n  GROUP BY c.channel_id, a.spend_date\n)\nSELECT channel_id, spend_date, spend_eur,\n  SUM(spend_eur) OVER (PARTITION BY ___ ORDER BY spend_date ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS cumulative_spend_eur\nFROM daily",
   "solver": {
-    "prompt_hash": "88d9d9d73421dc7a",
+    "prompt_hash": "7c653dd866e61436",
     "schema_version": "09f3a33d3123",
-    "dataset_version": "e7c58abf7e8f892e",
-    "grader_version": "7a.1",
-    "query": "WITH daily AS (\n  SELECT c.channel_id, a.spend_date, SUM(a.spend) AS spend_eur\n  FROM ad_spend_daily a JOIN campaigns c ON c.campaign_id = a.campaign_id\n  WHERE a.spend_date BETWEEN DATE '2025-07-01' AND DATE '2025-10-31'\n  GROUP BY c.channel_id, a.spend_date\n)\nSELECT channel_id, spend_date, spend_eur,\n  SUM(spend_eur) OVER (PARTITION BY channel_id ORDER BY spend_date ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS cumulative_spend_eur\nFROM daily\n",
-    "at": "2026-10-21T09:05:08.031Z"
+    "dataset_version": "ef4aa0325da6ea43",
+    "grader_version": "7c.1",
+    "query": "WITH d AS (SELECT c.channel_id, a.spend_date, SUM(a.spend) AS spend_eur FROM ad_spend_daily a JOIN campaigns c ON c.campaign_id = a.campaign_id WHERE a.spend_date >= DATE '2025-07-01' AND a.spend_date <= DATE '2025-10-31' GROUP BY 1, 2) SELECT channel_id, spend_date, spend_eur, SUM(spend_eur) OVER (PARTITION BY channel_id ORDER BY spend_date ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS cumulative_spend_eur FROM d\n",
+    "at": "2026-10-22T18:09:35.355Z"
   }
 }

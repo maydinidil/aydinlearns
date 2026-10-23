@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import { versionLine } from '../../web/src/lib/version.ts';
 
 test('the version line reads "Version X" and is empty when the server sent none', () => {
-  assert.equal(versionLine({ version: '0.7.1' }), 'Version 0.7.1');
+  assert.equal(versionLine({ version: '0.7.2' }), 'Version 0.7.2');
   assert.equal(versionLine({}), null);
 });
 

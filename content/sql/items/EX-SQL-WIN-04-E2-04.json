@@ -1,6 +1,6 @@
 {
   "id": "EX-SQL-WIN-04-E2-04",
-  "version": 1,
+  "version": 2,
   "kind": "write",
   "tags": [
     "sql",
@@ -48,7 +48,7 @@
   "company": "mailvora",
   "schema": "mailvora",
   "edge_schema": "mailvora_edge_win",
-  "prompt": "For each channel, take its campaigns that had ad spend in October 2025 from the highest October spend down; when two campaigns of a channel spent the same, the lower campaign_id comes first. Show each campaign's October spend and the cumulative share of the channel's October spend up to and including that campaign, as a percentage rounded to 1 decimal. Return channel_id, campaign_id, spend_eur and cumulative_share_pct. Any row order is fine.",
+  "prompt": "For each channel, take its campaigns that had ad spend in October 2025 from the highest October spend down; when two campaigns of a channel spent the same, the lower campaign_id comes first. Show each campaign's October spend and the cumulative share of the channel's October spend up to and including that campaign, as a percentage rounded to 1 decimal. Return four columns, in this order: channel_id, campaign_id, spend_eur and cumulative_share_pct. Return one row for each such campaign. Any row order is fine.",
   "output_contract": {
     "columns": [
       {

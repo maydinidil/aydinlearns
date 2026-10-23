@@ -1,6 +1,6 @@
 {
   "id": "EX-SQL-WIN-04-E2-32",
-  "version": 1,
+  "version": 2,
   "kind": "fix",
   "tags": [
     "sql",
@@ -46,7 +46,7 @@
   "company": "voltmarkt",
   "schema": "voltmarkt",
   "edge_schema": "voltmarkt_edge_win",
-  "prompt": "The query in the editor has one mistake. Fix it so that it answers this question: for the webshop (store_code WEB-01), what was the cumulative net revenue from 1 March 2025 up to and including each UTC day of March 2025 on which it had orders? Days with no orders are left out. Return order_date, revenue_eur (that day's revenue) and cumulative_revenue_eur. Any row order is fine.",
+  "prompt": "The query in the editor has one mistake. Fix it so that it answers this question: for the webshop (store_code WEB-01), what was the cumulative net revenue from 1 March 2025 up to and including each UTC day of March 2025 on which it had orders? Days with no orders are left out. Return three columns, in this order: order_date, revenue_eur (that day's revenue) and cumulative_revenue_eur. Return one row for each such day. Any row order is fine.",
   "output_contract": {
     "columns": [
       {

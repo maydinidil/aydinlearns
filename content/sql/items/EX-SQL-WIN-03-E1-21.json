@@ -1,6 +1,6 @@
 {
   "id": "EX-SQL-WIN-03-E1-21",
-  "version": 1,
+  "version": 2,
   "kind": "write",
   "tags": [
     "sql",
@@ -39,7 +39,7 @@
   "company": "mailvora",
   "schema": "mailvora",
   "edge_schema": "mailvora_edge_win",
-  "prompt": "fx_rates_monthly holds one USD rate per month. For each month, show the rate and how much it changed from the month before: eur_per_unit minus the previous month's eur_per_unit. Months follow each other by month. The first month has no month before it: show its rate_change as missing. Return month, eur_per_unit and rate_change. Any row order is fine.",
+  "prompt": "fx_rates_monthly holds one USD rate per month. For each month, show the rate and how much it changed from the month before: eur_per_unit minus the previous month's eur_per_unit. Months follow each other by month. The first month has no month before it: show its rate_change as missing. Return three columns, in this order: month, eur_per_unit and rate_change. Return one row for each month. Any row order is fine.",
   "output_contract": {
     "columns": [
       {

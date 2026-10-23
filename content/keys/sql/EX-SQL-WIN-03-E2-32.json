@@ -1,6 +1,6 @@
 {
   "item_id": "EX-SQL-WIN-03-E2-32",
-  "item_version": 1,
+  "item_version": 2,
   "reference_sql": "WITH daily AS (\n  -- one row per channel and day with spend\n  SELECT c.channel_id, a.spend_date, SUM(a.spend) AS spend_eur\n  FROM ad_spend_daily a\n  JOIN campaigns c ON c.campaign_id = a.campaign_id\n  WHERE a.spend_date BETWEEN DATE '2025-10-01' AND DATE '2025-10-31'\n  GROUP BY c.channel_id, a.spend_date\n)\nSELECT channel_id, spend_date, spend_eur,\n  spend_eur - LAG(spend_eur) OVER (PARTITION BY channel_id ORDER BY spend_date) AS change_eur\nFROM daily",
   "alternatives": [
     "WITH daily AS (\n  -- one row per channel and day with spend\n  SELECT c.channel_id, a.spend_date, SUM(a.spend) AS spend_eur\n  FROM ad_spend_daily a\n  JOIN campaigns c ON c.campaign_id = a.campaign_id\n  WHERE a.spend_date BETWEEN DATE '2025-10-01' AND DATE '2025-10-31'\n  GROUP BY c.channel_id, a.spend_date\n), paired AS (\n  -- one row per channel and day with spend\n  SELECT d.channel_id, d.spend_date, d.spend_eur,\n    (SELECT MAX(d2.spend_date) FROM daily d2 WHERE d2.channel_id = d.channel_id AND d2.spend_date < d.spend_date) AS prev_date\n  FROM daily d\n)\nSELECT p.channel_id, p.spend_date, p.spend_eur, p.spend_eur - b.spend_eur AS change_eur\nFROM paired p\nLEFT JOIN daily b ON b.channel_id = p.channel_id AND b.spend_date = p.prev_date",
@@ -24,11 +24,11 @@
   ],
   "hint3_partial": "WITH daily AS (\n  -- one row per channel and day with spend\n  SELECT c.channel_id, a.spend_date, SUM(a.spend) AS spend_eur\n  FROM ad_spend_daily a\n  JOIN campaigns c ON c.campaign_id = a.campaign_id\n  WHERE a.spend_date BETWEEN DATE '2025-10-01' AND DATE '2025-10-31'\n  GROUP BY c.channel_id, a.spend_date\n)\nSELECT channel_id, spend_date, spend_eur,\n  spend_eur - LAG(spend_eur) OVER (PARTITION BY ___ ORDER BY spend_date) AS change_eur\nFROM daily",
   "solver": {
-    "prompt_hash": "9cfa96952c0ed8a2",
+    "prompt_hash": "18aed8ec33559be3",
     "schema_version": "09f3a33d3123",
-    "dataset_version": "e7c58abf7e8f892e",
-    "grader_version": "7a.1",
-    "query": "WITH daily AS (\n  SELECT c.channel_id, a.spend_date, SUM(a.spend) AS spend_eur\n  FROM ad_spend_daily a\n  JOIN campaigns c ON c.campaign_id = a.campaign_id\n  WHERE a.spend_date BETWEEN DATE '2025-10-01' AND DATE '2025-10-31'\n  GROUP BY c.channel_id, a.spend_date\n)\nSELECT channel_id, spend_date, spend_eur,\n  spend_eur - LAG(spend_eur) OVER (PARTITION BY channel_id ORDER BY spend_date) AS change_eur\nFROM daily\n",
-    "at": "2026-10-21T09:05:07.642Z"
+    "dataset_version": "ef4aa0325da6ea43",
+    "grader_version": "7c.1",
+    "query": "WITH d AS (SELECT c.channel_id, a.spend_date, SUM(a.spend) AS spend_eur FROM ad_spend_daily a JOIN campaigns c ON c.campaign_id = a.campaign_id WHERE a.spend_date >= DATE '2025-10-01' AND a.spend_date <= DATE '2025-10-31' GROUP BY 1, 2) SELECT channel_id, spend_date, spend_eur, spend_eur - LAG(spend_eur) OVER (PARTITION BY channel_id ORDER BY spend_date) AS change_eur FROM d\n",
+    "at": "2026-10-22T18:09:35.127Z"
   }
 }

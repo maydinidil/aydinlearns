@@ -6,15 +6,17 @@
 // memo (S7-C30), and the tutor's second opinion in the review's CP6 panel (S7-17). The routes are stubbed; every case, value and text is invented.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { createElement, type ReactElement } from 'react';
+import { act, createElement, type ReactElement } from 'react';
 import { click, render, settle, stubFetch, type } from '../../helpers/render.ts';
+import { EditorView } from '@codemirror/view';
 import { DEFAULT_RULES } from '../../../schemas/item.ts';
 import { CaseMockReviewScreen, CaseMockScreen } from '../../../web/src/screens/CaseMockScreen.tsx';
 import { LATE_LINE, PLAN_FIRST_LINE, RECORDED_LINE, type CaseMockReview, type CaseMockRunView, type MockCaseView } from '../../../web/src/lib/case-flow.ts';
 import type { MockCard, MocksView } from '../../../web/src/lib/mock-flow.ts';
 import { SECOND_OPINION } from '../../../web/src/lib/tutor-parts.ts';
 import { TUTOR_WAITS } from '../../../web/src/tutor/snapshot.ts';
-import { TutorProvider, useTutor, type TutorState } from '../../../web/src/tutor/TutorContext.tsx';
+import { MOCK_WAITS, TutorProvider, useTutor, type TutorState } from '../../../web/src/tutor/TutorContext.tsx';
+import { TutorPanel } from '../../../web/src/tutor/TutorPanel.tsx';
 
 const MONEY = { precision: 'money', scale: 'eur', decimals: 2, unit_label: 'euros' } as const;
 const BLOCK = 'mock-case_round-00000000-0000-4000-8000-000000000001';
@@ -436,5 +438,85 @@ test('F4-2-1: CP3\'s submit refused RUN_CHANGED reads the run again, and the que
       'served again on the new instance');
     await send();
     assert.deepEqual(calls.filter((c) => c.path === '/api/submit').map((c) => (c.body as { item_instance_id: string }).item_instance_id), ['I-CP3', 'I-CP3-new']);
+  } finally { unmount(); }
+});
+
+// ---- Sprint 7c (Task X3): D117 (S7C-04) -------------------------------------------------------------------------------------------------
+
+test('D117 (S7C-04): while another mock runs, the review\'s CP6 panel does not offer the second opinion and shows the waiting line; once it ends, the offer is back', async () => {
+  let mockOn = true;
+  const status = () => ({ enabled: true, switched_on: true, provider: 'claude', model: 'claude-haiku-5-5', effort: 'medium', reason: null, models: [], keys: [],
+    spent_today_usd: 0, cap_usd: 1, run_on: mockOn, mock_on: mockOn });
+  stubFetch((method, path) => (method === 'GET' && path === `/api/mocks/${BLOCK}/review` ? ENDED : method === 'GET' && path === '/api/tutor/status' ? status() : undefined));
+  const { container, unmount } = render(createElement(TutorProvider, { enabled: true,
+    children: createElement('div', null, createElement('main', null, createElement(CaseMockReviewScreen, { blockId: BLOCK })), createElement(TutorPanel, { screen: 'mock_review', subject: BLOCK }), createElement(Probe)) }));
+  try {
+    await settle();
+    const cp6 = () => container.querySelector('[data-review-insight]')!;
+    assert.equal(named(cp6(), SECOND_OPINION.label) !== undefined, false, 'no second opinion while a mock runs');
+    assert.match(cp6().textContent!, new RegExp(`${MOCK_WAITS}\.`), 'the waiting line in its place');
+    mockOn = false;                                                                           // the other mock ends
+    await act(async () => { tutor!.setOpen(true); });
+    await settle();
+    assert.equal(named(cp6(), SECOND_OPINION.label) !== undefined, true, 'opening the tutor reads the status again: the second opinion is offered');
+    assert.doesNotMatch(cp6().textContent!, new RegExp(MOCK_WAITS));
+  } finally { unmount(); }
+});
+
+// ---- Sprint 7c (Task X3): F4-2-5 and S7C-06 ---------------------------------------------------------------------------------------------
+
+test('F4-2-5, S7C-06: before the plan the run carries no prompt, and the screen shows the plan step alone; the brief says the grain waits for the review', async () => {
+  // The run view as the server sends it before the plan: every prompt null.
+  const unplanned = caseView({ checkpoints: cps().map((c) => ({ ...c, prompt: null })) });
+  stubFetch((method, path) => (method === 'GET' && path === '/api/mocks' ? mocks(runView('case_round', unplanned)) : undefined));
+  const { container, unmount } = mount(createElement(CaseMockScreen, { mock: 'case_round' }));
+  try {
+    await settle();
+    assert.deepEqual([...container.querySelectorAll('[data-step-button]')].map((b) => b.getAttribute('data-step-button')), ['plan']);
+    assert.equal(container.querySelectorAll('[data-step]').length, 1, 'no checkpoint step is drawn');
+    assert.equal(/\bnull\b/.test(container.textContent!), false, 'no missing prompt shows as text');
+    assert.match(container.querySelector('.case-brief')!.textContent!, /Grain: Shown in the review\./);
+  } finally { unmount(); }
+});
+
+// ---- Sprint 7c (Task X3): the take-home CP3's typed query across the remount (fixer A's report, F4-2-1) ---------------------------------------
+
+test('F4-2-1 (fixer A): a take-home CP3 query typed before an app restart is still in the editor when the step reopens on its new instance, and Submit sends it there', async () => {
+  const item = { id: 'EX-MOCK-TAKE-A', prompt: 'An invented CP3 question marker.', level: 3, schema: 'voltmarkt', kind: 'write', starter_sql: null, fading: null,
+    output_contract: { columns: [{ name: 'city', type_class: 'text' }], grain: null }, rules: { ...DEFAULT_RULES, columns: [{ name: 'city', type_class: 'text', precision: 'exact' }] } };
+  let instance = 'I-CP3';
+  const view = () => planned({ checkpoints: cps().map((c) => (c.kind === 'CP3' ? { ...c, item_instance_id: instance } : c)) });
+  const calls = stubFetch((method, path, body) => {
+    if (method === 'GET' && path === '/api/mocks') return mocks(runView('take_home', view()), 'take_home');
+    if (method === 'POST' && path === '/api/serve') {
+      return { item_id: item.id, item_instance_id: (body as { item_instance_id: string }).item_instance_id, phase: 'mock', block_id: TAKE_BLOCK, repeat_exposure: false,
+        hide_labels: true, screen_mode: false, item, schemaNotes: [] };
+    }
+    if (method === 'POST' && path === '/api/submit') {
+      return (body as { item_instance_id: string }).item_instance_id === instance ? { recorded: true }
+        : { status: 404, body: { error: 'This question was opened before the app restarted, so it opens again.', code: 'RUN_CHANGED' } };
+    }
+    return undefined;
+  });
+  const { container, unmount } = mount(createElement(CaseMockScreen, { mock: 'take_home' }));
+  const editorOf = (): EditorView => EditorView.findFromDOM(container.querySelector('[data-step="CP3"] .cm-editor') as HTMLElement)!;
+  const QUERY = 'SELECT city FROM stores -- an invented query, typed before the restart';
+  try {
+    await settle();
+    await click(container.querySelector('[data-step-button="CP3"]'));
+    const first = editorOf();
+    await act(async () => { first.dispatch({ changes: { from: 0, to: first.state.doc.length, insert: QUERY } }); });
+    instance = 'I-CP3-new';                                     // the app restarts: the rebuilt run serves CP3 a new instance
+    await click(named(container.querySelector('[data-step="CP3"]')!, 'Submit')!);
+    await click(named(container.querySelector('[data-step="CP3"]')!, 'Send')!);
+    assert.deepEqual(calls.filter((c) => c.path === '/api/serve').map((c) => (c.body as { item_instance_id: string }).item_instance_id), ['I-CP3', 'I-CP3-new'],
+      'the step reopened on its new instance');
+    const again = editorOf();
+    assert.notEqual(again, first, 'a new editor');
+    assert.equal(again.state.doc.toString() === QUERY, true, 'the typed query is still there');
+    await click(named(container.querySelector('[data-step="CP3"]')!, 'Submit')!);
+    await click(named(container.querySelector('[data-step="CP3"]')!, 'Send')!);
+    const sent = calls.filter((c) => c.path === '/api/submit').map((c) => c.body as { item_instance_id: string; sql: string });
+    assert.deepEqual(sent.map((b) => [b.item_instance_id, b.sql === QUERY]), [['I-CP3', true], ['I-CP3-new', true]], 'and Submit sends it on the new instance');
   } finally { unmount(); }
 });

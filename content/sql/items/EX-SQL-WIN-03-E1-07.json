@@ -1,6 +1,6 @@
 {
   "id": "EX-SQL-WIN-03-E1-07",
-  "version": 1,
+  "version": 2,
   "kind": "write",
   "tags": [
     "sql",
@@ -41,7 +41,7 @@
   "company": "voltmarkt",
   "schema": "voltmarkt",
   "edge_schema": "voltmarkt_edge_win",
-  "prompt": "For each of products 1 to 20 (product_id from 1 to 20, both included) and each week starting from 6 January to 23 June 2025 (week_start, both days included), show the units sold that week and the units sold the week before. weekly_units holds a row for every product and week, with 0 when nothing sold. Within each product, weeks follow each other by week_start. Only weeks in that range count: each product's first week in it shows prev_units as missing. Return product_id, week_start, units and prev_units. Any row order is fine.",
+  "prompt": "For each of products 1 to 20 (product_id from 1 to 20, both included) and each week starting from 6 January to 23 June 2025 (week_start, both days included), show the units sold that week and the units sold the week before. weekly_units holds a row for every product and week, with 0 when nothing sold. Within each product, weeks follow each other by week_start. Only weeks in that range count: each product's first week in it shows prev_units as missing. Return four columns, in this order: product_id, week_start, units and prev_units. Return one row for each such product and week. Any row order is fine.",
   "output_contract": {
     "columns": [
       {

@@ -1,6 +1,6 @@
 {
   "id": "EX-SQL-WIN-03-E2-02",
-  "version": 1,
+  "version": 2,
   "kind": "write",
   "tags": [
     "sql",
@@ -42,7 +42,7 @@
   "company": "mailvora",
   "schema": "mailvora",
   "edge_schema": "mailvora_edge_win",
-  "prompt": "For the campaign named 'Search | email marketing software | 2025', show each day with spend from 1 to 31 July 2025 (spend_date is a UTC day) and the change in spend from the previous day with spend. Return spend_date, spend and change_eur, the day's spend minus the previous day's. A day with no row is skipped, so the previous day with spend can be more than one day back. Only July's days count: the first one shows change_eur as missing. Any row order is fine.",
+  "prompt": "For the campaign named 'Search | email marketing software | 2025', show each day with spend from 1 to 31 July 2025 (spend_date is a UTC day) and the change in spend from the previous day with spend. Return three columns, in this order: spend_date, spend and change_eur, the day's spend minus the previous day's. Return one row for each such day. A day with no row is skipped, so the previous day with spend can be more than one day back. Only July's days count: the first one shows change_eur as missing. Any row order is fine.",
   "output_contract": {
     "columns": [
       {

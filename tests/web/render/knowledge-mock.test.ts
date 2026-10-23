@@ -1,8 +1,9 @@
 // tests/web/render/knowledge-mock.test.ts: the knowledge mock's start screen, run and review rendered (sprint 7 Part 2, Task N1; S7-03,
 // S7-04, S7-07, S7-10, S7-C21). The start screen shows the rules, whether a pass would count (and when unseen questions come back), or why
 // it cannot start; the run is ChoiceRunScreen's exam view (one question at a time, forward only, one answer, no confidence), each question
-// opened in its own section, and an answer reads as saved only; the review shows the score per section and topic, never a question. Every
-// question, option and topic name here is invented.
+// opened in its own section, and an answer reads as saved only; an answer refused with RUN_OVER ends the run, while a plain 404 with the run
+// still on only shows its message (sprint 7c, N1 M7); the review shows the score per section and topic, never a question. Every question,
+// option and topic name here is invented.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createElement } from 'react';
@@ -104,7 +105,7 @@ test('N1 I1 (B3 I2): a reload opens the run after its last answered question, an
     { item_id: 'Q-MET-HA02', item_instance_id: 'r-3', section: 'methodology' }, { item_id: 'Q-GA4-K02', item_instance_id: 'r-4', section: 'ga4' }];
   let answered: number[] = [0, 1];
   const calls = stubFetch((method, path) => {
-    if (path === '/api/mocks') return viewWith({}, { ...RUN, block_id: 'mock-knowledge-resume', servings, answered } as unknown as MocksView['run']);
+    if (path === '/api/mocks') return viewWith({}, { ...RUN, block_id: 'mock-knowledge-resume', servings: servings.map((x, i) => ({ ...x, answered: answered.includes(i) })) } as unknown as MocksView['run']);   // N3 M3: the marks are the one list
     const s = servings.find((x) => method === 'GET' && path === `/api/choice/${x.item_id}?section=${x.section}&instance=${x.item_instance_id}`);
     return s ? served(s.item_id, s.section, s.item_instance_id) : undefined;
   });
@@ -143,4 +144,77 @@ test('S7-07: the review shows the score per section and per topic, with topic na
   assert.equal(container.querySelector('li[data-outcome]'), null, 'no question');
   assert.ok(!buttons(container).includes('Show answer'));
   unmount();
+});
+
+/** The run with one answer refused as `refusal` says; GET /api/mocks still has it on, and "Hand in" answers its history row. */
+function refusedRun(refusal: unknown) {
+  return stubFetch((method, path) => {
+    if (path === '/api/mocks') return viewWith({}, RUN as unknown as MocksView['run']);
+    if (method === 'GET' && path === '/api/choice/Q-MET-HA01?section=methodology&instance=inst-1') return served('Q-MET-HA01', 'methodology', 'inst-1');
+    if (method === 'POST' && path === '/api/choice/answer') return refusal;
+    if (method === 'POST' && path === '/api/mocks/end') {
+      return { block_id: RUN.block_id, form_id: 'KNOWLEDGE', date: '2026-11-02', correct: 0, total: 2, passed: false, late: false, practice: false, counts: false, status: 'ended' };
+    }
+    return undefined;
+  });
+}
+const saveFirst = async (container: Element) => {
+  await click(container.querySelector('input[type="radio"][value="a"]'));
+  await click([...container.querySelectorAll('button')].find((b) => b.textContent === 'Save answer')!);
+};
+
+test('N1 M7 (S7-C18): an answer refused with RUN_OVER ends the run on the screen and opens its review', async () => {
+  try { localStorage.clear(); sessionStorage.clear(); } catch { /* an earlier test remembered its place in this block */ }
+  location.hash = '#/mock/knowledge';
+  const calls = refusedRun({ status: 409, body: { error: 'This mock has ended, so it takes no more answers.', code: 'RUN_OVER' } });
+  const { container, unmount } = render(createElement(MockScreen, { mock: 'knowledge' }));
+  try {
+    await settle();
+    await saveFirst(container);
+    await settle();
+    const ends = calls.filter((c) => c.method === 'POST' && c.path === '/api/mocks/end').map((c) => c.body);
+    assert.deepEqual(ends, [{ block_id: RUN.block_id }], 'the run is ended once, as "Hand in" does');
+    assert.equal(location.hash, `#/mock/review/${RUN.block_id}`, 'its review opens');
+  } finally { unmount(); }
+});
+
+test('N1 M7: a plain 404 to an answer while the run is still on only shows its message: the run goes on, nothing ends it', async () => {
+  try { localStorage.clear(); sessionStorage.clear(); } catch { /* as above */ }
+  location.hash = '#/mock/knowledge';
+  const calls = refusedRun(undefined);                     // the stub's plain 404, { error: 'Not found.' }, with no code
+  const { container, unmount } = render(createElement(MockScreen, { mock: 'knowledge' }));
+  try {
+    await settle();
+    await saveFirst(container);
+    await settle();
+    assert.equal(calls.filter((c) => c.method === 'POST' && c.path === '/api/mocks/end').length, 0, 'nothing ends the run');
+    assert.ok(calls.some((c) => c.method === 'GET' && c.path === '/api/mocks'), 'the screen asked whether the run is still on');
+    assert.equal(container.querySelector('[role="alert"]')?.textContent, 'Not found.', 'its message shows');
+    assert.match(container.textContent!, /Question 1 of 2/, 'the run is still on the screen');
+    assert.match(container.querySelector('[role="timer"]')!.textContent!, /Time left/);
+    assert.equal(location.hash, '#/mock/knowledge');
+  } finally { unmount(); }
+});
+
+test('N1 M8 (S5-25): after a save focus moves to "Next question", and on the last question to "Hand in"', async () => {
+  try { localStorage.clear(); sessionStorage.clear(); } catch { /* an earlier test remembered its place in this block */ }
+  stubFetch((method, path) => {
+    if (path === '/api/mocks') return viewWith({}, RUN as unknown as MocksView['run']);
+    if (method === 'GET' && path === '/api/choice/Q-MET-HA01?section=methodology&instance=inst-1') return served('Q-MET-HA01', 'methodology', 'inst-1');
+    if (method === 'GET' && path === '/api/choice/Q-GA4-K01?section=ga4&instance=inst-2') return served('Q-GA4-K01', 'ga4', 'inst-2');
+    if (method === 'POST' && path === '/api/choice/answer') return { recorded: true };
+    return undefined;
+  });
+  const { container, unmount } = render(createElement(MockScreen, { mock: 'knowledge' }));
+  const named = (text: string) => [...container.querySelectorAll('button')].find((b) => b.textContent === text)!;
+  try {
+    await settle();
+    await click(container.querySelector('input[type="radio"][value="a"]'));
+    await click(named('Save answer'));
+    assert.ok(document.activeElement === named('Next question'), 'a save on question 1 focuses the next control');
+    await click(named('Next question'));
+    await click(container.querySelector('input[type="radio"][value="a"]'));
+    await click(named('Save answer'));
+    assert.ok(document.activeElement === named('Hand in'), 'a save on the last question focuses the end control');
+  } finally { unmount(); }
 });

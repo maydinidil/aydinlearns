@@ -651,7 +651,7 @@ the controller's ruling S7-C02 (no `ERR-LOG-44`). The ERRATA rows are E-200 to E
 
 | Concept | Schemas, edge schemas | Pool (write) | Must-have traps | Also |
 |---|---|---|---|---|
-| `SQL-WIN-01` | `voltmarkt` with `voltmarkt_edge_win`, `mailvora` with `mailvora_edge_win` | 10 to 12 | `ERR-LOG-37` missing PARTITION BY; `ERR-SYN-08` a window function in WHERE | A window against GROUP BY: the window keeps every row; shares of a partition total |
+| `SQL-WIN-01` | `voltmarkt` with `voltmarkt_edge_win`, `mailvora` with `mailvora_edge_win` | 10 to 12 | `ERR-LOG-37` missing PARTITION BY; `ERR-SYN-08` a window function in WHERE, GROUP BY, HAVING or an aggregate | A window against GROUP BY: the window keeps every row; shares of a partition total |
 | `SQL-WIN-02` | both | 10 to 12 | `ERR-LOG-40` RANK where exactly N rows were asked, or ROW_NUMBER where ties must share a place; the tie rule (S7-22, below) | ROW_NUMBER, RANK and DENSE_RANK on the same tie |
 | `SQL-WIN-03` | both | 8 to 10 | `ERR-LOG-41` LAG or a running total in no stated order, or ordered by the wrong column; `ERR-LOG-37`; `ERR-LOG-39` a period with no rows | The first row's missing LAG; month over month on Mailvora's spend |
 | `SQL-WIN-04` | both | 10 to 12 | `ERR-LOG-38` the default RANGE frame; `ERR-LOG-41` | Running totals that start again each month |
@@ -697,9 +697,13 @@ date gaps at level 5 all the same, so it is the one trap ID here whose concept c
 | Mailvora's `session_start`, `signup_ts`, `paid_at` and `event_ts` hold moments in UTC, and the database runs in UTC. A prompt that turns on a day of them says "in UTC". Voltmarkt keeps P-10 (above) | The solver and the learner see only the prompt and the panel | Blind solver |
 | Keep each question's period inside the edge data: Voltmarkt's edge orders run from January to June 2025, Mailvora's edge spend from July to October 2025 | A key whose period misses the edge data returns no rows there and tests nothing | C03, review |
 
-**The tie rule, as C53 reads it** (S7-22, Task A1). C53 checks every key query (the reference, the
-alternatives and the other way) that filters a ranking function's result (ROW_NUMBER, RANK,
-DENSE_RANK or NTILE) by a comparison, in an outer query, a CTE or QUALIFY:
+**The tie rule, as C53 reads it** (S7-22, Task A1; S7C-09, `tools/rank-cutoffs.ts`). C53 checks
+every key query (the reference, the alternatives and the other way) that filters a ranking
+function's result (ROW_NUMBER, RANK, DENSE_RANK or NTILE) by a comparison, in an outer query, a CTE,
+QUALIFY, a join's ON or an aggregate's FILTER clause. It follows the result through its alias, and
+through a name in a CTE's or a subquery's column list (`WITH ranked(product_id, rn) AS ...`). A
+SELECT-list flag that compares the result (`RANK() OVER (...) <= 3 AS top`) is a cutoff when a filter
+outside names it (`WHERE top`):
 - ROW_NUMBER and NTILE: the window's ORDER BY has at least two keys and ends in a plain column, the
   tie-break, and a sentence of the prompt that says tie, ties, tied, tying, tie-break or
   tie-breaker names that column, as written (`product_id`) or with spaces (`product ID`), in any
@@ -707,8 +711,11 @@ DENSE_RANK or NTILE) by a comparison, in an outer query, a CTE or QUALIFY:
 - RANK and DENSE_RANK: a sentence about ties says share, shares or sharing, or "same place", "same
   rank" or "same position". For example: "Products that tie share a place."
 - ROW_NUMBER over a single sort key fails C53, apart from FIND-01-13's keep-one dedup on raw data
-  (S7-C06, "Keys at level 5" below). A planted query or a fix item's starter may leave the
-  tie-break out on purpose: that is a trap, and C53 does not read it.
+  (S7-C06, "Keys at level 5" below): a ROW_NUMBER filtered to place 1 alone, by a direct comparison,
+  over one ID column (`id` or a name ending in `_id`), whose prompt has a sentence with keep, kept
+  or keeps that names the column and says lowest or highest (one of the two). Lowest needs the
+  window sorted ascending, highest descending (S7C-09). A planted query or a fix item's starter may
+  leave the tie-break out on purpose: that is a trap, and C53 does not read it.
 - C53 then grades the query with the other tie rule (RANK for ROW_NUMBER, ROW_NUMBER for RANK and
   DENSE_RANK, the tie-break reversed for NTILE) and it must fail on the item's edge schema. So rank
   by a measure and a cutoff where the edge schema holds a tie (the table below), or report the item
@@ -716,6 +723,10 @@ DENSE_RANK or NTILE) by a comparison, in an outer query, a CTE or QUALIFY:
 
 Prompts that show a rank without filtering on it state their tie rule too; C53 does not read them,
 the blind solver does.
+
+C53 cannot see two filter shapes (S7C-09), so a key never uses them: arithmetic on the ranking
+result before the comparison (`WHERE rn - 1 < 3`), and a label made from it, such as a CASE,
+filtered outside (`WHERE label = 'top'`). Compare the result itself, or a flag, instead.
 
 ### The level 5 edge schemas (S7-25)
 
@@ -776,7 +787,7 @@ it is an engine-error trap such as `ERR-SYN-08`.
 |---|---|---|
 | Frames are written out: every aggregate window with an ORDER BY (a running total, a moving average, LAST_VALUE) states its frame, such as `ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW` or `ROWS BETWEEN 6 PRECEDING AND CURRENT ROW` | The default is a RANGE frame that adds tied rows together (`ERR-LOG-38`), and the reference is what "show answer" shows | Review |
 | `SQL-WIN-06`: the reference filters the window's result in a CTE or a derived table; the QUALIFY form is its `other_way`, copied from the alternatives (S7-20, E-201). C11 does not warn on QUALIFY in an `SQL-WIN-06` other way; anywhere else in a key it still warns | Keys are portable first: PostgreSQL, MySQL and SQL Server have no QUALIFY. A learner's QUALIFY query passes and gets a portability note | C11, C39 |
-| FIND-01-13 (E-202): an `SQL-WIN-06` item on `voltmarkt_raw` (`uses_raw: true`) keeps one row per resent order line with ROW_NUMBER over the line's natural key (order, product, quantity and unit price), filtered to `= 1`. The prompt states which copy is kept in one sentence that names the column: "Keep the copy with the lowest order_line_id." The key's window orders by that one column, and C53 accepts it as a keep-one dedup (S7-C06): a resent line is a copy of one fact with a new ID, so which copy is kept changes no count or total. C53's two-key rule is for rank cutoffs. The raw-data rules above apply | E-099 places the ROW_NUMBER fix at level 5 | C47, C53 |
+| FIND-01-13 (E-202): an `SQL-WIN-06` item on `voltmarkt_raw` (`uses_raw: true`) keeps one row per resent order line with ROW_NUMBER over the line's natural key (order, product, quantity and unit price), filtered to `= 1`. The prompt states which copy is kept in one sentence that names the column and says lowest or highest: "Keep the copy with the lowest order_line_id." The key's window orders by that one ID column, ascending for lowest and descending for highest, and C53 accepts it as a keep-one dedup (S7-C06, S7C-09): a resent line is a copy of one fact with a new ID, so which copy is kept changes no count or total. C53's two-key rule is for rank cutoffs. The raw-data rules above apply | E-099 places the ROW_NUMBER fix at level 5 | C47, C53 |
 | NTILE splits tied values between buckets by chance unless a tie-break orders them, so an NTILE key's ORDER BY ends in a tie-break the prompt names (C53 reads NTILE as it reads ROW_NUMBER). An RFM F score uses fixed thresholds, not NTILE (E-007) | E-007 | C53 |
 | `quantile_cont`, `MEDIAN` and `percentile_cont` exist on DuckDB 1.5.6 (E-151) | | |
 | On DuckDB 1.5.6, `MEDIAN` and `quantile_cont` of a DECIMAL column keep the column's scale and cut the extra digit: the median of 1.01 and 1.02 is 1.01, where over DOUBLE it is 1.015. A median or percentile of money is asked in whole euros, or the prompt states the cast or the rounding, so a learner's cast cannot change the answer (S7-C09) | A learner who casts to DOUBLE and rounds to the cent can differ from the key by a cent | Review, blind solver |

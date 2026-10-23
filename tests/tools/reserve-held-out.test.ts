@@ -654,3 +654,72 @@ test('extend GA4 with a knowledge pool: --release-list and --candidates refuse a
   await writeFile(asCandidate, `${knowledge[0]}\n`);
   await refusal(['ga4', '--extend', '--topic', 'T-GA4-04', '--count', '1', '--candidates', asCandidate, root], /already held out/, root);
 });
+
+// ---- Codex F37 (S7C-01): the full-pool draw must treat the GA4 knowledge pool as items already held elsewhere -------------------
+
+/** A GA4 bank with 6 pool items on each of two parents, flagged held out and listed in ga4/knowledge-pool.json. */
+async function poolRoot() {
+  const x = await ga4Root();
+  const knowledge = [...x.items.filter((i) => i.concept_id === P1.id).slice(0, 6), ...x.items.filter((i) => i.concept_id === P2.id).slice(0, 6)].map((i) => i.id);
+  for (const id of knowledge) await writeFile(join(x.root, 'ga4/items', `${id}.json`), JSON.stringify({ ...(await readItem(x.root, id)), held_out: true }, null, 2) + '\n');
+  await writeFile(join(x.root, 'ga4/knowledge-pool.json'), JSON.stringify({ item_ids: knowledge }, null, 2) + '\n');
+  return { ...x, knowledge };
+}
+
+test('F37: ga4 --replace keeps every knowledge-pool item flagged and out of held-out.json, and prints counts without the pool', async () => {
+  const { root, knowledge } = await poolRoot();
+  const { stdout } = await run(process.execPath, [TOOL, 'ga4', root, '--replace']);
+  const pool = await readPool(root);
+  assert.equal(pool.length, 50, 'the exam pool is still 50');
+  for (const id of knowledge) {
+    assert.ok(!pool.includes(id), 'a knowledge item is never drawn into held-out.json');
+    assert.equal((await readItem(root, id)).held_out, true, 'its flag stays');
+  }
+  assert.match(stdout, /50 held out/);
+  assert.doesNotMatch(stdout, /Q-GA4-\d/);
+  const listed = (JSON.parse(await readFile(join(root, 'ga4/knowledge-pool.json'), 'utf8')) as { item_ids: string[] }).item_ids;
+  assert.deepEqual(listed, knowledge, 'the knowledge pool file is untouched');
+});
+
+test('F37: a plain run on an unchanged bank with a knowledge pool answers "unchanged" instead of refusing', async () => {
+  const { root, knowledge } = await poolRoot();
+  await run(process.execPath, [TOOL, 'ga4', root, '--replace']);
+  const before = await texts(root);
+  const again = await run(process.execPath, [TOOL, 'ga4', root]);
+  assert.match(again.stdout, /unchanged/);
+  assert.deepEqual(await texts(root), before, 'nothing written');
+  for (const id of knowledge) assert.equal((await readItem(root, id)).held_out, true);
+});
+
+test('F37: items held elsewhere are never drawn, are not in the result, and are not counted in the topic or card held counts', () => {
+  const { concepts, items } = roomyGa4();
+  const elsewhere = new Set(items.filter((i) => i.concept_id === P1.id).slice(0, 5).map((i) => i.id));
+  const r = reserveHeldOut('ga4', items, concepts, SMALL, elsewhere);
+  assert.equal(r.ids.length, 20);
+  for (const id of elsewhere) assert.ok(!r.ids.includes(id));
+  assert.equal(cardOf(r, P1.id).held, r.ids.filter((id) => id.startsWith('Q-GA4-3')).length, 'only exam items are counted as held');
+  assert.equal(r.topics.find((t) => t.topic === 'T-GA4-01')!.eligible, 7, 'the pool is not among the items that may be held out');
+});
+
+test('F37: an item held elsewhere keeps its enemy group\'s siblings out of the draw', () => {
+  const { concepts, items } = roomyGa4();
+  const grouped = items.map((i) => (i.concept_id === P1.id ? { ...i, enemy_group: 'EG-GA4-90' } : i));
+  const inGroup = grouped.filter((i) => i.enemy_group === 'EG-GA4-90');
+  const elsewhere = new Set([inGroup[0]!.id]);
+  const r = reserveHeldOut('ga4', grouped, concepts, SMALL, elsewhere);
+  assert.deepEqual(r.ids.filter((id) => inGroup.some((i) => i.id === id)), [], 'no sibling of the pool item is drawn');
+  const withoutPool = reserveHeldOut('ga4', grouped, concepts, SMALL);
+  assert.ok(withoutPool.ids.some((id) => inGroup.some((i) => i.id === id)), 'sanity: the group is drawable without the pool');
+});
+
+test('F37: the card floors count items held elsewhere as held', () => {
+  // A card with 6 items keeps 3 in practice: with 2 held elsewhere, the draw may take only 1 more.
+  const concepts = [P1, P2];
+  const items = [...ga4Of(P1, ids(300, 6)), ...ga4Of(P2, ids(400, 20))];
+  const elsewhere = new Set(ids(300, 2));
+  const r = reserveHeldOut('ga4', items, concepts, SMALL, elsewhere);
+  assert.equal(r.ids.filter((id) => ids(300, 6).includes(id)).length, 1);
+  assert.equal(cardOf(r, P1.id).practice, 3, 'practice left counts the pool as held');
+  const plain = reserveHeldOut('ga4', items, concepts, SMALL);
+  assert.equal(plain.ids.filter((id) => ids(300, 6).includes(id)).length, 3, 'sanity: without the option the card gives 3');
+});

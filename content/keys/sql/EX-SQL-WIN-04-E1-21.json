@@ -1,6 +1,6 @@
 {
   "item_id": "EX-SQL-WIN-04-E1-21",
-  "item_version": 1,
+  "item_version": 2,
   "reference_sql": "WITH monthly AS (\n  -- one row per month with webshop orders\n  SELECT order_month AS month, SUM(net_revenue_eur) AS revenue_eur\n  FROM sales\n  WHERE store_code = 'WEB-01'\n    AND order_date BETWEEN DATE '2025-01-01' AND DATE '2025-06-30'\n  GROUP BY order_month\n)\nSELECT month, revenue_eur,\n  SUM(revenue_eur) OVER (ORDER BY month ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS ytd_revenue_eur\nFROM monthly",
   "alternatives": [
     "WITH monthly AS (\n  -- one row per month with webshop orders\n  SELECT order_month AS month, SUM(net_revenue_eur) AS revenue_eur\n  FROM sales\n  WHERE store_code = 'WEB-01'\n    AND order_date BETWEEN DATE '2025-01-01' AND DATE '2025-06-30'\n  GROUP BY order_month\n)\nSELECT m.month, m.revenue_eur,\n  (SELECT SUM(m2.revenue_eur) FROM monthly m2 WHERE m2.month <= m.month) AS ytd_revenue_eur\nFROM monthly m",
@@ -24,11 +24,11 @@
   ],
   "hint3_partial": "WITH monthly AS (\n  -- one row per month with webshop orders\n  SELECT order_month AS month, SUM(net_revenue_eur) AS revenue_eur\n  FROM sales\n  WHERE store_code = 'WEB-01'\n    AND order_date BETWEEN DATE '2025-01-01' AND DATE '2025-06-30'\n  GROUP BY order_month\n)\nSELECT month, revenue_eur,\n  SUM(revenue_eur) OVER (ORDER BY ___ ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS ytd_revenue_eur\nFROM monthly",
   "solver": {
-    "prompt_hash": "b87417e56370856d",
+    "prompt_hash": "e483396796c43366",
     "schema_version": "cebf75df442f",
-    "dataset_version": "e7c58abf7e8f892e",
-    "grader_version": "7a.1",
-    "query": "WITH monthly AS (\n  SELECT CAST(order_month AS DATE) AS month, SUM(net_revenue_eur) AS revenue_eur\n  FROM sales\n  WHERE store_code = 'WEB-01' AND order_date BETWEEN DATE '2025-01-01' AND DATE '2025-06-30'\n  GROUP BY CAST(order_month AS DATE)\n)\nSELECT month, revenue_eur,\n  SUM(revenue_eur) OVER (ORDER BY month ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS ytd_revenue_eur\nFROM monthly\n",
-    "at": "2026-10-21T09:05:08.274Z"
+    "dataset_version": "ef4aa0325da6ea43",
+    "grader_version": "7c.1",
+    "query": "WITH d AS (SELECT CAST(date_trunc('month', order_date) AS DATE) AS month, SUM(net_revenue_eur) AS revenue_eur FROM sales WHERE store_code = 'WEB-01' AND order_date >= DATE '2025-01-01' AND order_date <= DATE '2025-06-30' GROUP BY 1) SELECT month, revenue_eur, SUM(revenue_eur) OVER (ORDER BY month ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS ytd_revenue_eur FROM d\n",
+    "at": "2026-10-22T18:09:35.571Z"
   }
 }

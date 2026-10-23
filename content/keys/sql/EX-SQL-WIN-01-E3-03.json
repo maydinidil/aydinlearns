@@ -1,6 +1,6 @@
 {
   "item_id": "EX-SQL-WIN-01-E3-03",
-  "item_version": 1,
+  "item_version": 2,
   "reference_sql": "WITH product_rev AS (  -- one row per product with 2025 sales\n  SELECT category_name, product_id, SUM(net_revenue_eur) AS revenue\n  FROM sales\n  WHERE order_date >= DATE '2025-01-01' AND order_date < DATE '2026-01-01'\n  GROUP BY category_name, product_id\n),\ncompared AS (  -- one row per product with 2025 sales\n  SELECT category_name, product_id, revenue,\n         AVG(revenue) OVER (PARTITION BY category_name) AS avg_rev\n  FROM product_rev\n)\nSELECT category_name, product_id, revenue, ROUND(avg_rev, 2) AS category_avg\nFROM compared\nWHERE revenue > avg_rev",
   "alternatives": [
     "WITH product_rev AS (  -- one row per product with 2025 sales\n  SELECT category_name, product_id, SUM(net_revenue_eur) AS revenue\n  FROM sales\n  WHERE order_date >= DATE '2025-01-01' AND order_date < DATE '2026-01-01'\n  GROUP BY category_name, product_id\n),\ncategory_avg AS (  -- one row per category with 2025 sales\n  SELECT category_name, AVG(revenue) AS avg_rev\n  FROM product_rev\n  GROUP BY category_name\n)\nSELECT pr.category_name, pr.product_id, pr.revenue, ROUND(ca.avg_rev, 2) AS category_avg\nFROM product_rev pr\nJOIN category_avg ca ON ca.category_name = pr.category_name\nWHERE pr.revenue > ca.avg_rev",
@@ -29,11 +29,11 @@
   ],
   "hint3_partial": "WITH product_rev AS (  -- one row per product with 2025 sales\n  SELECT category_name, product_id, SUM(net_revenue_eur) AS revenue\n  FROM sales\n  WHERE order_date >= DATE '2025-01-01' AND order_date < DATE '2026-01-01'\n  GROUP BY category_name, product_id\n),\ncompared AS (  -- one row per product with 2025 sales\n  SELECT category_name, product_id, revenue,\n         AVG(revenue) OVER (PARTITION BY ___) AS avg_rev\n  FROM product_rev\n)\nSELECT category_name, product_id, revenue, ROUND(avg_rev, 2) AS category_avg\nFROM compared\nWHERE ___",
   "solver": {
-    "prompt_hash": "7d24255de67ad6a8",
+    "prompt_hash": "bf108da7ee2dd926",
     "schema_version": "cebf75df442f",
-    "dataset_version": "e7c58abf7e8f892e",
-    "grader_version": "7a.1",
-    "query": "WITH prod AS (\n  SELECT category_name, product_id, SUM(net_revenue_eur) AS revenue\n  FROM sales\n  WHERE order_date >= DATE '2025-01-01' AND order_date < DATE '2026-01-01'\n  GROUP BY category_name, product_id\n),\nx AS (\n  SELECT category_name, product_id, revenue,\n         AVG(revenue) OVER (PARTITION BY category_name) AS avg_exact\n  FROM prod\n)\nSELECT category_name, product_id, revenue, ROUND(avg_exact, 2) AS category_avg\nFROM x\nWHERE revenue > avg_exact\n",
-    "at": "2026-10-21T09:05:06.088Z"
+    "dataset_version": "ef4aa0325da6ea43",
+    "grader_version": "7c.1",
+    "query": "WITH r AS (SELECT category_name, product_id, SUM(net_revenue_eur) AS revenue FROM sales WHERE order_date >= DATE '2025-01-01' AND order_date <= DATE '2025-12-31' GROUP BY 1, 2), a AS (SELECT category_name, product_id, revenue, SUM(revenue) OVER (PARTITION BY category_name) AS tot, COUNT(*) OVER (PARTITION BY category_name) AS n FROM r) SELECT category_name, product_id, revenue, ROUND(tot / n, 2) AS category_avg FROM a WHERE revenue * n > tot\n",
+    "at": "2026-10-22T18:09:34.354Z"
   }
 }

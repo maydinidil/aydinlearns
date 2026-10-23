@@ -53,6 +53,7 @@ import { CHOICE_GRADER_VERSION, gradeChoice, gradeTyped, parseTyped, TYPED_REFUS
 import { journey } from '../journey.ts';
 import { answered, caseFunnel, levelName, type FunnelAttributes } from '../observe.ts';
 import { MOCK_ONE_ANSWER } from '../drill.ts';
+import { runCoreRubric } from '../mocks.ts';
 import { CODE_ONE_ANSWER } from '../run.ts';
 import { openerLevel } from '../session-composer.ts';
 import { shuffle } from './choice.ts';
@@ -572,12 +573,13 @@ export function mountCases(app: Hono, d: RouteDeps): CaseEngine {
   /**
    * S4B-11: the rubric points ticked, once an insight reply has shown the model answer (M3). S7-16: a mock run's is ticked in its review,
    * which shows the model answer, over its mock's rubric (mockRubric: its core lines included); its core lines decide CP6. Ruling S7-C30
-   * (N2 M3): as the inbox rubric waits for an insight, a run with nothing written takes only an empty rubric, which settles it.
+   * (N2 M3): as the inbox rubric waits for an insight, a run with nothing written takes only an empty rubric, which settles it. D116 (S7C-03):
+   * the core lines are the run's own, as its start recorded them, else (a log before 0.7.2) the rules' (server/mocks.ts runCoreRubric).
    */
   const rubric = async (r: CaseRecord, b: Body, mock: MockContext | null): Promise<OkReply> => {
     if (mock) {
       const kind: unknown = r.kind;
-      const core = isMockCaseKind(kind) ? d.content.mocks?.[kind].core_rubric ?? [] : [];
+      const core = isMockCaseKind(kind) ? runCoreRubric(d.state.attemptRecords(), mock.block_id, kind, d.content.mocks) : [];
       const ticked = tickedOf(b, mockRubric(levelOf(r), core));
       const wrote = (d.state.attemptRecords() as readonly { record?: unknown; kind?: unknown; block_id?: unknown }[])
         .some((x) => x.record === 'self_check' && x.kind === 'insight' && x.block_id === mock.block_id);

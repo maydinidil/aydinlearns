@@ -1,6 +1,6 @@
 {
   "id": "EX-SQL-WIN-03-E2-03",
-  "version": 1,
+  "version": 2,
   "kind": "write",
   "tags": [
     "sql",
@@ -45,7 +45,7 @@
   "company": "voltmarkt",
   "schema": "voltmarkt",
   "edge_schema": "voltmarkt_edge_win",
-  "prompt": "For each order that a customer with customer_id from 3001 to 3100 (both included) placed from 1 January to 30 June 2025 (order_ts holds UTC time; both days included, in UTC), show how many days passed since the same customer's previous order in that period: the UTC date of the order minus the UTC date of the previous order. A customer's orders follow each other by order_ts; when two orders share a moment, the lower order_id comes first. A customer's first order in the period shows days_since_prev as missing. Return order_id, customer_id, order_ts and days_since_prev. Any row order is fine.",
+  "prompt": "For each order that a customer with customer_id from 3001 to 3100 (both included) placed from 1 January to 30 June 2025 (order_ts holds UTC time; both days included, in UTC), show how many days passed since the same customer's previous order in that period: the UTC date of the order minus the UTC date of the previous order. A customer's orders follow each other by order_ts; when two orders share a moment, the lower order_id comes first. A customer's first order in the period shows days_since_prev as missing. Return four columns, in this order: order_id, customer_id, order_ts and days_since_prev. Return one row for each such order. Any row order is fine.",
   "output_contract": {
     "columns": [
       {

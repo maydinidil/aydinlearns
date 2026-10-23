@@ -1,6 +1,6 @@
 {
   "id": "EX-SQL-WIN-04-E2-07",
-  "version": 1,
+  "version": 2,
   "kind": "write",
   "tags": [
     "sql",
@@ -44,7 +44,7 @@
   "company": "mailvora",
   "schema": "mailvora",
   "edge_schema": "mailvora_edge_win",
-  "prompt": "For the review_sites channel (channel_id 6), show each campaign's spend row from 1 July to 31 October 2025 with the channel's spend so far over that period, up to and including the row's day. Rows on the same spend_date count together, so they show the same spend so far. Return spend_date, campaign_id, spend and spend_so_far_eur. Any row order is fine.",
+  "prompt": "For the review_sites channel (channel_id 6), show each campaign's spend row from 1 July to 31 October 2025 with the channel's spend so far over that period, up to and including the row's day. Rows on the same spend_date count together, so they show the same spend so far. Return four columns, in this order: spend_date, campaign_id, spend and spend_so_far_eur. Return one row for each such spend row. Any row order is fine.",
   "output_contract": {
     "columns": [
       {

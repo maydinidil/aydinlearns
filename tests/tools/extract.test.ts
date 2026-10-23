@@ -92,7 +92,7 @@ test('sprint 6 Task A1: ERR-SYN-08 (a window function in WHERE) belongs to SQL-W
   const feedback = JSON.parse(await readFile('content/sql/error-feedback.json', 'utf8'));
   const errata = await readFile('knowledge/ERRATA.md', 'utf8');
   const e = cat.errors.find((x) => x.id === 'ERR-SYN-08');
-  assert.deepEqual({ ...e, feedback_template: '' }, { id: 'ERR-SYN-08', category: 'SYN', name: 'A window function in WHERE', detection_checks: ['CHK-ENGINE-ERROR'], feedback_template: '', concept_id: 'SQL-WIN-01' });
+  assert.deepEqual({ ...e, feedback_template: '' }, { id: 'ERR-SYN-08', category: 'SYN', name: 'A window function in WHERE, GROUP BY, HAVING or an aggregate', detection_checks: ['CHK-ENGINE-ERROR'], feedback_template: '', concept_id: 'SQL-WIN-01' });
   assert.match(e!.feedback_template, /WHERE/);
   assert.ok(NEW_ERRORS.some((x) => x.id === 'ERR-SYN-08'), 'one of the extract\'s NEW_ERRORS, so npm run extract keeps it');
   assert.deepEqual(written.errors.find((x: { id: string }) => x.id === 'ERR-SYN-08'), e, 'run npm run extract');

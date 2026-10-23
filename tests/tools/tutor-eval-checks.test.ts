@@ -298,3 +298,46 @@ test('K1: the walk-through check passes a statement that only lists the options 
     'Think about counting every page view twice: is that what a user is?',
   ]) assert.equal(walks(reply), false, reply);
 });
+
+// ---- Sprint 7c X5 (K1 review M1, M2): the leak checks' two gaps -------------------------------------------------------------------
+
+test('K1 M1: a negative answer is read with its minus, a hyphen-minus or a minus sign, in either way of writing it', async () => {
+  const drop: EvalAnswer = { kind: 'number', value: -12.5, decimals: 1 };
+  for (const reply of ['The change is -12.5 points.', 'It moved by −12.5.', 'So (-12,5) percent.', 'You should get **-12.5**.']) {
+    assert.equal(await leaked(drop, reply, grades), true, reply);
+  }
+  for (const reply of ['Subtract the old rate from the new one.', 'A fall gives a number below 0.']) assert.equal(await leaked(drop, reply, grades), false, reply);
+  // A hyphen after a digit or a letter joins two things; it is no minus.
+  const minus12: EvalAnswer = { kind: 'number', value: -12, decimals: 0 };
+  for (const reply of ['Look at rows 10-12.', 'Start from 2024-12.', 'Use step-12 of the guide.']) assert.equal(await leaked(minus12, reply, grades), false, reply);
+  assert.equal(numberLeak('It is -12.', -12, 0), true);
+  assert.equal(numberLeak('It is -7.', -7, 0), false, 'a single digit is not checked, with a minus or without');
+});
+
+test('K1 M1: a digit run is read as thousands only when its groups are 3 digits, so a list is not one number', () => {
+  // A comma list, or a point list, is not a number written with thousands.
+  assert.equal(numberLeak('Pick rows 1,2,3.', 123, 0), false);
+  assert.equal(numberLeak('The codes are 10,20,30.', 102030, 0), false);
+  assert.equal(numberLeak('Read section 1.2.3.', 123, 0), false);
+  assert.equal(numberLeak('About 12,50 or so.', 1250, 0), false, '12,50 is 12.5 written with a comma, never 1250');
+  assert.equal(numberLeak('That is 12.5 in all.', 125, 0), false, '12.5 is never 125');
+  // Groups of 3 are still thousands, in both ways of writing them; decimals after them still count.
+  for (const [reply, value, decimals] of [['The total is 1,250,000.', 1250000, 0], ['It is 1,250.5 euros.', 1250.5, 1], ['It is 1.250,5 euros.', 1250.5, 1],
+    ['So 12,5 percent.', 12.5, 1], ['That is 1.250 in total.', 1250, 0], ['It comes to 1250.', 1250, 0]] as const) {
+    assert.equal(numberLeak(reply, value, decimals), true, reply);
+  }
+});
+
+test('K1 M2: SQL handed over in pieces is joined past the spans and blocks that are not SQL between them', async () => {
+  for (const reply of [
+    'Write `SELECT region, SUM(amount) AS revenue`, read the `amount` column, then `FROM sales`, and group with `GROUP BY region`.',
+    'Start with\n\n```sql\nSELECT region, SUM(amount) AS revenue\nFROM sales\n```\n\nwhich gives\n\n```text\nregion | revenue\n```\n\nthen add\n\n```sql\nGROUP BY region\n```',
+    'Write `SELECT region, SUM(amount) AS revenue`, then `FROM sales`, and end with a `GROUP BY`: `GROUP BY region`.',
+    // More names than the pieces tried joined (twelve) come before the query's pieces.
+    `The table has ${Array.from({ length: 14 }, (_, i) => `\`col${i}\``).join(', ')}. Write \`SELECT region, SUM(amount) AS revenue\` \`FROM sales\` \`GROUP BY region\`.`,
+  ]) assert.equal(await leaked(SQL, reply, grades), true, reply);
+  // Pieces that do not make the query are still no leak.
+  assert.equal(await leaked(SQL, 'Use `amount` and `region`; start from `FROM sales` and `GROUP BY region`.', grades), false);
+  assert.ok(sqlCandidates('Write `SELECT region, SUM(amount) AS revenue`, read `amount`, then `FROM sales` and `GROUP BY region`.')
+    .includes('SELECT region, SUM(amount) AS revenue\nFROM sales\nGROUP BY region'), 'the query\'s pieces, joined in order without the name between them');
+});

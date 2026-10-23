@@ -1,6 +1,6 @@
 {
   "id": "EX-SQL-WIN-04-E1-04",
-  "version": 1,
+  "version": 2,
   "kind": "write",
   "tags": [
     "sql",
@@ -43,7 +43,7 @@
   "company": "mailvora",
   "schema": "mailvora",
   "edge_schema": "mailvora_edge_win",
-  "prompt": "For each paid channel and each month of 2025 in budget_monthly, show the month's budget and the channel's year-to-date budget: the budgets of 2025 up to and including that month. Within each channel, months follow each other by month. Return channel_id, month, budget_eur and ytd_budget_eur. Any row order is fine.",
+  "prompt": "For each paid channel and each month of 2025 in budget_monthly, show the month's budget and the channel's year-to-date budget: the budgets of 2025 up to and including that month. Within each channel, months follow each other by month. Return four columns, in this order: channel_id, month, budget_eur and ytd_budget_eur. Return one row for each channel and month of 2025. Any row order is fine.",
   "output_contract": {
     "columns": [
       {

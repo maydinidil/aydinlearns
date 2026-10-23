@@ -1,7 +1,9 @@
 // tests/tools/check-level5.test.ts: the sprint 7 checks of Task A1, on fixture items and keys (every item, key and row here is
 // invented). C53 (S7-22, E-204): a key that filters a ranking function's result by a comparison states its tie rule, and the edge
 // schema holds a tie at the cutoff, so a query with the other tie rule fails there; Task A2b's keep-one dedup on raw data states which
-// copy it keeps instead (S7-C06). C11 (S7-20): QUALIFY in an SQL-WIN-06 key's other way is not flagged.
+// copy it keeps instead (S7-C06). C11 (S7-20): QUALIFY in an SQL-WIN-06 key's other way is not flagged. Sprint 7c (Task X5, S7C-09):
+// C53, now tools/rank-cutoffs.ts, follows a CTE's or a subquery's column list, reads a SELECT-list flag filtered outside and FILTER
+// clauses, and keeps the keep-one exemption to an ID column sorted the way the prompt's lowest or highest says.
 import { after, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
@@ -10,7 +12,8 @@ import { loadContent } from '../../server/content.ts';
 import type { ParseTreeOk } from '../../server/runner/protocol.ts';
 import { DEFAULT_RULES, type SqlItem } from '../../schemas/item.ts';
 import type { SqlKey } from '../../schemas/keys.ts';
-import { checkItem, namesKeptCopy, namesTieBreak, rankCutoffs, saysTiesShare, type CheckContext, type CheckResult } from '../../tools/check-content.ts';
+import { checkItem, type CheckContext, type CheckResult } from '../../tools/check-content.ts';
+import { isIdColumn, keptCopyWord, namesKeptCopy, namesTieBreak, rankCutoffs, saysTiesShare } from '../../tools/rank-cutoffs.ts';
 import { makeContentFixture, FIXTURE_CONCEPT } from '../helpers/content-fixture.ts';
 import { makeFixtureDb } from '../helpers/fixture-db.ts';
 
@@ -93,6 +96,10 @@ test('C53: a ROW_NUMBER cutoff with no stated tie rule fails, naming the item an
   // An alternative is read too, and named as such.
   const alt = await c53(itemOf(NO_RULE), keyOf('SELECT product_id FROM products WHERE product_id IN (1, 2, 4, 5)', { alternatives: [ROW_NUMBER_QUALIFY] }));
   assert.match(alt.detail, /alternative 1 keeps ROW_NUMBER's result/);
+  // The other way repeats an alternative (C39), here with other line breaks and a semicolon: it is read once, under its first name.
+  const repeated = keyOf('SELECT product_id FROM products WHERE product_id IN (1, 2, 4, 5)', { alternatives: [ROW_NUMBER_QUALIFY],
+    other_way: { sql: `${ROW_NUMBER_QUALIFY.replace(' QUALIFY', '\n  QUALIFY')};`, tradeoff: 'Shorter, DuckDB only.' } });
+  assert.equal((await c53(itemOf(NO_RULE), repeated)).detail, alt.detail);
 });
 
 test('C53: a RANK or DENSE_RANK cutoff whose prompt says ties share a place passes; without that line it fails', async () => {
@@ -200,7 +207,8 @@ test('C53 (S7-C06): a keep-one dedup on raw data with one sort key passes when a
 test('C53 (S7-C06): a keep-one dedup with one sort key and no keep sentence naming it fails, saying what the prompt must state', async () => {
   const none = await c53(rawItemOf(NO_KEEP), keyOf(dedup('rn = 1')));
   assert.deepEqual([none.id, none.ok], [ID, false]);
-  assert.equal(none.detail, 'the reference keeps one copy with ROW_NUMBER (a keep-one dedup on raw data), but the prompt does not say which copy is kept: a sentence of the prompt with keep, kept or keeps must name order_line_id (S7-C06)');
+  // S7C-09: the sentence also says lowest or highest.
+  assert.equal(none.detail, 'the reference keeps one copy with ROW_NUMBER (a keep-one dedup on raw data), but the prompt does not say which copy is kept: a sentence of the prompt with keep, kept or keeps must name order_line_id and say lowest or highest (S7-C06)');
   // A keep sentence that does not name the column, or the column named outside a keep sentence, is not enough.
   for (const p of ['Keep one copy of each line. Sort by order_line_id.', 'Remove every copy but the one with the lowest order_line_id.']) {
     assert.equal((await c53(rawItemOf(`${NO_KEEP} ${p}`), keyOf(dedup('rn = 1')))).ok, false, p);
@@ -249,6 +257,124 @@ test('rankCutoffs reads a keep-one filter (= 1, < 2 or <= 1, either side) and a 
   assert.deepEqual(await read(dedup('rn = 1', 'order_line_id, product_id')), [['ROW_NUMBER', true, null]]);
   assert.deepEqual(await read(dedup('rn = 1', 'order_line_id + 0')), [['ROW_NUMBER', true, null]]);
   assert.deepEqual(await read(ROW_NUMBER_TOP2), [['ROW_NUMBER', false, null]]);
+});
+
+// ---- C53 (S7C-09): column lists, flags, FILTER clauses, and the narrower keep-one exemption -------------------------------------
+
+/** rankCutoffs on `sql`: each cutoff's function, tie-break, keep-one reading (first place only, sole key and its direction). */
+const cutsOf = async (sql: string) => {
+  const r = await runner.request<ParseTreeOk>({ op: 'parse_tree', schema: 'voltmarkt', allowedSchemas: [], sql });
+  assert.ok(r.ok, JSON.stringify(r));
+  return rankCutoffs(r.data.tree, sql).map((c) => [c.fn, c.tieBreak, c.firstPlaceOnly, c.soleKey, c.soleDirection]);
+};
+const WINDOW_ROW = 'ROW_NUMBER() OVER (PARTITION BY brand ORDER BY unit_cost_eur DESC, product_id)';
+const ROW_NUMBER_CUT = ['ROW_NUMBER', 'product_id', false, null, null];
+
+test('S7C-09: rankCutoffs follows a CTE\'s column list and a subquery\'s, by position, and the rename wins over the SELECT-list alias', async () => {
+  assert.deepEqual(await cutsOf(`WITH ranked(product_id, rn) AS (SELECT product_id, ${WINDOW_ROW} FROM products) SELECT product_id FROM ranked WHERE rn <= 2`), [ROW_NUMBER_CUT]);
+  assert.deepEqual(await cutsOf(`WITH ranked(product_id, rn) AS (SELECT product_id, ${WINDOW_ROW} AS x FROM products) SELECT product_id FROM ranked WHERE rn <= 2`), [ROW_NUMBER_CUT]);
+  // A column list shorter than the SELECT list renames the first columns only.
+  assert.deepEqual(await cutsOf(`WITH ranked(rn) AS (SELECT ${WINDOW_ROW}, product_id FROM products) SELECT product_id FROM ranked WHERE rn <= 2`), [ROW_NUMBER_CUT]);
+  assert.deepEqual(await cutsOf('SELECT product_id FROM (SELECT product_id, RANK() OVER (PARTITION BY brand ORDER BY unit_cost_eur DESC) FROM products) AS t(product_id, r) WHERE r <= 2'),
+    [['RANK', null, false, 'unit_cost_eur', 'DESC']]);
+  // Each SELECT of a UNION in a CTE gives its columns to the same list.
+  assert.deepEqual(await cutsOf(`WITH u(product_id, rn) AS (SELECT product_id, 0 FROM products UNION ALL SELECT product_id, ${WINDOW_ROW} FROM products) SELECT product_id FROM u WHERE rn = 2`),
+    [ROW_NUMBER_CUT]);
+  // After a star the positions are not known, so the list is not followed there: here rn renames brand.
+  assert.deepEqual(await cutsOf(`WITH r(a, rn) AS (SELECT *, ${WINDOW_ROW} FROM products) SELECT a FROM r WHERE rn = 'A'`), []);
+});
+
+test('S7C-09: C53 reads a cutoff through a CTE\'s column list: it passes with the tie-break stated and fails without it', async () => {
+  const sql = `WITH ranked(product_id, rn) AS (SELECT product_id, ${WINDOW_ROW} FROM products) SELECT product_id FROM ranked WHERE rn <= 2`;
+  assert.deepEqual(await c53(itemOf(TIE_BREAK), keyOf(sql)), { id: ID, check: 'C53', ok: true, detail: '' });
+  assert.equal((await c53(itemOf(NO_RULE), keyOf(sql))).detail,
+    'the reference keeps ROW_NUMBER\'s result by a comparison, but no tie-break is stated: no sentence of the prompt about ties names product_id (S7-22)');
+});
+
+test('S7C-09: rankCutoffs reads a SELECT-list flag that compares a ranking result, alone or with AND or OR, when a filter outside names it', async () => {
+  const flag = (expr: string, filter: string) => `SELECT product_id FROM (SELECT product_id, ${expr} FROM products) AS t WHERE ${filter}`;
+  const RANK_CUT = ['RANK', null, false, 'unit_cost_eur', 'DESC'];
+  for (const filter of ['top', 'top = true', 'NOT top', 'top AND product_id > 0', 'top IS TRUE', 'top IS NOT FALSE']) {
+    assert.deepEqual(await cutsOf(flag('RANK() OVER (PARTITION BY brand ORDER BY unit_cost_eur DESC) <= 2 AS top', filter)), [RANK_CUT], filter);
+  }
+  assert.deepEqual(await cutsOf(flag('RANK() OVER (PARTITION BY brand ORDER BY unit_cost_eur DESC) BETWEEN 1 AND 2 OR product_id = 1 AS top', 'top')), [RANK_CUT]);
+  // The flag compares a ranking result through its alias in the same SELECT list.
+  assert.deepEqual(await cutsOf(flag(`${WINDOW_ROW} AS rn, rn <= 2 AND unit_cost_eur > 0 AS keep`, 'keep')), [ROW_NUMBER_CUT]);
+  // A flag named by a column list.
+  assert.deepEqual(await cutsOf(`WITH f(product_id, top) AS (SELECT product_id, ${WINDOW_ROW} <= 2 FROM products) SELECT product_id FROM f WHERE top`), [ROW_NUMBER_CUT]);
+  // A flag only shown, or only sorted by, filters nothing.
+  assert.deepEqual(await cutsOf('SELECT product_id, top FROM (SELECT product_id, RANK() OVER (ORDER BY unit_cost_eur DESC) <= 2 AS top FROM products) AS t ORDER BY top'), []);
+  // Through a flag a filter never counts as keeping place 1 alone: the keep-one exemption reads a direct comparison only.
+  const keepFlag = `SELECT order_line_id FROM (SELECT order_line_id, ROW_NUMBER() OVER (PARTITION BY order_id, product_id, quantity, unit_price_eur ORDER BY order_line_id) = 1 AS keep FROM order_lines) AS t WHERE keep`;
+  assert.deepEqual(await cutsOf(keepFlag), [['ROW_NUMBER', null, false, 'order_line_id', 'ASC']]);
+});
+
+test('S7C-09: C53 reads a flag cutoff as any other: RANK needs ties that share a place, and the other tie rule is graded on the edge', async () => {
+  const sql = 'SELECT product_id FROM (SELECT product_id, RANK() OVER (PARTITION BY brand ORDER BY unit_cost_eur DESC) <= 2 AS top FROM products) AS t WHERE top';
+  assert.deepEqual(await c53(itemOf(SHARE), keyOf(sql)), { id: ID, check: 'C53', ok: true, detail: '' });
+  assert.match((await c53(itemOf(TIE_BREAK), keyOf(sql))).detail, /the reference keeps RANK's result by a comparison, but the prompt does not say that ties share a place/);
+  assert.equal((await c53(itemOf(SHARE, { edge_schema: 'voltmarkt_edge_flat' }), keyOf(sql))).detail,
+    'with the other tie rule, the reference\'s RANK cutoff still passes: voltmarkt_edge_flat holds no tie at the cutoff');
+});
+
+test('S7C-09: rankCutoffs reads an aggregate\'s FILTER clause and a window aggregate\'s, like any other filter', async () => {
+  const ranked = `(SELECT product_id, ${WINDOW_ROW} AS rn FROM products) AS t`;
+  assert.deepEqual(await cutsOf(`SELECT count(*) FILTER (WHERE rn <= 2) AS n FROM ${ranked}`), [ROW_NUMBER_CUT]);
+  assert.deepEqual(await cutsOf(`SELECT product_id, sum(rn) FILTER (WHERE rn IN (1, 2)) OVER () AS s FROM ${ranked}`), [ROW_NUMBER_CUT]);
+  assert.deepEqual(await cutsOf(`SELECT max(product_id) FILTER (WHERE rn = 1) AS p FROM ${ranked}`), [['ROW_NUMBER', 'product_id', true, null, null]]);
+});
+
+test('S7C-09: C53 grades a FILTER cutoff\'s other tie rule on the edge, and asks its prompt for the tie-break', async () => {
+  const counted = (prompt: string) => itemOf(prompt, { output_contract: { columns: [{ name: 'n', type_class: 'numeric' }], grain: null },
+    rules: { ...DEFAULT_RULES, columns: [{ name: 'n', type_class: 'numeric', precision: 'count' }] } });
+  const sql = `SELECT count(*) FILTER (WHERE rn <= 2) AS n FROM (SELECT product_id, ${WINDOW_ROW} AS rn FROM products) AS t`;
+  assert.deepEqual(await c53(counted(TIE_BREAK), keyOf(sql)), { id: ID, check: 'C53', ok: true, detail: '' });
+  assert.match((await c53(counted(NO_RULE), keyOf(sql))).detail, /no sentence of the prompt about ties names product_id/);
+});
+
+test('S7C-09: the stated limits: arithmetic on a ranking result before the comparison, and a CASE label filtered outside, are not read', async () => {
+  assert.deepEqual(await cutsOf(`SELECT product_id FROM (SELECT product_id, ${WINDOW_ROW} AS rn FROM products) AS t WHERE rn - 1 < 2`), []);
+  assert.deepEqual(await cutsOf(`SELECT product_id FROM (SELECT product_id, CASE WHEN ${WINDOW_ROW} <= 2 THEN 'top' END AS label FROM products) AS t WHERE label = 'top'`), []);
+});
+
+const ASC_KEEP = KEEP;
+const DESC_KEEP = KEEP.replace('lowest', 'highest');
+const dedupDesc = (filter: string) => dedup(filter, 'order_line_id DESC');
+
+test('S7C-09: the keep-one exemption checks the direction: lowest is ascending, highest descending, and the prompt says one of them', async () => {
+  assert.deepEqual(await c53(rawItemOf(ASC_KEEP), keyOf(dedup('rn = 1', 'order_line_id ASC'))), { id: ID, check: 'C53', ok: true, detail: '' });
+  assert.deepEqual(await c53(rawItemOf(DESC_KEEP), keyOf(dedupDesc('rn = 1'))), { id: ID, check: 'C53', ok: true, detail: '' });
+  assert.deepEqual(await c53(rawItemOf(DESC_KEEP), keyOf(dedup('rn = 1'))),
+    { id: ID, check: 'C53', ok: false, detail: 'the reference keeps the copy with the lowest order_line_id, but the prompt keeps the one with the highest (S7-C06)' });
+  assert.deepEqual(await c53(rawItemOf(ASC_KEEP), keyOf(dedupDesc('rn = 1'))),
+    { id: ID, check: 'C53', ok: false, detail: 'the reference keeps the copy with the highest order_line_id, but the prompt keeps the one with the lowest (S7-C06)' });
+  // A keep sentence that names the column but says neither word, or both, does not say which copy is kept.
+  const unsaid = 'the reference keeps one copy with ROW_NUMBER (a keep-one dedup on raw data), but the prompt does not say which copy is kept: a sentence of the prompt with keep, kept or keeps must name order_line_id and say lowest or highest (S7-C06)';
+  for (const p of ['Keep the copy whose order_line_id comes first.', 'Keep the copy with the lowest order_line_id, not the highest.']) {
+    assert.deepEqual(await c53(rawItemOf(`${NO_KEEP} ${p}`), keyOf(dedup('rn = 1'))), { id: ID, check: 'C53', ok: false, detail: unsaid }, p);
+  }
+  assert.equal((await c53(rawItemOf(NO_KEEP), keyOf(dedup('rn = 1')))).detail, unsaid);
+});
+
+test('S7C-09: the keep-one exemption is for an ID column only: a single sort key that is not an ID needs a tie-break, as A1 says', async () => {
+  for (const column of ['quantity', 'unit_price_eur']) {
+    const prompt = `${NO_KEEP} Keep the copy with the lowest ${column}.`;
+    assert.deepEqual(await c53(rawItemOf(prompt), keyOf(dedup('rn = 1', column))), { id: ID, check: 'C53', ok: false, detail: NO_BREAK }, column);
+  }
+  // The ID column may be any *_id column, or id itself.
+  assert.deepEqual(await cutsOf(dedup('rn = 1', 'order_line_id DESC')), [['ROW_NUMBER', null, true, 'order_line_id', 'DESC']]);
+  assert.deepEqual(await cutsOf(dedup('rn = 1', 'order_line_id ASC')), [['ROW_NUMBER', null, true, 'order_line_id', 'ASC']]);
+});
+
+test('keptCopyWord (S7C-09): the one of lowest or highest that the keep sentences naming the column say; null for neither or both', () => {
+  assert.equal(keptCopyWord('Keep the copy with the lowest order_line_id.', 'order_line_id'), 'lowest');
+  assert.equal(keptCopyWord('The copy with the HIGHEST order line ID is kept.', 'order_line_id'), 'highest');
+  assert.equal(keptCopyWord('Keep one copy. The lowest order_line_id wins.', 'order_line_id'), null, 'the word is in another sentence');
+  assert.equal(keptCopyWord('Keep the copy with the lowest order_line_id. Each line keeps the highest order_line_id.', 'order_line_id'), null, 'both');
+  assert.equal(keptCopyWord('Keep the copy with the lowest quantity.', 'order_line_id'), null, 'another column');
+  assert.equal(isIdColumn('order_line_id'), true);
+  assert.equal(isIdColumn('id'), true);
+  for (const c of ['quantity', 'idle_days', 'paid', 'order_line_id_x']) assert.equal(isIdColumn(c), false, c);
 });
 
 // ---- C11: QUALIFY in an SQL-WIN-06 key's other way (S7-20) -----------------------------------------------------------------------

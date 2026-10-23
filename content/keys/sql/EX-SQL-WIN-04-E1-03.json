@@ -1,6 +1,6 @@
 {
   "item_id": "EX-SQL-WIN-04-E1-03",
-  "item_version": 1,
+  "item_version": 2,
   "reference_sql": "SELECT product_id, week_start, units,\n  SUM(units) OVER (PARTITION BY product_id ORDER BY week_start ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS cumulative_units\nFROM weekly_units\nWHERE product_id BETWEEN 1 AND 20\n  AND week_start BETWEEN DATE '2025-01-06' AND DATE '2025-06-23'",
   "alternatives": [
     "SELECT w.product_id, w.week_start, w.units,\n  (SELECT SUM(w2.units) FROM weekly_units w2\n   WHERE w2.product_id = w.product_id\n     AND w2.week_start BETWEEN DATE '2025-01-06' AND w.week_start) AS cumulative_units\nFROM weekly_units w\nWHERE w.product_id BETWEEN 1 AND 20\n  AND w.week_start BETWEEN DATE '2025-01-06' AND DATE '2025-06-23'",
@@ -24,11 +24,11 @@
   ],
   "hint3_partial": "SELECT product_id, week_start, units,\n  SUM(units) OVER (PARTITION BY product_id ORDER BY ___ ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS cumulative_units\nFROM weekly_units\nWHERE product_id BETWEEN 1 AND 20\n  AND week_start BETWEEN DATE '2025-01-06' AND DATE '2025-06-23'",
   "solver": {
-    "prompt_hash": "f010d2a6a0e49499",
+    "prompt_hash": "424536ba93098ea2",
     "schema_version": "821c01e22b59",
-    "dataset_version": "e7c58abf7e8f892e",
-    "grader_version": "7a.1",
-    "query": "SELECT product_id, week_start, units,\n  SUM(units) OVER (PARTITION BY product_id ORDER BY week_start ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS cumulative_units\nFROM weekly_units\nWHERE product_id BETWEEN 1 AND 20\n  AND week_start BETWEEN DATE '2025-01-06' AND DATE '2025-06-23'\n",
-    "at": "2026-10-21T09:05:08.083Z"
+    "dataset_version": "ef4aa0325da6ea43",
+    "grader_version": "7c.1",
+    "query": "SELECT product_id, week_start, units, SUM(units) OVER (PARTITION BY product_id ORDER BY week_start ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS cumulative_units FROM weekly_units WHERE product_id BETWEEN 1 AND 20 AND week_start BETWEEN DATE '2025-01-06' AND DATE '2025-06-23'\n",
+    "at": "2026-10-22T18:09:35.397Z"
   }
 }

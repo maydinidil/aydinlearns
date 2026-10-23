@@ -1,6 +1,6 @@
 {
   "item_id": "EX-SQL-WIN-03-E1-21",
-  "item_version": 1,
+  "item_version": 2,
   "reference_sql": "SELECT month, eur_per_unit,\n  eur_per_unit - LAG(eur_per_unit) OVER (ORDER BY month) AS rate_change\nFROM fx_rates_monthly",
   "alternatives": [
     "SELECT f.month, f.eur_per_unit,\n  f.eur_per_unit - (SELECT p.eur_per_unit FROM fx_rates_monthly p\n    WHERE p.currency = f.currency\n      AND p.month = (SELECT MAX(p2.month) FROM fx_rates_monthly p2 WHERE p2.currency = f.currency AND p2.month < f.month)) AS rate_change\nFROM fx_rates_monthly f",
@@ -24,11 +24,11 @@
   ],
   "hint3_partial": "SELECT month, eur_per_unit,\n  eur_per_unit - LAG(eur_per_unit) OVER (ORDER BY ___) AS rate_change\nFROM fx_rates_monthly",
   "solver": {
-    "prompt_hash": "ed1ee53b449de173",
+    "prompt_hash": "9de66f50c0163578",
     "schema_version": "6c878999966c",
-    "dataset_version": "e7c58abf7e8f892e",
-    "grader_version": "7a.1",
-    "query": "SELECT month, eur_per_unit,\n  eur_per_unit - LAG(eur_per_unit) OVER (ORDER BY month) AS rate_change\nFROM fx_rates_monthly\nWHERE currency = 'USD'\n",
-    "at": "2026-10-21T09:05:07.316Z"
+    "dataset_version": "ef4aa0325da6ea43",
+    "grader_version": "7c.1",
+    "query": "SELECT month, eur_per_unit, eur_per_unit - LAG(eur_per_unit) OVER (ORDER BY month) AS rate_change FROM fx_rates_monthly WHERE currency = 'USD'\n",
+    "at": "2026-10-22T18:09:34.840Z"
   }
 }

@@ -1,10 +1,11 @@
-# Sprint 7 record: SQL level 5 and the recruiter mocks (releases 0.7.0 and 0.7.1)
+# Sprint 7 record: SQL level 5 and the recruiter mocks (releases 0.7.0, 0.7.1 and 0.7.2)
 
 Copied on 2026-10-21 from sprint 7's build ledger and its review files, which live in a git-ignored scratch workspace.
 The plan is `docs/superpowers/plans/2026-10-20-aydinlearns-sprint-7.md` and the spec is
 `docs/superpowers/specs/2026-10-01-aydinlearns-v1-design.md`. Paths are relative to the project folder. No key text, no
 held-out or mock prompt and no SQL from a key appears here: items, cases, forms and findings are named by ID only. Part 2
-(the knowledge, case-round and take-home mocks, the public 0.7.1) extends this record.
+(the knowledge, case-round and take-home mocks, the public 0.7.1) extends this record, and so does the last part,
+"Sprint 7c (0.7.2)" (fix and polish).
 
 What Part 1 did: block H (13 backlog rows: render tests, code hygiene, the tutor fixes, drill reviews); SQL level 5
 (window functions in 7 concepts, the level 5 drill, two window edge schemas, four error IDs, the opener, two daily cases
@@ -380,7 +381,7 @@ GA4 items whose title sits in the correct option; CASE-TAKE-A:CP3; EX-MOCK-CASE-
 F4-2-3, F4-2-5 and F4-2-6; F4-4-1, F4-4-2, F4-4-3 and F4-4-5; F4-5-3. The fix reports add three more gaps, also rows:
 `/api/run` on a stale CP3 instance is still a plain 404, CP3's typed query is lost when the step reopens on its new
 instance, and S7-C36's crash path. Rows closed: the four K2 rows, the five K1 rows, and Codex F35 and F36 (N3). The
-MET-MKT-05 row stays open until the owner's swap.
+MET-MKT-05 row stays open until the owner's swap (it ran before the merge, `db4eaf07`; sprint 7c closes the row).
 
 ### Slips
 
@@ -401,7 +402,7 @@ MET-MKT-05 row stays open until the owner's swap.
 
 | Step | Why |
 |---|---|
-| **The MET-MKT-05 swap (K3 Step 5), not run yet.** Run `reserve-held-out` with `--release-list` and `--candidates` as given in the conversation (files `k3-release.txt` and `k3-candidates.txt` in the workspace), with `--logs`. Expected: "methodology: 1 added, 1 released; 93 held out (was 93)". Then `check:content` (C25) and commit the swap | The knowledge mock can draw `Q-MET-MKT-05-01`, whose answer is in its reading, in about 1 run in 5. Once a run serves it, `--release-list` refuses for good (F4-1-3) |
+| **The MET-MKT-05 swap (K3 Step 5): done 2026-10-22** (`db4eaf07`). Run by the controller at the owner's request, with `--logs`: no log named either item; "methodology: 1 added, 1 released; 93 held out (was 93)"; `--only C20-C28,C56` 4824 of 4824 | `Q-MET-MKT-05-01`, whose answer is in its reading, is back in practice; `Q-MET-MKT-05-02` is held out in its place |
 | Check once in Chrome that saving a key in Settings no longer offers to store it as a password (S7-34) | Carried from Part 1 |
 | Run the tutor eval's free `--recheck` on the saved eval folders (K1 M8) | The new walk-through verdicts were not run on saved replies |
 | Rule whether the tutor may open on an earlier review while another mock runs (F4-4-5) | D108 says "open in the review"; the guard lets an earlier review's tutor open |
@@ -411,3 +412,182 @@ MET-MKT-05 row stays open until the owner's swap.
 The numbers above are the Part 2 gate. The controller re-runs the full gate (typecheck, `npm test`, `check:imports`,
 `check:errata`, `extract`, the pipeline tests, `check:content`, `build:web` and `test:e2e` on port 5184) after these
 docs.
+
+## Part 2: after the merge
+
+Written on the sprint 7c branch (2026-10-22), as the plan's Task R1 Step 6 asks.
+
+| What | Result |
+|---|---|
+| The PR | PR #53, pushed and opened at Aydin's go on 2026-10-22; 18 commits over `main` |
+| Codex | Two line comments, both CONFIRMED and logged OPEN: F37 (P1, `tools/reserve-held-out.ts`: the full-pool draw ignored the GA4 knowledge pool) and F38 (P2: a case mock's insight could be logged after `block_close`) |
+| Aydin's calls on Codex | Merge as is; both are fixed in sprint 7c (D118), on PR #54 |
+| The merge | Merged by the controller at Aydin's word on 2026-10-22 (merge commit `2b16b131`) |
+| Aydin's checkout | Not fast-forwarded: `git pull --ff-only` refused, because Aydin's uncommitted trim of `aydinlearns/CLAUDE.md` overlaps lines the PR changed. Nothing in `C:\zehirlab` changed. Left to Aydin: commit the trim or set it aside, then pull |
+| Public copy | `tools/export-public.sh <clone> origin/main` exported `2b16b131` as `2986e8a` (913 files changed). The scan found neither real key and no added `sk-` string; no `.env`, `logs/`, `journey/`, `data/`, database, `tutor-keys.json`, `tutor-eval/` or `.solver-out` file; no email address or `C:\Users` path that `804b11d` did not already hold (the tests' invented names and one message ID in the research bank); no session link. Three more planning docs name the monorepo's folder (the sprint T and sprint 7 records, the sprint 7 plan), as 20 already did. Pushed `804b11d..2986e8a` |
+| Fresh-install test | The public tree in a clean folder, started with the launcher (`node tools/launch.ts --no-browser`, `AYDINLEARNS_PORT=5194`, temporary logs and journey folders and keys file, telemetry off, both key variables unset, no `.env`). Setup ran end to end (packages, Python with `duckdb` 1.5.6, the course database `ef4aa0325da6ea43`, the screens). Through the API: version 0.7.1 with 9 of 9 checks; the tutor off and a question refused with 404 `tutor_off`; Today answered for SQL, GA4 and Methodology; `EX-SQL-BASICS-01-E1-01` graded a pass (the journey logged `exercise_passed`); the mocks view listed six stages and all four mocks startable; the screen mock started on `SCREEN-A` with 6 questions, its review was refused (409) while it ran, and its end opened a review of 6 results. No `logs/`, `journey/`, `tutor-keys.json` or `.env` appeared in the tree. The server outlived the launcher's shell and was stopped by its process ID; nothing listened on 5194, and the folders were deleted |
+| Tag and release | `v0.7.1` on `2986e8a`, release "aydinlearns 0.7.1", Latest: what 0.7.0 and 0.7.1 add, what counts as a pass, what is never written or sent, updating (log version 7, `happy-dom`), and five known issues whose fixes are on PR #54 |
+| The renumbered releases (Step 4b, D115) | Done on 2026-10-23 at Aydin's go (the first try on 2026-10-22 was denied by the auto-mode classifier, because that go named `v0.7.1` only). `v0.5.0`, `v0.5.1`, `v0.5.2`, `v0.5.3`, `v0.6.1` and `v0.6.2` were created on the commits of `v1.0.0`, `v1.1.0`, `v1.2.0`, `v1.3.0`, `v1.5.0` and `v1.6.0`. Each is named "aydinlearns <new number>" and carries its old notes with the numbers renumbered and the "First published as" line. `v0.5.2`'s screenshot link now points at its own tag and answers 200. Each new tag was checked against its old tag's commit, and all six matched. Then the six `v1.x` releases and their tags were deleted. None had uploaded files, and all six commits are in the public `main`'s history, so nothing was lost. `v0.7.1` stays Latest. The living docs now name the new tags |
+| Known gap in the public copy | The public CHANGELOG's 0.7.1 entry still lists the MET-MKT-05 swap as not run; G0 fixed that line on the 7c branch, so the next export corrects it |
+
+## Sprint 7c (0.7.2)
+
+Written at the end of sprint 7c (2026-10-22), from its build ledger and review files, which live in a git-ignored scratch
+workspace. Paths are relative to the project folder. No key text, no held-out or mock prompt and no SQL from a key
+appears here: items, cases, forms and findings are named by ID only.
+
+What 7c did: closed Codex F37 and F38 (PR #53), added the two `mock_open` fields the owner approved (D116), closed the
+tutor on every screen while any mock runs (D117), changed the grader's diagnosis of a window function outside WHERE
+(`GRADER_VERSION` `7c.1`), widened C53, reworded 55 SQL prompts (level 5 and two cases) and five GA4 questions, polished the
+screens, and closed 33 backlog rows. No new feature. Version 0.7.2, no public release yet (R1).
+
+| | |
+|---|---|
+| Plan | [`2026-10-22-aydinlearns-sprint-7c.md`](../superpowers/plans/2026-10-22-aydinlearns-sprint-7c.md) (D116 to D118, rulings S7C-01 to S7C-11) |
+| Branch | `feat/aydinlearns-sprint-7c`, from `db4eaf07` (7b's tip). PR #53 merged on 2026-10-22 (`2b16b131`, merge commit) |
+| Version | 0.7.2 (2026-10-22) |
+| Execution | Subagent-driven through the Agent tool, three waves: A (X1, X3, X4, X5 and K1's content chain, on disjoint files), B (X2, which needs A's files), then the gate, the seams review and the docs. One review per task; one fix round for Critical and Important findings; minors went to the seams review's triage. The controller committed each task path-limited |
+
+### The owner's answers
+
+| ID | Question | Answer (2026-10-22, every recommendation taken) |
+|---|---|---|
+| D116 | Record the draw and the core rubric on `mock_open`? | Yes, both, additive on version 7: a knowledge mock's `item_ids` and a case mock's `core_rubric`. Closes S7-C36's crash gap and F4-4-1 |
+| D117 | The tutor during a mock | Closed while any mock runs, on every screen, the review of an earlier mock and the second opinion included. A take-home counts as running until handed in or closed at 24 hours. Closes F4-4-5 |
+| D118 | Scope and order | F37 and F38 in 7c, not on PR #53 (it merged as it was, with both in 0.7.1's known issues). All 29 rows, content included, each content change solved again blind |
+
+The owner then said "merge pr 53, go with the plan". The main checkout `C:\zehirlab` was not fast-forwarded: `git pull
+--ff-only` refused because the owner's uncommitted trim of `aydinlearns/CLAUDE.md` overlaps the PR's lines. Nothing
+changed there; it is the owner's to reconcile.
+
+### What was built
+
+| Task | Commit | What | Review |
+|---|---|---|---|
+| G0 | `56d770c9` | The plan, F37 and F38 logged OPEN with 0.7.1's known issues, the stale MET-MKT-05 docs fixed, the backlog row closed, the root BACKLOG | none |
+| X1 | `9da893ab` | Codex F37: `reserve-held-out`'s full-pool draw reserves around the GA4 knowledge pool (S7C-01) | Approved (Sonnet), 0 Critical or Important, 3 minors |
+| X4 | `4203a74b` | Screens: route focus kept, the knowledge run's focus after a save, a crashed screen run's "not reached" count, the inert page for late content, one `CaseMockKind`, `answered` once, bodyless POSTs (S7C-10) | Approved (Sonnet), 3 minors |
+| X5 | `ef2b82ad` | Four window messages to `ERR-SYN-08` (`GRADER_VERSION` `7c.1`, S7C-08); C53 in `tools/rank-cutoffs.ts` and wider (S7C-09); the tutor eval's leak checks | Approved (Sonnet), 5 minors |
+| K1 | `b06d7b25` | Prompt wording on 55 SQL items (level 5, `EX-CASE-REAL-01`'s negative quantities, `CASE-MKT-03`'s tie rule) and five GA4 options (S7C-11) | Blind solve: 55 of 55 SQL and 5 of 5 choice PASS, `CASE-MKT-03:CP4` PASS; content review 61 OK, 0 FIX |
+| X3 | `38706b49` | Codex F38 (a run-level hold); D117 (the tutor closed during a mock); mock cases held out by record; prompts null before the plan; the grain; the case from the run's records; the take-home CP3 draft kept; the real-content test; the shape checks | Approved (Opus), 4 minors |
+| X2 | `74d28f50` | D116's two fields; the knowledge mock's shared rules (one first-answer reading, one ready rule, one answer helper); `mockRunView`'s deadline; tests for the short draw and RUN_OVER | Approved (Opus), 4 minors |
+| F2 fixes | `439e73ec` | The seams review's fix-now list: ERR-SYN-08's name and template, X2-M1, X4-M1, the X5-M2 pin; ERRATA `E-206` | The controller read the diff; no re-review (the owner's one-review rule) |
+| F2 docs | (the docs commit) | 0.7.2, CHANGELOG, README, design, roadmap, CLAUDE.md, this part, the backlog, the root README and BACKLOG, F37 and F38 `FIXED` | none |
+
+### The plan's rulings as built
+
+| ID | Ruling | As built |
+|---|---|---|
+| S7C-01 | F37: items held in another list are an option of `reserveHeldOut` | As planned. A plain run on the real bank still refuses (below) |
+| S7C-02 | F38: read the body first, then hold the run's end until the insight is logged | As planned, with `DrillRuns.holdRun` keyed by the run; the run-over 409 when the end won |
+| S7C-03 | D116: the two fields and their readers | As planned, amended by S7C-C04 for a log without `item_ids` |
+| S7C-04 | D117: the guard refuses on every screen while a mock runs | As planned; `mock_on` in `/api/tutor/status`; the panel line is S7C-C02 |
+| S7C-05 | A mock case is held out by its record as well as its folder | As planned; `caseFolder(rec)` lets C41 keep its folder message; C55 reads it for sql and mock records only |
+| S7C-06 | The grain waits for the review whenever the case lists a CP1 | As planned (no new C55 rule) |
+| S7C-07 | An ended run's case comes from its own records | As planned (`caseOfRun`) |
+| S7C-08 | Four DuckDB messages map to `ERR-SYN-08`; `GRADER_VERSION` `7c.1` | As planned; the catalogue name and template were widened in the F2 fixes (F2-4-1), and ERRATA `E-206` records it (S7C-C06) |
+| S7C-09 | C53 moves to `tools/rank-cutoffs.ts`, then learns the flag and FILTER shapes, a CTE's column list and a narrower keep-one | As planned; 822 of 822 before and after the move; two limits stated (arithmetic on a rank, a CASE label) |
+| S7C-10 | `apiCall` sends `{}`; `stubFetch` answers 415 only if it breaks 10 render tests or fewer | It broke 0, so the row closed in full |
+| S7C-11 | Each content change is solved again blind before it is committed | Done for K1 (55 SQL, 5 choice, 1 case checkpoint); `build:data` rebuilt `CASE-MKT-03`'s truth, dataset hash unchanged |
+
+### The controller's rulings
+
+| ID | Ruling | Why | Cost if wrong |
+|---|---|---|---|
+| S7C-C01 | `CLAUDE.md`'s stale MET-MKT-05 sentence is fixed in F2 with the state line, not in G0 | The owner's uncommitted trim of that file in the main checkout already conflicts with PR #53; one later edit is easier to reconcile than two | The branch carried one stale sentence until F2 |
+| S7C-C02 | The tutor panel's line during a mock is X3's new "A mock is on, so the tutor waits for its review."; the server keeps `HELP_WAITS` for the 409 | "Help opens in the end-of-run review" reads wrong on Today or a lesson during a take-home | One string |
+| S7C-C03 | X3 gets `MockSqlQuestion.tsx` and `case-flow.ts:274` after X4 committed; the C41 and C55 change in `tools/check-content.ts` waits until X5 returns, then X3 is resumed | Two agents editing `check-content.ts` at once could lose an edit | X3's review waited for X5 |
+| S7C-C04 | A knowledge run without `item_ids` (every 0.7.1 log) keeps 0.7.1's total, the larger of the file's questions and the served count; only a run with `item_ids` takes the listed count | Otherwise an old crashed run reads "5 of 5" or "0 of 0", which misstates what was asked | An old run's total still follows the file's questions value (F4-4-2's concern stays for old logs only) |
+| S7C-C05 | X2's two one-line minutes edits outside its file list (the case mock review, `openTakeHomes`) are accepted | They are N3 M1's single minutes reader | None beyond review scope |
+| S7C-C06 | ERRATA gets `E-206` (controller): S7C-08 widened `ERR-SYN-08` to HAVING, GROUP BY, aggregate and nested-window messages; grader `7c.1`; it amends `E-189` | `E-189` says WHERE only, and ERRATA is the record of every grader ID's source | One ERRATA row |
+| S7C-C07 | `E-206`'s ref column drops `E-145` (its action still says it amends E-145's message list), as `E-189` did | `tests/tools/check-errata.test.ts` pins the one entry that amends E-145 (Task 14's ERR-SYN-06 ruling) | A reader of E-145 finds E-206 by its text, not its ref |
+
+### Task reviews
+
+| Task | Outcome | Minors, and where they went |
+|---|---|---|
+| X1 | Approved, 0 Critical, 0 Important | The card tie-break uses exam-held only; the card row's columns do not add up with a pool; npm test's exit code not captured. All dropped |
+| X4 | Approved | X4-M1 (focus-flow also fires when a removed focused element drops focus to body) fixed in the F2 fixes; X4-M2 (a later non-screen sibling goes inert too) and X4-M3 (stubFetch reads plain-object headers only) dropped |
+| X5 | Approved; the controller checked the reviewer's open point (nothing outside `engine-errors.ts` branches on `ERR-SYN-02` for these messages) | X5-M1, X5-M3, X5-M4 to the backlog; X5-M2 pinned by two test cases; X5-M5 raised to Important as F2-4-1 and fixed |
+| K1 | Content review: 61 OK, 0 FIX. Blind solver: 55 of 55 SQL and 5 of 5 choice PASS | Four notes to the backlog as content rows; three dropped (the solver brief should name `starter_sql` for fix items; the content review judged Q-GA4-202, -061 and -035's distractor acceptable) |
+| X3 | Approved (Opus), 0 Critical or Important | X3-M1 dropped; X3-M2, X3-M3, X3-M4 to the backlog |
+| X2 | Approved (Opus), 0 Critical or Important | X2-M1 fixed; X2-M2 and X2-M3 dropped; X2-M4 recorded as an accepted limit (below) |
+
+### The F37 check on the shipped bank
+
+The controller ran `reserve-held-out ga4 --replace` on a scratch copy of the shipped content (deleted after): the 18
+knowledge-pool items stayed flagged (18 of 18) and out of `held-out.json` (0 of 18), the exam list kept its 50 flagged,
+and 6 exam item files were rewritten, as a `--replace` may. A plain run now reports "a different held-out pool of 50
+items" (it said 68): it still refuses on the real bank because the exam pool was built incrementally (`--extend`,
+S3-21) and differs from a fresh full draw, as before the knowledge pool existed. The closing note of F37 is corrected
+in the review log: "answers unchanged" holds when the pool equals the full draw (the fixture tests), not on the real
+bank.
+
+### The seams review
+
+One Opus reviewer over where the tasks meet, on `74d28f50`, read only. Result: 0 Critical, 1 Important, 3 Minor.
+
+| Seam | What held | Findings and fixes |
+|---|---|---|
+| 1. The tutor guard and the mock runs (X3 with X2 and X4) | Every end path reopens the tutor on the server (Hand in, Give up, the timer, a take-home's 24-hour close, a restart); a POST sweeps before the guard reads the run; nothing a run does while closed reaches the tutor | F2-1-1 (Minor): `GET /api/tutor/status` does not sweep, so `mock_on` stays past a run's limit until a POST sweeps (probed). F2-1-2 (Minor): a stale panel shows `HELP_WAITS` on Today after a 409. Both to the backlog, in X3-M4's row |
+| 2. D116 and the scoring (X2 with X3 and X4) | CP6 reads the run's own core lines in the score, the review and the rubric route; the knowledge draw and the run view name the same positions; a log without the fields replays as before | F2-2-1 (Minor): a crashed knowledge run's review has no "not reached" line. Backlog |
+| 3. The run-level hold and the run clock (X3 with X2) | A held insight is logged before the `block_close`; the score's end and the review's end are one stamp; the rebuilt take-home ends at its close. Note only: a memo sent in the last milliseconds before a take-home's 2-hour deadline can be late, because an insight is stamped when written | None |
+| 4. The grader change and the shipped content (X5 with K1) | No test pins the old diagnosis; no fix item or planted wrong can flip C05 or C17; C14 compares outcome only; K1's 55 solver records are at `7c.1` | **F2-4-1 (Important):** `ERR-SYN-08`'s catalogue name "A window function in WHERE" is the learner-facing mistake-card label, so three of the four new places got a label naming the wrong clause. Fixed in `439e73ec`: the name and template in `tools/extract.ts`, `content/sql/errors.json`, the pinned name in `tests/tools/extract.test.ts` (red first), design §12, the generator brief, `E-206` |
+| 5. The held-out paths (X1 and X3) | X1 changes only the operator command; no committed item's flags moved; S7C-05 only narrows practice; the real-content sweep passes | None |
+
+Focused runs by the reviewer: the D117, D116, S7C-02, S7C-03, S7C-C04 and F38 tests 11 of 11; a probe of the C53 reading
+of `IS TRUE` and `IS NOT FALSE`, which showed it is read, not a limit.
+
+The minors triage: fix now 4 (F2-4-1 with X5-M5, X2-M1, X4-M1, the X5-M2 pin), backlog 11 rows, drop 12. The fixes
+(`439e73ec`): RED first for the first three, `npm test` 2,976 of 2,976.
+
+### Deferred findings
+
+The 11 backlog rows added to `docs/planning/backlog.md`, by ID: X3-M4 with F2-1-1 and F2-1-2 (the tutor's mock line can
+go stale); F2-2-1 (a crashed knowledge run's review); X5-M1 (C53 reads a flag by its bare name); X5-M3 (C53's helpers
+copied in two files); X5-M4 (a window inside another window's PARTITION BY or ORDER BY stays `ERR-SYN-01`, the owner's
+call); X3-M2 (an ended case mock whose case left the content); X3-M3 (three mock shapes checked one way); and four K1
+content rows (`EX-CASE-REAL-01`'s rounding, `EX-SQL-WIN-04-E2-21`'s order with no lines, a `GA4-PRIVACY-01` explanation,
+the 23 `SQL-WIN-05` prompts' "Return N columns" line). Rows closed: 33, listed in the backlog's introduction. 12
+minors were dropped, with reasons in the seams review's triage; one is an accepted limit: a knowledge start that loses
+the start race (two tabs, one write) spends its 30 listed questions for 30 days (X2-M4, as a fixed form is spent once
+opened).
+
+### Slips
+
+- **X1 launched one no-op subagent** by mistake (the constraints forbid it). It did nothing and read nothing.
+- **X5 ran `typecheck` while X3 was mid-edit** and reported 20 errors that were X3's. The controller re-ran it on a quiet
+  tree: clean.
+- **X3 needed three files it did not own** (`tools/check-content.ts` for C41 and C55, `MockSqlQuestion.tsx` for the CP3
+  draft, `case-flow.ts` for a prompt type), granted in turn (S7C-C03). It returned NEEDS_CONTEXT, was resumed twice, and
+  finished in round 3.
+- **A reviewer could not finish its own C53 re-run**, so the controller ran `check:content --only C53` on the tree after
+  X5 and K1: 822 of 822, exit 0.
+- **The F2 fixer's first draft of the X4-M1 test passed on the old code** (it compared text, which `body` also matched); the fixer
+  tightened it to the tag name and saw it red.
+
+### The owner's steps
+
+| Step | Why |
+|---|---|
+| Reconcile the main checkout's uncommitted trim of `aydinlearns/CLAUDE.md` with the branch, then fast-forward `C:\zehirlab` | `git pull --ff-only` refused after PR #53 merged |
+| Rule whether a window inside another window's PARTITION BY or ORDER BY should be `ERR-SYN-08` (X5-M4) | It is a diagnosis change and would move `GRADER_VERSION` again |
+| Say whether 0.7.2 also gets a public `v0.7.2`, with the PR | R1 re-created the public releases (`v0.5.0` to `v0.7.1`) and did not wait for this sprint |
+| Carried: check once in Chrome that saving a key in Settings no longer offers to store it (S7-34); run the tutor eval's free `--recheck` on the saved eval folders (K1 M8) | Both need a human |
+
+### The checks
+
+| Check | Baseline (7b, `db4eaf07`) | Mid-point gate (`74d28f50`) | Final gate (after the F2 fixes and these docs) |
+|---|---|---|---|
+| `npm run typecheck` | Clean | 0 | 0 |
+| `npm test` | 2,891 of 2,891 | 2,974 of 2,974 | 2,976 of 2,976 |
+| `npm run extract` | No diff | No diff | No diff (the F2 fixes regenerated `content/sql/errors.json`'s ERR-SYN-08 entry, committed) |
+| `npm run check:imports` | Clean | 0 | 0 |
+| `npm run check:errata` | 236 entries | 0 problems | 237 entries, 0 problems (`E-206` added) |
+| `npm run check:content` | 23,731 of 23,731 (36 warnings) | 23,732 of 23,732 (36 warnings, as before) | 23,732 of 23,732 (36 warnings) |
+| `npm run build:web` | Built | 0 | 0 |
+| Pipeline tests | 291, OK | 291, OK | 291, OK |
+| `npm run test:e2e` (port 5184) | 95 of 95 | 95 of 95 rows, 0 page errors | 95 of 95 rows, 0 page errors |
+
+The README's counts line takes the final gate's 23,732 content checks, one more than 0.7.1's 23,731; no item, case or
+lesson was added in 7c.

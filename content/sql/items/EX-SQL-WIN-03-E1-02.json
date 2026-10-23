@@ -1,6 +1,6 @@
 {
   "id": "EX-SQL-WIN-03-E1-02",
-  "version": 1,
+  "version": 2,
   "kind": "write",
   "tags": [
     "sql",
@@ -39,7 +39,7 @@
   "company": "mailvora",
   "schema": "mailvora",
   "edge_schema": "mailvora_edge_win",
-  "prompt": "For each paid channel and month in budget_monthly, show the channel's budget in its month before. Within each channel, months follow each other by month. Return channel_id, month, budget_eur and prev_budget_eur. A channel's first month has no month before it: show its prev_budget_eur as missing. Any row order is fine.",
+  "prompt": "For each paid channel and month in budget_monthly, show the channel's budget in its month before. Within each channel, months follow each other by month. Return four columns, in this order: channel_id, month, budget_eur and prev_budget_eur. Return one row for each channel and month in budget_monthly. A channel's first month has no month before it: show its prev_budget_eur as missing. Any row order is fine.",
   "output_contract": {
     "columns": [
       {

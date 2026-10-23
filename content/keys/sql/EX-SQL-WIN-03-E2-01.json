@@ -1,6 +1,6 @@
 {
   "item_id": "EX-SQL-WIN-03-E2-01",
-  "item_version": 1,
+  "item_version": 2,
   "reference_sql": "WITH versions AS (\n  -- one row per product per price version\n  SELECT product_id, valid_from, list_price_eur,\n    LAG(list_price_eur) OVER (PARTITION BY product_id ORDER BY valid_from) AS prev_price\n  FROM price_history\n  WHERE product_id BETWEEN 1 AND 25\n)\nSELECT product_id, valid_from, list_price_eur,\n  ROUND(100.0 * (list_price_eur - prev_price) / prev_price, 1) AS pct_change\nFROM versions",
   "alternatives": [
     "WITH versions AS (\n  -- one row per product per price version\n  SELECT p.product_id, p.valid_from, p.list_price_eur,\n    (SELECT MAX(p2.valid_from) FROM price_history p2 WHERE p2.product_id = p.product_id AND p2.valid_from < p.valid_from) AS prev_valid_from\n  FROM price_history p\n  WHERE p.product_id BETWEEN 1 AND 25\n)\nSELECT v.product_id, v.valid_from, v.list_price_eur,\n  ROUND(100.0 * (v.list_price_eur - h.list_price_eur) / h.list_price_eur, 1) AS pct_change\nFROM versions v\nLEFT JOIN price_history h ON h.product_id = v.product_id AND h.valid_from = v.prev_valid_from",
@@ -29,11 +29,11 @@
   ],
   "hint3_partial": "WITH versions AS (\n  -- one row per product per price version\n  SELECT product_id, valid_from, list_price_eur,\n    LAG(list_price_eur) OVER (PARTITION BY product_id ORDER BY valid_from) AS prev_price\n  FROM price_history\n  WHERE product_id BETWEEN 1 AND 25\n)\nSELECT product_id, valid_from, list_price_eur,\n  ROUND(100.0 * (___) / prev_price, 1) AS pct_change\nFROM versions",
   "solver": {
-    "prompt_hash": "6c953782114b958b",
+    "prompt_hash": "838770ced278c07d",
     "schema_version": "e8cea7c4eacc",
-    "dataset_version": "e7c58abf7e8f892e",
-    "grader_version": "7a.1",
-    "query": "SELECT product_id, valid_from, list_price_eur,\n  ROUND(100.0 * (list_price_eur - LAG(list_price_eur) OVER (PARTITION BY product_id ORDER BY valid_from))\n    / LAG(list_price_eur) OVER (PARTITION BY product_id ORDER BY valid_from), 1) AS pct_change\nFROM price_history\nWHERE product_id BETWEEN 1 AND 25\n",
-    "at": "2026-10-21T09:05:07.371Z"
+    "dataset_version": "ef4aa0325da6ea43",
+    "grader_version": "7c.1",
+    "query": "SELECT product_id, valid_from, list_price_eur, ROUND(100.0 * (list_price_eur - LAG(list_price_eur) OVER (PARTITION BY product_id ORDER BY valid_from)) / LAG(list_price_eur) OVER (PARTITION BY product_id ORDER BY valid_from), 1) AS pct_change FROM price_history WHERE product_id BETWEEN 1 AND 25\n",
+    "at": "2026-10-22T18:09:34.884Z"
   }
 }

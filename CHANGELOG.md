@@ -10,11 +10,115 @@ come from git.
 0.5.0 is the first release. Slices 0 and 1a are the first application code; the entries before
 them are research and planning.
 
+## 0.7.2 (2026-10-22)
+
+Sprint 7c, fix and polish: Codex F37 and F38, the two fields on the mock's start record (D116), the tutor closed while
+any mock runs (D117), the grader's window-function diagnosis, wider checks on rank cut-offs, clearer prompts and 33
+backlog rows closed (D118). No new feature. No public release yet. On 2026-10-23, R1 re-created the earlier public
+releases under the new numbers, `v0.5.0` to `v0.6.2`, on the same commits; the `v1.x` tags are gone.
+
+| What 0.7.2 changes | In short |
+|---|---|
+| The tutor during a mock | Closed on every screen while any mock runs, with one line saying why. It opens in the review once the run ends |
+| The mock's start record | A knowledge mock records its 30 questions and a case mock records its core rubric lines, so a later content edit cannot change a past run |
+| The grader | A window function in HAVING, GROUP BY, an aggregate or another window is told apart from a misspelt name (`GRADER_VERSION` `7c.1`) |
+| Prompt wording | 55 SQL prompts (level 5 and two cases) and five GA4 questions say more precisely what they ask. No answer changed |
+| Two Codex findings | F37 (an operator command) and F38 (a race of milliseconds) are fixed with a test that failed first |
+
+### Changed
+
+- Log format version 7 gains two optional fields on `mock_open` (D116, S7C-03), additive like `pass_correct`: a knowledge
+  mock's `item_ids` (the drawn questions, in serve order) and a case-round or take-home mock's `core_rubric` (the core
+  lines its start read). The next draw counts every listed question as shown at the start, which closes the crash gap of
+  0.7.1 (S7-C36), and a finished run's total is its listed count. A case mock is scored, reviewed and ticked on its own
+  lines, so a later edit to the file no longer rescores past runs or takes back a met stage (F4-4-1). A 0.7.1 log has
+  neither field and reads exactly as before: a knowledge run's total stays the larger of the file's questions and the
+  count served (S7C-C04).
+- The tutor is closed while any mock runs (D117, S7C-04), on every screen: Today, a lesson, Progress, the Recruiter mocks
+  screen and the review of an earlier mock, the second opinion included. The panel shows "A mock is on, so the tutor
+  waits for its review." without a request, and the server refuses with `help_waits`, as the screens inside a run did.
+  A take-home counts as running until it is handed in or closes at 24 hours. Drills and GA4 runs keep their timed
+  screens only (D94).
+- `GRADER_VERSION` is `7c.1` (S7C-08, ERRATA `E-206`). The four DuckDB messages for a window function in HAVING, in
+  GROUP BY, inside an aggregate or inside another window diagnose `ERR-SYN-08`, which used to be WHERE only. Before,
+  they read as a misspelt name (`ERR-SYN-02`). Its feedback and its mistake-card label now name every place a window
+  function cannot go. Pass and fail, the partial score and the logged checks do not change, and no shipped query makes
+  any of the four messages.
+- C53 (a key that filters a ranking result states its tie rule) moved to `tools/rank-cutoffs.ts` with the same result on
+  all 822 shipped write and fix items (S7C-09). It now also reads a flag made in the SELECT list and filtered outside
+  (`WHERE top`, `top = true`, `top IS TRUE`), an aggregate's `FILTER` clause, and a CTE's or subquery's column list. Its
+  keep-one exemption now needs an ID column and the right direction ("lowest" with ascending, "highest" with
+  descending). Two limits are stated in the code and in the generator brief: arithmetic on a rank before the comparison,
+  and a label (a CASE) filtered outside. Two shipped keys are newly read as having a cut-off, and both pass.
+- The knowledge mock's shared rules (X2): one first-answer reading for the score and the history, so a section row can no
+  longer differ from the run's row; one "pool ready" rule for the draw, the card, the goal view and C56, with its own
+  line when the Methodology pool is short ("The knowledge mock's Methodology questions are not ready yet."); one helper
+  that logs a run answer for the GA4 and knowledge branches; one minutes reader and one deadline for the mock runs.
+- A mock case is held out by its record as well as its folder (S7C-05): a record whose ID starts `CASE-MOCK-` or
+  `CASE-TAKE-`, or whose kind is `case_round` or `take_home`, loads into the mock map wherever it sits. C41 keeps its
+  folder message. A test now sends every mock, pool and held-out ID to the practice routes and expects 404.
+- In a case mock, a checkpoint's prompt is not sent until the plan names the block (F4-2-5), the grain waits for the
+  review whenever the case lists a CP1 (S7C-06), and a finished run's case comes from its own records, not the form
+  (S7C-07).
+- Level 5 prompts (K1): `SQL-WIN-03` and `-04` write and fix prompts say "Return N columns, in this order:" and "one row
+  for each" like the other levels (45 prompts); seven Voltmarkt prompts say that `order_date` is a UTC day;
+  `EX-SQL-WIN-05-E1-07` says no two checks share a moment; `EX-CASE-REAL-01` says how a negative quantity counts on an
+  invoice that is not a cancellation; `CASE-MKT-03` states its last-touch tie rule (the session ID breaks it) and its
+  truth was rebuilt; five GA4 questions no longer carry the concept title in the correct option. Each changed item was
+  solved again blind and passed; no answer changed.
+- The tutor eval's leak checks read a leading minus and skip comma groups that are not thousands, and the SQL-leak check
+  joins only the spans that read as SQL (X5).
+- The tutor panel's inert page also covers content that mounts while the panel is open (X4).
+
+### Fixed
+
+- Codex F37: `reserve-held-out ga4 --replace` no longer touches the knowledge pool. The 18 pool questions count as held
+  for enemy groups and card floors, are never drawn, and stay flagged. A plain run on a bank where the exam pool equals
+  a fresh full draw answers "unchanged" again. On the shipped bank a plain run still refuses, because the exam pool was
+  built incrementally (`--extend`), as before 7b. It is an operator command; no learner could meet it.
+- Codex F38: a case mock's insight sent in the last milliseconds of the run is now logged before the run's close, or
+  refused with the run-over answer and not logged at all. Nothing follows a `block_close` and counts for CP6.
+- The mistake card for a window function outside WHERE (in HAVING, in GROUP BY, in an aggregate or in another window)
+  names the right place, not WHERE alone. Found by the seams review; the label is learner-facing.
+- A screen mock's review after a crash says how many questions were not reached, instead of reading "5 of 12" over
+  five listed questions (N3 M4).
+- The knowledge run moves keyboard and screen-reader focus to the next question, or to Hand in on the last, after a save
+  (N1 M8).
+- A page that draws after a route change no longer takes focus from a field you already clicked into, including when a
+  focused field is removed meanwhile (B1, X4-M1).
+- A take-home's typed query in the CP3 step is kept when the step reopens on its new instance after a restart.
+- A knowledge run's section rows no longer add up to more than its total when a question's topic has left the content
+  (X2-M1).
+- Every POST sends a JSON body, so none can meet the server's 415 (F4-2-2); the render tests' fake fetch now answers 415
+  to one that does not.
+- An ended case mock whose form changed after the run shows the case the run was taken on and ticks its own rubric
+  (F4-4-3).
+
+### Known issues
+
+- A tutor reply already streaming when the tutor closes for a mock is not stopped (Codex F39). This needs a question sent
+  just as a mock starts in another tab. The panel shows only the waiting line, so the reply is not seen during the mock,
+  but the call runs to its end and is billed. The reply then shows in the thread after the mock.
+- The tutor panel's mock line can go stale: it reads the server on a screen change or when opened, so a case round's
+  timer or a take-home's 24-hour close can leave "A mock is on" up until the next change. The status itself says
+  `mock_on` past the limit until a request sweeps, and a stale open panel shows "Help opens in the end-of-run review."
+  on Today after a refusal. The server's refusal is always right.
+- A crashed knowledge run's review does not say how many questions it never showed, though the count is now known.
+- A window function inside another window's PARTITION BY or ORDER BY is still told as a syntax error (`ERR-SYN-01`),
+  because DuckDB gives a Parser Error there. Mapping it is a diagnosis change for the owner to rule on.
+- A knowledge start that loses a start race (two tabs, one write) spends its 30 listed questions for 30 days. Accepted.
+- Four content notes wait for a blind re-solve: `EX-CASE-REAL-01` does not say whether net revenue is the difference of
+  rounded or unrounded amounts, `EX-SQL-WIN-04-E2-21` does not cover an order with no lines, a `GA4-PRIVACY-01`
+  question's explanation speaks of the other mode, and the 23 `SQL-WIN-05` write and fix prompts lack the "Return N
+  columns" line.
+- The reviews left 11 rows in `docs/planning/backlog.md`, the ones above and four code details (C53 matches a flag by
+  its bare name, three helpers copied in two files, a case whose record left the content, three web shapes checked one way). None blocks a run.
+
 ## 0.7.1 (2026-10-22)
 
 The other three recruiter mocks (sprint 7, Part 2): the knowledge interview, the case round and the take-home, with the
-Recruiter mocks screen complete (stages 3 to 5 live) and the tutor's second opinion in a case mock's review. No public
-release yet (R1 re-creates the public releases).
+Recruiter mocks screen complete (stages 3 to 5 live) and the tutor's second opinion in a case mock's review. Released
+publicly as `v0.7.1` on 2026-10-22.
 
 | What 0.7.1 adds | In short |
 |---|---|
@@ -57,7 +161,8 @@ release yet (R1 re-creates the public releases).
   the course database build and the launcher read `content/sql/mocks/`, and C47 and C54 read the mock cases.
 - C56 (the knowledge pool's shape), and C25 reading the pool as a second held-out list for GA4 (S7-C26).
 - `reserve-held-out --release-list` (K3, S7-38): releases a named held-out item and adds a candidate, the total
-  unchanged, for the MET-MKT-05 swap.
+  unchanged, for the MET-MKT-05 swap. The swap ran before the merge (K3 Step 5, with the owner's logs): `Q-MET-MKT-05-01`,
+  whose answer sits in its reading, is back in practice, and `Q-MET-MKT-05-02` is held out in its place (93 held out).
 - Browser smoke rows 7b-1 to 7b-5.
 
 ### Changed
@@ -94,9 +199,6 @@ release yet (R1 re-creates the public releases).
 
 ### Known issues
 
-- The owner's MET-MKT-05 swap (K3 Step 5) has not run. Until it does, the knowledge mock can draw `Q-MET-MKT-05-01`,
-  whose answer sits in its reading, and once a run serves it the swap refuses (F4-1-3). Run the swap before the
-  knowledge mock.
 - A crash that leaves no close for an unanswered knowledge question keeps that question's gap in the next draw
   (S7-C36's cost).
 - The F4 round added 30 rows to `docs/planning/backlog.md`. The ones a learner could meet: a section row of the knowledge

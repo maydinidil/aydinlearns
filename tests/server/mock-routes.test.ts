@@ -528,3 +528,15 @@ test('Codex F35 (S7-C34): after its form\'s item is replaced and the pass mark r
   assert.deepEqual(review.items.map((i: any) => [i.item_id, i.outcome]), run.servings.map((s, k) => [s.item_id, k < 5 ? 'passed' : 'failed']),
     'the questions its instances served, in their order, never the current form');
 });
+
+test('N3 M4: after a crash the review lists what the run reached and says how many questions it did not reach; a run handed in reaches all', async () => {
+  const { app, d, run } = await started();
+  await submit(app, run.servings[0]!, RIGHT);
+  const again = createApp(await deps(fakeClock(), content, d.dir));        // a crash: recovery ended the run, nothing more was written
+  const review = await json(get(again, `/api/mocks/${run.block_id}/review`));
+  assert.deepEqual([review.correct, review.total, review.items.length, review.not_reached], [1, 6, 1, 5], 'one listed, five not reached');
+  const second = await started();
+  for (const s of second.run.servings) await submit(second.app, s, RIGHT);
+  await post(second.app, '/api/mocks/end', { block_id: second.run.block_id });
+  assert.equal((await json(get(second.app, `/api/mocks/${second.run.block_id}/review`))).not_reached, 0);
+});
