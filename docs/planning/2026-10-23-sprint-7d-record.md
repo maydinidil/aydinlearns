@@ -178,3 +178,19 @@ test failed on the unfixed route (`[500, 200]`) and passes now.
 | `npm run test:e2e` (port 5184) | | 95 of 95 rows, 0 page errors; * the same |
 
 The README's counts line takes the gate's numbers.
+
+## After the merge
+
+Written on the sprint 8 branch (2026-10-24), as the release skill's step 6 asks.
+
+| What | Result |
+|---|---|
+| The PR | PR #55, pushed and opened at Aydin's go on 2026-10-23; 17 commits over `a265c267` |
+| Codex | Two line comments, both P2 and confirmed, both fixed on the branch before the merge under D119, at Aydin's go on each fix plan: F40 (`a5323f4f`) and F41 (`dad3916d`), which Codex's review of the F40 fix found. Its review of `dad3916d` found no major issues. claude-review passed |
+| The merge | Merged by the controller at Aydin's word ("fix it and then merge and do the public release") on 2026-10-24 (merge commit `d73d56ce`); the remote branch kept. The task branches `wt/7d-y1` to `-y3` were deleted: `y1` is in `main`, and `git cherry` shows the `y2` and `y3` commits in `main` as their cherry-picks |
+| Public copy | `tools/export-public.sh <clone> origin/main` exported `d73d56ce` as `389836c` (145 files changed). `tools/release-check.ts`, in its first real run, found 0 hits for both real key prefixes and none for a key-shaped `sk-` string, an email address, the user folder, a session link or a forbidden path, with one NOTE: monorepo path, 1 added line. Pushed `4c24971..389836c` |
+| The NOTE | The check takes the monorepo's path from the folder it runs in. Run from the sprint worktree, it counted the one added line that names the worktree's folder (the 7d plan), and not the four added lines that name `C:\zehirlab` (the release skill twice, the sprint 7 record, the 7d plan). All five are lines ruling S7D-C04 lets through, so the release stands; the miscount is a backlog row |
+| Install check | The export's tree, unpacked in a temporary folder and set up by the launcher on 5194 (temporary logs, journey and keys file; both key variables unset; telemetry off), listened after 74 s. Through the API: version 0.7.3 (`package.json` 0.7.3) with 9 of 9 checks, grader `7d.1` and dataset `812a89282cfa8602`; the tutor off, a question refused with 404 `tutor_off`; Today answered for SQL, GA4 and Methodology; `EX-SQL-BASICS-01-E1-01` graded a pass; the mocks view listed 6 stages and 4 mocks, with no run on; the screen mock started on `SCREEN-A` with 6 questions, its review was refused (409) while it ran, and its end opened a review of 6 results. No `logs/`, `journey/`, keys file or `.env` appeared in the tree. The server was stopped by its process ID; 5194 was free and the folders deleted. `RESULT: PASS (15 of 15)` |
+| Tag and release | At Aydin's word: `v0.7.3` on `389836c`, release "aydinlearns 0.7.3", Latest (2026-10-24). The notes cover what 0.7.3 changes, the five 0.7.2 known issues now fixed (F39 first), what is never written or sent, updating (log version 8 with one new record, no package change), and three known issues. F40 and F41 never shipped, so the notes do not list them |
+| Aydin's checkout | With nothing listening on 5174, `C:\zehirlab` was fast-forwarded from `a265c267` to `d73d56ce`. Its uncommitted `aydinlearns/CLAUDE.md` (Aydin's trim, put back after 7c's pull) differed from the merged file only in the summary paragraph W2 replaced. It was copied to the session's scratch folder, restored to the committed file, then pulled: the trim stays, and the paragraph takes W2's one line (the old paragraph is also `a265c267`'s). 7c's named stash of the original trim is still there for Aydin to drop. `nabiz/CLAUDE.md` and the untracked folders were not touched. At the next start, the launcher rebuilds the data and the screens |
+| The public copy's docs | The public CHANGELOG and roadmap still say 0.7.3 is not released, and the public 7d record has no section like this one; the status lines and this section on this branch correct them at the next export |

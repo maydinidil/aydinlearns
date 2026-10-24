@@ -55,7 +55,7 @@ learner's effort is never the lever. Every slice goes live before the goal it se
 | T (done) | AI tutor | 2026-10-17 | All goals: help that teaches on every screen | Done: the tutor's "done when" is met (smoke rows on the fake model; the live eval 20 of 20 on `claude-haiku-5-5`); release 0.6.2. See [the sprint T record](2026-10-16-sprint-t-record.md) |
 | 7 (done) | 6 | 2026-11-20 | G-STAGE-2 to 5 and G-RECRUITMENT-READY (2026-12-11): the recruiter mocks; applications go out | Done: every recruiter mock runs end to end, and the readiness board shows all six stages. Part 1 as 0.7.0 (2026-10-21): level 5 and the screen mock; Part 2 as 0.7.1 (2026-10-22): the knowledge, case-round and take-home mocks. Released as the public `v0.7.1` (2026-10-22). See [the sprint 7 record](2026-10-21-sprint-7-record.md) |
 | 7c (done) | 6 (fix and polish) | 2026-10-22 | None of its own: it clears the findings and backlog rows the sprint 7 mocks left | Done as 0.7.2 (2026-10-22): Codex F37 and F38 fixed, the tutor closed while any mock runs (D117), two log fields on `mock_open` (D116), the grader's window-function diagnosis, wider C53, clearer prompts, and 33 backlog rows closed. Released as the public `v0.7.2` (2026-10-23). See [the sprint 7 record](2026-10-21-sprint-7-record.md), its "Sprint 7c (0.7.2)" part |
-| 7d (due) | 6 (fix and polish) | 2026-10-23 | None of its own: it clears the backlog rows the 7c reviews left | Due as 0.7.3 (2026-10-23): log format version 8, the grader's `ERR-SYN-08` for a window in a window definition (`GRADER_VERSION` `7d.1`), the tutor's mock line kept current, edge data plants, the release check script and skill, and 20 backlog rows closed. Merged: due. Released: due. See [the sprint 7d record](2026-10-23-sprint-7d-record.md) |
+| 7d (done) | 6 (fix and polish) | 2026-10-23 | None of its own: it clears the backlog rows the 7c reviews left | Done as 0.7.3 (2026-10-23): log format version 8, the grader's `ERR-SYN-08` for a window in a window definition (`GRADER_VERSION` `7d.1`), the tutor's mock line kept current, edge data plants, the release check script and skill, and 20 backlog rows closed. Codex F40 and F41 fixed before the merge. Released as the public `v0.7.3` (2026-10-24). See [the sprint 7d record](2026-10-23-sprint-7d-record.md) |
 | 8 | 7 | 2026-12-07 | G-SQL-LEVEL-6 (2026-12-23): business patterns and SaaS cases | Level 6 is completable; SaaS cases pass on LedgerLoop |
 | 9+ | rest of v1 | January onward | G-SQL-LEVEL-7 (2027-01-29) | Not set in the design yet; set it when planning |
 | Future | post-v1 (2.0 or later) | no date | | |
@@ -441,14 +441,14 @@ No new feature. Plan
 [`docs/superpowers/plans/2026-10-23-aydinlearns-sprint-7d.md`](../superpowers/plans/2026-10-23-aydinlearns-sprint-7d.md),
 decisions D119 to D123, rulings S7D-01 to S7D-13.
 
-**Status: 0.7.3 (2026-10-23), merged: due, released: due.** Built: Codex F39 fixed; log format version 8 with `run_open`
+**Status: done as 0.7.3 (2026-10-23), the public `v0.7.3` (2026-10-24).** Built: Codex F39 fixed, and F40 and F41 (PR #55) before the merge; log format version 8 with `run_open`
 (D123); a window in another window's definition diagnosed `ERR-SYN-08` and mixed NULL placement free
 (`GRADER_VERSION` `7d.1`, D121); the division note's control on one runner instance; C53 scoped to its own query; the
 tutor's mock line kept current; the stale CP3 run, the crashed knowledge review and the case that left the course
 fixed; "Other ways" and the export agreeing with replay; 26 items reworded and solved again blind; three edge data plants
 (seven objects moved); the release check script and skill; one status source; and the owner checklist
 ([`owner-tasks.md`](owner-tasks.md)). It closed 20 backlog rows and moved five to the checklist. The "done when" holds
-once the final gate and the release pass. Its rulings, reviews, slips and checks are in
+now that the final gate and the release have passed. Its rulings, reviews, slips and checks are in
 [the sprint 7d record](2026-10-23-sprint-7d-record.md).
 
 ## Sprint 8: slice 7, SQL level 6, LedgerLoop, more real data

@@ -14,7 +14,7 @@ them are research and planning.
 
 Sprint 7d, second fix and polish: log format version 8 (D123), a window inside another window's definition told apart
 (D121), the tutor's mock line kept current, 20 more backlog rows closed, the release check script and skill, and one
-status source (D119). No new feature. Not yet released.
+status source (D119). No new feature. Released as the public `v0.7.3` on 2026-10-24.
 
 | What 0.7.3 changes | In short |
 |---|---|
