@@ -60,7 +60,7 @@ test('the logger writes the record as version 6; the journey gets its counts and
     await logger.tutorAsked(asked({ ts: new Date().toISOString() }));
     await stopJourney();
     const [file] = await readdir(dir);
-    assert.match(await readFile(join(dir, file!), 'utf8'), /"record":"tutor_asked","schema_version":7/);
+    assert.match(await readFile(join(dir, file!), 'utf8'), /"record":"tutor_asked","schema_version":8/);
     const events: JourneyRecord[] = [];
     for (const f of await readdir(jdir)) events.push(...(await readFile(join(jdir, f), 'utf8')).trim().split('\n').map((l) => JSON.parse(l) as JourneyRecord));
     const e = events.find((x) => x.event === 'tutor_asked')!;

@@ -170,3 +170,62 @@ test('Review Focus 4: a replay with other_way_opened records gives the same rati
   const flat = (r: ReturnType<typeof replay>) => JSON.stringify([[...r.cards], [...r.instances], [...r.concepts], [...r.mistakeCards], r.warnings]);
   assert.equal(flat(replay(after2, events, opts)), flat(replay(before, events, opts)));
 });
+
+// S7D-05: one meaning of "passed". A live instance is judged by replay's rule (core/rating.ts countsAsPass: a pass with no reveal, "Show
+// answer" or hint 2 or more, before the first graded attempt), read from its own logged records (core/live-pass.ts), as a closed one is.
+test('S7D-05: the route agrees with replay for a live and a closed instance: a pass after "Show answer" or hint 2 is NOT_PASSED; a clean pass still opens', async () => {
+  const { app, d, opened } = await setup();
+  const id = WITH[0]!;
+  const showAnswer = (inst: string) => post(app, '/api/show-answer', { item_id: id, item_instance_id: inst, phase: 'free' });
+  const hint = (inst: string, level: 1 | 2) => post(app, '/api/hint', { item_id: id, item_instance_id: inst, level, phase: 'free' });
+  const cases: [string, (inst: string) => unknown, boolean][] = [
+    ['a clean pass', async () => {}, true],
+    ['"Show answer" before any attempt', showAnswer, false],
+    ['hint 2 before any attempt', (inst) => hint(inst, 2), false],
+    ['hint 1 before the pass', (inst) => hint(inst, 1), true],
+    ['a fail, then "Show answer"', async (inst) => { await submit(app, id, inst, 'SELECT city FROM stores'); await showAnswer(inst); }, true],
+  ];
+  let n = 0;
+  for (const [why, before, opens] of cases) {
+    const inst = `I-S7D-${++n}`;
+    await before(inst);
+    assert.equal((await (await submit(app, id, inst, RIGHT)).json() as any).outcome, 'pass', why);
+    const live = await ask(app, id, inst);
+    assert.equal(live.status, opens ? 200 : 409, `live: ${why}`);
+    if (!opens) assert.equal(((await live.json()) as any).code, 'NOT_PASSED', `live: ${why}`);
+    await post(app, '/api/item-close', { item_id: id, item_instance_id: inst, reason: 'pass', phase: 'free' });
+    assert.equal(d.state.current().instances.get(inst)?.countsAsPass, opens, `replay: ${why}`);
+    assert.equal((await ask(app, id, inst)).status, opens ? 200 : 409, `closed: ${why}`);
+  }
+  assert.equal((await opened()).length, 2 * cases.filter((c) => c[2]).length, 'one other_way_opened per served response, none for a refusal');
+});
+
+// Review finding Y3-R1: the panel offers the button after any pass (web/src/lib/other-way.ts) and shows the server's own sentence on a
+// refusal, so a pass that does not count gets a sentence that says why, live and closed, still with the code NOT_PASSED. A refusal with no
+// pass keeps the old sentence.
+const AFTER_REVEAL = 'Other ways open after a pass without "Show answer" or hint 2. This pass came after one of them.';
+const NO_PASS = 'Other ways open after you pass this exercise.';
+test('Y3-R1: a pass after "Show answer" or hint 2 is refused with its own sentence, live and closed; no pass keeps the old one', async () => {
+  const { app, opened } = await setup();
+  const id = WITH[0]!;
+  const showAnswer = (inst: string) => post(app, '/api/show-answer', { item_id: id, item_instance_id: inst, phase: 'free' });
+  const hint = (inst: string, level: 1 | 2) => post(app, '/api/hint', { item_id: id, item_instance_id: inst, level, phase: 'free' });
+  const refusal = async (r: Response | Promise<Response>) => { const res = await r; const body = await res.json() as any; return [res.status, body.error, body.code]; };
+  const cases: [string, (inst: string) => Promise<unknown>, string][] = [
+    ['"Show answer", then a pass', async (inst) => { await showAnswer(inst); await submit(app, id, inst, RIGHT); }, AFTER_REVEAL],
+    ['hint 2, then a pass', async (inst) => { await hint(inst, 1); await hint(inst, 2); await submit(app, id, inst, RIGHT); }, AFTER_REVEAL],
+    ['a fail only', async (inst) => { await submit(app, id, inst, 'SELECT city FROM stores'); }, NO_PASS],
+    ['"Show answer", then a fail', async (inst) => { await showAnswer(inst); await submit(app, id, inst, 'SELECT city FROM stores'); }, NO_PASS],
+    ['hint 1 only', async (inst) => { await hint(inst, 1); }, NO_PASS],
+  ];
+  let n = 0;
+  for (const [why, steps, sentence] of cases) {
+    const inst = `I-R1-${++n}`;
+    await steps(inst);
+    assert.deepEqual(await refusal(ask(app, id, inst)), [409, sentence, 'NOT_PASSED'], `live: ${why}`);
+    await post(app, '/api/item-close', { item_id: id, item_instance_id: inst, reason: 'left', phase: 'free' });
+    assert.deepEqual(await refusal(ask(app, id, inst)), [409, sentence, 'NOT_PASSED'], `closed: ${why}`);
+  }
+  assert.deepEqual(await refusal(ask(app, id, 'I-R1-never')), [409, NO_PASS, 'NOT_PASSED'], 'an instance nobody submitted on');
+  assert.equal((await opened()).length, 0, 'a refusal logs nothing');
+});

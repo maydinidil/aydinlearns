@@ -6,7 +6,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { blueprintOn, parseGa4Exam, type Ga4ExamConfig } from '../../schemas/ga4-exam.ts';
-import { choiceRuns } from '../../server/run.ts';
+import { blueprintFrom, choiceRuns } from '../../server/run.ts';
 import type { ChoiceItem } from '../../schemas/choice.ts';
 
 const raw = JSON.parse(await readFile(fileURLToPath(new URL('../../content/ga4/exam.json', import.meta.url)), 'utf8')) as Record<string, unknown> & {
@@ -84,9 +84,12 @@ test('blueprintOn picks the latest entry from on or before the date, and the fir
 
 const TOPIC = 'T-GA4-01';
 const itemOf = (id: string): ChoiceItem | undefined => (id.startsWith('Q-INV-') ? ({ id, section: 'ga4', topic_id: TOPIC } as unknown as ChoiceItem) : undefined);
-/** An ended half-mock on `day`: 25 questions, `right` of them answered right, the rest wrong; every item closed run_end. */
-function halfMock(block: string, day: string, right: number): object[] {
-  const at = (s: number) => new Date(Date.parse(`${day}T10:00:00Z`) + s * 1000).toISOString();
+/**
+ * An ended half-mock on `day`: 25 questions, `right` of them answered right, the rest wrong; every item closed run_end. Its first instance
+ * starts at 10:00 UTC, or at `first` (ms) when given.
+ */
+function halfMock(block: string, day: string, right: number, first = Date.parse(`${day}T10:00:00Z`)): object[] {
+  const at = (s: number) => new Date(first + s * 1000).toISOString();
   const out: object[] = [];
   for (let n = 0; n < 25; n++) {
     const id = `${block}-I${n}`, item = `Q-INV-${block}-${n}`;
@@ -113,4 +116,26 @@ test('F14: a past half-mock is scored with its own date\'s entry after a later e
     ['half_mock', '2026-11-05', 20, 30, 67, 90, false],
     ['half_mock', '2026-10-20', 20, 25, 80, 80, true],
   ], 'the October run keeps 25 questions and 80%; only a run from 1 November on is scored with the new entry');
+});
+
+// ---- D123 (backlog M-B4-4): a run is dated by its run_open ------------------------------------------------------------------------
+
+test('D123 (M-B4-4): a half-mock started at 23:58 on the eve of an entry\'s start day and first answered after midnight keeps the entry in force when it started with its run_open, and takes the new day\'s entry without one', () => {
+  // 31 October 2026, 23:58 in Amsterdam (CET, UTC+1), is 22:58 UTC; the first question's instance starts at 00:00:30 on 1 November.
+  const records = halfMock('EVE', '2026-10-31', 20, Date.parse('2026-10-31T23:00:30Z'));
+  const score = (r: { kind: string; date: string; started_at: string; pass_pct: number; score: { correct: number; of: number; pct: number; pass: boolean } }) =>
+    [r.kind, r.date, r.started_at, r.score.correct, r.score.of, r.score.pct, r.pass_pct, r.score.pass];
+  const opened = [{ record: 'run_open', schema_version: 8, ts: '2026-10-31T22:58:00.000Z', block_id: 'EVE', run_kind: 'half_mock', blueprint_from: '2026-10-06' }, ...records];
+  assert.deepEqual(choiceRuns(opened, { cfg: twoEntries(), itemOf }).map(score), [['half_mock', '2026-10-31', '2026-10-31T22:58:00.000Z', 20, 25, 80, 80, true]],
+    'dated by its run_open: the entry from 6 October, which its start used (25 questions, 80%)');
+  assert.deepEqual(choiceRuns(records, { cfg: twoEntries(), itemOf }).map(score), [['half_mock', '2026-11-01', '2026-10-31T23:00:30.000Z', 20, 30, 67, 90, false]],
+    'a version 7 log, dated by its earliest record as before: the entry from 1 November (30 questions, 90%)');
+});
+
+test('D123: blueprintFrom names the entry blueprintOn takes its blueprint from, for every kind, as a run_open logs it', () => {
+  const cfg = twoEntries();
+  for (const kind of ['mini_drill', 'half_mock', 'full_mock'] as const) {
+    assert.deepEqual(['2026-10-01', '2026-10-06', '2026-10-31', '2026-11-01', '2027-03-01'].map((d) => blueprintFrom(cfg, kind, d)),
+      ['2026-10-06', '2026-10-06', '2026-10-06', '2026-11-01', '2026-11-01'], kind);
+  }
 });

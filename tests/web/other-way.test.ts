@@ -12,6 +12,7 @@ test('it shows only after a pass, only when the item has one, and never inside a
   assert.equal(otherWayOffered({ ...on, passed: false }), false, 'before a pass');
   assert.equal(otherWayOffered({ ...on, inRun: true }), false, 'help waits until the end of the run');
   assert.equal(otherWayOffered({ hasOtherWay: true, passed: false, inRun: true }), false);
+  assert.equal(otherWayOffered({ ...on, revealed: true }), false, 'S7D-05: a pass after "Show answer" or hint 2, before any graded attempt, does not count');
 });
 
 test('the wording is plain English: no em dash, no gendered pronoun', () => {

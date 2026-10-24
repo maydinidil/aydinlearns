@@ -11,10 +11,12 @@ export type RunnerRequest =
   /** The portability lint's parse tree (Task B10): the gate, then json_serialize_sql on the gated text. Nothing runs. */
   | { id: number; op: 'parse_tree'; schema: string; allowedSchemas: string[]; sql: string }
   /**
-   * `integerDivision` (S4B-24, Task E3): run on the child's second locked instance, the same read-only file with integer_division
-   * on (spike A X9), through the same gate and deadline. Only the grader's re-run after a pass asks for it.
+   * `division` runs the display on the child's second locked instance, the same read-only file, through the same gate and deadline.
+   * 'integer' (S4B-24, Task E3) runs it with integer_division on (spike A X9); 'control' (S7D-09, sprint 7d; S4C-07) runs it there with
+   * integer division off, on that instance's control connection, so the D52 control and the integer run share one instance. Left out,
+   * the display runs on the first instance. Only the grader's integer division check after a pass sets it.
    */
-  | { id: number; op: 'display'; schema: string; allowedSchemas: string[]; sql: string; cap: number; deadlineMs: number; integerDivision?: boolean }
+  | { id: number; op: 'display'; schema: string; allowedSchemas: string[]; sql: string; cap: number; deadlineMs: number; division?: 'integer' | 'control' }
   | { id: number; op: 'one_row'; schema: string; sql: string; deadlineMs: number }
   | { id: number; op: 'rows'; schema: string; sql: string; limit: number; deadlineMs: number }
   | { id: number; op: 'app_query'; sql: string }

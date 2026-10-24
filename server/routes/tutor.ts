@@ -58,7 +58,7 @@ export interface TutorTarget { item_instance_id: string; item_id: string; target
 export interface TutorRoutes {
   /** Null: no tutor (an app built without one); every route answers that it is off. */
   runtime: TutorRuntime | null;
-  runs: Pick<DrillGate, 'running'> & { current(): Pick<RunEntry, 'plan'> | undefined };
+  runs: Pick<DrillGate, 'running' | 'sweep'> & { current(): Pick<RunEntry, 'plan'> | undefined };
   target(b: Record<string, unknown>): TutorTarget | null;
   /** I1 (T-16): the named instance's phase hides labels whatever its state (live, served, closed), or the browser's own phase does. */
   hides(b: Record<string, unknown>): boolean;
@@ -104,7 +104,8 @@ export function mountTutor(app: Hono, d: RouteDeps, t: TutorRoutes): void {
     };
   };
 
-  app.get('/api/tutor/status', (c) => c.json(statusView()));
+  // S7D-01 (X3-M4): a run past its limit ends before the status answers, so `mock_on` and `run_on` end at the limit, not at the next write.
+  app.get('/api/tutor/status', async (c) => { await t.runs.sweep(); return c.json(statusView()); });
 
   // T-20. Nothing here logs, observes or throws with the body: a refusal names the rule, never the value sent.
   app.post(TUTOR_KEY_PATH, async (c) => {

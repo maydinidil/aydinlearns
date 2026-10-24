@@ -317,6 +317,12 @@ The drill's score history is shown, not only pass or fail.
   - from slice 3, an **"other ways to write this"** panel: one genuinely different correct
     method with a one-line trade-off, hidden when the alternatives are only cosmetic. In timed
     drills and mocks it appears in the end-of-run review. Opening it never changes a rating.
+  **(amended 2026-10-23, sprint 7d, 0.7.3)** It opens only after a pass that counts: the route judges a live instance by
+  replay's rule (`countsAsPass`, S7D-05), so a pass after "Show answer" does not open it. The portfolio export marks a CP3
+  query that follows an `other_way_opened` for its instance and equals the item's other-way SQL once whitespace and case
+  are squashed with "This query followed Other ways." (S7D-04). It needs no log record, because the panel opens only
+  after a pass, so the comparison tells a copy from the learner's own query. A copy pasted into a later instance of the
+  same item is not marked.
 - **Portability notes** on the learner's own query (§6).
 - **The help controls:** hints, "show answer" (that one item's reference query and its result),
   and "I was right".
@@ -544,6 +550,11 @@ shows "A mock is on, so the tutor waits for its review." without a request. A ta
 handed in or closes at 24 hours. Drills and GA4 runs keep D94's per-screen rule. This replaces the reading of D108 that
 left the review of another mock open.
 
+**(amended 2026-10-23, sprint 7d, 0.7.3) The tutor's mock line stays current** (S7D-01): `GET /api/tutor/status` sweeps the
+runs before it answers, so `mock_on` ends at the run's limit (a case round's timer, a take-home's 24 hours). The panel
+reads the status again when the page becomes visible, after a `help_waits` refusal (it then shows the waiting line, never
+the run screens' message), and every 60 seconds while it is open and the mock line shows.
+
 **"I was right"** (LE-05):
 - It schedules as Hard at once (rating map above) and counts toward Practised.
 - It counts toward Mastered and level completion only after the weekly tune-up writes an
@@ -610,7 +621,9 @@ into grader test cases.
 
 02's other per-exercise flags keep these defaults:
 - `set_semantics`: false (bags, so duplicates count)
-- `nulls_position`: checked only when order matters and the prompt states it
+- `nulls_position`: checked only when order matters and the prompt states it. **(amended 2026-10-23, sprint 7d, S7D-06)** Not
+  built: the order check accepts every placement, key by key (§5 step 5). Three prompts do state it (missing values last),
+  and the check does not enforce it there; a backlog row holds the decision (F2-2-2)
 - `case_insensitive`: false
 - `strict_column_order`: false
 - a validator query: allowed for open-ended items
@@ -664,6 +677,10 @@ into grader test cases.
      Otherwise it is approximate, and the grader test suite covers that case.
 5. **Order.** When order matters, the sort-key sequence of the learner's output is checked. Tied
    rows may come in any order.
+   **(amended 2026-10-23, sprint 7d, 0.7.3, S7D-06)** Where a key holds missing values, their position is free, key by
+   key, even where a prompt states it (three do; a backlog row, F2-2-2). The check takes the fewest breaks over every NULLS FIRST and NULLS LAST combination
+   of the sort keys (up to 4 keys, 16 combinations; above 4, the two uniform orders as before). There is no
+   `nulls_position` field. A grade can only move from fail to pass (`GRADER_VERSION` `7d.1`).
 6. **Pass.** One key matches on every dataset. Each dataset counts only on a positive witness: a
    returned row with both difference counts at 0, received before the deadline.
 7. **On a fail:**
@@ -1521,7 +1538,7 @@ starter query. The slice 0 row above is `ERR-LOG-20` (averaging ratios, E-142) a
 | `ERR-LOG-37` | Missing PARTITION BY | `SQL-WIN-01` | E-189 |
 | `ERR-LOG-38` | ROWS versus RANGE | `SQL-WIN-04` | E-189 |
 | `ERR-LOG-39` | No date spine: periods with no rows vanish | `SQL-PAT-04` | E-189 |
-| `ERR-SYN-08` | A window function in WHERE, GROUP BY, HAVING, an aggregate or another window (amended 2026-10-22, S7C-08), from five DuckDB messages ("WHERE clause", "GROUP BY clause" and "HAVING clause cannot contain window functions", "aggregate function calls cannot contain window function calls", "window function calls cannot be nested") | `SQL-WIN-01` | E-189, E-206 |
+| `ERR-SYN-08` | A window function in WHERE, GROUP BY, HAVING, an aggregate or another window (amended 2026-10-22, S7C-08; 2026-10-23, D121), from six DuckDB messages ("WHERE clause", "GROUP BY clause" and "HAVING clause cannot contain window functions", "aggregate function calls cannot contain window function calls", "window function calls cannot be nested", and the Parser Error "window functions are not allowed in window definitions" for a window in another window's PARTITION BY or ORDER BY, which used to read as `ERR-SYN-01`) | `SQL-WIN-01` | E-189, E-206, E-207 |
 
 A scalar subquery at the wrong grain stays `ERR-LOG-07`, and a scalar subquery that returns many rows stays
 `ERR-SEM-05`. (`ERR-LOG-28` and `ERR-LOG-29` came in sprint 4c; see its record.)
@@ -1638,6 +1655,17 @@ review and the rubric route read those lines before the file's, so a later edit 
 A screen mock's has neither. On a `mock_open` without them (every 0.7.1 log), the block's records name a knowledge run's
 questions and its total is the larger of the rules' questions and the count served (S7C-C04), and the file gives a case
 run's core lines.
+
+**(amended 2026-10-23, sprint 7d, 0.7.3) Log format version 8** (`SCHEMA_VERSION` 8, D123): one additive change.
+- `run_open`, in the attempt files, written once when a GA4 run (a mini drill, a half-mock or a full mock) starts, before
+  any answer: `{ record: 'run_open', schema_version: 8, ts, block_id, run_kind, blueprint_from }`. `run_kind` is
+  `mini_drill`, `half_mock` or `full_mock`, as the run's answers log it (D68); `blueprint_from` is the `from` date of the
+  `content/ga4/exam.json` entry its blueprint came from. The GA4 run history dates the run by its `run_open`, so a run
+  started before midnight keeps the entry in force when it started, even when its first answer comes after midnight
+  (backlog M-B4-4). A run with no `run_open` is dated by its earliest record, as before.
+
+Replay reads versions 1 to 8 and rates nothing from a `run_open`, and a log without one replays exactly as before. No
+other record changes, and the journey adds no event for it: the start's `run_started` already marks it.
 
 **The aydinlearns extension:**
 - `world`, `difficulty`, `sub_skill`, `dataset_version`, `duckdb_version`;

@@ -2,7 +2,7 @@
 import type { JsonlLog, LogFile } from '../core/jsonl.ts';
 import type { BlockClose, Exposure, HintOpened, ItemClose, MockOpen, OtherWayOpened, SelfCheck, SolutionOpened, TutorAsked } from '../core/envelope.ts';
 import type { AppEvent } from '../core/events.ts';
-import type { AydinAttempt, LabAnswer } from '../schemas/log-ext.ts';
+import type { AydinAttempt, LabAnswer, RunOpen } from '../schemas/log-ext.ts';
 
 export class AttemptLogger {
   #log: JsonlLog;
@@ -34,6 +34,8 @@ export class AttemptLogger {
   tutorAsked(r: TutorAsked): Promise<void> { return this.#write('attempts', r); }
   /** D112 (log version 7, S7-01): a recruiter mock started. Replay rates nothing from it; server/mocks.ts derives the run from it. */
   mockOpen(r: MockOpen): Promise<void> { return this.#write('attempts', r); }
+  /** D123 (log version 8): a GA4 run started. Replay rates nothing from it; server/run.ts dates the run by it. */
+  runOpen(r: RunOpen): Promise<void> { return this.#write('attempts', r); }
   event(e: AppEvent): Promise<void> { return this.#write(e.event === 'content_report' ? 'reports' : 'events', e); }
   readAll(file: LogFile): Promise<object[]> { return this.#log.readAll(file); }
 }

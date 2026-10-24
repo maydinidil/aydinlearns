@@ -92,7 +92,8 @@ test('sprint 6 Task A1: ERR-SYN-08 (a window function in WHERE) belongs to SQL-W
   const feedback = JSON.parse(await readFile('content/sql/error-feedback.json', 'utf8'));
   const errata = await readFile('knowledge/ERRATA.md', 'utf8');
   const e = cat.errors.find((x) => x.id === 'ERR-SYN-08');
-  assert.deepEqual({ ...e, feedback_template: '' }, { id: 'ERR-SYN-08', category: 'SYN', name: 'A window function in WHERE, GROUP BY, HAVING or an aggregate', detection_checks: ['CHK-ENGINE-ERROR'], feedback_template: '', concept_id: 'SQL-WIN-01' });
+  // S7D-12 (sprint 7d, Task Y2; D121, ERRATA E-207): the name takes in another window, as E-207 words it.
+  assert.deepEqual({ ...e, feedback_template: '' }, { id: 'ERR-SYN-08', category: 'SYN', name: 'A window function in WHERE, GROUP BY, HAVING, an aggregate or another window', detection_checks: ['CHK-ENGINE-ERROR'], feedback_template: '', concept_id: 'SQL-WIN-01' });
   assert.match(e!.feedback_template, /WHERE/);
   assert.ok(NEW_ERRORS.some((x) => x.id === 'ERR-SYN-08'), 'one of the extract\'s NEW_ERRORS, so npm run extract keeps it');
   assert.deepEqual(written.errors.find((x: { id: string }) => x.id === 'ERR-SYN-08'), e, 'run npm run extract');
@@ -105,6 +106,19 @@ test('sprint 6 Task A1: ERR-SYN-08 (a window function in WHERE) belongs to SQL-W
   assert.doesNotMatch(all, /\bqualify\b/i, 'the model is portable: QUALIFY works only in DuckDB');
   assert.doesNotMatch(JSON.stringify(f), /\{[a-z_]+\}/, 'needs no placeholder');
   assert.match(errata, /^\| E-189 \| fix \|[^\n]*ERR-SYN-08/m, 'ERRATA entry');
+});
+test('S7D-12 (D121, E-207): ERR-SYN-08\'s template and feedback name another window\'s PARTITION BY and ORDER BY, in plain words', async () => {
+  const written = JSON.parse(await readFile('content/sql/errors.json', 'utf8'));
+  const feedback = JSON.parse(await readFile('content/sql/error-feedback.json', 'utf8'));
+  const errata = await readFile('knowledge/ERRATA.md', 'utf8');
+  const e = written.errors.find((x: { id: string }) => x.id === 'ERR-SYN-08');
+  assert.ok(NEW_ERRORS.some((x) => x.id === 'ERR-SYN-08' && x.name === e.name && x.feedback_template === e.feedback_template), 'run npm run extract');
+  const f = feedback['ERR-SYN-08'];
+  for (const [what, text] of [['the template', e.feedback_template], ['the feedback', `${f.assumed} ${f.why}`]] as const) {
+    assert.match(text, /another window's PARTITION BY (?:or|and) ORDER BY/, `${what} names another window's PARTITION BY and ORDER BY`);
+    assert.doesNotMatch(text, /—/, `${what}: no em dash`);
+  }
+  assert.match(errata, /^\| E-207 \| fix \|[^\n]*ERR-SYN-08/m, 'ERRATA entry');
 });
 test('errors.json is exactly what the extract builds, so npm run extract never drops an ID', async () => {
   const j02 = extractJsonBlock(await readFile('knowledge/02_mistakes_and_learning.md', 'utf8')) as any;

@@ -1,6 +1,6 @@
 {
   "id": "EX-SQL-WIN-05-E3-02",
-  "version": 1,
+  "version": 2,
   "kind": "write",
   "tags": [
     "sql",
@@ -50,7 +50,7 @@
   "company": "mailvora",
   "schema": "mailvora",
   "edge_schema": "mailvora_edge_win",
-  "prompt": "For each paid channel, find the UTC days of October 2025 with spend on which the channel's click-through rate that day was more than 10% below its click-through rate over the 7 calendar days before it (that day not included): the clicks of those days divided by their impressions. A day with no spend adds no clicks and no impressions, and the 7 days may reach back into September; a day whose 7 days before it had no spend has nothing to compare with and is never listed. Return channel_id, spend_date, ctr_pct (that day's rate) and ctr_prev_7d_pct, each as a percentage rounded to 2 decimals, for those days only. Any row order is fine.",
+  "prompt": "For each paid channel, find the UTC days of October 2025 with spend on which the channel's click-through rate that day was more than 10% below its click-through rate over the 7 calendar days before it (that day not included): the clicks of those days divided by their impressions. A day with no spend adds no clicks and no impressions, and the 7 days may reach back into September; a day whose 7 days before it had no spend has nothing to compare with and is never listed. Return four columns, in this order: channel_id, spend_date, ctr_pct (that day's rate) and ctr_prev_7d_pct, each as a percentage rounded to 2 decimals. Return one row for each channel and day found. Any row order is fine.",
   "output_contract": {
     "columns": [
       {

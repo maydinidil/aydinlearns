@@ -22,7 +22,7 @@ const mockOpen = (ts: string, over: Partial<MockOpen> = {}): MockOpen => ({
   mock: 'screen', form_id: 'SCREEN-A', minutes: 45, on_unseen: true, ...over,
 });
 
-test('D112: the log version is 7', () => assert.equal(SCHEMA_VERSION, 7));
+test('D112: the log version was 7; it is 8 since D123 (tests/server/log-v8.test.ts)', () => assert.equal(SCHEMA_VERSION, 8));
 
 test('S7-01: mock_open goes to the monthly attempts file through the logger and reaches the onWrite listeners', async () => {
   const dir = await mkdtemp(join(tmpdir(), 'al-log-v7-'));
@@ -34,7 +34,7 @@ test('S7-01: mock_open goes to the monthly attempts file through the logger and 
   assert.deepEqual(await readdir(dir), ['attempts-2026-11.jsonl']);
   assert.deepEqual(await logger.readAll('attempts'), [r]);
   assert.deepEqual(seen, [['attempts', 'mock_open']]);
-  assert.match(await readFile(join(dir, 'attempts-2026-11.jsonl'), 'utf8'), /"record":"mock_open","schema_version":7/);
+  assert.match(await readFile(join(dir, 'attempts-2026-11.jsonl'), 'utf8'), /"record":"mock_open","schema_version":8/);
 });
 
 type Rec = Record<string, unknown>;

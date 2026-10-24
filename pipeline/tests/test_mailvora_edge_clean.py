@@ -121,7 +121,9 @@ class MailvoraEdgeClean(unittest.TestCase):
 
     def test_every_object_before_part_2_is_unchanged_and_g1_only_adds_the_schema(self):
         self.assertEqual(len(BEFORE_SPRINT7B), 246)
-        moved = sorted(name for name, entry in BEFORE_SPRINT7B.items() if self.manifest["tables"].get(name) != entry)
+        # Sprint 7d's K2 (S7D-13) moved these, and only these: pipeline/tests/test_edge_7d.py holds every other object to its snapshot.
+        k2_moves = {"voltmarkt_edge_win.order_lines", "voltmarkt_edge_win.promotions", "voltmarkt_edge_win.promotion_products", "voltmarkt_edge_win.sales"}
+        moved = sorted(name for name, entry in BEFORE_SPRINT7B.items() if self.manifest["tables"].get(name) != entry and name not in k2_moves)
         self.assertEqual(moved, [], "objects built at the end of Part 1 whose rows or hash changed")
         added = sorted(set(self.manifest["tables"]) - set(BEFORE_SPRINT7B))
         self.assertEqual(added, sorted(f"{EDGE}.{t}" for t in self.names(RAW)[0]), f"only {EDGE}'s tables are new")

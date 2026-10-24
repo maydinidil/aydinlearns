@@ -83,9 +83,13 @@ export function MockSqlQuestion(p: MockSqlQuestionProps) {
     if (!editor.current || !data || busy) return;
     setBusy(true); setMessage(null);
     try {
-      const r = await mocksApi.run(data.item_id, p.instanceId, editor.current.getText());
+      // S7D-10 (F4-2-1): Run names the run's block too, so an instance served before an app restart gets RUN_CHANGED, as Submit does.
+      const r = await mocksApi.run(data.item_id, p.instanceId, editor.current.getText(), p.blockId);
       if ('error' in r) { setRan(null); setMessage(runErrorLine(r.error)); } else setRan(r);
-    } catch (e) { setMessage(errorText(e)); } finally { setBusy(false); }
+    } catch (e) {
+      const code = refusalCode(e);
+      if (code === null || !p.onRefused(code)) setMessage(errorText(e));
+    } finally { setBusy(false); }
   }
   async function doSubmit(): Promise<void> {
     if (!editor.current || !data || busy || answered) return;

@@ -104,7 +104,7 @@ test('S7-01, S7-10: a start writes one mock_open (KNOWLEDGE) and serves 20 held-
   const opens = (await records(d)).filter((r) => r.record === 'mock_open');
   assert.equal(opens.length, 1);
   // D116 (S7C-03): it lists the drawn questions in the order the run serves them; a knowledge mock_open carries no core_rubric.
-  assert.deepEqual({ ...opens[0], ts: undefined, session_id: undefined }, { record: 'mock_open', schema_version: 7, ts: undefined, session_id: undefined,
+  assert.deepEqual({ ...opens[0], ts: undefined, session_id: undefined }, { record: 'mock_open', schema_version: 8, ts: undefined, session_id: undefined,
     block_id: run.block_id, mock: 'knowledge', form_id: 'KNOWLEDGE', minutes: 40, on_unseen: true, pass_correct: 24, item_ids: run.servings.map((s) => s.item_id) });
   assert.equal(Date.parse(run.ends_at) - Date.parse(opens[0].ts), 40 * MINUTE, 'the limit runs from the mock_open');
   assert.ok(Math.abs(Date.parse(opens[0].ts) - clock.now()) < 5_000, 'stamped with the run clock');
@@ -472,4 +472,24 @@ test('N1 M11: a knowledge run sends run_started and run_finished with run kind k
   assert.deepEqual(runs.map((e) => [e.event, e.run_kind, e.block_id]), [['run_started', 'knowledge_mock', run.block_id], ['run_finished', 'knowledge_mock', run.block_id]]);
   assert.deepEqual([runs[0]!.questions, runs[0]!.screen_mode, runs[1]!.score_pct, runs[1]!.run_passed], [30, false, 80, true]);
   assert.deepEqual(runs.map((e) => 'section' in e), [false, false], 'F4-1-4: a knowledge mock (GA4 and Methodology) names no section, so the runs view never lists it as SQL');
+});
+
+test('S7D-02 (F2-2-1): a crashed knowledge run\'s review carries not_reached, its listed questions no record names; a run whose mock_open has no item_ids carries none', async () => {
+  const { app, d, run, clock } = await started();
+  const answered = run.servings.filter((s) => s.section === 'methodology').slice(0, 2);
+  await answer(app, answered[0]!, true);
+  await answer(app, answered[1]!, false);
+  const again = createApp(await deps(clock, content, d.dir));                 // a crash: the restart closes the two answered questions only
+  const review = await json(get(again, `/api/mocks/${run.block_id}/review`));
+  assert.equal(review.not_reached, 28, '30 listed, 2 named');
+  // The same run as 0.7.1 logged it: a mock_open without item_ids.
+  const file = (await readdir(d.dir)).find((n) => /^attempts-\d{4}-\d{2}\.jsonl$/.test(n))!;
+  const text = (await readFile(join(d.dir, file), 'utf8')).split('\n').map((line) => {
+    if (!line.includes('"mock_open"')) return line;
+    const { item_ids: _gone, ...rest } = JSON.parse(line) as Record<string, unknown>;
+    return JSON.stringify(rest);
+  }).join('\n');
+  await writeFile(join(d.dir, file), text);
+  const old = await json(get(createApp(await deps(clock, content, d.dir)), `/api/mocks/${run.block_id}/review`));
+  assert.equal('not_reached' in old, false, 'a 0.7.1 run shows none');
 });

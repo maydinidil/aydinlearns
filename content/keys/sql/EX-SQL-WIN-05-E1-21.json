@@ -1,6 +1,6 @@
 {
   "item_id": "EX-SQL-WIN-05-E1-21",
-  "item_version": 1,
+  "item_version": 2,
   "reference_sql": "SELECT h.product_id, h.valid_from, h.unit_cost_eur,\n  CASE WHEN COUNT(*) OVER (PARTITION BY h.product_id ORDER BY h.valid_from ROWS BETWEEN 1 PRECEDING AND CURRENT ROW) = 2\n       THEN ROUND(AVG(h.unit_cost_eur) OVER (PARTITION BY h.product_id ORDER BY h.valid_from ROWS BETWEEN 1 PRECEDING AND CURRENT ROW), 2)\n  END AS avg_cost_2v\nFROM cost_history h\nJOIN products p ON p.product_id = h.product_id\nWHERE p.category_id IN (15, 16)",
   "alternatives": [
     "SELECT h.product_id, h.valid_from, h.unit_cost_eur,\n  ROUND((h.unit_cost_eur + LAG(h.unit_cost_eur) OVER (PARTITION BY h.product_id ORDER BY h.valid_from)) / 2, 2) AS avg_cost_2v\nFROM cost_history h\nJOIN products p ON p.product_id = h.product_id\nWHERE p.category_id IN (15, 16)",
@@ -24,11 +24,11 @@
   ],
   "hint3_partial": "SELECT h.product_id, h.valid_from, h.unit_cost_eur,\n  CASE WHEN COUNT(*) OVER (PARTITION BY h.product_id ORDER BY h.valid_from ROWS BETWEEN 1 PRECEDING AND CURRENT ROW) = ___\n       THEN ROUND(AVG(h.unit_cost_eur) OVER (PARTITION BY h.product_id ORDER BY h.valid_from ROWS BETWEEN 1 PRECEDING AND CURRENT ROW), 2)\n  END AS avg_cost_2v\nFROM cost_history h\nJOIN products p ON p.product_id = h.product_id\nWHERE p.category_id IN (15, 16)",
   "solver": {
-    "prompt_hash": "993865aa04fc3532",
+    "prompt_hash": "ff3c8529af49847a",
     "schema_version": "f2e3ccdead61",
-    "dataset_version": "e7c58abf7e8f892e",
-    "grader_version": "7a.1",
-    "query": "SELECT ch.product_id, ch.valid_from, ch.unit_cost_eur,\n  CASE WHEN COUNT(*) OVER (PARTITION BY ch.product_id ORDER BY ch.valid_from ROWS BETWEEN 1 PRECEDING AND CURRENT ROW) = 2\n    THEN ROUND(AVG(ch.unit_cost_eur) OVER (PARTITION BY ch.product_id ORDER BY ch.valid_from ROWS BETWEEN 1 PRECEDING AND CURRENT ROW), 2) END AS avg_cost_2v\nFROM cost_history ch\nJOIN products p ON p.product_id = ch.product_id\nWHERE p.category_id IN (15, 16)\n",
-    "at": "2026-10-21T09:05:09.209Z"
+    "dataset_version": "ef4aa0325da6ea43",
+    "grader_version": "7c.1",
+    "query": "SELECT c.product_id, CAST(c.valid_from AS DATE) AS valid_from, c.unit_cost_eur,\n       CASE WHEN COUNT(*) OVER w = 2 THEN ROUND(AVG(c.unit_cost_eur) OVER w, 2) END AS avg_cost_2v\nFROM cost_history c JOIN products p ON p.product_id = c.product_id\nWHERE p.category_id IN (15, 16)\nWINDOW w AS (PARTITION BY c.product_id ORDER BY CAST(c.valid_from AS DATE) ROWS BETWEEN 1 PRECEDING AND CURRENT ROW)\n",
+    "at": "2026-10-23T12:15:46.915Z"
   }
 }

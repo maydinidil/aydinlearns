@@ -1,6 +1,6 @@
 {
   "item_id": "EX-SQL-WIN-05-E1-03",
-  "item_version": 1,
+  "item_version": 2,
   "reference_sql": "SELECT product_id, valid_from, list_price_eur,\n  CASE WHEN COUNT(*) OVER (PARTITION BY product_id ORDER BY valid_from ROWS BETWEEN 2 PRECEDING AND CURRENT ROW) = 3\n       THEN ROUND(AVG(list_price_eur) OVER (PARTITION BY product_id ORDER BY valid_from ROWS BETWEEN 2 PRECEDING AND CURRENT ROW), 2)\n  END AS avg_price_3v\nFROM price_history\nWHERE product_id BETWEEN 1 AND 25",
   "alternatives": [
     "SELECT product_id, valid_from, list_price_eur,\n  ROUND((list_price_eur\n    + LAG(list_price_eur, 1) OVER (PARTITION BY product_id ORDER BY valid_from)\n    + LAG(list_price_eur, 2) OVER (PARTITION BY product_id ORDER BY valid_from)) / 3, 2) AS avg_price_3v\nFROM price_history\nWHERE product_id BETWEEN 1 AND 25",
@@ -24,11 +24,11 @@
   ],
   "hint3_partial": "SELECT product_id, valid_from, list_price_eur,\n  CASE WHEN COUNT(*) OVER (PARTITION BY product_id ORDER BY valid_from ROWS BETWEEN 2 PRECEDING AND CURRENT ROW) = ___\n       THEN ROUND(AVG(list_price_eur) OVER (PARTITION BY product_id ORDER BY valid_from ROWS BETWEEN 2 PRECEDING AND CURRENT ROW), 2)\n  END AS avg_price_3v\nFROM price_history\nWHERE product_id BETWEEN 1 AND 25",
   "solver": {
-    "prompt_hash": "cee4672da2634006",
+    "prompt_hash": "2bcc6512cc679d07",
     "schema_version": "e8cea7c4eacc",
-    "dataset_version": "e7c58abf7e8f892e",
-    "grader_version": "7a.1",
-    "query": "SELECT product_id, valid_from, list_price_eur,\n  CASE WHEN COUNT(*) OVER (PARTITION BY product_id ORDER BY valid_from ROWS BETWEEN 2 PRECEDING AND CURRENT ROW) = 3\n    THEN ROUND(AVG(list_price_eur) OVER (PARTITION BY product_id ORDER BY valid_from ROWS BETWEEN 2 PRECEDING AND CURRENT ROW), 2) END AS avg_price_3v\nFROM price_history\nWHERE product_id BETWEEN 1 AND 25\n",
-    "at": "2026-10-21T09:05:09.061Z"
+    "dataset_version": "ef4aa0325da6ea43",
+    "grader_version": "7c.1",
+    "query": "SELECT product_id, CAST(valid_from AS DATE) AS valid_from, list_price_eur,\n       CASE WHEN COUNT(*) OVER w = 3 THEN ROUND(AVG(list_price_eur) OVER w, 2) END AS avg_price_3v\nFROM price_history\nWHERE product_id BETWEEN 1 AND 25\nWINDOW w AS (PARTITION BY product_id ORDER BY CAST(valid_from AS DATE) ROWS BETWEEN 2 PRECEDING AND CURRENT ROW)\n",
+    "at": "2026-10-23T12:15:46.781Z"
   }
 }

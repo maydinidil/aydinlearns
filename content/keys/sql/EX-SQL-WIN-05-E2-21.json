@@ -1,6 +1,6 @@
 {
   "item_id": "EX-SQL-WIN-05-E2-21",
-  "item_version": 1,
+  "item_version": 2,
   "reference_sql": "WITH weekly AS (\n  -- one row per category and week\n  SELECT p.category_id, w.week_start, SUM(w.net_revenue_eur) AS revenue_eur\n  FROM weekly_units w\n  JOIN products p ON p.product_id = w.product_id\n  WHERE p.category_id IN (15, 16, 17)\n    AND w.week_start BETWEEN DATE '2025-01-06' AND DATE '2025-06-30'\n  GROUP BY p.category_id, w.week_start\n)\nSELECT category_id, week_start, revenue_eur,\n  CASE WHEN COUNT(*) OVER (PARTITION BY category_id ORDER BY week_start ROWS BETWEEN 3 PRECEDING AND CURRENT ROW) = 4\n       THEN ROUND(AVG(revenue_eur) OVER (PARTITION BY category_id ORDER BY week_start ROWS BETWEEN 3 PRECEDING AND CURRENT ROW), 2)\n  END AS avg_revenue_4w\nFROM weekly",
   "alternatives": [
     "WITH weekly AS (\n  -- one row per category and week\n  SELECT p.category_id, w.week_start, SUM(w.net_revenue_eur) AS revenue_eur\n  FROM weekly_units w\n  JOIN products p ON p.product_id = w.product_id\n  WHERE p.category_id IN (15, 16, 17)\n    AND w.week_start BETWEEN DATE '2025-01-06' AND DATE '2025-06-30'\n  GROUP BY p.category_id, w.week_start\n)\nSELECT w.category_id, w.week_start, w.revenue_eur,\n  CASE WHEN COUNT(*) = 4 THEN ROUND(AVG(p.revenue_eur), 2) END AS avg_revenue_4w\nFROM weekly w\nJOIN weekly p ON p.category_id = w.category_id AND p.week_start BETWEEN w.week_start - INTERVAL 21 DAY AND w.week_start\nGROUP BY w.category_id, w.week_start, w.revenue_eur",
@@ -24,11 +24,11 @@
   ],
   "hint3_partial": "WITH weekly AS (\n  -- one row per category and week\n  SELECT p.category_id, w.week_start, SUM(w.net_revenue_eur) AS revenue_eur\n  FROM weekly_units w\n  JOIN products p ON p.product_id = w.product_id\n  WHERE p.category_id IN (15, 16, 17)\n    AND w.week_start BETWEEN DATE '2025-01-06' AND DATE '2025-06-30'\n  GROUP BY p.category_id, w.week_start\n)\nSELECT category_id, week_start, revenue_eur,\n  CASE WHEN COUNT(*) OVER (PARTITION BY ___ ORDER BY week_start ROWS BETWEEN 3 PRECEDING AND CURRENT ROW) = 4\n       THEN ROUND(AVG(revenue_eur) OVER (PARTITION BY ___ ORDER BY week_start ROWS BETWEEN 3 PRECEDING AND CURRENT ROW), 2)\n  END AS avg_revenue_4w\nFROM weekly",
   "solver": {
-    "prompt_hash": "30c046292b8f9743",
+    "prompt_hash": "97bc5fd501aefeca",
     "schema_version": "2d411b38d68e",
-    "dataset_version": "e7c58abf7e8f892e",
-    "grader_version": "7a.1",
-    "query": "WITH wk AS (\n  SELECT p.category_id, w.week_start, SUM(w.net_revenue_eur) AS revenue_eur\n  FROM weekly_units w JOIN products p ON p.product_id = w.product_id\n  WHERE p.category_id IN (15, 16, 17)\n    AND w.week_start BETWEEN DATE '2025-01-06' AND DATE '2025-06-30'\n  GROUP BY p.category_id, w.week_start\n)\nSELECT category_id, week_start, revenue_eur,\n  CASE WHEN COUNT(*) OVER (PARTITION BY category_id ORDER BY week_start ROWS BETWEEN 3 PRECEDING AND CURRENT ROW) = 4\n    THEN ROUND(AVG(revenue_eur) OVER (PARTITION BY category_id ORDER BY week_start ROWS BETWEEN 3 PRECEDING AND CURRENT ROW), 2) END AS avg_revenue_4w\nFROM wk\n",
-    "at": "2026-10-21T09:05:09.686Z"
+    "dataset_version": "ef4aa0325da6ea43",
+    "grader_version": "7c.1",
+    "query": "WITH x AS (\n  SELECT p.category_id, CAST(w.week_start AS DATE) AS week_start, SUM(w.net_revenue_eur) AS revenue_eur\n  FROM weekly_units w JOIN products p ON p.product_id = w.product_id\n  WHERE p.category_id IN (15, 16, 17) AND CAST(w.week_start AS DATE) BETWEEN DATE '2025-01-06' AND DATE '2025-06-30'\n  GROUP BY 1, 2\n)\nSELECT category_id, week_start, revenue_eur,\n       CASE WHEN COUNT(*) OVER w = 4 THEN ROUND(AVG(revenue_eur) OVER w, 2) END AS avg_revenue_4w\nFROM x\nWINDOW w AS (PARTITION BY category_id ORDER BY week_start ROWS BETWEEN 3 PRECEDING AND CURRENT ROW)\n",
+    "at": "2026-10-23T12:15:47.494Z"
   }
 }

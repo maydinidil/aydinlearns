@@ -153,14 +153,14 @@ export function mountMockCases(app: Hono, d: RouteDeps, runs: DrillRuns, engine:
   /**
    * S7C-07 (F4-4-3): the case a run worked on, from its own records: a self-check's case_id (the plan comes first, S7-13), else the
    * CASE-...:CPn prefix of a checkpoint answer; else its form's case. So a form whose case changes after the run (or before a take-home's
-   * rebuild) never shows the run another case's checkpoints. A case the content no longer holds falls back to the form too.
+   * rebuild) never shows the run another case's checkpoints. Only a run whose records name no case falls back to its form's; one that names a case the content no longer holds gets nothing (S7D-03).
    */
   const caseOfRun = (block: string, mock: MockCaseKind, formId: string): MockCaseRecord | undefined => {
     for (const r of records()) {
       if (r.block_id !== block) continue;
       const own = r.record === 'self_check' ? str(r.case_id) : r.record === 'attempt' ? /^(CASE-[^:]+):CP[1-6]$/.exec(str(r.item_id) ?? '')?.[1] ?? null : null;
-      const found = own === null ? undefined : d.content.mockCase?.(own);
-      if (found) return found;
+      // S7D-03 (X3-M2): the first record that names a case decides: a case the content no longer holds is nothing, never the form's other case.
+      if (own !== null) return d.content.mockCase?.(own);
     }
     return caseOfForm(mock, formId);
   };

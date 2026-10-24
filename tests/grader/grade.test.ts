@@ -19,7 +19,10 @@ const db = await makeFixtureDb([...SHOP, 'CREATE SCHEMA edge',
   'CREATE SCHEMA tie_edge', "CREATE TABLE tie_edge.stores AS SELECT * FROM (VALUES (1,'NL'),(2,'NL'),(3,'BE')) v(store_id, country_code)",
   // Whole-number counts, for integer division (E-055). The edge data has a campaign with no clicks.
   'CREATE SCHEMA ads', "CREATE TABLE ads.campaigns AS SELECT * FROM (VALUES ('spring', 30, 120), ('summer', 45, 90), ('autumn', 10, 400)) v(campaign, clicks, views)",
-  'CREATE SCHEMA ads_edge', "CREATE TABLE ads_edge.campaigns AS SELECT * FROM (VALUES ('winter', 0, 50), ('spring', 7, 7)) v(campaign, clicks, views)"]);
+  'CREATE SCHEMA ads_edge', "CREATE TABLE ads_edge.campaigns AS SELECT * FROM (VALUES ('winter', 0, 50), ('spring', 7, 7)) v(campaign, clicks, views)",
+  // S7D-06: missing values in two sort keys, so a learner may put them first in one key and last in the other.
+  'CREATE SCHEMA nul', "CREATE TABLE nul.t AS SELECT * FROM (VALUES (1,'x',NULL),(2,'x',5),(3,NULL,7),(4,'y',3),(5,NULL,NULL),(6,'x',9)) v(id, a, b)",
+  'CREATE TABLE nul.k AS SELECT * FROM (VALUES (1,NULL,1,1,1,1),(2,1,1,1,NULL,1),(3,1,1,1,2,1)) v(id, k1, k2, k3, k4, k5)']);
 const runner = await startRunner(db);
 const feedback = JSON.parse(await readFile('content/sql/error-feedback.json', 'utf8'));
 const item = {
@@ -48,8 +51,8 @@ const stubRunner = (reply: (req: RunnerReq) => RunnerResult): RunnerClient => ({
   restarts: 0,
 });
 
-test('the grader version is 7c.1 (sprint 7c, Task X5: S7C-08, a window function outside WHERE diagnoses ERR-SYN-08)', () => {
-  assert.equal(GRADER_VERSION, '7c.1');
+test('the grader version is 7d.1 (sprint 7d, Task Y2: S7D-12, a window in a window definition is ERR-SYN-08; S7D-06, mixed NULL placement)', () => {
+  assert.equal(GRADER_VERSION, '7d.1');
 });
 test('a correct query passes on both datasets', async () => {
   const r = await grade({ item, key, sql: 'select city from stores where city is not null;' }, deps);
@@ -250,6 +253,39 @@ test('R33: an explicit NULLS FIRST passes an item that does not state NULL place
     assert.equal(r.outcome, 'pass', `${sql}: ${JSON.stringify(r.diagnosis)}`);
   }
 });
+// S7D-06 (sprint 7d, Task Y2; GRADER_VERSION 7d.1): NULL position is free per sort key, so the order check takes the fewest breaks over
+// every NULLS FIRST and NULLS LAST combination of up to 4 keys. Above 4 keys it takes the two uniform orders, as before.
+const nullKeys = (id: string, table: string, cols: string[], sortKeys: { column: string; desc: boolean }[]) => variant({
+  id, schema: 'nul', edge_schema: 'nul', reference_sql: `SELECT ${cols.join(', ')} FROM ${table} ORDER BY ${sortKeys.map((k) => `${k.column}${k.desc ? ' DESC' : ''}`).join(', ')}`,
+  rules: { order_matters: true, sort_keys: sortKeys, columns: cols.map((name) => ({ name, type_class: name === 'a' ? 'text' : 'numeric', precision: name === 'a' ? 'exact' : 'count' })) },
+});
+test('S7D-06: missing values first in one sort key and last in the other pass, on a fixture with missing values in both keys', async () => {
+  const v = nullKeys('EX-MIXED', 't', ['id', 'a', 'b'], [{ column: 'a', desc: false }, { column: 'b', desc: true }]);
+  for (const sql of [
+    'SELECT id, a, b FROM t ORDER BY a ASC NULLS FIRST, b DESC NULLS LAST',
+    'SELECT id, a, b FROM t ORDER BY a ASC NULLS LAST, b DESC NULLS FIRST',
+    'SELECT id, a, b FROM t ORDER BY a NULLS FIRST, b DESC NULLS FIRST',
+    'SELECT id, a, b FROM t ORDER BY a, b DESC',
+  ]) {
+    const r = await grade({ ...v, sql }, deps);
+    assert.equal(r.outcome, 'pass', `${sql}: ${JSON.stringify(r.diagnosis)}`);
+  }
+  // Each key's direction still counts, whatever its NULL placement.
+  for (const sql of ['SELECT id, a, b FROM t ORDER BY a DESC NULLS FIRST, b DESC NULLS LAST', 'SELECT id, a, b FROM t ORDER BY a NULLS FIRST, b ASC NULLS LAST']) {
+    const r = await grade({ ...v, sql }, deps);
+    assert.deepEqual([r.outcome, r.diagnosis?.errorId, r.diagnosis?.source], ['fail', 'ERR-LOG-18', 'order'], sql);
+  }
+});
+test('S7D-06: up to 4 sort keys every combination counts; above 4 keys only the two uniform placements do, as before', async () => {
+  const keys = (n: number) => ['k1', 'k2', 'k3', 'k4', 'k5'].slice(0, n).map((column) => ({ column, desc: false }));
+  const cols = ['id', 'k1', 'k2', 'k3', 'k4', 'k5'];
+  const four = await grade({ ...nullKeys('EX-FOUR', 'k', cols, keys(4)), sql: `SELECT ${cols.join(', ')} FROM k ORDER BY k1 NULLS FIRST, k2, k3, k4 NULLS LAST` }, deps);
+  assert.equal(four.outcome, 'pass', JSON.stringify(four.diagnosis));
+  const five = await grade({ ...nullKeys('EX-FIVE', 'k', cols, keys(5)), sql: `SELECT ${cols.join(', ')} FROM k ORDER BY k1 NULLS FIRST, k2, k3, k4 NULLS LAST, k5` }, deps);
+  assert.deepEqual([five.outcome, five.diagnosis?.errorId], ['fail', 'ERR-LOG-18'], 'five keys: mixed placement is not tried');
+  const uniform = await grade({ ...nullKeys('EX-FIVE', 'k', cols, keys(5)), sql: `SELECT ${cols.join(', ')} FROM k ORDER BY k1 NULLS FIRST, k2, k3, k4 NULLS FIRST, k5` }, deps);
+  assert.equal(uniform.outcome, 'pass', 'five keys: a uniform placement still passes');
+});
 test('the wrong order fails as ERR-LOG-18 with the rows right', async () => {
   for (const sql of ['SELECT store_id, city FROM stores ORDER BY city DESC', 'SELECT store_id, city FROM stores ORDER BY store_id']) {
     const r = await grade({ ...ordered(false), sql }, deps);
@@ -398,8 +434,8 @@ test('D41: rounding needs nothing new in screen mode: require_rounding (G3) appl
 const recording = () => {
   const reqs: RunnerReq[] = [];
   const r: RunnerClient = { request: <T>(req: RunnerReq) => { reqs.push(req); return runner.request<T>(req); }, close: async () => {}, restarts: 0 };
-  return { runner: r, reruns: () => reqs.filter((q) => q.op === 'display' && q.integerDivision === true),
-    controls: () => reqs.filter((q) => q.op === 'display' && q.integerDivision === false) };
+  return { runner: r, reruns: () => reqs.filter((q) => q.op === 'display' && q.division === 'integer'),
+    controls: () => reqs.filter((q) => q.op === 'display' && q.division === 'control') };
 };
 const CTR_SLASH = 'SELECT campaign, clicks / views AS ctr FROM campaigns';
 
@@ -438,7 +474,7 @@ test('S4B-24: a re-run that fails, times out or crashes gives no note and never 
   for (const error of [{ kind: 'timeout' }, { kind: 'crash', message: 'gone' }, { kind: 'engine', phase: 'runtime', message: 'Out of Range Error' },
     { kind: 'gate', reason: 'not_select', message: 'no' }] as RunnerError[]) {
     const flaky: RunnerClient = {
-      request: async <T>(req: RunnerReq) => (req.op === 'display' && req.integerDivision === true ? { ok: false, error } : await runner.request<T>(req)) as RunnerResult<T>,
+      request: async <T>(req: RunnerReq) => (req.op === 'display' && req.division === 'integer' ? { ok: false, error } : await runner.request<T>(req)) as RunnerResult<T>,
       close: async () => {}, restarts: 0,
     };
     const r = await grade({ ...ctr(), sql: CTR_SLASH }, { ...deps, runner: flaky });
@@ -447,7 +483,7 @@ test('S4B-24: a re-run that fails, times out or crashes gives no note and never 
   // Codex F24: a request that throws is no comparison either.
   const throwing: RunnerClient = {
     request: async <T>(req: RunnerReq) => {
-      if (req.op === 'display' && req.integerDivision === true) throw new Error('runner exited');
+      if (req.op === 'display' && req.division === 'integer') throw new Error('runner exited');
       return runner.request<T>(req);
     },
     close: async () => {}, restarts: 0,
@@ -461,7 +497,7 @@ test('S4B-24: a re-run result over the display cap is not compared, so it gives 
   const big: RunnerClient = {
     request: async <T>(req: RunnerReq) => {
       const r = await runner.request<T>(req);
-      return (req.op === 'display' && req.integerDivision === true && r.ok ? { ok: true, data: { ...(r.data as object), truncated: true } } : r) as RunnerResult<T>;
+      return (req.op === 'display' && req.division === 'integer' && r.ok ? { ok: true, data: { ...(r.data as object), truncated: true } } : r) as RunnerResult<T>;
     },
     close: async () => {}, restarts: 0,
   };
@@ -502,7 +538,7 @@ test('D52: a deterministic ratio pass runs the control, then integer division, o
   assert.deepEqual([r.outcome, r.portabilityNotes, r.divisionCheck], ['pass', [INT_DIVISION_NOTE], 'changed']);
   const [control] = rec.controls();
   const [rerun] = rec.reruns();
-  assert.deepEqual(control, { op: 'display', schema: 'ads', allowedSchemas: [], sql: CTR_SLASH, cap: 1000, deadlineMs: 5000, integerDivision: false });
+  assert.deepEqual(control, { op: 'display', schema: 'ads', allowedSchemas: [], sql: CTR_SLASH, cap: 1000, deadlineMs: 5000, division: 'control' });
   assert.ok(rerun?.op === 'display' && rerun.schema === 'ads' && rerun.deadlineMs > 0 && rerun.deadlineMs <= 5000, JSON.stringify(rerun));
   const same = recording();
   const cast = await grade({ ...ctr(), sql: 'SELECT campaign, clicks * 1.0 / views AS ctr FROM campaigns' }, { ...deps, runner: same.runner });
@@ -513,11 +549,11 @@ test('D52: a control that times out gives not_compared and no note, and never fa
   const slow: RunnerClient = {
     request: async <T>(req: RunnerReq) => {
       reqs.push(req);
-      return (req.op === 'display' && req.integerDivision === false ? { ok: false, error: { kind: 'timeout' } } : await runner.request<T>(req)) as RunnerResult<T>;
+      return (req.op === 'display' && req.division === 'control' ? { ok: false, error: { kind: 'timeout' } } : await runner.request<T>(req)) as RunnerResult<T>;
     },
     close: async () => {}, restarts: 0,
   };
   const r = await grade({ ...ctr(), sql: CTR_SLASH }, { ...deps, runner: slow });
   assert.deepEqual([r.outcome, r.graded, r.portabilityNotes, r.divisionCheck], ['pass', true, [], 'not_compared']);
-  assert.equal(reqs.filter((q) => q.op === 'display' && q.integerDivision === true).length, 0, 'no integer division run after a failed control');
+  assert.equal(reqs.filter((q) => q.op === 'display' && q.division === 'integer').length, 0, 'no integer division run after a failed control');
 });

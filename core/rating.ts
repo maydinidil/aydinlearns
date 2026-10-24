@@ -109,12 +109,20 @@ export function summarise(f: InstanceFacts, rules: RatingRules): InstanceSummary
     revealBeforeFirstGraded, maxHintBeforePass, unassistedFirstAttemptPass };
 }
 
-/** S2-20 and S2-19: a pass (automatic, or an override not reverted) with no reveal before the first graded attempt. */
-const countedPass = (s: InstanceSummary): boolean => s.passedBy !== null && !s.revealBeforeFirstGraded;
+/**
+ * S2-19, S2-20, S3-02; ruling S7D-05 (sprint 7d): the one meaning of "passed" that counts. A correct answer with no reveal ("Show answer",
+ * or a hint at level 2 or more) before the first graded attempt. Correct is a pass, automatic or an override not reverted, for an SQL item or
+ * a case checkpoint; the scored answer passed, for a choice or other_sql item. Each rating function below reports it as `countsAsPass`
+ * (replay's InstanceResult), and /api/other-way reads it for a live instance (core/live-pass.ts), so the route and replay agree.
+ */
+export function countsAsPass(s: InstanceSummary, family: ItemFamily): boolean {
+  const correct = family === 'choice' || family === 'other_sql' ? scoredAnswer(s)?.outcome === 'pass' : s.passedBy !== null;
+  return correct && !s.revealBeforeFirstGraded;
+}
 
 export function rateSqlInstance(s: InstanceSummary, f: InstanceFacts, ctx: RatingContext): InstanceRating {
-  const countsAsPass = countedPass(s);
-  const r = (rating: Rating | null, why: string): InstanceRating => ({ rating, why, countsAsPass });
+  const counts = countsAsPass(s, f.family);
+  const r = (rating: Rating | null, why: string): InstanceRating => ({ rating, why, countsAsPass: counts });
   if (ctx.lessonPhase) return r(null, 'lesson phase: no card review');
   if (s.revealBeforeFirstGraded) {
     return ctx.cardRated ? r(AGAIN, 'answer shown, or hint 2 or more, before any graded attempt') : r(null, 'answer shown on an unrated card: a worked example');
@@ -149,8 +157,8 @@ export function scoredAnswer(s: InstanceSummary): AttemptFact | null { return s.
 export function rateChoiceInstance(s: InstanceSummary, f: InstanceFacts, ctx: RatingContext): InstanceRating {
   const answer = scoredAnswer(s);
   const correct = answer !== null && answer.outcome === 'pass';
-  const countsAsPass = correct && !s.revealBeforeFirstGraded;
-  const r = (rating: Rating | null, why: string): InstanceRating => ({ rating, why, countsAsPass });
+  const counts = countsAsPass(s, f.family);
+  const r = (rating: Rating | null, why: string): InstanceRating => ({ rating, why, countsAsPass: counts });
   if (ctx.lessonPhase) return r(null, 'answered within 15 minutes of the lesson: no card review');
   if (s.revealBeforeFirstGraded) return ctx.cardRated ? r(AGAIN, 'answer shown before answering') : r(null, 'answer shown on an unrated card');
   if (answer === null) return r(null, f.close_reason === 'run_end' ? 'not reached before the run ended' : 'no answer');
@@ -164,11 +172,11 @@ export function rateChoiceInstance(s: InstanceSummary, f: InstanceFacts, ctx: Ra
 
 export function rateCheckpoint(s: InstanceSummary, f: InstanceFacts, ctx: RatingContext & { credits: string[]; diagnosedConcept: string | null }):
   { ratings: { concept_id: string; rating: Rating }[]; countsAsPass: boolean } {
-  const countsAsPass = countedPass(s);
+  const counts = countsAsPass(s, f.family);
   const diagnosed = ctx.diagnosedConcept !== null && ctx.credits.includes(ctx.diagnosedConcept) ? ctx.diagnosedConcept : ctx.credits[0] ?? null;
-  const all = (rating: Rating) => ({ ratings: ctx.credits.map((concept_id) => ({ concept_id, rating })), countsAsPass });
-  const one = (rating: Rating) => ({ ratings: diagnosed === null ? [] : [{ concept_id: diagnosed, rating }], countsAsPass });
-  const none = { ratings: [], countsAsPass };
+  const all = (rating: Rating) => ({ ratings: ctx.credits.map((concept_id) => ({ concept_id, rating })), countsAsPass: counts });
+  const one = (rating: Rating) => ({ ratings: diagnosed === null ? [] : [{ concept_id: diagnosed, rating }], countsAsPass: counts });
+  const none = { ratings: [], countsAsPass: counts };
   if (ctx.lessonPhase || ctx.credits.length === 0) return none;
   if (s.revealBeforeFirstGraded) return ctx.cardRated ? one(AGAIN) : none;
   // D16: a correct answer at confidence 1 or 2 is Hard on every case checkpoint that asks confidence: CP1, CP2, CP4 and CP5, whose

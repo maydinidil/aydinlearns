@@ -6,10 +6,11 @@ export const OTHER_WAY_BUTTON = 'Other ways to write this';
 export const OTHER_WAY_FAILED = 'Could not load another way to write this. Try again.';
 
 /**
- * The button shows when the item has an other way (the item view says so, without its text), the learner passed it, and no timed run holds
- * it: inside a running drill or mock help waits for the end-of-run review (design §5), where only passed items offer it.
+ * The button shows when the item has an other way (the item view says so, without its text), the learner passed it, the pass counts
+ * (S7D-05: no "Show answer" or hint 2 or more before the first graded attempt), and no timed run holds it: inside a running drill or mock help waits for the end-of-run review (design §5), where only passed items offer it.
  */
-export const otherWayOffered = (o: { hasOtherWay: boolean; passed: boolean; inRun: boolean }): boolean => o.hasOtherWay && o.passed && !o.inRun;
+export const otherWayOffered = (o: { hasOtherWay: boolean; passed: boolean; inRun: boolean; revealed?: boolean }): boolean =>
+  o.hasOtherWay && o.passed && !o.inRun && o.revealed !== true;
 
 /** A refusal shows the server's own sentence; any other failure shows a plain one. */
 export const otherWayFailure = (e: unknown): string => (e instanceof ApiError ? e.message : OTHER_WAY_FAILED);

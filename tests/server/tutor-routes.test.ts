@@ -196,7 +196,7 @@ test('a question streams its reply and a summary, writes one record with counts 
   const recs = await records(dir);
   const asked = recs.filter((r) => r.record === 'tutor_asked');
   assert.equal(asked.length, 1);
-  assert.deepEqual({ ...asked[0], ts: 'T', session_id: 'S' }, { record: 'tutor_asked', schema_version: 7, ts: 'T', session_id: 'S', screen: 'item',
+  assert.deepEqual({ ...asked[0], ts: 'T', session_id: 'S' }, { record: 'tutor_asked', schema_version: 8, ts: 'T', session_id: 'S', screen: 'item',
     item_instance_id: 'I-1', item_id: ITEM, target_concept_id: content.item(ITEM)!.target_concept_id, phase: 'free', provider: 'claude', model: 'claude-haiku-5-5',
     effort: 'medium', prompt_version: TUTOR_PROMPT_VERSION, input_tokens: 1000, cached_input_tokens: 0, output_tokens: 200, cost_usd: 0.0002, outcome: 'answered' });
   assert.ok(!JSON.stringify(recs).includes('invented question marker'), 'no question text in the log');
@@ -509,7 +509,7 @@ test('T-22: Settings takes the switch, the model and the effort, each checked, l
   assert.deepEqual([s.switched_on, s.enabled, s.provider, s.model, s.effort], [true, true, 'claude', 'claude-haiku-5-5', 'medium']);
   const events = await logger.readAll('events') as Partial<SettingChange>[];
   assert.deepEqual(events.filter((e) => e.event === 'setting_change').map((e) => [e.key, e.value, e.schema_version]), [
-    ['tutor_model', 'gpt-6.1-sol', 7], ['tutor_effort', 'high', 7], ['tutor_enabled', false, 7], ['tutor_model', null, 7], ['tutor_effort', null, 7], ['tutor_enabled', null, 7]]);   // log version 7 since D112
+    ['tutor_model', 'gpt-6.1-sol', 8], ['tutor_effort', 'high', 8], ['tutor_enabled', false, 8], ['tutor_model', null, 8], ['tutor_effort', null, 8], ['tutor_enabled', null, 8]]);   // log version 8 since D123
   const restarted = settingsFromEvents(events.filter((e) => e.event === 'setting_change').slice(0, 3));
   assert.deepEqual([restarted.tutor_model, restarted.tutor_effort, restarted.tutor_enabled], ['gpt-6.1-sol', 'high', false], 'a restart reads them');
 });

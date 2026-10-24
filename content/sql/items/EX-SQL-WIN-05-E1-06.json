@@ -1,6 +1,6 @@
 {
   "id": "EX-SQL-WIN-05-E1-06",
-  "version": 1,
+  "version": 2,
   "kind": "write",
   "tags": [
     "sql",
@@ -47,7 +47,7 @@
   "company": "mailvora",
   "schema": "mailvora",
   "edge_schema": "mailvora_edge_win",
-  "prompt": "For each paid channel and each month from July to December 2025 in budget_monthly, show the month's budget and the average budget of that month and the 2 months before it, rounded to 2 decimals. Within each channel, months follow each other by month, and the window may reach back before July. A month whose window holds fewer than 3 months shows avg_budget_3m as missing. Return channel_id, month, budget_eur and avg_budget_3m. Any row order is fine.",
+  "prompt": "For each paid channel and each month from July to December 2025 in budget_monthly, show the month's budget and the average budget of that month and the 2 months before it, rounded to 2 decimals. Within each channel, months follow each other by month, and the window may reach back before July. A month whose window holds fewer than 3 months shows avg_budget_3m as missing. Return four columns, in this order: channel_id, month, budget_eur and avg_budget_3m. Return one row for each such channel and month. Any row order is fine.",
   "output_contract": {
     "columns": [
       {

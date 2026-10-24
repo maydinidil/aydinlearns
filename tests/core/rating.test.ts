@@ -1,7 +1,7 @@
 // tests/core/rating.test.ts: the rating mapper (Task B4). Every row of design §5's rating tables has a test.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { gradedAttempts, rateCheckpoint, rateChoiceInstance, rateSqlInstance, SQL_RATING_RULES, summarise, worstRating,
+import { countsAsPass, gradedAttempts, rateCheckpoint, rateChoiceInstance, rateSqlInstance, SQL_RATING_RULES, summarise, worstRating,
   type AttemptFact, type HelpFact, type InstanceFacts, type RatingContext } from '../../core/rating.ts';
 import type { Outcome } from '../../core/envelope.ts';
 
@@ -358,4 +358,40 @@ test('worstRating: Again is worst; null only when every rating is null (LE-03, S
 test('SQL_RATING_RULES: ERR-SYN-* is a syntax error, with a 60-second grace', () => {
   assert.equal(SQL_RATING_RULES.syntaxGraceMs, 60_000);
   assert.deepEqual(['ERR-SYN-01', 'ERR-SYN-07', 'ERR-SEM-01', 'ERR-LOG-00'].map((id) => SQL_RATING_RULES.isSyntaxError(id)), [true, true, false, false]);
+});
+
+// ---- S7D-05: countsAsPass, replay's one meaning of "passed" -----------------------------------------------------------------------
+// /api/other-way judges a live instance by this helper (core/live-pass.ts) and replay a closed one (each rating function reports it), so the
+// two can never disagree.
+test('S7D-05: countsAsPass: a pass with no reveal ("Show answer", or hint 2 or more) before the first graded attempt, for every family', () => {
+  const sum = (f: InstanceFacts) => summarise(f, SQL_RATING_RULES);
+  const sql: [string, InstanceFacts, boolean][] = [
+    ['a clean first-attempt pass', facts([pass(10 * S)]), true],
+    ['a pass on attempt 3', facts([fail(10 * S), fail(20 * S), pass(30 * S)]), true],
+    ['a pass after hint 1', facts([pass(10 * S)], { help: [hint(5 * S, 1)] }), true],
+    ['a pass after hint 2 before any attempt', facts([pass(10 * S)], { help: [hint(5 * S, 2)] }), false],
+    ['a pass after "Show answer" before any attempt', facts([pass(10 * S)], { help: [reveal(5 * S)] }), false],
+    ['a fail, then "Show answer", then a pass', facts([fail(10 * S), pass(30 * S)], { help: [reveal(20 * S)] }), true],
+    ['no pass', facts([fail(10 * S)]), false],
+    ['no attempt', facts([]), false],
+  ];
+  const failed = fail(10 * S);
+  sql.push(['an "I was right" override, pending', facts([failed, overrideOf(failed, 20 * S)], { override: 'pending' }), true],
+    ['an "I was right" override, reverted', facts([failed, overrideOf(failed, 20 * S)], { override: 'reverted' }), false]);
+  for (const [why, f, want] of sql) {
+    for (const family of ['write', 'fix', 'checkpoint'] as const) assert.equal(countsAsPass(sum({ ...f, family }), family), want, `${family}: ${why}`);
+    assert.equal(rate(f).countsAsPass, want, `rateSqlInstance reports it: ${why}`);
+    assert.equal(rateCp({ ...f, family: 'checkpoint', phase: 'case' }).countsAsPass, want, `rateCheckpoint reports it: ${why}`);
+  }
+  // A choice item's pass is its scored answer (S3-02): the last graded answer before the close.
+  const choices: [string, InstanceFacts, boolean][] = [
+    ['a right answer', choice([pass(10 * S)]), true],
+    ['a wrong answer', choice([fail(10 * S)]), false],
+    ['right, then changed to wrong (a practice run)', choice([pass(10 * S), fail(20 * S)]), false],
+    ['a right answer after "Show answer"', choice([pass(10 * S)], { help: [reveal(5 * S)] }), false],
+  ];
+  for (const [why, f, want] of choices) {
+    for (const family of ['choice', 'other_sql'] as const) assert.equal(countsAsPass(sum({ ...f, family }), family), want, `${family}: ${why}`);
+    assert.equal(rateChoice(f).countsAsPass, want, `rateChoiceInstance reports it: ${why}`);
+  }
 });

@@ -1,25 +1,16 @@
 // tools/rank-cutoffs.ts: C53, the tie rule of a rank cutoff (sprint 7, Task A1: S7-22, E-204; Task A2b: the keep-one dedup, S7-C06).
 // Sprint 7c (Task X5, S7C-09) moved it here from tools/check-content.ts, which still runs it as C53 on every write and fix item
 // (checkItem). Like every check, its details name the key query, the function, a column and the edge schema, never SQL (non-negotiable 2).
-import { maskSql, stripTrailing } from '../server/runner/tables.ts';
-import { grade, type Feedback } from '../server/grader/grade.ts';
-import type { GradeResult } from '../server/grader/types.ts';
-import type { RunnerClient } from '../server/runner/client.ts';
+// Sprint 7d (Task Y2, S7D-08): its helpers come from tools/sql-compare.ts, shared with check-content.ts, and a flag is read only in the
+// query whose FROM defines it.
+import { maskSql } from '../server/runner/tables.ts';
 import type { ParseTreeOk } from '../server/runner/protocol.ts';
 import type { SqlItem } from '../schemas/item.ts';
 import type { SqlKey } from '../schemas/keys.ts';
-import type { EdgeDescription } from '../schemas/edge.ts';
+import { sameQuery, tryGrade, type GradeContext } from './sql-compare.ts';
 
 /** What C53 needs of the checks' context (CheckContext in tools/check-content.ts, which satisfies it). */
-export interface RankCutoffContext { runner: RunnerClient; edge: (schema: string) => EdgeDescription | null; feedback: Feedback }
-
-const squash = (s: string) => s.replace(/\s+/g, ' ').trim();
-/** One key query written twice, as the other way repeats an alternative (C39): the same text but for white space and a trailing semicolon. */
-const sameQuery = (a: string, b: string): boolean => squash(stripTrailing(a)) === squash(stripTrailing(b));
-/** The grader's verdict, or null when it throws, as tools/check-content.ts grades every key query. */
-async function tryGrade(item: SqlItem, key: SqlKey, sql: string, ctx: RankCutoffContext): Promise<GradeResult | null> {
-  try { return await grade({ item, key, sql }, { runner: ctx.runner, edge: ctx.edge(item.edge_schema), feedback: ctx.feedback }); } catch { return null; }
-}
+export type RankCutoffContext = GradeContext;
 
 export type RankingFn = 'ROW_NUMBER' | 'RANK' | 'DENSE_RANK' | 'NTILE';
 /** The ranking functions S7-22 names, by their window type in json_serialize_sql's tree. */
@@ -65,6 +56,25 @@ function walkTree(value: unknown, enter: (o: TreeObj) => boolean): void {
     if (!Array.isArray(x) && !enter(x as TreeObj)) continue;
     const children = Array.isArray(x) ? x : Object.values(x);
     for (let i = children.length - 1; i >= 0; i--) stack.push(children[i]);
+  }
+}
+
+/**
+ * S7D-08: walkTree over every object, with the query node (a SELECT or a set operation) it belongs to: the nearest one around it, or
+ * null outside any. A query node itself belongs to the one around it; what it holds belongs to it.
+ */
+function walkOwned(value: unknown, enter: (o: TreeObj, owner: TreeObj | null) => void): void {
+  const stack: [unknown, TreeObj | null][] = [[value, null]];
+  while (stack.length) {
+    const [x, owner] = stack.pop()!;
+    if (!x || typeof x !== 'object') continue;
+    let holder = owner;
+    if (!Array.isArray(x)) {
+      enter(x as TreeObj, owner);
+      if (String((x as TreeObj).type).endsWith('_NODE')) holder = x as TreeObj;
+    }
+    const children = Array.isArray(x) ? x : Object.values(x);
+    for (let i = children.length - 1; i >= 0; i--) stack.push([children[i], holder]);
   }
 }
 
@@ -220,18 +230,22 @@ function flagWindows(e: TreeObj, byAlias: ReadonlyMap<string, TreeObj[]>): TreeO
  * name in a CTE's or a subquery's column list, by place (S7C-09; after a star in that SELECT list the places are not known, so the list
  * is not followed there). S7C-09: a SELECT-list flag, an item that compares a ranking result (flagWindows) under a name, is a cutoff
  * when a filter names it (`WHERE top`, `WHERE NOT top`, `WHERE top AND ...`); otherwise a ranking result compared in a SELECT list is
- * shown, not filtered. Two shapes stay unread, stated limits: arithmetic on the result before the comparison (`WHERE rn - 1 < 2`), and
- * a label made from it, such as a CASE, filtered outside (`WHERE label = 'top'`). `tree` is json_serialize_sql's reply for `sql`.
+ * shown, not filtered. S7D-08 (sprint 7d, Task Y2; X5-M1): only a filter of the query whose FROM defines the flag reads it (visibleFlags):
+ * the query that reads, as a subquery or a CTE, the query whose SELECT list holds the flag or passes it on (by a star, or by naming the
+ * column), and the flag's own query in its QUALIFY. A column of the same name in any other query, or a correlated reference to the flag
+ * from a subquery, is not read. Two shapes stay unread, stated limits: arithmetic on the result before the comparison
+ * (`WHERE rn - 1 < 2`), and a label made from it, such as a CASE, filtered outside (`WHERE label = 'top'`). `tree` is json_serialize_sql's
+ * reply for `sql`.
  */
 export function rankCutoffs(tree: unknown, sql: string): RankCutoff[] {
   const byAlias = new Map<string, TreeObj[]>();
-  /** Every other named SELECT-list item: a flag when it compares a ranking result (resolved below, once every alias is known). */
-  const items: [string, TreeObj][] = [];
-  const filters: unknown[] = [];
+  /** Each filter with the query node it belongs to; `qualify` marks a QUALIFY, which also sees its own query's SELECT-list names. */
+  const filters: { expr: unknown; owner: TreeObj | null; qualify?: boolean }[] = [];
+  /** S7D-08: every CTE by its name, lower case, for a FROM that reads one (the same name at two levels is read both ways). */
+  const ctes = new Map<string, { query: unknown; aliases: unknown }[]>();
   const name = (alias: unknown, e: TreeObj): void => {
     if (typeof alias !== 'string' || alias === '') return;
     if (rankingFn(e)) byAlias.set(alias.toLowerCase(), [...(byAlias.get(alias.toLowerCase()) ?? []), e]);
-    else items.push([alias.toLowerCase(), e]);
   };
   /** S7C-09: a CTE's or a subquery's column list names the columns of its query by place, up to the first star. */
   const columnList = (aliases: unknown, query: unknown): void => {
@@ -243,23 +257,82 @@ export function rankCutoffs(tree: unknown, sql: string): RankCutoff[] {
       }
     }
   };
-  walkTree(tree, (o) => {
+  walkOwned(tree, (o, owner) => {
     if (Array.isArray(o.select_list)) {
       for (const e of o.select_list) if (isTreeObj(e)) name(e.alias, e);
-      filters.push(o.where_clause, o.having, o.qualify);
+      filters.push({ expr: o.where_clause, owner: o }, { expr: o.having, owner: o }, { expr: o.qualify, owner: o, qualify: true });
     }
-    if (o.type === 'JOIN') filters.push(o.condition);
-    if (isTreeObj(o.cte_map)) for (const m of treeList(o.cte_map.map)) if (isTreeObj(m) && isTreeObj(m.value)) columnList(m.value.aliases, (m.value.query as TreeObj | undefined)?.node);
+    if (o.type === 'JOIN') filters.push({ expr: o.condition, owner });
+    if (isTreeObj(o.cte_map)) {
+      for (const m of treeList(o.cte_map.map)) {
+        if (!isTreeObj(m) || !isTreeObj(m.value)) continue;
+        const query = (m.value.query as TreeObj | undefined)?.node;
+        columnList(m.value.aliases, query);
+        if (typeof m.key === 'string') ctes.set(m.key.toLowerCase(), [...(ctes.get(m.key.toLowerCase()) ?? []), { query, aliases: m.value.aliases }]);
+      }
+    }
     if (o.type === 'SUBQUERY' && isTreeObj(o.subquery)) columnList(o.column_name_alias, o.subquery.node);
-    if (o.class === 'FUNCTION') filters.push(o.filter);                  // S7C-09: count(*) FILTER (WHERE rn <= 3)
-    if (o.class === 'WINDOW') filters.push(o.filter_expr);               // and a window aggregate's
-    return true;
+    if (o.class === 'FUNCTION') filters.push({ expr: o.filter, owner });          // S7C-09: count(*) FILTER (WHERE rn <= 3)
+    if (o.class === 'WINDOW') filters.push({ expr: o.filter_expr, owner });       // and a window aggregate's
   });
-  const flags = new Map<string, TreeObj[]>();
-  for (const [n, e] of items) {
-    const ws = flagWindows(e, byAlias);
-    if (ws.length) flags.set(n, [...(flags.get(n) ?? []), ...ws]);
-  }
+
+  type Flags = Map<string, TreeObj[]>;
+  const addFlag = (to: Flags, n: string, ws: TreeObj[]): void => { if (n && ws.length) to.set(n, [...(to.get(n) ?? []), ...ws]); };
+  /**
+   * S7D-08: the flag columns `query` gives a query that reads it, by name, lower case: each SELECT-list item that compares a ranking result
+   * (flagWindows) or names a flag column of the query's own FROM (fromFlags), under its alias, its own name and its column-list name (by
+   * place, up to the first star); a star passes on every flag column of that FROM. Each query node has one column list (its CTE's or its
+   * subquery's), so the answer is kept by node and a CTE read many times is worked out once; it is kept before it is worked out, so a
+   * recursive CTE that reads itself gets what is known so far and never loops.
+   */
+  const outputs = new Map<unknown, Flags>();
+  const outputFlags = (query: unknown, aliases: unknown): Flags => {
+    const kept = outputs.get(query);
+    if (kept) return kept;
+    const out: Flags = new Map();
+    outputs.set(query, out);
+    const names = treeList(aliases);
+    for (const s of selectsOf(query)) {
+      const passed = fromFlags(s);
+      let star = false;
+      for (const [i, e] of treeList(s.select_list).entries()) {
+        if (!isTreeObj(e)) continue;
+        if (e.class === 'STAR') { star = true; for (const [n, ws] of passed) addFlag(out, n, ws); continue; }
+        const ws = [...flagWindows(e, byAlias), ...(e.class === 'COLUMN_REF' ? passed.get(refName(e)) ?? [] : [])];
+        addFlag(out, typeof e.alias === 'string' && e.alias ? e.alias.toLowerCase() : e.class === 'COLUMN_REF' ? refName(e) : '', ws);
+        if (!star && i < names.length) addFlag(out, String(names[i]).toLowerCase(), ws);
+      }
+    }
+    return out;
+  };
+  /** S7D-08: the flag columns SELECT `s` reads in its FROM: from each subquery, and each CTE named there, at any depth of its joins. */
+  const fromFlags = (s: TreeObj): Flags => {
+    const out: Flags = new Map();
+    const read = (from: Flags): void => { for (const [n, ws] of from) addFlag(out, n, ws); };
+    const visit = (ref: unknown): void => {
+      if (!isTreeObj(ref)) return;
+      if (ref.type === 'JOIN') { visit(ref.left); visit(ref.right); }
+      else if (ref.type === 'SUBQUERY' && isTreeObj(ref.subquery)) read(outputFlags(ref.subquery.node, ref.column_name_alias));
+      else if (ref.type === 'BASE_TABLE' && !ref.schema_name && !ref.catalog_name && typeof ref.table_name === 'string') {
+        for (const c of ctes.get(ref.table_name.toLowerCase()) ?? []) read(outputFlags(c.query, c.aliases));
+      }
+    };
+    visit(s.from_table);
+    return out;
+  };
+  const visible = new Map<TreeObj, Flags>();
+  /** S7D-08: the flags a filter of query `owner` may name: its FROM's, and in its QUALIFY its own SELECT list's too. */
+  const visibleFlags = (owner: TreeObj | null, qualify: boolean): Flags => {
+    if (!owner) return new Map();
+    if (!visible.has(owner)) visible.set(owner, fromFlags(owner));
+    if (!qualify) return visible.get(owner)!;
+    const own: Flags = new Map(visible.get(owner)!);
+    for (const e of treeList(owner.select_list)) {
+      if (isTreeObj(e) && typeof e.alias === 'string' && e.alias) addFlag(own, e.alias.toLowerCase(), flagWindows(e, byAlias));
+    }
+    return own;
+  };
+
   const windows: TreeObj[] = [];
   const firstOnly = new Map<TreeObj, boolean>();
   const found = (w: TreeObj, first: boolean): void => {
@@ -267,7 +340,8 @@ export function rankCutoffs(tree: unknown, sql: string): RankCutoff[] {
     firstOnly.set(w, (firstOnly.get(w) ?? true) && first);
   };
   for (const f of filters) {
-    walkTree(f, (o) => {
+    const flags = visibleFlags(f.owner, f.qualify === true);
+    walkTree(f.expr, (o) => {
       if (isTreeObj(o.node) && String(o.node.type).endsWith('_NODE')) return false;   // a nested query: its own filters are read above
       for (const x of comparedOperands(o)) {
         if (!isTreeObj(x)) continue;
@@ -275,7 +349,7 @@ export function rankCutoffs(tree: unknown, sql: string): RankCutoff[] {
         if (rankingFn(x)) found(x, first);
         else if (x.class === 'COLUMN_REF') for (const w of byAlias.get(refName(x)) ?? []) found(w, first);
       }
-      // S7C-09: a flag the filter names; through a flag no filter counts as keeping place 1 alone.
+      // S7C-09: a flag the filter names; through a flag no filter counts as keeping place 1 alone. S7D-08: only a flag its query can see.
       if (o.class === 'COLUMN_REF') for (const w of flags.get(refName(o)) ?? []) found(w, false);
       return true;
     });

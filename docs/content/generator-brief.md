@@ -651,7 +651,7 @@ the controller's ruling S7-C02 (no `ERR-LOG-44`). The ERRATA rows are E-200 to E
 
 | Concept | Schemas, edge schemas | Pool (write) | Must-have traps | Also |
 |---|---|---|---|---|
-| `SQL-WIN-01` | `voltmarkt` with `voltmarkt_edge_win`, `mailvora` with `mailvora_edge_win` | 10 to 12 | `ERR-LOG-37` missing PARTITION BY; `ERR-SYN-08` a window function in WHERE, GROUP BY, HAVING or an aggregate | A window against GROUP BY: the window keeps every row; shares of a partition total |
+| `SQL-WIN-01` | `voltmarkt` with `voltmarkt_edge_win`, `mailvora` with `mailvora_edge_win` | 10 to 12 | `ERR-LOG-37` missing PARTITION BY; `ERR-SYN-08` a window function in WHERE, GROUP BY, HAVING, an aggregate or another window | A window against GROUP BY: the window keeps every row; shares of a partition total |
 | `SQL-WIN-02` | both | 10 to 12 | `ERR-LOG-40` RANK where exactly N rows were asked, or ROW_NUMBER where ties must share a place; the tie rule (S7-22, below) | ROW_NUMBER, RANK and DENSE_RANK on the same tie |
 | `SQL-WIN-03` | both | 8 to 10 | `ERR-LOG-41` LAG or a running total in no stated order, or ordered by the wrong column; `ERR-LOG-37`; `ERR-LOG-39` a period with no rows | The first row's missing LAG; month over month on Mailvora's spend |
 | `SQL-WIN-04` | both | 10 to 12 | `ERR-LOG-38` the default RANGE frame; `ERR-LOG-41` | Running totals that start again each month |

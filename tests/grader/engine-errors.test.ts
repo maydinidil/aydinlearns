@@ -58,6 +58,11 @@ const cases: [string, string][] = [
   ['SELECT count(*) FILTER (WHERE rank() OVER (ORDER BY city) = 1) FROM stores', 'ERR-SYN-08'],
   ['SELECT sum(rank() OVER (ORDER BY city)) OVER () FROM stores', 'ERR-SYN-08'],
   ['SELECT a.city FROM stores a JOIN stores b ON rank() OVER (ORDER BY a.city) = b.store_id', 'ERR-SYN-08'],
+  // S7D-12 (sprint 7d, Task Y2; D121, ERRATA E-207): a window function in another window's PARTITION BY or ORDER BY, written inline or
+  // in a named window, is ERR-SYN-08 too, no longer the generic Parser Error rule's ERR-SYN-01.
+  ['SELECT sum(store_id) OVER (PARTITION BY rank() OVER (ORDER BY city)) FROM stores', 'ERR-SYN-08'],
+  ['SELECT sum(store_id) OVER (ORDER BY row_number() OVER (ORDER BY city)) FROM stores', 'ERR-SYN-08'],
+  ['SELECT sum(store_id) OVER w FROM stores WINDOW w AS (PARTITION BY country_code ORDER BY rank() OVER (ORDER BY city))', 'ERR-SYN-08'],
 ];
 for (const [sql, id] of cases) {
   test(`${id}: ${sql.replace(/\n/g, '\\n')}`, async () => {
@@ -127,6 +132,11 @@ const WINDOW_PLACES: { place: string; sql: string; message: string }[] = [
     message: 'Binder Error: aggregate function calls cannot contain window function calls' },
   { place: 'nested in another window function', sql: 'SELECT sum(rank() OVER (ORDER BY id)) OVER () FROM t',
     message: 'Binder Error: window function calls cannot be nested' },
+  // S7D-12 (D121, E-207): DuckDB 1.5.6 refuses one in another window's own PARTITION BY or ORDER BY while parsing, not binding.
+  { place: "in another window's PARTITION BY", sql: 'SELECT sum(id) OVER (PARTITION BY rank() OVER (ORDER BY id)) FROM t',
+    message: 'Parser Error: window functions are not allowed in window definitions' },
+  { place: "in another window's ORDER BY", sql: 'SELECT sum(id) OVER (ORDER BY row_number() OVER (ORDER BY id)) FROM t',
+    message: 'Parser Error: window functions are not allowed in window definitions' },
 ];
 for (const w of WINDOW_PLACES) {
   test(`S7C-08: DuckDB 1.5.6's own message for a window function ${w.place}, on an in-memory instance, is ERR-SYN-08`, async () => {
@@ -135,6 +145,11 @@ for (const w of WINDOW_PLACES) {
     assert.deepEqual(classifyEngineError(message, w.sql), { errorId: 'ERR-SYN-08' });
   });
 }
+test('S7D-12: the window-definition rule is that one message only; every other Parser Error still falls to ERR-SYN-01', () => {
+  assert.deepEqual(classifyEngineError('Parser Error: window functions are not allowed in window definitions', 'SELECT 1'), { errorId: 'ERR-SYN-08' });
+  assert.equal(classifyEngineError('Parser Error: window functions are not allowed here', 'SELECT 1').errorId, 'ERR-SYN-01');
+  assert.equal(classifyEngineError('Parser Error: syntax error at or near "OVER"', 'SELECT sum(id) OVER OVER FROM t').errorId, 'ERR-SYN-01');
+});
 test('an unknown message falls back by its error class', () => {
   assert.equal(classifyEngineError('Parser Error: something new', 'SELECT 1').errorId, 'ERR-SYN-01');
   assert.equal(classifyEngineError('Catalog Error: Scalar Function with name foo does not exist!', 'SELECT foo(1)').errorId, 'ERR-SYN-02');

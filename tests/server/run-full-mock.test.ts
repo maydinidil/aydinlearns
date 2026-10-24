@@ -117,7 +117,7 @@ function shownBefore(daysAgo: number): { seed: object[]; shownAt: number; shown:
 
 // ---- the start --------------------------------------------------------------------------------------------------------------------
 
-test('a full mock on a fresh log: 50 held-out core items by topic weight, exam mode, 75 minutes, phase mock, on unseen items; nothing is logged', async () => {
+test('a full mock on a fresh log: 50 held-out core items by topic weight, exam mode, 75 minutes, phase mock, on unseen items; only its run_open is logged', async () => {
   const d = await deps();
   const app = createApp(d);
   const before = (await records(d)).length;
@@ -135,7 +135,9 @@ test('a full mock on a fresh log: 50 held-out core items by topic weight, exam m
   for (const s of run.servings as Serving[]) {
     assert.deepEqual(d.servings.get(s.item_instance_id), { phase: 'mock', block_id: run.block_id, repeat_exposure: false, section: 'ga4', item_id: s.item_id });
   }
-  assert.equal((await records(d)).length, before, 'a start logs nothing');
+  // D123 (log version 8): a start logs one record, its run_open.
+  assert.deepEqual((await records(d)).slice(before).map((x: any) => [x.record, x.schema_version, x.block_id, x.run_kind, x.blueprint_from]),
+    [['run_open', 8, run.block_id, 'full_mock', '2026-10-06']], 'a start logs its run_open only');
   const current = (await json(get(app, '/api/run/current'))).run;
   assert.deepEqual([current.block_id, current.kind, current.on_unseen], [run.block_id, 'full_mock', true]);
 });

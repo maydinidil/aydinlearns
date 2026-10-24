@@ -95,21 +95,32 @@ UNION ALL
 (SELECT 'extra' AS __al_side, ${C.map((c) => `l_${c} AS ${c}`).join(', ')} FROM __al_j WHERE __al_lrn IS NOT NULL AND (__al_krn IS NULL OR NOT __al_ok) LIMIT ${limit})`;
 }
 
+/** S7D-06: up to this many sort keys, every NULLS FIRST and NULLS LAST combination is tried (2^4 = 16); above it, the two uniform ones. */
+export const MIXED_NULLS_MAX_KEYS = 4;
+
 /**
  * Counts places where the learner's display order breaks the required sort keys (ties may come in
  * any order). NULL position is free unless the prompt states it (design §6), and SortKey has no
- * nulls field, so the count is taken with every key NULLS LAST and with every key NULLS FIRST,
- * and the smaller one is returned.
+ * nulls field, so the count is taken under several NULL placements and the smallest is returned.
+ * S7D-06 (sprint 7d, Task Y2; GRADER_VERSION 7d.1): each key's placement is free on its own, so with up to
+ * MIXED_NULLS_MAX_KEYS keys every combination is tried; above that, every key NULLS LAST and every key
+ * NULLS FIRST, as before. The uniform placements are among the combinations, so an order that passed still passes.
  */
 export function composeOrderSql(learnerSql: string, learnerColCount: number, keys: { index: number; desc: boolean }[]): string {
   const L = names('__al_l', learnerColCount);
-  const order = (nulls: 'LAST' | 'FIRST'): string => keys.map((k) => `${L[k.index]} ${k.desc ? 'DESC' : 'ASC'} NULLS ${nulls}`).join(', ');
+  // One placement per combination, true for NULLS FIRST: bit i of m places key i. m = 0 is every key NULLS LAST.
+  const placements: boolean[][] = keys.length <= MIXED_NULLS_MAX_KEYS
+    ? Array.from({ length: 2 ** keys.length }, (_, m) => keys.map((_, i) => ((m >> i) & 1) === 1))
+    : [keys.map(() => false), keys.map(() => true)];
+  const order = (first: boolean[]): string => keys.map((k, i) => `${L[k.index]} ${k.desc ? 'DESC' : 'ASC'} NULLS ${first[i] ? 'FIRST' : 'LAST'}`).join(', ');
+  const R = names('__al_rk', placements.length);   // each row's rank under one placement
+  const P = names('__al_pv', placements.length);   // the rank of the row shown before it
   return `WITH __al_o AS (SELECT row_number() OVER () AS __al_ord, * FROM (
 ${inner(learnerSql)}
 ) AS __al_lr(${L.join(', ')})),
-__al_r AS (SELECT __al_ord, rank() OVER (ORDER BY ${order('LAST')}) AS __al_rl, rank() OVER (ORDER BY ${order('FIRST')}) AS __al_rf FROM __al_o),
-__al_v AS (SELECT __al_rl, lag(__al_rl) OVER (ORDER BY __al_ord) AS __al_pl, __al_rf, lag(__al_rf) OVER (ORDER BY __al_ord) AS __al_pf FROM __al_r)
-SELECT least(count(*) FILTER (WHERE __al_pl > __al_rl), count(*) FILTER (WHERE __al_pf > __al_rf))::BIGINT AS violations FROM __al_v`;
+__al_r AS (SELECT __al_ord, ${placements.map((p, j) => `rank() OVER (ORDER BY ${order(p)}) AS ${R[j]}`).join(', ')} FROM __al_o),
+__al_v AS (SELECT ${R.map((r, j) => `${r}, lag(${r}) OVER (ORDER BY __al_ord) AS ${P[j]}`).join(', ')} FROM __al_r)
+SELECT least(${R.map((r, j) => `count(*) FILTER (WHERE ${P[j]} > ${r})`).join(', ')})::BIGINT AS violations FROM __al_v`;
 }
 
 export function composeGrainSql(learnerSql: string, learnerColCount: number, keyIndexes: number[]): string {

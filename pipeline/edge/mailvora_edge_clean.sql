@@ -1,6 +1,7 @@
 -- pipeline/edge/mailvora_edge_clean.sql (family: clean; sprint 7 Part 2, Task G1, S7-15)
 -- Mirrors mailvora_raw, with every one of its table names and no view: the edge schema of the take-home on raw Mailvora data
--- (TAKE-HOME-B), as voltmarkt_edge_clean is voltmarkt_raw's. Fictional data, a few rows a table in Q3 2025, apart from two bots.
+-- (TAKE-HOME-B), as voltmarkt_edge_clean is voltmarkt_raw's. Fictional data, a few rows a table in Q3 2025 and October, apart from
+-- two bots.
 -- Each raw quirk (knowledge/05 CO-03) is here in a case mailvora_raw does not show, so a query fitted to the visible quirks
 -- fails, while the rules in mailvora_raw's notes clean every row. Planted:
 --   Q-03-01: Meta sessions in raw's spellings (fb, ig, Paid-Social, cpc) and in two it lacks (utm_source instagram, utm_medium
@@ -15,7 +16,11 @@
 --   each tagged google and organic;
 --   Q-03-06: a direct session with all three UTM fields empty, as in raw; a direct session with only utm_source empty; an organic
 --   session with only utm_campaign empty. Visitors 14 and 15 came earlier through a campaign, so their last touch depends on it;
---   Q-03-07: 2 of 8 payments refunded, one of them a 120 euro payment: most of August's money, far from raw's 4%.
+--   Q-03-07: 2 of August's 3 payments refunded, one of them a 120 euro payment: most of August's money, far from raw's 4%; and
+--   (sprint 7d, Task K2, S7D-13) both of October's payments refunded, in a month with spend (one nonbrand search row on 6 October,
+--   and fx_rates_monthly holds October's dollar and pound rates, as it holds every month's):
+--   a shape mailvora_raw lacks, so October's revenue is 0, which neither a share fitted to raw's 4% nor a sum with no 0 for a month
+--   without revenue gives. 4 of the 10 payments are refunded (pipeline/tests/test_edge_7d.py).
 -- Every campaign session falls on a UTC day its campaign had clicks, once the Los Angeles days are shifted; every signup follows a
 -- session of its visitor; the channels, the campaigns and the dollar rates are mailvora_raw's own rows.
 CREATE SCHEMA mailvora_edge_clean;
@@ -23,9 +28,10 @@ CREATE TABLE mailvora_edge_clean.channels AS SELECT * FROM mailvora_raw.channels
 CREATE TABLE mailvora_edge_clean.campaigns AS SELECT * FROM mailvora_raw.campaigns
 WHERE campaign_id IN (25, 53, 86, 87, 114, 153, 158, 172);
 CREATE TABLE mailvora_edge_clean.fx_rates_monthly AS SELECT * FROM mailvora_raw.fx_rates_monthly
-WHERE month BETWEEN DATE '2025-07-01' AND DATE '2025-09-01';
+WHERE month BETWEEN DATE '2025-07-01' AND DATE '2025-10-01';
 INSERT INTO mailvora_edge_clean.fx_rates_monthly VALUES
-  (DATE '2025-07-01', 'GBP', 1.168200), (DATE '2025-08-01', 'GBP', 1.161500), (DATE '2025-09-01', 'GBP', 1.172400);
+  (DATE '2025-07-01', 'GBP', 1.168200), (DATE '2025-08-01', 'GBP', 1.161500), (DATE '2025-09-01', 'GBP', 1.172400),
+  (DATE '2025-10-01', 'GBP', 1.169800);
 CREATE TABLE mailvora_edge_clean.ad_spend_daily AS SELECT * FROM mailvora_raw.ad_spend_daily LIMIT 0;
 INSERT INTO mailvora_edge_clean.ad_spend_daily VALUES
   (DATE '2025-07-14', 25, 4100, 140, 336.00, 'EUR', 'UTC'),
@@ -33,6 +39,7 @@ INSERT INTO mailvora_edge_clean.ad_spend_daily VALUES
   (DATE '2025-08-05', 25, 3900, 135, 324.00, 'EUR', 'UTC'),
   (DATE '2025-08-05', 25, 3900, 135, 324.00, 'EUR', 'UTC'),
   (DATE '2025-09-04', 25, 4300, 150, 360.00, 'EUR', 'UTC'),
+  (DATE '2025-10-06', 25, 4200, 145, 348.00, 'EUR', 'UTC'),
   (DATE '2025-07-15', 53, 1500, 105, 57.75, 'EUR', 'UTC'),
   (DATE '2025-08-20', 53, 1400, 98, 53.90, 'EUR', 'UTC'),
   (DATE '2025-07-14', 87, 52000, 570, 541.50, 'EUR', 'UTC'),
@@ -104,4 +111,6 @@ INSERT INTO mailvora_edge_clean.payments VALUES
   (5, 2, TIMESTAMPTZ '2025-08-25 03:00:00+00', 15.00, false),
   (6, 4, TIMESTAMPTZ '2025-09-01 03:00:00+00', 45.00, false),
   (7, 1, TIMESTAMPTZ '2025-09-20 03:00:00+00', 45.00, false),
-  (8, 3, TIMESTAMPTZ '2025-09-25 03:00:00+00', 120.00, false);
+  (8, 3, TIMESTAMPTZ '2025-09-25 03:00:00+00', 120.00, false),
+  (9, 1, TIMESTAMPTZ '2025-10-20 03:00:00+00', 45.00, true),
+  (10, 3, TIMESTAMPTZ '2025-10-25 03:00:00+00', 120.00, true);

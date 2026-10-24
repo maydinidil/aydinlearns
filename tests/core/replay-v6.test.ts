@@ -14,7 +14,7 @@ const rated = (records: object[], id: string) => {
   return { rating: r.rating, why: r.why, countsAsPass: r.countsAsPass };
 };
 
-test('the log version is 7 (6 added tutor_asked; 7 is D112, tests/server/log-v7.test.ts)', () => assert.equal(SCHEMA_VERSION, 7));
+test('the log version is 8 (6 added tutor_asked; 8 is D123, tests/server/log-v8.test.ts)', () => assert.equal(SCHEMA_VERSION, 8));
 
 test('an SQL pass after a tutor question is Hard, as after hint 1, and still counts as a pass', () => {
   assert.equal(rated(sqlPass(), 'T-1').rating, 3, 'without the question: Good');

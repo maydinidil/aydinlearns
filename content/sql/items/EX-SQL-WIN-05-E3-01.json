@@ -1,6 +1,6 @@
 {
   "id": "EX-SQL-WIN-05-E3-01",
-  "version": 1,
+  "version": 2,
   "kind": "write",
   "tags": [
     "sql",
@@ -51,7 +51,7 @@
   "company": "voltmarkt",
   "schema": "voltmarkt",
   "edge_schema": "voltmarkt_edge_win",
-  "prompt": "For store NL-01, find the UTC days from 1 February to 30 June 2025 whose net revenue was less than half of the store's average daily revenue over the 28 days before it (that day not included). Every calendar day counts, a day with no orders has 0 revenue, and the 28 days may reach back into January. Return order_date, revenue_eur and avg_prev_28d, the 28-day average rounded to 2 decimals, for those days only. Any row order is fine.",
+  "prompt": "For store NL-01, find the UTC days from 1 February to 30 June 2025 whose net revenue was less than half of the store's average daily revenue over the 28 days before it (that day not included). Every calendar day counts, a day with no orders has 0 revenue, and the 28 days may reach back into January. Return three columns, in this order: order_date, revenue_eur and avg_prev_28d, the 28-day average rounded to 2 decimals. Return one row for each day found. Any row order is fine.",
   "output_contract": {
     "columns": [
       {

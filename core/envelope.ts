@@ -11,9 +11,12 @@
  * 7 since sprint 7 (owner decision D112, 2026-10-20): `mock_open` is a new record in the attempt files, written when a recruiter mock
  * starts (S7-01); a knowledge mock's answers carry `run_kind: 'knowledge_mock'` in their mcq payload; and `tutor_asked.ts` is the time the
  * question was asked (before version 7 it was the time the reply ended).
- * Replay reads versions 1 to 7; no reader checks the version, apart from S2-15's: a version 1 record logged no rating to compare.
+ * 8 since sprint 7d (owner decision D123, 2026-10-23): `run_open` is a new record in the attempt files (schemas/log-ext.ts RunOpen), written
+ * when a GA4 run (a mini drill, a half-mock or a full mock) starts, so the GA4 run history dates the run by it, and scores it on that date's
+ * blueprint entry, rather than by its earliest record; a log without one is read exactly as before. No other record changes.
+ * Replay reads versions 1 to 8; no reader checks the version, apart from S2-15's: a version 1 record logged no rating to compare.
  */
-export const SCHEMA_VERSION = 7;
+export const SCHEMA_VERSION = 8;
 
 export type Section = 'sql' | 'ga4' | 'methodology';
 export type Phase =

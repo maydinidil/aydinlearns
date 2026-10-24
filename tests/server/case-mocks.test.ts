@@ -173,7 +173,7 @@ test('S7-01, S7-13, S7-14: the case-round start writes one mock_open with CASE-R
   assert.deepEqual([run.mock, run.form_id, run.minutes, run.on_unseen], ['case_round', 'CASE-ROUND-A', 45, true]);
   assert.deepEqual(run.servings.map((s) => s.item_id), [`${MOCK_CASE}:CP1`, `${MOCK_CASE}:CP2`, MOCK_CP3, `${MOCK_CASE}:CP4`, `${MOCK_CASE}:CP5`], 'CP1 to CP5, in the case\'s order');
   const opens = (await records(d)).filter((r) => r.record === 'mock_open');
-  assert.deepEqual(opens.map((o) => [o.block_id, o.mock, o.form_id, o.minutes, o.on_unseen, o.schema_version, o.pass_correct]), [[run.block_id, 'case_round', 'CASE-ROUND-A', 45, true, 7, 4]],
+  assert.deepEqual(opens.map((o) => [o.block_id, o.mock, o.form_id, o.minutes, o.on_unseen, o.schema_version, o.pass_correct]), [[run.block_id, 'case_round', 'CASE-ROUND-A', 45, true, 8, 4]],
     'S7-C34: it records the 4 of CP1 to CP5 the run needs');
   assert.deepEqual([opens[0].core_rubric, 'item_ids' in opens[0]], [['number', 'direction', 'caveat', 'next_step'], false],
     'D116 (S7C-03): it records its mock\'s core rubric lines as the start read them, and lists no questions');
@@ -908,4 +908,41 @@ test('S7C-07 (F4-4-3): a take-home rebuilt after a restart, whose form now names
   assert.deepEqual(view.servings.map((s) => s.item_id), [`${TAKE}:CP1`, `${TAKE}:CP2`, TAKE_CP3, `${TAKE}:CP4`, `${TAKE}:CP5`], 'its own questions');
   assert.deepEqual(view.case.checkpoints.map((c) => c.answered), [true, false, false, false, false, false]);
   assert.deepEqual(await json(answerCp(again, run.block_id, 'CP2', true)), { recorded: true }, 'and it takes the next answer');
+});
+
+// ---- Sprint 7d (Task Y1): S7D-01 and S7D-10 ------------------------------------------------------------------------------------------------
+
+test('S7D-01: GET /api/tutor/status sweeps the runs first, so mock_on ends at a case round\'s limit even when no timer has fired', async () => {
+  const clock = fakeClock();
+  const d = { ...await deps(clock), tutor: await fakeTutor() };
+  const app = createApp(d);
+  await json(post(app, '/api/mocks/start', { mock: 'case_round' }));
+  assert.equal((await json(get(app, '/api/tutor/status'))).mock_on, true, 'on inside the limit');
+  clock.advance(46);                                                  // past the 45 minutes; the timer is not fired
+  const past = await json(get(app, '/api/tutor/status'));
+  assert.deepEqual([past.run_on, past.mock_on], [false, false], 'the read ended the run at its limit');
+});
+
+test('S7D-10: /api/run with a CP3 block_id and an instance the app does not hold answers 404 RUN_CHANGED; without block_id it stays a plain 404', async () => {
+  const { app, run } = await started('case_round');
+  const stale = { item_id: run.servings[0]!.item_id, item_instance_id: 'I-from-before-a-restart', sql: RIGHT_SQL };
+  const r = await post(app, '/api/run', { ...stale, block_id: run.block_id });
+  assert.deepEqual([r.status, (await r.json()).code], [404, 'RUN_CHANGED']);
+  const plain = await post(app, '/api/run', stale);
+  assert.deepEqual([plain.status, (await plain.json()).code], [404, undefined]);
+});
+
+test('S7D-03: an ended case mock whose case the content no longer holds answers 404 "no longer in the course"; the form\'s other case is never shown', async () => {
+  const clock = fakeClock();
+  const first = await deps(clock);
+  const app = createApp(first);
+  const run = await json(post(app, '/api/mocks/start', { mock: 'case_round' })) as CaseRun;
+  await answerAll(app, run, [true, true, true, true, true]);
+  await post(app, '/api/mocks/end', { block_id: run.block_id });
+  assert.equal((await get(app, `/api/mocks/${run.block_id}/review`)).status, 200, 'the review opens while the content holds the case');
+  // A restart on the same logs, with the content no longer holding that case (the form still names a case that exists).
+  const gone: ContentStore = { ...content, mockCase: (id: string) => (id === run.case.case_id ? undefined : content.mockCase?.(id)) };
+  const again = createApp({ ...await deps(clock, first.dir), content: gone });
+  const r = await get(again, `/api/mocks/${run.block_id}/review`);
+  assert.deepEqual([r.status, (await r.json()).error], [404, "This run's case is no longer in the course."]);
 });

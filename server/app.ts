@@ -8,6 +8,7 @@ import { isAbsolute, join, resolve } from 'node:path';
 import { SCHEMA_VERSION, type BlockClose, type CloseReason, type Exposure, type ItemClose, type Phase, type Section } from '../core/envelope.ts';
 import type { CardEvent, ExternalGa4Exam, ExternalPortfolioPiece, SettingChange } from '../core/events.ts';
 import { amsterdamDate } from '../core/time.ts';
+import { instancePassVerdict } from '../core/live-pass.ts';
 import type { RunnerClient, RunnerReq, RunnerResult } from './runner/client.ts';
 import { DISPLAY_CAP, type DisplayOk } from './runner/protocol.ts';
 import { targetOf, type ContentStore } from './content.ts';
@@ -826,6 +827,8 @@ export function createApp(d: AppDeps): Hono {
   // Run is free: it is not logged and not graded.
   app.post('/api/run', async (c) => {
     const b = await readBody(c);
+    // S7D-10 (F4-2-1): a CP3 run names its block, so an instance served before an app restart gets RUN_CHANGED, as Submit does.
+    if (!d.content.item(String(b.item_id)) && !mockItemOf(b) && staleInMock(b.block_id, b.item_instance_id, b.item_id)) throw refuse(404, MOCK_RUN_CHANGED, CODE_RUN_CHANGED);
     const item = itemOf(b);
     if (typeof b.sql !== 'string') throw refuse(400, 'sql is missing.');
     const r = await runnerOf().request<DisplayOk>({ op: 'display', schema: item.schema, allowedSchemas: [], sql: b.sql, cap: DISPLAY_CAP, deadlineMs: item.rules.timeout_ms });
@@ -948,10 +951,13 @@ export function createApp(d: AppDeps): Hono {
     return c.json(await revealReference(item, key, runner));
   });
   /**
-   * S4-12 (Task D1), the fourth logged key case: one different correct query and its trade-off, only for an instance that has a passing
-   * attempt and that no running timed run holds. A refusal logs nothing; each served response writes one other_way_opened (D29), which
-   * replay reads and ignores. It never opens an instance: a request for one nobody submitted on is NOT_PASSED. A closed instance (the
-   * learner pressed Next, a session ended, or a drill run is over and its review is open) is judged by the log's own replay.
+   * S4-12 (Task D1), the fourth logged key case: one different correct query and its trade-off, only for an instance whose pass counts and
+   * that no running timed run holds. A refusal logs nothing; each served response writes one other_way_opened (D29), which replay reads and
+   * ignores. It never opens an instance: a request for one nobody submitted on is NOT_PASSED. S7D-05: "passed" has one meaning, replay's
+   * (core/rating.ts countsAsPass: a pass with no "Show answer" or hint 2 or more before the first graded attempt). A closed instance (the
+   * learner pressed Next, a session ended, or a drill run is over and its review is open) is judged by the log's own replay, and a live one
+   * by the same rule over its own logged records (core/live-pass.ts). Review finding Y3-R1: the panel offers the button after any pass, so a
+   * correct answer that "Show answer" or hint 2 keeps from counting is refused with a sentence that says so, live or closed (still NOT_PASSED).
    */
   app.post('/api/other-way', async (c) => {
     const b = await readBody(c);
@@ -959,16 +965,22 @@ export function createApp(d: AppDeps): Hono {
     const key = keyOf(item);
     const id = text(b, 'item_instance_id');
     if (await drills.running(id)) throw refuse(409, HELP_WAITS, 'HELP_WAITS');
+    const verdict = async () => instancePassVerdict(d.state.attemptRecords(), await d.logger.readAll('events'), id, d.state.catalog().familyOf(item.id, item.kind));
     let at: { item_id: string; target_concept_id: string; phase: Phase } | null = null;
+    let revealed = false;
     if (closed.has(id)) {
       const done = d.state.current().instances.get(id);
       if (done && done.item_id !== item.id) throw refuse(400, 'This item instance belongs to another item.');
       if (done?.countsAsPass) at = { item_id: done.item_id, target_concept_id: done.concept_id, phase: done.phase as Phase };
+      else if (done) revealed = (await verdict()) === 'revealed';   // replay decides; the records only name the reason
     } else {
       const i = instances.get(id);
       if (i && i.itemId !== item.id) throw refuse(400, 'This item instance belongs to another item.');
-      if (i?.passed) at = helpFields(i);
+      const v = i ? await verdict() : 'none';
+      if (i && v === 'counts') at = helpFields(i);
+      revealed = v === 'revealed';
     }
+    if (revealed) throw refuse(409, 'Other ways open after a pass without "Show answer" or hint 2. This pass came after one of them.', 'NOT_PASSED');
     if (!at) throw refuse(409, 'Other ways open after you pass this exercise.', 'NOT_PASSED');
     if (!key.other_way) throw refuse(404, 'This exercise has no other way to show.');
     await d.logger.otherWayOpened({ record: 'other_way_opened', schema_version: SCHEMA_VERSION, ts: now(), item_instance_id: id, ...at });

@@ -1,6 +1,6 @@
 {
   "id": "EX-SQL-WIN-05-E2-22",
-  "version": 1,
+  "version": 3,
   "kind": "write",
   "tags": [
     "sql",
@@ -51,7 +51,7 @@
   "company": "mailvora",
   "schema": "mailvora",
   "edge_schema": "mailvora_edge_win",
-  "prompt": "For each paid channel, show each UTC day of August 2025 with spend, with the channel's spend that day and its 7-day average daily spend: the channel's spend over the 7 calendar days ending on that day, divided by 7, rounded to 2 decimals. A day with no spend counts as 0, and the 7 days may reach back into July. Return channel_id, spend_date, spend_eur and avg_spend_7d. Any row order is fine.",
+  "prompt": "For each channel and each UTC day of August 2025 on which the channel had spend in ad_spend_daily, show the channel's spend that day and its 7-day average daily spend: the channel's spend over the 7 calendar days ending on that day, divided by 7, rounded to 2 decimals. A day with no spend gets no row, but inside the 7 days it counts as 0, and the 7 days may reach back into July. Return four columns, in this order: channel_id, spend_date, spend_eur and avg_spend_7d. Return one row for each such channel and day. Any row order is fine.",
   "output_contract": {
     "columns": [
       {

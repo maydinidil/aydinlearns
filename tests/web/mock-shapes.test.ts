@@ -12,7 +12,7 @@ import type {
   MockReviewItem as ServerReviewItem, MocksView as ServerMocks,
 } from '../../server/routes/mocks.ts';
 import type { CaseMockReview, MockCaseCheckpointView, MockCaseReviewCheckpoint, MockCaseView } from '../../web/src/lib/case-flow.ts';
-import type { MockAnswer, MockCard, MockHistoryRow, MockReview, MockReviewItem, MockRunView, MocksView } from '../../web/src/lib/mock-flow.ts';
+import type { MockAnswer, MockCard, MockHistoryRow, MockReview, MockReviewItem, MocksRun, MocksView } from '../../web/src/lib/mock-flow.ts';
 
 // The browser's declarations and the routes' are the same shapes. F4-2-5 (sprint 7c): a checkpoint's prompt is null until the plan, on both sides.
 const sameShape: [
@@ -24,15 +24,15 @@ const sameShape: [
   (x: ServerCard) => MockCard, (x: MockCard) => ServerCard,
   (x: ServerAnswer) => MockAnswer, (x: MockAnswer) => ServerAnswer,
   (x: ServerReviewItem) => MockReviewItem, (x: MockReviewItem) => ServerReviewItem,
-] = [(x) => x, (x) => x, (x) => x, (x) => x, (x) => x, (x) => x, (x) => x, (x) => x, (x) => x, (x) => x, (x) => x, (x) => x, (x) => x, (x) => x, (x) => x, (x) => x];
+  // S7D-11 (X3-M3): the three shapes the browser once read more loosely are exact now: `not_reached` on the screen review, `answered` on the
+  // servings of GET /api/mocks, and `deadline_at` on the run view.
+  (x: ServerReview) => MockReview, (x: MockReview) => ServerReview,
+  (x: ServerMocks) => MocksView, (x: MocksView) => ServerMocks,
+  (x: NonNullable<ServerMocks['run']>) => MocksRun, (x: MocksRun) => NonNullable<ServerMocks['run']>,
+] = [(x) => x, (x) => x, (x) => x, (x) => x, (x) => x, (x) => x, (x) => x, (x) => x, (x) => x, (x) => x, (x) => x, (x) => x, (x) => x, (x) => x, (x) => x, (x) => x,
+  (x) => x, (x) => x, (x) => x, (x) => x, (x) => x, (x) => x];
 void sameShape;
-// What the server sends satisfies what the browser reads, for the shapes the browser reads more loosely: its MockReview takes `not_reached` as
-// optional, its run view has no `deadline_at` (a case mock's adds it) and marks `answered` optional, and the run view of GET /api/mocks, a
-// case mock's included, is the start's (server/drill.ts mockRunView) with its servings marked. These are checked one way.
-type ServerRun = NonNullable<ServerMocks['run']>;
-const readable: [(x: ServerReview) => MockReview, (x: ServerMocks) => MocksView, (x: ServerRun) => MockRunView] = [(x) => x, (x) => x, (x) => x];
-void readable;
 
-test('F4-2-3: the mock shapes are checked at type level (npm run typecheck): 8 pairs both ways, 3 from the server to the browser', () => {
-  assert.deepEqual([sameShape.length, readable.length], [16, 3]);
+test('F4-2-3, S7D-11: the mock shapes are checked at type level (npm run typecheck): 11 pairs, both ways', () => {
+  assert.equal(sameShape.length, 22);
 });

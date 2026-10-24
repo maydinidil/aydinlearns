@@ -1,6 +1,6 @@
 {
   "id": "EX-SQL-WIN-05-E2-21",
-  "version": 1,
+  "version": 2,
   "kind": "write",
   "tags": [
     "sql",
@@ -50,7 +50,7 @@
   "company": "voltmarkt",
   "schema": "voltmarkt",
   "edge_schema": "voltmarkt_edge_win",
-  "prompt": "For each of categories 15, 16 and 17 and each week starting from 6 January to 30 June 2025 (week_start, both days included), show the category's net revenue that week (net_revenue_eur in weekly_units, over its products) and the 4-week moving average of that weekly revenue: the average of that week and the 3 weeks before it, rounded to 2 decimals. weekly_units holds a row for every product and week, with 0 when nothing sold, so every category has a row for every week. Within each category, weeks follow each other by week_start. Only weeks in that range count: each category's first three weeks show avg_revenue_4w as missing. Return category_id, week_start, revenue_eur and avg_revenue_4w. Any row order is fine.",
+  "prompt": "For each of categories 15, 16 and 17 and each week starting from 6 January to 30 June 2025 (week_start, both days included), show the category's net revenue that week (net_revenue_eur in weekly_units, over its products) and the 4-week moving average of that weekly revenue: the average of that week and the 3 weeks before it, rounded to 2 decimals. weekly_units holds a row for every product and week, with 0 when nothing sold, so every category has a row for every week. Within each category, weeks follow each other by week_start. Only weeks in that range count: each category's first three weeks show avg_revenue_4w as missing. Return four columns, in this order: category_id, week_start, revenue_eur and avg_revenue_4w. Return one row for each such category and week. Any row order is fine.",
   "output_contract": {
     "columns": [
       {

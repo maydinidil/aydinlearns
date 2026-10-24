@@ -201,6 +201,7 @@ function ExercisePanelInner({ itemId, phase, stage = 3, onClosed, instanceId, hi
         i.helped = true;
         const { text } = await api.hint(itemId, i.id, level, phase);
         i.hints = level;
+        if (level >= 2 && !i.passed && i.failed === 0 && !passedBefore) i.revealed = true;
         return text;
       });
       setHints((h) => [...h, r]);
@@ -209,7 +210,7 @@ function ExercisePanelInner({ itemId, phase, stage = 3, onClosed, instanceId, hi
 
   async function showAnswer() {
     if (!confirm(showAnswerQuestion(reviewOnly))) return;
-    setAnswer(await onInstance((i) => { i.helped = true; return api.showAnswer(itemId, i.id, phase); }));
+    setAnswer(await onInstance(async (i) => { i.helped = true; const shown = await api.showAnswer(itemId, i.id, phase); if (!i.passed && i.failed === 0 && !passedBefore) i.revealed = true; return shown; }));
   }
 
   async function dispute(grade: PublicGrade, row: unknown[] | null) {
@@ -240,7 +241,7 @@ function ExercisePanelInner({ itemId, phase, stage = 3, onClosed, instanceId, hi
   const grade = results.grade;
   const fix = fixStarter(item) !== null;
   // S4-12: after a pass, outside a running timed run. The review panel is a new mount, so the screen tells it what passed in the run.
-  const otherWayOn = otherWayOffered({ hasOtherWay: item.has_other_way, passed: instance.current.passed || passedBefore, inRun: run !== undefined });
+  const otherWayOn = otherWayOffered({ hasOtherWay: item.has_other_way, passed: instance.current.passed || passedBefore, inRun: run !== undefined, revealed: instance.current.revealed });
   const otherWay = otherWayOn ? <OtherWay itemId={itemId} instanceId={instance.current.id} phase={phase} /> : null;
   const shown = labels && labelsVisible(hideLabels, submitted) ? itemLabels(item, titles) : null;
   // When the exercise's own answer key failed, the report form opens right under the grade, so reporting it is the obvious next step.

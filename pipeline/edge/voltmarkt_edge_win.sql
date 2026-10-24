@@ -16,6 +16,14 @@
 --   a group of 3 rows under NTILE(5): Headphones (15) has three products, and customer 3004 has three orders.
 -- For CASE-RETAIL-05 (E-203: R by NTILE(5) with customer_id as the tie-break), customers 3001 and 3004 last ordered on the same day,
 -- 10 June 2025, so NTILE(5) by last order day splits them by the tie-break's direction.
+-- Sprint 7d (Task K2, S7D-13; pipeline/tests/test_edge_7d.py holds each):
+--   CASE-RETAIL-05's money tie: customers 3002 and 3006 have the same revenue (order 7's line of product 12 is in web order 11,
+--   which holds two more lines, and order 13 holds one more), so NTILE(5) by revenue puts them either side of the boundary between
+--   M 3 and M 4 by the tie-break's direction; 3002 has an R of 5 and five orders, so the tie-break decides whether it is a champion,
+--   while 3006 has one order. The webshop's products 12 and 19 still tie at its 60% revenue mark;
+--   EX-MOCK-CASE-A's 14-day rule: promotions 3 to 5 start 15 days after product 8's rise (1 February), 14 days after product 1's
+--   rise and product 21's cut (1 March), and on the day of product 15's rise (1 April), each on the product's last price version;
+--   product 21 is in promotions 1 and 4 on one version. No line of a product falls in the days of its new promotion.
 -- Beside them: guest orders (customer_id missing); product 15's price falls and rises again (three versions), products 1, 8 and 21
 -- change price once; one line on promotion. Lines follow E-103: the list price on the order date, less the promotion's discount
 -- (half up). Costs follow voltmarkt's rule (S6-07): the Audio products' cost rises 8% from 2025-07-01, the others keep theirs.
@@ -64,9 +72,12 @@ INSERT INTO voltmarkt_edge_win.products VALUES
 CREATE TABLE voltmarkt_edge_win.promotions AS SELECT * FROM voltmarkt.promotions LIMIT 0;
 INSERT INTO voltmarkt_edge_win.promotions VALUES
   (1, 'P-2025-21', 'June Headphones Days', 'percent_off', DATE '2025-06-02', DATE '2025-06-15', 20.00),
-  (2, 'P-2025-22', 'Earbuds Week', 'percent_off', DATE '2025-04-07', DATE '2025-04-13', 15.00);
+  (2, 'P-2025-22', 'Earbuds Week', 'percent_off', DATE '2025-04-07', DATE '2025-04-13', 15.00),
+  (3, 'P-2025-23', 'Earbuds Days', 'percent_off', DATE '2025-02-16', DATE '2025-02-19', 10.00),
+  (4, 'P-2025-24', 'Spring Screen and Sound Days', 'percent_off', DATE '2025-03-15', DATE '2025-03-19', 10.00),
+  (5, 'P-2025-25', 'Cable Week', 'percent_off', DATE '2025-04-01', DATE '2025-04-06', 25.00);
 CREATE TABLE voltmarkt_edge_win.promotion_products AS SELECT * FROM voltmarkt.promotion_products LIMIT 0;
-INSERT INTO voltmarkt_edge_win.promotion_products VALUES (1, 20), (1, 21), (2, 6);
+INSERT INTO voltmarkt_edge_win.promotion_products VALUES (1, 20), (1, 21), (2, 6), (3, 8), (4, 1), (4, 21), (5, 15);
 CREATE TABLE voltmarkt_edge_win.price_history AS SELECT * FROM voltmarkt.price_history LIMIT 0;
 INSERT INTO voltmarkt_edge_win.price_history VALUES
   (1, DATE '2023-04-03', DATE '2025-02-28', 849.00),
@@ -131,7 +142,7 @@ INSERT INTO voltmarkt_edge_win.order_lines VALUES
   (9, 5, 9, 2, 69.00, NULL, 0.00),
   (10, 6, 13, 2, 299.00, NULL, 0.00),
   (11, 7, 8, 2, 69.00, NULL, 0.00),
-  (12, 7, 12, 1, 299.00, NULL, 0.00),
+  (12, 11, 12, 1, 299.00, NULL, 0.00),
   (13, 8, 17, 2, 9.99, NULL, 0.00),
   (14, 8, 10, 1, 59.00, NULL, 0.00),
   (15, 9, 1, 1, 899.00, NULL, 0.00),
@@ -157,7 +168,10 @@ INSERT INTO voltmarkt_edge_win.order_lines VALUES
   (35, 17, 8, 1, 69.00, NULL, 0.00),
   (36, 18, 21, 1, 129.00, 1, 25.80),
   (37, 19, 19, 1, 299.00, NULL, 0.00),
-  (38, 20, 20, 1, 199.00, NULL, 0.00);
+  (38, 20, 20, 1, 199.00, NULL, 0.00),
+  (39, 13, 19, 1, 299.00, NULL, 0.00),
+  (40, 11, 20, 2, 199.00, NULL, 0.00),
+  (41, 11, 22, 3, 89.00, NULL, 0.00);
 CREATE TABLE voltmarkt_edge_win.competitor_prices AS SELECT * FROM voltmarkt.competitor_prices LIMIT 0;
 INSERT INTO voltmarkt_edge_win.competitor_prices VALUES
   (1, 'Bliksem', TIMESTAMP '2025-03-03 06:10:00', 879.99),

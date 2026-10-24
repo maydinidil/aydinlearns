@@ -2,7 +2,8 @@
 // S3-10 and S3-12; owner decisions D25, D26, D27, D65, D70, D72; Task B2; sprint 5b Tasks B4 and B5).
 // POST /api/run/start { section: 'ga4', kind: 'mini_drill' | 'half_mock' | 'full_mock' }: serves a run as one block (phase drill or
 //   mock) under the blueprint in force today (blueprintOn). A start while any timed run is on, an SQL drill included, is a 409 that
-//   carries that run (S3-08). Nothing is logged.
+//   carries that run (S3-08), and logs nothing. A start logs one run_open (log version 8, D123): its block, kind and blueprint entry, at
+//   the start's time, so the run is dated (and scored) by the day it started whenever its first answer comes.
 // GET /api/run/current: the GA4 run that is on, so the screen can pick it up again.
 // GET /api/run/preview: the date unseen questions come back for each mock (ruling A, D27). Read only.
 // POST /api/run/end { block_id }: ends a GA4 run before its limit; answers its score.
@@ -19,6 +20,7 @@
 import type { Context, Hono } from 'hono';
 import { HTTPException } from 'hono/http-exception';
 import { randomUUID } from 'node:crypto';
+import { SCHEMA_VERSION } from '../../core/envelope.ts';
 import { isUnseen, nextUnseenDate, type ExamHistory } from '../../core/exam.ts';
 import { amsterdamDate } from '../../core/time.ts';
 import { blueprintOn, type Ga4ExamConfig } from '../../schemas/ga4-exam.ts';
@@ -29,13 +31,15 @@ import { runFinishedOnce } from './drill.ts';
 import { coldAnswers, instanceFacts, type InstanceFact } from '../progress.ts';
 import { ga4Readiness } from '../readiness.ts';
 import {
-  answeredPositions, CHOICE_RUN_KINDS, choiceRuns, drawRun, examHistory, ga4ExamPool, historyRow, isChoicePlan, isGa4Item, isMockKind, knowledgeInstances, lastShowing, PHASE_OF,
+  answeredPositions, blueprintFrom, CHOICE_RUN_KINDS, choiceRuns, drawRun, examHistory, ga4ExamPool, historyRow, isChoicePlan, isGa4Item, isMockKind, knowledgeInstances, lastShowing, PHASE_OF,
   REVIEW_WAITS, reviewOf, runView, seenWindow, type ChoiceRun, type ChoiceRunKind, type ChoiceRunPlan,
 } from '../run.ts';
 import { seenIn } from '../session-composer.ts';
 import { LESSON_WINDOW_MS } from '../state.ts';
 
 const refuse = (status: 400 | 404 | 409, message: string): HTTPException => new HTTPException(status, { message });
+/** The app middleware's answer while the log cannot be written (design §18). */
+const LOG_PAUSED = 'The log cannot be written, so grading is paused. See the setup screen.';
 async function readBody(c: Context): Promise<Record<string, unknown>> {
   const b: unknown = await c.req.json().catch(() => null);
   if (!b || typeof b !== 'object' || Array.isArray(b)) throw refuse(400, 'The request body must be a JSON object.');
@@ -61,16 +65,30 @@ export function mountRun(app: Hono, d: RouteDeps, runs: DrillRuns): void {
     { cfg: config(), itemOf: (id) => d.content.choiceItem?.(id), events: await d.logger.readAll('events') });
   const section = (v: unknown): void => { if (v !== 'ga4') throw refuse(400, 'section must be ga4.'); };
 
+  /** Codex F40: the GA4 start under way, if one is: a second start waits for it, then sees its run (S3-08). */
+  let opening: Promise<void> | null = null;
   app.post('/api/run/start', async (c) => {
     const b = await readBody(c);
     section(b.section);
     if (!CHOICE_RUN_KINDS.includes(b.kind as ChoiceRunKind)) throw refuse(400, 'kind must be mini_drill, half_mock or full_mock.');
-    const kind = b.kind as ChoiceRunKind;
+    while (opening) await opening;
+    let done!: () => void;
+    opening = new Promise<void>((r) => { done = r; });
+    try {
+      return await startRun(c, b.kind as ChoiceRunKind);
+    } finally {
+      opening = null;
+      done();
+    }
+  });
+  async function startRun(c: Context, kind: ChoiceRunKind): Promise<Response> {
+    // Codex F41: a start that waited for one whose run_open failed passed the middleware's check before that write; grading is paused now.
+    if (!d.logger.writable) return c.json({ error: LOG_PAUSED }, 503);
     const cfg = config();
     await runs.sweep();
-    // S3-05: the retake rule reads the whole attempt file. Read before the check below, which nothing may follow with an await.
+    // S3-05: the retake rule reads the whole attempt file.
     const h: ExamHistory | null = isMockKind(kind) ? examHistory(await d.logger.readAll('attempts')) : null;
-    // From here to runs.start nothing awaits, so two starts at once (a double click) cannot both pass this check.
+    // A second GA4 start waits for this one (`opening`); a drill or mock started during the run_open write is caught after it, below.
     const on = runs.current();
     if (on) return c.json({ error: 'A timed run is already on. End it before starting another.', run: runView(on) }, 409);
     const now = new Date();
@@ -86,6 +104,18 @@ export function mountRun(app: Hono, d: RouteDeps, runs: DrillRuns): void {
     // As a level drill whose pool is not written yet: a run asks its blueprint's questions, so a pool that cannot fill it waits.
     if (form.picks.length < bp.questions) throw refuse(404, `The ${NAME[kind]} needs ${bp.questions} questions, and ${form.picks.length} can be drawn now.`);
     const block_id = randomUUID();
+    // D123 (log version 8), stamped `now`, the time whose date picked the blueprint, so the history scores the run on the entry it ran
+    // under even when its first answer is after midnight. Codex F40: written before anything is served or started, as a mock's mock_open
+    // is, so a failed write leaves no run on behind its error.
+    await d.logger.runOpen({ record: 'run_open', schema_version: SCHEMA_VERSION, ts: now.toISOString(), block_id, run_kind: kind,
+      blueprint_from: blueprintFrom(cfg, kind, today) });
+    // A drill or mock started while it was written (another tab) keeps the clock: this block closes at once, nothing served, and the start
+    // answers as a second start does.
+    const other = runs.current();
+    if (other) {
+      await d.logger.blockClose(d.state.rateBlockClose({ record: 'block_close', schema_version: SCHEMA_VERSION, ts: now.toISOString(), block_id, card_reviews: [] }, now));
+      return c.json({ error: 'A timed run is already on. End it before starting another.', run: runView(other) }, 409);
+    }
     const servings = form.picks.map((p) => ({ item_id: p.item.id,
       item_instance_id: d.servings.serve({ phase: PHASE_OF[kind], block_id, repeat_exposure: !p.fresh, section: 'ga4', item_id: p.item.id }) }));
     const plan: ChoiceRunPlan = { section: 'ga4', kind, mode: bp.mode, questions: bp.questions, minutes: bp.minutes, pass_pct: bp.pass_pct,
@@ -94,7 +124,7 @@ export function mountRun(app: Hono, d: RouteDeps, runs: DrillRuns): void {
     const run = runs.start({ block_id, plan, started_at: now.getTime(), ends_at: now.getTime() + Math.round(bp.minutes * 60_000), servings });
     journey('run_started', { section: 'ga4', run_kind: kind, block_id, questions: bp.questions });                // D77
     return c.json(runView(run));
-  });
+  }
 
   app.get('/api/run/current', async (c) => {
     await runs.sweep();                                                  // a run past its limit is over, not current

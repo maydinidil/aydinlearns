@@ -4,7 +4,7 @@
 // the prepared json_serialize_sql), and the integer division re-run is a gated display on the second locked runner; learner
 // text never reaches any other path here. GRADER_VERSION moved to 4b.1 with the new notes and screen mode (D41), and to 4c.1 with
 // the re-run's control run (D52). Sprint 6 (S6-10) adds the FROM subquery alias note, a note only. Sprint 7 (S7-20) words the QUALIFY
-// note as the ruling gives it, with GRADER_VERSION 7a.1.
+// note as the ruling gives it, with GRADER_VERSION 7a.1. Sprint 7d (S7D-09) runs the control on the second runner too.
 import type { RunnerClient } from '../runner/client.ts';
 import type { DisplayOk, ParseTreeOk } from '../runner/protocol.ts';
 import { maskSql } from '../runner/tables.ts';
@@ -343,19 +343,22 @@ export function divisionChanged(shown: DisplayOk, rerun: DisplayOk): boolean | n
  * for no reason of its own, and a false note teaches the wrong lesson. So the query first runs again with integer division off, as
  * the control. A control that differs from `shown`, cannot be compared, fails, times out or throws is 'not_compared', and the integer
  * division run is skipped. The two runs share the one `deadlineMs`: the integer division run gets what the control left, and with
- * nothing left the outcome is 'not_compared', so a slow query never gives a wrong note or a late grade. The control is a display
- * without integer division, so it runs on the first locked instance: the second one has integer_division locked on.
+ * nothing left the outcome is 'not_compared', so a slow query never gives a wrong note or a late grade.
+ *
+ * S7D-09 (sprint 7d, Task Y2; S4C-07): the control runs on the second locked instance, the one the integer division run uses, on its
+ * control connection with integer division off (division 'control', server/runner/child.ts). The shown result came from the first
+ * instance, so a result that differs only between the two instances now differs at the control, and gives 'not_compared', never a note.
  */
 export async function integerDivisionCheck(runner: RunnerClient, schema: string, sql: string, shown: DisplayOk, cap: number, deadlineMs: number): Promise<DivisionCheck> {
   if (!hasDivision(sql)) return 'no_division';
   if (shown.truncated) return 'not_compared';
   const started = performance.now();
   try {
-    const control = await runner.request<DisplayOk>({ op: 'display', schema, allowedSchemas: [], sql, cap, deadlineMs, integerDivision: false });
+    const control = await runner.request<DisplayOk>({ op: 'display', schema, allowedSchemas: [], sql, cap, deadlineMs, division: 'control' });
     if (!control.ok || divisionChanged(shown, control.data) !== false) return 'not_compared';
     const left = Math.floor(deadlineMs - (performance.now() - started));
     if (left <= 0) return 'not_compared';
-    const r = await runner.request<DisplayOk>({ op: 'display', schema, allowedSchemas: [], sql, cap, deadlineMs: left, integerDivision: true });
+    const r = await runner.request<DisplayOk>({ op: 'display', schema, allowedSchemas: [], sql, cap, deadlineMs: left, division: 'integer' });
     if (!r.ok) return 'not_compared';
     const changed = divisionChanged(shown, r.data);
     return changed === null ? 'not_compared' : changed ? 'changed' : 'same';

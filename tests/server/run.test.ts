@@ -167,7 +167,7 @@ test('content/ga4/exam.json: the shipped blueprints load as the plan sets them; 
 
 // ---- the start (S3-02, S3-06, S3-08, D27) ----------------------------------------------------------------------------------------
 
-test('a half-mock on a fresh pool: 25 held-out items, 6/6/6/3/4 by topic, at most 1 per enemy group, no two of one parent in a row, on unseen items; nothing is logged', async () => {
+test('a half-mock on a fresh pool: 25 held-out items, 6/6/6/3/4 by topic, at most 1 per enemy group, no two of one parent in a row, on unseen items; only its run_open is logged', async () => {
   const d = await deps();
   const app = createApp(d);
   const before = (await records(d)).length;
@@ -187,7 +187,24 @@ test('a half-mock on a fresh pool: 25 held-out items, 6/6/6/3/4 by topic, at mos
   for (const s of run.servings as Serving[]) {
     assert.deepEqual(d.servings.get(s.item_instance_id), { phase: 'mock', block_id: run.block_id, repeat_exposure: false, section: 'ga4', item_id: s.item_id });
   }
-  assert.equal((await records(d)).length, before, 'a start logs nothing (S3-01)');
+  // D123 (log version 8): a start logs one record, its run_open, stamped at the start, naming the entry its blueprint came from.
+  const logged = (await records(d)).slice(before);
+  assert.deepEqual(logged.map((x) => ({ ...x, ts: 'x' })), [{ record: 'run_open', schema_version: 8, ts: 'x', block_id: run.block_id, run_kind: 'half_mock', blueprint_from: '2026-10-06' }]);
+  const at = Date.parse(logged[0].ts);
+  assert.ok(at >= t0 && at <= Date.now(), 'the run_open is stamped at the start');
+});
+
+test('D123: a mini drill\'s start logs its run_open too, and its history row is dated by it', async () => {
+  const d = await deps();
+  const app = createApp(d);
+  const before = (await records(d)).length;
+  const run = await json(start(app, 'mini_drill'));
+  const logged = (await records(d)).slice(before);
+  assert.deepEqual(logged.map((x) => [x.record, x.schema_version, x.block_id, x.run_kind, x.blueprint_from]), [['run_open', 8, run.block_id, 'mini_drill', '2026-10-06']]);
+  assert.equal((await answer(app, run.servings[0], 'right')).status, 200);
+  await post(app, '/api/run/end', { block_id: run.block_id });
+  const row = (await json(get(app, '/api/run/history?section=ga4'))).runs.find((r: any) => r.block_id === run.block_id);
+  assert.equal(row.date, amsterdamDate(new Date(logged[0].ts)), 'the run\'s date is its run_open\'s Amsterdam date');
 });
 
 test('a half-mock when fewer than 25 items are unseen (D27): topped up by the least recently shown, not on unseen items, with the date unseen items come back', async () => {
@@ -251,8 +268,10 @@ test('S3-08: one timed run at a time across sections: a second start, GA4 or SQL
   assert.deepEqual(both.map((r) => r.status).sort(), [200, 409]);
   const [ok, refused] = await Promise.all(both.map((r) => r.json() as Promise<any>)).then((x) => (both[0]!.status === 200 ? x : [x[1], x[0]]));
   assert.equal(refused.run.block_id, ok.block_id);
+  assert.deepEqual((await records(d)).filter((r) => r.record === 'run_open').map((r) => r.block_id), [ok.block_id], 'D123: the refused start writes no run_open');
   const sql = await post(app, '/api/drill/start', { concept_ids: [FIXTURE_CONCEPT] });
   assert.equal(sql.status, 409, 'an SQL drill waits for the GA4 run');
+  assert.equal((await records(d)).filter((r) => r.record === 'run_open').length, 1, 'a GA4 start refused for an SQL drill writes none');
   assert.deepEqual([(await sql.json() as any).run.block_id, (await json(get(app, '/api/drill/current'))).run], [ok.block_id, null],
     'the SQL screen is told the GA4 run, and does not resume it as a drill');
   assert.equal((await json(get(app, '/api/run/current'))).run.block_id, ok.block_id);
@@ -266,6 +285,101 @@ test('S3-08: one timed run at a time across sections: a second start, GA4 or SQL
   await post(app, '/api/drill/end', { block_id: drill.block_id });
   const sqlHistory = await json(get(app, '/api/drill/history'));
   assert.deepEqual(sqlHistory.runs.map((r: any) => r.block_id), [drill.block_id], 'the GA4 mini drill is not an SQL drill');
+});
+
+/** A log whose run_open writes can be made to fail (all, or only the next), or held until the test lets them through; everything else passes. */
+async function runOpenLog(): Promise<{ log: JsonlLog; fail: () => void; failNext: () => void; hold: () => { reached: Promise<void>; release: () => void } }> {
+  const inner = await primedLog();
+  let failing = false;
+  let failingNext = false;
+  let gate: { reach: () => void; wait: Promise<void> } | null = null;
+  const log: JsonlLog = { dir: inner.dir, readAll: (f) => inner.readAll(f), append: async (f, r) => {
+    if ((r as { record?: string }).record === 'run_open') {
+      if (gate) { const g = gate; gate = null; g.reach(); await g.wait; }
+      if (failing || failingNext) { failingNext = false; throw new Error('disk full'); }
+    }
+    return inner.append(f, r);
+  } };
+  return { log, fail: () => { failing = true; }, failNext: () => { failingNext = true; }, hold: () => {
+    let reach!: () => void, release!: () => void;
+    const reached = new Promise<void>((r) => { reach = r; });
+    gate = { reach, wait: new Promise<void>((r) => { release = r; }) };
+    return { reached, release };
+  } };
+}
+
+test('Codex F40: when the run_open cannot be written (a full disk), the start fails and leaves no run on and nothing served', async () => {
+  const { log, fail } = await runOpenLog();
+  const d = await deps(log);
+  const served: string[] = [];
+  const serve = d.servings.serve.bind(d.servings);
+  d.servings.serve = (s) => { const id = serve(s); served.push(id); return id; };
+  const app = createApp(d);
+  fail();
+  assert.equal((await start(app, 'half_mock')).status, 500);
+  assert.equal(d.logger.writable, false, 'grading pauses, as after any failed write (design §18)');
+  assert.equal((await json(get(app, '/api/run/current'))).run, null, 'no run is left on behind the error');
+  assert.deepEqual(served, [], 'and none of its questions was served');
+});
+
+test('Codex F40: a run started elsewhere while the run_open is written keeps the clock; this start closes its block and answers 409 with that run', async () => {
+  const { log, hold } = await runOpenLog();
+  const d = await deps(log);
+  const app = createApp(d);
+  const { reached, release } = hold();
+  const ga4 = start(app, 'half_mock');
+  await reached;                                                     // the GA4 start is inside its run_open write
+  const drill = await post(app, '/api/drill/start', { concept_ids: [FIXTURE_CONCEPT] });
+  assert.equal(drill.status, 200, 'the SQL drill starts: no run is on yet');
+  const drillRun = await drill.json() as any;
+  release();
+  const res = await ga4;
+  assert.equal(res.status, 409);
+  assert.equal((await res.json() as any).run.block_id, drillRun.block_id, 'the GA4 screen is told the run that is on');
+  const recs = await records(d);
+  const opened = recs.filter((r) => r.record === 'run_open');
+  assert.equal(opened.length, 1);
+  assert.ok(recs.some((r) => r.record === 'block_close' && r.block_id === opened[0].block_id), 'the GA4 block is closed at once, as a mock\'s is');
+  assert.equal((await json(get(app, '/api/drill/current'))).run.block_id, drillRun.block_id, 'the SQL drill keeps the clock');
+  assert.deepEqual((await json(get(app, '/api/run/history?section=ga4'))).runs, [], 'and the GA4 block leaves no run in the history');
+});
+
+test('Codex F40: a second GA4 start while the first writes its run_open waits for it, then answers 409 with its run; one run_open', async () => {
+  const { log, hold } = await runOpenLog();
+  const d = await deps(log);
+  const app = createApp(d);
+  const { reached, release } = hold();
+  const first = start(app, 'half_mock');
+  await reached;
+  const second = start(app, 'mini_drill');
+  release();
+  const [a, b] = await Promise.all([first, second]);
+  assert.deepEqual([a.status, b.status], [200, 409]);
+  const run = await a.json() as any;
+  assert.equal((await b.json() as any).run.block_id, run.block_id);
+  assert.deepEqual((await records(d)).filter((r) => r.record === 'run_open').map((r) => r.block_id), [run.block_id]);
+});
+
+test('Codex F41: a GA4 start queued behind a run_open that fails answers 503, as grading is paused, and starts no run', async () => {
+  const { log, hold, failNext } = await runOpenLog();
+  const d = await deps(log);
+  const app = createApp(d);
+  const { reached, release } = hold();
+  const first = start(app, 'half_mock');
+  await reached;                                                     // the first start is inside its run_open write
+  let passed!: () => void;
+  const guarded = new Promise<void>((r) => { passed = r; });
+  const touch = d.session.touch.bind(d.session);
+  d.session.touch = (now) => { passed(); return touch(now); };       // called just after the middleware's writable check
+  const second = start(app, 'mini_drill');
+  await guarded;                                                     // the second start is past that check: the log is still writable
+  failNext();
+  release();
+  const [a, b] = await Promise.all([first, second]);
+  assert.deepEqual([a.status, b.status], [500, 503]);
+  assert.equal((await b.json() as any).error, 'The log cannot be written, so grading is paused. See the setup screen.');
+  assert.equal((await json(get(app, '/api/run/current'))).run, null, 'no run is on behind the paused log');
+  assert.deepEqual((await records(d)).filter((r) => r.record === 'run_open'), [], 'and the queued start writes no run_open');
 });
 
 // ---- the run rules (S3-03, S3-04, S3-12; Review Focus 2 and 4) -------------------------------------------------------------------

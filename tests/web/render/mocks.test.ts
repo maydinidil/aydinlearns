@@ -111,7 +111,7 @@ test('S7-18 (Task N3): stages 3 to 5 are live in their own words: rules, forms l
 
 test('S7-18 (Task N3): a case mock that is on: its card offers the way back to it instead of a start; a mock with no run yet says so', async () => {
   const run = { block_id: 'mock-case_round-2', kind: 'mock' as const, mock: 'case_round' as const, form_id: 'CASE-ROUND-B', phase: 'mock' as const, hide_labels: true,
-    minutes: 45, on_unseen: true, ends_at: '2026-11-02T10:45:00.000Z', servings: [] };
+    minutes: 45, on_unseen: true, ends_at: '2026-11-02T10:45:00.000Z', deadline_at: '2026-11-02T10:45:00.000Z', servings: [] };
   const view = { ...viewWith(), run, mocks: viewWith().mocks.map((m) => (m.mock === 'take_home' ? { ...m, history: [] } : m)) };
   const { container, unmount } = mount(createElement(MocksScreen), view);
   await settle();
@@ -148,7 +148,7 @@ test('S7-04, S7-09: the start screen shows the rules, and the practice line when
 
 const RUN = {
   block_id: 'mock-screen-1', kind: 'mock' as const, mock: 'screen' as const, form_id: 'SCREEN-A', phase: 'mock' as const, hide_labels: true, minutes: 45, on_unseen: true,
-  ends_at: new Date(Date.now() + 45 * 60_000).toISOString(), servings: [1, 2].map((n) => ({ item_id: `EX-MOCK-SCREEN-A-0${n}`, item_instance_id: `inst-${n}` })),
+  ends_at: new Date(Date.now() + 45 * 60_000).toISOString(), deadline_at: new Date(Date.now() + 45 * 60_000).toISOString(), servings: [1, 2].map((n) => ({ item_id: `EX-MOCK-SCREEN-A-0${n}`, item_instance_id: `inst-${n}`, answered: false })),
 };
 const QUESTION = {
   id: 'EX-MOCK-SCREEN-A-01', prompt: 'An invented question marker.', level: 1, schema: 'voltmarkt', kind: 'write', starter_sql: null, fading: null,

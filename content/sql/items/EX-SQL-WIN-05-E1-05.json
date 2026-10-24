@@ -1,6 +1,6 @@
 {
   "id": "EX-SQL-WIN-05-E1-05",
-  "version": 1,
+  "version": 2,
   "kind": "write",
   "tags": [
     "sql",
@@ -46,7 +46,7 @@
   "company": "voltmarkt",
   "schema": "voltmarkt",
   "edge_schema": "voltmarkt_edge_win",
-  "prompt": "For each of products 21 to 40 (product_id from 21 to 40, both included) and each week starting from 6 January to 30 June 2025 (week_start, both days included), show the units sold that week and the 3-week moving average of units: the average of that week and the 2 weeks before it, rounded to 2 decimals. weekly_units holds a row for every product and week, with 0 when nothing sold. Within each product, weeks follow each other by week_start. Only weeks in that range count: a product's first two weeks have fewer than 3 weeks to average, so show their avg_units_3w as missing. Return product_id, week_start, units and avg_units_3w. Any row order is fine.",
+  "prompt": "For each of products 21 to 40 (product_id from 21 to 40, both included) and each week starting from 6 January to 30 June 2025 (week_start, both days included), show the units sold that week and the 3-week moving average of units: the average of that week and the 2 weeks before it, rounded to 2 decimals. weekly_units holds a row for every product and week, with 0 when nothing sold. Within each product, weeks follow each other by week_start. Only weeks in that range count: a product's first two weeks have fewer than 3 weeks to average, so show their avg_units_3w as missing. Return four columns, in this order: product_id, week_start, units and avg_units_3w. Return one row for each such product and week. Any row order is fine.",
   "output_contract": {
     "columns": [
       {

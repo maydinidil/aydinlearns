@@ -1,6 +1,6 @@
 {
   "item_id": "EX-SQL-WIN-05-E3-21",
-  "item_version": 1,
+  "item_version": 2,
   "reference_sql": "WITH w AS (\n  -- one row per product and week\n  SELECT product_id, week_start, units,\n    AVG(units) OVER (PARTITION BY product_id ORDER BY week_start ROWS BETWEEN 4 PRECEDING AND 1 PRECEDING) AS avg_prev_4w\n  FROM weekly_units\n  WHERE product_id BETWEEN 1 AND 50\n)\nSELECT product_id, week_start, units, ROUND(avg_prev_4w, 2) AS avg_prev_4w\nFROM w\nWHERE week_start BETWEEN DATE '2025-03-03' AND DATE '2025-06-30'\n  AND units >= 2\n  AND units >= 2 * avg_prev_4w",
   "alternatives": [
     "SELECT w.product_id, w.week_start, w.units, ROUND(AVG(p.units), 2) AS avg_prev_4w\nFROM weekly_units w\nJOIN weekly_units p ON p.product_id = w.product_id\n  AND p.week_start BETWEEN w.week_start - INTERVAL 28 DAY AND w.week_start - INTERVAL 7 DAY\nWHERE w.product_id BETWEEN 1 AND 50\n  AND w.week_start BETWEEN DATE '2025-03-03' AND DATE '2025-06-30'\n  AND w.units >= 2\nGROUP BY w.product_id, w.week_start, w.units\nHAVING w.units >= 2 * AVG(p.units)",
@@ -24,11 +24,11 @@
   ],
   "hint3_partial": "WITH w AS (\n  -- one row per product and week\n  SELECT product_id, week_start, units,\n    AVG(units) OVER (PARTITION BY product_id ORDER BY week_start ROWS BETWEEN ___ AND ___) AS avg_prev_4w\n  FROM weekly_units\n  WHERE product_id BETWEEN 1 AND 50\n)\nSELECT product_id, week_start, units, ROUND(avg_prev_4w, 2) AS avg_prev_4w\nFROM w\nWHERE week_start BETWEEN DATE '2025-03-03' AND DATE '2025-06-30'\n  AND units >= 2\n  AND units >= 2 * avg_prev_4w",
   "solver": {
-    "prompt_hash": "2b1565ee5e3db2a5",
+    "prompt_hash": "48a44b87219df04d",
     "schema_version": "821c01e22b59",
-    "dataset_version": "e7c58abf7e8f892e",
-    "grader_version": "7a.1",
-    "query": "WITH w AS (\n  SELECT product_id, week_start, units,\n    AVG(units) OVER (PARTITION BY product_id ORDER BY week_start ROWS BETWEEN 4 PRECEDING AND 1 PRECEDING) AS avg4\n  FROM weekly_units\n  WHERE product_id BETWEEN 1 AND 50\n)\nSELECT product_id, week_start, units, ROUND(avg4, 2) AS avg_prev_4w\nFROM w\nWHERE week_start BETWEEN DATE '2025-03-03' AND DATE '2025-06-30'\n  AND units >= 2 AND units >= 2 * avg4\n",
-    "at": "2026-10-21T09:05:10.030Z"
+    "dataset_version": "ef4aa0325da6ea43",
+    "grader_version": "7c.1",
+    "query": "WITH x AS (\n  SELECT product_id, CAST(week_start AS DATE) AS week_start, units,\n         AVG(units) OVER (PARTITION BY product_id ORDER BY CAST(week_start AS DATE) ROWS BETWEEN 4 PRECEDING AND 1 PRECEDING) AS a\n  FROM weekly_units WHERE product_id BETWEEN 1 AND 50\n)\nSELECT product_id, week_start, units, ROUND(a, 2) AS avg_prev_4w\nFROM x\nWHERE week_start BETWEEN DATE '2025-03-03' AND DATE '2025-06-30' AND units >= 2 AND units >= 2 * a\n",
+    "at": "2026-10-23T12:15:47.999Z"
   }
 }

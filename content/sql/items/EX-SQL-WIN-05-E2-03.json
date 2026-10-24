@@ -1,6 +1,6 @@
 {
   "id": "EX-SQL-WIN-05-E2-03",
-  "version": 1,
+  "version": 2,
   "kind": "write",
   "tags": [
     "sql",
@@ -49,7 +49,7 @@
   "company": "voltmarkt",
   "schema": "voltmarkt",
   "edge_schema": "voltmarkt_edge_win",
-  "prompt": "For customers with customer_id from 3001 to 4000 (both included), take their orders placed from 1 January to 30 June 2025 (order_ts holds UTC time; both days included, in UTC), each with its net revenue (net_revenue_eur in sales, over its lines). For each order, show the customer's average order value over that order and the 2 orders before it, rounded to 2 decimals. A customer's orders follow each other by order_ts; when two orders share a moment, the lower order_id comes first. Only orders in the period count, and an order with fewer than 3 orders in its window is left out. Return customer_id, order_id, order_ts, revenue_eur and avg_order_value_3. Any row order is fine.",
+  "prompt": "For customers with customer_id from 3001 to 4000 (both included), take their orders placed from 1 January to 30 June 2025 (order_ts holds UTC time; both days included, in UTC), each with its net revenue (net_revenue_eur in sales, over its lines). For each order, show the customer's average order value over that order and the 2 orders before it, rounded to 2 decimals. A customer's orders follow each other by order_ts; when two orders share a moment, the lower order_id comes first. Only orders in the period count, and an order with fewer than 3 orders in its window is left out. Return five columns, in this order: customer_id, order_id, order_ts, revenue_eur and avg_order_value_3. Return one row for each order kept. Any row order is fine.",
   "output_contract": {
     "columns": [
       {

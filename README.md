@@ -213,6 +213,9 @@ key.
   screen mock is the online SQL test: one answer per question, "Show answer" and the tutor wait for
   the review, and a pass on a form you have not taken before meets stage 2 on the readiness board.
   See [Recruiter mocks](#recruiter-mocks) for all four.
+- **Other ways to write this.** After a pass that counts, a SQL answer offers a second correct method. A CP3 query in
+  the portfolio export that follows it and equals that method is marked "This query followed Other ways." (S7D-04),
+  like a pass after "Show answer" or a hint.
 - **Interview labs.** Ten GA4 tasks done in Google's demo account. The app stores no reference
   numbers, because the demo data changes daily: it checks the values against each other, and
   asks for the same screen again a week later.
@@ -249,16 +252,22 @@ mock on questions you have not seen meets that stage on the readiness board, wit
   Today, a lesson, Progress and the review of an earlier mock too (D117). The panel says "A mock is on, so the tutor
   waits for its review." A take-home counts as running until it is handed in or closes at 24 hours. Drills and GA4 runs
   keep their timed screens only.
+- **The tutor's mock line.** The line stays right while you stay on one screen: the panel reads the tutor's status again
+  when the page becomes visible, after a refusal that says help waits, and every minute while it is open, so it clears
+  when a run ends by its timer or a take-home closes at 24 hours (S7D-01).
 - **The clock.** The screen, knowledge and case-round runs end at their limit, by "Hand in", or when the study session
   or the app stops. The take-home runs on wall time from its start: leaving, a session end or a restart does not stop
   it, an answer after 120 minutes is late and the run cannot pass, and it closes at the first start or request 24 hours
   after it opened.
 - **What is logged.** `mock_open` once per start, with `pass_correct` (the correct answers the run needs, log format
-  version 7). It also records what the run was built from (D116): a knowledge run's questions (`item_ids`) and a case
+  version 8, which adds `run_open`, below). It also records what the run was built from (D116): a knowledge run's questions (`item_ids`) and a case
   mock's core rubric lines (`core_rubric`), so a later edit to the content cannot change a past run; each answer; a `block_close` that rates the cards; for a case mock, the plan and the review's rubric
   ticks and the "say it" self-check (`explained_aloud`); and, with the tutor on, a second-opinion question as
   `tutor_asked` with screen `mock_review`. Scores, passes and the stages they meet are derived by replay, so a run is
   scored on the questions it served and the pass mark it started with.
+- **When a GA4 run started.** A GA4 run (mini drill, half-mock or full mock) writes `run_open` when it starts (log
+  format version 8, D123): its block, its kind and the exam entry its blueprint came from. A run that crosses
+  midnight keeps its start day's blueprint. A version 7 log has no `run_open` and reads exactly as before.
 - **The tutor's second opinion.** In a case mock's review, with the tutor on, it grades the written answer against each
   rubric line. It is not help and changes no pass.
 
@@ -284,17 +293,17 @@ checked before they ship: 23,732 automated content checks (with the real dataset
 that solves every exercise without seeing its answer key). The design, the plans, every ruling
 and the review logs are in `docs/`.
 
-Today: 2,976 automated tests (the render tests included), 291 data pipeline tests, 23,732 content checks (with the real datasets prepared) and a 95-row browser smoke test, all passing.
+Today: 3,050 automated tests (the render tests included), 296 data pipeline tests, 23,732 content checks (with the real datasets prepared) and a 95-row browser smoke test, all passing.
 
 ## Status
 
-Version 0.7.2 (2026-10-22). Built: SQL levels 1 to 5 with the scheduler, Today, drills, level
+Version 0.7.3 (2026-10-23). Built: SQL levels 1 to 5 with the scheduler, Today, drills, level
 openers, cases and the inbox, mistake cards, the portfolio export, the Progress screen, the
 dataset explorer and screen mode; GA4 complete (lessons, mini drills, half-mocks, full mocks,
 the readiness check and the interview labs); Methodology complete; optional telemetry (0.5.2) and
 the study journey (0.5.3); SQL level 4, raw data and the incident tickets (0.6.0); Mailvora, the marketing cases and the first
 real datasets (0.6.1); the opt-in AI tutor (0.6.2); SQL level 5 and the screen mock on the Recruiter mocks screen (0.7.0); the knowledge, case-round
-and take-home mocks and the tutor's second opinion (0.7.1); fixes and polish after the mocks (0.7.2). Later 0.x releases add SQL levels 6 and 7, more companies and real datasets. See
+and take-home mocks and the tutor's second opinion (0.7.1); fixes and polish after the mocks (0.7.2, 0.7.3). Later 0.x releases add SQL levels 6 and 7, more companies and real datasets. See
 `docs/planning/roadmap.md` and `CHANGELOG.md`.
 
 It runs on Windows 11; other systems are untested.
@@ -400,6 +409,7 @@ For generating content (see `docs/content/`):
 | `npm run record:solver` | Grades the blind solver's answers and records them in the answer keys |
 | `npm run export:case-view` | Writes the view of every case's CP1, CP2, CP4 and CP5 (no keys) for the case blind solver, in `tools/.solver-view/cases/` |
 | `npm run record:case-solver` | Grades the case blind solver's answers and records them in the case keys. Run it after a case blind solve |
+| `node tools/release-check.ts <public clone>` | The public release's check, run by the `aydinlearns-release` skill before anything is pushed: scans the export commit, installs its tree in a temporary folder on port 5194, runs the API checks and deletes the folder. Prints rule names, counts and PASS, FAIL or NOTE only. `--scan-only` stops after the scan |
 | `npm run report:window` | Prints, per SQL concept, the first attempts in its mastery window by kind, how many qualify, and the concept's state. Counts only. Reads `logs/`, or the folder given after `--`; writes nothing |
 
 ## Telemetry with OpenTelemetry (optional)

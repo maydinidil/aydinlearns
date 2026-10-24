@@ -35,6 +35,17 @@ export interface LabAnswer {
   note: string | null;
 }
 
+/**
+ * D123 (version 8, sprint 7d; backlog M-B4-4): a GA4 run (a mini drill, a half-mock or a full mock) started. Written once by its start
+ * (server/routes/run.ts), as the run goes on and before any question is answered. `block_id` is the run's block; `run_kind` its kind, as its
+ * answers' payloads log it (D68); `blueprint_from` the `from` date of the content/ga4/exam.json entry its blueprint came from (F14). The GA4
+ * run history (server/run.ts choiceRuns) dates the run by its `ts`, so a run started before midnight keeps the entry in force when it started;
+ * a run with no run_open (a version 7 log) is dated by its earliest record, as before. Replay rates nothing from it.
+ */
+export interface RunOpen {
+  record: 'run_open'; schema_version: number; ts: string; block_id: string; run_kind: LoggedRunKind; blueprint_from: string;
+}
+
 export interface AydinAttempt extends AttemptBase {
   world: 'pricing' | 'marketing' | 'saas' | 'retail' | null;
   difficulty: 'E1' | 'E2' | 'E3' | null;

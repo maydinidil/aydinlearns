@@ -1,6 +1,6 @@
 {
   "item_id": "EX-SQL-WIN-05-E1-05",
-  "item_version": 1,
+  "item_version": 2,
   "reference_sql": "SELECT product_id, week_start, units,\n  CASE WHEN COUNT(*) OVER (PARTITION BY product_id ORDER BY week_start ROWS BETWEEN 2 PRECEDING AND CURRENT ROW) = 3\n       THEN ROUND(AVG(units) OVER (PARTITION BY product_id ORDER BY week_start ROWS BETWEEN 2 PRECEDING AND CURRENT ROW), 2)\n  END AS avg_units_3w\nFROM weekly_units\nWHERE product_id BETWEEN 21 AND 40\n  AND week_start BETWEEN DATE '2025-01-06' AND DATE '2025-06-30'",
   "alternatives": [
     "SELECT product_id, week_start, units,\n  ROUND((units\n    + LAG(units, 1) OVER (PARTITION BY product_id ORDER BY week_start)\n    + LAG(units, 2) OVER (PARTITION BY product_id ORDER BY week_start)) / 3.0, 2) AS avg_units_3w\nFROM weekly_units\nWHERE product_id BETWEEN 21 AND 40\n  AND week_start BETWEEN DATE '2025-01-06' AND DATE '2025-06-30'",
@@ -24,11 +24,11 @@
   ],
   "hint3_partial": "SELECT product_id, week_start, units,\n  CASE WHEN COUNT(*) OVER (PARTITION BY product_id ORDER BY week_start ROWS BETWEEN 2 PRECEDING AND CURRENT ROW) = 3\n       THEN ROUND(AVG(units) OVER (PARTITION BY ___ ORDER BY week_start ROWS BETWEEN 2 PRECEDING AND CURRENT ROW), 2)\n  END AS avg_units_3w\nFROM weekly_units\nWHERE product_id BETWEEN 21 AND 40\n  AND week_start BETWEEN DATE '2025-01-06' AND DATE '2025-06-30'",
   "solver": {
-    "prompt_hash": "90e09cc97042de07",
+    "prompt_hash": "7020b0c53307fc31",
     "schema_version": "821c01e22b59",
-    "dataset_version": "e7c58abf7e8f892e",
-    "grader_version": "7a.1",
-    "query": "SELECT product_id, week_start, units,\n  CASE WHEN COUNT(*) OVER (PARTITION BY product_id ORDER BY week_start ROWS BETWEEN 2 PRECEDING AND CURRENT ROW) = 3\n    THEN ROUND(AVG(units) OVER (PARTITION BY product_id ORDER BY week_start ROWS BETWEEN 2 PRECEDING AND CURRENT ROW), 2) END AS avg_units_3w\nFROM weekly_units\nWHERE product_id BETWEEN 21 AND 40\n  AND week_start BETWEEN DATE '2025-01-06' AND DATE '2025-06-30'\n",
-    "at": "2026-10-21T09:05:09.132Z"
+    "dataset_version": "ef4aa0325da6ea43",
+    "grader_version": "7c.1",
+    "query": "SELECT product_id, CAST(week_start AS DATE) AS week_start, units,\n       CASE WHEN COUNT(*) OVER w = 3 THEN ROUND(AVG(units) OVER w, 2) END AS avg_units_3w\nFROM weekly_units\nWHERE product_id BETWEEN 21 AND 40 AND CAST(week_start AS DATE) BETWEEN DATE '2025-01-06' AND DATE '2025-06-30'\nWINDOW w AS (PARTITION BY product_id ORDER BY CAST(week_start AS DATE) ROWS BETWEEN 2 PRECEDING AND CURRENT ROW)\n",
+    "at": "2026-10-23T12:15:46.846Z"
   }
 }

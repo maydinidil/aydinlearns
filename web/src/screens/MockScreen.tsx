@@ -39,7 +39,9 @@ const SECTION_NAME: Readonly<Record<ChoiceSection, string>> = { methodology: 'Me
 /** S7-10: the section a question of the run is opened in (the start names it on each serving). */
 const sectionOf = (s: MockRunView['servings'][number]): ChoiceSection => (s.section === 'methodology' ? 'methodology' : 'ga4');
 /** S7-07: a knowledge mock's review: the score per section and per topic, never a question. */
-interface KnowledgeReview extends MockReview {
+interface KnowledgeReview extends Omit<MockReview, 'not_reached'> {
+  /** S7D-02 (F2-2-1): the questions it never showed; absent on a 0.7.1 run, whose mock_open listed none. */
+  not_reached?: number;
   sections: { section: ChoiceSection; correct: number; of: number }[];
   topics: { section: ChoiceSection; topic: string; correct: number; of: number }[];
   topic_names: Record<string, string>;
@@ -86,6 +88,7 @@ function KnowledgeReviewScore({ review }: { review: KnowledgeReview }) {
       <p role="status"><strong>{`${review.correct} of ${review.total} right. ${review.passed ? 'Passed.' : 'Not passed.'}`}</strong></p>
       <p>{countsLine(review)}</p>
       <p className="muted">The review shows your score, never the questions, so they stay unseen for a later run.</p>
+      {notReachedLine(review.not_reached) && <p>{notReachedLine(review.not_reached)}</p>}
       <div className="table-scroll card"><table>
         <thead><tr><th scope="col">Section</th><th scope="col">Right</th></tr></thead>
         <tbody>{review.sections.map((x) => <tr key={x.section}><td>{SECTION_NAME[x.section]}</td><td>{`${x.correct} of ${x.of}`}</td></tr>)}</tbody>

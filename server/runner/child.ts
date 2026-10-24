@@ -1,6 +1,8 @@
 // server/runner/child.ts: the only process where learner SQL executes (design §11). It holds two locked instances on the same
 // read-only file: the runner, and from Task E3 a second one with integer_division on (spike A X9, S4B-24), opened on first use.
-// Only a 'display' request that asks for integer division runs on the second; it passes the same gate, deadline and kill.
+// Only a 'display' request with `division` runs on the second; it passes the same gate, deadline and kill. S7D-09 (sprint 7d, Task Y2;
+// S4C-07): the D52 control runs on the second instance too, on its one control connection, opened before the lock with integer division
+// off for that connection alone, so the control and the integer run can no longer differ only because they ran on two instances.
 import { DuckDBInstance, DuckDBTimestampTZValue, type DuckDBConnection } from '@duckdb/node-api';
 import { gate, readParseTree, serializeSql } from './gate.ts';
 import { withDeadline } from './deadline.ts';
@@ -37,6 +39,8 @@ const msg = (e: unknown): string => (e instanceof Error ? e.message : String(e))
 
 /** Each locked instance's runtime macro denylist, built by openLockedInstance. */
 const macroDenylists = new WeakMap<DuckDBInstance, ReadonlySet<string>>();
+/** S7D-09: the second instance's control connection (integer division off), opened by openLockedInstance before the lock. */
+const controlConnections = new WeakMap<DuckDBInstance, DuckDBConnection>();
 
 /**
  * The scalar macros on this engine that can read tables (see macrosReachingTables), from
@@ -70,48 +74,84 @@ export function macroDenylistOf(inst: DuckDBInstance): ReadonlySet<string> {
  * Opens the database READ_ONLY, builds the macro denylist, sets TimeZone UTC, then locks the
  * configuration. `integerDivision` opens the second runner (S4B-24): the same options and lockdown (R12, R17), plus
  * `integer_division` on, set on the setup connection before the lock, so `/` between two whole numbers cuts off the
- * decimals as PostgreSQL and SQL Server do (7 / 2 = 3).
+ * decimals as PostgreSQL and SQL Server do (7 / 2 = 3). S7D-09: it also opens the instance's control connection before the
+ * lock and turns integer division off for that connection's session alone; after the lock no connection can change a
+ * setting but the search path, so the control connection keeps it off and every other connection keeps it on.
  */
 export async function openLockedInstance(dbPath: string, opts: { integerDivision?: boolean } = {}): Promise<DuckDBInstance> {
   const inst = await DuckDBInstance.create(dbPath, { ...INSTANCE_OPTIONS });
+  let control: DuckDBConnection | null = null;
   try {
     const setup = await inst.connect();
     try {
       macroDenylists.set(inst, await readMacroDenylist(setup));
       if (opts.integerDivision) await setup.run('SET GLOBAL integer_division = true');
       await setup.run(`SET GLOBAL TimeZone = 'UTC'`);
+      if (opts.integerDivision) {
+        control = await inst.connect();
+        await control.run('SET SESSION integer_division = false');
+      }
       await setup.run('SET GLOBAL lock_configuration = true');
     } finally {
       setup.disconnectSync();
     }
   } catch (e) {
+    control?.disconnectSync();
     inst.closeSync();
     throw e;
   }
+  if (control) controlConnections.set(inst, control);
   return inst;
 }
 
+/** S7D-09: the control connection of a second runner opened by openLockedInstance with `integerDivision`. */
+export function controlConnectionOf(inst: DuckDBInstance): DuckDBConnection {
+  const conn = controlConnections.get(inst);
+  if (!conn) throw new Error('This instance has no control connection: it was not opened with integer division.');
+  return conn;
+}
+
+/** Closes an instance opened by openLockedInstance, its control connection first when it has one. */
+export function closeLockedInstance(inst: DuckDBInstance): void {
+  controlConnections.get(inst)?.disconnectSync();
+  controlConnections.delete(inst);
+  inst.closeSync();
+}
+
 /**
- * `division` gives the second runner (S4B-24), opened on first use. Without it, a request for integer division gets an engine
- * error, which the grader reads as "no note".
+ * `division` gives the second runner (S4B-24), opened on first use. Without it, a request for the second runner (a display with
+ * `division`) gets an engine error, which the grader reads as "no note".
  */
 export interface HandleEnv { useParseTree: boolean; division?: () => Promise<DuckDBInstance> }
 
 export async function handle(inst: DuckDBInstance, req: RunnerRequest, env: HandleEnv): Promise<RunnerResponse> {
+  return handleOn(inst, req, env, null);
+}
+
+/**
+ * handle(), on `control` when it is given (S7D-09: the second instance's control connection, which stays open), else on a connection
+ * of its own, closed when the request is done.
+ */
+async function handleOn(inst: DuckDBInstance, req: RunnerRequest, env: HandleEnv, control: DuckDBConnection | null): Promise<RunnerResponse> {
   if (req.op === 'shutdown') return ok(req.id, null);
-  if (req.op === 'display' && req.integerDivision) {
+  if (req.op === 'display' && req.division) {
     let second: DuckDBInstance;
+    let onControl: DuckDBConnection | null = null;
     try {
       if (!env.division) throw new Error('there is no second runner');
       second = await env.division();
+      if (req.division === 'control') onControl = controlConnectionOf(second);
     } catch (e) {
       return fail(req.id, { kind: 'engine', phase: 'runtime', message: `The integer division runner could not be opened: ${msg(e)}` });
     }
-    // The same request, gate and deadline, on the second instance.
-    return handle(second, { ...req, integerDivision: false }, { useParseTree: env.useParseTree });
+    // The same request, gate and deadline, on the second instance. The integer run gets a connection of its own, as every request
+    // does; the control (S7D-09) runs on the instance's control connection. The child serves one request at a time, so no two
+    // requests ever share it.
+    const { division: _, ...rest } = req;
+    return handleOn(second, rest, { useParseTree: env.useParseTree }, onControl);
   }
   const deniedFunctions = macroDenylistOf(inst);
-  const conn = await inst.connect();
+  const conn = control ?? await inst.connect();
   try {
     if (req.op === 'app_query') {
       // App-authored SQL only (self-checks). Learner text never reaches this branch.
@@ -149,7 +189,7 @@ export async function handle(inst: DuckDBInstance, req: RunnerRequest, env: Hand
     if ('error' in r) return fail(req.id, { kind: 'engine', phase: 'runtime', message: msg(r.error) });
     return r.value;
   } finally {
-    conn.disconnectSync();
+    if (conn !== control) conn.disconnectSync();
   }
 }
 
@@ -166,7 +206,7 @@ if (import.meta.main) {
     return null;
   });
   if (inst) {
-    const closeAll = (): void => { inst.closeSync(); opened?.closeSync(); };
+    const closeAll = (): void => { closeLockedInstance(inst); if (opened) closeLockedInstance(opened); };
     /** Sends a message. When the channel has closed (the parent is gone), the child exits cleanly. */
     const send = (message: unknown): Promise<void> => new Promise((resolve) => {
       process.send!(message, (e: Error | null) => {

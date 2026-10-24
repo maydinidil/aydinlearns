@@ -15,7 +15,10 @@
     "two orders in one store on the same day",
     "groups of three rows, fewer than NTILE(5) has buckets: a category with three products (Headphones) and a customer with three orders",
     "a product whose price fell and rose again, so it has three price versions",
-    "guest orders with a missing customer ID"
+    "guest orders with a missing customer ID",
+    "two customers with the same revenue, either side of a split into five groups by revenue",
+    "promotions that start on the day of a price rise, 14 days after a rise and after a cut, and 15 days after a rise",
+    "a product in two promotions while one price version holds"
   ],
   "tables": {
     "categories": [
@@ -43,17 +46,20 @@
       "a customer who ordered in January, then not again until May",
       "two orders in one store on the same day",
       "groups of three rows, fewer than NTILE(5) has buckets: a category with three products (Headphones) and a customer with three orders",
-      "guest orders with a missing customer ID"
+      "guest orders with a missing customer ID",
+      "two customers with the same revenue, either side of a split into five groups by revenue"
     ],
     "order_lines": [
       "two categories, TVs 50-55 inch and Earbuds, where two products tie for first place and two tie for third, by unit cost and by revenue from January to June 2025",
-      "two categories, TVs up to 43 inch and Cables, where two products tie for second place, by unit cost and by revenue"
+      "two categories, TVs up to 43 inch and Cables, where two products tie for second place, by unit cost and by revenue",
+      "two customers with the same revenue, either side of a split into five groups by revenue"
     ],
     "sales": [
       "two categories, TVs 50-55 inch and Earbuds, where two products tie for first place and two tie for third, by unit cost and by revenue from January to June 2025",
       "two categories, TVs up to 43 inch and Cables, where two products tie for second place, by unit cost and by revenue",
       "orders from January to June 2025 with none in April, and a calendar that holds every day of those six months",
-      "two orders in one store on the same day"
+      "two orders in one store on the same day",
+      "two customers with the same revenue, either side of a split into five groups by revenue"
     ],
     "calendar": [
       "orders from January to June 2025 with none in April, and a calendar that holds every day of those six months"
@@ -65,7 +71,17 @@
       "two products whose two latest competitor price checks happened at the same moment"
     ],
     "price_history": [
-      "a product whose price fell and rose again, so it has three price versions"
+      "a product whose price fell and rose again, so it has three price versions",
+      "promotions that start on the day of a price rise, 14 days after a rise and after a cut, and 15 days after a rise",
+      "a product in two promotions while one price version holds"
+    ],
+    "promotions": [
+      "promotions that start on the day of a price rise, 14 days after a rise and after a cut, and 15 days after a rise",
+      "a product in two promotions while one price version holds"
+    ],
+    "promotion_products": [
+      "promotions that start on the day of a price rise, 14 days after a rise and after a cut, and 15 days after a rise",
+      "a product in two promotions while one price version holds"
     ]
   }
 }

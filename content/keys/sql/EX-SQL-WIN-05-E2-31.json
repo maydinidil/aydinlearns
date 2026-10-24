@@ -1,6 +1,6 @@
 {
   "item_id": "EX-SQL-WIN-05-E2-31",
-  "item_version": 1,
+  "item_version": 2,
   "reference_sql": "WITH m AS (\n  -- one row per product and week in the range\n  SELECT w.product_id, w.week_start, w.units,\n    AVG(w.units) OVER (PARTITION BY w.product_id ORDER BY w.week_start ROWS BETWEEN 3 PRECEDING AND CURRENT ROW) AS avg_4w,\n    COUNT(*) OVER (PARTITION BY w.product_id ORDER BY w.week_start ROWS BETWEEN 3 PRECEDING AND CURRENT ROW) AS weeks_in_window\n  FROM weekly_units w\n  JOIN products p ON p.product_id = w.product_id\n  WHERE p.category_id = 16\n    AND w.week_start BETWEEN DATE '2025-01-06' AND DATE '2025-06-30'\n)\nSELECT product_id, week_start, units, ROUND(avg_4w, 2) AS avg_units_4w\nFROM m\nWHERE weeks_in_window = 4",
   "alternatives": [
     "WITH m AS (\n  -- one row per product and week in the range\n  SELECT w.product_id, w.week_start, w.units,\n    LAG(w.units, 1) OVER (PARTITION BY w.product_id ORDER BY w.week_start) AS prev_1,\n    LAG(w.units, 2) OVER (PARTITION BY w.product_id ORDER BY w.week_start) AS prev_2,\n    LAG(w.units, 3) OVER (PARTITION BY w.product_id ORDER BY w.week_start) AS prev_3\n  FROM weekly_units w\n  JOIN products p ON p.product_id = w.product_id\n  WHERE p.category_id = 16\n    AND w.week_start BETWEEN DATE '2025-01-06' AND DATE '2025-06-30'\n)\nSELECT product_id, week_start, units, ROUND((units + prev_1 + prev_2 + prev_3) / 4.0, 2) AS avg_units_4w\nFROM m\nWHERE prev_3 IS NOT NULL",
@@ -24,11 +24,11 @@
   ],
   "hint3_partial": "WITH m AS (\n  -- one row per product and week in the range\n  SELECT w.product_id, w.week_start, w.units,\n    AVG(w.units) OVER (PARTITION BY w.product_id ORDER BY w.week_start ROWS BETWEEN 3 PRECEDING AND CURRENT ROW) AS avg_4w,\n    COUNT(*) OVER (PARTITION BY w.product_id ORDER BY w.week_start ROWS BETWEEN 3 PRECEDING AND CURRENT ROW) AS weeks_in_window\n  FROM weekly_units w\n  JOIN products p ON p.product_id = w.product_id\n  WHERE p.category_id = 16\n    AND w.week_start BETWEEN DATE '2025-01-06' AND DATE '2025-06-30'\n)\nSELECT product_id, week_start, units, ROUND(avg_4w, 2) AS avg_units_4w\nFROM m\nWHERE ___",
   "solver": {
-    "prompt_hash": "385d022901c94b87",
+    "prompt_hash": "856ca748a6c483ef",
     "schema_version": "2d411b38d68e",
-    "dataset_version": "e7c58abf7e8f892e",
-    "grader_version": "7a.1",
-    "query": "WITH x AS (\n  SELECT w.product_id, w.week_start, w.units,\n    ROUND(AVG(w.units) OVER (PARTITION BY w.product_id ORDER BY w.week_start ROWS BETWEEN 3 PRECEDING AND CURRENT ROW), 2) AS avg_units_4w,\n    COUNT(*) OVER (PARTITION BY w.product_id ORDER BY w.week_start ROWS BETWEEN 3 PRECEDING AND CURRENT ROW) AS n\n  FROM weekly_units w\n  JOIN products p ON p.product_id = w.product_id\n  WHERE p.category_id = 16\n    AND w.week_start BETWEEN DATE '2025-01-06' AND DATE '2025-06-30'\n)\nSELECT product_id, week_start, units, avg_units_4w\nFROM x\nWHERE n = 4\n",
-    "at": "2026-10-21T09:05:09.793Z"
+    "dataset_version": "ef4aa0325da6ea43",
+    "grader_version": "7c.1",
+    "query": "SELECT product_id, week_start, units, avg_units_4w FROM (\n  SELECT w.product_id, CAST(w.week_start AS DATE) AS week_start, w.units,\n         ROUND(AVG(w.units) OVER (PARTITION BY w.product_id ORDER BY CAST(w.week_start AS DATE) ROWS BETWEEN 3 PRECEDING AND CURRENT ROW), 2) AS avg_units_4w,\n         COUNT(*) OVER (PARTITION BY w.product_id ORDER BY CAST(w.week_start AS DATE) ROWS BETWEEN 3 PRECEDING AND CURRENT ROW) AS n\n  FROM weekly_units w JOIN products p ON p.product_id = w.product_id\n  WHERE p.category_id = 16 AND CAST(w.week_start AS DATE) BETWEEN DATE '2025-01-06' AND DATE '2025-06-30'\n) WHERE n = 4\n",
+    "at": "2026-10-23T12:15:47.635Z"
   }
 }

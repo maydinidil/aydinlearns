@@ -21,7 +21,8 @@ import { AttemptLogger } from '../../server/log.ts';
 import { startRunner, type RunnerClient } from '../../server/runner/client.ts';
 import type { RunnerError } from '../../server/runner/protocol.ts';
 import {
-  AFTER_REVEAL, CSV_ROWS, NO_INSIGHT, NO_PLAN, PAGE_ROWS, CSV_BOM, buildCsv, buildPage, csvField, folderProblem, writeExport, writeFailure, type ExportFiles, type PageInput, type Rerun,
+  AFTER_OTHER_WAY, AFTER_REVEAL, CSV_ROWS, NO_INSIGHT, NO_PLAN, PAGE_ROWS, CSV_BOM, buildCsv, buildPage, csvField, folderProblem, writeExport, writeFailure, type ExportFiles,
+  type PageInput, type Rerun,
 } from '../../server/routes/portfolio.ts';
 import { SessionTracker } from '../../server/session.ts';
 import { LearnerState } from '../../server/state.ts';
@@ -318,6 +319,14 @@ test('Seams M2: a query that followed "Show answer" gets one plain line under it
   assert.equal(buildPage(page({ query: null, query_assisted: true, result: { ok: false, reason: 'No passing query is in the log.' } })).includes(AFTER_REVEAL), false,
     'no query, no line');
 });
+test('S7D-04: a query copied from "Other ways" gets its own line under it, after the "Show answer" line when both apply', () => {
+  assert.equal(AFTER_OTHER_WAY, 'This query followed Other ways.');
+  assert.ok(buildPage(page({ query_other_way: true })).includes(`\`\`\`sql\n${Q_MAIN}\n\`\`\`\n\n${AFTER_OTHER_WAY}\n\n## The result`), 'the line sits under the query');
+  assert.ok(buildPage(page({ query_assisted: true, query_other_way: true })).includes(`\`\`\`\n\n${AFTER_REVEAL}\n\n${AFTER_OTHER_WAY}\n\n## The result`), 'both lines');
+  assert.equal(buildPage(page()).includes(AFTER_OTHER_WAY), false, 'the learner\'s own query gets none');
+  assert.equal(buildPage(page({ query: null, query_other_way: true, result: { ok: false, reason: 'No passing query is in the log.' } })).includes(AFTER_OTHER_WAY), false,
+    'no query, no line');
+});
 
 // ---- The folder and the file names (S4B-16): no route -----------------------------------------------------------------------
 
@@ -604,6 +613,50 @@ test('Seams M2: with no own CP3 pass the export uses the latest pass, and the pa
   const md = await readFile(join(folder, reply.files[0]), 'utf8');
   assert.ok(md.includes(`${Q_MAIN}\n\`\`\`\n\n${AFTER_REVEAL}\n`), 'the query, then the line under it');
   assert.deepEqual(parseCsv(await readFile(join(folder, reply.files[1]), 'utf8')), MAIN_ROWS);
+});
+
+// S7D-04: "Other ways" opens only after a pass, so a later CP3 pass on the same instance that equals the item's other way (whitespace and case
+// aside) is a copy, marked with its own line. The other way here is invented for the test and set on the daily case's CP3 key only.
+const CP3_ITEM = record(DAILY_ID).checkpoints.find((c) => c.kind === 'CP3')!.item_id!;
+const OTHER_SQL = 'SELECT s.city, s.store_id FROM stores AS s WHERE s.store_id < 4 ORDER BY s.store_id';
+/** The other way as a learner might paste it: re-spaced over three lines and partly lower case. */
+const OTHER_COPY = 'select s.city,\n  s.store_id\nFROM stores AS s where s.store_id < 4\norder by s.store_id';
+const withOtherWay: ContentStore = { ...content,
+  key: (id) => (id === CP3_ITEM ? { ...content.key(id)!, other_way: { sql: OTHER_SQL, tradeoff: 'An invented trade-off.' } } : content.key(id)) };
+const otherWayOpened = (instanceId: string, at: number) => ({ record: 'other_way_opened', schema_version: SCHEMA_VERSION, ts: iso(at),
+  item_instance_id: instanceId, item_id: CP3_ITEM, target_concept_id: FIXTURE_CONCEPT, phase: 'case' });
+/** The daily case solved, its CP3 on instance 2: an own pass, then a second pass with `second`; plus `extra` records. */
+async function exportedPage(second: string, extra: (t: number) => object[]): Promise<string> {
+  const { folder } = await tempRoot();
+  const Q_OWN = 'SELECT s.city FROM stores AS s ORDER BY s.city';
+  const t = T0 + 9_000_000;
+  const attempts = [...solved(DAILY_ID, Q_OWN, ['CP3']),
+    ...checkpoint(DAILY_ID, 'CP3', 2, [{ at: t, submit: 'pass', query: Q_OWN }, { at: t + 120_000, submit: 'pass', query: second }]), ...extra(t)];
+  const d = await deps({ attempts }, { portfolio_folder: folder }, withOtherWay);
+  const r = await exportCase(createApp(d), DAILY_ID);
+  assert.equal(r.status, 200);
+  return readFile(join(folder, ((await r.json()) as any).files[0]), 'utf8');
+}
+
+test('S7D-04: a CP3 query that follows "Other ways" on its instance and equals the other way, whitespace and case squashed, is marked with its own line', async () => {
+  const md = await exportedPage(OTHER_COPY, (t) => [otherWayOpened(`${DAILY_ID}-CP3-2`, t + 60_000)]);
+  assert.ok(md.includes(`${OTHER_COPY}\n\`\`\`\n\n${AFTER_OTHER_WAY}\n\n## The result`), 'the copied query, then the line under it');
+  assert.equal(md.includes(AFTER_REVEAL), false, 'no "Show answer" or late hint came before it');
+});
+
+test('S7D-04: no line for the learner\'s own query after "Other ways", nor for a copy with no "Other ways" opened before it on its own instance', async () => {
+  const cases: [string, string, (t: number) => object[]][] = [
+    ['an own query after "Other ways"', 'SELECT s.store_id, s.city FROM stores AS s WHERE s.store_id < 4 ORDER BY s.city', (t) => [otherWayOpened(`${DAILY_ID}-CP3-2`, t + 60_000)]],
+    ['the same text with "Other ways" opened on another instance', OTHER_COPY, (t) => [...checkpoint(DAILY_ID, 'CP3', 3, [{ at: t - 600_000, submit: 'pass', query: 'SELECT 1' }]),
+      otherWayOpened(`${DAILY_ID}-CP3-3`, t - 500_000)]],
+    ['the same text with "Other ways" opened only after it', OTHER_COPY, (t) => [otherWayOpened(`${DAILY_ID}-CP3-2`, t + 180_000)]],
+    ['the same text with no "Other ways" opened', OTHER_COPY, () => []],
+  ];
+  for (const [why, second, extra] of cases) {
+    const md = await exportedPage(second, extra);
+    assert.ok(md.includes(second), `${why}: the page shows the latest own pass`);
+    assert.equal(md.includes(AFTER_OTHER_WAY), false, why);
+  }
 });
 
 test('S4B-17: a query that no longer runs: the page says so, the CSV holds the header only, and the export is logged', async () => {

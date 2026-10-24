@@ -1,5 +1,6 @@
 // server/grader/engine-errors.ts: DuckDB error messages to error IDs (02's taxonomy, rewritten for
-// DuckDB 1.5.6 by knowledge/ERRATA.md E-145; rulings R20 and R22; ERR-SYN-08 by E-189 in sprint 6, widened by S7C-08 in sprint 7c)
+// DuckDB 1.5.6 by knowledge/ERRATA.md E-145; rulings R20 and R22; ERR-SYN-08 by E-189 in sprint 6, widened by S7C-08 in sprint 7c
+// and by S7D-12, E-207, in sprint 7d)
 import { maskSql } from '../runner/tables.ts';
 
 export interface EngineErrorClass { errorId: string; column?: string; table?: string }
@@ -9,9 +10,10 @@ const RULES: Rule[] = [
   // S6-11 (sprint 6, Task A1; ERRATA E-189): DuckDB 1.5.6's binder message for a window function in WHERE (a join's ON gives the same
   // message), before the generic Binder Error rule below would make it ERR-SYN-02. S7C-08 (sprint 7c, Task X5; GRADER_VERSION 7c.1): its
   // messages for a window function in HAVING, in GROUP BY, inside an aggregate (its FILTER included) and nested in another window
-  // function, as DuckDB 1.5.6 words them, are ERR-SYN-08 too. One in a window's own PARTITION BY or ORDER BY is a Parser Error there
-  // ("window functions are not allowed in window definitions") and stays with the Parser Error rule.
-  { re: /(?:WHERE|HAVING|GROUP BY) clause cannot contain window functions|aggregate function calls cannot contain window function calls|window function calls cannot be nested/i, id: 'ERR-SYN-08' },
+  // function, as DuckDB 1.5.6 words them, are ERR-SYN-08 too. S7D-12 (sprint 7d, Task Y2; D121, ERRATA E-207; GRADER_VERSION 7d.1): one in
+  // another window's own PARTITION BY or ORDER BY is a Parser Error there ("window functions are not allowed in window definitions"), and
+  // it is ERR-SYN-08 as well. These rules run before the syntax and generic Parser Error rules below, so that message never reaches them.
+  { re: /(?:WHERE|HAVING|GROUP BY) clause cannot contain window functions|aggregate function calls cannot contain window function calls|window function calls cannot be nested|window functions are not allowed in window definitions/i, id: 'ERR-SYN-08' },
   { re: /column "([^"]+)" must appear in the GROUP BY clause|must appear in the GROUP BY clause|must be part of an aggregate function/i, id: 'ERR-SEM-01', capture: 'column' },
   { re: /More than one row returned by a subquery/i, id: 'ERR-SEM-05' },
   { re: /Ambiguous reference to column name "([^"]+)"/i, id: 'ERR-SYN-03', capture: 'column' },

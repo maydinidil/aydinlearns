@@ -35,7 +35,11 @@ export { INT_DIVISION_NOTE } from './portability.ts';
 // 7c.1 (sprint 7c, Task X5, S7C-08): DuckDB's messages for a window function in HAVING, in GROUP BY, inside an aggregate and nested in
 // another window function diagnose ERR-SYN-08, not ERR-SYN-02, and its feedback names every place a window function cannot go. Such a
 // query was an engine error and still is: outcomes, the partial score and the logged checks are graded exactly as 7a.1 did.
-export const GRADER_VERSION = '7c.1';
+// 7d.1 (sprint 7d, Task Y2, D121): two changes. S7D-12 (ERRATA E-207): DuckDB's Parser Error for a window function in another window's
+// PARTITION BY or ORDER BY diagnoses ERR-SYN-08, not ERR-SYN-01; such a query was an engine error and still is. S7D-06: the order check
+// leaves NULL position free per sort key, not only for all keys at once (composeOrderSql), so an order can only move from fail to pass.
+// S7D-09 changes where the integer division control runs, not what it compares or any grade.
+export const GRADER_VERSION = '7d.1';
 const DIFF_LIMIT = 10;
 const KEY_FAILED = 'This exercise could not be checked. Please report it.';
 /** `schemaNotes` give the columns of the item's tables to the portability lint; without them it gives only the `==` note. */
@@ -204,7 +208,7 @@ async function compare(input: { item: SqlItem; key: SqlKey; sql: string; screenM
       first ??= { plan, results };
       if (!visible.data.passed || !edge.data.passed) continue;
       if (item.rules.order_matters) {
-        // composeOrderSql leaves NULL placement free (R33). The order is checked on both datasets,
+        // composeOrderSql leaves NULL placement free (R33), per sort key (S7D-06). The order is checked on both datasets,
         // since a tie-break may show only on the edge data. It does not depend on the key, so a
         // wrong order settles this plan; another plan may still map the sort keys differently.
         const sortKeys = item.rules.sort_keys.map((s) => ({ index: plan.learnerOrder[keyColumn(item, keyCols, s.column)]!, desc: s.desc }));

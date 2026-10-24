@@ -146,6 +146,22 @@ test('S7-07: the review shows the score per section and per topic, with topic na
   unmount();
 });
 
+test('S7D-02 (F2-2-1): a crashed run review says how many questions it never showed, in the screen review words; a review without the count says nothing', async () => {
+  const review = (extra: object) => ({
+    block_id: 'mock-knowledge-1', mock: 'knowledge', form_id: 'KNOWLEDGE', date: '2026-11-02', correct: 1, total: 30, passed: false, late: false, practice: false, counts: false,
+    status: 'ended', items: [], sections: [{ section: 'methodology', correct: 1, of: 20 }, { section: 'ga4', correct: 0, of: 10 }], topics: [], topic_names: {}, ...extra });
+  stubFetch((_m, path) => (path === '/api/mocks/mock-knowledge-1/review' ? review({ not_reached: 28 }) : undefined));
+  const crashed = render(createElement(MockReviewScreen, { blockId: 'mock-knowledge-1' }));
+  await settle();
+  assert.match(crashed.container.textContent!, /28 questions were not reached, because the run ended before they were shown\./);
+  crashed.unmount();
+  stubFetch((_m, path) => (path === '/api/mocks/mock-knowledge-1/review' ? review({}) : undefined));
+  const old = render(createElement(MockReviewScreen, { blockId: 'mock-knowledge-1' }));
+  await settle();
+  assert.doesNotMatch(old.container.textContent!, /not reached/);
+  old.unmount();
+});
+
 /** The run with one answer refused as `refusal` says; GET /api/mocks still has it on, and "Hand in" answers its history row. */
 function refusedRun(refusal: unknown) {
   return stubFetch((method, path) => {

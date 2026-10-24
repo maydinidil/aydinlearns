@@ -10,9 +10,10 @@ export interface Instance {
   failed: number;                       // failed graded attempts
   passed: boolean; helped: boolean; closed: boolean;
   hints: number;                        // hint levels opened on this instance
+  revealed: boolean;                    // "Show answer", or hint 2 or more, before any graded attempt: the pass then does not count (S7D-05)
 }
 export function newInstance(now = Date.now()): Instance {
-  return { id: crypto.randomUUID(), startedAt: new Date(now).toISOString(), started: now, failed: 0, passed: false, helped: false, closed: false, hints: 0 };
+  return { id: crypto.randomUUID(), startedAt: new Date(now).toISOString(), started: now, failed: 0, passed: false, helped: false, closed: false, hints: 0, revealed: false };
 }
 
 /**

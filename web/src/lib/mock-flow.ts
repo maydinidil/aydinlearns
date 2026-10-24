@@ -12,6 +12,7 @@ import type { DisplayOk, RunnerError } from '../../../server/runner/protocol.ts'
 import { ApiError, apiCall, type ChoiceSection, type ItemView, type PublicGrade } from '../api.ts';
 import { formatDate } from './labels.ts';
 import type { ProgressGoal } from './progress-api.ts';
+import type { MockCaseView } from './case-flow.ts';
 import { unseenComesBack } from './run-flow.ts';
 
 export { isCaseMockRules, isKnowledgeRules, isScreenRules };
@@ -40,10 +41,12 @@ export interface MockServing { item_id: string; item_instance_id: string; answer
 /** A mock run as its start answers it, and the run on in GET /api/mocks. */
 export interface MockRunView {
   block_id: string; kind: 'mock'; mock: MockKind; form_id: string; phase: 'mock'; hide_labels: boolean; minutes: number; on_unseen: boolean;
-  ends_at: string; servings: MockServing[];
+  ends_at: string; deadline_at: string; servings: MockServing[];
 }
+/** The run on in GET /api/mocks: the start's view with each serving marked (Codex F36), and a case mock's case (Task N2). */
+export type MocksRun = Omit<MockRunView, 'servings'> & { servings: (MockServing & { answered: boolean })[]; case?: MockCaseView };
 export interface MocksView {
-  today: string; stages: ProgressGoal[]; mocks: MockCard[]; run: MockRunView | null;
+  today: string; stages: ProgressGoal[]; mocks: MockCard[]; run: MocksRun | null;
   /** Stage 6: the live reps in G-STAGE-6's window of `weeks` weeks, from `from` to `to`. */
   live_reps: { logged: number; passed: number; from: string; to: string; weeks: number };
 }
@@ -60,8 +63,8 @@ export interface MockReviewItem {
 }
 export interface MockReview extends MockHistoryRow {
   mock: MockKind; items: MockReviewItem[];
-  /** N3 M4: the questions the run never reached (a crash ended it first); absent on the other reviews. */
-  not_reached?: number;
+  /** N3 M4: the questions the run never reached (a crash ended it first). */
+  not_reached: number;
 }
 /** N3 M4: the review line for questions a crashed run never reached; none when there are none. */
 export const notReachedLine = (n: number | undefined): string | null =>
@@ -76,7 +79,8 @@ export const mocksApi = {
   review: (block_id: string) => apiCall<MockReview>('GET', `/api/mocks/${encodeURIComponent(block_id)}/review`),
   serve: (block_id: string, item_instance_id: string) => apiCall<MockServed>('POST', '/api/serve', { section: 'sql', purpose: 'mock', block_id, item_instance_id }),
   /** SQL Run is free and ungraded; the server finds the mock item through its instance. */
-  run: (item_id: string, item_instance_id: string, sql: string) => apiCall<DisplayOk | { error: RunnerError }>('POST', '/api/run', { item_id, item_instance_id, sql }),
+  run: (item_id: string, item_instance_id: string, sql: string, block_id?: string) =>
+    apiCall<DisplayOk | { error: RunnerError }>('POST', '/api/run', { item_id, item_instance_id, sql, ...(block_id === undefined ? {} : { block_id }) }),
   /** The answer names its run's block, so a restarted app can tell a question of a run it does not hold is over (S7-C18). */
   submit: (b: { block_id: string; item_id: string; item_instance_id: string; sql: string; started_at: string; active_ms: number }) =>
     apiCall<MockAnswer>('POST', '/api/submit', { ...b, phase: 'mock', fading_stage: null, confidence: null }),

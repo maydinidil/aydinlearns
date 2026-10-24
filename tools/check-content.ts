@@ -29,8 +29,7 @@ import { fileURLToPath } from 'node:url';
 import { startRunner, type RunnerClient } from '../server/runner/client.ts';
 import type { DisplayOk, GateOk, RowsOk } from '../server/runner/protocol.ts';
 import { maskSql, stripTrailing } from '../server/runner/tables.ts';
-import { grade, type Feedback } from '../server/grader/grade.ts';
-import type { GradeResult } from '../server/grader/types.ts';
+import type { Feedback } from '../server/grader/grade.ts';
 import { caseUnavailable, ContentFileError, KNOWLEDGE_POOL_FILE, LAB_GUIDE_FILE, LAB_KEY_DIR, loadContent, MOCK_CASE_DIR, truthSourceHash, type ContentStore, type LoadOptions } from '../server/content.ts';
 import { parseDrillFile, type DrillFile } from '../server/drill.ts';
 import { ga4ExamPool, knowledgePools, knowledgeReadiness } from '../server/run.ts';
@@ -53,6 +52,7 @@ import { checkSqlChoiceItem, checkWhyClause, outermost, sqlChoiceTallyLine } fro
 import { caseKeyHash } from './case-key-hash.ts';
 import { casePromptHash } from './export-case-view.ts';
 import { rankCutoffProblems } from './rank-cutoffs.ts';
+import { sameQuery, squash, tryGrade } from './sql-compare.ts';
 
 export interface CheckResult { id: string; check: string; ok: boolean; warn?: boolean; detail: string }   // detail never contains SQL
 export interface CheckContext {
@@ -61,7 +61,6 @@ export interface CheckContext {
 }
 
 const sha = (s: string) => createHash('sha256').update(s).digest('hex');
-const squash = (s: string) => s.replace(/\s+/g, ' ').trim();
 const DISPLAY_CAP = 1000;
 /** The helpers each helper construct allows when the prompt names them (T-01; ruling R19). */
 const HELPER_CONSTRUCTS: Record<string, string[]> = { cast_round: ['ROUND', 'CAST'], coalesce: ['COALESCE'], text_helper: ['LOWER', 'UPPER', 'TRIM'] };
@@ -186,11 +185,6 @@ export function reverseSortKey(sql: string, column: string, outputColumns: strin
     return s.slice(0, exprTo) + flipped + s.slice(b);
   }
   return null;
-}
-
-/** The grader's verdict, or null when it throws: it does so only for a key that does not run or rules naming a column the key lacks. */
-async function tryGrade(item: SqlItem, key: SqlKey, sql: string, ctx: CheckContext): Promise<GradeResult | null> {
-  try { return await grade({ item, key, sql }, { runner: ctx.runner, edge: ctx.edge(item.edge_schema), feedback: ctx.feedback }); } catch { return null; }
 }
 
 /** A query's rows on one dataset as a bag (sorted, so parallel row order never counts), or null when it does not run. */
@@ -563,9 +557,6 @@ export function grainFadeProblem(item: SqlItem, curriculum: Curriculum): string 
   if (item.use === 'lesson') return grain ? '' : 'a level 3 lesson item keeps its grain line (S4-04): set output_contract.grain';
   return grain === null ? '' : `the grain line fades from level 3 (S4-04): output_contract.grain must be null on a ${item.use} item`;
 }
-
-/** Key text compared as one query: a trailing semicolon dropped and every run of spaces and line breaks made one space. */
-const sameQuery = (a: string, b: string): boolean => squash(stripTrailing(a)) === squash(stripTrailing(b));
 
 /**
  * C39's rules on the key file alone (S4-11): `other_way` is null, or `{ sql, tradeoff }` whose `sql` is one of the key's

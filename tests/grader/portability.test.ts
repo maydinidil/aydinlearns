@@ -278,11 +278,11 @@ const shownOf = async (sql: string): Promise<DisplayOk> => {
   assert.ok(r.ok, `${sql}: ${JSON.stringify(r)}`);
   return r.data;
 };
-/** A client that records each request; the re-run (integerDivision) gets `rerun`'s answer, or throws when `rerun` does. */
+/** A client that records each request; the re-run (division 'integer') gets `rerun`'s answer, or throws when `rerun` does. */
 const rerunClient = (rerun: (req: RunnerReq) => Promise<RunnerResult>) => {
   const reruns: RunnerReq[] = [];
   const client: RunnerClient = { restarts: 0, close: async () => {}, request: async <T>(req: RunnerReq) => {
-    if (req.op !== 'display' || req.integerDivision !== true) return runner.request<T>(req);
+    if (req.op !== 'display' || req.division !== 'integer') return runner.request<T>(req);
     reruns.push(req);
     return (await rerun(req)) as RunnerResult<T>;
   } };
@@ -334,15 +334,15 @@ test('Codex F24: a re-run result cut at the cap cannot be compared, so it is not
 
 // ---- Sprint 4c, Task B2, D52: a control run with integer division off comes before the integer division run ----------------------
 
-/** A client that records every request; the control (a display with integerDivision false) gets `control`'s answer. */
+/** A client that records every request; the control (a display with division 'control') gets `control`'s answer. */
 const controlClient = (control: (req: RunnerReq) => Promise<RunnerResult>) => {
   const seen: RunnerReq[] = [];
   const client: RunnerClient = { restarts: 0, close: async () => {}, request: async <T>(req: RunnerReq) => {
     seen.push(req);
-    if (req.op === 'display' && req.integerDivision === false) return (await control(req)) as RunnerResult<T>;
+    if (req.op === 'display' && req.division === 'control') return (await control(req)) as RunnerResult<T>;
     return runner.request<T>(req);
   } };
-  return { client, seen, reruns: () => seen.filter((q) => q.op === 'display' && q.integerDivision === true) };
+  return { client, seen, reruns: () => seen.filter((q) => q.op === 'display' && q.division === 'integer') };
 };
 const sleep = (ms: number) => new Promise((res) => setTimeout(res, ms));
 /** Its `/` keeps the decimals, so integer division cannot change it, but its rows change from run to run. */
@@ -351,15 +351,31 @@ const UNREPEATABLE = 'SELECT id * 1.0 / 2 AS h FROM big ORDER BY random() LIMIT 
 test('D52: a query whose rows change between two runs (random ordering under a LIMIT) is not_compared, and the integer division run never runs', async () => {
   const c = controlClient((req) => runner.request(req));
   assert.equal(await check(c.client, UNREPEATABLE, await shownOf(UNREPEATABLE)), 'not_compared');
-  assert.deepEqual(c.seen, [{ op: 'display', schema: 'vis', allowedSchemas: [], sql: UNREPEATABLE, cap: 1000, deadlineMs: 5000, integerDivision: false }],
-    'the control only: the same query, data, cap and deadline, with integer division off');
+  assert.deepEqual(c.seen, [{ op: 'display', schema: 'vis', allowedSchemas: [], sql: UNREPEATABLE, cap: 1000, deadlineMs: 5000, division: 'control' }],
+    'the control only: the same query, data, cap and deadline, with integer division off, on the second runner (S7D-09)');
 });
 test('D52: a deterministic ratio query still gives changed or same, after one control run and then one integer division run', async () => {
   for (const [sql, want] of [[HALVES, 'changed'], [WHOLE, 'same']] as const) {
     const c = controlClient((req) => runner.request(req));
     assert.equal(await check(c.client, sql, await shownOf(sql)), want, sql);
-    assert.deepEqual(c.seen.map((q) => (q.op === 'display' ? [q.sql, q.integerDivision] : q.op)), [[sql, false], [sql, true]], `${sql}: the control first`);
+    assert.deepEqual(c.seen.map((q) => (q.op === 'display' ? [q.sql, q.division] : q.op)), [[sql, 'control'], [sql, 'integer']], `${sql}: the control first`);
   }
+});
+test('S7D-09 (S4C-07): a result that differs only on the second runner, with or without integer division, makes no note: not_compared', async () => {
+  // A stand-in second runner whose every display gives one more row than the first runner's, integer division or not: a difference
+  // between the two instances, not one integer division makes. The control runs there too, so it differs from the shown result.
+  const onSecond = (req: RunnerReq): boolean => req.op === 'display' && req.division !== undefined;
+  const seen: RunnerReq[] = [];
+  const client: RunnerClient = { restarts: 0, close: async () => {}, request: async <T>(req: RunnerReq) => {
+    seen.push(req);
+    const r = await runner.request<DisplayOk>(req);
+    if (!onSecond(req) || !r.ok) return r as RunnerResult<T>;
+    return { ok: true, data: { ...r.data, rows: [...r.data.rows, r.data.rows[0]!], rowCount: r.data.rowCount + 1 } } as RunnerResult<T>;
+  } };
+  assert.equal(await check(client, WHOLE, await shownOf(WHOLE)), 'not_compared', 'no false note');
+  assert.deepEqual(seen.map((q) => (q.op === 'display' ? q.division : q.op)), ['control'], 'the integer run never runs after a control that differs');
+  // On a second runner that agrees with the first, the check runs as before.
+  assert.equal(await check(controlClient((req) => runner.request(req)).client, WHOLE, await shownOf(WHOLE)), 'same');
 });
 test('D52: a control that times out, fails, crashes, throws or is cut at the cap is not_compared, and the integer division run never runs', async () => {
   const answers: [string, (req: RunnerReq) => Promise<RunnerResult>][] = [

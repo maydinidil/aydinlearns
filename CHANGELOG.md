@@ -10,12 +10,109 @@ come from git.
 0.5.0 is the first release. Slices 0 and 1a are the first application code; the entries before
 them are research and planning.
 
+## 0.7.3 (2026-10-23)
+
+Sprint 7d, second fix and polish: log format version 8 (D123), a window inside another window's definition told apart
+(D121), the tutor's mock line kept current, 20 more backlog rows closed, the release check script and skill, and one
+status source (D119). No new feature. Not yet released.
+
+| What 0.7.3 changes | In short |
+|---|---|
+| Log format version 8 | A GA4 run writes `run_open` when it starts, so a run that crosses midnight keeps its start day's blueprint. A version 7 log reads exactly as before |
+| The grader | A window in another window's PARTITION BY or ORDER BY is `ERR-SYN-08`; mixed NULL placement in an order passes (`GRADER_VERSION` `7d.1`) |
+| The tutor and the mock screens | The mock line clears when a run ends; a crashed knowledge review says how many questions were not reached; a stale CP3 run reopens |
+| Other ways | The route agrees with replay on what a pass is, and the export marks a CP3 copy of the other way |
+| Prompt wording | 26 items say more precisely what they ask. No answer changed |
+| Edge data | Three plants make the hidden data catch more wrong queries. Seven objects moved; every other table keeps its hash |
+| How releases are made | A release check script and skill; the version and status are written in two files only; an owner checklist |
+
+### Changed
+
+- Log format version 8 (D123, `SCHEMA_VERSION` 8) adds one record, `run_open`, written when a GA4 run (mini drill,
+  half-mock or full mock) starts: `block_id`, the run kind and the exam entry its blueprint came from. The GA4 run
+  history dates a run by it, so a run that starts before midnight on a blueprint's start day keeps that day's entry
+  (M-B4-4). A version 7 log has no `run_open` and reads exactly as before; replay rates nothing from the record and the
+  journey adds no event for it.
+- `GRADER_VERSION` is `7d.1` (D121, S7D-06, S7D-12, ERRATA `E-207`). DuckDB's Parser Error "window functions are not
+  allowed in window definitions", for a window in another window's PARTITION BY or ORDER BY, now diagnoses `ERR-SYN-08`
+  (it read as `ERR-SYN-01`, the syntax feedback); the name and the feedback say a window cannot go in another window's
+  definition. The order check also takes the fewest breaks over every NULLS FIRST and NULLS LAST combination of the sort
+  keys (up to four keys), so a mixed NULL placement is free, as the design says. A grade can only move from fail to pass;
+  no shipped key or recorded answer changed outcome.
+- The division note's control runs on the same runner instance as the integer-division re-run (S7D-09, S4C-07), so a
+  difference between the two instances can no longer make the note.
+- C53 (a key that filters a ranking result states its tie rule) reads a flag only in the query whose FROM defines it
+  (S7D-08, X5-M1). Its helpers `squash`, `sameQuery` and `tryGrade` moved to `tools/sql-compare.ts`, imported by
+  `tools/check-content.ts` and `tools/rank-cutoffs.ts` (X5-M3). It reads all 822 shipped write and fix items the same way,
+  with no difference over the 132 shipped ranking queries.
+- `/api/other-way` judges a live instance by replay's rule for a pass (S7D-05), through one helper. A pass that came after
+  "Show answer" or hint 2 gets its own sentence: "Other ways open after a pass without "Show answer" or hint 2. This pass
+  came after one of them." The exercise screen no longer offers the button after such a pass (F2-4-1).
+- The portfolio export marks a CP3 query that follows "Other ways" on its instance and equals that way, spacing and case
+  aside, with "This query followed Other ways." (S7D-04). No log record; no answer text leaves the server.
+- The tutor's mock line stays current (S7D-01): `GET /api/tutor/status` ends `mock_on` at the run's limit, and the panel
+  reads it again when the page becomes visible, after a refusal that says help waits (showing the panel's own line, not
+  the run screens' text), and every 60 seconds while it is open and the line shows.
+- The three loose mock shapes (the review's `not_reached`, `answered` on servings, the run view's `deadline_at`) are exact
+  and checked both ways (S7D-11, X3-M3).
+- Wording (K1; each item solved again blind, 26 of 26 after one reword): `EX-CASE-REAL-01` says net revenue comes from the
+  unrounded amounts; `EX-SQL-WIN-04-E2-21` says an order with no lines is left out; the explanation of `Q-GA4-035` speaks
+  of the mode the question asks about; the 23 `SQL-WIN-05` write and fix prompts say "Return N columns, in this order:"
+  and "one row for each", as levels 3 and 4 do. No key result, correct option or ID changed.
+- Edge data (K2, S7D-13): `voltmarkt_edge_win` gains a revenue tie either side of a group boundary (so the money
+  tie-break of `CASE-RETAIL-05` CP3 shows on the edge) and promotions that start on a price rise or cut, 14 and 15 days
+  after one; `mailvora_edge_clean` gains a month (October 2025) where every payment is refunded, with ad spend and exchange
+  rates. The build moved exactly the seven planted objects (dataset `812a89282cfa8602`). Every key and recorded answer
+  still passes on the new edge.
+- The release check script `tools/release-check.ts` and the release skill `aydinlearns-release` (W1, D119): after the
+  export and before any push, the script scans the export commit for key prefixes, key-shaped strings, emails, personal
+  folders, session links and paths that must not ship, then installs the tree in a temporary folder on port 5194 and runs
+  the API checks. It prints rule names, counts and PASS, FAIL or NOTE only.
+- The version and the release status are written only in this file and the roadmap (W2, D119). The owner's checklist,
+  `docs/planning/owner-tasks.md`, lists what only Aydin can do, with exact steps (W3).
+
+### Fixed
+
+- A tutor reply already streaming when the tutor closes for a mock is now stopped at once, and its question goes back in
+  the box, as after Close (Codex F39). It took a question sent just as a mock started in another tab. Before, the reply
+  was hidden behind the waiting line but ran to its end: billed in full, logged, counted as help on the earlier item,
+  and shown in the thread after the mock. A stopped reply is counted at what the provider reported, or at the call's
+  reservation when no usage came back yet (S7-32), so the daily limit still sees it. Not yet tried in two real browser
+  tabs.
+- The tutor panel's "A mock is on" line no longer stays up after a case round's timer or a take-home's 24-hour close, and
+  a refusal on Today no longer shows the run screens' "Help opens in the end-of-run review." (X3-M4, F2-1-1, F2-1-2).
+- A crashed knowledge run's review says how many questions it never showed, as a screen mock's review does. A 0.7.1 run
+  has no question list and shows none (F2-2-1).
+- An ended case mock whose case has left the course says "This run's case is no longer in the course." instead of showing
+  another case, and no rubric can be logged under it (X3-M2).
+- A take-home's CP3 run after an app restart reopens the question on its new instance, as Submit does, instead of
+  stopping on a plain "not found" (F4-2-1).
+- A GA4 run that starts before midnight on the day a new blueprint begins keeps the blueprint in force when it started
+  (M-B4-4).
+- Mixed NULL placement in an order no longer fails a correct answer (S7D-06).
+- A window function inside another window's PARTITION BY or ORDER BY gets the feedback for a window in the wrong place,
+  not the generic syntax feedback (X5-M4).
+- A CP3 query copied from "Other ways" is marked in the portfolio export (S7D-04).
+- The division note no longer appears when only the second runner instance differs (S4C-07).
+
+### Known issues
+
+- Three ordered prompts (`EX-CASE-DQ-03`, `EX-CASE-PRICE-03`, `EX-MOCK-TAKE-A`) ask for missing values last, and the order
+  check accepts them first too, as it always has; S7D-06 made placement free for every key and assumed no prompt states
+  it. A backlog row holds the choice: check a stated position, or reword the three prompts.
+- A query copied from "Other ways" into a later CP3 instance of the same item exports without the mark, and a learner who
+  passes with their own query, opens "Other ways" and then submits the copy on the same instance exports the copy (marked)
+  rather than their own query. In the backlog.
+- A take-home left open while an app update removes its case starts again with no questions after the update, and the
+  tutor waits until its 24-hour close. Only an update that drops a mock case reaches it. In the backlog.
+
 ## 0.7.2 (2026-10-22)
 
 Sprint 7c, fix and polish: Codex F37 and F38, the two fields on the mock's start record (D116), the tutor closed while
 any mock runs (D117), the grader's window-function diagnosis, wider checks on rank cut-offs, clearer prompts and 33
-backlog rows closed (D118). No new feature. No public release yet. On 2026-10-23, R1 re-created the earlier public
-releases under the new numbers, `v0.5.0` to `v0.6.2`, on the same commits; the `v1.x` tags are gone.
+backlog rows closed (D118). No new feature. Released as the public `v0.7.2` on 2026-10-23. The same day, R1
+re-created the earlier public releases under the new numbers, `v0.5.0` to `v0.6.2`, on the same commits; the `v1.x`
+tags are gone.
 
 | What 0.7.2 changes | In short |
 |---|---|

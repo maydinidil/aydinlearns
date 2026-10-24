@@ -15,7 +15,7 @@ import { attemptsOnly, labAnswer, withLab } from '../helpers/replay-logs.ts';
 
 const TODAY = '2026-11-03';
 
-test('the log version is 7 (5 added lab_answer; 7 is D112, tests/server/log-v7.test.ts)', () => assert.equal(SCHEMA_VERSION, 7));
+test('the log version is 8 (5 added lab_answer; 8 is D123, tests/server/log-v8.test.ts)', () => assert.equal(SCHEMA_VERSION, 8));
 
 test('replay over a log with lab_answer records gives the same result and no warnings', () => {
   const plain = attemptsOnly();

@@ -164,7 +164,7 @@ test('a new instance has its own id, start time and counters', () => {
   Object.assign(a, { failed: 2, passed: true, helped: true, closed: true, hints: 2 });
   const b = newInstance(5_000);
   assert.notEqual(a.id, b.id);
-  assert.deepEqual({ ...b, id: 'x' }, { id: 'x', startedAt: new Date(5_000).toISOString(), started: 5_000, failed: 0, passed: false, helped: false, closed: false, hints: 0 });
+  assert.deepEqual({ ...b, id: 'x' }, { id: 'x', startedAt: new Date(5_000).toISOString(), started: 5_000, failed: 0, passed: false, helped: false, closed: false, hints: 0, revealed: false });
 });
 test('a 409 (the server closed the instance at a session end) starts a new instance and retries once', async () => {
   let current = newInstance();

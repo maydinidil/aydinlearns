@@ -525,11 +525,11 @@
     {
       "id": "ERR-SYN-08",
       "category": "SYN",
-      "name": "A window function in WHERE, GROUP BY, HAVING or an aggregate",
+      "name": "A window function in WHERE, GROUP BY, HAVING, an aggregate or another window",
       "detection_checks": [
         "CHK-ENGINE-ERROR"
       ],
-      "feedback_template": "SQL works out window functions after WHERE, GROUP BY and HAVING, so none of them can use one, and neither can an aggregate or another window function. Work it out in a CTE or subquery, then use that result in the outer query.",
+      "feedback_template": "SQL works out window functions after WHERE, GROUP BY and HAVING, so none of them can use one, and neither can an aggregate, another window function or another window's PARTITION BY or ORDER BY. Work it out in a CTE or subquery, then use that result in the outer query.",
       "concept_id": "SQL-WIN-01"
     },
     {

@@ -1,6 +1,6 @@
 {
   "item_id": "EX-SQL-WIN-05-E2-03",
-  "item_version": 1,
+  "item_version": 2,
   "reference_sql": "WITH order_rev AS (\n  -- one row per order\n  SELECT o.customer_id, o.order_id, o.order_ts, SUM(s.net_revenue_eur) AS revenue_eur\n  FROM orders o\n  JOIN sales s ON s.order_id = o.order_id\n  WHERE o.customer_id BETWEEN 3001 AND 4000\n    AND o.order_ts >= TIMESTAMP '2025-01-01 00:00:00'\n    AND o.order_ts < TIMESTAMP '2025-07-01 00:00:00'\n  GROUP BY o.customer_id, o.order_id, o.order_ts\n), windowed AS (\n  -- one row per order\n  SELECT customer_id, order_id, order_ts, revenue_eur,\n    AVG(revenue_eur) OVER (PARTITION BY customer_id ORDER BY order_ts, order_id ROWS BETWEEN 2 PRECEDING AND CURRENT ROW) AS avg_3,\n    COUNT(*) OVER (PARTITION BY customer_id ORDER BY order_ts, order_id ROWS BETWEEN 2 PRECEDING AND CURRENT ROW) AS orders_in_window\n  FROM order_rev\n)\nSELECT customer_id, order_id, order_ts, revenue_eur, ROUND(avg_3, 2) AS avg_order_value_3\nFROM windowed\nWHERE orders_in_window = 3",
   "alternatives": [
     "WITH order_rev AS (\n  -- one row per order\n  SELECT o.customer_id, o.order_id, o.order_ts, SUM(s.net_revenue_eur) AS revenue_eur\n  FROM orders o\n  JOIN sales s ON s.order_id = o.order_id\n  WHERE o.customer_id BETWEEN 3001 AND 4000\n    AND o.order_ts >= TIMESTAMP '2025-01-01 00:00:00'\n    AND o.order_ts < TIMESTAMP '2025-07-01 00:00:00'\n  GROUP BY o.customer_id, o.order_id, o.order_ts\n), paired AS (\n  -- one row per order\n  SELECT customer_id, order_id, order_ts, revenue_eur,\n    LAG(revenue_eur, 1) OVER (PARTITION BY customer_id ORDER BY order_ts, order_id) AS prev_1,\n    LAG(revenue_eur, 2) OVER (PARTITION BY customer_id ORDER BY order_ts, order_id) AS prev_2\n  FROM order_rev\n)\nSELECT customer_id, order_id, order_ts, revenue_eur, ROUND((revenue_eur + prev_1 + prev_2) / 3, 2) AS avg_order_value_3\nFROM paired\nWHERE prev_2 IS NOT NULL",
@@ -29,11 +29,11 @@
   ],
   "hint3_partial": "WITH order_rev AS (\n  -- one row per order\n  SELECT o.customer_id, o.order_id, o.order_ts, SUM(s.net_revenue_eur) AS revenue_eur\n  FROM orders o\n  JOIN sales s ON s.order_id = o.order_id\n  WHERE o.customer_id BETWEEN 3001 AND 4000\n    AND o.order_ts >= TIMESTAMP '2025-01-01 00:00:00'\n    AND o.order_ts < TIMESTAMP '2025-07-01 00:00:00'\n  GROUP BY o.customer_id, o.order_id, o.order_ts\n), windowed AS (\n  -- one row per order\n  SELECT customer_id, order_id, order_ts, revenue_eur,\n    AVG(revenue_eur) OVER (PARTITION BY customer_id ORDER BY ___ ROWS BETWEEN 2 PRECEDING AND CURRENT ROW) AS avg_3,\n    COUNT(*) OVER (PARTITION BY customer_id ORDER BY ___ ROWS BETWEEN 2 PRECEDING AND CURRENT ROW) AS orders_in_window\n  FROM order_rev\n)\nSELECT customer_id, order_id, order_ts, revenue_eur, ROUND(avg_3, 2) AS avg_order_value_3\nFROM windowed\nWHERE orders_in_window = 3",
   "solver": {
-    "prompt_hash": "9c28b27f77df716b",
+    "prompt_hash": "19e9704254e72bf9",
     "schema_version": "669fef2a1651",
-    "dataset_version": "e7c58abf7e8f892e",
-    "grader_version": "7a.1",
-    "query": "WITH o AS (\n  SELECT od.customer_id, od.order_id, od.order_ts, SUM(s.net_revenue_eur) AS revenue_eur\n  FROM orders od JOIN sales s ON s.order_id = od.order_id\n  WHERE od.customer_id BETWEEN 3001 AND 4000\n    AND CAST(od.order_ts AS DATE) BETWEEN DATE '2025-01-01' AND DATE '2025-06-30'\n  GROUP BY od.customer_id, od.order_id, od.order_ts\n), w AS (\n  SELECT customer_id, order_id, order_ts, revenue_eur,\n    COUNT(*) OVER (PARTITION BY customer_id ORDER BY order_ts, order_id ROWS BETWEEN 2 PRECEDING AND CURRENT ROW) AS n,\n    AVG(revenue_eur) OVER (PARTITION BY customer_id ORDER BY order_ts, order_id ROWS BETWEEN 2 PRECEDING AND CURRENT ROW) AS avg3\n  FROM o\n)\nSELECT customer_id, order_id, order_ts, revenue_eur, ROUND(avg3, 2) AS avg_order_value_3\nFROM w\nWHERE n = 3\n",
-    "at": "2026-10-21T09:05:09.436Z"
+    "dataset_version": "ef4aa0325da6ea43",
+    "grader_version": "7c.1",
+    "query": "WITH o AS (\n  SELECT od.customer_id, od.order_id, od.order_ts, SUM(s.net_revenue_eur) AS revenue_eur\n  FROM orders od JOIN sales s ON s.order_id = od.order_id\n  WHERE od.customer_id BETWEEN 3001 AND 4000\n    AND CAST(od.order_ts AS DATE) BETWEEN DATE '2025-01-01' AND DATE '2025-06-30'\n  GROUP BY od.customer_id, od.order_id, od.order_ts\n),\nw AS (\n  SELECT customer_id, order_id, order_ts, revenue_eur,\n         ROUND(AVG(revenue_eur) OVER (PARTITION BY customer_id ORDER BY CAST(order_ts AS TIMESTAMP), order_id ROWS BETWEEN 2 PRECEDING AND CURRENT ROW), 2) AS avg_order_value_3,\n         COUNT(*) OVER (PARTITION BY customer_id ORDER BY CAST(order_ts AS TIMESTAMP), order_id ROWS BETWEEN 2 PRECEDING AND CURRENT ROW) AS n\n  FROM o\n)\nSELECT customer_id, order_id, order_ts, revenue_eur, avg_order_value_3 FROM w WHERE n = 3\n",
+    "at": "2026-10-23T12:15:47.223Z"
   }
 }

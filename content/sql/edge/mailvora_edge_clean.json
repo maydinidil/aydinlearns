@@ -19,7 +19,8 @@
     "an organic session with an empty utm_campaign",
     "direct sessions with missing UTM fields",
     "signups whose last session is a respelled or empty-string session, or a LinkedIn or Capterra session on the UTC day after its spend row's date",
-    "refunded payments: 2 of 8, and most of the money paid in August 2025, so the refunded share is far from 4%"
+    "refunded payments: 4 of 10, and most of the money paid in August 2025, so the refunded share is far from 4%",
+    "every payment of October 2025, a month with ad spend, refunded"
   ],
   "tables": {
     "campaigns": [
@@ -45,18 +46,21 @@
       "a LinkedIn spend row exported in UTC and in euros, which needs no shift and no conversion",
       "Meta spend for 14 and 15 July 2025 loaded twice",
       "nonbrand search spend for 5 August 2025 loaded three times",
-      "signups whose last session is a respelled or empty-string session, or a LinkedIn or Capterra session on the UTC day after its spend row's date"
+      "signups whose last session is a respelled or empty-string session, or a LinkedIn or Capterra session on the UTC day after its spend row's date",
+      "every payment of October 2025, a month with ad spend, refunded"
     ],
     "fx_rates_monthly": [
       "LinkedIn spend in US dollars on Los Angeles days: the row dated 31 July 2025 is 1 August in UTC, so it takes August's rate",
       "G2 spend in US dollars, exported in UTC, so LinkedIn is not the only channel billed in dollars",
-      "affiliate spend in British pounds (GBP), with a GBP rate for each month in fx_rates_monthly"
+      "affiliate spend in British pounds (GBP), with a GBP rate for each month in fx_rates_monthly",
+      "every payment of October 2025, a month with ad spend, refunded"
     ],
     "signups": [
       "signups whose last session is a respelled or empty-string session, or a LinkedIn or Capterra session on the UTC day after its spend row's date"
     ],
     "payments": [
-      "refunded payments: 2 of 8, and most of the money paid in August 2025, so the refunded share is far from 4%"
+      "refunded payments: 4 of 10, and most of the money paid in August 2025, so the refunded share is far from 4%",
+      "every payment of October 2025, a month with ad spend, refunded"
     ]
   }
 }

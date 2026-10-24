@@ -1,6 +1,6 @@
 {
   "item_id": "EX-SQL-WIN-05-E2-32",
-  "item_version": 1,
+  "item_version": 2,
   "reference_sql": "WITH daily AS (\n  -- one row per day with spend\n  SELECT a.spend_date, SUM(a.clicks) AS clicks, SUM(a.impressions) AS impressions\n  FROM ad_spend_daily a\n  JOIN campaigns c ON c.campaign_id = a.campaign_id\n  WHERE c.channel_id = 3\n  GROUP BY a.spend_date\n), rates AS (\n  -- one row per day with spend\n  SELECT spend_date, clicks, impressions,\n    100.0 * SUM(clicks) OVER (ORDER BY spend_date RANGE BETWEEN INTERVAL 6 DAY PRECEDING AND CURRENT ROW)\n      / SUM(impressions) OVER (ORDER BY spend_date RANGE BETWEEN INTERVAL 6 DAY PRECEDING AND CURRENT ROW) AS ctr_7d\n  FROM daily\n)\nSELECT spend_date, clicks, impressions, ROUND(ctr_7d, 2) AS ctr_7d_pct\nFROM rates\nWHERE spend_date BETWEEN DATE '2025-08-01' AND DATE '2025-08-31'",
   "alternatives": [
     "WITH daily AS (\n  -- one row per day with spend\n  SELECT a.spend_date, SUM(a.clicks) AS clicks, SUM(a.impressions) AS impressions\n  FROM ad_spend_daily a\n  JOIN campaigns c ON c.campaign_id = a.campaign_id\n  WHERE c.channel_id = 3\n  GROUP BY a.spend_date\n)\nSELECT d.spend_date, d.clicks, d.impressions, ROUND(100.0 * SUM(p.clicks) / SUM(p.impressions), 2) AS ctr_7d_pct\nFROM daily d\nJOIN daily p ON p.spend_date BETWEEN d.spend_date - INTERVAL 6 DAY AND d.spend_date\nWHERE d.spend_date BETWEEN DATE '2025-08-01' AND DATE '2025-08-31'\nGROUP BY d.spend_date, d.clicks, d.impressions",
@@ -24,11 +24,11 @@
   ],
   "hint3_partial": "WITH daily AS (\n  -- one row per day with spend\n  SELECT a.spend_date, SUM(a.clicks) AS clicks, SUM(a.impressions) AS impressions\n  FROM ad_spend_daily a\n  JOIN campaigns c ON c.campaign_id = a.campaign_id\n  WHERE c.channel_id = 3\n  GROUP BY a.spend_date\n), rates AS (\n  -- one row per day with spend\n  SELECT spend_date, clicks, impressions,\n    100.0 * SUM(clicks) OVER (ORDER BY spend_date RANGE BETWEEN INTERVAL 6 DAY PRECEDING AND CURRENT ROW)\n      / ___ AS ctr_7d\n  FROM daily\n)\nSELECT spend_date, clicks, impressions, ROUND(ctr_7d, 2) AS ctr_7d_pct\nFROM rates\nWHERE spend_date BETWEEN DATE '2025-08-01' AND DATE '2025-08-31'",
   "solver": {
-    "prompt_hash": "09a2db4bf2044d73",
+    "prompt_hash": "0c02dea88ac86cf8",
     "schema_version": "09f3a33d3123",
-    "dataset_version": "e7c58abf7e8f892e",
-    "grader_version": "7a.1",
-    "query": "WITH daily AS (\n  SELECT a.spend_date, SUM(a.clicks) AS clicks, SUM(a.impressions) AS impressions\n  FROM ad_spend_daily a\n  JOIN campaigns c ON c.campaign_id = a.campaign_id\n  WHERE c.channel_id = 3\n  GROUP BY a.spend_date\n), rates AS (\n  SELECT spend_date, clicks, impressions,\n    100.0 * SUM(clicks) OVER (ORDER BY spend_date RANGE BETWEEN INTERVAL 6 DAY PRECEDING AND CURRENT ROW)\n      / SUM(impressions) OVER (ORDER BY spend_date RANGE BETWEEN INTERVAL 6 DAY PRECEDING AND CURRENT ROW) AS ctr_7d\n  FROM daily\n)\nSELECT spend_date, clicks, impressions, ROUND(ctr_7d, 2) AS ctr_7d_pct\nFROM rates\nWHERE spend_date BETWEEN DATE '2025-08-01' AND DATE '2025-08-31'\n",
-    "at": "2026-10-21T09:05:09.831Z"
+    "dataset_version": "ef4aa0325da6ea43",
+    "grader_version": "7c.1",
+    "query": "WITH days AS (SELECT CAST(g AS DATE) AS spend_date FROM generate_series(DATE '2025-07-26', DATE '2025-08-31', INTERVAL 1 DAY) t(g)),\na AS (\n  SELECT CAST(a.spend_date AS DATE) AS d, SUM(a.clicks) AS clicks, SUM(a.impressions) AS impressions\n  FROM ad_spend_daily a JOIN campaigns c ON c.campaign_id = a.campaign_id\n  WHERE c.channel_id = 3\n  GROUP BY 1\n),\nx AS (\n  SELECT days.spend_date, a.d IS NOT NULL AS has_row, COALESCE(a.clicks, 0) AS clicks, COALESCE(a.impressions, 0) AS impressions\n  FROM days LEFT JOIN a ON a.d = days.spend_date\n),\ny AS (\n  SELECT spend_date, has_row, clicks, impressions,\n         SUM(clicks) OVER w AS c7, SUM(impressions) OVER w AS i7\n  FROM x\n  WINDOW w AS (ORDER BY spend_date ROWS BETWEEN 6 PRECEDING AND CURRENT ROW)\n)\nSELECT spend_date, clicks, impressions, ROUND(100.0 * c7 / NULLIF(i7, 0), 2) AS ctr_7d_pct\nFROM y WHERE has_row AND spend_date >= DATE '2025-08-01'\n",
+    "at": "2026-10-23T12:15:47.666Z"
   }
 }

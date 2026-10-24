@@ -1,6 +1,6 @@
 {
   "item_id": "EX-SQL-WIN-05-E1-06",
-  "item_version": 1,
+  "item_version": 2,
   "reference_sql": "WITH w AS (\n  -- one row per paid channel and month\n  SELECT channel_id, month, budget_eur,\n    AVG(budget_eur) OVER (PARTITION BY channel_id ORDER BY month ROWS BETWEEN 2 PRECEDING AND CURRENT ROW) AS avg_3m,\n    COUNT(*) OVER (PARTITION BY channel_id ORDER BY month ROWS BETWEEN 2 PRECEDING AND CURRENT ROW) AS months_in_window\n  FROM budget_monthly\n)\nSELECT channel_id, month, budget_eur,\n  CASE WHEN months_in_window = 3 THEN ROUND(avg_3m, 2) END AS avg_budget_3m\nFROM w\nWHERE month BETWEEN DATE '2025-07-01' AND DATE '2025-12-01'",
   "alternatives": [
     "WITH w AS (\n  -- one row per paid channel and month\n  SELECT channel_id, month, budget_eur,\n    LAG(budget_eur, 1) OVER (PARTITION BY channel_id ORDER BY month) AS prev_1,\n    LAG(budget_eur, 2) OVER (PARTITION BY channel_id ORDER BY month) AS prev_2\n  FROM budget_monthly\n)\nSELECT channel_id, month, budget_eur, ROUND((budget_eur + prev_1 + prev_2) / 3, 2) AS avg_budget_3m\nFROM w\nWHERE month BETWEEN DATE '2025-07-01' AND DATE '2025-12-01'",
@@ -24,11 +24,11 @@
   ],
   "hint3_partial": "WITH w AS (\n  -- one row per paid channel and month\n  SELECT channel_id, month, budget_eur,\n    AVG(budget_eur) OVER (PARTITION BY channel_id ORDER BY month ROWS BETWEEN 2 PRECEDING AND CURRENT ROW) AS avg_3m,\n    COUNT(*) OVER (PARTITION BY channel_id ORDER BY month ROWS BETWEEN 2 PRECEDING AND CURRENT ROW) AS months_in_window\n  FROM budget_monthly\n)\nSELECT channel_id, month, budget_eur,\n  CASE WHEN ___ THEN ROUND(avg_3m, 2) END AS avg_budget_3m\nFROM w\nWHERE month BETWEEN DATE '2025-07-01' AND DATE '2025-12-01'",
   "solver": {
-    "prompt_hash": "cf317e5a2a2fe19e",
+    "prompt_hash": "7d285103a453092e",
     "schema_version": "1ea1a0f5ae04",
-    "dataset_version": "e7c58abf7e8f892e",
-    "grader_version": "7a.1",
-    "query": "WITH w AS (\n  SELECT channel_id, month, budget_eur,\n    COUNT(*) OVER (PARTITION BY channel_id ORDER BY month ROWS BETWEEN 2 PRECEDING AND CURRENT ROW) AS n,\n    AVG(budget_eur) OVER (PARTITION BY channel_id ORDER BY month ROWS BETWEEN 2 PRECEDING AND CURRENT ROW) AS avg3\n  FROM budget_monthly\n)\nSELECT channel_id, month, budget_eur,\n  CASE WHEN n = 3 THEN ROUND(avg3, 2) END AS avg_budget_3m\nFROM w\nWHERE month BETWEEN DATE '2025-07-01' AND DATE '2025-12-01'\n",
-    "at": "2026-10-21T09:05:09.155Z"
+    "dataset_version": "ef4aa0325da6ea43",
+    "grader_version": "7c.1",
+    "query": "WITH x AS (\n  SELECT channel_id, CAST(month AS DATE) AS month, budget_eur,\n         CASE WHEN COUNT(*) OVER w = 3 THEN ROUND(AVG(budget_eur) OVER w, 2) END AS avg_budget_3m\n  FROM budget_monthly\n  WINDOW w AS (PARTITION BY channel_id ORDER BY CAST(month AS DATE) ROWS BETWEEN 2 PRECEDING AND CURRENT ROW)\n)\nSELECT channel_id, month, budget_eur, avg_budget_3m FROM x\nWHERE month BETWEEN DATE '2025-07-01' AND DATE '2025-12-31'\n",
+    "at": "2026-10-23T12:15:46.868Z"
   }
 }

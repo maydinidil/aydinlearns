@@ -72,6 +72,9 @@ for (const [place, sql] of [
   ['in GROUP BY', 'SELECT count(*) AS city FROM stores GROUP BY rank() OVER (ORDER BY city)'],
   ['inside an aggregate', 'SELECT max(row_number() OVER (ORDER BY city)) AS city FROM stores'],
   ['nested in another window function', 'SELECT city FROM (SELECT city, sum(rank() OVER (ORDER BY city)) OVER () AS s FROM stores) AS t'],
+  // S7D-12 (sprint 7d, Task Y2; D121, ERRATA E-207; GRADER_VERSION 7d.1): DuckDB's Parser Error for one in a window's definition.
+  ["in another window's PARTITION BY", 'SELECT city FROM (SELECT city, count(*) OVER (PARTITION BY rank() OVER (ORDER BY city)) AS n FROM stores) AS t'],
+  ["in another window's ORDER BY", 'SELECT city FROM (SELECT city, sum(store_id) OVER (ORDER BY row_number() OVER (ORDER BY city)) AS s FROM stores) AS t'],
 ] as const) {
   test(`S7C-08: a window function ${place} is graded as ERR-SYN-08 with its own feedback, an engine error as before`, async () => {
     const r = await grade({ ...cities, sql }, deps(perTable));

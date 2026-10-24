@@ -3,6 +3,70 @@
 Append-only log of findings raised by the Codex PR reviewer, each with an independent verdict.
 Newest review first.
 
+## PR #55: sprint 7d, second fix and polish, release 0.7.3 (reviewed 2026-10-23)
+
+Codex left one line comment (P2) on `d2252492`, plus its summary comment. It is confirmed. Y3's implementer had named the
+same risk as a concern, and no review had raised it. Under D119 it was fixed on the branch before the merge, at Aydin's go
+on the fix plan.
+
+Codex's review of the F40 fix (`a5323f4f`, 2026-10-23) left one more line comment (P2), F41, which that fix introduced. It
+is confirmed, and was fixed on the branch the same way, at Aydin's go on 2026-10-24.
+
+### F41: A GA4 start queued behind a failed `run_open` write starts a run while grading is paused
+
+**P2 · `server/routes/run.ts:72` · Verdict: CONFIRMED · Status: FIXED 2026-10-24 (unverified against a real failed disk write)**
+
+The claim: a second GA4 start passes the app middleware's "log writable" check, then waits for the first start's
+`run_open` write (F40's `opening`). If that write fails, the logger becomes unwritable, but the waiting start goes on, writes
+its own `run_open` and installs a run, while every answer is refused with a 503 until the app restarts.
+
+What I found: the mechanism is as described. The middleware (`server/app.ts`) checks `d.logger.writable` once, before the
+route runs; `/api/run/start` then waits on `opening` and never checks again. `AttemptLogger` (`server/log.ts`) sets
+`writable` to false on a failed write and never back, but still tries the next write, so a later one can succeed. Reach: two GA4
+starts at once (a double click, or two tabs) with the first write failing. It came with the F40 fix, so no released version
+has it.
+
+**Fix direction:** check `d.logger.writable` again once the wait is over, before anything is read or written, and answer
+the middleware's 503 "grading is paused" when it is false.
+
+> **Update 2026-10-24: fixed** on the sprint 7d branch before the merge (commit named in the sprint 7d record).
+> `startRun` now answers the middleware's 503 first thing when the log is no longer writable. Red first: a new test in
+> `tests/server/run.test.ts` holds the first start's `run_open` write, lets a second start pass the middleware's check,
+> then makes the held write fail; on the unfixed route the second start answered 200 and left a run on (`[500, 200]`).
+> It now answers 503 with no run on and no `run_open` written. The three F40 tests still pass.
+>
+> **Still unproven:** the failed write is a test double that throws on `run_open`; the fix has not run against a real full
+> disk or a locked attempt file. Confirm at the next real write failure, together with F40's check, that a second start
+> made at the same moment is refused and leaves no run on.
+
+### F40: A GA4 run stays on when its `run_open` cannot be written
+
+**P2 · `server/routes/run.ts:100` · Verdict: CONFIRMED · Status: FIXED 2026-10-23 (unverified against a real failed disk write)**
+
+The claim: the GA4 start installs the run (`runs.start`) and only then appends the new `run_open` (D123). If that append
+fails, the request answers an error while the run stays on with its servings, the failed write marks the logger
+unwritable, and another start is refused while the hidden run stays active.
+
+What I found: the mechanism is as described. `runs.start` (`:96`) runs before `d.logger.runOpen` (`:99`), and nothing
+undoes it when the write throws. The mock start already does it the other way round (`server/routes/mocks.ts` `openRun`:
+`mock_open` first, a check that no run started meanwhile, then `runs.start`). Reach: a failed log write at a GA4 start (a
+full disk, a locked file), new in 0.7.3 with log version 8, so no released version has it.
+
+**Fix direction:** write `run_open` before anything is served or started, as the mock does; serialise GA4 starts so a
+second waits and then sees the first's run; after the write, close this block and answer 409 if a drill or mock started
+meanwhile.
+
+> **Update 2026-10-23: fixed** on the sprint 7d branch before the merge (commit named in the sprint 7d record).
+> `/api/run/start` now writes `run_open` first, waits for any GA4 start under way (so a double start still answers 409
+> with the run that is on, S3-08), and after the write closes its block and answers 409 when another run started during
+> it. Red first: two new tests in `tests/server/run.test.ts` failed on the unfixed route, one with a run left on behind the
+> error (a log whose `run_open` write throws) and one with the SQL drill refused because the GA4 run was installed before
+> its write (a held write); a third, the double start during the write, guards S3-08 and passed before and after.
+>
+> **Still unproven:** the failed write is a test double that throws on `run_open`; the fix has not run against a real full
+> disk or a locked attempt file. Confirm at the next real write failure that no run is left on and the start can be tried
+> again once the log is writable.
+
 ## PR #54: sprint 7c, fix and polish, release 0.7.2 (reviewed 2026-10-22)
 
 Codex left one line comment (P1) on `22f1c4ee`, plus its summary comment. It is confirmed, with a correction. It was not
@@ -10,7 +74,7 @@ known from sprint 7c's own reviews.
 
 ### F39: A tutor reply in flight is not stopped when the status says a mock is on
 
-**P1 · `web/src/tutor/TutorPanel.tsx:60` · Verdict: CONFIRMED, with a correction · Status: OPEN**
+**P1 · `web/src/tutor/TutorPanel.tsx:60` · Verdict: CONFIRMED, with a correction · Status: FIXED 2026-10-23 (unverified against two real browser tabs)**
 
 The claim: when the panel's status read finds `mock_on` after a question was sent (for example, a mock started in
 another tab), it only sets `closedBy`. The panel stays open, and the request in flight is stopped only when the panel
@@ -42,6 +106,24 @@ covers every closer: D117's status and D94's timed-run clocks. As with Close, th
 probe above as a render test, which must fail first on the current panel. The signal must be aborted once the status
 says `mock_on`, and no reply may be added to the thread after it. A reply cut off this way counts at $0, which is the
 existing known issue from 0.6.2.
+
+> **Update 2026-10-23: fixed on the sprint 8 branch, with one correction.** `web/src/tutor/TutorPanel.tsx` gains an
+> effect beside the one on `t.open`: when `t.closedBy` becomes set, `stop()` aborts the reply in flight and puts its
+> question back in the box, as Close does. The red came first. The render test "Codex F39: a reply in flight stops when
+> the status read says a mock is on; ..." in `tests/web/render/tutor-panel.test.ts`, run on the unmodified panel, failed
+> at "and stops the reply in flight" (actual `false`, expected `true`). With the effect it passes. It also checks that no
+> reply joins the thread and that the question is back in the box once the mock ends. The fix has one part, the effect,
+> and the red run is its mutation check. `npm test`: 2,976 before, 2,977 after.
+>
+> The correction: the fix direction's last sentence is wrong. 0.7.0 fixed the $0 issue of 0.6.2 (S7-32). A reply cut off
+> is counted from the input the provider reported plus the characters received over 4, or else at the call's reservation
+> (`server/routes/tutor.ts:243-249`). A reply stopped by this fix is counted the same way, so the daily limit sees it.
+>
+> **Still unproven:** the test draws the panel in happy-dom with a stubbed fetch and a held status read. The fix has not
+> run in two real browser tabs against a real provider stream. There, the race needs the status read made on opening to
+> answer after a mock starts in another tab, a window too short to make by hand. The server's side of a stop (the
+> request's signal stopping the provider call) is S7-32's, with its own tests. Confirmation step: if a tutor reply is
+> ever seen in a thread after a mock started in another tab, this fix did not hold.
 
 ## PR #53: sprint 7 Part 2, the knowledge, case-round and take-home mocks, release 0.7.1 (reviewed 2026-10-22)
 

@@ -44,7 +44,7 @@ const card = (mock: 'case_round' | 'take_home'): MockCard => ({
   forms: { total: 2, unseen: 2 }, next: { form_id: mock === 'case_round' ? 'CASE-ROUND-A' : 'TAKE-HOME-A', on_unseen: true }, next_unseen_date: null, blocked: null, history: [],
 });
 const mocks = (run: CaseMockRunView | null, mock: 'case_round' | 'take_home' = 'case_round'): MocksView =>
-  ({ today: '2026-11-02', stages: [], mocks: [card(mock)], run, live_reps: { logged: 0, passed: 0, from: '2026-10-06', to: '2026-11-02', weeks: 4 } });
+  ({ today: '2026-11-02', stages: [], mocks: [card(mock)], run: run && { ...run, servings: run.servings.map((s) => ({ ...s, answered: s.answered === true })) }, live_reps: { logged: 0, passed: 0, from: '2026-10-06', to: '2026-11-02', weeks: 4 } });
 
 /** A stubbed server for one case-round: the start, the plan, CP1's serve and answer; what each call sent is kept. */
 function server(start: MockCaseView = caseView()) {
@@ -438,6 +438,38 @@ test('F4-2-1: CP3\'s submit refused RUN_CHANGED reads the run again, and the que
       'served again on the new instance');
     await send();
     assert.deepEqual(calls.filter((c) => c.path === '/api/submit').map((c) => (c.body as { item_instance_id: string }).item_instance_id), ['I-CP3', 'I-CP3-new']);
+  } finally { unmount(); }
+});
+
+test('S7D-10 (F4-2-1): CP3 Run sends the run block; refused RUN_CHANGED it reads the run again, and the query step opens on its new instance', async () => {
+  const item = { id: 'EX-MOCK-CASE-A', prompt: 'An invented CP3 question marker.', level: 3, schema: 'voltmarkt', kind: 'write', starter_sql: null, fading: null,
+    output_contract: { columns: [{ name: 'city', type_class: 'text' }], grain: null }, rules: { ...DEFAULT_RULES, columns: [{ name: 'city', type_class: 'text', precision: 'exact' }] } };
+  let instance = 'I-CP3';
+  const view = () => planned({ checkpoints: cps().map((c) => (c.kind === 'CP3' ? { ...c, item_instance_id: instance } : c)) });
+  const calls = stubFetch((method, path, body) => {
+    if (method === 'GET' && path === '/api/mocks') return mocks(runView('take_home', view()), 'take_home');
+    if (method === 'POST' && path === '/api/serve') {
+      return { item_id: item.id, item_instance_id: (body as { item_instance_id: string }).item_instance_id, phase: 'mock', block_id: TAKE_BLOCK, repeat_exposure: false,
+        hide_labels: true, screen_mode: false, item, schemaNotes: [] };
+    }
+    if (method === 'POST' && path === '/api/run') {
+      const b = body as { item_instance_id: string; block_id?: string };
+      return b.item_instance_id === instance && b.block_id === TAKE_BLOCK ? { columns: ['city'], rows: [['Utrecht']], rowCount: 1, truncated: false }
+        : { status: 404, body: { error: 'This question was opened before the app restarted, so it opens again.', code: 'RUN_CHANGED' } };
+    }
+    return undefined;
+  });
+  const { container, unmount } = mount(createElement(CaseMockScreen, { mock: 'take_home' }));
+  try {
+    await settle();
+    await click(container.querySelector('[data-step-button="CP3"]'));
+    instance = 'I-CP3-new';                                     // the app restarts: the rebuilt run serves CP3 a new instance
+    await click(named(container.querySelector('[data-step="CP3"]')!, 'Run (Ctrl+Enter)')!);
+    assert.deepEqual(calls.filter((c) => c.path === '/api/serve').map((c) => (c.body as { item_instance_id: string }).item_instance_id), ['I-CP3', 'I-CP3-new'],
+      'served again on the new instance');
+    await click(named(container.querySelector('[data-step="CP3"]')!, 'Run (Ctrl+Enter)')!);
+    assert.deepEqual(calls.filter((c) => c.path === '/api/run').map((c) => { const b = c.body as { item_instance_id: string; block_id?: string }; return [b.item_instance_id, b.block_id]; }),
+      [['I-CP3', TAKE_BLOCK], ['I-CP3-new', TAKE_BLOCK]]);
   } finally { unmount(); }
 });
 

@@ -45,7 +45,8 @@ export interface CheckpointAnswer {
   payload: unknown;
   /**
    * Seams M2: its instance had a `solution_opened`, or a `hint_opened` at level 2 or higher, logged before this answer (help after
-   * the instance closed is not replayed). Derived only; an "other ways" copy after a pass cannot be told from the log.
+   * the instance closed is not replayed). Derived only. An "other ways" copy is not
+   * help here; the portfolio export tells it apart by comparing it with the key (S7D-04).
    */
   assisted: boolean;
 }

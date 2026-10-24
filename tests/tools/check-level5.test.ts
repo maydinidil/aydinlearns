@@ -337,6 +337,38 @@ test('S7C-09: the stated limits: arithmetic on a ranking result before the compa
   assert.deepEqual(await cutsOf(`SELECT product_id FROM (SELECT product_id, CASE WHEN ${WINDOW_ROW} <= 2 THEN 'top' END AS label FROM products) AS t WHERE label = 'top'`), []);
 });
 
+// ---- C53 (S7D-08; X5-M1): a flag is matched only in the query whose FROM defines it ---------------------------------------------
+
+const RANK_FLAG = 'RANK() OVER (PARTITION BY brand ORDER BY unit_cost_eur DESC) <= 2 AS top';
+const RANK_FLAG_CUT = ['RANK', null, false, 'unit_cost_eur', 'DESC'];
+/** A query that shows the flag `top` and, in a subquery of its own, filters a real column that is also called top. */
+const UNRELATED_TOP = (filter: string) => `SELECT product_id, top FROM (SELECT product_id, ${RANK_FLAG} FROM products) AS t
+  WHERE product_id IN (SELECT v.product_id FROM (VALUES (1, true), (2, false)) AS v(product_id, top) WHERE ${filter})`;
+
+test('S7D-08: a filter in another query that names its own column called top is not read as the flag top', async () => {
+  for (const filter of ['top', 'coalesce(top, false)', 'NOT top']) assert.deepEqual(await cutsOf(UNRELATED_TOP(filter)), [], filter);
+  assert.deepEqual(await c53(itemOf(NO_RULE), keyOf(UNRELATED_TOP('top'))), { id: ID, check: 'C53', ok: true, detail: '' }, 'no false C53 line');
+});
+
+test('S7D-08: the query whose FROM defines the flag still reads it, through a subquery, a CTE, a star or a column passed on, and its own QUALIFY', async () => {
+  const flagged = `(SELECT product_id, ${RANK_FLAG} FROM products)`;
+  for (const sql of [
+    `SELECT product_id FROM ${flagged} AS t WHERE top`,
+    `SELECT product_id FROM ${flagged} AS t WHERE coalesce(top, false)`,
+    `SELECT t.product_id FROM ${flagged} AS t JOIN products p ON p.product_id = t.product_id AND t.top`,
+    `WITH f AS ${flagged} SELECT product_id FROM f WHERE top`,
+    `SELECT product_id FROM (SELECT * FROM ${flagged} AS s) AS t WHERE top`,
+    `WITH f AS ${flagged}, g AS (SELECT product_id, top FROM f) SELECT product_id FROM g WHERE top`,
+    `WITH f AS ${flagged}, g AS (SELECT * FROM f) SELECT product_id FROM g WHERE NOT top`,
+    `SELECT product_id, ${RANK_FLAG} FROM products QUALIFY top`,
+    // A CTE read twice, and a recursive CTE that reads itself beside the flag's: each is worked out once, and the reading ends.
+    `WITH f AS ${flagged}, g AS (SELECT a.product_id, a.top FROM f AS a JOIN f AS b USING (product_id)) SELECT product_id FROM g WHERE top`,
+    `WITH RECURSIVE r(k) AS (SELECT 1 UNION ALL SELECT k + 1 FROM r WHERE k < 2), f AS ${flagged} SELECT product_id FROM f, r WHERE top AND k = 1`,
+  ]) assert.deepEqual(await cutsOf(sql), [RANK_FLAG_CUT], sql);
+  // A flag the outer query cannot see filters nothing there: its subquery did not pass it on.
+  assert.deepEqual(await cutsOf(`SELECT product_id FROM (SELECT product_id FROM ${flagged} AS s) AS t, (SELECT true AS top) AS u WHERE top`), []);
+});
+
 const ASC_KEEP = KEEP;
 const DESC_KEEP = KEEP.replace('lowest', 'highest');
 const dedupDesc = (filter: string) => dedup(filter, 'order_line_id DESC');

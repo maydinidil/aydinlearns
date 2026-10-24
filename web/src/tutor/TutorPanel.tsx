@@ -2,7 +2,7 @@
 // streams (rendered with Markdown, its code blocks with SqlCode), the help note before the first question on an unpassed item, the model
 // and effort in use and today's spend (block P), and the closed state. Alt+T opens and closes it; closing gives focus back to where it
 // was, and stops a reply in flight (Review Focus 2). It sends one question at a time. D117 (S7C-04): it reads the status on each screen and
-// on opening, and while a mock run is on it closes the tutor on every screen with MOCK_WAITS.
+// on opening, and while a mock run is on it closes the tutor on every screen with MOCK_WAITS, stopping a reply in flight (Codex F39).
 import { useEffect, useRef, useState } from 'react';
 import type { TutorStatusView } from '../../../schemas/tutor.ts';
 import type { Screen } from '../../../schemas/journey.ts';
@@ -15,10 +15,15 @@ import {
   afterAsk, canSend, emptyThread, exchangeKey, HELP_NOTE, helpNoteDue, newQuestion, NO_ANSWER, restoreQuestion, spendLine, thinking, threadFor, threadKey,
   type AfterAsk, type AskEnd, type Asked, type LiveReply, type ThreadState,
 } from './thread.ts';
-import { mockWaitsIn, useTutor } from './TutorContext.tsx';
+import { MOCK_WAITS, mockWaitsIn, useTutor } from './TutorContext.tsx';
 import { tutorAsk, tutorStatus } from './tutor-api.ts';
 import { modelLine } from '../lib/tutor-settings.ts';
 import { helpedInstance } from '../lib/tutor-help.ts';
+
+/** S7D-01: how often an open panel that shows the mock line reads the status again. */
+const MOCK_RECHECK_MS = 60_000;
+/** The screens a timed run owns, as server/tutor/guard.ts TIMED_SCREENS names them: only there does a help_waits refusal keep the server's own line. */
+export const TIMED_SCREENS: ReadonlySet<string> = new Set(['drill', 'ga4_run', 'mock']);
 
 export function TutorPanel({ screen, subject }: { screen: Screen; subject?: string }) {
   const t = useTutor()!;
@@ -55,13 +60,28 @@ export function TutorPanel({ screen, subject }: { screen: Screen; subject?: stri
   // screen and on opening, so the line shows before any question is sent, and the tutor opens again once the mock has ended.
   const mockWait = useRef(Symbol('mock-run'));
   const closeFor = t.close;
-  const readStatus = (): (() => void) => {
+  const readStatus = (then?: (waits: string | null) => void): (() => void) => {
     let live = true;
-    tutorStatus().then((s) => { if (!live) return; setStatus(s); closeFor(mockWait.current, mockWaitsIn(s)); }, () => {});
+    tutorStatus().then((s) => { if (!live) return; setStatus(s); closeFor(mockWait.current, mockWaitsIn(s)); then?.(mockWaitsIn(s)); }, () => {});
     return () => { live = false; };
   };
   useEffect(readStatus, [screen, subject]);
   useEffect(() => () => closeFor(mockWait.current, null), []);
+  // S7D-01 (X3-M4): a case round's clock or a take-home's 24 hours can end a mock while the page sits on a screen, so the status is read again
+  // when the page becomes visible (the tab was in the background), and every 60 seconds while the panel is open and the mock line shows.
+  useEffect(() => {
+    let stopRead: (() => void) | null = null;
+    const onVisible = () => { if (document.visibilityState !== 'hidden') { stopRead?.(); stopRead = readStatus(); } };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => { document.removeEventListener('visibilitychange', onVisible); stopRead?.(); };
+  }, []);
+  const lineShows = t.open && status !== null && mockWaitsIn(status) !== null;
+  useEffect(() => {
+    if (!lineShows) return;
+    let stopRead: (() => void) | null = null;
+    const timer = setInterval(() => { stopRead?.(); stopRead = readStatus(); }, MOCK_RECHECK_MS);
+    return () => { clearInterval(timer); stopRead?.(); };
+  }, [lineShows]);
   // Opening: the question box gets focus and the status (the spend, D117's mock run) is read again. Closing: focus goes back to where it was,
   // when it was in the panel.
   useEffect(() => {
@@ -85,6 +105,9 @@ export function TutorPanel({ screen, subject }: { screen: Screen; subject?: stri
   // Review Focus 2: closing the panel (Close, Alt+T, the top bar's button) is leaving too, so the call is cancelled; the question goes back
   // in the box and the thread stays.
   useEffect(() => { if (!t.open) stop(); }, [t.open]);
+  // Codex F39: so is the tutor closing while the panel is open (D117's status read, D94's timed runs). The reply is not drawn while it waits,
+  // so it stops here rather than running, and being billed, to its end.
+  useEffect(() => { if (t.closedBy) stop(); }, [t.closedBy]);
 
   /** Shows how a question ended (afterAsk). */
   function show(question: string, after: AfterAsk): void {
@@ -116,13 +139,18 @@ export function TutorPanel({ screen, subject }: { screen: Screen; subject?: stri
     const ac = new AbortController();
     inFlight.current = { ac, asked };
     let end: AskEnd;
+    let refused = false;
     try {
       const { reply, summary } = await tutorAsk({ screen, ...(subject ? { subject_id: subject } : {}), snapshot: snap.text,
         item: snap.item ? { item_id: snap.item.item_id, item_instance_id: snap.item.item_instance_id, phase: snap.item.phase } : null,
         thread: [...asked.thread.exchanges], question }, (part) => setLive({ question, reply: part }), ac.signal);
       end = { kind: 'ended', reply, summary };
     } catch (e) {
-      end = { kind: 'failed', message: e instanceof ApiError ? e.message : NO_ANSWER };
+      // S7D-01: a help_waits refusal on a screen that is no run screen is a mock's. The panel's own line replaces the run screens' "Help opens in
+      // the end-of-run review.", and the status is read again, which closes the tutor with that line while the mock is on (F2-1-2).
+      const mockRefusal = e instanceof ApiError && e.status === 409 && (e.body as { code?: string } | undefined)?.code === 'help_waits' && !TIMED_SCREENS.has(screen);
+      if (mockRefusal) refused = true;
+      end = { kind: 'failed', message: mockRefusal ? `${MOCK_WAITS}.` : e instanceof ApiError ? e.message : NO_ANSWER };
     }
     setBusy(false);
     if (inFlight.current?.ac === ac) inFlight.current = null;
@@ -136,6 +164,8 @@ export function TutorPanel({ screen, subject }: { screen: Screen; subject?: stri
       setStatus((v) => (v ? { ...v, spent_today_usd: s.spent_today_usd, cap_usd: s.cap_usd } : v));
     }
     show(question, afterAsk(asked, end));
+    // The closed panel shows the mock line while the mock is on, so the note goes: it never outlives the mock (F2-1-1).
+    if (refused) readStatus(() => setNote(null));
   }
 
   if (!t.open) return null;

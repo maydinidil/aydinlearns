@@ -23,6 +23,7 @@
 import type { Context, Hono } from 'hono';
 import { HTTPException } from 'hono/http-exception';
 import { SCHEMA_VERSION, type AttemptFileRecord, type Section } from '../../core/envelope.ts';
+import type { ChoiceSection } from '../../schemas/choice.ts';
 import type { GoalCriterion } from '../../core/goals.ts';
 import { countsAsAttempt } from '../../core/replay.ts';
 import { amsterdamDate } from '../../core/time.ts';
@@ -132,12 +133,16 @@ export interface MockReview extends MockHistoryRow {
   not_reached: number;
 }
 /** S7-07: a knowledge mock's review: its score per section and per topic, the GA4 topics' names, and never a question (S3-12). */
-export interface KnowledgeMockReview extends MockHistoryRow, KnowledgeScore { mock: 'knowledge'; items: []; topic_names: Record<string, string> }
+export interface KnowledgeMockReview extends MockHistoryRow, KnowledgeScore {
+  mock: 'knowledge'; items: []; topic_names: Record<string, string>;
+  /** S7D-02 (F2-2-1): the listed questions no record names (a crash ended the run before they were shown); absent on a 0.7.1 run, whose mock_open lists none. */
+  not_reached?: number;
+}
 /** S7-07: a case-round's or take-home's review (routes/mock-cases.ts): each checkpoint's answer beside the correct one, the model texts, the rubric. */
 export interface CaseMockReview extends MockHistoryRow, MockCaseReviewPart { mock: 'case_round' | 'take_home'; items: [] }
 
 /** Codex F36: a serving of the run, and whether it has its one answer (an answer that counts, in the log). */
-export interface MarkedServing { item_id: string; item_instance_id: string; answered: boolean }
+export interface MarkedServing { item_id: string; item_instance_id: string; answered: boolean; section?: ChoiceSection }
 
 type Rec = Record<string, unknown>;
 const refuse = (status: 400 | 404 | 409, message: string): HTTPException => new HTTPException(status, { message });
@@ -375,7 +380,9 @@ export function mountMocks(app: Hono, d: RouteDeps, runs: DrillRuns, engine: Cas
       if (r.status === 'on') throw refuse(409, REVIEW_WAITS);
       // N1 M4: the same reading of its questions and first answers as its history row, so the sections add up to it.
       const score = knowledgeScore(records, block, Date.parse(r.ended_at!), d.content.mocks!.knowledge, knowledgeTopic(d.content));
-      const body: KnowledgeMockReview = { ...historyRow(r), mock: 'knowledge', items: [], ...score, topic_names: { ...d.content.ga4Exam?.()?.topic_names } };
+      const unreached = knowledgeNotReached(records as Rec[], block);
+      const body: KnowledgeMockReview = { ...historyRow(r), mock: 'knowledge', items: [], ...score, topic_names: { ...d.content.ga4Exam?.()?.topic_names },
+        ...(unreached === null ? {} : { not_reached: unreached }) };
       return c.json(body);
     }
     if (r && isMockCaseKind(r.mock)) {
@@ -383,7 +390,7 @@ export function mountMocks(app: Hono, d: RouteDeps, runs: DrillRuns, engine: Cas
       // spent, so its texts are shown; CP3's diff is its answer graded again, as a screen mock's.
       if (r.status === 'on') throw refuse(409, REVIEW_WAITS);
       const part = await cases.review(r, (item, sql, attemptId) => regrade(item, sql, false, attemptId));
-      if (!part) throw refuse(404, 'Unknown mock run.');
+      if (!part) throw refuse(404, CASE_GONE);   // ended, a case mock, and no case to show (S7D-03)
       const body: CaseMockReview = { ...historyRow(r), mock: r.mock, items: [], ...part };
       return c.json(body);
     }
@@ -423,6 +430,19 @@ export function mountMocks(app: Hono, d: RouteDeps, runs: DrillRuns, engine: Cas
   }
 
   return { planWait: cases.planWait };
+}
+
+/** S7D-03: the line the review answers with when an ended case mock's case has left the content. */
+const CASE_GONE = "This run's case is no longer in the course.";
+/**
+ * S7D-02 (F2-2-1): how many of a knowledge run's questions it never showed: those its mock_open lists (D116) that no answer or item close of
+ * its block names. Null when the mock_open lists none (a 0.7.1 run), since nothing says how many were drawn.
+ */
+function knowledgeNotReached(records: readonly Rec[], block: string): number | null {
+  const open = records.find((r) => r.record === 'mock_open' && r.block_id === block && r.mock === 'knowledge');
+  if (!open || !Array.isArray(open.item_ids)) return null;
+  const named = new Set(records.filter((r) => r.block_id === block && ((r.record === 'attempt' && r.phase === 'mock') || r.record === 'item_close')).map((r) => r.item_id));
+  return open.item_ids.filter((id) => !named.has(id)).length;
 }
 
 /**

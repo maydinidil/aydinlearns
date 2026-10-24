@@ -1,6 +1,6 @@
 {
   "id": "EX-SQL-WIN-05-E2-04",
-  "version": 1,
+  "version": 2,
   "kind": "write",
   "tags": [
     "sql",
@@ -53,7 +53,7 @@
   "company": "mailvora",
   "schema": "mailvora",
   "edge_schema": "mailvora_edge_win",
-  "prompt": "For each paid channel and each month from July to October 2025, show the channel's total ad spend that month and the 3-month moving average of its monthly spend: the average of that month and the 2 months before it, rounded to 2 decimals. Every channel with a budget row for a month has a row for it, and a month with no spend counts as 0. Only July to October count, so July and August have fewer than 3 months to average: show their avg_spend_3m as missing. Return channel_id, month (the first day of the month), spend_eur and avg_spend_3m. Any row order is fine.",
+  "prompt": "For each paid channel and each month from July to October 2025, show the channel's total ad spend that month and the 3-month moving average of its monthly spend: the average of that month and the 2 months before it, rounded to 2 decimals. Every channel with a budget row for a month has a row for it, and a month with no spend counts as 0. Only July to October count, so July and August have fewer than 3 months to average: show their avg_spend_3m as missing. Return four columns, in this order: channel_id, month (the first day of the month), spend_eur and avg_spend_3m. Return one row for each such channel and month with a budget row. Any row order is fine.",
   "output_contract": {
     "columns": [
       {

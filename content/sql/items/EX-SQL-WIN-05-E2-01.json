@@ -1,6 +1,6 @@
 {
   "id": "EX-SQL-WIN-05-E2-01",
-  "version": 1,
+  "version": 2,
   "kind": "write",
   "tags": [
     "sql",
@@ -52,7 +52,7 @@
   "company": "voltmarkt",
   "schema": "voltmarkt",
   "edge_schema": "voltmarkt_edge_win",
-  "prompt": "For the webshop (store_code WEB-01), show every UTC day from 1 to 31 March 2025 with its net revenue and its 7-day moving average: the average daily revenue of that day and the 6 days before it, rounded to 2 decimals. Every day of March has a row, and a day with no orders counts as 0 revenue. Only March's days count, so the first six days of March have fewer than 7 days to average: show their avg_revenue_7d as missing. Return order_date, revenue_eur and avg_revenue_7d. Any row order is fine.",
+  "prompt": "For the webshop (store_code WEB-01), show every UTC day from 1 to 31 March 2025 with its net revenue and its 7-day moving average: the average daily revenue of that day and the 6 days before it, rounded to 2 decimals. Every day of March has a row, and a day with no orders counts as 0 revenue. Only March's days count, so the first six days of March have fewer than 7 days to average: show their avg_revenue_7d as missing. Return three columns, in this order: order_date, revenue_eur and avg_revenue_7d. Return one row for each day of March 2025. Any row order is fine.",
   "output_contract": {
     "columns": [
       {

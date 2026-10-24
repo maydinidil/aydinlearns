@@ -7,8 +7,9 @@ import assert from 'node:assert/strict';
 import { act, createElement, Fragment, useState, type ReactElement } from 'react';
 import { click, render, settle, type } from '../../helpers/render.ts';
 import { GradePanel } from '../../../web/src/components/GradePanel.tsx';
-import { TutorPanel } from '../../../web/src/tutor/TutorPanel.tsx';
+import { TIMED_SCREENS, TutorPanel } from '../../../web/src/tutor/TutorPanel.tsx';
 import { MOCK_WAITS, TutorProvider, useTutor, useTutorAvailable, useTutorClosed, useTutorPart, type TutorState } from '../../../web/src/tutor/TutorContext.tsx';
+import { TIMED_SCREENS as GUARD_TIMED_SCREENS } from '../../../server/tutor/guard.ts';
 import { choicePart } from '../../../web/src/tutor/snapshot.ts';
 import { SUMMARY_MARK, type TutorAskBody } from '../../../schemas/tutor.ts';
 import type { PublicGrade } from '../../../web/src/api.ts';
@@ -325,3 +326,163 @@ test('D117 (S7C-04): while a mock runs the panel shows the waiting line on any s
   } finally { unmount(); }
   assert.equal(tutor!.closedBy, null, 'nothing is left closed once the panel is gone');
 });
+
+// ---- Codex F39 (PR #54) ------------------------------------------------------------------------------------------------------------------
+
+test('Codex F39: a reply in flight stops when the status read says a mock is on; the question goes back in the box and no reply joins the thread', async () => {
+  viewport(false);
+  let mockOn = false;
+  let reads = 0;
+  let answerRead = null as (() => void) | null;
+  let signal = null as AbortSignal | null;
+  const status = (): Response => new Response(JSON.stringify({ enabled: true, switched_on: true, provider: 'claude', model: 'claude-haiku-5-5', effort: 'medium',
+    reason: null, models: [], keys: [], spent_today_usd: 0, cap_usd: 1, run_on: mockOn, mock_on: mockOn }), { status: 200, headers: { 'content-type': 'application/json' } });
+  globals.fetch = async (input: unknown, init?: { signal?: AbortSignal }) => {
+    if (String(input) === '/api/tutor/status') {
+      reads += 1;
+      // The read made on opening answers only after the question was sent: a mock started in another tab meanwhile.
+      if (reads === 2) return new Promise<Response>((resolve) => { answerRead = () => resolve(status()); });
+      return status();
+    }
+    if (String(input) === '/api/tutor/ask') {
+      signal = init!.signal!;
+      const stopped = signal;
+      // The reply streams its first part and then waits, as a long reply does; stopping the call ends it as fetch does.
+      return new Response(new ReadableStream<Uint8Array>({ start(c) {
+        c.enqueue(new TextEncoder().encode('The first part of the reply '));
+        stopped.addEventListener('abort', () => c.error(new DOMException('The call was stopped.', 'AbortError')), { once: true });
+      } }), { status: 200 });
+    }
+    return new Response(JSON.stringify({ error: 'Not found.' }), { status: 404, headers: { 'content-type': 'application/json' } });
+  };
+  const { container, unmount } = mount();
+  try {
+    await settle();
+    await open();
+    await ask(container, 'Why does this join drop rows?');
+    assert.ok(signal, 'the question was sent');
+    assert.match(container.querySelector('aside .tutor-thread')!.textContent!, /The first part of the reply/, 'its reply began to stream');
+    mockOn = true;
+    await act(async () => { answerRead!(); });
+    await settle();
+    assert.equal(tutor!.closedBy, MOCK_WAITS, 'the status read closes the tutor');
+    assert.equal(signal!.aborted, true, 'and stops the reply in flight, so the call is not billed to its end');
+    mockOn = false;                                                                          // the mock is handed in
+    await shut(); await open();
+    assert.equal(tutor!.closedBy, null, 'the tutor opens again');
+    assert.equal(container.querySelectorAll('aside .tutor-thread li').length, 0, 'no reply joined the thread');
+    assert.equal((container.querySelector('aside textarea') as HTMLTextAreaElement).value, 'Why does this join drop rows?', 'the question is back in the box, as after Close');
+  } finally { unmount(); }
+});
+
+// ---- Sprint 7d (Task Y1): S7D-01, the stale mock line -------------------------------------------------------------------------------------
+
+/** Every setInterval the page makes is kept, not run; `fire` runs the live ones. Returns what restores the timers. */
+function intervals() {
+  const real = { set: globals.setInterval, clear: globals.clearInterval };
+  const live = new Map<number, { fn: () => void; ms: number }>();
+  let next = 1000;
+  globals.setInterval = (fn: () => void, ms?: number) => { next += 1; live.set(next, { fn, ms: ms ?? 0 }); return next; };
+  globals.clearInterval = (id: number) => { live.delete(id); };
+  return {
+    live: () => [...live.values()].filter((i) => i.ms === 60_000),
+    fire: async () => { await act(async () => { for (const i of [...live.values()]) if (i.ms === 60_000) i.fn(); }); await settle(); },
+    restore: () => { globals.setInterval = real.set; globals.clearInterval = real.clear; },
+  };
+}
+const panelOn = (screen: 'today' | 'drill') => render(createElement(TutorProvider, { enabled: true,
+  children: createElement(Fragment, null, createElement('main', null, 'The screen'), createElement(TutorPanel, { screen }), createElement(Probe)) }));
+
+test('S7D-01: while the panel is open and the mock line shows, the status is read again every 60 seconds; the timer stops when the line clears, and on close', async () => {
+  viewport(false);
+  let mockOn = true;
+  const reads = stubStatus(() => mockOn);
+  const timers = intervals();
+  const { container, unmount } = panelOn('today');
+  try {
+    await settle();
+    assert.equal(timers.live().length, 0, 'a closed panel keeps no timer');
+    await open();
+    assert.equal(timers.live().length, 1, 'open, with the mock line: one 60-second timer');
+    const before = reads.length;
+    await timers.fire();
+    assert.equal(reads.length, before + 1, 'each tick reads the status');
+    assert.equal(tutor!.closedBy, MOCK_WAITS, 'the mock is still on');
+    mockOn = false;                                                                          // the case round hit its limit
+    await timers.fire();
+    assert.equal(tutor!.closedBy, null, 'the read clears the line');
+    assert.ok(container.querySelector('aside.tutor-panel textarea'), 'and the question box is back');
+    assert.equal(timers.live().length, 0, 'with the line gone the timer is cleared');
+    mockOn = true;
+    await shut(); await open();
+    assert.equal(timers.live().length, 1, 'the line shows again: the timer is back');
+    await shut();
+    assert.equal(timers.live().length, 0, 'closing clears it');
+  } finally { unmount(); timers.restore(); }
+});
+
+test('S7D-01: the status is read again when the page becomes visible, whether the panel is open or not', async () => {
+  viewport(false);
+  let mockOn = true;
+  const reads = stubStatus(() => mockOn);
+  const { unmount } = panelOn('today');
+  try {
+    await settle();
+    assert.equal(tutor!.closedBy, MOCK_WAITS);
+    mockOn = false;
+    const before = reads.length;
+    await act(async () => { document.dispatchEvent(new Event('visibilitychange')); });
+    await settle();
+    assert.equal(reads.length, before + 1, 'one read');
+    assert.equal(tutor!.closedBy, null, 'the stale line is gone with the panel closed');
+  } finally { unmount(); }
+  const after = reads.length;
+  await act(async () => { document.dispatchEvent(new Event('visibilitychange')); });
+  assert.equal(reads.length, after, 'a gone panel reads nothing');
+});
+
+test('S7D-01: a 409 help_waits on Today shows the panel\'s own mock line, never the run screens\' "Help opens in the end-of-run review."; the status is read again. On a run screen the server\'s line stands', async () => {
+  viewport(false);
+  let mockOn = false;
+  const reads: string[] = [];
+  const HELP_WAITS = 'Help opens in the end-of-run review.';
+  globals.fetch = async (input: unknown) => {
+    const json = (status: number, body: unknown) => new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } });
+    if (String(input) === '/api/tutor/status') {
+      reads.push('status');
+      return json(200, { enabled: true, switched_on: true, provider: 'claude', model: 'claude-haiku-5-5', effort: 'medium', reason: null, models: [], keys: [],
+        spent_today_usd: 0, cap_usd: 1, run_on: mockOn, mock_on: mockOn });
+    }
+    if (String(input) === '/api/tutor/ask') return json(409, { error: HELP_WAITS, code: 'help_waits' });
+    return json(404, { error: 'Not found.' });
+  };
+  const today = panelOn('today');
+  try {
+    await settle();
+    await open();                                                                              // the status said no mock, a moment ago
+    mockOn = true;                                                                             // a take-home was started in another tab
+    const before = reads.length;
+    await ask(today.container, 'Why does this join drop rows?');
+    assert.equal(reads.length, before + 1, 'the refusal reads the status again');
+    const text = today.container.querySelector('aside.tutor-panel')!.textContent!;
+    assert.ok(!text.includes(HELP_WAITS), 'not the run screens\' line');
+    assert.equal(today.container.querySelector('aside.tutor-panel [role="status"]')?.textContent, `${MOCK_WAITS}.`, 'the mock waiting line');
+    assert.equal(tutor!.closedBy, MOCK_WAITS);
+    mockOn = false;                                                                            // F2-1-1: the mock ends
+    await act(async () => { document.dispatchEvent(new Event('visibilitychange')); });
+    await settle();
+    assert.equal(tutor!.closedBy, null, 'the tutor opens again');
+    assert.ok(![...today.container.querySelectorAll('aside.tutor-panel [role="status"]')].some((n) => n.textContent === `${MOCK_WAITS}.`),
+      'the mock line does not stay once the mock is over');
+  } finally { today.unmount(); }
+  mockOn = false;
+  const drill = panelOn('drill');
+  try {
+    await settle();
+    await open();
+    await ask(drill.container, 'Why does this join drop rows?');
+    assert.match(drill.container.querySelector('aside.tutor-panel [role="status"]')!.textContent!, /Help opens in the end-of-run review\./);
+  } finally { drill.unmount(); }
+});
+
+test("Y1-R1: the panel keeps the server's line on exactly the run screens the tutor guard names", () => assert.deepEqual([...TIMED_SCREENS].sort(), [...GUARD_TIMED_SCREENS].sort()));

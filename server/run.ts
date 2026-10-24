@@ -3,10 +3,11 @@
 // through the exam engine (core/exam.ts), reads the retake rule's history from the attempt log (S3-05), and derives every ended run,
 // its score and its review from the logs alone (S3-10), as server/drill.ts does for the SQL drills. routes/run.ts serves them; the run
 // clock is server/drill.ts's DrillRuns, which holds the SQL drills too (S3-08).
-// A run is one block (S3-01): phase drill for a mini drill, mock for a half-mock or a full mock, section ga4. Nothing marks its start;
-// each answer is an attempt, whose payload names the run's kind (run_kind, log version 5, D68); its end closes every item run_end and
-// writes one rated block_close. A block with no run_kind (an older log, or a run with no answer) is told by its phase and, for a mock,
-// by how many items it closed. A run is scored with the blueprint in force on the date it started (blueprintOn, F14).
+// A run is one block (S3-01): phase drill for a mini drill, mock for a half-mock or a full mock, section ga4. Its start writes one
+// run_open (log version 8, D123) with its block, kind and blueprint entry; each answer is an attempt, whose payload names the run's kind
+// (run_kind, log version 5, D68); its end closes every item run_end and writes one rated block_close. A block with no run_kind (an older
+// log, or a run with no answer) is told by its phase and, for a mock, by how many items it closed. A run is scored with the blueprint in
+// force on the date it started (blueprintOn, F14): its run_open's date, or with none (a version 7 log) its earliest record's.
 // Sprint 7 Part 2 (Task N1; S7-10, S7-11): the knowledge mock's draw (20 held-out Methodology and 10 knowledge-pool GA4 questions), the
 // date its unseen questions come back, and its review's score per section and topic. The GA4 history is kept apart from it: every GA4
 // run path here (examHistory, choiceRuns) ignores a knowledge mock's block, and the GA4 half and full mock pool (ga4ExamPool) never holds
@@ -75,6 +76,15 @@ export function runView(run: RunEntry) {
 }
 
 export const isGa4Item = (i: ChoiceItem | undefined): i is Ga4Item => i?.section === 'ga4';
+
+/**
+ * D123: the `from` date of the content/ga4/exam.json entry whose blueprint blueprintOn gives a run of `kind` started on `date` (an Amsterdam
+ * date): what the start's run_open logs as `blueprint_from`.
+ */
+export function blueprintFrom(cfg: Ga4ExamConfig, kind: ChoiceRunKind, date: string): string {
+  const bp = blueprintOn(cfg, kind, date);
+  return (cfg.dated.find((e) => e[kind] === bp) ?? cfg.dated[0]!).from;
+}
 
 // ---- the draw (S3-02, S3-06) ---------------------------------------------------------------------------------------------------
 
@@ -264,7 +274,8 @@ export interface ChoiceRun {
  * - Kind (D68): the run_kind any of its answers logged. With none (a log before version 5, or a run with no answer), a mock block
  *   is a full mock when it closed more items than the half-mock blueprint of its date asks, else a half-mock; a drill block is a
  *   mini drill. A block with no answer is listed; the readiness check (Task B5) never counts it.
- * - Blueprint (F14): the one in force on the date the run started (blueprintOn), so a later dated entry never rescores it.
+ * - Blueprint (F14): the one in force on the date the run started (blueprintOn), so a later dated entry never rescores it. It started at
+ *   its run_open (D123, log version 8), or with none (a version 7 log) at its earliest record, so a run that crossed midnight keeps its entry.
  * - Score: each item's scored answer (S3-02); an unanswered item is wrong (S3-04). The run asks its blueprint's questions, so an
  *   item a crash kept out of the log counts as wrong, as for an SQL level drill (S2-43). Per-topic scores cover the logged items.
  * - A mini drill's unseen share: items with no instance outside the run, seen (S2-97), in the 30 days before its start (S2-41).
@@ -287,9 +298,12 @@ export function choiceRuns(records: readonly object[], o: { cfg: Ga4ExamConfig; 
   const insts = instancesOf(records, skip);
   const h = historyOf(insts, records, skip);
   const ends = new Map<string, string>();
+  const opens = new Map<string, number>();                          // D123: each run's run_open time, ms; the first one logged
   for (const r of records as Rec[]) {
     const b = str(r.block_id), ts = str(r.ts);
     if (r.record === 'block_close' && b && ts && !ends.has(b)) ends.set(b, ts);
+    const at = Date.parse(ts ?? '');
+    if (r.record === 'run_open' && b && !Number.isNaN(at) && !opens.has(b)) opens.set(b, at);
   }
   const blocks = new Map<string, Inst[]>();
   for (const x of insts.values()) {
@@ -302,7 +316,8 @@ export function choiceRuns(records: readonly object[], o: { cfg: Ga4ExamConfig; 
   for (const [block_id, all] of blocks) {
     if (!all.every(ga4)) continue;                                  // an SQL drill (server/drill.ts lists it)
     const members = [...all].sort((p, q) => p.closeSeq - q.closeSeq || p.firstSeq - q.firstSeq);
-    const start = Math.min(...members.map((m) => m.start));
+    // D123: the run started at its run_open (log version 8); with none (a version 7 log), at its earliest record, as before.
+    const start = opens.get(block_id) ?? Math.min(...members.map((m) => m.start));
     const date = amsterdamDate(new Date(start));
     const logged = members.find((m) => m.runKind !== null)?.runKind ?? null;
     const closed = members.filter((m) => m.closedAt !== null).length;

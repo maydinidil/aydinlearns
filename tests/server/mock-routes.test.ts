@@ -117,7 +117,7 @@ test('S7-01, S7-09: starting the screen mock writes one mock_open with SCREEN-A 
   assert.deepEqual(run.servings.map((s) => s.item_id), formItems('A'), 'the form\'s items, in its order');
   const opens = (await records(d)).filter((r) => r.record === 'mock_open');
   assert.equal(opens.length, 1);
-  assert.deepEqual({ ...opens[0], ts: undefined, session_id: undefined }, { record: 'mock_open', schema_version: 7, ts: undefined, session_id: undefined,
+  assert.deepEqual({ ...opens[0], ts: undefined, session_id: undefined }, { record: 'mock_open', schema_version: 8, ts: undefined, session_id: undefined,
     block_id: run.block_id, mock: 'screen', form_id: 'SCREEN-A', minutes: 45, on_unseen: true, pass_correct: 5 });
   assert.equal(Date.parse(run.ends_at) - Date.parse(opens[0].ts), 45 * MINUTE, 'the limit runs from the mock_open');
   assert.ok(Math.abs(Date.parse(opens[0].ts) - clock.now()) < 5_000, 'stamped with the run clock');

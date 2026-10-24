@@ -1,6 +1,6 @@
 {
   "item_id": "EX-SQL-WIN-05-E1-04",
-  "item_version": 1,
+  "item_version": 2,
   "reference_sql": "SELECT month, eur_per_unit,\n  ROUND(AVG(eur_per_unit) OVER (ORDER BY month ROWS BETWEEN 2 PRECEDING AND CURRENT ROW), 4) AS avg_rate_3m,\n  COUNT(*) OVER (ORDER BY month ROWS BETWEEN 2 PRECEDING AND CURRENT ROW) AS months_in_window\nFROM fx_rates_monthly\nWHERE currency = 'USD'\n  AND month BETWEEN DATE '2025-01-01' AND DATE '2025-12-01'",
   "alternatives": [
     "WITH r AS (\n  -- one row per month of 2025\n  SELECT month, eur_per_unit\n  FROM fx_rates_monthly\n  WHERE currency = 'USD'\n    AND month BETWEEN DATE '2025-01-01' AND DATE '2025-12-01'\n)\nSELECT m.month, m.eur_per_unit, ROUND(AVG(p.eur_per_unit), 4) AS avg_rate_3m, COUNT(*) AS months_in_window\nFROM r m\nJOIN r p ON p.month BETWEEN m.month - INTERVAL 2 MONTH AND m.month\nGROUP BY m.month, m.eur_per_unit",
@@ -24,11 +24,11 @@
   ],
   "hint3_partial": "SELECT month, eur_per_unit,\n  ROUND(AVG(eur_per_unit) OVER (ORDER BY month ROWS BETWEEN ___ AND CURRENT ROW), 4) AS avg_rate_3m,\n  COUNT(*) OVER (ORDER BY month ROWS BETWEEN ___ AND CURRENT ROW) AS months_in_window\nFROM fx_rates_monthly\nWHERE currency = 'USD'\n  AND month BETWEEN DATE '2025-01-01' AND DATE '2025-12-01'",
   "solver": {
-    "prompt_hash": "f7e9b81b59efaede",
+    "prompt_hash": "b54b116aabef1ed0",
     "schema_version": "6c878999966c",
-    "dataset_version": "e7c58abf7e8f892e",
-    "grader_version": "7a.1",
-    "query": "SELECT month, eur_per_unit,\n  ROUND(AVG(eur_per_unit) OVER (ORDER BY month ROWS BETWEEN 2 PRECEDING AND CURRENT ROW), 4) AS avg_rate_3m,\n  COUNT(*) OVER (ORDER BY month ROWS BETWEEN 2 PRECEDING AND CURRENT ROW) AS months_in_window\nFROM fx_rates_monthly\nWHERE currency = 'USD' AND month BETWEEN DATE '2025-01-01' AND DATE '2025-12-01'\n",
-    "at": "2026-10-21T09:05:09.081Z"
+    "dataset_version": "ef4aa0325da6ea43",
+    "grader_version": "7c.1",
+    "query": "SELECT CAST(month AS DATE) AS month, eur_per_unit,\n       ROUND(AVG(eur_per_unit) OVER w, 4) AS avg_rate_3m,\n       COUNT(*) OVER w AS months_in_window\nFROM fx_rates_monthly\nWHERE currency = 'USD' AND CAST(month AS DATE) BETWEEN DATE '2025-01-01' AND DATE '2025-12-31'\nWINDOW w AS (ORDER BY CAST(month AS DATE) ROWS BETWEEN 2 PRECEDING AND CURRENT ROW)\n",
+    "at": "2026-10-23T12:15:46.798Z"
   }
 }

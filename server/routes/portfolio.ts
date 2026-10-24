@@ -9,9 +9,9 @@
 //   no such case, is a 404 before anything else. Then it logs one case_export event { case_id, files, data_source }.
 //
 // What the files hold (S4B-17, S4B-18): only the learner's own logged texts (the latest plan, the day-1 sketch, the latest insight)
-// and the learner's own latest passing CP3 query (when every pass had help before it, the latest pass, marked so: Seams M2),
-// re-run now through the runner's gate (`display`, design §11) on the CP3 item's visible schema; the case record's brief and
-// labels; and CP4's value, which the learner has answered (a solved case passed it).
+// and the learner's own latest passing CP3 query (when every pass had help before it, the latest pass, marked so: Seams M2; a copy
+// of the item's "other ways" answer is marked too, S7D-04), re-run now through the runner's gate (`display`, design §11) on the CP3
+// item's visible schema; the case record's brief and labels; and CP4's value, which the learner has answered (a solved case passed it).
 // Never a key's SQL, never the model plan or the model answer. The page and the CSV are built by the pure functions below.
 //
 // POST /api/explore/flagship (sprint 6 Part 2, Task G3; S6-25, design §7 job 6): "Save as a flagship draft" in the explorer. { schema,
@@ -45,6 +45,8 @@ export const NO_INSIGHT = 'No insight written.';
 const NO_QUERY = 'No passing query is in the log.';
 /** Seams M2: the line under a query that is the latest pass only because no pass without help exists (a reveal, or hint 2 or 3, before it). */
 export const AFTER_REVEAL = 'This query followed "Show answer" or a late hint.';
+/** S7D-04: the line under a query that is a copy of the CP3 item's "other ways" answer (followedOtherWay). */
+export const AFTER_OTHER_WAY = 'This query followed Other ways.';
 /** The highest -N suffix tried on one day before the export gives up. */
 const MAX_SUFFIX = 999;
 /** The case ID pattern of schemas/case.ts (validateCaseRecord), where it is not exported: a file name is built from nothing else. */
@@ -78,6 +80,8 @@ export interface PageInput {
   query: string | null; result: Rerun;
   /** Seams M2: the query is the latest pass, which had help before it, because no pass without help exists (AFTER_REVEAL). */
   query_assisted: boolean;
+  /** S7D-04: the query is a copy of the item's "other ways" answer (followedOtherWay; AFTER_OTHER_WAY). Absent: false. */
+  query_other_way?: boolean;
   /** CP4's question and value with its unit; null for a case with no CP4. */
   headline: { question: string; answer: string } | null;
   insight: string | null;
@@ -188,6 +192,7 @@ export function buildPage(p: PageInput): string {
     const f = fence(p.query);
     out.push(`${f}sql`, p.query.replace(/\r\n?/g, '\n').replace(/\n+$/, ''), f);
     if (p.query_assisted) out.push('', AFTER_REVEAL);
+    if (p.query_other_way === true) out.push('', AFTER_OTHER_WAY);
   }
   out.push('', '## The result', '', ...(p.query === null ? ['There is no query to run. The CSV beside this page holds the header only.'] : resultSection(p.result)), '',
     '## The headline number', '');
@@ -374,6 +379,22 @@ const typedOf = (payload: unknown): string | null => {
   const t = (payload as { typed?: unknown } | null)?.typed;
   return typeof t === 'string' && t.trim() !== '' ? t.trim() : null;
 };
+/** S7D-04: SQL with every run of whitespace removed and in lower case, so a copy matches however it was re-spaced or re-cased. */
+const squashed = (sql: string): string => sql.replace(/\s+/g, '').toLowerCase();
+/**
+ * S7D-04: the CP3 `answer` is a copy of the item's "other ways" answer: its own instance logged an other_way_opened at or before it, and its
+ * `query` equals `otherWay` (the key's other-way SQL) once whitespace and case are squashed. "Other ways" opens only after a pass, so the
+ * comparison tells a copy from the learner's own query, and no log record is needed. Compared here, on the server: the page gets only the
+ * line (AFTER_OTHER_WAY), never the key's SQL.
+ */
+export function followedOtherWay(records: readonly object[], answer: { instance_id: string; submitted_at: string }, query: string | null,
+  otherWay: string | null | undefined): boolean {
+  if (query === null || typeof otherWay !== 'string' || otherWay.trim() === '') return false;
+  const at = Date.parse(answer.submitted_at);
+  const opened = (records as Record<string, unknown>[]).some((r) => r.record === 'other_way_opened' && r.item_instance_id === answer.instance_id
+    && typeof r.ts === 'string' && Date.parse(r.ts) <= at);
+  return opened && squashed(query) === squashed(otherWay);
+}
 
 export function mountPortfolio(app: Hono, d: RouteDeps): void {
   const all = (): CaseRecord[] => d.content.cases?.() ?? d.content.openers?.() ?? [];
@@ -447,11 +468,14 @@ export function mountPortfolio(app: Hono, d: RouteDeps): void {
     const cp3 = s.checkpoints.find((x) => x.kind === 'CP3');
     const pass = cp3?.latest_own_pass ?? cp3?.latest_pass ?? null;
     const query = sqlOf(pass?.payload ?? null);
+    // S7D-04: a copy of the CP3 item's "other ways" answer gets its own line; the key's SQL stays here.
+    const copied = pass !== null && cp3 !== undefined && followedOtherWay(d.state.attemptRecords(), pass, query, d.content.key(cp3.item_id)?.other_way?.sql);
     const result = await rerun(r, query);
     const page = buildPage({
       case_id: r.case_id, kind: kindOf(r), title: r.title, level: levelOf(r), persona: r.persona, brief: r.brief, data_source: r.data_source ?? null,
       solved_on: dateOf(s.solved_at), exported_on: exportedOn, plan: s.plan?.fields ?? null, sketch: s.sketch?.fields ?? null,
-      grain: r.expected_output?.grain ?? null, query, query_assisted: pass?.assisted === true, result, headline: headlineOf(r, s), insight: s.insight?.text ?? null,
+      grain: r.expected_output?.grain ?? null, query, query_assisted: pass?.assisted === true, query_other_way: copied, result, headline: headlineOf(r, s),
+      insight: s.insight?.text ?? null,
     });
     // S4B-17: when the query no longer runs, the CSV holds the header only: the case's expected columns.
     const csv = result.ok ? buildCsv(result.columns, result.rows, result.types) : buildCsv(r.expected_output?.columns ?? [], []);

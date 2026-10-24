@@ -1,6 +1,6 @@
 {
   "id": "EX-SQL-WIN-05-E2-06",
-  "version": 1,
+  "version": 2,
   "kind": "write",
   "tags": [
     "sql",
@@ -48,7 +48,7 @@
   "company": "mailvora",
   "schema": "mailvora",
   "edge_schema": "mailvora_edge_win",
-  "prompt": "For each UTC day from 1 July to 31 October 2025 on which at least one user signed up (signup_ts holds UTC time), show the number of signups that day and the 7-day average of daily signups: the signups of the 7 calendar days ending on that day, divided by 7, rounded to 2 decimals. A day with no signups counts as 0, and the 7 days may reach back into June. Return signup_date, signups and avg_signups_7d. Any row order is fine.",
+  "prompt": "For each UTC day from 1 July to 31 October 2025 on which at least one user signed up (signup_ts holds UTC time), show the number of signups that day and the 7-day average of daily signups: the signups of the 7 calendar days ending on that day, divided by 7, rounded to 2 decimals. A day with no signups counts as 0, and the 7 days may reach back into June. Return three columns, in this order: signup_date, signups and avg_signups_7d. Return one row for each such day. Any row order is fine.",
   "output_contract": {
     "columns": [
       {

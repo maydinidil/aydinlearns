@@ -27,170 +27,15 @@ holds the evidence behind those changes.
 
 ## The state you will find it in
 
-**Slices 0, 1a, 1b, 2a and 2b, sprints 4a, 4b, 4c, 5a, 5b, 6 and T, sprint 7 (Parts 1 and 2) and sprint 7c (fix and polish, 0.7.2) are built: SQL levels 1 to 5,
-all of GA4 (with full mocks, the readiness check and the interview labs) and all of Methodology can be studied, with the scheduler, Today, drills, the
-level openers, mistake cards, cases on Voltmarkt, Mailvora and real data, the portfolio export, the Progress screen, the opt-in AI tutor and the
-four recruiter mocks (screen, knowledge, case-round and take-home) on the Recruiter mocks screen.** Slice 2b (GA4 lessons, timed
-GA4 mini drills and half-mocks, SQL choice items) reached `main` through PR #34. Sprint 3b gave
-every screen the direction C look (tokens, a top bar with section tabs, cards, a two-column
-Today), merged in PR #36; the spec is
-[`docs/superpowers/specs/2026-10-06-aydinlearns-visuals-design.md`](docs/superpowers/specs/2026-10-06-aydinlearns-visuals-design.md),
-and every colour lives in `web/src/styles/tokens.css`. Its rulings and deferred findings are in
-[`docs/planning/2026-10-06-sprint-3b-record.md`](docs/planning/2026-10-06-sprint-3b-record.md).
-Sprint 4a, the first part of slice 3, built SQL level 3, mistake cards with the Mistakes and
-review screen, and "other ways to write this", merged in PR #38. Sprint 4b, the rest of slice 3,
-built cases and the inbox, the level 3 opener, the portfolio export, the Progress screen, the
-dataset explorer, screen mode and live reps, merged in PR #40 (2026-10-08). Sprint 4c, a cleanup of
-the SQL learner-facing backlog, merged in PR #41 (2026-10-08). Open deferred work lives in
-[`docs/planning/backlog.md`](docs/planning/backlog.md). Sprint 5 is split: 5a (Methodology
-complete, polish, release 0.5.0) merged in PR #42 and was released as 0.5.0 (tag `v0.5.0` on the
-public repo, 2026-10-08), and 5b (GA4 complete) merged in PR #43, followed by a hygiene PR (PR #44, plan
-[`docs/superpowers/plans/2026-10-09-aydinlearns-hygiene-1-1.md`](docs/superpowers/plans/2026-10-09-aydinlearns-hygiene-1-1.md):
-Codex F27 and ten backlog rows), and was released as 0.5.1 (tag `v0.5.1` on the public repo,
-2026-10-09); read the roadmap first. Release 0.5.2 (2026-10-12, tag `v0.5.2`) added the optional OpenTelemetry (D75, D76; PRs #45 to #47). Release 0.5.3 (2026-10-13, tag `v0.5.3`) added the study journey (D77; PR #48; its rulings, reviews and deferred findings are in [`docs/planning/2026-10-13-release-1-3-record.md`](docs/planning/2026-10-13-release-1-3-record.md)). Sprint 6 Part 1 (2026-10-15, 0.6.0, no public release) added SQL level 4, `voltmarkt_raw` and the incident tickets; Part 2 (2026-10-16, 0.6.1, the public `v0.6.1`) added Mailvora, the dataset registry and the first real-data cases. Sprint T (2026-10-17, 0.6.2, the public `v0.6.2`; PR #51) added the opt-in AI tutor (D91 to D99). Sprint 7 Part 1 (2026-10-21, 0.7.0, no public release) added SQL level 5 and the screen mock; Part 2 (2026-10-22, 0.7.1, the public `v0.7.1`) added the other three recruiter mocks. The app's version is in `package.json` (0.7.2); later sprints ship as 0.x releases (D63, D115). The public releases before 0.7.1 were re-created under the new numbers on 2026-10-23 (`v0.5.0` to `v0.6.2`, sprint 7 R1).
-- Slice 0: the domain-free types in `core/`, the app schemas in `schemas/`, the curriculum and
-  error catalogue extracted into `content/sql/`, and the adjudicated fixes in
-  `knowledge/ERRATA.md`. `knowledge/` itself still holds the research bank: 12 files (00 to 11), plus an index and a
-  review. File 11 (Methodology) arrived on 2026-10-08; its review is
-  `docs/planning/2026-10-08-kb11-review.md`.
-- Spike A checked the DuckDB and server facts on this laptop. Its findings,
-  `docs/planning/2026-10-05-spike-a.md`, amended the design in place.
-- Slice 1a: the Voltmarkt course database (`pipeline/`), the locked SQL runner
-  (`server/runner/`), the grader (`server/grader/`), the logs and the local server (`server/`),
-  the screens (`web/`), the content checks (`tools/`), and six level 1 concepts with 94
-  exercises (`content/`).
-- Sprint 2 (plan
-  [`docs/superpowers/plans/2026-10-03-aydinlearns-sprint-2.md`](docs/superpowers/plans/2026-10-03-aydinlearns-sprint-2.md)):
-  - slice 1b: SQL level 2, the FSRS-6 scheduler (`core/scheduler.ts`), replay of the logs into
-    state (`core/replay.ts`), Today and its session composer, timed drills, and the level
-    openers with their CP3 checkpoint;
-  - slice 2a: GA4 and Methodology level 1 (readings, choice and typed practice graded on the
-    server, held-out mock pools, the maps and Today's tabs) and each opener's typed CP4.
-- Sprint 3, slice 2b: GA4 foundations lessons, timed GA4 runs (`server/run.ts`,
-  `/api/run/*`, the exam engine in `core/exam.ts`), more Methodology metrics, SQL choice kinds
-  and the predict pretest. Its deferred findings are in
-  [`docs/planning/2026-10-06-sprint-3-record.md`](docs/planning/2026-10-06-sprint-3-record.md).
-- Sprint 4a (plan
-  [`docs/superpowers/plans/2026-10-06-aydinlearns-sprint-4a.md`](docs/superpowers/plans/2026-10-06-aydinlearns-sprint-4a.md)):
-  SQL level 3 (8 concepts, 213 items, the order tables, `competitor_prices` and three edge
-  schemas, the level 3 drill); mistake cards derived by replay (`core/replay.ts`) and served by
-  Today, the Mistakes and review screen (`server/routes/mistakes.ts`); wheel-spinning; "other ways
-  to write this" (`POST /api/other-way`); log format version 3 (`card_id` on attempts and help
-  records, the `other_way_opened` record). Its rulings and deferred findings are in
-  [`docs/planning/2026-10-07-sprint-4a-record.md`](docs/planning/2026-10-07-sprint-4a-record.md).
-- Sprint 4b (plan
-  [`docs/superpowers/plans/2026-10-07-aydinlearns-sprint-4b.md`](docs/superpowers/plans/2026-10-07-aydinlearns-sprint-4b.md)):
-  cases (`content/sql/cases/`, the level openers in `content/sql/openers/`, their keys in
-  `content/keys/cases/`) served and graded by `server/routes/cases.ts`, with their status, score and
-  solve date derived by replay (`core/replay.ts`); the inbox and case screens; the daily case and
-  the opener sketch on Today; the portfolio export (`server/routes/portfolio.ts`); the Progress
-  screen and the shared goal view (`server/goal-view.ts`, `server/progress.ts`); the dataset
-  explorer; screen mode, screen-mode drills and live reps; the integer division re-run
-  (`server/grader/portability.ts`); log format version 4 (`portfolio_folder`, `case_export`,
-  `self_check`). Its rulings and deferred findings are in
-  [`docs/planning/2026-10-07-sprint-4b-record.md`](docs/planning/2026-10-07-sprint-4b-record.md).
-- Sprint 4c (plan
-  [`docs/superpowers/plans/2026-10-08-aydinlearns-sprint-4c.md`](docs/superpowers/plans/2026-10-08-aydinlearns-sprint-4c.md)):
-  no new feature. Error IDs `ERR-LOG-28` and `ERR-LOG-29`, wider `ERR-LOG-06` and `ERR-OUT-02`
-  feedback, wording fixes, edge data for two cases, live rep fallback and a history tick, export
-  hardening, the division control re-run (grader `4c.1`), a memory-limit message, a skipped
-  unservable mistake card and keyboard focus. Its rulings and deferred findings are in
-  [`docs/planning/2026-10-08-sprint-4c-record.md`](docs/planning/2026-10-08-sprint-4c-record.md).
-- Sprint 5a (plan
-  [`docs/superpowers/plans/2026-10-08-aydinlearns-sprint-5a.md`](docs/superpowers/plans/2026-10-08-aydinlearns-sprint-5a.md)):
-  Methodology complete (78 concepts in seven topics, 478 items, 93 held out; IDs `EXP-AB-NN`,
-  `STAT-BASIC-NN`, `ECON-PRICE-NN` from knowledge file 11), the Voltmarkt A/B test tables
-  (`ab_assignments`, `ab_conversions`) with three SQL items and CASE-DAILY-L3-03, the `concept_ids`
-  goal criterion (`core/goals.ts`), the practice order after a reading (D59), Codex F26, a polish
-  pass over every screen, and version 0.5.0 (`server/version.ts`, shown in Settings). No log
-  change. Its rulings and deferred findings are in
-  [`docs/planning/2026-10-08-sprint-5a-record.md`](docs/planning/2026-10-08-sprint-5a-record.md).
-- Sprint 5b (plan
-  [`docs/superpowers/plans/2026-10-08-aydinlearns-sprint-5b.md`](docs/superpowers/plans/2026-10-08-aydinlearns-sprint-5b.md)):
-  GA4 complete. Ten interview labs (`content/ga4/labs/`, keys in `content/keys/ga4/labs/`, the guide
-  `content/ga4/lab-guide.json`; schema `schemas/lab.ts`, grading `server/labs.ts`, routes
-  `server/routes/labs.ts`, checks C42 to C45, `npm run export:lab-view` and `record:lab-solver`
-  for the blind solve), full mocks on dated blueprints (`content/ga4/exam.json`, Codex F14, check
-  C46), the readiness check (`server/readiness.ts`, `GET /api/ga4/readiness`, cold answers in
-  `server/progress.ts`), log format version 5 (`lab_answer`, `run_kind`), and version 0.5.1. Its
-  rulings and deferred findings are in
-  [`docs/planning/2026-10-08-sprint-5b-record.md`](docs/planning/2026-10-08-sprint-5b-record.md).
-- Sprint 6 Part 1 (plan
-  [`docs/superpowers/plans/2026-10-14-aydinlearns-sprint-6.md`](docs/superpowers/plans/2026-10-14-aydinlearns-sprint-6.md),
-  decisions D78 to D87): SQL level 4 (5 concepts, their drill, error IDs `ERR-LOG-30` to `-39` and `ERR-SYN-08`);
-  `voltmarkt_raw` (the quirk tables; graded items read it by unqualified name with edge schema
-  `voltmarkt_edge_clean`), `cost_history`, `weekly_units` and four edge schemas; cases on any schema
-  (`CaseRecord.schema`, truths in `data/truth/checkpoints.json`, unavailable cases), twelve cases including the
-  incident tickets CASE-DQ-01 to -05; the cumulative drill over levels 1 to 4; the nesting refusal (S6-08), GRADER_VERSION
-  `6a.1`, `choice.3`; checks C47 to C50 and the case blind solve (`npm run export:case-view`, `record:case-solver`).
-  Its rulings and deferred findings are in
-  [`docs/planning/2026-10-15-sprint-6-record.md`](docs/planning/2026-10-15-sprint-6-record.md).
-- Sprint 6 Part 2 (same plan, decisions D88 to D90): block K (Codex F32: case solver records carry `key_hash`;
-  thirteen backlog rows); Mailvora (`pipeline/mailvora/`: `mailvora`, `mailvora_raw`, `mailvora_edge_case`) and
-  CASE-MKT-01 to -04; the dataset registry (`content/datasets/registry.json`, `schemas/dataset.ts`, check C51) and
-  `npm run prep:datasets` (`tools/prep-datasets.ts`, `pipeline/datasets/`) for Online Retail II, Breakfast at the
-  Frat and the 8 Week SQL Challenge (D87: none of the challenge's text or data is ever committed); the real edge
-  schemas; CASE-REAL-01 and -02; the explorer's dataset picker and flagship drafts; the `real_data_analysis` goal
-  criterion (D85). Which schemas are built comes from `data/truth/checkpoints.json` (`builtSchemas`), read at
-  start. Its rulings and deferred findings are in the same record.
-- Sprint T (plan
-  [`docs/superpowers/plans/2026-10-16-aydinlearns-sprint-t.md`](docs/superpowers/plans/2026-10-16-aydinlearns-sprint-t.md),
-  spec [`docs/superpowers/specs/2026-10-16-aydinlearns-ai-tutor-design.md`](docs/superpowers/specs/2026-10-16-aydinlearns-ai-tutor-design.md),
-  decisions D91 to D99): the opt-in AI tutor. The server side is `server/tutor/` (config, prices, the Claude and OpenAI
-  providers, startup, the spend ledger and guard, the prompt, redaction, course content and the model input),
-  `server/tutor-source.ts` (the only key-free view of the content store the tutor reads) and `server/routes/tutor.ts`
-  (`GET /api/tutor/status`, `POST /api/tutor/ask`, `POST /api/tutor/keys`); block P added the model catalog
-  (`server/tutor/models.ts`) and the key store (`server/tutor/keys.ts`, `tutor-keys.json`, git-ignored; every test
-  server sets `AYDINLEARNS_KEYS_FILE` to a temporary file); the wire shapes are `schemas/tutor.ts`; the browser side is
-  `web/src/tutor/` and each screen's parts (`web/src/lib/tutor-parts.ts`). Log format version 6 (`tutor_asked`,
-  `tutor_daily_cap_usd`); an answered question on an unpassed item is help at level 1 (`core/replay.ts`). `npm run
-  check:imports` keeps `server/tutor/` on an import allow-list away from the keys; `npm run eval:tutor` is the live eval
-  (it spends the owner's key: run it only with the owner's go). Tests never call a provider: the fake model
-  (`AYDINLEARNS_TUTOR_PROVIDER=fake`) or the SDKs' injectable fetch. Its rulings (T-01 to T-23) and deferred findings
-  are in [`docs/planning/2026-10-16-sprint-t-record.md`](docs/planning/2026-10-16-sprint-t-record.md).
-- Sprint 7 Part 1 (plan
-  [`docs/superpowers/plans/2026-10-20-aydinlearns-sprint-7.md`](docs/superpowers/plans/2026-10-20-aydinlearns-sprint-7.md),
-  decisions D100 to D115): SQL level 5 (window functions, `SQL-WIN-01` to `-07`, the level 5 drill, error IDs
-  `ERR-LOG-40` to `-43`, the edge schemas `voltmarkt_edge_win` and `mailvora_edge_win`, CASE-VOLT-L5, CASE-DAILY-L5-01
-  and -02, CASE-RETAIL-05); GRADER_VERSION `7a.1` with the QUALIFY note (S7-20); checks C53 (rank cutoffs state their
-  tie rule), C54 and C55. The screen mock (S7-09): three held-out forms in `content/mocks.json`, served and graded by
-  `server/routes/mocks.ts`, `web/src/screens/MockScreen.tsx`. The mock store (S7-08, D114): mock items (`use: 'mock'`,
-  `EX-MOCK-*`) and mock cases (`content/sql/mocks/`, from Part 2) load only into the content store's mock maps
-  (`mockItem`, `mockCase`); no practice route, the tutor's course text or the portfolio can reach them, and only a
-  mock's own instance reaches its item, while its run is on and in its review. Log format version 7 (D112:
-  `mock_open`, `run_kind: 'knowledge_mock'`, `tutor_asked.ts` as the asking time); mock runs, their passes and the
-  stages they meet are derived by replay (`server/mocks.ts`). The Recruiter mocks screen (`#/mocks`, `web/src/screens/MocksScreen.tsx`, S7-18).
-  Render tests (D113): `npm test` loads `tests/helpers/register-tsx.ts` and draws components in happy-dom
-  (`tests/helpers/render.ts`, tests in `tests/web/render/`). The version numbers were renumbered (D115). Its rulings
-  as built (the plan's S7-NN where the build differs, and the controller's S7-C01 to S7-C19) and deferred findings are in
-  [`docs/planning/2026-10-21-sprint-7-record.md`](docs/planning/2026-10-21-sprint-7-record.md), which Part 2 extends.
-- Sprint 7 Part 2 (same plan, 0.7.1): the knowledge mock (20 Methodology questions from the held-out items and 10 GA4
-  from the 18-question pool `content/ga4/knowledge-pool.json`, 40 minutes, pass at 24 of 30; check C56, and C25 reading
-  the pool, S7-C26); the case-round and take-home mocks (the mock cases `CASE-MOCK-A`, `-B`, `CASE-TAKE-A` and `-B`
-  in `content/sql/mocks/`, held out by folder; `web/src/screens/CaseMockScreen.tsx`, `server/routes/mock-cases.ts`; the
-  take-home's wall clock and its 24-hour close, S7-15, S7-C25); the complete Recruiter mocks screen with all six stages
-  live; the tutor's second opinion in a case mock's review (S7-17, screen `mock_review`); `pass_correct` on
-  `mock_open` (S7-C34, additive); `mailvora_edge_clean`; `npm run check:content -- --only`. Its controller rulings
-  S7-C20 to S7-C36 and the F4 seams review are in the sprint 7 record. The owner's MET-MKT-05 swap (K3 Step 5) ran
-  before PR #53 merged (`db4eaf07`): `Q-MET-MKT-05-01` is back in practice and `Q-MET-MKT-05-02` is held out (S7C-C01).
-- Sprint 7c (plan `docs/superpowers/plans/2026-10-22-aydinlearns-sprint-7c.md`, 0.7.2, 2026-10-22): fix and polish, no
-  new feature. Codex F37 (`reserve-held-out` treats the knowledge pool as held elsewhere) and F38 (a run-level hold
-  for a case mock's insight) are fixed; the tutor is closed on every screen while any mock runs (D117, `mock_on` in
-  `/api/tutor/status`); `mock_open` carries `item_ids` (knowledge) and `core_rubric` (case mocks), additive on version 7
-  (D116); a mock case is held out by its record as well as its folder (S7C-05); `GRADER_VERSION` is `7c.1` and a window
-  function in HAVING, GROUP BY, an aggregate or another window is `ERR-SYN-08` (S7C-08, ERRATA `E-206`); C53 lives in
-  `tools/rank-cutoffs.ts`; 55 SQL prompts (level 5 and two cases) and five GA4 questions were reworded and
-  solved again blind; 33 backlog rows closed, 11 added. Its rulings (S7C-01 to S7C-11, the controller's S7C-C01 on),
-  the seams review and the deferred findings are in the sprint 7 record's "Sprint 7c (0.7.2)" part.
+What is built, the version and the release status live only in [`CHANGELOG.md`](CHANGELOG.md) and [`docs/planning/roadmap.md`](docs/planning/roadmap.md); the version itself is in `package.json` (0.x releases, D63, D115), and open deferred work is in [`docs/planning/backlog.md`](docs/planning/backlog.md). Every colour lives in `web/src/styles/tokens.css` ([the visuals spec](docs/superpowers/specs/2026-10-06-aydinlearns-visuals-design.md)).
+- What each slice and sprint built, and its PR, is in `CHANGELOG.md`, `git log` and the sprint records
+  (`docs/planning/*-record.md`).
 - Every check in the README's "Run and ship" passes, and so does the browser smoke test,
   `npm run test:e2e`. It runs its own server on `AYDINLEARNS_PORT` (default 5174) against an
   empty temporary logs folder, set through `AYDINLEARNS_LOGS_DIR`, and a temporary journey folder,
   set through `AYDINLEARNS_JOURNEY_DIR`; never point a test at the real `logs/` or `journey/`. A
   server on a temporary logs folder writes no journey unless `AYDINLEARNS_JOURNEY_DIR` names one. A
   worktree uses another port (5184 in sprint 2), so the app stays open for study.
-- The plan that built them is
-  [`docs/superpowers/plans/2026-10-02-aydinlearns-slice-0-1a.md`](docs/superpowers/plans/2026-10-02-aydinlearns-slice-0-1a.md).
-  It ends with a roadmap for 1b, 2a and 2b, which get their own plans.
 - Aydin starts the app with `Start aydinlearns.bat` (`tools/launch.ts`), which sets up anything
   missing and opens the browser.
 - **Before planning any sprint, read
@@ -202,13 +47,6 @@ Codex F27 and ten backlog rows), and was released as 0.5.1 (tag `v0.5.1` on the 
   ruling made during the build, and every deferred finding; sprint 2's deferred findings are in
   [`docs/planning/2026-10-05-sprint-2-record.md`](docs/planning/2026-10-05-sprint-2-record.md)). Codex findings live in
   `docs/reviews/codex-findings.md`.
-
-Slices 0 and 1a reached `main` through PR #28, and the follow-ups (the launcher, the stage 1
-fading change, the fixes for Codex's PR #28 findings, the sprint records) through PR #29, both
-merged 2026-10-03. Codex's PR #29 findings (aydinlearns F4 to F6) are fixed in sprint 2's
-minors batch (branch `feat/aydinlearns-minors`). The project is registered in the root README,
-the root CHANGELOG and
-`docs/BACKLOG.md`.
 
 ## How the plan works
 

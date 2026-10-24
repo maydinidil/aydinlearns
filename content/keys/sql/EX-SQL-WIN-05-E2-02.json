@@ -1,6 +1,6 @@
 {
   "item_id": "EX-SQL-WIN-05-E2-02",
-  "item_version": 1,
+  "item_version": 2,
   "reference_sql": "WITH daily AS (\n  -- one row per day with spend\n  SELECT a.spend_date, a.clicks, a.impressions,\n    ROUND(100.0 * SUM(a.clicks) OVER (ORDER BY a.spend_date RANGE BETWEEN INTERVAL 6 DAY PRECEDING AND CURRENT ROW)\n      / SUM(a.impressions) OVER (ORDER BY a.spend_date RANGE BETWEEN INTERVAL 6 DAY PRECEDING AND CURRENT ROW), 2) AS ctr_7d_pct\n  FROM ad_spend_daily a\n  JOIN campaigns c ON c.campaign_id = a.campaign_id\n  WHERE c.campaign_name = 'Search | email marketing software | 2025'\n)\nSELECT spend_date, clicks, impressions, ctr_7d_pct\nFROM daily\nWHERE spend_date BETWEEN DATE '2025-07-01' AND DATE '2025-07-31'",
   "alternatives": [
     "WITH daily AS (\n  -- one row per day with spend\n  SELECT a.spend_date, a.clicks, a.impressions\n  FROM ad_spend_daily a\n  JOIN campaigns c ON c.campaign_id = a.campaign_id\n  WHERE c.campaign_name = 'Search | email marketing software | 2025'\n)\nSELECT d.spend_date, d.clicks, d.impressions, ROUND(100.0 * SUM(p.clicks) / SUM(p.impressions), 2) AS ctr_7d_pct\nFROM daily d\nJOIN daily p ON p.spend_date BETWEEN d.spend_date - INTERVAL 6 DAY AND d.spend_date\nWHERE d.spend_date BETWEEN DATE '2025-07-01' AND DATE '2025-07-31'\nGROUP BY d.spend_date, d.clicks, d.impressions",
@@ -24,11 +24,11 @@
   ],
   "hint3_partial": "WITH daily AS (\n  -- one row per day with spend\n  SELECT a.spend_date, a.clicks, a.impressions,\n    ROUND(100.0 * SUM(a.clicks) OVER (ORDER BY a.spend_date RANGE BETWEEN INTERVAL 6 DAY PRECEDING AND CURRENT ROW)\n      / ___, 2) AS ctr_7d_pct\n  FROM ad_spend_daily a\n  JOIN campaigns c ON c.campaign_id = a.campaign_id\n  WHERE c.campaign_name = 'Search | email marketing software | 2025'\n)\nSELECT spend_date, clicks, impressions, ctr_7d_pct\nFROM daily\nWHERE spend_date BETWEEN DATE '2025-07-01' AND DATE '2025-07-31'",
   "solver": {
-    "prompt_hash": "17fc23907e0c9ee7",
+    "prompt_hash": "c7e57cfb272129f0",
     "schema_version": "09f3a33d3123",
-    "dataset_version": "e7c58abf7e8f892e",
-    "grader_version": "7a.1",
-    "query": "WITH w AS (\n  SELECT a.spend_date, a.clicks, a.impressions,\n    SUM(a.clicks) OVER (ORDER BY a.spend_date RANGE BETWEEN INTERVAL 6 DAY PRECEDING AND CURRENT ROW) AS c7,\n    SUM(a.impressions) OVER (ORDER BY a.spend_date RANGE BETWEEN INTERVAL 6 DAY PRECEDING AND CURRENT ROW) AS i7\n  FROM ad_spend_daily a JOIN campaigns c ON c.campaign_id = a.campaign_id\n  WHERE c.campaign_name = 'Search | email marketing software | 2025'\n)\nSELECT spend_date, clicks, impressions, ROUND(100.0 * c7 / i7, 2) AS ctr_7d_pct\nFROM w\nWHERE spend_date BETWEEN DATE '2025-07-01' AND DATE '2025-07-31'\n",
-    "at": "2026-10-21T09:05:09.304Z"
+    "dataset_version": "ef4aa0325da6ea43",
+    "grader_version": "7c.1",
+    "query": "WITH days AS (SELECT CAST(g AS DATE) AS spend_date FROM generate_series(DATE '2025-06-25', DATE '2025-07-31', INTERVAL 1 DAY) t(g)),\na AS (\n  SELECT CAST(a.spend_date AS DATE) AS d, SUM(a.clicks) AS clicks, SUM(a.impressions) AS impressions\n  FROM ad_spend_daily a JOIN campaigns c ON c.campaign_id = a.campaign_id\n  WHERE c.campaign_name = 'Search | email marketing software | 2025'\n  GROUP BY 1\n),\nx AS (\n  SELECT days.spend_date, a.d IS NOT NULL AS has_row, COALESCE(a.clicks, 0) AS clicks, COALESCE(a.impressions, 0) AS impressions\n  FROM days LEFT JOIN a ON a.d = days.spend_date\n),\ny AS (\n  SELECT spend_date, has_row, clicks, impressions,\n         SUM(clicks) OVER w AS c7, SUM(impressions) OVER w AS i7\n  FROM x\n  WINDOW w AS (ORDER BY spend_date ROWS BETWEEN 6 PRECEDING AND CURRENT ROW)\n)\nSELECT spend_date, clicks, impressions, ROUND(100.0 * c7 / NULLIF(i7, 0), 2) AS ctr_7d_pct\nFROM y\nWHERE has_row AND spend_date >= DATE '2025-07-01'\n",
+    "at": "2026-10-23T12:15:47.113Z"
   }
 }
